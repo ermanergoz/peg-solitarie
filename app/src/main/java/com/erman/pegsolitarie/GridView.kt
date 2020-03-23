@@ -8,6 +8,8 @@ import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import androidx.core.content.ContextCompat.getColor
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.thread
 
 class GridView(
     context: Context?,
@@ -73,12 +75,15 @@ class GridView(
                         radius - PEG_SLOT_WIDTH - PEG_MARGIN,
                         pegSlotPaint
                     )
-                if (cells[i][j] == 2)
+                if (cells[i][j] == 2) {
+                    //TimeUnit.SECONDS.sleep(3)
                     canvas.drawCircle(
                         centerPoint.first,
                         centerPoint.second,
                         radius - PEG_MARGIN, markedPegPaint
                     )
+
+                }
             }
         }
     }
@@ -103,7 +108,7 @@ class GridView(
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (event.action and MotionEvent.ACTION_MASK == MotionEvent.ACTION_DOWN) {
-            Log.w("action", "screen pressed")
+            //Log.w("action", "screen pressed")
             if (isFirstClick) {
                 columnFirst = (event.x / cellWidth).toInt()
                 rowFirst = (event.y / cellHeight).toInt()
@@ -112,9 +117,20 @@ class GridView(
                     markPeg(columnFirst, rowFirst)
                     invalidate()
                 }
+                else
+                {
+
+                }
             } else {
                 columnSecond = (event.x / cellWidth).toInt()
                 rowSecond = (event.y / cellHeight).toInt()
+
+                if (columnFirst == columnSecond && rowFirst == rowSecond) {
+                    unMarkPeg(columnFirst, rowFirst)
+                    isFirstClick = true
+                    invalidate()
+                    return false
+                }
 
                 if (rowFirst < cells[0].size && columnFirst < cells.size) {
                     if (cells[columnFirst][rowFirst] != -1 && cells[columnSecond][rowSecond] != -1) {
@@ -125,8 +141,8 @@ class GridView(
                     invalidate()
                 }
             }
-        } else if (event.action and MotionEvent.ACTION_MASK == MotionEvent.ACTION_UP)
-            Log.w("action", "screen released")
+        } //else if (event.action and MotionEvent.ACTION_MASK == MotionEvent.ACTION_UP)
+        //Log.w("action", "screen released")
 
         return true
     }
