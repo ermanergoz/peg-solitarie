@@ -5,7 +5,6 @@ import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.FragmentManager
 import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
@@ -16,9 +15,35 @@ class MainActivity : AppCompatActivity() {
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN)
 
+        val intent = Intent(this, GameActivity::class.java)
+
         englishButton.setOnClickListener {
-            val intent = Intent(this, GameActivity::class.java)
-            intent.putExtra(KEY_ENGLISH_BOARD, KEY_ENGLISH_BOARD)
+            intent.putExtra(KEY_GAME_BOARD, ENGLISH_BOARD)
+            startActivity(intent)
+        }
+
+        frenchButton.setOnClickListener {
+            intent.putExtra(KEY_GAME_BOARD, FRENCH_BOARD)
+            startActivity(intent)
+        }
+
+        germanButton.setOnClickListener {
+            intent.putExtra(KEY_GAME_BOARD, GERMAN_BOARD)
+            startActivity(intent)
+        }
+
+        asymmetricalButton.setOnClickListener {
+            intent.putExtra(KEY_GAME_BOARD, ASYMMETRICAL_BOARD)
+            startActivity(intent)
+        }
+
+        diamondButton.setOnClickListener {
+            intent.putExtra(KEY_GAME_BOARD, DIAMOND_BOARD)
+            startActivity(intent)
+        }
+
+        triangularButton.setOnClickListener {
+            intent.putExtra(KEY_GAME_BOARD, TRIANGULAR_BOARD)
             startActivity(intent)
         }
     }
