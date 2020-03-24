@@ -41,10 +41,5 @@ class MainActivity : AppCompatActivity() {
             intent.putExtra(KEY_GAME_BOARD, DIAMOND_BOARD)
             startActivity(intent)
         }
-
-        triangularButton.setOnClickListener {
-            intent.putExtra(KEY_GAME_BOARD, TRIANGULAR_BOARD)
-            startActivity(intent)
-        }
     }
 }

@@ -67,10 +67,6 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
             gameBoard = GameBoard(this)
             gameGridHolder.addView(gameBoard.constructDiamondBoard())
             elapsedTimeChronometer.start()
-        } else if (boardSelection == TRIANGULAR_BOARD) {
-            gameBoard = GameBoard(this)
-            gameGridHolder.addView(gameBoard.constructTriangularBoard())
-            elapsedTimeChronometer.start()
         }
     }
 

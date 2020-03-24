@@ -87,21 +87,6 @@ class GameBoard(private var context: Context) {
         return GridView(context, screenWidth, screenHeight, cells, null)
     }
 
-    fun constructTriangularBoard(): View {
-        cells = arrayOf(
-            intArrayOf(-1, -1, -1, -1, -1, -1, 1, -1, -1),
-            intArrayOf(-1, -1, -1, -1, -1, 1, -1, -1, -1),
-            intArrayOf(-1, -1, -1, -1, 1, -1, 1, -1, -1),
-            intArrayOf(-1, -1, -1, 1, -1, 1, -1, -1, -1),
-            intArrayOf(-1, -1, 0, -1, 1, -1, 1, -1, -1),
-            intArrayOf(-1, -1, -1, 1, -1, 1, -1, -1, -1),
-            intArrayOf(-1, -1, -1, -1, 1, -1, 1, -1, -1),
-            intArrayOf(-1, -1, -1, -1, -1, 1, -1, -1, -1),
-            intArrayOf(-1, -1, -1, -1, -1, -1, 1, -1, -1)
-        )   //-1 is dead cell, 1 is peg, 0 is empty
-        return GridView(context, screenWidth, screenHeight, cells, null)
-    }
-
     fun getCells(): Array<IntArray> {
         return this.cells
     }
