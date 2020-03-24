@@ -1,10 +1,17 @@
 <resources>
+    <string name="select_game">SELECT A GAME BOARD</string>
+    <string name="french">French</string>
+    <string name="german">German</string>
+    <string name="asymmetrical">Asymmetric</string>
+    <string name="english">English</string>
+    <string name="diamond">Diamond</string>
     <string name="app_name">Peg Solitaire</string>
     <string name="game_over">Game Over!</string>
     <string name="restart">Restart</string>
     <string name="quit">Quit</string>
     <string name="settings">Settings</string>
     <string name="invalid_move">Invalid move!</string>
+    <string name="pause">Pause</string>
     <string name="resume">Resume</string>
     <string name="game_paused">Game Paused!</string>
 </resources>

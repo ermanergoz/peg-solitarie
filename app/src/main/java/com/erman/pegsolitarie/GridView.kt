@@ -117,10 +117,6 @@ class GridView(
                     markPeg(columnFirst, rowFirst)
                     invalidate()
                 }
-                else
-                {
-
-                }
             } else {
                 columnSecond = (event.x / cellWidth).toInt()
                 rowSecond = (event.y / cellHeight).toInt()

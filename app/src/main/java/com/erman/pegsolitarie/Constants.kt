@@ -7,7 +7,6 @@ const val FRENCH_BOARD: String = "french"
 const val GERMAN_BOARD: String = "german"
 const val ASYMMETRICAL_BOARD: String = "asymmetrical"
 const val DIAMOND_BOARD: String = "diamond"
-const val TRIANGULAR_BOARD: String = "triangular"
 
 const val KEY_GAME_BOARD: String = "game_board"
 
