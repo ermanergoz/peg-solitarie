@@ -41,6 +41,7 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="1.0"
+            android:background="@drawable/selectable_button_background"
             app:layout_constraintStart_toEndOf="@+id/scoreTextView"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -90,6 +91,7 @@
             android:layout_marginRight="8dp"
             android:layout_marginBottom="8dp"
             android:text="@string/pause"
+            android:background="@drawable/selectable_button_background"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
@@ -98,7 +100,11 @@
             android:id="@+id/revertButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginEnd="4dp"
+            android:layout_marginRight="4dp"
+
             android:layout_marginBottom="8dp"
+            android:background="@drawable/selectable_button_background"
             android:text="Revert"
             app:layout_constrainedWidth="true"
             app:layout_constraintBottom_toBottomOf="parent"
