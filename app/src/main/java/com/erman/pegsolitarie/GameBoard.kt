@@ -17,73 +17,69 @@ class GameBoard(private var context: Context) {
 
     private lateinit var cells: Array<IntArray>
 
-    fun constructEnglishBoard(): View {
-        cells = arrayOf(
-            intArrayOf(-1, -1, 1, 1, 1, -1, -1),
-            intArrayOf(-1, -1, 1, 1, 1, -1, -1),
-            intArrayOf(1, 1, 1, 1, 1, 1, 1),
-            intArrayOf(1, 1, 1, 0, 1, 1, 1),
-            intArrayOf(1, 1, 1, 1, 1, 1, 1),
-            intArrayOf(-1, -1, 1, 1, 1, -1, -1),
-            intArrayOf(-1, -1, 1, 1, 1, -1, -1)
-        )   //-1 is dead cell, 1 is peg, 0 is empty
-        return GridView(context, screenWidth, screenHeight, cells, null)
-    }
-
-    fun constructFrenchBoard(): View {
-        cells = arrayOf(
-            intArrayOf(-1, -1, 1, 1, 1, -1, -1),
-            intArrayOf(-1, 1, 1, 1, 1, 1, -1),
-            intArrayOf(1, 1, 1, 1, 1, 1, 1),
-            intArrayOf(1, 1, 0, 1, 1, 1, 1),
-            intArrayOf(1, 1, 1, 1, 1, 1, 1),
-            intArrayOf(-1, 1, 1, 1, 1, 1, -1),
-            intArrayOf(-1, -1, 1, 1, 1, -1, -1)
-        )   //-1 is dead cell, 1 is peg, 0 is empty
-        return GridView(context, screenWidth, screenHeight, cells, null)
-    }
-
-    fun constructGerman(): View {
-        cells = arrayOf(
-            intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1, -1),
-            intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1, -1),
-            intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1, -1),
-            intArrayOf(1, 1, 1, 1, 1, 1, 1, 1, 1),
-            intArrayOf(1, 1, 1, 1, 0, 1, 1, 1, 1),
-            intArrayOf(1, 1, 1, 1, 1, 1, 1, 1, 1),
-            intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1, -1),
-            intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1, -1),
-            intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1, -1)
-        )   //-1 is dead cell, 1 is peg, 0 is empty
-        return GridView(context, screenWidth, screenHeight, cells, null)
-    }
-
-    fun constructAsymmetricalBoard(): View {
-        cells = arrayOf(
-            intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1),
-            intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1),
-            intArrayOf(1, 1, 1, 1, 1, 1, 1, 1),
-            intArrayOf(1, 1, 1, 1, 0, 1, 1, 1),
-            intArrayOf(1, 1, 1, 1, 1, 1, 1, 1),
-            intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1),
-            intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1),
-            intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1)
-        )   //-1 is dead cell, 1 is peg, 0 is empty
-        return GridView(context, screenWidth, screenHeight, cells, null)
-    }
-
-    fun constructDiamondBoard(): View {
-        cells = arrayOf(
-            intArrayOf(-1, -1, -1, -1, 1, -1, -1, -1, -1),
-            intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1, -1),
-            intArrayOf(-1, -1, 1, 1, 1, 1, 1, -1, -1),
-            intArrayOf(-1, 1, 1, 1, 1, 1, 1, 1, -1),
-            intArrayOf(1, 1, 1, 1, 0, 1, 1, 1, 1),
-            intArrayOf(-1, 1, 1, 1, 1, 1, 1, 1, -1),
-            intArrayOf(-1, -1, 1, 1, 1, 1, 1, -1, -1),
-            intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1, -1),
-            intArrayOf(-1, -1, -1, -1, 1, -1, -1, -1, -1)
-        )   //-1 is dead cell, 1 is peg, 0 is empty
+    fun constructGameBoard(selectedBoard: String): View {
+        when (selectedBoard) {
+            ENGLISH_BOARD->{
+                cells = arrayOf(
+                    intArrayOf(-1, -1, 1, 1, 1, -1, -1),
+                    intArrayOf(-1, -1, 1, 1, 1, -1, -1),
+                    intArrayOf(1, 1, 1, 1, 1, 1, 1),
+                    intArrayOf(1, 1, 1, 0, 1, 1, 1),
+                    intArrayOf(1, 1, 1, 1, 1, 1, 1),
+                    intArrayOf(-1, -1, 1, 1, 1, -1, -1),
+                    intArrayOf(-1, -1, 1, 1, 1, -1, -1)
+                )   //-1 is dead cell, 1 is peg, 0 is empty
+            }
+            FRENCH_BOARD -> {
+                cells = arrayOf(
+                    intArrayOf(-1, -1, 1, 1, 1, -1, -1),
+                    intArrayOf(-1, 1, 1, 1, 1, 1, -1),
+                    intArrayOf(1, 1, 1, 1, 1, 1, 1),
+                    intArrayOf(1, 1, 0, 1, 1, 1, 1),
+                    intArrayOf(1, 1, 1, 1, 1, 1, 1),
+                    intArrayOf(-1, 1, 1, 1, 1, 1, -1),
+                    intArrayOf(-1, -1, 1, 1, 1, -1, -1)
+                )   //-1 is dead cell, 1 is peg, 0 is empty
+            }
+            GERMAN_BOARD ->{
+                cells = arrayOf(
+                    intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1, -1),
+                    intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1, -1),
+                    intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1, -1),
+                    intArrayOf(1, 1, 1, 1, 1, 1, 1, 1, 1),
+                    intArrayOf(1, 1, 1, 1, 0, 1, 1, 1, 1),
+                    intArrayOf(1, 1, 1, 1, 1, 1, 1, 1, 1),
+                    intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1, -1),
+                    intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1, -1),
+                    intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1, -1)
+                )   //-1 is dead cell, 1 is peg, 0 is empty
+            }
+            ASYMMETRICAL_BOARD -> {
+                cells = arrayOf(
+                    intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1),
+                    intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1),
+                    intArrayOf(1, 1, 1, 1, 1, 1, 1, 1),
+                    intArrayOf(1, 1, 1, 1, 0, 1, 1, 1),
+                    intArrayOf(1, 1, 1, 1, 1, 1, 1, 1),
+                    intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1),
+                    intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1),
+                    intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1)
+                )   //-1 is dead cell, 1 is peg, 0 is empty
+            }
+            DIAMOND_BOARD -> {
+                cells = arrayOf(
+                    intArrayOf(-1, -1, -1, -1, 1, -1, -1, -1, -1),
+                    intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1, -1),
+                    intArrayOf(-1, -1, 1, 1, 1, 1, 1, -1, -1),
+                    intArrayOf(-1, 1, 1, 1, 1, 1, 1, 1, -1),
+                    intArrayOf(1, 1, 1, 1, 0, 1, 1, 1, 1),
+                    intArrayOf(-1, 1, 1, 1, 1, 1, 1, 1, -1),
+                    intArrayOf(-1, -1, 1, 1, 1, 1, 1, -1, -1),
+                    intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1, -1),
+                    intArrayOf(-1, -1, -1, -1, 1, -1, -1, -1, -1)
+                )   //-1 is dead cell, 1 is peg, 0 is empty
+            }
+        }
         return GridView(context, screenWidth, screenHeight, cells, null)
     }
 

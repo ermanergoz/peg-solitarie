@@ -9,6 +9,8 @@ import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.FragmentManager
+import io.realm.Realm
+import io.realm.kotlin.where
 import kotlinx.android.synthetic.main.activity_game.*
 import kotlinx.android.synthetic.main.toast_notification_layout.*
 import kotlinx.android.synthetic.main.toast_notification_layout.view.*
@@ -21,6 +23,7 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
     private var scoreText = ""
     private lateinit var gameBoard: GameBoard
     private var timeWhenChronoStopped: Long = 0
+    private lateinit var realm: Realm
     private var prevMoves: MutableList<Array<IntArray>> = mutableListOf()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,6 +34,8 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
             WindowManager.LayoutParams.FLAG_FULLSCREEN,
             WindowManager.LayoutParams.FLAG_FULLSCREEN
         )
+
+        realm = Realm.getDefaultInstance()
 
         boardSelection = intent.getStringExtra(KEY_GAME_BOARD)!!
         createGameBoard()
@@ -54,33 +59,9 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
     }
 
     private fun createGameBoard() {
-        when (boardSelection) {
-            ENGLISH_BOARD -> {
-                gameBoard = GameBoard(this)
-                gameGridHolder.addView(gameBoard.constructEnglishBoard())
-                elapsedTimeChronometer.start()
-            }
-            FRENCH_BOARD -> {
-                gameBoard = GameBoard(this)
-                gameGridHolder.addView(gameBoard.constructFrenchBoard())
-                elapsedTimeChronometer.start()
-            }
-            GERMAN_BOARD -> {
-                gameBoard = GameBoard(this)
-                gameGridHolder.addView(gameBoard.constructGerman())
-                elapsedTimeChronometer.start()
-            }
-            ASYMMETRICAL_BOARD -> {
-                gameBoard = GameBoard(this)
-                gameGridHolder.addView(gameBoard.constructAsymmetricalBoard())
-                elapsedTimeChronometer.start()
-            }
-            DIAMOND_BOARD -> {
-                gameBoard = GameBoard(this)
-                gameGridHolder.addView(gameBoard.constructDiamondBoard())
-                elapsedTimeChronometer.start()
-            }
-        }
+        gameBoard = GameBoard(this)
+        gameGridHolder.addView(gameBoard.constructGameBoard(boardSelection))
+        elapsedTimeChronometer.start()
     }
 
     private fun onGameOver(scoreText: String) {
