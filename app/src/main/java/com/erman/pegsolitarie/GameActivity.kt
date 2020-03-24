@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
 import android.view.Gravity
-import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -15,14 +14,14 @@ import kotlinx.android.synthetic.main.toast_notification_layout.*
 import kotlinx.android.synthetic.main.toast_notification_layout.view.*
 
 class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameOverDialogListener,
-    GameMenuDialog.GameMenuDialogListener, GamePausedDialog.GamePausedDialog {
+    GameMenuDialog.GameMenuDialogListener, GamePausedDialog.GamePausedDialogListener {
 
     private lateinit var boardSelection: String
     private val fragmentManager: FragmentManager = supportFragmentManager
     private var scoreText = ""
-    private lateinit var gameGrid: View
     private lateinit var gameBoard: GameBoard
     private var timeWhenChronoStopped: Long = 0
+    private var prevMoves: MutableList<Array<IntArray>> = mutableListOf()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,29 +43,43 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
             val dialog = GameMenuDialog()
             dialog.show(fragmentManager, "")
         }
+
+        revertButton.setOnClickListener {
+            if (prevMoves.isNotEmpty()) {
+                gameGridHolder.removeAllViews()
+                gameGridHolder.addView(gameBoard.updateCells(prevMoves[prevMoves.lastIndex]))
+                prevMoves.removeAt(prevMoves.lastIndex)
+            }
+        }
     }
 
     private fun createGameBoard() {
-        if (boardSelection == ENGLISH_BOARD) {
-            gameBoard = GameBoard(this)
-            gameGridHolder.addView(gameBoard.constructEnglishBoard())
-            elapsedTimeChronometer.start()
-        } else if (boardSelection == FRENCH_BOARD) {
-            gameBoard = GameBoard(this)
-            gameGridHolder.addView(gameBoard.constructFrenchBoard())
-            elapsedTimeChronometer.start()
-        } else if (boardSelection == GERMAN_BOARD) {
-            gameBoard = GameBoard(this)
-            gameGridHolder.addView(gameBoard.constructGerman())
-            elapsedTimeChronometer.start()
-        } else if (boardSelection == ASYMMETRICAL_BOARD) {
-            gameBoard = GameBoard(this)
-            gameGridHolder.addView(gameBoard.constructAsymmetricalBoard())
-            elapsedTimeChronometer.start()
-        } else if (boardSelection == DIAMOND_BOARD) {
-            gameBoard = GameBoard(this)
-            gameGridHolder.addView(gameBoard.constructDiamondBoard())
-            elapsedTimeChronometer.start()
+        when (boardSelection) {
+            ENGLISH_BOARD -> {
+                gameBoard = GameBoard(this)
+                gameGridHolder.addView(gameBoard.constructEnglishBoard())
+                elapsedTimeChronometer.start()
+            }
+            FRENCH_BOARD -> {
+                gameBoard = GameBoard(this)
+                gameGridHolder.addView(gameBoard.constructFrenchBoard())
+                elapsedTimeChronometer.start()
+            }
+            GERMAN_BOARD -> {
+                gameBoard = GameBoard(this)
+                gameGridHolder.addView(gameBoard.constructGerman())
+                elapsedTimeChronometer.start()
+            }
+            ASYMMETRICAL_BOARD -> {
+                gameBoard = GameBoard(this)
+                gameGridHolder.addView(gameBoard.constructAsymmetricalBoard())
+                elapsedTimeChronometer.start()
+            }
+            DIAMOND_BOARD -> {
+                gameBoard = GameBoard(this)
+                gameGridHolder.addView(gameBoard.constructDiamondBoard())
+                elapsedTimeChronometer.start()
+            }
         }
     }
 
@@ -101,6 +114,8 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
         dialog.show(fragmentManager, "")
     }
 
+    private fun Array<IntArray>.copy() = map { it.clone() }.toTypedArray()  //deep copy
+
     override fun onGridViewTouch(
         cells: Array<IntArray>,
         rowFirst: Int,
@@ -108,17 +123,16 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
         rowSecond: Int,
         columnSecond: Int
     ) {
+        prevMoves.add(cells.copy())
         if (!movePegToDirection(cells, rowFirst, columnFirst, rowSecond, columnSecond)) {
-            //val layout: View =
-            with (Toast(applicationContext)) {
+            with(Toast(applicationContext)) {
                 setGravity(Gravity.TOP, 0, 0)
                 duration = Toast.LENGTH_SHORT
                 view = layoutInflater.inflate(R.layout.toast_notification_layout, toastContainer)
-                view.textView.text=getString(R.string.invalid_move)
+                view.textView.text = getString(R.string.invalid_move)
                 show()
             }
         }
-
         updateScoreTextView()
 
         if (isGameOver(cells))

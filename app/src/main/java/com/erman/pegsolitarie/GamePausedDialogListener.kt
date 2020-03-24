@@ -10,7 +10,7 @@ import androidx.fragment.app.DialogFragment
 
 
 class GamePausedDialog : DialogFragment() {
-    private lateinit var listener: GamePausedDialog
+    private lateinit var listener: GamePausedDialogListener
     private lateinit var resumeButton: Button
     private lateinit var dialogView: View
 
@@ -40,13 +40,13 @@ class GamePausedDialog : DialogFragment() {
         super.onAttach(context)
 
         try {
-            listener = context as GamePausedDialog
+            listener = context as GamePausedDialogListener
         } catch (err: ClassCastException) {
-            throw ClassCastException((context.toString() + " must implement GamePausedDialog"))
+            throw ClassCastException((context.toString() + " must implement GamePausedDialogListener"))
         }
     }
 
-    interface GamePausedDialog {
+    interface GamePausedDialogListener {
         fun resumeGame()
     }
 }

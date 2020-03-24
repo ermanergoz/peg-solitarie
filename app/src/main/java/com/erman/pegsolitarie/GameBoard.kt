@@ -90,4 +90,8 @@ class GameBoard(private var context: Context) {
     fun getCells(): Array<IntArray> {
         return this.cells
     }
+
+    fun updateCells(cells: Array<IntArray>): View {
+        return GridView(context, screenWidth, screenHeight, cells, null)
+    }
 }
