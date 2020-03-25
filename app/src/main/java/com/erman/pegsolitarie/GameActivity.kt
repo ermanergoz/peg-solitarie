@@ -9,7 +9,9 @@ import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.FragmentManager
+import com.erman.pegsolitarie.database.Scores
 import io.realm.Realm
+import io.realm.kotlin.createObject
 import io.realm.kotlin.where
 import kotlinx.android.synthetic.main.activity_game.*
 import kotlinx.android.synthetic.main.toast_notification_layout.*
@@ -54,6 +56,7 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
                 gameGridHolder.removeAllViews()
                 gameGridHolder.addView(gameBoard.updateCells(prevMoves[prevMoves.lastIndex]))
                 prevMoves.removeAt(prevMoves.lastIndex)
+                updateScoreTextView() //TODO: Doesn't work when reverting. Don't forget to fix it.
             }
         }
     }
@@ -97,6 +100,15 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
 
     private fun Array<IntArray>.copy() = map { it.clone() }.toTypedArray()  //deep copy
 
+    private fun updateDatabase() {
+        realm.beginTransaction()
+        val score: Scores = realm.createObject<Scores>((realm.where<Scores>().findAll().size) + 1)
+        score.gameBoard = boardSelection
+        score.elapsedTime = SystemClock.elapsedRealtime() - elapsedTimeChronometer.base
+        score.remainingPegs = getPegCount(gameBoard.getCells()).first
+        realm.commitTransaction()
+    }
+
     override fun onGridViewTouch(
         cells: Array<IntArray>,
         rowFirst: Int,
@@ -116,8 +128,10 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
         }
         updateScoreTextView()
 
-        if (isGameOver(cells))
+        if (isGameOver(cells)) {
+            updateDatabase()
             onGameOver(scoreText)
+        }
     }
 
     override fun gameOverDialogListener(chosenAction: String) {
