@@ -16,3 +16,6 @@ const val KEY_SETTINGS_BUTTON: String = "settings"
 
 const val PEG_SLOT_WIDTH: Float = 10F
 const val PEG_MARGIN: Float = 5F
+
+const val REALM_CONFIG_FILE_NAME: String = "pegsolitarie.realm"
+const val SIMPLE_DATE_FORMAT_PATTERN: String = "mm:ss"
