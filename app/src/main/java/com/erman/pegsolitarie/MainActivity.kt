@@ -5,12 +5,10 @@ import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
-import com.erman.pegsolitarie.database.Scores
 import io.realm.Realm
 import io.realm.RealmConfiguration
 import io.realm.kotlin.where
 import kotlinx.android.synthetic.main.activity_main.*
-import java.io.File
 import java.text.SimpleDateFormat
 
 class MainActivity : AppCompatActivity() {

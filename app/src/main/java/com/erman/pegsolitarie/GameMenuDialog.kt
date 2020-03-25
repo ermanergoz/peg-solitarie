@@ -40,7 +40,6 @@ class GameMenuDialog : DialogFragment() {
                 dialog?.dismiss()
             }
 
-            builder.setMessage(getString(R.string.game_over))
             builder.setView(dialogView)
             builder.create()
         } ?: throw IllegalStateException("Activity cannot be null")

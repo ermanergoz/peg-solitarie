@@ -9,9 +9,11 @@
     <string name="game_over">Game Over!</string>
     <string name="restart">Restart</string>
     <string name="quit">Quit</string>
+    <string name="game_menu">Menu</string>
     <string name="settings">Settings</string>
     <string name="invalid_move">Invalid move!</string>
     <string name="pause">Pause</string>
+    <string name="revert">Revert</string>
     <string name="resume">Resume</string>
     <string name="game_paused">Game Paused!</string>
 </resources>

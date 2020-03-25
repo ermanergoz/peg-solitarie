@@ -1,4 +1,4 @@
-package com.erman.pegsolitarie.database
+package com.erman.pegsolitarie
 
 import io.realm.RealmObject
 import io.realm.annotations.PrimaryKey

@@ -36,12 +36,12 @@
             android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
             android:layout_marginRight="8dp"
-            android:text="Game Menu"
+            android:background="@drawable/selectable_button_background"
+            android:text="@string/game_menu"
             app:layout_constrainedWidth="true"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="1.0"
-            android:background="@drawable/selectable_button_background"
             app:layout_constraintStart_toEndOf="@+id/scoreTextView"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -105,7 +105,7 @@
 
             android:layout_marginBottom="8dp"
             android:background="@drawable/selectable_button_background"
-            android:text="Revert"
+            android:text="@string/revert"
             app:layout_constrainedWidth="true"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/pauseButton"

@@ -9,6 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
+        android:background="@drawable/selectable_button_background"
         android:text="@string/restart" />
 
     <Button
@@ -16,13 +17,16 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
-        android:text="@string/settings" />
+        android:background="@drawable/selectable_button_background"
+        android:text="@string/settings"
+        android:visibility="gone" />
 
     <Button
         android:id="@+id/menuQuitButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
+        android:background="@drawable/selectable_button_background"
         android:text="@string/quit" />
 
 </LinearLayout>
