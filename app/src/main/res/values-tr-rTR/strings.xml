@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="select_game">BİR OYUN SEÇİN</string>
+    <string name="french">Fransız</string>
+    <string name="german">Alman</string>
+    <string name="asymmetrical">Asimetrik</string>
+    <string name="english">İngiliz</string>
+    <string name="diamond">Elmas</string>
+    <string name="app_name">Peg Solitaire</string>
+    <string name="game_over">Oyun Bitti!</string>
+    <string name="restart">Yeniden Başlat</string>
+    <string name="quit">Çıkış</string>
+    <string name="game_menu">Menü</string>
+    <string name="settings">Ayarlar</string>
+    <string name="invalid_move">Geçersiz Hamle!</string>
+    <string name="pause">Durdur</string>
+    <string name="revert">Geri Al</string>
+    <string name="resume">Devam Et</string>
+    <string name="game_paused">Oyun Durduruldu!</string>
+</resources>

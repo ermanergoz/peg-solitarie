@@ -9,7 +9,6 @@ import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.FragmentManager
-import com.erman.pegsolitarie.database.Scores
 import io.realm.Realm
 import io.realm.kotlin.createObject
 import io.realm.kotlin.where
