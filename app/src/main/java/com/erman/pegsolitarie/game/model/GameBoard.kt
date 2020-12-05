@@ -1,9 +1,11 @@
-package com.erman.pegsolitarie
+package com.erman.pegsolitarie.game.model
 
 import android.content.Context
 import android.content.res.Resources
 import android.util.TypedValue
 import android.view.View
+import com.erman.pegsolitarie.game.view.GridView
+import com.erman.pegsolitarie.utils.*
 
 class GameBoard(private var context: Context) {
 
@@ -19,7 +21,7 @@ class GameBoard(private var context: Context) {
 
     fun constructGameBoard(selectedBoard: String): View {
         when (selectedBoard) {
-            ENGLISH_BOARD->{
+            ENGLISH_BOARD ->{
                 cells = arrayOf(
                     intArrayOf(-1, -1, 1, 1, 1, -1, -1),
                     intArrayOf(-1, -1, 1, 1, 1, -1, -1),

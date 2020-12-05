@@ -1,4 +1,4 @@
-package com.erman.pegsolitarie
+package com.erman.pegsolitarie.game.model
 
 fun movePegToDirection(cells: Array<IntArray>, rowFirst: Int, columnFirst: Int, rowSecond: Int, columnSecond: Int): Boolean {
 

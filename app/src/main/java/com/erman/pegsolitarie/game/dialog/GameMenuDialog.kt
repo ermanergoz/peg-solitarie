@@ -1,4 +1,4 @@
-package com.erman.pegsolitarie
+package com.erman.pegsolitarie.game.dialog
 
 import android.app.AlertDialog
 import android.app.Dialog
@@ -7,6 +7,10 @@ import android.os.Bundle
 import android.view.View
 import android.widget.*
 import androidx.fragment.app.DialogFragment
+import com.erman.pegsolitarie.utils.KEY_QUIT_BUTTON
+import com.erman.pegsolitarie.utils.KEY_RESTART_BUTTON
+import com.erman.pegsolitarie.utils.KEY_SETTINGS_BUTTON
+import com.erman.pegsolitarie.R
 
 class GameMenuDialog : DialogFragment() {
     private lateinit var listener: GameMenuDialogListener

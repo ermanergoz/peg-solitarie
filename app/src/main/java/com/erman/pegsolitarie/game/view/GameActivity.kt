@@ -1,4 +1,4 @@
-package com.erman.pegsolitarie
+package com.erman.pegsolitarie.game.view
 
 import android.content.pm.ActivityInfo
 import android.os.Bundle
@@ -9,6 +9,19 @@ import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.FragmentManager
+import com.erman.pegsolitarie.*
+import com.erman.pegsolitarie.game.model.GameBoard
+import com.erman.pegsolitarie.game.data.Scores
+import com.erman.pegsolitarie.game.dialog.GameMenuDialog
+import com.erman.pegsolitarie.game.dialog.GameOverDialog
+import com.erman.pegsolitarie.game.dialog.GamePausedDialog
+import com.erman.pegsolitarie.game.model.getPegCount
+import com.erman.pegsolitarie.game.model.isGameOver
+import com.erman.pegsolitarie.game.model.movePegToDirection
+import com.erman.pegsolitarie.utils.KEY_GAME_BOARD
+import com.erman.pegsolitarie.utils.KEY_QUIT_BUTTON
+import com.erman.pegsolitarie.utils.KEY_RESTART_BUTTON
+import com.erman.pegsolitarie.utils.KEY_SETTINGS_BUTTON
 import io.realm.Realm
 import io.realm.kotlin.createObject
 import io.realm.kotlin.where
@@ -38,7 +51,7 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
 
         realm = Realm.getDefaultInstance()
 
-        boardSelection = intent.getStringExtra(KEY_GAME_BOARD)!!
+            intent.getStringExtra(KEY_GAME_BOARD)?.let { boardSelection =it }
         createGameBoard()
 
         pauseButton.setOnClickListener {

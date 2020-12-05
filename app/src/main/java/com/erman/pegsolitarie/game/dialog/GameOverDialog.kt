@@ -1,4 +1,4 @@
-package com.erman.pegsolitarie
+package com.erman.pegsolitarie.game.dialog
 
 import android.app.AlertDialog
 import android.app.Dialog
@@ -7,6 +7,9 @@ import android.os.Bundle
 import android.view.View
 import android.widget.*
 import androidx.fragment.app.DialogFragment
+import com.erman.pegsolitarie.utils.KEY_QUIT_BUTTON
+import com.erman.pegsolitarie.utils.KEY_RESTART_BUTTON
+import com.erman.pegsolitarie.R
 
 class GameOverDialog(private var elapsedTime: String, private var score: String) : DialogFragment() {
     private lateinit var listener: GameOverDialogListener
@@ -40,7 +43,6 @@ class GameOverDialog(private var elapsedTime: String, private var score: String)
                 dialog?.dismiss()
             }
 
-            builder.setMessage(getString(R.string.game_over))
             builder.setView(dialogView)
             builder.create()
         } ?: throw IllegalStateException("Activity cannot be null")
