@@ -1,4 +1,4 @@
-package com.erman.pegsolitarie
+package com.erman.pegsolitarie.game.dialog
 
 import android.app.AlertDialog
 import android.app.Dialog
@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.view.View
 import android.widget.Button
 import androidx.fragment.app.DialogFragment
+import com.erman.pegsolitarie.R
 
 
 class GamePausedDialog : DialogFragment() {
@@ -27,7 +28,6 @@ class GamePausedDialog : DialogFragment() {
                 dialog?.dismiss()
             }
 
-            builder.setMessage(getString(R.string.game_paused))
             builder.setView(dialogView)
             builder.create()
         } ?: throw IllegalStateException("Activity cannot be null")

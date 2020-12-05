@@ -1,5 +1,6 @@
-package com.erman.pegsolitarie
+package com.erman.pegsolitarie.game.view
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -8,9 +9,11 @@ import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import androidx.core.content.ContextCompat.getColor
-import java.util.concurrent.TimeUnit
-import kotlin.concurrent.thread
+import com.erman.pegsolitarie.R
+import com.erman.pegsolitarie.utils.PEG_MARGIN
+import com.erman.pegsolitarie.utils.PEG_SLOT_WIDTH
 
+@SuppressLint("ViewConstructor")
 class GridView(
     context: Context?,
     private var screenWidth: Int,
@@ -82,7 +85,6 @@ class GridView(
                         centerPoint.second,
                         radius - PEG_MARGIN, markedPegPaint
                     )
-
                 }
             }
         }
@@ -150,14 +152,15 @@ class GridView(
     }
 
     init {
-        markedPegPaint.color = getColor(context!!, R.color.markedPegColor)
-        markedPegPaint.style = Paint.Style.FILL_AND_STROKE
-        pegPaint.color = getColor(context, R.color.pegColor)
-        pegPaint.style = Paint.Style.FILL_AND_STROKE
-        pegSlotPaint.style = Paint.Style.STROKE
-        pegSlotPaint.strokeWidth = PEG_SLOT_WIDTH
-        pegSlotPaint.color = getColor(context, R.color.pegSlotColor)
-
+        context?.let {
+            markedPegPaint.color = getColor(it, R.color.markedPegColor)
+            markedPegPaint.style = Paint.Style.FILL_AND_STROKE
+            pegPaint.color = getColor(it, R.color.pegColor)
+            pegPaint.style = Paint.Style.FILL_AND_STROKE
+            pegSlotPaint.style = Paint.Style.FILL_AND_STROKE
+            pegSlotPaint.strokeWidth = PEG_SLOT_WIDTH
+            pegSlotPaint.color = getColor(it, R.color.pegSlotColor)
+        }
         try {
             listener = context as GridViewListener
         } catch (err: ClassCastException) {

@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="@drawable/background"
     android:orientation="vertical">
 
     <TextView
@@ -36,8 +37,7 @@
                 android:layout_marginLeft="0dp"
                 android:layout_marginTop="16dp"
                 android:layout_marginEnd="0dp"
-                android:layout_marginRight="0dp"
-                android:background="@drawable/selectable_button_background">
+                android:layout_marginRight="0dp">
 
                 <ImageView
                     android:id="@+id/imageView"
@@ -106,8 +106,7 @@
                 android:layout_marginLeft="0dp"
                 android:layout_marginTop="16dp"
                 android:layout_marginEnd="0dp"
-                android:layout_marginRight="0dp"
-                android:background="@drawable/selectable_button_background">
+                android:layout_marginRight="0dp">
 
                 <ImageView
                     android:id="@+id/imageView2"
@@ -179,8 +178,7 @@
                 android:layout_marginLeft="0dp"
                 android:layout_marginTop="16dp"
                 android:layout_marginEnd="0dp"
-                android:layout_marginRight="0dp"
-                android:background="@drawable/selectable_button_background">
+                android:layout_marginRight="0dp">
 
                 <ImageView
                     android:id="@+id/imageView3"
@@ -249,8 +247,7 @@
                 android:layout_marginLeft="0dp"
                 android:layout_marginTop="16dp"
                 android:layout_marginEnd="0dp"
-                android:layout_marginRight="0dp"
-                android:background="@drawable/selectable_button_background">
+                android:layout_marginRight="0dp">
 
                 <ImageView
                     android:id="@+id/imageView4"
@@ -320,8 +317,7 @@
                 android:layout_marginTop="16dp"
                 android:layout_marginEnd="0dp"
                 android:layout_marginRight="0dp"
-                android:layout_marginBottom="8dp"
-                android:background="@drawable/selectable_button_background">
+                android:layout_marginBottom="8dp">
 
                 <ImageView
                     android:id="@+id/imageView5"

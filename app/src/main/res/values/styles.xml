@@ -6,6 +6,7 @@
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:textColor">#f0f0f0</item>
     </style>
 
     <style name="Dialog" parent="ThemeOverlay.AppCompat.Dialog">
