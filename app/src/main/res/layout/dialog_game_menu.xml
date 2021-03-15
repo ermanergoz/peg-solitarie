@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/layoutBackgroundColor"
+    android:orientation="vertical">
+
+    <Button
+        android:id="@+id/menuRestartButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        android:background="@drawable/selectable_button_background"
+        android:text="@string/restart" />
+
+    <Button
+        android:id="@+id/settingsButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        android:background="@drawable/selectable_button_background"
+        android:text="@string/settings"
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/menuQuitButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        android:background="@drawable/selectable_button_background"
+        android:text="@string/quit" />
+
+</LinearLayout>
