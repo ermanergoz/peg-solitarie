@@ -68,7 +68,7 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
                 gameGridHolder.removeAllViews()
                 gameGridHolder.addView(gameBoard.updateCells(prevMoves[prevMoves.lastIndex]))
                 prevMoves.removeAt(prevMoves.lastIndex)
-                updateScoreTextView() //TODO: Doesn't work when reverting. Don't forget to fix it.
+                updateScoreTextView()
             }
         }
     }
