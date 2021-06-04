@@ -1,6 +1,7 @@
 package com.erman.pegsolitarie.game.view
 
 import android.content.pm.ActivityInfo
+import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
@@ -10,11 +11,11 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.FragmentManager
 import com.erman.pegsolitarie.*
-import com.erman.pegsolitarie.game.model.GameBoard
 import com.erman.pegsolitarie.game.data.Scores
 import com.erman.pegsolitarie.game.dialog.GameMenuDialog
 import com.erman.pegsolitarie.game.dialog.GameOverDialog
 import com.erman.pegsolitarie.game.dialog.GamePausedDialog
+import com.erman.pegsolitarie.game.model.GameBoard
 import com.erman.pegsolitarie.game.model.getPegCount
 import com.erman.pegsolitarie.game.model.isGameOver
 import com.erman.pegsolitarie.game.model.movePegToDirection
@@ -130,13 +131,7 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
     ) {
         prevMoves.add(cells.copy())
         if (!movePegToDirection(cells, rowFirst, columnFirst, rowSecond, columnSecond)) {
-            with(Toast(applicationContext)) {
-                setGravity(Gravity.TOP, 0, 0)
-                duration = Toast.LENGTH_SHORT
-                view = layoutInflater.inflate(R.layout.toast_notification_layout, toastContainer)
-                view.textView.text = getString(R.string.invalid_move)
-                show()
-            }
+            Toast.makeText(this, getString(R.string.invalid_move), Toast.LENGTH_SHORT).show()
         }
         updateScoreTextView()
 
