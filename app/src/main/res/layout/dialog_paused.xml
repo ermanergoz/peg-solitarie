@@ -17,7 +17,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
-        android:background="@drawable/selectable_button_background"
+        style="@drawable/selectable_button_background"
+        android:background="@drawable/button_frame"
         android:text="@string/resume" />
 
 </LinearLayout>

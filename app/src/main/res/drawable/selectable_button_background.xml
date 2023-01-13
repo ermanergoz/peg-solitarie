@@ -9,7 +9,5 @@
             <solid android:color="@color/colorAccent" />
         </shape>
     </item>
-    <item
-        android:drawable="@drawable/button_frame"
-        android:state_checked="false" />
+    <item android:state_checked="false" />
 </ripple>
