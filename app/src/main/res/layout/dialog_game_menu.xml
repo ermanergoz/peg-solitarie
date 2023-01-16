@@ -10,7 +10,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
-        style="@drawable/selectable_button_background"
         android:background="@drawable/button_frame"
         android:text="@string/restart" />
 
@@ -19,7 +18,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
-        style="@drawable/selectable_button_background"
         android:background="@drawable/button_frame"
         android:text="@string/settings"
         android:visibility="gone" />
@@ -29,7 +27,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
-        style="@drawable/selectable_button_background"
         android:background="@drawable/button_frame"
         android:text="@string/quit" />
 

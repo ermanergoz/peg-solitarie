@@ -5,7 +5,6 @@
     <color name="colorAccent">#b21313</color>
     <color name="pegColor">#b21313</color>
     <color name="markedPegColor">#e44545</color>
-    <color name="pegSlotCircleColor">#575b5d</color>
     <color name="pegSlotColor">#1c1913</color>
     <color name="layoutBackgroundColor">#1c1913</color>
 </resources>
