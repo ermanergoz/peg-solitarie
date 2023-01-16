@@ -1,5 +1,6 @@
 package com.erman.pegsolitarie.game.dialog
 
+import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.app.Dialog
 import android.content.Context
@@ -19,6 +20,7 @@ class GameOverDialog(private var elapsedTime: String, private var score: String)
     private lateinit var mainMenuButton: Button
     private lateinit var dialogView: View
 
+    @SuppressLint("InflateParams")
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val dialog: AlertDialog = activity?.let {
             val builder = AlertDialog.Builder(it)
@@ -57,7 +59,7 @@ class GameOverDialog(private var elapsedTime: String, private var score: String)
         try {
             listener = context as GameOverDialogListener
         } catch (err: ClassCastException) {
-            throw ClassCastException((context.toString() + " must implement GameOverDialogListener"))
+            throw ClassCastException(("$context must implement GameOverDialogListener"))
         }
     }
 
