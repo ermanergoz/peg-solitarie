@@ -3,7 +3,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/background"
     android:orientation="vertical">
 
     <TextView
@@ -49,6 +48,7 @@
                     android:layout_centerVertical="true"
                     android:layout_marginTop="8dp"
                     android:layout_marginBottom="8dp"
+                    android:contentDescription="@string/french"
                     app:srcCompat="@drawable/french_icon" />
 
                 <TextView
@@ -84,7 +84,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="end"
-                        android:text=".. / 36"
+                        android:text="@string/initial_french_game_score"
                         android:textSize="18sp" />
 
                     <TextView
@@ -92,7 +92,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="end"
-                        android:text=".. : .."
+                        android:text="@string/initial_elapsed_time"
                         android:textSize="18sp" />
                 </LinearLayout>
             </RelativeLayout>
@@ -118,6 +118,7 @@
                     android:layout_centerVertical="true"
                     android:layout_marginTop="8dp"
                     android:layout_marginBottom="8dp"
+                    android:contentDescription="@string/german"
                     app:srcCompat="@drawable/german_icon" />
 
                 <TextView
@@ -154,7 +155,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="end"
-                        android:text=".. / 44"
+                        android:text="@string/initial_german_game_score"
                         android:textSize="18sp" />
 
                     <TextView
@@ -162,7 +163,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="end"
-                        android:text=".. : .."
+                        android:text="@string/initial_elapsed_time"
                         android:textSize="18sp" />
                 </LinearLayout>
 
@@ -189,6 +190,7 @@
                     android:layout_centerVertical="true"
                     android:layout_marginTop="8dp"
                     android:layout_marginBottom="8dp"
+                    android:contentDescription="@string/asymmetrical"
                     app:srcCompat="@drawable/asymmetrical_icon" />
 
                 <TextView
@@ -224,7 +226,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="end"
-                        android:text=".. / 38"
+                        android:text="@string/initial_asymmetric_score"
                         android:textSize="18sp" />
 
                     <TextView
@@ -232,7 +234,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="end"
-                        android:text=".. : .."
+                        android:text="@string/initial_elapsed_time"
                         android:textSize="18sp" />
                 </LinearLayout>
             </RelativeLayout>
@@ -258,6 +260,7 @@
                     android:layout_centerVertical="true"
                     android:layout_marginTop="8dp"
                     android:layout_marginBottom="8dp"
+                    android:contentDescription="@string/english"
                     app:srcCompat="@drawable/english_icon" />
 
                 <TextView
@@ -293,7 +296,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="end"
-                        android:text=".. / 32"
+                        android:text="@string/initial_english_game_score"
                         android:textSize="18sp" />
 
                     <TextView
@@ -301,7 +304,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="end"
-                        android:text=".. : .."
+                        android:text="@string/initial_elapsed_time"
                         android:textSize="18sp" />
                 </LinearLayout>
             </RelativeLayout>
@@ -328,6 +331,7 @@
                     android:layout_centerVertical="true"
                     android:layout_marginTop="8dp"
                     android:layout_marginBottom="8dp"
+                    android:contentDescription="@string/diamond"
                     app:srcCompat="@drawable/diamond_icon" />
 
                 <TextView
@@ -363,7 +367,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="end"
-                        android:text=".. / 40"
+                        android:text="@string/initial_diamond_game_score"
                         android:textSize="18sp" />
 
                     <TextView
@@ -371,7 +375,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:gravity="end"
-                        android:text=".. : .."
+                        android:text="@string/initial_elapsed_time"
                         android:textSize="18sp" />
                 </LinearLayout>
             </RelativeLayout>

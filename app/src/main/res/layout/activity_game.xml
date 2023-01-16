@@ -3,8 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/parentLayout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@drawable/background">
+    android:layout_height="match_parent">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/toolbarTop"
@@ -29,7 +28,6 @@
 
         <Button
             android:id="@+id/gameMenuButton"
-            style="@drawable/selectable_button_background"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
@@ -37,7 +35,6 @@
             android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
             android:layout_marginRight="8dp"
-            android:background="@drawable/button_frame"
             android:text="@string/game_menu"
             app:layout_constrainedWidth="true"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -86,13 +83,11 @@
 
         <Button
             android:id="@+id/pauseButton"
-            style="@drawable/selectable_button_background"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
             android:layout_marginRight="8dp"
             android:layout_marginBottom="8dp"
-            android:background="@drawable/button_frame"
             android:text="@string/pause"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -100,13 +95,11 @@
 
         <Button
             android:id="@+id/revertButton"
-            style="@drawable/selectable_button_background"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="4dp"
             android:layout_marginRight="4dp"
             android:layout_marginBottom="8dp"
-            android:background="@drawable/button_frame"
             android:text="@string/revert"
             app:layout_constrainedWidth="true"
             app:layout_constraintBottom_toBottomOf="parent"
