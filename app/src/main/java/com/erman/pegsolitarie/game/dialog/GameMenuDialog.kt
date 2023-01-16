@@ -1,5 +1,6 @@
 package com.erman.pegsolitarie.game.dialog
 
+import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.app.Dialog
 import android.content.Context
@@ -19,6 +20,7 @@ class GameMenuDialog : DialogFragment() {
     private lateinit var menuQuitButton: Button
     private lateinit var dialogView: View
 
+    @SuppressLint("InflateParams")
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val dialog: AlertDialog = activity?.let {
             val builder = AlertDialog.Builder(it)
@@ -47,8 +49,6 @@ class GameMenuDialog : DialogFragment() {
             builder.setView(dialogView)
             builder.create()
         } ?: throw IllegalStateException("Activity cannot be null")
-
-        dialog.setCanceledOnTouchOutside(false)
         return dialog
     }
 
@@ -58,7 +58,7 @@ class GameMenuDialog : DialogFragment() {
         try {
             listener = context as GameMenuDialogListener
         } catch (err: ClassCastException) {
-            throw ClassCastException((context.toString() + " must implement GameMenuDialogListener"))
+            throw ClassCastException(("$context must implement GameMenuDialogListener"))
         }
     }
 

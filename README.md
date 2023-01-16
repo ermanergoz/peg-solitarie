@@ -20,7 +20,7 @@ Peg solitaire is a board game for one player involving movement of pegs on a boa
 - Clone git repository:
 
 	```sh
-	git clone https://github.com/ermanergoz/PegSolitarie.git
+	git clone https://github.com/ermanergoz/peg-solitarie.git
 	```
 
 - Import the project into Android Studio:
