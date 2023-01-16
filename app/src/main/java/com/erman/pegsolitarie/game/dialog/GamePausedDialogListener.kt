@@ -1,5 +1,6 @@
 package com.erman.pegsolitarie.game.dialog
 
+import android.annotation.SuppressLint
 import android.app.AlertDialog
 import android.app.Dialog
 import android.content.Context
@@ -15,6 +16,7 @@ class GamePausedDialog : DialogFragment() {
     private lateinit var resumeButton: Button
     private lateinit var dialogView: View
 
+    @SuppressLint("InflateParams")
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val dialog: AlertDialog = activity?.let {
             val builder = AlertDialog.Builder(context)
@@ -42,7 +44,7 @@ class GamePausedDialog : DialogFragment() {
         try {
             listener = context as GamePausedDialogListener
         } catch (err: ClassCastException) {
-            throw ClassCastException((context.toString() + " must implement GamePausedDialogListener"))
+            throw ClassCastException(("$context must implement GamePausedDialogListener"))
         }
     }
 
