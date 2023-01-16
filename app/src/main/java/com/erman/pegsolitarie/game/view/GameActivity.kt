@@ -1,13 +1,13 @@
 package com.erman.pegsolitarie.game.view
 
+import android.annotation.SuppressLint
 import android.content.pm.ActivityInfo
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
-import android.view.Gravity
+import android.view.WindowInsets
 import android.view.WindowManager
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.FragmentManager
 import com.erman.pegsolitarie.*
@@ -23,12 +23,11 @@ import com.erman.pegsolitarie.utils.KEY_GAME_BOARD
 import com.erman.pegsolitarie.utils.KEY_QUIT_BUTTON
 import com.erman.pegsolitarie.utils.KEY_RESTART_BUTTON
 import com.erman.pegsolitarie.utils.KEY_SETTINGS_BUTTON
+import com.google.android.material.snackbar.Snackbar
 import io.realm.Realm
 import io.realm.kotlin.createObject
 import io.realm.kotlin.where
 import kotlinx.android.synthetic.main.activity_game.*
-import kotlinx.android.synthetic.main.toast_notification_layout.*
-import kotlinx.android.synthetic.main.toast_notification_layout.view.*
 
 class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameOverDialogListener,
     GameMenuDialog.GameMenuDialogListener, GamePausedDialog.GamePausedDialogListener {
@@ -44,15 +43,22 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_game)
+        @SuppressLint("SourceLockedOrientationActivity")
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-        window.setFlags(
-            WindowManager.LayoutParams.FLAG_FULLSCREEN,
-            WindowManager.LayoutParams.FLAG_FULLSCREEN
-        )
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.insetsController?.hide(WindowInsets.Type.statusBars())
+        } else {
+            @Suppress("DEPRECATION")
+            window.setFlags(
+                WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN
+            )
+        }
 
         realm = Realm.getDefaultInstance()
 
-            intent.getStringExtra(KEY_GAME_BOARD)?.let { boardSelection =it }
+        intent.getStringExtra(KEY_GAME_BOARD)?.let { boardSelection = it }
         createGameBoard()
 
         pauseButton.setOnClickListener {
@@ -87,10 +93,15 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
         elapsedTimeChronometer.base = SystemClock.elapsedRealtime() //to reset it
     }
 
+    private fun resetChronometer() {
+        elapsedTimeChronometer.base = SystemClock.elapsedRealtime()
+    }
+
     private fun resetGameBoard() {
         gameGridHolder.removeAllViews()
         createGameBoard()
         resetScoreTextView()
+        resetChronometer()
     }
 
     private fun updateScoreTextView() {
@@ -131,7 +142,7 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
     ) {
         prevMoves.add(cells.copy())
         if (!movePegToDirection(cells, rowFirst, columnFirst, rowSecond, columnSecond)) {
-            Toast.makeText(this, getString(R.string.invalid_move), Toast.LENGTH_SHORT).show()
+            Snackbar.make(parentLayout, getString(R.string.invalid_move), Snackbar.LENGTH_SHORT).show()
         }
         updateScoreTextView()
 
