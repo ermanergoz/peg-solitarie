@@ -17,4 +17,10 @@
     <string name="revert">Geri Al</string>
     <string name="resume">Devam Et</string>
     <string name="game_paused">Oyun Durduruldu!</string>
+    <string name="initial_french_game_score">.. / 36</string>
+    <string name="initial_german_game_score">.. / 44</string>
+    <string name="initial_asymmetric_score">.. / 38</string>
+    <string name="initial_english_game_score">.. / 32</string>
+    <string name="initial_diamond_game_score">.. / 40</string>
+    <string name="initial_elapsed_time">.. : ..</string>
 </resources>

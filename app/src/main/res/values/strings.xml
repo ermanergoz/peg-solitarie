@@ -16,4 +16,10 @@
     <string name="revert">Revert</string>
     <string name="resume">Resume</string>
     <string name="game_paused">Game Paused!</string>
+    <string name="initial_french_game_score">.. / 36</string>
+    <string name="initial_german_game_score">.. / 44</string>
+    <string name="initial_asymmetric_score">.. / 38</string>
+    <string name="initial_english_game_score">.. / 32</string>
+    <string name="initial_diamond_game_score">.. / 40</string>
+    <string name="initial_elapsed_time">.. : ..</string>
 </resources>
