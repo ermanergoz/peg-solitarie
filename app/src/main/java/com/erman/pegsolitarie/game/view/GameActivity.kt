@@ -11,6 +11,7 @@ import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.FragmentManager
 import com.erman.pegsolitarie.*
+import com.erman.pegsolitarie.databinding.ActivityGameBinding
 import com.erman.pegsolitarie.game.data.Scores
 import com.erman.pegsolitarie.game.dialog.GameMenuDialog
 import com.erman.pegsolitarie.game.dialog.GameOverDialog
@@ -27,11 +28,10 @@ import com.google.android.material.snackbar.Snackbar
 import io.realm.Realm
 import io.realm.kotlin.createObject
 import io.realm.kotlin.where
-import kotlinx.android.synthetic.main.activity_game.*
 
 class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameOverDialogListener,
     GameMenuDialog.GameMenuDialogListener, GamePausedDialog.GamePausedDialogListener {
-
+    private lateinit var viewBinding: ActivityGameBinding
     private lateinit var boardSelection: String
     private val fragmentManager: FragmentManager = supportFragmentManager
     private var scoreText = ""
@@ -42,7 +42,8 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_game)
+        viewBinding = ActivityGameBinding.inflate(layoutInflater)
+        setContentView(viewBinding.root)
         @SuppressLint("SourceLockedOrientationActivity")
         requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
@@ -61,19 +62,19 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
         intent.getStringExtra(KEY_GAME_BOARD)?.let { boardSelection = it }
         createGameBoard()
 
-        pauseButton.setOnClickListener {
+        viewBinding.pauseButton.setOnClickListener {
             pauseGame()
         }
 
-        gameMenuButton.setOnClickListener {
+        viewBinding.gameMenuButton.setOnClickListener {
             val dialog = GameMenuDialog()
             dialog.show(fragmentManager, "")
         }
 
-        revertButton.setOnClickListener {
+        viewBinding.revertButton.setOnClickListener {
             if (prevMoves.isNotEmpty()) {
-                gameGridHolder.removeAllViews()
-                gameGridHolder.addView(gameBoard.updateCells(prevMoves[prevMoves.lastIndex]))
+                viewBinding.gameGridHolder.removeAllViews()
+                viewBinding.gameGridHolder.addView(gameBoard.updateCells(prevMoves[prevMoves.lastIndex]))
                 prevMoves.removeAt(prevMoves.lastIndex)
                 updateScoreTextView()
             }
@@ -82,23 +83,23 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
 
     private fun createGameBoard() {
         gameBoard = GameBoard(this)
-        gameGridHolder.addView(gameBoard.constructGameBoard(boardSelection))
-        elapsedTimeChronometer.start()
+        viewBinding.gameGridHolder.addView(gameBoard.constructGameBoard(boardSelection))
+        viewBinding.elapsedTimeChronometer.start()
     }
 
     private fun onGameOver(scoreText: String) {
-        val dialog = GameOverDialog(elapsedTimeChronometer.text.toString(), scoreText)
+        val dialog = GameOverDialog(viewBinding.elapsedTimeChronometer.text.toString(), scoreText)
         dialog.show(fragmentManager, "")
-        elapsedTimeChronometer.stop()
-        elapsedTimeChronometer.base = SystemClock.elapsedRealtime() //to reset it
+        viewBinding.elapsedTimeChronometer.stop()
+        viewBinding.elapsedTimeChronometer.base = SystemClock.elapsedRealtime() //to reset it
     }
 
     private fun resetChronometer() {
-        elapsedTimeChronometer.base = SystemClock.elapsedRealtime()
+        viewBinding.elapsedTimeChronometer.base = SystemClock.elapsedRealtime()
     }
 
     private fun resetGameBoard() {
-        gameGridHolder.removeAllViews()
+        viewBinding.gameGridHolder.removeAllViews()
         createGameBoard()
         resetScoreTextView()
         resetChronometer()
@@ -107,16 +108,16 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
     private fun updateScoreTextView() {
         val pegCount = getPegCount(gameBoard.getCells())
         this.scoreText = pegCount.first.toString() + " / " + pegCount.second
-        scoreTextView.text = scoreText
+        viewBinding.scoreTextView.text = scoreText
     }
 
     private fun resetScoreTextView() {
-        scoreTextView.text = ""
+        viewBinding.scoreTextView.text = ""
     }
 
     private fun pauseGame() {
-        timeWhenChronoStopped = SystemClock.elapsedRealtime() - elapsedTimeChronometer.base
-        elapsedTimeChronometer.stop()
+        timeWhenChronoStopped = SystemClock.elapsedRealtime() - viewBinding.elapsedTimeChronometer.base
+        viewBinding.elapsedTimeChronometer.stop()
 
         val dialog = GamePausedDialog()
         dialog.show(fragmentManager, "")
@@ -128,7 +129,7 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
         realm.beginTransaction()
         val score: Scores = realm.createObject<Scores>((realm.where<Scores>().findAll().size) + 1)
         score.gameBoard = boardSelection
-        score.elapsedTime = SystemClock.elapsedRealtime() - elapsedTimeChronometer.base
+        score.elapsedTime = SystemClock.elapsedRealtime() - viewBinding.elapsedTimeChronometer.base
         score.remainingPegs = getPegCount(gameBoard.getCells()).first
         realm.commitTransaction()
     }
@@ -142,7 +143,7 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
     ) {
         prevMoves.add(cells.copy())
         if (!movePegToDirection(cells, rowFirst, columnFirst, rowSecond, columnSecond)) {
-            Snackbar.make(parentLayout, getString(R.string.invalid_move), Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(viewBinding.parentLayout, getString(R.string.invalid_move), Snackbar.LENGTH_SHORT).show()
         }
         updateScoreTextView()
 
@@ -173,7 +174,7 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
     }
 
     override fun resumeGame() {
-        elapsedTimeChronometer.base = SystemClock.elapsedRealtime() - timeWhenChronoStopped
-        elapsedTimeChronometer.start()
+        viewBinding.elapsedTimeChronometer.base = SystemClock.elapsedRealtime() - timeWhenChronoStopped
+        viewBinding.elapsedTimeChronometer.start()
     }
 }
