@@ -14,5 +14,6 @@
     <style name="ButtonStyle" parent="Widget.AppCompat.Button">
         <!-- Customize your theme here. -->
         <item name="android:background">@drawable/button_frame</item>
+        <item name="android:foreground">@drawable/selectable_button_background</item>
     </style>
 </resources>
