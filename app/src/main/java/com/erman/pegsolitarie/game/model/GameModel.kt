@@ -1,25 +1,22 @@
 package com.erman.pegsolitarie.game.model
 
 fun movePegToDirection(cells: Array<IntArray>, rowFirst: Int, columnFirst: Int, rowSecond: Int, columnSecond: Int): Boolean {
-
-    if (cells[columnFirst][rowFirst] == 1 && cells[columnSecond][rowSecond] == 0) {
-        if (rowFirst - 1 >= 0 && cells[columnFirst][rowFirst - 1] == 1 && rowFirst - rowSecond == 2  && columnFirst == columnSecond /*move up*/) {
-            collectPeg(cells, columnFirst, rowFirst - 1)
-            movePegToEmptySlot(cells, rowFirst, columnFirst, rowSecond, columnSecond)
-            return true
-        } else if (rowFirst + 1 < cells.size && cells[columnFirst][rowFirst + 1] == 1 && rowSecond - rowFirst == 2  && columnFirst == columnSecond /*move down*/) {
-            collectPeg(cells, columnFirst, rowFirst + 1)
-            movePegToEmptySlot(cells, rowFirst, columnFirst, rowSecond, columnSecond)
-            return true
-        } else if (columnFirst + 1 < cells.size && cells[columnFirst + 1][rowFirst] == 1 && columnSecond - columnFirst == 2 && rowFirst == rowSecond /*move right*/) {
-            collectPeg(cells, columnFirst + 1, rowFirst)
-            movePegToEmptySlot(cells, rowFirst, columnFirst, rowSecond, columnSecond)
-            return true
-        } else if (columnFirst - 1 >= 0 && cells[columnFirst - 1][rowFirst] == 1 && columnFirst - columnSecond == 2 && rowFirst == rowSecond /*move left*/) {
-            collectPeg(cells, columnFirst - 1, rowFirst)
-            movePegToEmptySlot(cells, rowFirst, columnFirst, rowSecond, columnSecond)
-            return true
-        }
+    if (rowFirst - 1 >= 0 && cells[columnFirst][rowFirst - 1] == 1 && rowFirst - rowSecond == 2  && columnFirst == columnSecond) {
+        collectPeg(cells, columnFirst, rowFirst - 1)
+        movePegToEmptySlot(cells, rowFirst, columnFirst, rowSecond, columnSecond)
+        return true
+    } else if (rowFirst + 1 < cells.size && cells[columnFirst][rowFirst + 1] == 1 && rowSecond - rowFirst == 2  && columnFirst == columnSecond) {
+        collectPeg(cells, columnFirst, rowFirst + 1)
+        movePegToEmptySlot(cells, rowFirst, columnFirst, rowSecond, columnSecond)
+        return true
+    } else if (columnFirst + 1 < cells.size && cells[columnFirst + 1][rowFirst] == 1 && columnSecond - columnFirst == 2 && rowFirst == rowSecond) {
+        collectPeg(cells, columnFirst + 1, rowFirst)
+        movePegToEmptySlot(cells, rowFirst, columnFirst, rowSecond, columnSecond)
+        return true
+    } else if (columnFirst - 1 >= 0 && cells[columnFirst - 1][rowFirst] == 1 && columnFirst - columnSecond == 2 && rowFirst == rowSecond) {
+        collectPeg(cells, columnFirst - 1, rowFirst)
+        movePegToEmptySlot(cells, rowFirst, columnFirst, rowSecond, columnSecond)
+        return true
     }
     return false
 }

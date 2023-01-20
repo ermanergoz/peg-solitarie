@@ -12,6 +12,7 @@ import com.erman.pegsolitarie.*
 import com.erman.pegsolitarie.databinding.ActivityHomeBinding
 import com.erman.pegsolitarie.game.view.GameActivity
 import com.erman.pegsolitarie.game.data.Scores
+import com.erman.pegsolitarie.game.model.BoardType
 import com.erman.pegsolitarie.utils.*
 import io.realm.Realm
 import io.realm.RealmConfiguration
@@ -51,27 +52,27 @@ class HomeActivity : AppCompatActivity() {
 
         val intent = Intent(this, GameActivity::class.java)
         viewBinding.englishButton.setOnClickListener {
-            intent.putExtra(KEY_GAME_BOARD, ENGLISH_BOARD)
+            intent.putExtra(KEY_GAME_BOARD, BoardType.ENGLISH)
             startActivity(intent)
         }
 
         viewBinding.frenchButton.setOnClickListener {
-            intent.putExtra(KEY_GAME_BOARD, FRENCH_BOARD)
+            intent.putExtra(KEY_GAME_BOARD, BoardType.FRENCH)
             startActivity(intent)
         }
 
         viewBinding.germanButton.setOnClickListener {
-            intent.putExtra(KEY_GAME_BOARD, GERMAN_BOARD)
+            intent.putExtra(KEY_GAME_BOARD, BoardType.GERMAN)
             startActivity(intent)
         }
 
         viewBinding.asymmetricalButton.setOnClickListener {
-            intent.putExtra(KEY_GAME_BOARD, ASYMMETRICAL_BOARD)
+            intent.putExtra(KEY_GAME_BOARD, BoardType.ASYMMETRIC)
             startActivity(intent)
         }
 
         viewBinding.diamondButton.setOnClickListener {
-            intent.putExtra(KEY_GAME_BOARD, DIAMOND_BOARD)
+            intent.putExtra(KEY_GAME_BOARD, BoardType.DIAMOND)
             startActivity(intent)
         }
     }

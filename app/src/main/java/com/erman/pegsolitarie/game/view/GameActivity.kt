@@ -9,6 +9,7 @@ import android.util.Log
 import android.view.WindowInsets
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentManager
 import com.erman.pegsolitarie.*
 import com.erman.pegsolitarie.databinding.ActivityGameBinding
@@ -16,10 +17,7 @@ import com.erman.pegsolitarie.game.data.Scores
 import com.erman.pegsolitarie.game.dialog.GameMenuDialog
 import com.erman.pegsolitarie.game.dialog.GameOverDialog
 import com.erman.pegsolitarie.game.dialog.GamePausedDialog
-import com.erman.pegsolitarie.game.model.GameBoard
-import com.erman.pegsolitarie.game.model.getPegCount
-import com.erman.pegsolitarie.game.model.isGameOver
-import com.erman.pegsolitarie.game.model.movePegToDirection
+import com.erman.pegsolitarie.game.model.*
 import com.erman.pegsolitarie.utils.KEY_GAME_BOARD
 import com.erman.pegsolitarie.utils.KEY_QUIT_BUTTON
 import com.erman.pegsolitarie.utils.KEY_RESTART_BUTTON
@@ -32,7 +30,7 @@ import io.realm.kotlin.where
 class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameOverDialogListener,
     GameMenuDialog.GameMenuDialogListener, GamePausedDialog.GamePausedDialogListener {
     private lateinit var viewBinding: ActivityGameBinding
-    private lateinit var boardSelection: String
+    private lateinit var boardSelection: BoardType
     private val fragmentManager: FragmentManager = supportFragmentManager
     private var scoreText = ""
     private lateinit var gameBoard: GameBoard
@@ -59,7 +57,13 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
 
         realm = Realm.getDefaultInstance()
 
-        intent.getStringExtra(KEY_GAME_BOARD)?.let { boardSelection = it }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getSerializableExtra(KEY_GAME_BOARD, BoardType::class.java)
+                ?.let { boardSelection = it }
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getSerializableExtra(KEY_GAME_BOARD)?.let { boardSelection = it as BoardType }
+        }
         createGameBoard()
 
         viewBinding.pauseButton.setOnClickListener {
@@ -116,7 +120,8 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
     }
 
     private fun pauseGame() {
-        timeWhenChronoStopped = SystemClock.elapsedRealtime() - viewBinding.elapsedTimeChronometer.base
+        timeWhenChronoStopped =
+            SystemClock.elapsedRealtime() - viewBinding.elapsedTimeChronometer.base
         viewBinding.elapsedTimeChronometer.stop()
 
         val dialog = GamePausedDialog()
@@ -128,7 +133,7 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
     private fun updateDatabase() {
         realm.beginTransaction()
         val score: Scores = realm.createObject<Scores>((realm.where<Scores>().findAll().size) + 1)
-        score.gameBoard = boardSelection
+        score.gameBoard = boardSelection.name
         score.elapsedTime = SystemClock.elapsedRealtime() - viewBinding.elapsedTimeChronometer.base
         score.remainingPegs = getPegCount(gameBoard.getCells()).first
         realm.commitTransaction()
@@ -143,7 +148,11 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
     ) {
         prevMoves.add(cells.copy())
         if (!movePegToDirection(cells, rowFirst, columnFirst, rowSecond, columnSecond)) {
-            Snackbar.make(viewBinding.parentLayout, getString(R.string.invalid_move), Snackbar.LENGTH_SHORT).show()
+            Snackbar.make(
+                viewBinding.parentLayout,
+                getString(R.string.invalid_move),
+                Snackbar.LENGTH_SHORT
+            ).setTextColor(ContextCompat.getColor(this, R.color.pegColor)).show()
         }
         updateScoreTextView()
 
@@ -174,7 +183,8 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
     }
 
     override fun resumeGame() {
-        viewBinding.elapsedTimeChronometer.base = SystemClock.elapsedRealtime() - timeWhenChronoStopped
+        viewBinding.elapsedTimeChronometer.base =
+            SystemClock.elapsedRealtime() - timeWhenChronoStopped
         viewBinding.elapsedTimeChronometer.start()
     }
 }
