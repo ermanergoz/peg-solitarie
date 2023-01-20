@@ -16,4 +16,9 @@
         <item name="android:background">@drawable/button_frame</item>
         <item name="android:foreground">@drawable/selectable_button_background</item>
     </style>
+
+    <style name="DialogFragmentTheme" parent="Theme.AppCompat.DayNight.Dialog.Alert">
+        <item name="android:background">@color/layoutBackgroundColor</item>
+    </style>
+
 </resources>

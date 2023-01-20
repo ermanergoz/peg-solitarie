@@ -19,7 +19,7 @@ class GamePausedDialog : DialogFragment() {
     @SuppressLint("InflateParams")
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val dialog: AlertDialog = activity?.let {
-            val builder = AlertDialog.Builder(context)
+            val builder = AlertDialog.Builder(context, R.style.DialogFragmentTheme)
             val inflater = requireActivity().layoutInflater
             dialogView = inflater.inflate(R.layout.dialog_paused, null)
 
