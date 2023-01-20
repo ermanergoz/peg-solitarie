@@ -41,7 +41,6 @@ class GridView(
     }
 
     override fun onDraw(canvas: Canvas) {
-        calculateDimensions()
         paintCells(canvas)
     }
 
@@ -108,9 +107,20 @@ class GridView(
         cells[column][row] = 1
     }
 
+    private fun isSameCell(column1: Int, row1: Int, column2: Int, row2: Int): Boolean {
+        return column1 == column2 && row1 == row2
+    }
+
+    private fun isIndexValid(): Boolean {
+        return rowFirst < cells[0].size && columnFirst < cells.size
+    }
+
+    private fun isSecondCellValid(): Boolean {
+        return cells[columnSecond][rowSecond] != -1
+    }
+
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (event.action and MotionEvent.ACTION_MASK == MotionEvent.ACTION_DOWN) {
-            //Log.w("action", "screen pressed")
             if (isFirstClick) {
                 columnFirst = (event.x / cellWidth).toInt()
                 rowFirst = (event.y / cellHeight).toInt()
@@ -123,25 +133,21 @@ class GridView(
                 columnSecond = (event.x / cellWidth).toInt()
                 rowSecond = (event.y / cellHeight).toInt()
 
-                if (columnFirst == columnSecond && rowFirst == rowSecond) {
+                if (isSameCell(columnFirst, rowFirst, columnSecond, rowSecond)) {
                     unMarkPeg(columnFirst, rowFirst)
                     isFirstClick = true
                     invalidate()
                     return false
                 }
 
-                if (rowFirst < cells[0].size && columnFirst < cells.size) {
-                    if (cells[columnFirst][rowFirst] != -1 && cells[columnSecond][rowSecond] != -1) {
-                        unMarkPeg(columnFirst, rowFirst)
-                        performClick()
-                    }
-                    isFirstClick = true
-                    invalidate()
+                if (isIndexValid() && isSecondCellValid()) {
+                    unMarkPeg(columnFirst, rowFirst)
+                    performClick()
                 }
+                isFirstClick = true
+                invalidate()
             }
-        } //else if (event.action and MotionEvent.ACTION_MASK == MotionEvent.ACTION_UP)
-        //Log.w("action", "screen released")
-
+        }
         return true
     }
 
@@ -152,6 +158,7 @@ class GridView(
     }
 
     init {
+        calculateDimensions()
         context?.let {
             markedPegPaint.color = getColor(it, R.color.markedPegColor)
             markedPegPaint.style = Paint.Style.FILL_AND_STROKE
