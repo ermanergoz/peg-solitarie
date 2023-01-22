@@ -1,4 +1,4 @@
-package com.erman.pegsolitarie.game.model
+package com.erman.pegsolitarie.game.model.board
 
 class EnglishBoard(
     override var cells: Array<IntArray> = arrayOf(
