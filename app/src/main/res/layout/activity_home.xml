@@ -170,7 +170,7 @@
             </RelativeLayout>
 
             <RelativeLayout
-                android:id="@+id/asymmetricalButton"
+                android:id="@+id/asymmetric_button"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="0dp"
@@ -190,8 +190,8 @@
                     android:layout_centerVertical="true"
                     android:layout_marginTop="8dp"
                     android:layout_marginBottom="8dp"
-                    android:contentDescription="@string/asymmetrical"
-                    app:srcCompat="@drawable/asymmetrical_icon" />
+                    android:contentDescription="@string/asymmetric"
+                    app:srcCompat="@drawable/asymmetric_icon" />
 
                 <TextView
                     android:id="@+id/textView8"
@@ -204,7 +204,7 @@
                     android:layout_marginLeft="4dp"
                     android:layout_toEndOf="@+id/imageView3"
                     android:layout_toRightOf="@+id/imageView3"
-                    android:text="@string/asymmetrical"
+                    android:text="@string/asymmetric"
                     android:textSize="24sp" />
 
                 <LinearLayout
