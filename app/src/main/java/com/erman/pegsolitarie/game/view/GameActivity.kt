@@ -18,6 +18,10 @@ import com.erman.pegsolitarie.game.dialog.GameMenuDialog
 import com.erman.pegsolitarie.game.dialog.GameOverDialog
 import com.erman.pegsolitarie.game.dialog.GamePausedDialog
 import com.erman.pegsolitarie.game.model.*
+import com.erman.pegsolitarie.game.model.GameBoard
+import com.erman.pegsolitarie.game.model.getPegCount
+import com.erman.pegsolitarie.game.model.isGameOver
+import com.erman.pegsolitarie.game.model.movePegToDirection
 import com.erman.pegsolitarie.utils.KEY_GAME_BOARD
 import com.erman.pegsolitarie.utils.KEY_QUIT_BUTTON
 import com.erman.pegsolitarie.utils.KEY_RESTART_BUTTON

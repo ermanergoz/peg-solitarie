@@ -1,4 +1,4 @@
-package com.erman.pegsolitarie.game.model
+package com.erman.pegsolitarie.game.model.board
 
 data class GermanBoard(
     override var cells: Array<IntArray> = arrayOf(
@@ -12,4 +12,4 @@ data class GermanBoard(
         intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1, -1),
         intArrayOf(-1, -1, -1, 1, 1, 1, -1, -1, -1)
     )   //-1 is dead cell, 1 is peg, 0 is empty
-) :Board()
+) : Board()

@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.res.Resources
 import android.util.TypedValue
 import android.view.View
+import com.erman.pegsolitarie.game.model.board.*
 import com.erman.pegsolitarie.game.view.GridView
 import com.erman.pegsolitarie.utils.*
 
