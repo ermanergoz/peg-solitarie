@@ -9,7 +9,6 @@ import android.util.Log
 import android.view.WindowInsets
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.FragmentManager
 import com.erman.pegsolitarie.*
 import com.erman.pegsolitarie.databinding.ActivityGameBinding
@@ -156,7 +155,7 @@ class GameActivity : AppCompatActivity(), GridViewListener, GameOverDialog.GameO
                 viewBinding.parentLayout,
                 getString(R.string.invalid_move),
                 Snackbar.LENGTH_SHORT
-            ).setTextColor(ContextCompat.getColor(this, R.color.pegColor)).show()
+            ).show()
         }
         updateScoreTextView()
 

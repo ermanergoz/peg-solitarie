@@ -57,33 +57,21 @@ class GridView(
         else (cellHeight / 2).toFloat()
     }
 
+    private fun drawBoardItems(centerPoint:Pair<Float, Float>, radius:Float, canvas: Canvas, paint: Paint) {
+        canvas.drawCircle(centerPoint.first, centerPoint.second, radius - PEG_MARGIN, paint)
+    }
+
     private fun paintCells(canvas: Canvas) {
+        val radius = getRadius()
         for (i in cells.indices) {
             for (j in cells[i].indices) {
                 val centerPoint = getCenterCoordinates(i, j)
-                val radius = getRadius()
-
                 if (cells[i][j] == 1)
-                    canvas.drawCircle(
-                        centerPoint.first,
-                        centerPoint.second,
-                        radius - PEG_MARGIN,
-                        pegPaint
-                    )
+                    drawBoardItems(centerPoint, radius, canvas, pegPaint)
                 else if (cells[i][j] == 0)
-                    canvas.drawCircle(
-                        centerPoint.first,
-                        centerPoint.second,
-                        radius - PEG_SLOT_WIDTH - PEG_MARGIN,
-                        pegSlotPaint
-                    )
+                    drawBoardItems(centerPoint, radius,canvas, pegSlotPaint)
                 if (cells[i][j] == 2) {
-                    //TimeUnit.SECONDS.sleep(3)
-                    canvas.drawCircle(
-                        centerPoint.first,
-                        centerPoint.second,
-                        radius - PEG_MARGIN, markedPegPaint
-                    )
+                    drawBoardItems(centerPoint, radius,canvas, markedPegPaint)
                 }
             }
         }
@@ -101,18 +89,26 @@ class GridView(
 
     private fun markPeg(column: Int, row: Int) {
         cells[column][row] = 2
+        invalidate()
     }
 
     private fun unMarkPeg(column: Int, row: Int) {
         cells[column][row] = 1
+        invalidate()
     }
 
-    private fun isSameCell(column1: Int, row1: Int, column2: Int, row2: Int): Boolean {
-        return column1 == column2 && row1 == row2
+    private fun cancelMove() {
+        unMarkPeg(columnFirst, rowFirst)
+        isFirstClick = true
+        invalidate()
     }
 
-    private fun isIndexValid(): Boolean {
-        return rowFirst < cells[0].size && columnFirst < cells.size
+    private fun arePegsValid(): Boolean {
+        return cells[columnFirst][rowFirst] != -1 && cells[columnSecond][rowSecond] != -1
+    }
+
+    private fun arePegsSame(): Boolean {
+        return columnFirst == columnSecond && rowFirst == rowSecond
     }
 
     private fun isSecondCellValid(): Boolean {
@@ -127,25 +123,25 @@ class GridView(
                 if (canMarkSelectedPeg(columnFirst, rowFirst)) {
                     isFirstClick = false
                     markPeg(columnFirst, rowFirst)
-                    invalidate()
                 }
             } else {
                 columnSecond = (event.x / cellWidth).toInt()
                 rowSecond = (event.y / cellHeight).toInt()
 
-                if (isSameCell(columnFirst, rowFirst, columnSecond, rowSecond)) {
-                    unMarkPeg(columnFirst, rowFirst)
-                    isFirstClick = true
-                    invalidate()
+                if (arePegsSame()) {
+                    cancelMove()
                     return false
                 }
-
-                if (isIndexValid() && isSecondCellValid()) {
-                    unMarkPeg(columnFirst, rowFirst)
-                    performClick()
+                if (rowFirst < cells[0].size && columnFirst < cells.size) {
+                    if (arePegsValid()) {
+                        unMarkPeg(columnFirst, rowFirst)
+                        performClick()
+                    } else if (!isSecondCellValid()) {
+                        cancelMove()
+                        return false
+                    }
+                    isFirstClick = true
                 }
-                isFirstClick = true
-                invalidate()
             }
         }
         return true
