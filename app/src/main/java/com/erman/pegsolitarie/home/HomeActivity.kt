@@ -66,7 +66,7 @@ class HomeActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        viewBinding.asymmetricalButton.setOnClickListener {
+        viewBinding.asymmetricButton.setOnClickListener {
             intent.putExtra(KEY_GAME_BOARD, BoardType.ASYMMETRIC)
             startActivity(intent)
         }
@@ -78,49 +78,49 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun getDataFromDatabase(chosenBoard: String): List<Scores>? {
-        return realm.where<Scores>().equalTo("gameBoard", chosenBoard)
+        return realm.where<Scores>().equalTo(REALM_GAME_BOARD_FIELD_NAME, chosenBoard)
             .findAll()?.sortedWith(compareBy({ it.remainingPegs }, { it.elapsedTime }))?.toList()
     }
 
     private fun updateBestScores() {
-        getDataFromDatabase(FRENCH_BOARD)?.let { frenchBoardData ->
+        getDataFromDatabase(BoardType.FRENCH.name)?.let { frenchBoardData ->
             if (frenchBoardData.isNotEmpty()) {
-                "${frenchBoardData[0].remainingPegs} / 36".also { viewBinding.frenchScoreTextView.text = it }
+                ("${frenchBoardData[0].remainingPegs}$SCORE_SEPARATOR$FRENCH_BOARD_MAX_SCORE").also { viewBinding.frenchScoreTextView.text = it }
                 viewBinding.frenchTimeTextView.text = dateFormat.format(frenchBoardData[0].elapsedTime)
             }
         }
 
-        getDataFromDatabase(GERMAN_BOARD)?.let { germanBoardData ->
+        getDataFromDatabase(BoardType.GERMAN.name)?.let { germanBoardData ->
             if (germanBoardData.isNotEmpty()) {
-                (germanBoardData[0].remainingPegs.toString() + " / 44").also {
+                ("${germanBoardData[0].remainingPegs}$SCORE_SEPARATOR$GERMAN_BOARD_MAX_SCORE").also {
                     viewBinding.germanScoreTextView.text = it
                 }
                 viewBinding.germanTimeTextView.text = dateFormat.format(germanBoardData[0].elapsedTime)
             }
         }
 
-        getDataFromDatabase(ASYMMETRICAL_BOARD)?.let { asymmetricalBoardData ->
-            if (asymmetricalBoardData.isNotEmpty()) {
-                (asymmetricalBoardData[0].remainingPegs.toString() + " / 38").also {
+        getDataFromDatabase(BoardType.ASYMMETRIC.name)?.let { asymmetricBoardData ->
+            if (asymmetricBoardData.isNotEmpty()) {
+                (asymmetricBoardData[0].remainingPegs.toString() + SCORE_SEPARATOR+ ASYMMETRIC_BOARD_MAX_SCORE).also {
                     viewBinding.asymmetricScoreTextView.text = it
                 }
                 viewBinding.asymmetricTimeTextView.text =
-                    dateFormat.format(asymmetricalBoardData[0].elapsedTime)
+                    dateFormat.format(asymmetricBoardData[0].elapsedTime)
             }
         }
 
-        getDataFromDatabase(ENGLISH_BOARD)?.let { englishBoardData ->
+        getDataFromDatabase(BoardType.ENGLISH.name)?.let { englishBoardData ->
             if (englishBoardData.isNotEmpty()) {
-                (englishBoardData[0].remainingPegs.toString() + " / 32").also {
+                ("${englishBoardData[0].remainingPegs}$SCORE_SEPARATOR$ENGLISH_BOARD_MAX_SCORE").also {
                     viewBinding.englishScoreTextView.text = it
                 }
                 viewBinding.englishTimeTextView.text = dateFormat.format(englishBoardData[0].elapsedTime)
             }
         }
 
-        getDataFromDatabase(DIAMOND_BOARD)?.let { diamondBoardData ->
+        getDataFromDatabase(BoardType.DIAMOND.name)?.let { diamondBoardData ->
             if (diamondBoardData.isNotEmpty()) {
-                (diamondBoardData[0].remainingPegs.toString() + " / 40").also {
+                ("${diamondBoardData[0].remainingPegs}$SCORE_SEPARATOR$DIAMOND_BOARD_MAX_SCORE").also {
                     viewBinding.diamondScoreTextView.text = it
                 }
                 viewBinding.diamondTimeTextView.text = dateFormat.format(diamondBoardData[0].elapsedTime)
