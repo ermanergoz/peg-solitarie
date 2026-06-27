@@ -50,6 +50,12 @@ Infinite, never-repeating, always-solvable Challenge levels that feel fair and s
 - **Architecture**: Clean Architecture per the official Android guide (https://developer.android.com/topic/architecture) — UI layer with **MVVM** (StateFlow UiState, unidirectional data flow), optional Domain layer of use cases, Data layer using the **Repository pattern** as single source of truth. Hilt for DI; Coroutines/Flow for async.
 - **Game logic isolation**: domain logic is pure Kotlin, fully unit-testable, with no Android dependencies; ads and Play Games sit behind interfaces (`AdGateway`, `GamesService`).
 - **Rules**: orthogonal-only jumps across both modes.
+- **Code standards (mandatory)**:
+  - No magic numbers or strings in logic/UI — extract to constants files, **split by scope** (e.g. per-feature/per-layer constants objects) rather than one global dump.
+  - Compose: use **state hoisting** (stateless composables; state owned by ViewModels), per the locally installed `compose-skill`.
+  - Use a **dimens** resource file for all UI dimensions (spacing, sizes) — no hardcoded dp/sp scattered in composables.
+  - **detekt** and **ktlint** configured and passing — treated as a build/verification gate, not optional.
+- **Git workflow**: follow **Gitflow strictly** — long-lived `main` (releases) and `develop` (integration); work on `feature/*` branches off `develop`, `release/*` for release prep, `hotfix/*` off `main`. No direct commits to `main`/`develop` outside merges.
 
 ## Key Decisions
 
