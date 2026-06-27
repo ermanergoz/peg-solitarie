@@ -1,10 +1,11 @@
 ---
 phase: 1
 slug: domain-foundation-playable-board
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-06-28
+reviewed_at: 2026-06-28
 ---
 
 # Phase 1 — UI Design Contract
@@ -169,7 +170,7 @@ Board panel: a single `surfaceContainerHigh` rounded-rect (corner = M3 large sha
 Both jump and removal animations **launch together** keyed on `moveHistory.size`; removal (180ms) finishes just as the jumper lands (200ms), per D-08. `onAnimationFinished()` fires after the slide completes; the VM has already committed the move to domain state (animate-from-committed-state, RESEARCH Q5). Legal-destination highlights are **static** in Phase 1 (no pulse — pulse is Slice-2 polish).
 
 **Restart (D-06):**
-- Persistent control: a top-app-bar action, `Icons.Rounded.Refresh`, size `top_bar_icon_size`, tint `onSurface`, `contentDescription = "Restart"`.
+- Persistent control: a top-app-bar action, `Icons.Rounded.Refresh`, size `top_bar_icon_size`, tint `onSurface`, `contentDescription = "Restart Board"`.
 - If `moveHistory.isNotEmpty()` and not at end-state → show the mid-game confirm dialog first.
 - At end-state → the dialog's "Play Again" restarts with no extra confirm.
 - Restart resets `GameState` to the hardcoded English-33 initial board (center empty).
@@ -183,7 +184,7 @@ Both jump and removal animations **launch together** keyed on `moveHistory.size`
 | Element | Copy |
 |---------|------|
 | Primary CTA (game-over dialog) | **"Play Again"** |
-| Restart control (top bar) | icon-only; `contentDescription` = **"Restart"** |
+| Restart control (top bar) | icon-only; `contentDescription` = **"Restart Board"** |
 | Game-over — perfect (pegs == 1) | Headline: **"Perfect!"** · Body: **"You cleared the board down to a single peg."** |
 | Game-over — near (pegs 2–3) | Headline: **"So close!"** · Body: **"{n} pegs remaining."** (stars arrive in Phase 2) |
 | Game-over — stuck (pegs ≥ 4) | Headline: **"No moves left"** · Body: **"{n} pegs remaining. Try again?"** |
