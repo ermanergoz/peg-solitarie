@@ -47,17 +47,24 @@ created: 2026-06-28
 | `spacing_lg` | 24dp | Dialog inner padding, section breaks |
 | `spacing_xl` | 32dp | Vertical breathing room above/below board on tall screens |
 
-**Phase-specific layout tokens (dimens.xml):**
+**Phase-specific layout tokens (dimens.xml) — multiples of 4:**
 
 | Token | Value | Usage |
 |-------|-------|-------|
 | `board_screen_margin` | 16dp | Min margin between board and screen edges |
 | `board_max_size` | 480dp | Cap on board square edge (prevents oversized board on tablets) |
 | `board_min_touch_target` | 48dp | Material 3 minimum touch target — board must size so each cell ≥ this; otherwise board shrinks gracefully but cells never go below tap-comfortable |
-| `peg_selected_ring_width` | 3dp | Stroke width of the selected-peg ring |
-| `hole_outline_width` | 1dp | Stroke width of the empty-hole outline ring |
 | `top_bar_icon_size` | 24dp | Restart icon size (M3 default) |
 | `dialog_padding` | 24dp | AlertDialog / confirm dialog content padding |
+
+**Stroke widths (rendering, exempt from the 8-point grid):**
+
+These two tokens are **stroke-width rendering properties, not layout spacing** — they define the thickness of a drawn outline, not the size of or gap between layout elements. They are deliberately sub-4dp and are an **intentional exception** to the multiples-of-4 rule (a 4dp peg ring or hole outline would visually overpower the small peg geometry). Do not "round" them up to satisfy the 8-point grid.
+
+| Token (dimens.xml) | Value | Usage |
+|--------------------|-------|-------|
+| `peg_selected_ring_width` | 3dp | Stroke width of the selected-peg `primary` ring (rendering, not spacing) |
+| `hole_outline_width` | 1dp | Stroke width of the empty-hole `outlineVariant` ring (rendering, not spacing) |
 
 Exceptions: board cell size, peg radius, hole radius, and highlight radii are **computed from canvas size** (`cellSize = min(width, height) / GRID_DIMENSION`) and expressed as unitless ratio constants in `BoardMetrics` — they are intentionally **not** dimens.xml entries because they are proportional, not fixed dp. This is compliant with QUAL-03 (the no-dp/sp-literal gate targets fixed literals in composables; ratios live in a scoped constants object).
 
@@ -90,7 +97,7 @@ Material 3 role mapping for the 60/30/10 balance. In a peg board the "10% accent
 | Empty hole | fill `surfaceContainerLowest` + ring `outlineVariant` (1dp) | Recessed-hole look for `Cell.Empty` |
 | Accent (10%) — selected peg | peg keeps `secondary` fill + ring `primary` (3dp) + subtle scale-up | The one currently-selected peg |
 | Accent (10%) — legal destination | filled dot `primary` @ 38% alpha, radius `DESTINATION_DOT_RATIO × cellSize`, centered in the target empty hole | Where the selected peg may land (D-04 highlight) |
-| Accent (10%) — dialog primary | `primary` (filled/text button) | "Play Again" / "Restart" primary actions |
+| Accent (10%) — dialog primary | `primary` (filled/text button) | "Play Again" / "Restart Board" primary actions |
 | On-content text | `onSurface` / `onSurfaceVariant` | Dialog and app-bar text |
 | Jumped-peg removal | the peg's own `secondary` fill animating alpha→0 | D-08 fade |
 | Blocked cells | not drawn (transparent) | Cells outside the English-33 footprint |
@@ -105,6 +112,8 @@ Material 3 role mapping for the 60/30/10 balance. In a peg board the "10% accent
 ## Board Visual Model
 
 > The board is a 7×7 grid (English-33: the 33-hole cross). Drawn on one Compose `Canvas`. Geometry is hoisted once via `remember(boardSpec, canvasSize)` — **never allocate inside `DrawScope`** (RESEARCH Pitfall 8).
+
+**Primary focal point:** the centered board panel is the sole screen content (no competing chrome beyond the slim top app bar), so it is the unambiguous focal point of the screen; during interaction the **selected peg** (its `primary` ring + 1.08× scale) becomes the in-game focal point, drawing the eye to the active piece and its highlighted legal destinations.
 
 **Scoped constants object `BoardMetrics` (unitless ratios — NOT dimens.xml):**
 
@@ -178,10 +187,12 @@ Both jump and removal animations **launch together** keyed on `moveHistory.size`
 | Game-over — perfect (pegs == 1) | Headline: **"Perfect!"** · Body: **"You cleared the board down to a single peg."** |
 | Game-over — near (pegs 2–3) | Headline: **"So close!"** · Body: **"{n} pegs remaining."** (stars arrive in Phase 2) |
 | Game-over — stuck (pegs ≥ 4) | Headline: **"No moves left"** · Body: **"{n} pegs remaining. Try again?"** |
-| Game-over dialog dismiss | Text button **"Close"** (hides overlay so the player can view the final board; Restart still available in the top bar) |
-| Mid-game restart confirm | Title: **"Restart this board?"** · Body: **"Your current progress will be lost."** · Confirm: **"Restart"** · Dismiss: **"Cancel"** |
+| Game-over dialog dismiss | Text button **"View Board"** (hides the overlay so the player can view the final board; Restart still available in the top bar) |
+| Mid-game restart confirm | Title: **"Restart this board?"** · Body: **"Your current progress will be lost."** · Confirm: **"Restart Board"** · Dismiss: **"Keep Playing"** |
 | Empty state | **N/A** — the board is never data-empty; it always renders the English-33 layout (full board, center hole) as its initial state. |
 | Error state | **N/A** — no network/load/auth in Phase 1. Illegal/out-of-board taps fail closed as silent no-ops (D-04); the domain never crashes on bad input. |
+
+**Button-copy rationale:** every action label names its outcome rather than using a bare verb or a generic dismiss word. **"Restart Board"** (not bare "Restart") and **"Play Again"** name the object acted on. The game-over dismiss is **"View Board"** (not "Close") because dismissing the overlay returns the player to look at the final board. The mid-game dismiss is **"Keep Playing"** (not "Cancel") because choosing it keeps the player in their current, in-progress game session — communicating the outcome, not a generic abort.
 
 All literal strings live in `res/values/strings.xml` (no hardcoded UI strings — CLAUDE.md no-magic-strings rule); `{n}` is a plural-aware resource (`plurals` for "peg/pegs").
 
