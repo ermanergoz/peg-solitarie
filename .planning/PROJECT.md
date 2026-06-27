@@ -1,0 +1,84 @@
+# Peg Solitaire (Android)
+
+## What This Is
+
+A polished native Android peg solitaire game with two modes: a **Classic** mode of well-known hand-defined boards, and a **Challenge** mode that serves an effectively infinite stream of sequential, procedurally-generated levels that are each unique and guaranteed solvable. Players earn 1–3 stars per level. For casual puzzle players on Android.
+
+## Core Value
+
+Infinite, never-repeating, always-solvable Challenge levels that feel fair and satisfying — if nothing else works, the procedurally-generated puzzles must be solvable and fun.
+
+## Requirements
+
+### Validated
+
+(None yet — ship to validate)
+
+### Active
+
+- [ ] Player can play peg solitaire with correct orthogonal jump rules and clear win/lose detection
+- [ ] Player can play Classic mode boards (English-33, European-37, Triangle-15, Diamond-41)
+- [ ] Player can play infinite, sequential Challenge levels that are unique and guaranteed solvable
+- [ ] Challenge levels are deterministic — level N is always the same board (retry/resume/compare)
+- [ ] Challenge difficulty scales via board size/shape, peg density, and starting pattern
+- [ ] Player earns 1–3 stars based on pegs remaining, with elapsed time feeding a separate ranking score
+- [ ] Player can use a hint (next winning move) and undo the last move
+- [ ] Player progress is saved locally — per-level results, highest level, in-progress resume
+- [ ] (Slice 2) Google Play Games: sign-in, leaderboards, achievements, cloud save
+- [ ] (Slice 2) AdMob monetization: rewarded ads for hint/undo/retry, interstitials between levels
+
+### Out of Scope
+
+- HTML5 / Google H5 Games Ads — incompatible with the chosen native Kotlin build; AdMob is the native equivalent
+- Online / real-time multiplayer — not core to a single-player puzzle game
+- Daily challenges, custom board editor, level sharing — deferred; not needed to validate core value
+- Multiple visual themes — ship one clean theme first
+- Compose Multiplatform / iOS — Android-only for now
+- Diagonal jumps — Challenge keeps classic orthogonal-only rules
+
+## Context
+
+- Greenfield project, native Android, Kotlin.
+- A full design spec exists and is committed: `docs/superpowers/specs/2026-06-28-peg-solitaire-design.md`.
+- Core generation technique: **reverse-generation** — start from the solved state (one peg) and play legal jumps in reverse, driven by a level-number-seeded PRNG. This guarantees solvability and records a winning solution used for free hints.
+- Compose UI implementation will follow the locally installed `compose-skill` (`~/.claude/skills/compose-skill`).
+- Build is sliced: Slice 1 = playable core (testable, no SDKs); Slice 2 = Play Games + AdMob + polish.
+
+## Constraints
+
+- **Tech stack**: Native Kotlin + Jetpack Compose (Material 3) — chosen for performance and tight Play integration.
+- **Architecture**: Clean Architecture per the official Android guide (https://developer.android.com/topic/architecture) — UI layer with **MVVM** (StateFlow UiState, unidirectional data flow), optional Domain layer of use cases, Data layer using the **Repository pattern** as single source of truth. Hilt for DI; Coroutines/Flow for async.
+- **Game logic isolation**: domain logic is pure Kotlin, fully unit-testable, with no Android dependencies; ads and Play Games sit behind interfaces (`AdGateway`, `GamesService`).
+- **Rules**: orthogonal-only jumps across both modes.
+
+## Key Decisions
+
+| Decision | Rationale | Outcome |
+|----------|-----------|---------|
+| Native Kotlin (not HTML5/engine) | Performance + tightest Play Games integration | — Pending |
+| AdMob instead of H5 Games Ads | H5 Games Ads only works in HTML5 games; AdMob is the native equivalent (rewarded/interstitial) | — Pending |
+| Stars from pegs remaining; time feeds ranking score | Avoids frustration of withholding stars on slow-but-perfect solves while still rewarding speed | — Pending |
+| Reverse-generation for Challenge levels | Guarantees solvability and yields a recorded solution for free hints | — Pending |
+| Deterministic level seeding by level number | Reproducible levels enable retry/resume/fair comparison | — Pending |
+| Build in slices (core first, then online/ads) | Fastest path to a playable, testable game | — Pending |
+| Clean Architecture + MVVM + Repository pattern | User preference; aligns with official Android guidance | — Pending |
+
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
+---
+*Last updated: 2026-06-28 after initialization*
