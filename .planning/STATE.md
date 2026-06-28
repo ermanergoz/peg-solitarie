@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 1 UI-SPEC approved
-last_updated: "2026-06-28T00:41:46.919Z"
+stopped_at: Completed 01-03-PLAN.md
+last_updated: "2026-06-28T00:57:45.414Z"
 last_activity: 2026-06-28
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 5
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 01 (domain-foundation-playable-board) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-06-28
 
-Progress: [██░░░░░░░░] 20%
+Progress: [████░░░░░░] 40%
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Progress: [██░░░░░░░░] 20%
 *Updated after each plan completion*
 | Phase 01 P01 | 35 | 3 tasks | 28 files |
 | Phase 01 P02 | 30 | 3 tasks tasks | 16 files files |
+| Phase 01 P03 | 9 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,8 @@ Recent decisions affecting current work:
 - [Phase 1]: Plan 01 rework (2026-06-28): Kotlin pin relaxed 2.4.0 → 2.3.20 to obtain a KSP build (2.3.9) for Hilt; Hilt bumped 2.57.1 → 2.60 for AGP 9.2.1; Hilt + KSP now APPLIED (no KAPT), @HiltAndroidApp graph generates
 - [Phase ?]: Plan 01: Gradle 9.5.1 wrapper + AGP 9.2.1 built-in Kotlin (kotlin-android plugin removed); androidx.core pinned 1.18.0 for compileSdk 36
 - [Phase 1]: Plan 02: English-33 domain backed by an immutable Long peg-bitmask (Board) behind cellAt/withPeg/withoutPeg accessors; RulesEngine uses deterministic sorted move enumeration; reusable golden-master harness (BoardCodec + GoldenMasterAssert) over committed fixtures locks the encoding/assertion contract Phase 3 reuses
+- [Phase ?]: [Phase 1] Plan 03: GameViewModel is the sole move authority — rebuilds legalTargets from RulesEngine.legalMoves and applies only a member Move (T-03-01); game-over is replayable GameUiState.status, never a one-shot effect
+- [Phase ?]: [Phase 1] Plan 03: pinned androidx.lifecycle 2.9.4 (atomic group) — 2.11.0's -compose variants require compileSdk 37 (uninstallable here); 2.9.4 is what the Compose BOM already resolves
 
 ### Pending Todos
 
@@ -87,6 +90,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-28T00:40:00.740Z
-Stopped at: Phase 1 UI-SPEC approved
+Last session: 2026-06-28T00:57:45.410Z
+Stopped at: Completed 01-03-PLAN.md
 Resume file: None

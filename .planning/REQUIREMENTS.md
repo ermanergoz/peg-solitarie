@@ -12,8 +12,8 @@ Slice 1 — Playable Core. Fully playable and testable; ads and Play Games exist
 - [x] **GAME-01**: Player can jump a peg orthogonally over an adjacent peg into an empty hole, removing the jumped peg
 - [x] **GAME-02**: Game detects and signals the end state when no legal moves remain
 - [ ] **GAME-03**: Board renders on a Compose Canvas with animated jump and peg-removal feedback
-- [ ] **GAME-04**: Player can select a peg and see its legal destinations highlighted
-- [ ] **GAME-05**: Player can restart the current level at any time
+- [x] **GAME-04**: Player can select a peg and see its legal destinations highlighted
+- [x] **GAME-05**: Player can restart the current level at any time
 
 ### Classic Mode
 
@@ -109,8 +109,8 @@ Each v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for ph
 | GAME-01 | Phase 1 | Complete |
 | GAME-02 | Phase 1 | Complete |
 | GAME-03 | Phase 1 | Pending |
-| GAME-04 | Phase 1 | Pending |
-| GAME-05 | Phase 1 | Pending |
+| GAME-04 | Phase 1 | Complete |
+| GAME-05 | Phase 1 | Complete |
 | QUAL-01 | Phase 1 | Complete |
 | QUAL-02 | Phase 1 | Complete |
 | QUAL-03 | Phase 1 | Complete |
