@@ -37,6 +37,16 @@ androidxCore = "1.18.0"
 # here); 2.9.4 is the highest line whose `-compose` variants keep minCompileSdk 36
 # and is exactly what the Compose BOM 2026.06.00 already resolves transitively.
 androidxLifecycle = "2.9.4"
+# Latest STABLE Navigation Compose. 2.10.x is alpha and requires compileSdk 37
+# (uninstallable here); 2.9.8 stays on the compileSdk-36-safe line and pairs with
+# the kotlinx-serialization plugin for type-safe `@Serializable` routes (NAV-02).
+navigationCompose = "2.9.8"
+# kotlinx-serialization-json runtime for `@Serializable` nav routes + future blob
+# serialization. Plugin (below) tracks the Kotlin pin; runtime is versioned here.
+kotlinxSerialization = "1.11.0"
+# DataStore Preferences — single boolean `onboardingSeen` flag (ONB-01) + future
+# scalar settings/challenge progress. Flow-based async KV store (no SharedPreferences).
+datastore = "1.2.1"
 
 # --- Standards gate tooling (Phase-1 delta — verified live against the
 #     official Gradle Plugin Portal / Maven Central this session) ---
@@ -87,6 +97,14 @@ androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "l
 # compileSdk-36-safe way to expose `androidx.lifecycle.ViewModel`.
 androidx-lifecycle-viewmodel = { group = "androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "androidxLifecycle" }
 
+# --- Navigation + serialization + persistence (Phase-2 NAV-02 / ONB-01) ---
+# Type-safe NavHost between Home / Catalog / Gameplay / Results destinations.
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+# kotlinx-serialization runtime backing `@Serializable` route classes.
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+# DataStore Preferences for the first-run `onboardingSeen` flag (ONB-01).
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+
 # --- DI (APPLIED: :app uses hilt-android at runtime; hilt-compiler via ksp(...)) ---
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
@@ -115,6 +133,9 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+# Applied to :app so `@Serializable` nav routes generate serializers (tracks the
+# Kotlin 2.3.20 pin — without applying this, type-safe routes crash at navigate time).
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 detekt = { id = "dev.detekt", version.ref = "detekt" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
