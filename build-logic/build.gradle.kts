@@ -12,4 +12,7 @@ dependencies {
     // Standards gate (consumed by the `standards` convention plugin).
     implementation(libs.detekt.gradlePlugin)
     implementation(libs.ktlint.gradlePlugin)
+    // NOTE: KSP + Hilt Gradle plugins are NOT on the convention classpath — they
+    // are applied directly in :app via catalog aliases (Hilt needs AGP's android
+    // extension realised before it applies; see android-app.gradle.kts).
 }

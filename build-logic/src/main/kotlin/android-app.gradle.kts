@@ -8,9 +8,11 @@ import org.jetbrains.kotlin.gradle.dsl.KotlinAndroidProjectExtension
  *
  * Centralises the shared Android/Compose/Kotlin configuration (compileSdk,
  * JDK-17 toolchain, Compose build feature) so the module build file only carries
- * its own identity (namespace, applicationId, version). NOTE: Hilt + KSP are
- * intentionally NOT applied here — KSP has no Kotlin-2.4.0 release yet, so DI
- * wiring is deferred to the plan that actually exercises it (see SUMMARY).
+ * its own identity (namespace, applicationId, version). The KSP + Hilt plugins
+ * are applied in the module's own build file (after this convention realises the
+ * AGP `android{}` extension) — Hilt's Gradle plugin needs the Android extension
+ * present at apply time, which a precompiled convention's `plugins {}` block does
+ * not guarantee during accessor generation.
  */
 plugins {
     // AGP 9 provides built-in Kotlin support, so `org.jetbrains.kotlin.android`

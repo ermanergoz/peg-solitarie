@@ -1,13 +1,15 @@
 package com.app.pegsolitaire
 
 import android.app.Application
+import dagger.hilt.android.HiltAndroidApp
 
 /**
- * Application entry point.
+ * Application entry point and Hilt's `SingletonComponent` root.
  *
- * Intentionally a plain [Application] in Plan 01: Hilt's `@HiltAndroidApp` is
- * deferred because KSP (which runs Hilt's annotation processor) has no Kotlin
- * 2.4.0 build available yet. DI is wired in the plan that first needs a real
- * object graph (`@HiltViewModel`). See 01-01-SUMMARY.md "Deferred: Hilt/KSP".
+ * `@HiltAndroidApp` triggers Hilt's code generation: the processor (running under
+ * KSP — no KAPT) emits the component graph so `@AndroidEntryPoint` activities and,
+ * later, `@HiltViewModel` view models can be injected with zero further build
+ * setup. The Kotlin pin (2.3.20) has a matching KSP build (2.3.9), unblocking DI.
  */
+@HiltAndroidApp
 class App : Application()

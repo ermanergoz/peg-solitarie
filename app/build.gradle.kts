@@ -1,6 +1,10 @@
 plugins {
     id("android-app")
     id("standards")
+    // DI: applied here (not in the convention plugin) so AGP's android extension
+    // is realised before Hilt applies. KSP runs Hilt's processor — no KAPT.
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
 }
 
 android {
@@ -35,6 +39,10 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.bundles.compose)
     debugImplementation(libs.androidx.compose.ui.tooling)
+
+    // DI: Hilt runtime + annotation processor under KSP (no KAPT).
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)
