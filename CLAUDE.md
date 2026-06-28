@@ -28,16 +28,16 @@ A polished native Android peg solitaire game with two modes: a **Classic** mode 
 ### Core Technologies
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| Kotlin | **2.4.0** | Language | Current stable. KSP2 is built-in/default from Kotlin 2.x; KSP1 is incompatible with Kotlin ≥2.3. Pure-Kotlin domain layer is the project's core requirement. |
-| Android Gradle Plugin (AGP) | **9.2.0** | Build | Latest stable (April 2026). Required by Hilt 2.57.x's Gradle plugin. New DSL is the default; opt-out removed in AGP 10. |
+| Kotlin | **2.3.20** | Language | Pinned to 2.3.20 (relaxed from 2.4.0 on 2026-06-28) so a matching KSP build exists — KSP's latest (symbol-processing 2.3.9) targets Kotlin 2.3.20; no KSP build exists for 2.4.x. KSP2 is built-in/default from Kotlin 2.x. Pure-Kotlin domain layer is the project's core requirement. |
+| Android Gradle Plugin (AGP) | **9.1.0** | Build | Pinned to the user's tooling max-supported AGP (9.1.0, down from 9.2.1 on 2026-06-28). New DSL is the default; opt-out removed in AGP 10. AGP 9.1.0 already removed the legacy Android `BaseExtension`, so Hilt must stay ≥2.60. |
 | Gradle | **9.1+** (use latest 9.x wrapper) | Build engine | AGP 9.x requires Gradle ≥9.1. |
 | JDK | **17** | Toolchain | AGP 9.x minimum; set via Gradle toolchain (`jvmToolchain(17)`). |
 | Jetpack Compose (BOM) | **2026.06.00** | UI toolkit | BOM pins all Compose artifacts to a mutually-compatible set (UI/Foundation ~1.11.x). Single source of truth for Compose versions — never hand-pin individual Compose libs. |
-| Compose Compiler plugin | matches Kotlin (`org.jetbrains.kotlin.plugin.compose` @ 2.4.0) | Compose codegen | Since Kotlin 2.0 the Compose compiler ships with Kotlin and is applied as a Gradle plugin versioned to Kotlin — do **not** use the old standalone `composeCompiler` artifact. |
+| Compose Compiler plugin | matches Kotlin (`org.jetbrains.kotlin.plugin.compose` @ 2.3.20) | Compose codegen | Since Kotlin 2.0 the Compose compiler ships with Kotlin and is applied as a Gradle plugin versioned to Kotlin — do **not** use the old standalone `composeCompiler` artifact. |
 | Material 3 | via Compose BOM (`androidx.compose.material3`) | Design system | Material 3 (M3) is the current Compose design system; M3 Expressive components are available in the 2026 BOM. Use M3, not Material 2. |
-| Hilt (Dagger) | **2.57.1** | Dependency injection | Standard DI for Android; required by the project. 2.57.x adds AGP 9 support. Run the compiler via **KSP**, not KAPT. |
+| Hilt (Dagger) | **2.60** | Dependency injection | Standard DI for Android; required by the project. Pinned 2.60 (up from 2.57.1 on 2026-06-28): 2.57.1's Gradle plugin looks for the legacy Android `BaseExtension`, which AGP 9.1.0 no longer registers ("Android BaseExtension not found"); 2.60 uses AGP 9's new DSL. Run the compiler via **KSP**, not KAPT. |
 | Hilt Navigation Compose | **androidx.hilt 1.3.0** | VM injection in Compose | `hiltViewModel()` for scoping ViewModels to nav destinations. |
-| KSP (Kotlin Symbol Processing) | plugin version matching Kotlin (e.g. `2.4.0-2.0.x`) | Annotation processing | Faster than KAPT; required by modern Room/Hilt. KSP2 is the default engine. Always pick the KSP plugin whose prefix equals your Kotlin version. |
+| KSP (Kotlin Symbol Processing) | **2.3.9** (`com.google.devtools.ksp`) | Annotation processing | Faster than KAPT; required by modern Room/Hilt. KSP2 is the default engine. KSP now uses its own patch numbering aligned to the Kotlin line — `symbol-processing 2.3.9` is built against Kotlin compiler **2.3.20** (verify the `kotlin-stdlib` dependency of the chosen KSP build matches the Kotlin pin). |
 | kotlinx-coroutines | **1.11.0** | Async / concurrency | Standard async substrate; `StateFlow`/`SharedFlow` for MVVM UiState + one-off effects. `-android` for Dispatchers.Main, `-test` for tests. |
 | Navigation Compose | **2.9.8** | Screen navigation | Type-safe navigation between Home / Classic / Challenge / Gameplay / Results. Use the stable Navigation 2.9 line (see "What NOT to use" re: Navigation 3). |
 ### Persistence — Room vs DataStore (the flagged decision, resolved)
@@ -118,9 +118,9 @@ A polished native Android peg solitaire game with two modes: a **Classic** mode 
 ## Version Compatibility
 | Package | Compatible With | Notes |
 |---------|-----------------|-------|
-| AGP 9.2.0 | Gradle ≥9.1, JDK 17, Hilt 2.57.x | Hilt 2.57.x added AGP 9 support — older Hilt will break on AGP 9. |
-| Kotlin 2.4.0 | KSP plugin `2.4.0-*`, Compose compiler plugin 2.4.0, Coroutines 1.11.0, Serialization 1.11.0 | KSP plugin prefix MUST equal the Kotlin version. KSP1 is incompatible with Kotlin ≥2.3 (KSP2 is default). |
-| Compose BOM 2026.06.00 | Kotlin 2.4.0 via Compose compiler plugin | BOM pins UI/Foundation/Material3/Animation together — don't override member versions. |
+| AGP 9.1.0 | Gradle ≥9.1 (verified green on the 9.5.1 wrapper), JDK 17, Hilt **2.60** | Pinned to the tooling max-supported AGP. AGP 9.1.0 dropped the legacy Android `BaseExtension`; Hilt's Gradle plugin needs **2.60** (2.57.1 throws "Android BaseExtension not found" on AGP 9.1.0 — verified 2026-06-28). |
+| Kotlin 2.3.20 | KSP `2.3.9` (built against Kotlin 2.3.20), Compose compiler plugin 2.3.20, Coroutines 1.11.0, Serialization 1.11.0 | KSP's `kotlin-stdlib` dependency MUST equal the Kotlin pin. KSP2 is default. (Kotlin 2.3.21 has no matching KSP build — stay on 2.3.20.) |
+| Compose BOM 2026.06.00 | Kotlin 2.3.20 via Compose compiler plugin | BOM pins UI/Foundation/Material3/Animation together — don't override member versions. Verified compatible with the Kotlin 2.3.20 Compose compiler. |
 | Room 2.8.4 | KSP, Coroutines (room-ktx) | Use `ksp(room-compiler)`, not kapt. |
 ## Sources
 - developer.android.com/jetpack/androidx/releases/compose — Compose BOM 2026.06.00 (HIGH)

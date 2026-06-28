@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Phase 1 UI-SPEC approved
-last_updated: "2026-06-27T23:32:59.392Z"
-last_activity: 2026-06-27 -- Phase 01 planning complete
+status: verifying
+stopped_at: Completed 01-03-PLAN.md
+last_updated: "2026-06-28T05:17:20.701Z"
+last_activity: 2026-06-28
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 5
-  completed_plans: 0
-  percent: 0
+  completed_plans: 5
+  percent: 20
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-28)
 
 **Core value:** Infinite, never-repeating, always-solvable Challenge levels that feel fair and satisfying.
-**Current focus:** Phase 1 — Domain Foundation & Playable Board
+**Current focus:** Phase 01 — domain-foundation-playable-board
 
 ## Current Position
 
-Phase: 1 of 5 (Domain Foundation & Playable Board)
-Plan: 0 of TBD in current phase
-Status: Ready to execute
-Last activity: 2026-06-27 -- Phase 01 planning complete
+Phase: 01 (domain-foundation-playable-board) — EXECUTING
+Plan: 5 of 5
+Status: phase_01_complete_verified
+Last activity: 2026-06-28
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -52,6 +52,11 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 01 P01 | 35 | 3 tasks | 28 files |
+| Phase 01 P02 | 30 | 3 tasks tasks | 16 files files |
+| Phase 01 P03 | 9 | 2 tasks | 7 files |
+| Phase 01 P04 | 13 | 2 tasks | 10 files |
+| Phase 01 P05 | 18 | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -63,6 +68,15 @@ Recent decisions affecting current work:
 - Roadmap: Slice 1 only (5 phases). Slice 2 (Play Games + AdMob + polish) deferred to a future milestone, swapped behind interfaces.
 - Phase 1: Code-standards gates (domain purity boundary test, detekt/ktlint, constants/dimens, JVM golden-master harness) established up front, not retrofitted.
 - Phase 3: Generator is the #1 risk — golden-master CI test locked before any difficulty tuning; `generatorVersion` stamped from day one; difficulty knobs data-driven and frozen before release.
+- [Phase 1]: Plan 01 rework (2026-06-28): Kotlin pin relaxed 2.4.0 → 2.3.20 to obtain a KSP build (2.3.9) for Hilt; Hilt bumped 2.57.1 → 2.60 for AGP 9.2.1; Hilt + KSP now APPLIED (no KAPT), @HiltAndroidApp graph generates
+- [Phase ?]: Plan 01: Gradle 9.5.1 wrapper + AGP 9.2.1 built-in Kotlin (kotlin-android plugin removed); androidx.core pinned 1.18.0 for compileSdk 36
+- [Phase 1]: Plan 02: English-33 domain backed by an immutable Long peg-bitmask (Board) behind cellAt/withPeg/withoutPeg accessors; RulesEngine uses deterministic sorted move enumeration; reusable golden-master harness (BoardCodec + GoldenMasterAssert) over committed fixtures locks the encoding/assertion contract Phase 3 reuses
+- [Phase ?]: [Phase 1] Plan 03: GameViewModel is the sole move authority — rebuilds legalTargets from RulesEngine.legalMoves and applies only a member Move (T-03-01); game-over is replayable GameUiState.status, never a one-shot effect
+- [Phase ?]: [Phase 1] Plan 03: pinned androidx.lifecycle 2.9.4 (atomic group) — 2.11.0's -compose variants require compileSdk 37 (uninstallable here); 2.9.4 is what the Compose BOM already resolves
+- [Phase ?]: [Phase 1] Plan 04: BoardCanvas is a stateless Compose Canvas leaf — renders GameUiState, emits bounds-checked onCellTap (T-04-01), zero legality logic (T-04-02); D-07 slide + D-08 fade+shrink keyed on MoveTransition.id
+- [Phase ?]: [Phase 1] Plan 04: QUAL-03 split locked — fixed dp/sp in dimens.xml (dimensionResource/LocalDensity.toPx), proportional ratios in BoardMetrics, durations/easings in GameAnim, colors as MaterialTheme.colorScheme roles; baseline M3 theme (zero hex)
+- [Phase 01]: Plan 05: walking skeleton closed end-to-end — MainActivity → GameRoute (hiltViewModel + collectAsStateWithLifecycle) → stateless GameScreen (Scaffold/top-bar RestartControl + BoardCanvas + D-05 GameOverDialog + D-06 confirm); Robolectric Compose GameFlowTest proves tap→jump→game-over→restart on the JVM
+- [Phase 01]: Plan 05: hilt-navigation-compose pinned 1.3.0 + androidx.lifecycle atomic group force-resolved 2.9.4 — the 1.4.0-rc01 line transitively requires compileSdk 37; deprecated hiltViewModel() kept as the 36-safe path
 
 ### Pending Todos
 
@@ -71,6 +85,12 @@ None yet.
 ### Blockers/Concerns
 
 - Phase 3 difficulty-curve knob values cannot be set from research — require a dedicated playtest-iteration loop before the `generatorVersion` contract is frozen.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260628-n4f | Deselect a peg only when that same peg is re-tapped (tapping a different peg is a no-op) | 2026-06-28 | 675de73 | [260628-n4f-deselect-only-on-retap](./quick/260628-n4f-deselect-only-on-retap/) |
 
 ## Deferred Items
 
@@ -82,6 +102,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-27T22:39:36.560Z
-Stopped at: Phase 1 UI-SPEC approved
-Resume file: .planning/phases/01-domain-foundation-playable-board/01-UI-SPEC.md
+Last session: 2026-06-28T01:30:49.941Z
+Stopped at: Completed 01-03-PLAN.md
+Resume file: None

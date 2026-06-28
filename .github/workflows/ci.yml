@@ -1,0 +1,54 @@
+name: CI
+
+# Gitflow gate: every push and every PR targeting the long-lived integration
+# branches runs the full standards gate + domain tests + debug build. This covers
+# `feature/* -> develop`, `release/* -> main`, and `hotfix/* -> main` PRs.
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Standards gate + domain tests + debug build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle (with build caching)
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Resolve Android SDK location for the build
+        # The Android build reads sdk.dir from local.properties (gitignored).
+        # CI writes it from the runner's SDK root — no secrets required.
+        run: echo "sdk.dir=${ANDROID_SDK_ROOT:-$ANDROID_HOME}" > local.properties
+
+      - name: Standards gate + domain tests + debug build
+        # QUAL-01/02/03 (ktlint, detekt, ArchUnit purity, dp/sp gate run under
+        # `check`/`test`) + QUAL-04 (:domain:test) + a debug APK build.
+        run: >-
+          ./gradlew
+          ktlintCheck
+          detekt
+          :domain:test
+          test
+          assembleDebug
+          --no-daemon --stacktrace

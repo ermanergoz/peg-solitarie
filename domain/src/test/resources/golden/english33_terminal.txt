@@ -1,0 +1,10 @@
+  ...  
+  O..  
+......O
+.......
+O....O.
+  ...  
+  OOO  
+pegs=0x1c2101008
+gameOver=true
+pegCount=7

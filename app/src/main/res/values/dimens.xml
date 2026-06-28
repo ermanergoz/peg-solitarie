@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Every fixed UI dp/sp value lives here (QUAL-03). Composables read these via
+  `dimensionResource(...)` — no raw `.dp`/`.sp` literal ever appears in a
+  composable (the custom dpSpLiteralCheck gate fails the build on one).
+
+  Proportional board geometry (peg/hole/dot/ring radii, cell size) is NOT here:
+  it scales with the canvas and is expressed as unitless ratios in `BoardMetrics`.
+-->
+<resources>
+    <!-- Spacing scale: 8-point grid (all multiples of 4). -->
+    <dimen name="spacing_xs">4dp</dimen>
+    <dimen name="spacing_sm">8dp</dimen>
+    <dimen name="spacing_md">16dp</dimen>
+    <dimen name="spacing_lg">24dp</dimen>
+    <dimen name="spacing_xl">32dp</dimen>
+
+    <!-- Phase-1 layout tokens (multiples of 4). -->
+    <dimen name="board_screen_margin">16dp</dimen>
+    <dimen name="board_max_size">480dp</dimen>
+    <dimen name="board_min_touch_target">48dp</dimen>
+    <dimen name="top_bar_icon_size">24dp</dimen>
+    <dimen name="dialog_padding">24dp</dimen>
+
+    <!--
+      Stroke widths (rendering, not layout spacing) — an INTENTIONAL sub-4dp
+      exception to the 8-point grid: a 4dp ring/outline would overpower the small
+      peg geometry. Do not round these up.
+    -->
+    <dimen name="peg_selected_ring_width">3dp</dimen>
+    <dimen name="hole_outline_width">1dp</dimen>
+</resources>
