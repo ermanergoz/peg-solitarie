@@ -205,5 +205,24 @@ completed: 2026-06-28
 - Non-blocking advisory only: Gradle warns "Kotlin Gradle plugin loaded multiple times in :app/:domain" — build stays green (exit 0).
 
 ---
+
+## Post-Phase Correction (AGP 9.1.0)
+
+**Date:** 2026-06-28 — corrective foundation fix (not a new numbered plan), same branch `gsd/phase-01-domain-foundation-playable-board`.
+
+**Reason:** The user's Android tooling supports a maximum of **AGP 9.1.0**; the build had pinned AGP 9.2.1, which is incompatible.
+
+**Final pinned versions after re-resolution:**
+- **AGP 9.1.0** (down from 9.2.1) — real, resolvable coordinate on Google Maven.
+- **Gradle 9.5.1 wrapper — unchanged.** AGP 9.1.0 builds green on it with **no** "too new"/unsupported advisory, so no wrapper downgrade or regeneration was needed.
+- **Hilt 2.60 — unchanged.** AGP 9.1.0 (not just 9.2.1) also removed the legacy Android `BaseExtension`; reverting to the CLAUDE.md-mandated **2.57.1** was attempted first and **genuinely fails** at plugin-apply time (`Failed to apply plugin 'com.google.dagger.hilt.android' → Android BaseExtension not found`). This corrects the earlier deviation note that attributed the `BaseExtension` removal to AGP 9.2.1 specifically — it is AGP 9.x-wide. Hilt must stay ≥2.60.
+- **Kotlin 2.3.20 / KSP 2.3.9 — unchanged** (approved earlier decision).
+- **androidx.core 1.18.0 / androidx.lifecycle 2.9.4 — unchanged** (compileSdk-36 constraints, independent of AGP).
+
+**Verification (exit 0):** `./gradlew clean ktlintCheck detekt :domain:test test assembleDebug :app:dpSpLiteralCheck` — BUILD SUCCESSFUL. Hilt KSP/codegen tasks ran (`kspDebugKotlin`, `hiltJavaCompileDebug`); ArchUnit `DomainPurityTest` passed (tests=1, failures=0, errors=0); `:domain` stays pure-JVM. Resolved AGP confirmed `com.android.tools.build:gradle:9.1.0`, Hilt `2.60`.
+
+**Commits:** `fix(01-01):` catalog AGP/Hilt pin; `docs(01-01):` this note + CLAUDE.md + PROJECT.md.
+
+---
 *Phase: 01-domain-foundation-playable-board*
 *Completed: 2026-06-28*

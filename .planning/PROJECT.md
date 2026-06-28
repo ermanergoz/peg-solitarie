@@ -69,6 +69,7 @@ Infinite, never-repeating, always-solvable Challenge levels that feel fair and s
 | Build in slices (core first, then online/ads) | Fastest path to a playable, testable game | — Pending |
 | Clean Architecture + MVVM + Repository pattern | User preference; aligns with official Android guidance | — Pending |
 | Kotlin pin relaxed 2.4.0 → 2.3.20 to obtain a KSP build for Hilt; KSP + Hilt + no-KAPT retained (2026-06-28) | KSP's latest build (symbol-processing 2.3.9) targets Kotlin 2.3.20; no KSP exists for 2.4.x, which blocked Hilt's annotation processor. 2.3.20 is the latest 2.3.x with an exact KSP match. Also bumped Hilt 2.57.1 → 2.60 (2.57.1's Gradle plugin needs the legacy Android BaseExtension, dropped by AGP 9.2.1). | ✅ Applied — Hilt graph generates under KSP; full gate green |
+| AGP pinned to 9.1.0 (tooling max-supported); re-resolved Gradle/Hilt cascade accordingly (2026-06-28) | User Android tooling supports at most AGP 9.1.0; 9.2.1 was incompatible. AGP 9.1.0 also dropped the legacy Android BaseExtension, so Hilt stays 2.60 (2.57.1 fails to apply); Gradle 9.5.1 wrapper kept (no too-new advisory under AGP 9.1.0); Kotlin 2.3.20/KSP 2.3.9 and compileSdk-36 core/lifecycle pins unchanged. | ✅ Applied — full gate (ktlint/detekt/:domain:test/test/assembleDebug + dp-sp + ArchUnit) green, exit 0 |
 
 ## Evolution
 
