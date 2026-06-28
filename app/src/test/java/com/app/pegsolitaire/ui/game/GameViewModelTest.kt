@@ -65,19 +65,19 @@ class GameViewModelTest {
         }
 
     @Test
-    fun tappingADifferentPegReSelectsIt() =
+    fun tappingADifferentPegWhileSelectedIsANoOp() =
         runTest {
             val viewModel = englishViewModel()
             viewModel.uiState.test {
                 awaitItem()
                 viewModel.onCellTap(pegAboveCenter)
-                awaitItem()
+                val selected = awaitItem()
 
+                // A DIFFERENT peg while one is already selected must not switch selection.
                 viewModel.onCellTap(pegLeftOfCenter)
 
-                val reselected = awaitItem()
-                assertThat(reselected.selected).isEqualTo(pegLeftOfCenter)
-                assertThat(reselected.legalTargets).containsExactly(centerHole)
+                expectNoEvents()
+                assertThat(viewModel.uiState.value).isEqualTo(selected)
                 cancelAndIgnoreRemainingEvents()
             }
         }
