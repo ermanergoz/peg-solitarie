@@ -1,0 +1,35 @@
+# detekt configuration — merged on top of detekt's default config
+# (`buildUponDefaultConfig = true`). Only the project-specific overrides live
+# here. Enforces the project's "no magic numbers in logic/UI" via MagicNumber,
+# while permitting the mandated scoped-constants objects.
+
+naming:
+  # Compose @Composable functions are PascalCase by convention — exempt them from
+  # the camelCase FunctionNaming rule (standard detekt + Compose configuration).
+  FunctionNaming:
+    active: true
+    ignoreAnnotated:
+      - 'Composable'
+
+style:
+  MagicNumber:
+    active: true
+    excludes:
+      - '**/test/**'
+      - '**/androidTest/**'
+      - '**/build/**'
+    # Trivial structural numbers only.
+    ignoreNumbers:
+      - '-1'
+      - '0'
+      - '1'
+      - '2'
+    ignoreHashCodeFunction: true
+    # Permit the scoped-constants objects the project mandates (constants live in
+    # `val`/companion `val`/const declarations, not inline in logic).
+    ignorePropertyDeclaration: true
+    ignoreConstantDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    ignoreNamedArgument: true
+    ignoreEnums: true
+    ignoreRanges: false
