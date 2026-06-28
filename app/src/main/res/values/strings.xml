@@ -35,4 +35,59 @@
         <item quantity="one">%d peg remaining. Try again?</item>
         <item quantity="other">%d pegs remaining. Try again?</item>
     </plurals>
+
+    <!--
+      ============================ Phase-2 copy ============================
+      All Phase-2 user-facing strings, declared here up front so the Classic-flow
+      UI plans (Catalog 02-05, Home/onboarding 02-06, Results 02-07) read them via
+      stringResource(...) with no magic strings. Verbatim from the Phase-2 UI-SPEC
+      Copywriting Contract. Phase-1 strings above are reused, not duplicated
+      (e.g. restart_board for the gameplay restart content description).
+    -->
+
+    <!-- Classic board display names (catalog cards, ascending hole count). -->
+    <string name="board_english33">English-33</string>
+    <string name="board_european37">European-37</string>
+    <string name="board_asymmetric39">Asymmetric 3-3-2-2</string>
+    <string name="board_diamond41">Diamond-41</string>
+    <string name="board_wiegleb45">Wiegleb-45</string>
+
+    <!-- Home (mode select). -->
+    <string name="classic_tile_title">Classic</string>
+    <string name="classic_tile_supporting">5 boards</string>
+    <string name="challenge_tile_title">Challenge</string>
+    <string name="coming_soon">Coming soon</string>
+    <string name="how_to_play">How to play</string>
+
+    <!-- Classic catalog. -->
+    <string name="catalog_title">Classic</string>
+    <!-- Hole-count subtitle on each catalog card, plural-aware. -->
+    <plurals name="holes_count">
+        <item quantity="one">%d hole</item>
+        <item quantity="other">%d holes</item>
+    </plurals>
+
+    <!-- Gameplay top bar (timer + back; restart_board reused from Phase 1). -->
+    <string name="navigate_back">Navigate back</string>
+    <string name="elapsed_time">Elapsed time</string>
+
+    <!-- Results. -->
+    <string name="results_title">Results</string>
+    <string name="results_headline_perfect">Perfect!</string>
+    <string name="results_headline_solved">Solved!</string>
+    <string name="results_headline_stuck">Out of moves</string>
+    <string name="results_label_score">SCORE</string>
+    <string name="results_label_time">TIME</string>
+    <string name="results_label_pegs_left">PEGS LEFT</string>
+    <string name="action_next_board">Next board</string>
+    <string name="action_replay">Replay</string>
+    <string name="action_catalog">Catalog</string>
+    <string name="action_home">Home</string>
+
+    <!-- Onboarding overlay (first-run how-to-play of the orthogonal jump). -->
+    <string name="onboarding_got_it">Got it</string>
+    <string name="onboarding_skip">Skip tutorial</string>
+    <string name="onboarding_step_1">Tap a peg, then tap an empty hole two cells away.</string>
+    <string name="onboarding_step_2">The peg jumps straight over its neighbor — only up, down, left, or right.</string>
+    <string name="onboarding_step_3">The jumped peg is removed. Clear the board down to one peg.</string>
 </resources>
