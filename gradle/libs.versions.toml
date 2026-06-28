@@ -5,12 +5,18 @@
 
 [versions]
 # --- Build toolchain (pinned by CLAUDE.md Technology Stack) ---
-kotlin = "2.4.0"                 # KSP plugin prefix must match; KSP2 default
+# Kotlin relaxed 2.4.0 -> 2.3.20 (2026-06-28, approved): KSP's latest published
+# build (symbol-processing 2.3.9) is compiled against Kotlin 2.3.20, and no KSP
+# build exists for Kotlin 2.4.x. 2.3.20 is the latest 2.3.x patch with an exact
+# matching KSP build (2.3.21 has no KSP). KSP + Hilt + no-KAPT retained.
+kotlin = "2.3.20"                # AGP built-in Kotlin + compose compiler follow this
+ksp = "2.3.9"                    # symbol-processing built against Kotlin 2.3.20
 agp = "9.2.1"                    # 9.2.1 patch — detekt-alpha's tested AGP pairing
 composeBom = "2026.06.00"        # governs all androidx.compose.* versions
 
-# --- DI (declared now; APPLIED in a later plan — see SUMMARY "Deferred: Hilt/KSP") ---
-hilt = "2.57.1"
+# --- DI (APPLIED: KSP plugin + Hilt Gradle plugin wired into :app via the
+#     android-app convention plugin; hilt-compiler runs under KSP, no KAPT) ---
+hilt = "2.60"
 hiltNavigationCompose = "1.4.0-rc01"
 
 # --- AndroidX (not governed by the Compose BOM) ---
@@ -59,7 +65,7 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidxLifecycle" }
 androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "androidxLifecycle" }
 
-# --- DI (declared; not yet wired into a module — KSP has no Kotlin-2.4 build) ---
+# --- DI (APPLIED: :app uses hilt-android at runtime; hilt-compiler via ksp(...)) ---
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
 hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
@@ -88,3 +94,5 @@ kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 detekt = { id = "dev.detekt", version.ref = "detekt" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
