@@ -145,9 +145,13 @@ None — no new security surface beyond the plan's `<threat_model>` (T-05-01 ill
 - `./gradlew :app:dpSpLiteralCheck :app:detekt` — exit 0 (QUAL-03; no raw dp/sp in the new composables, only named consts).
 - `GameRoute.kt` greps: `hiltViewModel()` ×1, `collectAsStateWithLifecycle` ×3; `MainActivity.kt` references `GameRoute` ×3 inside `AppTheme`.
 
-## Manual Verification Required
+## Manual Verification Required — ✅ RESOLVED 2026-06-28
 
-The plan's Task 3 is a `checkpoint:human-verify` (gate="blocking") emulator playtest of the **jump/removal feel**, which the automated `GameFlowTest` cannot judge (it asserts state changes + dialog presence, not motion smoothness/clarity). This step is **pending** — it requires a human on an emulator/device and was not (and cannot be) faked here.
+**Status: APPROVED by user (2026-06-28).** The human emulator playtest was run on-device; the user reported "it runs fine, no issues." Task 3's `checkpoint:human-verify` gate is satisfied — the playable board, jump/removal feel, and game-over/restart flows behave correctly. This closes the only outstanding item in Phase 01.
+
+_Original instructions retained below for the record._
+
+The plan's Task 3 is a `checkpoint:human-verify` (gate="blocking") emulator playtest of the **jump/removal feel**, which the automated `GameFlowTest` cannot judge (it asserts state changes + dialog presence, not motion smoothness/clarity).
 
 **How to launch:** with a Pixel AVD running, `./gradlew :app:installDebug` then launch "Peg Solitaire" (or `adb shell am start -n com.app.pegsolitaire/.MainActivity`); or run `app` from Android Studio. (`./gradlew :app:assembleDebug` is already green, so the debug APK builds.)
 
