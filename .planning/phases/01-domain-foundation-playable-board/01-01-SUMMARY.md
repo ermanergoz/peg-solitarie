@@ -45,7 +45,7 @@ key-files:
 key-decisions:
   - "Pinned Gradle wrapper to 9.5.1 (AGP 9.2.1 requires >=9.4.1; matches detekt-alpha's tested pairing)"
   - "Used AGP 9.2.1 patch + its built-in Kotlin (org.jetbrains.kotlin.android removed — AGP 9 rejects it)"
-  - "Deferred Hilt/KSP: no KSP build exists for Kotlin 2.4.0; empty Plan-01 app needs no DI"
+  - "RESOLVED (2026-06-28 rework): relaxed Kotlin 2.4.0 -> 2.3.20 (KSP 2.3.9 targets 2.3.20) + bumped Hilt 2.57.1 -> 2.60 (AGP 9.2.1 dropped legacy BaseExtension); Hilt + KSP now APPLIED, @HiltAndroidApp graph generates, no KAPT"
   - "Pinned androidx.core to 1.18.0 (1.19.0 requires compileSdk 37, not installable here)"
 
 patterns-established:
@@ -108,13 +108,19 @@ completed: 2026-06-28
 
 ### Auto-fixed Issues
 
-**1. [Rule 3 - Blocking] Hilt/KSP deferred — no KSP build for Kotlin 2.4.0**
+**1. [Rule 3 - Blocking] Hilt/KSP deferred — no KSP build for Kotlin 2.4.0 → RESOLVED (2026-06-28 rework)**
 - **Found during:** Task 1 (convention plugins / app scaffold)
-- **Issue:** The plan's `android-app` convention + app surface call for Hilt (`@HiltAndroidApp`, `@AndroidEntryPoint`) via KSP. KSP has **no release for Kotlin 2.4.0** (latest is 2.3.9, Kotlin-2.3 line; all `2.4.0-*` coordinates 404 on Maven Central). Hilt's annotation processor runs on KSP, so Hilt cannot be wired on the pinned Kotlin 2.4.0.
-- **Fix:** Kept Hilt + KSP declared in the catalog but did **not** apply them. `App` is a plain `Application`, `MainActivity` a plain `ComponentActivity`. Plan-01's must-haves and acceptance criteria do not functionally require DI (empty themed app), so all gates + `assembleDebug` stay green.
-- **Files modified:** build-logic/src/main/kotlin/android-app.gradle.kts, app/src/main/java/.../{App,MainActivity}.kt
-- **Verification:** `assembleDebug` builds the APK; no Hilt graph needed yet.
-- **Committed in:** `b7dc7ec` (Task 1). **See Blocker below — must be resolved before Plan 03 (which needs `@HiltViewModel`).**
+- **Issue:** The plan's `android-app` convention + app surface call for Hilt (`@HiltAndroidApp`, `@AndroidEntryPoint`) via KSP. KSP has **no release for Kotlin 2.4.0** (latest is 2.3.9, Kotlin-2.3 line; all `2.4.0-*` coordinates 404 on Maven Central). Hilt's annotation processor runs on KSP, so Hilt could not be wired on the pinned Kotlin 2.4.0.
+- **Original fix (Plan 01):** Kept Hilt + KSP declared in the catalog but did **not** apply them. `App` was a plain `Application`, `MainActivity` a plain `ComponentActivity`. Committed in `b7dc7ec` (Task 1).
+- **RESOLVED (approved stack-decision rework, 2026-06-28):**
+  - Relaxed the Kotlin pin **2.4.0 → 2.3.20** (latest 2.3.x patch with an exact KSP match: `symbol-processing 2.3.9` is built against Kotlin 2.3.20 per its `kotlin-stdlib` dep; 2.3.21 has no KSP). Compose compiler plugin + AGP built-in Kotlin follow this via the catalog.
+  - Bumped **Hilt 2.57.1 → 2.60**: Hilt 2.57.1's Gradle plugin throws `Android BaseExtension not found` under AGP 9.2.1 (which dropped the legacy `BaseExtension`); 2.60 uses AGP 9's new DSL.
+  - **APPLIED** Hilt + KSP: `com.google.devtools.ksp` + `com.google.dagger.hilt.android` applied in `:app` (after the `android-app` convention realises AGP's `android{}`); `implementation(hilt-android)` + `ksp(hilt-compiler)` wired — **no KAPT anywhere**.
+  - `@HiltAndroidApp` on `App` + `@AndroidEntryPoint` on `MainActivity` generate the `SingletonComponent` graph (incl. a `ViewModelC` component) — KSP runs Hilt's processor end-to-end and the generated code compiles/dexes. **No throwaway code** was needed or left behind; Plan 03 can add `@HiltViewModel` with zero further build setup.
+  - `:domain` untouched → ArchUnit domain-purity gate stays green.
+- **Files modified:** gradle/libs.versions.toml, build-logic/build.gradle.kts, build-logic/src/main/kotlin/android-app.gradle.kts, app/build.gradle.kts, app/src/main/java/.../{App,MainActivity}.kt
+- **Verification:** `./gradlew ktlintCheck detekt :domain:test test assembleDebug` exits 0; `:app:kspDebugKotlin` + `:app:hiltJavaCompileDebug` run; generated `Hilt_App`/`DaggerApp_HiltComponents_SingletonC`/`App_GeneratedInjector` present; APK built (~11 MB).
+- **Committed in:** `2bdde80` (catalog stack decision), `4e5484c` (apply Hilt + KSP).
 
 **2. [Rule 3 - Blocking] AGP 9 built-in Kotlin — removed `org.jetbrains.kotlin.android`**
 - **Found during:** Task 1 (first `assembleDebug`)
@@ -174,7 +180,7 @@ completed: 2026-06-28
 - `app/.../App.kt`, `MainActivity.kt`, `ui/theme/Theme.kt` — minimal empty themed surface (no game UI). Real game route lands in Plans 04–05.
 
 ## Blockers (carried to STATE.md)
-- **Hilt/KSP vs Kotlin 2.4.0 (resolve before Plan 03).** KSP has no Kotlin-2.4.0 build (latest 2.3.9). Plan 03 introduces `@HiltViewModel`, which needs the Hilt annotation processor on KSP. Before Plan 03 the team must either (a) wait for / pin a KSP 2.4.x once published, or (b) make a stack decision (e.g. align Kotlin to the 2.3.x line that KSP supports) — an architectural call that owns the CLAUDE.md Kotlin pin. Hilt + KSP coordinates are already declared in the catalog, ready to apply.
+- ~~**Hilt/KSP vs Kotlin 2.4.0 (resolve before Plan 03).**~~ **RESOLVED 2026-06-28** via the approved stack decision: Kotlin pinned **2.3.20** (KSP `2.3.9` matches), Hilt bumped **2.60** (AGP 9.2.1 compat). Hilt + KSP are now applied; the `@HiltAndroidApp` component graph (incl. `ViewModelC`) generates under KSP with no KAPT. Plan 03 can introduce `@HiltViewModel` with zero further build setup. See Deviation #1 above. STATE.md blocker cleared.
 
 ## User Setup Required
 - `local.properties` (gitignored) is written with `sdk.dir=/Users/ermanergoz/Library/Android/sdk`. CI writes it from the runner SDK root. No secrets.
@@ -189,6 +195,14 @@ completed: 2026-06-28
 - All 10 key created files exist on disk (verified).
 - All 3 task commits present in git history (`b7dc7ec`, `58b70af`, `0ce515f`).
 - `./gradlew ktlintCheck detekt :domain:test test assembleDebug` exits 0; debug APK built.
+
+### Hilt/KSP rework re-verification (2026-06-28)
+- Rework commits present: `2bdde80` (catalog stack decision), `4e5484c` (apply Hilt + KSP).
+- `./gradlew ktlintCheck detekt :domain:test test assembleDebug` **exits 0** after the rework.
+- KSP ran Hilt's processor: `:app:kspDebugKotlin` + `:app:hiltAggregateDepsDebug` + `:app:hiltJavaCompileDebug` executed; no KAPT tasks exist.
+- Generated + compiled: `app/build/generated/ksp/debug/java/.../App_GeneratedInjector.java`, `Hilt_MainActivity.java`; `app/build/generated/hilt/.../Hilt_App.java`, `App_HiltComponents.java`, `DaggerApp_HiltComponents_SingletonC.java` (incl. `ViewModelC` for Plan 03).
+- No throwaway DI code left in the tree (the App/Activity annotations alone prove codegen).
+- Non-blocking advisory only: Gradle warns "Kotlin Gradle plugin loaded multiple times in :app/:domain" — build stays green (exit 0).
 
 ---
 *Phase: 01-domain-foundation-playable-board*

@@ -68,6 +68,7 @@ Infinite, never-repeating, always-solvable Challenge levels that feel fair and s
 | Deterministic level seeding by level number | Reproducible levels enable retry/resume/fair comparison | — Pending |
 | Build in slices (core first, then online/ads) | Fastest path to a playable, testable game | — Pending |
 | Clean Architecture + MVVM + Repository pattern | User preference; aligns with official Android guidance | — Pending |
+| Kotlin pin relaxed 2.4.0 → 2.3.20 to obtain a KSP build for Hilt; KSP + Hilt + no-KAPT retained (2026-06-28) | KSP's latest build (symbol-processing 2.3.9) targets Kotlin 2.3.20; no KSP exists for 2.4.x, which blocked Hilt's annotation processor. 2.3.20 is the latest 2.3.x with an exact KSP match. Also bumped Hilt 2.57.1 → 2.60 (2.57.1's Gradle plugin needs the legacy Android BaseExtension, dropped by AGP 9.2.1). | ✅ Applied — Hilt graph generates under KSP; full gate green |
 
 ## Evolution
 

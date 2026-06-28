@@ -64,7 +64,7 @@ Recent decisions affecting current work:
 - Roadmap: Slice 1 only (5 phases). Slice 2 (Play Games + AdMob + polish) deferred to a future milestone, swapped behind interfaces.
 - Phase 1: Code-standards gates (domain purity boundary test, detekt/ktlint, constants/dimens, JVM golden-master harness) established up front, not retrofitted.
 - Phase 3: Generator is the #1 risk — golden-master CI test locked before any difficulty tuning; `generatorVersion` stamped from day one; difficulty knobs data-driven and frozen before release.
-- [Phase ?]: Plan 01: Hilt/KSP deferred — no KSP build for Kotlin 2.4.0; Hilt declared in catalog, applied once KSP 2.4.x lands or the Kotlin pin is revisited
+- [Phase 1]: Plan 01 rework (2026-06-28): Kotlin pin relaxed 2.4.0 → 2.3.20 to obtain a KSP build (2.3.9) for Hilt; Hilt bumped 2.57.1 → 2.60 for AGP 9.2.1; Hilt + KSP now APPLIED (no KAPT), @HiltAndroidApp graph generates
 - [Phase ?]: Plan 01: Gradle 9.5.1 wrapper + AGP 9.2.1 built-in Kotlin (kotlin-android plugin removed); androidx.core pinned 1.18.0 for compileSdk 36
 
 ### Pending Todos
@@ -74,7 +74,6 @@ None yet.
 ### Blockers/Concerns
 
 - Phase 3 difficulty-curve knob values cannot be set from research — require a dedicated playtest-iteration loop before the `generatorVersion` contract is frozen.
-- Hilt/KSP vs Kotlin 2.4.0: KSP has no 2.4.0 build (latest 2.3.9). Plan 03 needs @HiltViewModel — resolve before Plan 03 (pin KSP 2.4.x when published, or align Kotlin to a KSP-supported line).
 
 ## Deferred Items
 
