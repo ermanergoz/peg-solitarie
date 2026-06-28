@@ -66,7 +66,10 @@ object RulesEngine {
      * Applies [move] to [board], returning a new immutable board: the source peg
      * and the jumped-over peg are removed and one peg is placed at the destination.
      */
-    fun applyMove(board: Board, move: Move): Board =
+    fun applyMove(
+        board: Board,
+        move: Move,
+    ): Board =
         board
             .withoutPeg(move.from)
             .withoutPeg(move.over)

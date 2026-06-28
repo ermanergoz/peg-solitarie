@@ -21,10 +21,22 @@ class BoardTest {
     fun english33ExcludesTheFour2x2CornerBlocks() {
         val cornerPositions =
             listOf(
-                Position(0, 0), Position(0, 1), Position(1, 0), Position(1, 1),
-                Position(0, 5), Position(0, 6), Position(1, 5), Position(1, 6),
-                Position(5, 0), Position(5, 1), Position(6, 0), Position(6, 1),
-                Position(5, 5), Position(5, 6), Position(6, 5), Position(6, 6),
+                Position(0, 0),
+                Position(0, 1),
+                Position(1, 0),
+                Position(1, 1),
+                Position(0, 5),
+                Position(0, 6),
+                Position(1, 5),
+                Position(1, 6),
+                Position(5, 0),
+                Position(5, 1),
+                Position(6, 0),
+                Position(6, 1),
+                Position(5, 5),
+                Position(5, 6),
+                Position(6, 5),
+                Position(6, 6),
             )
 
         cornerPositions.forEach { corner ->
