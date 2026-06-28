@@ -11,11 +11,15 @@
 # matching KSP build (2.3.21 has no KSP). KSP + Hilt + no-KAPT retained.
 kotlin = "2.3.20"                # AGP built-in Kotlin + compose compiler follow this
 ksp = "2.3.9"                    # symbol-processing built against Kotlin 2.3.20
-agp = "9.2.1"                    # 9.2.1 patch — detekt-alpha's tested AGP pairing
+agp = "9.1.0"                    # tooling max-supported AGP (down from 9.2.1); resolves on Google Maven
 composeBom = "2026.06.00"        # governs all androidx.compose.* versions
 
 # --- DI (APPLIED: KSP plugin + Hilt Gradle plugin wired into :app via the
 #     android-app convention plugin; hilt-compiler runs under KSP, no KAPT) ---
+# Hilt MUST stay >=2.60: AGP 9.1.0 (like 9.2.x) removed the legacy Android
+# `BaseExtension`, so Hilt 2.57.1's Gradle plugin throws "Android BaseExtension
+# not found" at apply time. 2.60 uses AGP 9's new DSL. Verified: 2.57.1 fails to
+# apply on AGP 9.1.0 (2026-06-28). CLAUDE.md's 2.57.1 pin cannot be honoured here.
 hilt = "2.60"
 # 1.4.0-rc01 transitively forces androidx.hilt hilt-lifecycle-viewmodel-compose
 # 1.4.0-rc01 + lifecycle 2.11.0-rc01, both requiring compileSdk 37 (uninstallable
