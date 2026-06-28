@@ -3,6 +3,7 @@ package com.app.pegsolitaire
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import com.app.pegsolitaire.ui.game.GameRoute
 import com.app.pegsolitaire.ui.theme.AppTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -10,9 +11,9 @@ import dagger.hilt.android.AndroidEntryPoint
  * Single host activity for the game.
  *
  * `@AndroidEntryPoint` registers this activity with Hilt's generated component
- * graph, so a later plan can inject `@HiltViewModel` view models via
- * `hiltViewModel()` with no further build setup. Hosts an empty themed surface;
- * the real game route lands in a later plan.
+ * graph so the [GameRoute] can inject the `@HiltViewModel` `GameViewModel` via
+ * `hiltViewModel()`. Hosts the one playable English-33 game route inside the
+ * Material 3 [AppTheme] — the whole walking skeleton end-to-end.
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -20,6 +21,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             AppTheme {
+                GameRoute()
             }
         }
     }

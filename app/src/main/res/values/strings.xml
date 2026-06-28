@@ -1,4 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  All user-facing copy (no-magic-strings rule). Wording is the verbatim
+  Copywriting Contract from the Phase-1 UI-SPEC. The pegs-remaining count is a
+  plural-aware resource so "1 peg" / "n pegs" agree grammatically.
+
+  The game-over and restart-confirm strings are consumed by the dialogs in
+  Plan 05; they are declared here so the copy contract lives in one place.
+-->
 <resources>
     <string name="app_name">Peg Solitaire</string>
+
+    <!-- Top-bar restart control (icon-only; this is its content description). -->
+    <string name="restart_board">Restart Board</string>
+
+    <!-- Game-over dialog (D-05). -->
+    <string name="play_again">Play Again</string>
+    <string name="view_board">View Board</string>
+    <string name="game_over_perfect_headline">Perfect!</string>
+    <string name="game_over_perfect_body">You cleared the board down to a single peg.</string>
+    <string name="game_over_near_headline">So close!</string>
+    <string name="game_over_stuck_headline">No moves left</string>
+
+    <!-- Mid-game restart confirmation (D-06). -->
+    <string name="restart_confirm_title">Restart this board?</string>
+    <string name="restart_confirm_body">Your current progress will be lost.</string>
+    <string name="keep_playing">Keep Playing</string>
+
+    <!-- Pegs-remaining body copy, plural-aware ({n}). -->
+    <plurals name="pegs_remaining">
+        <item quantity="one">%d peg remaining.</item>
+        <item quantity="other">%d pegs remaining.</item>
+    </plurals>
+    <plurals name="pegs_remaining_retry">
+        <item quantity="one">%d peg remaining. Try again?</item>
+        <item quantity="other">%d pegs remaining. Try again?</item>
+    </plurals>
 </resources>
