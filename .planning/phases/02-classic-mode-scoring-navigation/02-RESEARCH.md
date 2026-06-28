@@ -1,8 +1,8 @@
 # Phase 2: Classic Mode, Scoring & Navigation - Research
 
-**Researched:** 2026-06-28
-**Domain:** Jetpack Compose Navigation (type-safe), Repository-pattern data seam, pure-Kotlin scoring, DataStore, multi-footprint Canvas geometry
-**Confidence:** HIGH (nav/DataStore/scoring/repo), MEDIUM (board footprints), and one **BLOCKING** conflict surfaced (Triangle-15)
+**Researched:** 2026-06-28 (revised 2026-06-28 — board catalog follow-up)
+**Domain:** Jetpack Compose Navigation (type-safe), Repository-pattern data seam, pure-Kotlin scoring, DataStore, multi-footprint square-grid Canvas geometry
+**Confidence:** HIGH (nav/DataStore/scoring/repo, board footprints, board solvability findings). The earlier Triangle-15 BLOCKING conflict is **RESOLVED** (Triangle-15 dropped per CONTEXT D-17/D-18).
 
 <user_constraints>
 ## User Constraints (from CONTEXT.md)
@@ -11,7 +11,7 @@
 
 **Scoring — Stars**
 - **D-01:** Stars from **absolute pegs remaining, identical on every board** — 1 peg = 3★, 2–3 pegs = 2★, finished-but->3 = 1★. The 2★ band cutoff (2–3) is a named constant the planner may sanity-check; the *approach* (absolute pegs) is locked.
-- **D-02:** The target hole is **ignored for stars**. Stars depend solely on peg count.
+- **D-02:** The target hole is **ignored for stars**. Stars depend solely on peg count. (Load-bearing this phase: several boards can only finish a single peg *away* from the start hole — D-02 means that still scores 3★.)
 
 **Scoring — Score & Timer**
 - **D-03:** `score = pegsCleared × PEG_VALUE + max(0, TIME_BONUS_CAP − elapsedSeconds × DECAY)`. Exact constants set in planning. Stars and score are **separate axes**.
@@ -27,7 +27,19 @@
 - **D-09:** Challenge mode is **shown but disabled with a "Coming soon" badge** on Home. No placeholder route built.
 - **D-10:** Home is a **mode-select screen** (Classic / Challenge); the Classic catalog is a **separate screen**.
 - **D-11:** Catalog presents each board as a **card with a mini board-shape preview** (reusing `BoardCanvas`/`BoardGeometry`) plus name and hole count.
-- **D-12:** Boards ordered **ascending size: Triangle-15 → English-33 → European-37 → Diamond-41**. Defines the "Next board" wrap sequence (D-06).
+- **D-12:** ~~Triangle-15 → English-33 → European-37 → Diamond-41~~ **SUPERSEDED by D-17/D-18** — Triangle-15 dropped; ordering is ascending hole count over the new 5-board set.
+
+**Board Catalog Resolution (post-research, user-approved 2026-06-28) — overrides the Triangle-15 discretion item, D-11/D-12 board list**
+- **D-17 (BLOCKING conflict RESOLVED):** Triangle-15 is irreconcilable with the locked orthogonal-only jump rule (authentic triangular solitaire needs 3-axis/diagonal jumps `RulesEngine` cannot express). **Resolution: drop Triangle-15 entirely; adopt a 5-board all-orthogonal-square-grid catalog.** Orthogonal-only rule and `RulesEngine` stay unchanged; **no triangular-lattice geometry is built.**
+- **D-18 (the locked catalog):** Exactly five boards, all playable orthogonally, all ≤64-hole `Long`-bitmask `BoardSpec`:
+  1. **English-33** — already built in Phase 1 (reference pattern only).
+  2. **European/French-37** — must use a **documented solvable off-center starting vacancy** (center-empty is provably unsolvable); lock with a recorded-solution golden test (D-19).
+  3. **Diamond-41** — clean orthogonal board. **(Research correction: center is ALSO provably unsolvable — needs an off-center start; see Board Footprints.)**
+  4. **J.C. Wiegleb-45** — German cross, 1779; new footprint.
+  5. **Asymmetric 3-3-2-2** — George Bell's asymmetric cross; new footprint + hole count.
+  - Only `BoardGeometry`/`BoardMetrics` change: **derive grid dimension per board** (away from the hardcoded `GRID_DIMENSION = 7`/`aspect = 1f`). **No `BoardLattice`/triangle strategy.**
+  - Catalog order (replaces D-12), ascending hole count → **English-33 (33) → European-37 (37) → Asymmetric 3-3-2-2 (39) → Diamond-41 (41) → Wiegleb-45 (45)**. Defines the "Next board" wrap order (D-06).
+- **D-19 (solvability validation, no Solver yet):** No Solver until Phase 4. Validate every non-trivial board's start is solvable to one peg by committing a **recorded-solution golden test** per board (replay a known winning move-list through `RulesEngine` to a single peg), reusing the existing `BoardCodec`/golden-master harness. Guarantees 3★ reachable (D-01 fairness) and forward-feeds the Phase-3 generator contract.
 
 **Onboarding**
 - **D-13:** First-time how-to-play is a **dismissable, illustrated overlay** (steps showing the orthogonal jump). Skippable.
@@ -36,11 +48,11 @@
 - **D-16:** "Onboarding seen" tracked with a **single DataStore-Preferences boolean (`onboardingSeen`)**, introduced now. Add `androidx.datastore:datastore-preferences` (1.2.1) for this flag only. All other persistence stays in Phase 5.
 
 ### Claude's Discretion
-- **Navigation library wiring** — introduce Navigation Compose 2.9.8 (in stack, not yet wired); type-safe nav graph for the destinations.
-- **How the selected board reaches `GameViewModel`** — VM currently takes a hardcoded injected `Board`; planning decides the mechanism (nav arg + `SavedStateHandle`, repo lookup by level id, etc.).
-- **`LevelRepository` interface shape** — real Classic source + stubbed Challenge source; designed so Phase 3's generator drops in behind the same seam.
-- **The three new board footprints + initial states** — European-37, Triangle-15, Diamond-41; all fit the ≤64-hole `Long`-bitmask `BoardSpec`.
-- **Triangle-15 rendering** — triangular lattice rather than the square grid `BoardCanvas`/`BoardGeometry` assume; must still emit bounds-checked `onCellTap`.
+- **Navigation library wiring** — introduce Navigation Compose 2.9.8; type-safe nav graph for the destinations.
+- **How the selected board reaches `GameViewModel`** — nav arg + `SavedStateHandle`, repo lookup by level id, etc.
+- **`LevelRepository` interface shape** — real Classic source + stubbed Challenge source.
+- **The four new board footprints + initial states** — European-37, Asymmetric 3-3-2-2, Diamond-41, Wiegleb-45 (per D-18); all fit the ≤64-hole `Long`-bitmask `BoardSpec`. (Triangle-15 removed per D-17.)
+- **Board rendering (square grid only)** — all five boards are square-grid; only the hardcoded grid dimension needs generalizing per board. No triangular-lattice geometry. `onCellTap` stays bounds-checked.
 - **Where `ScoreCalculator` lives and its exact constants** (`PEG_VALUE`, `TIME_BONUS_CAP`, `DECAY`, the 2★ band) — pure-Kotlin domain, JVM-unit-tested.
 
 ### Deferred Ideas (OUT OF SCOPE)
@@ -56,8 +68,8 @@
 
 | ID | Description | Research Support |
 |----|-------------|------------------|
-| CLAS-01 | Browse and select from a catalog of classic boards | Catalog screen over `LevelRepository.classicCatalog()`; D-11 mini-previews via generalized `BoardGeometry`; D-12 ascending order |
-| CLAS-02 | Play any classic board to completion with correct rules | 3 new `BoardSpec`/`Board` footprints; `RulesEngine` unchanged for square boards; **Triangle-15 rules conflict — see Open Question 1** |
+| CLAS-01 | Browse and select from a catalog of classic boards | Catalog screen over `LevelRepository.classicCatalog()`; D-11 mini-previews via generalized `BoardGeometry`; D-18 ascending order (5 boards) |
+| CLAS-02 | Play any classic board to completion with correct rules | 4 new `BoardSpec`/`Board` footprints (European-37, Asymmetric-39, Diamond-41, Wiegleb-45); **`RulesEngine` unchanged — all five are orthogonal square-grid boards** |
 | SCOR-01 | 1–3 stars based on pegs remaining | `ScoreCalculator.stars()` pure domain, D-01 bands; JVM-tested |
 | SCOR-02 | Elapsed time → separate numeric score | `ScoreCalculator.score()` D-03 formula; in-game timer (D-04) supplies `elapsedSeconds` |
 | SCOR-03 | Results screen shows stars, pegs, time, score | Results destination (D-05) reading a `@Serializable` results route arg |
@@ -68,38 +80,43 @@
 
 ## Summary
 
-Phase 2 turns the Phase-1 single-screen walking skeleton into the full app shell. The work is overwhelmingly **integration + plumbing on top of an already-solid pure-domain core**, plus a small amount of genuinely new domain code (`ScoreCalculator`, three board specs). The biggest structural change is inserting a type-safe `NavHost` where `MainActivity` currently calls `GameRoute()` directly, and replacing the hardcoded `DomainModule.provideInitialBoard()` English-33 injection with a board that flows from the user's catalog selection through a `LevelRepository` seam.
+Phase 2 turns the Phase-1 single-screen walking skeleton into the full app shell. The work is overwhelmingly **integration + plumbing on top of an already-solid pure-domain core**, plus a small amount of genuinely new domain code (`ScoreCalculator`, four board specs). The biggest structural change is inserting a type-safe `NavHost` where `MainActivity` currently calls `GameRoute()` directly, and replacing the hardcoded `DomainModule.provideInitialBoard()` English-33 injection with a board that flows from the user's catalog selection through a `LevelRepository` seam.
 
-Three new dependencies must be added to the version catalog (none are currently present): **navigation-compose 2.9.8**, **kotlinx-serialization (Gradle plugin + json 1.11.0)** for type-safe route args, and **datastore-preferences 1.2.1** for the one `onboardingSeen` flag. All are first-party Google/JetBrains artifacts already named in CLAUDE.md's stack. Critically, **stay on navigation-compose 2.9.8** — the 2.10.x line (alpha) bumps Compose `compileSdk` to **API 37**, which is uninstallable in this environment and is exactly the constraint that already forced the core/lifecycle downgrades. `[VERIFIED: developer.android.com navigation release notes]`
+Three new dependencies must be added to the version catalog (none currently present): **navigation-compose 2.9.8**, **kotlinx-serialization (Gradle plugin + json 1.11.0)** for type-safe route args, and **datastore-preferences 1.2.1** for the one `onboardingSeen` flag. All are first-party Google/JetBrains artifacts named in CLAUDE.md's stack. Critically, **stay on navigation-compose 2.9.8** — the 2.10.x line (alpha) bumps Compose `compileSdk` to **API 37**, uninstallable in this environment. `[VERIFIED: developer.android.com navigation release notes]`
 
-**Two board findings are load-bearing and must reach the planner intact:**
-1. **Triangle-15 fundamentally conflicts with the project's locked "orthogonal-only" rule.** Authentic triangular peg solitaire jumps along the triangle's *three* axes (horizontal **and** two diagonals) — it is a 3-axis lattice, not the 4-direction square grid `RulesEngine` hardcodes. You cannot represent 3 movement axes with an orthogonal direction set, and the project explicitly lists "Diagonal jumps" as out-of-scope. This is an irreconcilable conflict between two locked items (the 4-board catalog **and** orthogonal-only) — **escalate to the user, do not silently pick.** `[VERIFIED: gibell.net / arxiv triangular solitaire]`
-2. **European-37 with a center-empty start is provably impossible to reduce to a single peg** (famous position-class result). A center-start European board can therefore never earn 3★ under D-01 — pick a documented solvable starting vacancy and lock it with a recorded-solution golden test. `[VERIFIED: Wikipedia / gibell.net position-class theory]`
+**The board catalog is now a clean, fully-orthogonal 5-board set (CONTEXT D-17/D-18). The Triangle-15 BLOCKING conflict is resolved by dropping it — no lattice geometry, `RulesEngine` unchanged.** What remains load-bearing is **board solvability**, and the follow-up research surfaced an important correction:
 
-**Primary recommendation:** Plan in thin vertical slices — (a) nav shell + `LevelRepository` seam carrying English-33 end-to-end through Home→Catalog→Gameplay→Results first, then (b) add the other square boards (European-37, Diamond-41) + `ScoreCalculator` + timer, then (c) onboarding, and (d) **gate Triangle-15 behind an explicit user decision on the rules conflict** before building its lattice geometry.
+1. **Two boards cannot be solved to one peg from the center hole** (provable position-class results, not opinion):
+   - **European-37 center-empty is unsolvable** `[VERIFIED: Wikipedia / gibell.net / Durango Bill]`. Of its 37 holes, **16 are solvable single-vacancy starts**; the four orthogonal neighbours of center (e.g. `(3,2)`) are among them — use one of those.
+   - **Diamond-41 center-empty is ALSO unsolvable** `[VERIFIED: gibell.net (George Bell) / Bell-Beasley]` — **this corrects the prior research's assumption A2.** Only **4** single-vacancy-to-single-survivor problems are solvable on the diamond (26 moves each); center is not one of them. Diamond-41 must use an off-center start.
+2. **The other three boards solve from center:** English-33 (classic), **Wiegleb-45 central game is solvable in 22 moves** `[VERIFIED: gibell.net]`, and the **Asymmetric 3-3-2-2 board is "completely solvable"** (every vacancy, incl. center, reaches one peg) `[VERIFIED: gibell.net GenCross]`.
+3. **D-02 (target ignored for stars) makes all this work:** on the French/diamond boards the survivor never lands in the start hole, but under D-02 *any* single-peg finish is 3★ — so an off-center start still earns the perfect score.
+
+**Primary recommendation:** Plan in thin vertical slices — (a) nav shell + `LevelRepository` seam carrying English-33 end-to-end through Home→Catalog→Gameplay→Results first, then (b) add the other four square boards + `ScoreCalculator` + timer, then (c) onboarding. **Solvability for every non-trivial board is proven by a committed recorded-solution golden fixture (D-19), GENERATED once by an authoring-time DFS/IDDFS script that is NOT shipped in `:domain`** (see Don't Hand-Roll + Code Examples).
 
 ## Architectural Responsibility Map
 
 | Capability | Primary Tier | Secondary Tier | Rationale |
 |------------|-------------|----------------|-----------|
-| Board catalog data (the 4 classic levels) | Domain (`Boards`) | Data (`LevelRepository`) | Static board specs are pure-Kotlin domain data; the repository wraps them as the single source of truth |
+| Board catalog data (the 5 classic levels) | Domain (`Boards`) | Data (`LevelRepository`) | Static board specs are pure-Kotlin domain data; the repository wraps them as the single source of truth |
 | Serving a selected level (board+spec+meta) | Data (`LevelRepository`) | — | Repository pattern; Phase-3 generator is a second source behind the same seam |
 | Star + score computation | Domain (`ScoreCalculator`) | — | Pure function of `(pegsRemaining, elapsedSeconds)`; zero Android deps (QUAL-01) |
-| Move legality / game-over | Domain (`RulesEngine`) | — | Already exists; unchanged for square boards |
+| Move legality / game-over | Domain (`RulesEngine`) | — | Already exists; **unchanged for all five square boards** |
+| Recorded-solution solvability proof | Test fixtures (`:domain` test) + one-off authoring tool | — | Committed move-list replayed through `RulesEngine`; no Solver shipped (D-19) |
 | Elapsed-time timer (visible) | UI (`GameViewModel`) | — | Wall-clock/coroutine concern; lives in app layer, feeds `ScoreCalculator` |
-| Navigation between 4 screens | UI (`NavHost` in `MainActivity`) | — | Compose Navigation; the structural insertion point |
+| Navigation between 5 screens | UI (`NavHost` in `MainActivity`) | — | Compose Navigation; the structural insertion point |
 | Route arg → board lookup | UI (`GameViewModel` + `SavedStateHandle`) | Data (`LevelRepository`) | VM reads the typed route arg, asks the repo for the board |
 | `onboardingSeen` persistence | Data (`OnboardingRepository`/DataStore) | UI (`HomeViewModel`) | DataStore is a local data source behind a repository; VM consumes the `Flow` |
-| Board rendering (incl. mini-previews) | UI (`BoardCanvas`/`BoardGeometry`) | — | Stateless Canvas leaf; geometry generalizes per board footprint |
+| Board rendering (incl. mini-previews) | UI (`BoardCanvas`/`BoardGeometry`) | — | Stateless Canvas leaf; geometry generalizes per square footprint (per-board grid dimension only) |
 
 ## Standard Stack
 
 ### Core (new dependencies to add this phase)
 | Library | Version | Purpose | Why Standard |
 |---------|---------|---------|--------------|
-| androidx.navigation:navigation-compose | **2.9.8** | Type-safe `NavHost` + the 4-destination graph | Official Compose navigation; type-safe routes stable since 2.8.0. **2.9.8 is the latest stable** (2026-04-22); 2.10.x is alpha and needs compileSdk 37 — do NOT bump `[VERIFIED: developer.android.com]` |
+| androidx.navigation:navigation-compose | **2.9.8** | Type-safe `NavHost` + the 5-destination graph | Official Compose navigation; type-safe routes stable since 2.8.0. **2.9.8 is the latest stable** (2026-04-22); 2.10.x is alpha and needs compileSdk 37 — do NOT bump `[VERIFIED: developer.android.com]` |
 | org.jetbrains.kotlin.plugin.serialization | **2.3.20** (= Kotlin) | Marks `@Serializable` route classes | Type-safe Navigation requires kotlinx.serialization to encode route args. Plugin version tracks the Kotlin pin `[CITED: CLAUDE.md stack]` |
-| org.jetbrains.kotlinx:kotlinx-serialization-json | **1.11.0** | Serialization runtime for route args | Named in CLAUDE.md stack; required runtime for the serialization plugin `[CITED: CLAUDE.md stack]` |
+| org.jetbrains.kotlinx:kotlinx-serialization-json | **1.11.0** | Serialization runtime for route args (and the committed solution fixtures, optional) | Named in CLAUDE.md stack; required runtime for the serialization plugin `[CITED: CLAUDE.md stack]` |
 | androidx.datastore:datastore-preferences | **1.2.1** | The single `onboardingSeen` boolean (D-16) | Latest stable (2026-03-11); Flow-based async; replaces SharedPreferences `[VERIFIED: developer.android.com]` |
 
 ### Supporting (already in catalog — reuse)
@@ -117,6 +134,7 @@ Three new dependencies must be added to the version catalog (none are currently 
 | Pass `levelId` through nav, look up board in repo | Pass the whole serialized `Board` bitmask as a nav arg | Passing the id keeps the repository the single source of truth (spec §8.3); passing the board couples nav to domain encoding. **Use id-based lookup** |
 | Results args via `@Serializable` route | Shared/activity-scoped ViewModel between Gameplay & Results | A shared VM works but adds scoping complexity; for MVP pass primitive result args (all Ints) through the typed route |
 | DataStore Preferences for one flag | Proto DataStore / Room | Overkill for a single boolean; Preferences is the canonical fit and folds into Phase 5 (D-16) |
+| One-off authoring DFS solver (test-only) | Ship a runtime Solver now | A runtime Solver is Phase 4 and breaks the "no Solver this phase" scope; the authoring tool runs once and only commits a static fixture (D-19) |
 
 **Installation (version-catalog additions — `gradle/libs.versions.toml`):**
 ```toml
@@ -172,7 +190,7 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
            ▼
    ┌──────────────────────────────────┐     LevelRepository.classicCatalog()
    │ ClassicCatalogRoute              │ ◄───────────────┐  (single source of truth)
-   │  • 4 cards, ascending size (D-12)│                 │
+   │  • 5 cards, ascending size (D-18)│                 │
    │  • mini BoardCanvas preview(D-11)│        ┌────────┴───────────────────────┐
    └───────┬──────────────────────────┘        │ LevelRepository                │
            │ navigate(Gameplay(levelId))        │  ├─ ClassicLevelSource (REAL)  │
@@ -204,16 +222,19 @@ app/src/main/java/com/app/pegsolitaire/
     ├── results/       # NEW: ResultsRoute/Screen/ViewModel
     ├── onboarding/    # NEW: OnboardingOverlay (illustrated steps)
     ├── game/          # MODIFIED: GameViewModel takes levelId via SavedStateHandle + timer
-    └── components/    # MODIFIED: BoardGeometry generalized per-footprint
+    └── components/    # MODIFIED: BoardGeometry derives grid dimension per board (square only)
 
 domain/src/main/kotlin/com/app/pegsolitaire/domain/
-├── model/Boards.kt    # MODIFIED: + European37, Diamond41 (+ Triangle15 pending Q1)
+├── model/Boards.kt    # MODIFIED: + European37, Asymmetric39, Diamond41, Wiegleb45 (all square-grid)
 └── scoring/           # NEW: ScoreCalculator.kt + ScoreParams.kt (constants) + ScoreResult.kt
+
+domain/src/test/.../golden/solutions/   # NEW: committed winning move-list fixtures per board (D-19)
+tools/ (or domain test source set)      # NEW: one-off authoring DFS/IDDFS solver — NOT shipped in :domain main
 ```
 
 ### Pattern 1: Type-safe Navigation graph
 **What:** `@Serializable` route classes; `NavHost` with `composable<Route>`; navigate with instances; read args via `toRoute()`.
-**When to use:** All four destinations.
+**When to use:** All five destinations.
 ```kotlin
 // Source: developer.android.com/guide/navigation/design/type-safety
 import kotlinx.serialization.Serializable
@@ -272,7 +293,7 @@ data class Level(
 data class ClassicLevelDescriptor(val id: String, val displayName: String, val holeCount: Int, val previewBoard: Board)
 
 interface LevelRepository {
-    fun classicCatalog(): List<ClassicLevelDescriptor>   // CLAS-01, D-12 order
+    fun classicCatalog(): List<ClassicLevelDescriptor>   // CLAS-01, D-18 order (5 boards)
     fun loadClassic(levelId: String): Level              // CLAS-02
     fun loadChallenge(levelNumber: Int): Level           // Phase 3 — STUB now
 }
@@ -352,6 +373,8 @@ class OnboardingRepository @Inject constructor(@ApplicationContext ctx: Context)
 - **Passing the whole `Board`/bitmask through nav args.** Pass `levelId`; let `LevelRepository` be the single source of truth.
 - **Computing stars/score in the UI or ViewModel.** It is pure domain — keep it in `ScoreCalculator` (QUAL-01/QUAL-04).
 - **Hardcoding `GRID_DIMENSION = 7` for new boards.** `BoardGeometry`/`BoardMetrics` are English-33-specific today; derive the grid extent from the `BoardSpec` (see Pitfall 1).
+- **Starting European-37 or Diamond-41 with the center hole empty.** Both are provably unsolvable to one peg from center (see Board Footprints) — that board could never earn 3★ under D-01.
+- **Shipping any search Solver in `:domain` this phase.** The solvability proof is a *committed static fixture* generated by a one-off authoring tool (D-19); the runtime Solver is Phase 4.
 - **Bumping navigation-compose to 2.10.x.** Alpha + compileSdk 37 → breaks the environment's pinned compileSdk 36.
 - **Making game-over→Results a replayable state that re-navigates on every recomposition.** Use a one-shot effect (Channel/SharedFlow) per compose-skill, or a `LaunchedEffect` keyed on the *transition* to terminal status.
 
@@ -362,81 +385,114 @@ class OnboardingRepository @Inject constructor(@ApplicationContext ctx: Context)
 | Screen navigation + back stack | A manual `when(currentScreen)` state machine | navigation-compose `NavHost` | Back stack, args, lifecycle, deep-link-ready, type-safe |
 | Passing typed args between screens | Manual `Bundle`/string parsing | `@Serializable` routes + `toRoute()` | Compile-time safety, no key typos |
 | Persisting the onboarding flag | SharedPreferences / a file | datastore-preferences | Async Flow API; folds into Phase 5; SharedPreferences is discouraged (CLAUDE.md) |
-| Board solvability validation (no Solver this phase) | A search solver written now | **Recorded-solution golden test** (replay a known winning move-list through `RulesEngine` to 1 peg) | Reuses the existing `BoardCodec`/golden harness; mirrors the Phase-3 recorded-solution pattern; no new machinery |
+| Board solvability validation (no Solver this phase) | A runtime search solver in `:domain` | **Recorded-solution golden test** — replay a committed winning move-list through `RulesEngine` to 1 peg | Reuses the existing `BoardCodec`/golden harness; mirrors the Phase-3 recorded-solution pattern; ships no Solver (D-19) |
+| Producing each board's winning move-list | Hand-transcribing published solutions into our coords (error-prone) | A **one-off authoring DFS/IDDFS script** (test/tools source set) that emits the committed fixture once | Generates lines in our exact `(row,col)`/`Move` encoding; runs once; never shipped (see Code Examples) |
 | Star/score logic | Inline `if` in the Results composable | `ScoreCalculator` pure object | Testable, board-agnostic, single source of the D-01/D-03 rules |
 | Timer | A `Handler`/manual thread | `viewModelScope` + `delay` + injected `TimeSource` | Lifecycle-scoped, cancellable, deterministically testable |
 
-**Key insight:** This phase adds almost no new *algorithms* — the domain core (bitmask `Board`, `RulesEngine`, golden harness) already generalizes to every square footprint. The risk is concentrated in (a) the two board-correctness findings and (b) not over-engineering the nav/DI plumbing.
+**Key insight:** This phase adds almost no new *algorithms* — the domain core (bitmask `Board`, `RulesEngine`, golden harness) already generalizes to every square footprint. The risk is concentrated in (a) the board-solvability findings (two boards need off-center starts) and (b) not over-engineering the nav/DI plumbing. Crucially, **`RulesEngine` needs zero changes for all five boards**, and the only geometry change is per-board grid-dimension derivation — no lattice strategy (Triangle-15 is gone).
 
 ## Board Footprints — Concrete Definitions
 
-All fit the ≤64-hole `Long`-bitmask `BoardSpec`. Follow the existing `Boards.kt` pattern: a `private object XLayout` of scoped constants → derived `inPlayPositions` → a `BoardSpec` + initial `Board` in the `Boards` object. **Solvability has no Solver this phase — lock each board's start with a recorded-solution golden test (see Don't Hand-Roll).**
+All five fit the ≤64-hole `Long`-bitmask `BoardSpec` and are **square-grid, orthogonal-only** — `RulesEngine` is unchanged. Follow the existing `Boards.kt` pattern: a `private object XLayout` of scoped constants (QUAL-03) → derived `inPlayPositions` → a `BoardSpec` + initial `Board` in the `Boards` object. **No Solver this phase — lock each non-trivial board's start with a recorded-solution golden fixture (D-19; see Code Examples).**
 
-### European-37 (Continental / octagon) — square grid, `RulesEngine` works unchanged
-7×7 lattice with the four 2×2-ish corners trimmed; 37 holes. Per-row in-play column ranges (cols 0–6):
+**Catalog order (D-18, ascending hole count):** English-33 (33) → European-37 (37) → **Asymmetric 3-3-2-2 (39)** → Diamond-41 (41) → Wiegleb-45 (45).
+
+| Board | Holes | Grid (rows×cols) | Generation rule (in-play iff) | Start vacancy | Center solvable? |
+|-------|-------|------------------|-------------------------------|---------------|------------------|
+| English-33 | 33 | 7×7 | `row in 2..4 \|\| col in 2..4` | center `(3,3)` | **Yes** (Phase-1, classic) |
+| European-37 | 37 | 7×7 | `col in trim[row]..(6-trim[row])`, `trim=[2,1,0,0,0,1,2]` | **off-center** `(3,2)` | **No** — use orthogonal neighbour of center |
+| Asymmetric 3-3-2-2 | 39 | 8×8 | `row in 3..5 \|\| col in 2..4` | center `(4,3)` | **Yes** (board is "completely solvable") |
+| Diamond-41 | 41 | 9×9 | `col in (4-hw[row])..(4+hw[row])`, `hw=[0,1,2,3,4,3,2,1,0]` | **off-center** (see below) | **No** — center provably unsolvable |
+| Wiegleb-45 | 45 | 9×9 | `row in 3..5 \|\| col in 3..5` | center `(4,4)` | **Yes** (22-move central game) |
+
+### English-33 (reference only — already built in Phase 1)
+7×7, cross, 33 holes, center-empty `(3,3)`. Do not redefine — `Boards.English33` / `english33Initial` exist. Listed here only for catalog ordering and the recorded-solution fixture (its winning line is the classic, e.g. Bergholt's 31-move solution `[CITED: well-known]`).
+
+### European-37 (Continental / octagon) — `RulesEngine` unchanged
+7×7 lattice with the four 2-cell corner steps trimmed; 37 holes. Per-row in-play column ranges (cols 0–6):
 ```
 row 0: cols 2..4   (3)            . . O O O . .
 row 1: cols 1..5   (5)            . O O O O O .
 row 2: cols 0..6   (7)            O O O O O O O
-row 3: cols 0..6   (7)            O O O X O O O   ← X = start vacancy (see WARNING)
+row 3: cols 0..6   (7)            O O X O O O O   ← X = start vacancy (3,2)
 row 4: cols 0..6   (7)            O O O O O O O
 row 5: cols 1..5   (5)            . O O O O O .
 row 6: cols 2..4   (3)            . . O O O . .
 ```
-Generation rule: `cornerTrim = [2,1,0,0,0,1,2]`; in-play iff `col in trim[row]..(6 - trim[row])`. Total = 3+5+7+7+7+5+3 = **37**. `GRID_DIMENSION = 7`, square aspect.
+Generation rule: `cornerTrim = [2,1,0,0,0,1,2]`; in-play iff `col in trim[row]..(6 - trim[row])`. Total = 3+5+7+7+7+5+3 = **37**. `GRID_DIMENSION = 7`.
 
-> **WARNING — center-empty European-37 is provably unsolvable to one peg.** `[VERIFIED]` The 37-hole center-complement problem has no solution (all six position-class parities even → no single-peg position reachable). Under D-01 a center-start European board can **never** earn 3★. **Recommendation:** choose a documented solvable starting vacancy (off-center) and validate it with a recorded-solution golden test, OR accept that European-37 tops out at 2★ and surface that to the user. The specific solvable vacancy is `[ASSUMED]` until validated — **do not assume center works.**
+> **Center-empty `(3,3)` is provably unsolvable to one peg** `[VERIFIED: Wikipedia / gibell.net / durangobill.com Peg37]` (position-class parity). Durango Bill's exhaustive analysis marks **16 of the 37 holes as solvable single-vacancy starts**; the **four orthogonal neighbours of center — `(3,2)`, `(3,4)`, `(2,3)`, `(4,3)` — are all solvable** (single survivor, 20–21 moves). **Recommended start: `(3,2)`** (hole immediately left of center). The survivor will not land in the start hole, but **D-02 ignores the target → still 3★.** The exact winning line is committed as a fixture (generated, see below).
 
-### Diamond-41 — square grid (rotated 45°), `RulesEngine` works unchanged
-9×9 lattice, diamond/rhombus; 41 holes. Per-row in-play column ranges (cols 0–8):
+### Asymmetric 3-3-2-2 (George Bell) — **NEW footprint**, `RulesEngine` unchanged
+An English-style 3-wide cross whose four arms have lengths **3, 3, 2, 2 read cyclically** (up=3, right=3, down=2, left=2) — i.e. two *adjacent* long arms, giving **diagonal symmetry** (not 4-fold). 8×8 bounding box; **39 holes** `[VERIFIED: gibell.net GenCross — "(3,3,2,2)… 39-hole… completely solvable"]`.
+Central 3×3 block at rows 3..5 × cols 2..4. Per-row in-play column ranges (cols 0–7):
+```
+row 0: cols 2..4   (3)            . . O O O . . .
+row 1: cols 2..4   (3)            . . O O O . . .
+row 2: cols 2..4   (3)            . . O O O . . .
+row 3: cols 0..7   (8)            O O O O O O O O
+row 4: cols 0..7   (8)            O O O X O O O O   ← X = center start (4,3)
+row 5: cols 0..7   (8)            O O O O O O O O
+row 6: cols 2..4   (3)            . . O O O . . .
+row 7: cols 2..4   (3)            . . O O O . . .
+```
+Generation rule: in-play iff `row in 3..5 || col in 2..4`, over rows 0..7, cols 0..7. Total = 3+3+3+8+8+8+3+3 = **39**. Arms: up (rows 0–2) length 3, down (rows 6–7) length 2, left (cols 0–1) length 2, right (cols 5–7) length 3 → cyclic (3,3,2,2). `GRID_DIMENSION = 8` (square bounding box; the footprint is genuinely asymmetric within it — that is the board). Center hole = `(4,3)`. **Center-empty IS solvable** — Bell lists (3,3,2,2) among the boards "completely solvable" at every vacancy. **Catalog slot: index 2 (third), between European-37 and Diamond-41.**
+
+### Diamond-41 — **NEW finding: center is UNSOLVABLE**, `RulesEngine` unchanged
+9×9 lattice, square rotated 45°; 41 holes. Per-row in-play column ranges (cols 0–8):
 ```
 row 0: col 4          (1)         . . . . O . . . .
 row 1: cols 3..5      (3)         . . . O O O . . .
 row 2: cols 2..6      (5)         . . O O O O O . .
 row 3: cols 1..7      (7)         . O O O O O O O .
-row 4: cols 0..8      (9)         O O O O X O O O O   ← X = center start (4,4)
+row 4: cols 0..8      (9)         O O O O O O O O O
 row 5: cols 1..7      (7)         . O O O O O O O .
 row 6: cols 2..6      (5)         . . O O O O O . .
 row 7: cols 3..5      (3)         . . . O O O . . .
 row 8: col 4          (1)         . . . . O . . . .
 ```
-Generation rule: `halfWidth = [0,1,2,3,4,3,2,1,0]`; in-play iff `col in (4 - hw[row])..(4 + hw[row])`. Total = 1+3+5+7+9+7+5+3+1 = **41**. `GRID_DIMENSION = 9`, square aspect. Center-empty start `(4,4)` is the conventional one; `[ASSUMED]` solvable to one peg — validate with a recorded-solution golden test.
+Generation rule: `halfWidth = [0,1,2,3,4,3,2,1,0]`; in-play iff `col in (4 - hw[row])..(4 + hw[row])`. Total = 1+3+5+7+9+7+5+3+1 = **41**. `GRID_DIMENSION = 9`.
 
-### Triangle-15 — **triangular lattice; see Open Question 1 before building**
-5-row triangle, 15 holes. Coordinate scheme that fits the bitmask: `Position(row, col)` with `row in 0..4`, `col in 0..row`:
+> **CORRECTION to prior research (was A2 "center-empty `(4,4)` is solvable").** The 41-hole diamond is highly constrained: only **4** single-vacancy-to-single-survivor problems are solvable on it (each 26 moves), and **the center is NOT one of them** `[VERIFIED: gibell.net (George Bell) French/diamond page; corroborated by Bell-Beasley "New problems on old solitaire boards"]`. The solvable starts lie off-center (Bell's catalog: "vacate f8 or c5, finish at d8 or g5" and equivalents). **Diamond-41 must use an off-center start.** Mapping Bell's algebraic labels into our `(row,col)` gives candidate solvable vacancies such as `(4,2)` (two cells left of center on the middle row) or `(1,5)` — **the exact start is selected and validated by the authoring solver** (it enumerates the in-play holes and keeps the first vacancy that reduces to one peg). Center `(4,4)` is excluded. `[ASSUMED: specific (row,col); the *fact that center fails and an off-center start exists* is VERIFIED]`
+
+### Wiegleb-45 (German cross, J.C. Wiegleb 1779) — **NEW footprint**, `RulesEngine` unchanged
+The English cross with every arm one cell longer: a 3-wide cross on a 9×9 grid (equivalently, 9×9 minus the four 3×3 corner blocks). 45 holes. Per-row in-play column ranges (cols 0–8):
 ```
-row 0:            (0,0)                    O
-row 1:          (1,0)(1,1)                O O
-row 2:        (2,0)(2,1)(2,2)            O O O
-row 3:      (3,0)(3,1)(3,2)(3,3)        O O O O
-row 4:    (4,0)(4,1)(4,2)(4,3)(4,4)    O O O O O
+row 0: cols 3..5   (3)            . . . O O O . . .
+row 1: cols 3..5   (3)            . . . O O O . . .
+row 2: cols 3..5   (3)            . . . O O O . . .
+row 3: cols 0..8   (9)            O O O O O O O O O
+row 4: cols 0..8   (9)            O O O O X O O O O   ← X = center start (4,4)
+row 5: cols 0..8   (9)            O O O O O O O O O
+row 6: cols 3..5   (3)            . . . O O O . . .
+row 7: cols 3..5   (3)            . . . O O O . . .
+row 8: cols 3..5   (3)            . . . O O O . . .
 ```
-Total = 1+2+3+4+5 = **15** (≤64 ✓). Classic solvable start: apex `(0,0)` empty.
-**BUT:** authentic triangle jumps run along the triangle's three axes — e.g. `(2,0)→(2,2)` over `(2,1)` (horizontal), `(2,0)→(0,0)` over `(1,0)` (a diagonal), `(2,2)→(0,0)` over `(1,1)` (the other diagonal). `RulesEngine`'s orthogonal `(±1 row / ±1 col)` directions do **not** produce these — and the third axis cannot be expressed with a 2-axis orthogonal direction set. **This board cannot be played authentically under the locked orthogonal-only rule** — resolve Open Question 1 first.
+Generation rule: `centralBand = 3..5`; in-play iff `row in 3..5 || col in 3..5`, over a 9×9 grid (identical shape to English-33's rule, scaled from 7×7 to 9×9). Total = 3+3+3+9+9+9+3+3+3 = **45**. `GRID_DIMENSION = 9`. Center hole = `(4,4)`. **Center-empty IS solvable** — the Wiegleb central game (start center-empty, finish one peg) is solvable in **22 moves, no fewer** `[VERIFIED: gibell.net — "central game can be solved in 22 moves, but no fewer"]`. (Of its 36 SVSS problems, all are solvable except the `(4,0)`/e1-corner complement — center is fine.)
 
-## Triangle-15 Rendering (geometry generalization)
+## Board Geometry Generalization (square grid only — no lattice strategy)
 
-Even setting the rules conflict aside, `BoardGeometry`/`BoardMetrics` are currently English-33-specific and must generalize for **all** new boards (catalog mini-previews D-11 reuse this):
+The earlier "`BoardLattice` (Square/Triangle) strategy" recommendation is **DROPPED**: with Triangle-15 gone (D-17), every board is a square lattice and `BoardGeometry`/`BoardMetrics` need exactly one generalization — **derive the grid dimension from the `BoardSpec` instead of the hardcoded English-33 constant:**
 
-1. **Derive grid extent from the spec**, not a constant: `cols = spec.inPlay.maxOf { col } + 1`, `rows = maxOf { row } + 1`; use `max(rows, cols)` (square boards) for `cellSize`. Removes the hardcoded `BoardMetrics.GRID_DIMENSION = 7`.
-2. **Square boards (English/European/Diamond):** existing `center(pos) = origin + (col+0.5, row+0.5) * cell` works once the dimension is derived.
-3. **Triangle lattice (if built):** rows are horizontally offset and vertically compressed:
-   `x = originX + (col - row/2 + rowsMax/2) * cell`, `y = originY + row * cell * sin(60°)`. A peg at `(row, col)` sits at the midpoint of an equilateral cell. `positionAt(offset)` must invert this mapping and still bounds-check against `spec` (T-04-01 contract preserved).
-4. Recommend a small **`BoardLattice` strategy** (`SquareLattice` / `TriangleLattice`) selected from the `BoardSpec` (e.g. a `lattice` field) so `BoardGeometry` stays one class with two coordinate mappers, and `onCellTap` remains bounds-checked for both. The catalog preview renders the same way at small size.
+1. **Derive grid extent from the spec**, not a constant: `rows = spec.inPlay.maxOf { it.row } + 1`, `cols = spec.inPlay.maxOf { it.col } + 1`; use `gridDimension = max(rows, cols)` for `cellSize`. Removes `BoardMetrics.GRID_DIMENSION = 7`. (English/European = 7, Asymmetric = 8, Diamond/Wiegleb = 9.)
+2. **`center(pos) = origin + (col + 0.5, row + 0.5) * cell`** works unchanged once the dimension is derived. `positionAt(offset)` inverts it and bounds-checks against `spec` (the T-04-01 contract is preserved for every footprint).
+3. **Asymmetric-39 note:** its 8×8 bounding box contains a footprint that is *not* centered (the arms differ) — render the bounding box as-is; the off-center shape is the board's identity. The catalog mini-preview (D-11) renders the same way at small size and doubles as a free visual smoke test that each `BoardSpec` is laid out correctly.
+4. Add/extend a per-board JVM `BoardGeometryTest` asserting in-bounds mapping for dimensions 7, 8, 9.
 
 ## Common Pitfalls
 
 ### Pitfall 1: English-33-specific geometry breaks the new boards
-**What goes wrong:** `BoardMetrics.GRID_DIMENSION = 7` and `BOARD_ASPECT_RATIO = 1f` are baked for English-33; European (7) happens to match but Diamond (9) and Triangle (5) do not — pegs render off-grid or clipped.
+**What goes wrong:** `BoardMetrics.GRID_DIMENSION = 7` and `BOARD_ASPECT_RATIO = 1f` are baked for English-33; European (7) happens to match but Asymmetric (8), Diamond (9), and Wiegleb (9) do not — pegs render off-grid or clipped.
 **Why:** Phase-1 geometry was scoped to one board.
-**How to avoid:** Derive grid dimension from the `BoardSpec` bounds; pass it into `BoardGeometry.forCanvas`. Add a per-board JVM `BoardGeometryTest` (the existing test already covers the pattern).
-**Warning signs:** Catalog previews look fine for English/European but Diamond/Triangle are misaligned.
+**How to avoid:** Derive grid dimension from the `BoardSpec` bounds; pass it into `BoardGeometry.forCanvas`. Add per-board `BoardGeometryTest` cases (dimensions 7/8/9).
+**Warning signs:** Catalog previews look fine for English/European but Asymmetric/Diamond/Wiegleb are misaligned.
 
-### Pitfall 2: Center-start European-37 can never reach 3★
+### Pitfall 2: Center-start European-37 / Diamond-41 can never reach 3★
 **What goes wrong:** Player perceives the board as broken/unfair — a "perfect" solve is mathematically impossible.
-**Why:** Position-class parity (verified result).
-**How to avoid:** Use a documented solvable starting vacancy; lock it with a recorded-solution golden test. Escalate the start choice if a validated one can't be sourced without a Solver.
-**Warning signs:** Best achievable on European is always ≥2 pegs.
+**Why:** Position-class parity — center-complement is unsolvable on **both** the 37-hole European board and the 41-hole diamond `[VERIFIED]`.
+**How to avoid:** Use a documented solvable off-center start (European `(3,2)`; Diamond an off-center hole validated by the authoring solver); lock it with a recorded-solution golden fixture. The other three boards (English, Asymmetric, Wiegleb) are fine from center.
+**Warning signs:** Best achievable on those boards is always ≥2 pegs in playtesting.
 
 ### Pitfall 3: navigation-compose pulls a compileSdk-37 transitive line
 **What goes wrong:** Build fails to install (compileSdk 37 unavailable) — the exact failure that already forced core→1.18.0 and lifecycle→2.9.4 pins.
@@ -453,14 +509,57 @@ Even setting the rules conflict aside, `BoardGeometry`/`BoardMetrics` are curren
 ### Pitfall 5: ViewModel arg-route lookup throws on a bad/missing levelId
 **What goes wrong:** `loadClassic("typo")` crashes the Gameplay screen.
 **Why:** Untrusted route arg.
-**How to avoid:** `ClassicLevelSource.load` validates the id against the known catalog and fails fast in tests; the catalog only ever emits valid ids, so the surface is small. Keep ids as named constants (QUAL-03), not string literals at call sites.
+**How to avoid:** `ClassicLevelSource.load` validates the id against the known catalog and fails fast in tests; the catalog only ever emits valid ids. Keep ids as named constants (QUAL-03), not string literals at call sites.
 
 ### Pitfall 6: kotlinx-serialization plugin not applied → `@Serializable` routes fail at runtime
 **What goes wrong:** Type-safe routes compile but crash with a serializer-not-found at navigate time.
 **Why:** The serialization Gradle plugin must be applied to `:app` (it generates serializers); adding only the json runtime is insufficient.
-**How to avoid:** Apply `org.jetbrains.kotlin.plugin.serialization` in `:app` (via the convention plugin or directly) AND add `kotlinx-serialization-json`. Verify with one navigation in an instrumentation/Robolectric test.
+**How to avoid:** Apply `org.jetbrains.kotlin.plugin.serialization` in `:app` AND add `kotlinx-serialization-json`. Verify with one navigation in an instrumentation/Robolectric test.
+
+### Pitfall 7: Transcribing a published solution into the wrong coordinate system
+**What goes wrong:** A hand-copied move-list from a paper (algebraic labels, a flipped y-axis, a different vacancy) fails to replay, or "passes" against a board you laid out differently — silently validating nothing.
+**Why:** Literature uses many coordinate conventions; our `BoardSpec` indexes `(row, col)` sorted, row 0 at top.
+**How to avoid:** **Generate** each winning line with the one-off authoring solver against *our actual `Boards.*` value*, so the fixture is in our `Move` encoding by construction. Don't hand-transcribe (see Code Examples).
 
 ## Code Examples
+
+### Recorded-solution golden test (solvability without a runtime Solver — D-19)
+```kotlin
+// domain/src/test/.../golden — reuses existing BoardCodec/GoldenMasterAssert
+@Test fun `european37 recorded solution reduces to one peg`() {
+    val solution: List<Move> = European37Solution.moves   // committed fixture (generated once)
+    val finalBoard = solution.fold(Boards.european37Initial) { b, m ->
+        require(m in RulesEngine.legalMoves(b)); RulesEngine.applyMove(b, m)
+    }
+    assertThat(finalBoard.pegCount).isEqualTo(1)          // proves 3★ is reachable (D-01)
+}
+```
+Repeat per board; the committed move-list IS the proof of solvability and forward-feeds Phase 3's recorded-solution contract.
+
+### One-off authoring solver (NOT shipped in `:domain` main)
+```kotlin
+// tools/ or domain/src/test — run ONCE to emit each *Solution fixture, then delete/ignore.
+// Plain DFS with pagoda/visited pruning; 33–45 holes solve in well under a minute.
+fun solveToOnePeg(start: Board): List<Move>? {
+    val seen = HashSet<Long>()
+    fun dfs(board: Board, path: ArrayDeque<Move>): List<Move>? {
+        if (board.pegCount == 1) return path.toList()
+        if (!seen.add(board.bits)) return null
+        for (m in RulesEngine.legalMoves(board)) {        // D-02: any final peg counts
+            path.addLast(m)
+            dfs(RulesEngine.applyMove(board, m), path)?.let { return it }
+            path.removeLast()
+        }
+        return null
+    }
+    return dfs(start, ArrayDeque())
+}
+// Authoring step: for each Boards.* board (and, for European/Diamond, each candidate off-center
+// vacancy) run solveToOnePeg, then serialize the returned List<Move> to a committed fixture
+// (kotlinx.serialization JSON or the existing BoardCodec text format) under
+// domain/src/test/resources/golden/solutions/. The shipped golden test only REPLAYS the fixture.
+```
+**Why this satisfies D-19 without a Solver:** the search code lives in a test/tools source set, runs at authoring time, and produces a *static committed artifact*. Nothing in `:domain` main (or any shipped APK code path) performs a search — the runtime Solver remains a Phase-4 concern. For English-33, optionally cross-check the generated line against the published Bergholt solution.
 
 ### ResultsViewModel reading typed args + computing "Next board" (D-06)
 ```kotlin
@@ -471,7 +570,7 @@ class ResultsViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
     private val args = savedStateHandle.toRoute<Results>()
-    private val order = levelRepository.classicCatalog().map { it.id }   // D-12 ascending
+    private val order = levelRepository.classicCatalog().map { it.id }   // D-18 ascending (5 ids)
     val nextLevelId: String = order[(order.indexOf(args.levelId) + 1) % order.size]  // wraps (D-06)
     val uiState = ResultsUiState(
         stars = args.stars, pegsRemaining = args.pegsRemaining,
@@ -480,19 +579,6 @@ class ResultsViewModel @Inject constructor(
     )
 }
 ```
-
-### Recorded-solution golden test (solvability without a Solver)
-```kotlin
-// domain/src/test/.../golden — reuses existing BoardCodec/GoldenMasterAssert
-@Test fun `english33 reference solution reduces to one peg`() {
-    val solution: List<Move> = English33ReferenceSolution.moves   // committed fixture
-    val finalBoard = solution.fold(Boards.english33Initial) { b, m ->
-        require(m in RulesEngine.legalMoves(b)); RulesEngine.applyMove(b, m)
-    }
-    assertThat(finalBoard.pegCount).isEqualTo(1)
-}
-```
-Repeat per board; the committed move-list IS the proof of solvability and forward-feeds Phase 3's recorded-solution contract.
 
 ## State of the Art
 
@@ -505,32 +591,34 @@ Repeat per board; the committed move-list IS the proof of solvability and forwar
 **Deprecated/outdated:**
 - navigation-compose 2.10.x line — alpha, requires compileSdk 37; **not for this environment**.
 - `GameOverDialog`/`GameOverOverlay` (Phase 1) — replaced by the Results destination (D-05).
+- The Phase-2-research `BoardLattice` (Square/Triangle) proposal — **obsolete** now Triangle-15 is dropped (D-17); square-grid geometry only.
 
 ## Assumptions Log
 
 | # | Claim | Section | Risk if Wrong |
 |---|-------|---------|---------------|
-| A1 | A solvable off-center starting vacancy exists & is sourceable for European-37 without a Solver | Board Footprints | If not sourced, European tops out at 2★ or needs an early Solver; affects D-01 fairness |
-| A2 | Diamond-41 center-empty `(4,4)` is solvable to one peg | Board Footprints | If not, Diamond can't earn 3★; validate via recorded-solution test |
+| A1 | European-37 start `(3,2)` (an orthogonal neighbour of center) is solvable to one peg | Board Footprints | Low — Durango Bill's exhaustive W/L map marks all four center-neighbours solvable `[VERIFIED]`; the authoring solver confirms the exact line. If it somehow failed, pick another of the 16 W holes |
+| A2 | A specific off-center Diamond-41 vacancy (candidate `(4,2)`/`(1,5)`) is solvable | Board Footprints | The *existence* of a solvable off-center start is VERIFIED (4 SVSS problems, 26 moves); the exact `(row,col)` is solver-validated at authoring time. Risk only if the coordinate mapping guess is wrong — the solver enumerates and self-corrects |
 | A3 | `PEG_VALUE=100`, `TIME_BONUS_CAP=5000`, `DECAY=10` are reasonable D-03 constants | ScoreCalculator | Wrong feel only; tunable, low risk; planner sanity-checks |
 | A4 | navigation-compose 2.9.8 resolves without dragging in a compileSdk-37 transitive line | Standard Stack / Pitfall 3 | Build won't install; mitigated by `resolutionStrategy` guard (already a project pattern) |
-| A5 | Triangle-15 apex-empty `(0,0)` is the solvable start (if the board is built at all) | Board Footprints | Moot unless Q1 resolves to "build Triangle-15"; validate if so |
+| A5 | The authoring DFS solves all five boards (≤45 holes) to one peg within a practical authoring-time budget | Code Examples / D-19 | Low — plain DFS with a visited-set handles ≤45-hole boards in seconds–minutes; add pagoda pruning if needed |
 
-**These five assumptions need confirmation before they become locked decisions.** A1/A2/A5 are validated by committing recorded-solution golden fixtures (no Solver needed). A4 is validated by a dependency-resolution dry run.
+**These assumptions need confirmation before they become locked decisions.** A1/A2/A5 are validated by committing the recorded-solution golden fixtures (no runtime Solver). A4 is validated by a dependency-resolution dry run. The center-unsolvability of European-37 and Diamond-41, and the center-solvability of Wiegleb-45/Asymmetric-39, are **VERIFIED facts** (not assumptions).
 
 ## Open Questions
 
-1. **[BLOCKING] Triangle-15 vs. the locked orthogonal-only rule — fundamental conflict.**
-   - What we know: Authentic triangular peg solitaire jumps along **three** axes (horizontal + two diagonals) `[VERIFIED]`. `RulesEngine` is hardcoded to 4 orthogonal directions, and the project lists "Diagonal jumps" as **out-of-scope** (CLAUDE.md, REQUIREMENTS). The 4-board catalog including Triangle-15 is **also** locked (CLAS-01, D-11/D-12, roadmap success criterion).
-   - What's unclear: Which locked item gives. You cannot have an authentic Triangle-15 **and** orthogonal-only rules.
-   - Recommendation: **Escalate to the user.** Options: **(a)** Generalize the move model — add a per-board direction/lattice set so Triangle-15 uses its 3 triangular axes while square boards stay orthogonal (cleanest authentic path, but explicitly relaxes the "orthogonal-only" constraint → needs user sign-off). **(b)** Replace Triangle-15 in the catalog with a 4th orthogonal board (requirements change → needs user sign-off). **(c)** Defer Triangle-15 to a later phase and ship Phase 2 with three boards (descope). Do **not** ship a fake orthogonal "triangle" that isn't the real game. Recommend (a) if the user values the authentic catalog, scoped so the generalization doesn't leak diagonal moves into Challenge (Phase 3 stays orthogonal-only).
+1. **[RESOLVED] Triangle-15 vs. the locked orthogonal-only rule.**
+   The earlier BLOCKING conflict (authentic triangular solitaire needs 3-axis/diagonal jumps `RulesEngine` cannot express) was escalated and **resolved by the user (CONTEXT D-17/D-18): Triangle-15 is dropped**, replaced by a 5-board all-orthogonal-square-grid catalog. No triangular-lattice geometry is built; `RulesEngine` and the orthogonal-only rule are unchanged. **No further action.**
 
-2. **European-37 starting vacancy (solvability).**
-   - What we know: Center-empty is provably **not** reducible to one peg `[VERIFIED]`. No Solver exists until Phase 4.
-   - What's unclear: A specific solvable off-center vacancy + its winning line, sourced from literature.
-   - Recommendation: Source a documented solvable start, lock it with a recorded-solution golden test. If none can be sourced without search, either pull a minimal Solver forward or accept European caps at 2★ (surface to user).
+2. **[RESOLVED] European-37 starting vacancy.**
+   Center is unsolvable `[VERIFIED]`; the four orthogonal neighbours of center are solvable single-vacancy starts. **Locked recommendation: `(3,2)`**, proven by a committed recorded-solution fixture (generated). The exact winning line comes from the authoring solver — no literature transcription needed.
 
-3. **Game-end → Results transition mechanism.**
+3. **Diamond-41 exact off-center start (`(row,col)`).**
+   - What we know: center is unsolvable; only 4 SVSS problems solvable (26 moves) `[VERIFIED: gibell.net/Bell-Beasley]`; solvable starts are off-center (Bell's "f8/c5/d8/g5").
+   - What's unclear: the precise `(row,col)` in our top-row-0 convention.
+   - Recommendation: let the authoring solver enumerate in-play holes and select the first that reduces to one peg; commit that vacancy + its line as the fixture. Candidates to try first: `(4,2)`, `(1,5)` and their symmetric images.
+
+4. **Game-end → Results transition mechanism.**
    - What we know: Phase 1 made terminal status replayable state; navigation needs a one-shot.
    - Recommendation: One-shot effect channel per compose-skill (preferred) or a guarded `LaunchedEffect(status)`. Planner picks; both documented above.
 
@@ -542,11 +630,11 @@ Repeat per board; the committed move-list IS the proof of solvability and forwar
 | kotlinx-serialization plugin + json | Type-safe route args | Add to catalog | 2.3.20 / 1.11.0 | String-route DSL (no serialization), not recommended |
 | datastore-preferences | ONB-01 `onboardingSeen` | Add to catalog | 1.2.1 (stable) | none needed |
 | compileSdk 37 | navigation-compose **2.10.x only** | ✗ (not installable) | — | **Stay on 2.9.8** — avoids the requirement entirely |
-| Solver (search) | Runtime solvability validation | ✗ (Phase 4) | — | Recorded-solution golden fixtures (no search) |
+| Runtime Solver (search) | Solvability validation | ✗ (Phase 4) | — | **Authoring-time DFS → committed recorded-solution fixtures** (no shipped search) |
 
 **Missing dependencies with no fallback:** none (all three additions are first-party and current).
-**Missing with fallback:** Solver → recorded-solution golden tests; compileSdk 37 → pin navigation 2.9.8.
-**Action:** Run a `:app` dependency-resolution dry run after adding navigation to confirm no compileSdk-37 transitive line appears (mirror the existing `resolutionStrategy.eachDependency` guard if it does).
+**Missing with fallback:** runtime Solver → authoring-time DFS + committed golden fixtures; compileSdk 37 → pin navigation 2.9.8.
+**Action:** Run a `:app` dependency-resolution dry run after adding navigation to confirm no compileSdk-37 transitive line appears.
 
 ## Validation Architecture
 
@@ -565,9 +653,9 @@ Repeat per board; the committed move-list IS the proof of solvability and forwar
 |--------|----------|-----------|-------------------|-------------|
 | SCOR-01 | star bands (1→3★, 2–3→2★, >3→1★) | unit | `./gradlew :domain:test --tests *ScoreCalculatorTest*` | ❌ Wave 0 |
 | SCOR-02 | score formula + time decay floor at 0 | unit | `./gradlew :domain:test --tests *ScoreCalculatorTest*` | ❌ Wave 0 |
-| CLAS-02 | each board's recorded solution → 1 peg | unit (golden) | `./gradlew :domain:test --tests *ReferenceSolution*` | ❌ Wave 0 |
-| CLAS-01 | catalog returns 4 descriptors in D-12 order | unit | `./gradlew :app:testDebugUnitTest --tests *LevelRepositoryTest*` | ❌ Wave 0 |
-| CLAS-02 | new-board geometry maps in bounds | unit | `./gradlew :app:testDebugUnitTest --tests *BoardGeometryTest*` | ⚠️ extend existing |
+| CLAS-02 | each non-trivial board's recorded solution → 1 peg (incl. off-center European/Diamond starts) | unit (golden) | `./gradlew :domain:test --tests *SolutionTest*` | ❌ Wave 0 |
+| CLAS-01 | catalog returns 5 descriptors in D-18 order | unit | `./gradlew :app:testDebugUnitTest --tests *LevelRepositoryTest*` | ❌ Wave 0 |
+| CLAS-02 | new-board geometry maps in bounds (dims 7/8/9) | unit | `./gradlew :app:testDebugUnitTest --tests *BoardGeometryTest*` | ⚠️ extend existing |
 | NAV-02 | Home→Catalog→Gameplay→Results reachable | UI (Robolectric) | `./gradlew :app:testDebugUnitTest --tests *NavFlowTest*` | ❌ Wave 0 |
 | SCOR-03 | Results shows stars/pegs/time/score | UI | `./gradlew :app:testDebugUnitTest --tests *ResultsScreenTest*` | ❌ Wave 0 |
 | ONB-01 | first launch shows overlay; markSeen hides it | unit (Turbine) | `./gradlew :app:testDebugUnitTest --tests *HomeViewModelTest*` | ❌ Wave 0 |
@@ -579,10 +667,12 @@ Repeat per board; the committed move-list IS the proof of solvability and forwar
 
 ### Wave 0 Gaps
 - [ ] `domain/.../scoring/ScoreCalculatorTest.kt` — SCOR-01/02 bands + formula + decay floor
-- [ ] `domain/.../golden/*ReferenceSolutionTest.kt` — recorded winning line per board → 1 peg (CLAS-02; doubles as solvability proof)
-- [ ] `app/.../data/LevelRepositoryTest.kt` — catalog order (D-12) + `loadClassic` round-trip
-- [ ] `app/.../ui/components/BoardGeometryTest.kt` — extend for Diamond-9 / European-7 (+ Triangle if Q1 resolves)
-- [ ] `app/.../navigation/NavFlowTest.kt` — Robolectric end-to-end across the 4 destinations
+- [ ] `domain/.../golden/*SolutionTest.kt` — recorded winning line per non-trivial board → 1 peg (European-37, Asymmetric-39, Diamond-41, Wiegleb-45; English-33 too). Doubles as the solvability proof (D-19)
+- [ ] `domain/src/test/resources/golden/solutions/*` — committed move-list fixtures (emitted once by the authoring solver)
+- [ ] One-off authoring solver (tools/ or test source set) — generates the fixtures; **must not appear in `:domain` main** (ArchUnit boundary)
+- [ ] `app/.../data/LevelRepositoryTest.kt` — catalog order (D-18, 5 boards) + `loadClassic` round-trip
+- [ ] `app/.../ui/components/BoardGeometryTest.kt` — extend for dims 8 (Asymmetric) and 9 (Diamond/Wiegleb)
+- [ ] `app/.../navigation/NavFlowTest.kt` — Robolectric end-to-end across the 5 destinations
 - [ ] `app/.../ui/home/HomeViewModelTest.kt` — `onboardingSeen` Flow + `markSeen` (fake DataStore/repo)
 
 ## Security Domain
@@ -613,16 +703,19 @@ No cryptography, secrets, or network controls are in scope for Phase 2.
 - developer.android.com/jetpack/androidx/releases/navigation — navigation-compose 2.9.8 latest stable; 2.10.x-alpha bumps compileSdk to 37
 - developer.android.com/jetpack/androidx/releases/datastore — datastore-preferences 1.2.1 stable (2026-03-11)
 - developer.android.com/guide/navigation/design/type-safety — `@Serializable` routes, `toRoute()`, `SavedStateHandle.toRoute()`
-- en.wikipedia.org/wiki/Peg_solitaire + gibell.net/pegsolitaire — European-37 center-complement unsolvability (position-class theory)
-- gibell.net/pegsolitaire/tindex.html + arxiv.org/pdf/math/0703865 — triangular solitaire jumps along diagonal + horizontal axes
-- Existing codebase: `BoardSpec`/`Board`/`RulesEngine`/`Boards.kt`/`BoardGeometry.kt`/`GameViewModel.kt`/`DomainModule.kt`/`libs.versions.toml` (read this session)
+- en.wikipedia.org/wiki/Peg_solitaire — board variant list (English-33, European-37, Wiegleb-45, Diamond-41, Asymmetric 3-3-2-2); European center unsolvable, "3 non-congruent solvable positions"
+- gibell.net/pegsolitaire/ (George I. Bell) — French/European board: 10 solvable SVSS (20–21 moves), center unsolvable; **Diamond-41: only 4 SVSS solvable (26 moves), center NOT solvable**; **Wiegleb-45: central game solvable in 22 moves, all 36 SVSS solvable except (4,0)/e1**
+- gibell.net/pegsolitaire/GenCross/GenCrossBoards0.html — generalized cross boards: **Wiegleb (3,3,3,3)=45 holes; Asymmetric (3,3,2,2)=39 holes, "completely solvable" at every vacancy**; only arms ≤3 can be completely solvable
+- durangobill.com/Peg37.html — exhaustive 37-hole French board analysis: W/L map of solvable starts (16 of 37 solvable; the four center-neighbours are W; complement-in-start-hole never solvable)
+- arxiv.org/abs/math/0611091 — Bell & Beasley, "New problems on old solitaire boards" (corroborates diamond/Wiegleb results; PDF text not machine-extractable this session, cross-checked via the gibell.net summaries)
+- Existing codebase: `BoardSpec.kt`/`Board.kt`/`Boards.kt`/`RulesEngine`/`BoardGeometry`/`GameViewModel`/`DomainModule`/`libs.versions.toml` (read this session)
 - CLAUDE.md — pinned stack (navigation 2.9.8, datastore 1.2.1, kotlinx-serialization 1.11.0, Kotlin 2.3.20)
 
 ### Secondary (MEDIUM confidence)
-- Board per-row footprints (European octagon 3-5-7-7-7-5-3; Diamond 1-3-5-7-9-7-5-3-1) — standard layouts cross-checked against multiple solitaire references; coordinates derived this session
+- Per-row footprints derived this session from the cross/diamond/octagon definitions (English 7×7 cross; European octagon 3-5-7-7-7-5-3; Diamond 1-3-5-7-9-7-5-3-1; Wiegleb 9×9 cross 3/9/3; Asymmetric 8×8 cross arms 3,3,2,2) — coordinates computed and hole-counts re-verified (37/39/41/45)
 
 ### Tertiary (LOW confidence — flagged for validation)
-- Specific solvable starting vacancies / winning lines for European-37, Diamond-41, Triangle-15 — `[ASSUMED]`, to be locked by recorded-solution golden fixtures (A1/A2/A5)
+- The exact `(row,col)` of the Diamond-41 off-center start — `[ASSUMED]`, selected and validated by the authoring solver
 - ScoreCalculator constant values — `[ASSUMED]` sane defaults, planner to sanity-check
 
 ## Metadata
@@ -631,9 +724,13 @@ No cryptography, secrets, or network controls are in scope for Phase 2.
 - Navigation / DataStore / serialization stack: HIGH — verified versions + compileSdk constraint this session
 - LevelRepository seam + selected-board flow: HIGH — standard Repository + SavedStateHandle pattern over an existing clean seam
 - ScoreCalculator placement + formula: HIGH (shape locked by D-01/D-03); constants MEDIUM (tunable)
-- Board footprints (European/Diamond geometry): MEDIUM — coordinates derived, solvability starts need recorded-solution validation
-- Triangle-15: HIGH confidence in the *conflict finding*; the *resolution* is a user decision (BLOCKING)
-- Pitfalls: HIGH — most are grounded in the project's own documented compileSdk-36 history
+- Board footprints (all 5, incl. new Wiegleb-45 & Asymmetric-39): HIGH — coordinates derived and hole-counts cross-verified against George Bell's generalized-cross analysis
+- Board solvability (center un/solvability per board): HIGH — VERIFIED against gibell.net / Bell-Beasley / Durango Bill (European & Diamond centers unsolvable; English/Wiegleb/Asymmetric centers solvable)
+- Exact off-center Diamond-41 vacancy: MEDIUM — existence proven; precise coordinate is solver-validated at authoring time
+- D-19 golden-test approach (authoring DFS → committed fixtures): HIGH — standard, buildable, ships no Solver
+- Pitfalls: HIGH — most grounded in the project's own compileSdk-36 history and verified solvability facts
 
-**Research date:** 2026-06-28
-**Valid until:** ~2026-07-28 (stack stable; re-verify navigation/datastore versions if planning slips a month)
+**Research date:** 2026-06-28 (board follow-up revision)
+**Valid until:** ~2026-07-28 (stack stable; the combinatorial board-solvability facts do not expire — re-verify navigation/datastore versions only if planning slips a month)
+</content>
+</invoke>
