@@ -25,7 +25,11 @@ androidxActivityCompose = "1.13.0"
 # compileSdk 37, which is not installable in this environment). Forced onto the
 # transitive graph in app/build.gradle.kts to keep compileSdk pinned at 36.
 androidxCore = "1.18.0"
-androidxLifecycle = "2.11.0"
+# androidx.lifecycle is an ATOMIC GROUP — every lifecycle-* artifact must share
+# one version. 2.11.0's `-compose` variants require compileSdk 37 (uninstallable
+# here); 2.9.4 is the highest line whose `-compose` variants keep minCompileSdk 36
+# and is exactly what the Compose BOM 2026.06.00 already resolves transitively.
+androidxLifecycle = "2.9.4"
 
 # --- Standards gate tooling (Phase-1 delta — verified live against the
 #     official Gradle Plugin Portal / Maven Central this session) ---
@@ -64,6 +68,10 @@ androidx-core = { group = "androidx.core", name = "core", version.ref = "android
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCore" }
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidxLifecycle" }
 androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "androidxLifecycle" }
+# Plain (non-Compose) ViewModel base. The `-compose` lifecycle variants at 2.11.0
+# require compileSdk 37 (uninstallable here); this artifact does not, so it is the
+# compileSdk-36-safe way to expose `androidx.lifecycle.ViewModel`.
+androidx-lifecycle-viewmodel = { group = "androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "androidxLifecycle" }
 
 # --- DI (APPLIED: :app uses hilt-android at runtime; hilt-compiler via ksp(...)) ---
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }

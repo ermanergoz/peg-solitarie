@@ -40,12 +40,19 @@ dependencies {
     implementation(libs.bundles.compose)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
+    // MVVM: ViewModel base for the StateFlow-driven UiState. Non-Compose artifact
+    // — the `-compose` lifecycle variants at 2.11.0 demand compileSdk 37.
+    implementation(libs.androidx.lifecycle.viewmodel)
+
     // DI: Hilt runtime + annotation processor under KSP (no KAPT).
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)
+    // StateFlow emission assertions + virtual-time coroutines for the ViewModel tests.
+    testImplementation(libs.turbine)
+    testImplementation(libs.kotlinx.coroutines.test)
     // QUAL-01 named domain-purity boundary gate (bytecode-based).
     testImplementation(libs.archunit.junit4)
 }
