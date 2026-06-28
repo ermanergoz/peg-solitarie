@@ -34,8 +34,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 5 plans (Walking Skeleton — sequential waves 1→5)
 - [x] 01-01-PLAN.md — Build scaffold + CI standards gates (two-module split, detekt/ktlint/ArchUnit/dp-sp gate, CI) [QUAL-01,02,03]
 - [x] 01-02-PLAN.md — Pure-Kotlin domain core + golden-master harness (Board bitmask, RulesEngine, BoardCodec) [GAME-01,02; QUAL-04]
-- [ ] 01-03-PLAN.md — GameViewModel + immutable GameUiState (select/two-step-jump/restart/game-over) [GAME-02,04,05]
-- [ ] 01-04-PLAN.md — BoardCanvas render + UI resources (Canvas draw, hit-test, D-07/D-08 animation) [GAME-03,04]
+- [x] 01-03-PLAN.md — GameViewModel + immutable GameUiState (select/two-step-jump/restart/game-over) [GAME-02,04,05]
+- [x] 01-04-PLAN.md — BoardCanvas render + UI resources (Canvas draw, hit-test, D-07/D-08 animation) [GAME-03,04]
 - [ ] 01-05-PLAN.md — Screen assembly + playable end-to-end + emulator playtest [GAME-01,03,05]
 **UI hint**: yes
 
@@ -102,7 +102,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Domain Foundation & Playable Board | 2/5 | In Progress|  |
+| 1. Domain Foundation & Playable Board | 4/5 | In Progress|  |
 | 2. Classic Mode, Scoring & Navigation | 0/TBD | Not started | - |
 | 3. Challenge Generation & Difficulty Curve | 0/TBD | Not started | - |
 | 4. Assist — Hint & Undo | 0/TBD | Not started | - |
