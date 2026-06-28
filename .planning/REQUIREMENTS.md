@@ -9,8 +9,8 @@ Slice 1 — Playable Core. Fully playable and testable; ads and Play Games exist
 
 ### Gameplay
 
-- [ ] **GAME-01**: Player can jump a peg orthogonally over an adjacent peg into an empty hole, removing the jumped peg
-- [ ] **GAME-02**: Game detects and signals the end state when no legal moves remain
+- [x] **GAME-01**: Player can jump a peg orthogonally over an adjacent peg into an empty hole, removing the jumped peg
+- [x] **GAME-02**: Game detects and signals the end state when no legal moves remain
 - [ ] **GAME-03**: Board renders on a Compose Canvas with animated jump and peg-removal feedback
 - [ ] **GAME-04**: Player can select a peg and see its legal destinations highlighted
 - [ ] **GAME-05**: Player can restart the current level at any time
@@ -65,7 +65,7 @@ Slice 1 — Playable Core. Fully playable and testable; ads and Play Games exist
 - [x] **QUAL-01**: Domain layer is pure Kotlin with no Android dependencies, enforced by a CI boundary test
 - [x] **QUAL-02**: detekt and ktlint are configured and pass as a build gate
 - [x] **QUAL-03**: No magic numbers/strings — values live in scoped constants files; all UI dp/sp in `res/values/dimens.xml`
-- [ ] **QUAL-04**: Domain game logic (rules, generator, solver, scoring) covered by JVM unit tests, including a golden-master determinism test for generated levels
+- [x] **QUAL-04**: Domain game logic (rules, generator, solver, scoring) covered by JVM unit tests, including a golden-master determinism test for generated levels
 
 ## v2 Requirements
 
@@ -106,15 +106,15 @@ Each v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for ph
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| GAME-01 | Phase 1 | Pending |
-| GAME-02 | Phase 1 | Pending |
+| GAME-01 | Phase 1 | Complete |
+| GAME-02 | Phase 1 | Complete |
 | GAME-03 | Phase 1 | Pending |
 | GAME-04 | Phase 1 | Pending |
 | GAME-05 | Phase 1 | Pending |
 | QUAL-01 | Phase 1 | Complete |
 | QUAL-02 | Phase 1 | Complete |
 | QUAL-03 | Phase 1 | Complete |
-| QUAL-04 | Phase 1 | Pending |
+| QUAL-04 | Phase 1 | Complete |
 | CLAS-01 | Phase 2 | Pending |
 | CLAS-02 | Phase 2 | Pending |
 | SCOR-01 | Phase 2 | Pending |
