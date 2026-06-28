@@ -1,5 +1,6 @@
 plugins {
     id("android-app")
+    id("standards")
 }
 
 android {
@@ -37,4 +38,6 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)
+    // QUAL-01 named domain-purity boundary gate (bytecode-based).
+    testImplementation(libs.archunit.junit4)
 }

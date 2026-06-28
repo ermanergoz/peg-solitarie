@@ -6,4 +6,6 @@ package com.app.pegsolitaire.domain
  * the gates are established). Replaced by the real immutable board/rules model
  * (`Board`, `BoardSpec`, `Move`, `GameState`, `RulesEngine`) in Plan 02.
  */
-data class Placeholder(val name: String)
+data class Placeholder(
+    val name: String,
+)
