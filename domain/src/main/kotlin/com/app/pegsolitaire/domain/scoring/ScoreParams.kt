@@ -29,6 +29,12 @@ object ScoreParams {
      */
     const val MIN_STARS = 1
 
+    /** Stars awarded in the top band (`<= `[THREE_STAR_MAX_PEGS] pegs, D-01). */
+    const val THREE_STARS = 3
+
+    /** Stars awarded in the middle band (2-3 pegs, D-01). */
+    const val TWO_STARS = 2
+
     /** Points awarded per peg cleared (D-03 — the peg-base term of the score). */
     const val PEG_VALUE = 100
 
