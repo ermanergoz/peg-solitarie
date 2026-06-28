@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 1 UI-SPEC approved
-last_updated: "2026-06-27T23:32:59.392Z"
-last_activity: 2026-06-27 -- Phase 01 planning complete
+last_updated: "2026-06-28T00:13:00.115Z"
+last_activity: 2026-06-28
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 5
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-28)
 
 **Core value:** Infinite, never-repeating, always-solvable Challenge levels that feel fair and satisfying.
-**Current focus:** Phase 1 — Domain Foundation & Playable Board
+**Current focus:** Phase 01 — domain-foundation-playable-board
 
 ## Current Position
 
-Phase: 1 of 5 (Domain Foundation & Playable Board)
-Plan: 0 of TBD in current phase
+Phase: 01 (domain-foundation-playable-board) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
-Last activity: 2026-06-27 -- Phase 01 planning complete
+Last activity: 2026-06-28
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 20%
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 01 P01 | 35 | 3 tasks | 28 files |
 
 ## Accumulated Context
 
@@ -63,6 +64,8 @@ Recent decisions affecting current work:
 - Roadmap: Slice 1 only (5 phases). Slice 2 (Play Games + AdMob + polish) deferred to a future milestone, swapped behind interfaces.
 - Phase 1: Code-standards gates (domain purity boundary test, detekt/ktlint, constants/dimens, JVM golden-master harness) established up front, not retrofitted.
 - Phase 3: Generator is the #1 risk — golden-master CI test locked before any difficulty tuning; `generatorVersion` stamped from day one; difficulty knobs data-driven and frozen before release.
+- [Phase ?]: Plan 01: Hilt/KSP deferred — no KSP build for Kotlin 2.4.0; Hilt declared in catalog, applied once KSP 2.4.x lands or the Kotlin pin is revisited
+- [Phase ?]: Plan 01: Gradle 9.5.1 wrapper + AGP 9.2.1 built-in Kotlin (kotlin-android plugin removed); androidx.core pinned 1.18.0 for compileSdk 36
 
 ### Pending Todos
 
@@ -71,6 +74,7 @@ None yet.
 ### Blockers/Concerns
 
 - Phase 3 difficulty-curve knob values cannot be set from research — require a dedicated playtest-iteration loop before the `generatorVersion` contract is frozen.
+- Hilt/KSP vs Kotlin 2.4.0: KSP has no 2.4.0 build (latest 2.3.9). Plan 03 needs @HiltViewModel — resolve before Plan 03 (pin KSP 2.4.x when published, or align Kotlin to a KSP-supported line).
 
 ## Deferred Items
 
@@ -82,6 +86,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-27T22:39:36.560Z
+Last session: 2026-06-28T00:12:36.020Z
 Stopped at: Phase 1 UI-SPEC approved
-Resume file: .planning/phases/01-domain-foundation-playable-board/01-UI-SPEC.md
+Resume file: None

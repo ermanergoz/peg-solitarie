@@ -62,9 +62,9 @@ Slice 1 — Playable Core. Fully playable and testable; ads and Play Games exist
 
 ### Quality & Standards
 
-- [ ] **QUAL-01**: Domain layer is pure Kotlin with no Android dependencies, enforced by a CI boundary test
-- [ ] **QUAL-02**: detekt and ktlint are configured and pass as a build gate
-- [ ] **QUAL-03**: No magic numbers/strings — values live in scoped constants files; all UI dp/sp in `res/values/dimens.xml`
+- [x] **QUAL-01**: Domain layer is pure Kotlin with no Android dependencies, enforced by a CI boundary test
+- [x] **QUAL-02**: detekt and ktlint are configured and pass as a build gate
+- [x] **QUAL-03**: No magic numbers/strings — values live in scoped constants files; all UI dp/sp in `res/values/dimens.xml`
 - [ ] **QUAL-04**: Domain game logic (rules, generator, solver, scoring) covered by JVM unit tests, including a golden-master determinism test for generated levels
 
 ## v2 Requirements
@@ -111,9 +111,9 @@ Each v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for ph
 | GAME-03 | Phase 1 | Pending |
 | GAME-04 | Phase 1 | Pending |
 | GAME-05 | Phase 1 | Pending |
-| QUAL-01 | Phase 1 | Pending |
-| QUAL-02 | Phase 1 | Pending |
-| QUAL-03 | Phase 1 | Pending |
+| QUAL-01 | Phase 1 | Complete |
+| QUAL-02 | Phase 1 | Complete |
+| QUAL-03 | Phase 1 | Complete |
 | QUAL-04 | Phase 1 | Pending |
 | CLAS-01 | Phase 2 | Pending |
 | CLAS-02 | Phase 2 | Pending |
