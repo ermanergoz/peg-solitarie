@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
+status: verifying
 stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-06-28T01:12:31.668Z"
+last_updated: "2026-06-28T01:31:52.527Z"
 last_activity: 2026-06-28
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 5
-  completed_plans: 4
-  percent: 0
+  completed_plans: 5
+  percent: 20
 ---
 
 # Project State
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 
 Phase: 01 (domain-foundation-playable-board) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-06-28
 
-Progress: [████████░░] 80%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: [████████░░] 80%
 | Phase 01 P02 | 30 | 3 tasks tasks | 16 files files |
 | Phase 01 P03 | 9 | 2 tasks | 7 files |
 | Phase 01 P04 | 13 | 2 tasks | 10 files |
+| Phase 01 P05 | 18 | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 1] Plan 03: pinned androidx.lifecycle 2.9.4 (atomic group) — 2.11.0's -compose variants require compileSdk 37 (uninstallable here); 2.9.4 is what the Compose BOM already resolves
 - [Phase ?]: [Phase 1] Plan 04: BoardCanvas is a stateless Compose Canvas leaf — renders GameUiState, emits bounds-checked onCellTap (T-04-01), zero legality logic (T-04-02); D-07 slide + D-08 fade+shrink keyed on MoveTransition.id
 - [Phase ?]: [Phase 1] Plan 04: QUAL-03 split locked — fixed dp/sp in dimens.xml (dimensionResource/LocalDensity.toPx), proportional ratios in BoardMetrics, durations/easings in GameAnim, colors as MaterialTheme.colorScheme roles; baseline M3 theme (zero hex)
+- [Phase 01]: Plan 05: walking skeleton closed end-to-end — MainActivity → GameRoute (hiltViewModel + collectAsStateWithLifecycle) → stateless GameScreen (Scaffold/top-bar RestartControl + BoardCanvas + D-05 GameOverDialog + D-06 confirm); Robolectric Compose GameFlowTest proves tap→jump→game-over→restart on the JVM
+- [Phase 01]: Plan 05: hilt-navigation-compose pinned 1.3.0 + androidx.lifecycle atomic group force-resolved 2.9.4 — the 1.4.0-rc01 line transitively requires compileSdk 37; deprecated hiltViewModel() kept as the 36-safe path
 
 ### Pending Todos
 
@@ -93,6 +96,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-28T01:12:24.359Z
+Last session: 2026-06-28T01:30:49.941Z
 Stopped at: Completed 01-03-PLAN.md
 Resume file: None
