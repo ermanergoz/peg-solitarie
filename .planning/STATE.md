@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Completed 02-03-PLAN.md
-last_updated: "2026-06-28T23:02:41.503Z"
+stopped_at: Completed 02-04-PLAN.md
+last_updated: "2026-06-28T23:13:46.566Z"
 last_activity: 2026-06-28
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 13
-  completed_plans: 8
+  completed_plans: 9
   percent: 20
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 02 (classic-mode-scoring-navigation) — EXECUTING
-Plan: 4 of 8
+Plan: 5 of 8
 Next: Phase 02 (classic-mode-scoring-navigation) — not yet planned
 Last activity: 2026-06-28
 
-Progress: [██████░░░░] 62%
+Progress: [███████░░░] 69%
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Progress: [██████░░░░] 62%
 | Phase 02 P01 | 6 | 2 tasks | 4 files |
 | Phase 02 P02 | 188 | 2 tasks | 6 files |
 | Phase 02 P03 | 9 | 2 tasks | 4 files |
+| Phase 02 P04 | 5 | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -83,6 +84,7 @@ Recent decisions affecting current work:
 - [Phase 02]: Plan 01: ScoreCalculator is a pure-domain object (Int-only inputs, no domain-type coupling) — stars() derived from pegs remaining alone (D-02, no target arg), score() time term floored at 0 so it never drops below the peg base; structural star counts (3/2) extracted to ScoreParams to satisfy the detekt MagicNumber gate
 - [Phase ?]: [Phase 02] Plan 02: Four square-grid Classic boards (European-37/Asymmetric-39/Diamond-41/Wiegleb-45) added; RulesEngine unchanged. D-19 recorded-solution fixtures prove English-33/European-37/Asymmetric-39/Wiegleb-45 solvable to one peg via RulesEngine replay; authoring solver (test-only) uses symmetry-canonical memo + inward heuristic for the 45-hole Wiegleb cross. Diamond-41 D-19 proof DEFERRED (needs pagoda pruning); ships with off-center (4,2) start, geometry verified.
 - [Phase ?]: [Phase 02] Plan 03: navigation-compose pinned 2.9.8 (stable, not 2.10.x alpha which needs compileSdk 37); kotlin-serialization plugin APPLIED to :app (Pitfall 6 — @Serializable routes crash without it); datastore-preferences 1.2.1 added for onboardingSeen. Existing atomic-group lifecycle 2.9.4 guard already absorbs navigation's transitive lifecycle, so no new resolutionStrategy guard needed. All Phase-2 dimens/strings centralized here for downstream UI plans (02-05/06/07).
+- [Phase ?]: [Phase 02] Plan 04: LevelRepository single-source-of-truth seam — DefaultClassicLevelSource serves 5 boards as descriptors in D-18 order with names from R.string.board_* (resolved String, not @StringRes) and fail-fast loadClassic via requireNotNull (T-02-04-ID); StubChallengeLevelSource throws (Phase-3 swaps it). BoardGeometry derives gridDimension=max(maxRow,maxCol)+1 from BoardSpec bounds (7/8/9), removing hardcoded GRID_DIMENSION=7.
 
 ### Pending Todos
 
@@ -109,6 +111,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-28T23:02:22.569Z
-Stopped at: Completed 02-03-PLAN.md
+Last session: 2026-06-28T23:13:29.255Z
+Stopped at: Completed 02-04-PLAN.md
 Resume file: None

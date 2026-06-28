@@ -17,8 +17,8 @@ Slice 1 — Playable Core. Fully playable and testable; ads and Play Games exist
 
 ### Classic Mode
 
-- [ ] **CLAS-01**: Player can browse and select from a catalog of classic boards (English-33, European-37, Diamond-41, Wiegleb-45, Asymmetric 3-3-2-2 — Triangle-15 removed; all boards are orthogonal square-grid, see Phase 2 CONTEXT board-catalog resolution)
-- [ ] **CLAS-02**: Player can play any classic board to completion with correct rules
+- [x] **CLAS-01**: Player can browse and select from a catalog of classic boards (English-33, European-37, Diamond-41, Wiegleb-45, Asymmetric 3-3-2-2 — Triangle-15 removed; all boards are orthogonal square-grid, see Phase 2 CONTEXT board-catalog resolution)
+- [x] **CLAS-02**: Player can play any classic board to completion with correct rules
 
 ### Challenge Mode
 
@@ -115,8 +115,8 @@ Each v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for ph
 | QUAL-02 | Phase 1 | Complete |
 | QUAL-03 | Phase 1 | Complete |
 | QUAL-04 | Phase 1 | Complete |
-| CLAS-01 | Phase 2 | Pending |
-| CLAS-02 | Phase 2 | Pending |
+| CLAS-01 | Phase 2 | Complete |
+| CLAS-02 | Phase 2 | Complete |
 | SCOR-01 | Phase 2 | Complete |
 | SCOR-02 | Phase 2 | Complete |
 | SCOR-03 | Phase 2 | Pending |
