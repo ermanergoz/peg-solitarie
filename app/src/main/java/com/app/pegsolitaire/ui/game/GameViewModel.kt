@@ -48,8 +48,11 @@ class GameViewModel
         /**
          * Routes a tap on [position] through the locked tap-behavior table
          * (D-02/D-03/D-04). Order matters: re-tap-to-deselect is checked before a
-         * jump, and a jump before (re)selection, so an empty/illegal cell while a
-         * peg is selected falls through to a no-op (never deselects).
+         * jump, and a jump before selection. Selection only happens when nothing is
+         * currently selected — re-tapping the selected peg is the ONLY way to
+         * deselect, and tapping a DIFFERENT peg while one is selected is a no-op
+         * (selection unchanged). An empty/illegal cell while a peg is selected also
+         * falls through to a no-op (never deselects).
          */
         fun onCellTap(position: Position) {
             val state = _uiState.value
@@ -57,7 +60,8 @@ class GameViewModel
                 state.selected == position -> clearSelection()
                 state.selected != null && position in state.legalTargets ->
                     performJump(from = state.selected, to = position)
-                state.board.cellAt(position) == Cell.Peg -> select(position)
+                state.selected == null && state.board.cellAt(position) == Cell.Peg ->
+                    select(position)
                 else -> Unit
             }
         }
