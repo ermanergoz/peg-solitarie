@@ -16,7 +16,7 @@ created: 2026-06-28
 > **Hard project constraints baked into this contract (CLAUDE.md / QUAL-03), identical to Phase 1:**
 > - Every fixed dp/sp value is a `res/values/dimens.xml` token — no raw dp/sp literal in any composable (the `dpSpLiteralCheck` gate fails the build on one).
 > - Every color is a **Material 3 theme role** (`MaterialTheme.colorScheme.*`) — no hex literal in composables.
-> - Every type style is an M3 role (`MaterialTheme.typography.*`) — no raw sp literal; exactly **two weights** (Regular 400 + Medium 500).
+> - Every type style is an M3 role (`MaterialTheme.typography.*`) — no raw sp literal; exactly **two weights** (Regular 400 + Medium 500) and exactly **four distinct sp sizes** (36 / 22 / 16 / 14).
 > - Unitless values (board ratios, animation ms, per-board grid dimension) live in **scoped constants objects** (`BoardMetrics`, `GameAnim`), never inline.
 > - All user-facing copy lives in `res/values/strings.xml` (no magic strings); counts are plural-aware.
 > - All composables stateless / state-hoisted; each screen's `ViewModel` owns one immutable UiState over `StateFlow`. New screens follow the Phase-1 **Route → Screen → Leaf** shape.
@@ -86,22 +86,21 @@ Exceptions: board cell size, peg/hole/dot/ring radii are **computed from canvas 
 
 ## Typography
 
-Material 3 type-scale roles only (no invented sizes). Exactly **two weights** across the phase: Regular (400) + Medium (500) — preserved from Phase 1.
+Material 3 type-scale roles only (no invented sizes). Exactly **two weights** across the phase: Regular (400) + Medium (500) — preserved from Phase 1. Exactly **four distinct sp sizes**: **36 / 22 / 16 / 14**.
 
 | Role in UI | M3 token | Size / Weight / Line-height (M3 default) | Usage |
 |------------|----------|------------------------------------------|-------|
-| Results headline (the payoff) | `displaySmall` | 36sp / Regular 400 / 44sp | Star-tier headline "Perfect!" / "Solved!" / "Stuck" (D-08) |
+| Results headline (the payoff) | `displaySmall` | 36sp / Regular 400 / 44sp | Star-tier headline "Perfect!" / "Solved!" / "Out of moves" (D-08) |
 | Screen / top-bar title | `titleLarge` | 22sp / Medium 500 / 28sp | "Peg Solitaire" (Home), "Classic" (catalog top bar), "Results" |
-| Card / tile title | `titleMedium` | 16sp / Medium 500 / 24sp | Board name on a catalog card; "Classic" / "Challenge" on Home tiles |
 | Metric value | `titleLarge` | 22sp / Medium 500 / 28sp | The numeric score, elapsed time, pegs-remaining values on Results |
+| Card / tile title | `titleMedium` | 16sp / Medium 500 / 24sp | Board name on a catalog card; "Classic" / "Challenge" on Home tiles |
 | Timer (top bar, gameplay) | `titleMedium` | 16sp / Medium 500 / 24sp | Live `mm:ss` elapsed clock (D-04) |
-| Body | `bodyMedium` | 14sp / Regular 400 / 20sp | Hole-count subtitle; onboarding caption; supporting copy |
-| Onboarding step body | `bodyLarge` | 16sp / Regular 400 / 24sp | The how-to-play explanatory sentence per step |
-| Metric label | `labelMedium` | 12sp / Medium 500 / 16sp | "SCORE" / "TIME" / "PEGS LEFT" captions under the values |
+| Body / supporting copy | `bodyMedium` | 14sp / Regular 400 / 20sp | Hole-count subtitle; supporting copy; **onboarding step body** (the how-to-play explanatory sentence per step) |
+| Metric label | `labelLarge` | 14sp / Medium 500 / 20sp | "SCORE" / "TIME" / "PEGS LEFT" captions under the values |
 | Button label | `labelLarge` | 14sp / Medium 500 / 20sp | All button labels (CTAs, text buttons) |
-| "Coming soon" badge | `labelSmall` | 11sp / Medium 500 / 16sp | The disabled-Challenge badge text (D-09) |
+| "Coming soon" badge | `labelLarge` | 14sp / Medium 500 / 20sp | The disabled-Challenge badge text (D-09) |
 
-Weights used: **400 (Regular)**, **500 (Medium)** — two only. Reused Phase-1 roles (`titleLarge`, `bodyMedium`, `labelLarge`) are unchanged.
+Weights used: **400 (Regular)**, **500 (Medium)** — two only. Distinct sizes used: **36 / 22 / 16 / 14** — four only (`labelSmall` 11sp and `labelMedium` 12sp are no longer used; the badge folded up into `labelLarge` 14sp and the metric captions consolidated up to `labelLarge` 14sp). Reused Phase-1 roles (`titleLarge`, `bodyMedium`, `labelLarge`) are unchanged.
 
 ---
 
@@ -145,7 +144,7 @@ The "Coming soon" badge, all secondary/text buttons, the back/help icons, hole c
 
 - **Layout:** `Scaffold` with a `TopAppBar` (title "Peg Solitaire", a trailing **How to play** `IconButton` `Icons.Rounded.HelpOutline`, content description "How to play"). Body is a single centered column, capped at `content_max_width`, padded `spacing_md`, holding two stacked mode tiles separated by `spacing_md`.
 - **Classic tile (enabled):** `surfaceContainerHigh` `Card`, `mode_tile_min_height`, title "Classic" (`titleMedium`), supporting line "5 boards" (`bodyMedium`, `onSurfaceVariant`). Whole tile is the tap target → navigates to `ClassicCatalog`. (The phase's primary CTA accent; if rendered as a filled action it uses `primary`, otherwise the tile is the clear primary affordance.)
-- **Challenge tile (disabled, D-09):** identical footprint, `enabled = false`, content at disabled alpha, with a `secondaryContainer` **"Coming soon"** pill badge (`labelSmall`, top-right). No navigation, no route built. Reserves the slot so Home's layout is unchanged when Phase 3 lands.
+- **Challenge tile (disabled, D-09):** identical footprint, `enabled = false`, content at disabled alpha, with a `secondaryContainer` **"Coming soon"** pill badge (`labelLarge`, top-right). No navigation, no route built. Reserves the slot so Home's layout is unchanged when Phase 3 lands.
 - **Onboarding trigger (D-14):** on first launch only (`onboardingSeen == false`), the onboarding overlay (screen 5) is shown over Home once; dismissing it calls `markSeen()`. The How-to-play affordance (D-15) re-opens the same overlay any time, independent of the flag.
 - **Focal point:** the two centered tiles are the sole content; the enabled Classic tile is visually dominant (the disabled Challenge tile recedes via alpha).
 
@@ -168,15 +167,15 @@ The "Coming soon" badge, all secondary/text buttons, the back/help icons, hole c
 - **Layout:** full dedicated destination. `Scaffold` (top bar title "Results", back-arrow → Catalog). Body is a centered column capped at `content_max_width`, padded `spacing_md`, vertical arrangement `spacing_lg`:
   1. **Star-tier headline** (`displaySmall`, `onSurface`) — copy by tier (D-08, see Copywriting).
   2. **Star row** — 3 stars, `results_star_size`, `spacing_xs` apart; earned = filled `Icons.Rounded.Star` `primary`, unearned = `Icons.Rounded.StarBorder` `outlineVariant`. A "stuck" loss (D-07) renders here too, typically 1★ — same screen, no separate loss UI.
-  3. **Metric block** — three labeled values (`titleLarge` value over `labelMedium` `onSurfaceVariant` caption): **SCORE** (numeric, SCOR-02/03), **TIME** (`mm:ss`), **PEGS LEFT** (plural-aware). Stars and score are independent axes (D-01 vs D-03) — both shown.
+  3. **Metric block** — three labeled values (`titleLarge` value over `labelLarge` `onSurfaceVariant` caption): **SCORE** (numeric, SCOR-02/03), **TIME** (`mm:ss`), **PEGS LEFT** (plural-aware). Stars and score are independent axes (D-01 vs D-03) — both shown.
   4. **Actions (D-06):** primary filled `Button` **"Next board"** (`primary`) → next catalog board, wrapping at the end; plus secondary `OutlinedButton`/`TextButton` **"Replay"** (same board), **"Catalog"**, **"Home"**. Exactly one primary accent; the rest neutral.
 - **Inputs:** all values arrive as typed route args (`stars`, `pegsRemaining`, `elapsedSeconds`, `score`, `levelId`); `stars`/`score` are computed by the pure-domain `ScoreCalculator` at game end (never in the composable).
 
 ### 5. Onboarding overlay — ONB-01, D-13/D-14/D-15
 
 - **Layout:** a dismissable overlay over Home (not a route): a `scrim`-filled `Box` + a centered `surfaceContainerHigh` `Surface` sheet (`MaterialTheme.shapes.large`, padding `spacing_lg`, capped `content_max_width`).
-- **Content:** a few illustrated steps teaching the orthogonal jump — a peg hops an adjacent peg into an empty hole; the jumped peg is removed. Each step: an `onboarding_illustration_size` illustration (drawn with the same board roles — pegs `secondary`, empty hole recessed, the jump arrow / target highlight in `primary`) + a one-sentence `bodyLarge` caption.
-- **Dismissal (skippable, D-13):** a primary `Button` **"Got it"** and a `TextButton` **"Skip"** — both dismiss and call `markSeen()`. Re-openable any time via the Home How-to-play affordance (D-15).
+- **Content:** a few illustrated steps teaching the orthogonal jump — a peg hops an adjacent peg into an empty hole; the jumped peg is removed. Each step: an `onboarding_illustration_size` illustration (drawn with the same board roles — pegs `secondary`, empty hole recessed, the jump arrow / target highlight in `primary`) + a one-sentence `bodyMedium` caption.
+- **Dismissal (skippable, D-13):** a primary `Button` **"Got it"** and a `TextButton` **"Skip tutorial"** — both dismiss and call `markSeen()`. Re-openable any time via the Home How-to-play affordance (D-15).
 - **First-run gate (D-16):** shown automatically only while `onboardingSeen == false`; the flag is a single DataStore-Preferences boolean. If the flag read fails, treat as not-seen (fail-open to teaching).
 
 ---
@@ -192,8 +191,23 @@ The Phase-1 `BoardMetrics.GRID_DIMENSION = 7` is **English-33-specific**. For th
 - **Navigation (NAV-02):** type-safe `NavHost` in `MainActivity`. `Home` (start) → `ClassicCatalog` → `Gameplay(levelId)` → `Results(...)`. Back arrows: Catalog→Home, Gameplay→Catalog, Results→Catalog. Results actions: "Next board" → `Gameplay(nextId)` (catalog order, wraps, D-06), "Replay" → `Gameplay(sameId)`, "Catalog" → pop to `ClassicCatalog`, "Home" → pop to `Home`. The terminal-status → Results navigation is a **one-shot** effect (never fires on recomposition).
 - **Gameplay tap/animation:** unchanged from Phase 1 (two-step select-then-jump, D-02/03; deselect-by-retap; no-op on illegal cell; `JUMP_SLIDE_MS`/`REMOVAL_MS`/`SELECT_FADE_MS` in `GameAnim`). Catalog mini-previews are **non-interactive** (no taps, no animation).
 - **Timer:** starts on first move, 1 Hz tick, stops at terminal status; survives rotation (computed from a monotonic mark in the `ViewModel`). Process-death persistence is Phase 5 — not persisted now.
-- **Onboarding:** appears once on first launch over Home; "Got it"/"Skip" both dismiss + persist seen; How-to-play re-opens it any time.
+- **Onboarding:** appears once on first launch over Home; "Got it"/"Skip tutorial" both dismiss + persist seen; How-to-play re-opens it any time.
 - **Open assumption A-1 (flagged, non-blocking):** leaving an **in-progress** game via the gameplay back arrow discards unsaved progress without a confirm dialog (no persistence/resume until Phase 5). Recommended for casual feel; revisit when Phase 5 adds resume. CONTEXT does not lock this, so it is recorded as an assumption rather than a blocker.
+
+### Accessibility — content descriptions
+
+Every non-decorative icon carries an explicit `contentDescription` sourced from `strings.xml` (no magic strings); purely decorative graphics use `contentDescription = null`.
+
+| Element | Icon | contentDescription |
+|---------|------|--------------------|
+| Back navigation (Catalog→Home, Gameplay→Catalog, Results→Catalog) | `Icons.AutoMirrored.Rounded.ArrowBack` | `stringResource(R.string.navigate_back)` |
+| Gameplay restart (reused Phase-1 control) | `Icons.Rounded.Refresh` | `stringResource(R.string.restart_board)` |
+| Home — How to play affordance (D-15) | `Icons.Rounded.HelpOutline` | `stringResource(R.string.how_to_play)` |
+| Gameplay — elapsed timer (D-04) | `Icons.Rounded.Schedule` (optional prefix) / timer `Text` | `stringResource(R.string.elapsed_time)` |
+| Results — earned / unearned stars | `Icons.Rounded.Star` / `Icons.Rounded.StarBorder` | decorative (`null`); the star count is conveyed by the tiered headline + metric block, not per-icon labels |
+| Catalog — mini board preview | `BoardCanvas` (read-only) | decorative (`null`); the board name + hole-count text label the card |
+
+`Icons.AutoMirrored.Rounded.ArrowBack` is mirrored for RTL automatically; all three back arrows share the single `navigate_back` string.
 
 ---
 
@@ -209,6 +223,7 @@ All strings live in `res/values/strings.xml` (no magic strings); counts are plur
 | Catalog — top bar title | **"Classic"** |
 | Catalog — card | Board name (**"English-33"**, **"European-37"**, **"Asymmetric 3-3-2-2"**, **"Diamond-41"**, **"Wiegleb-45"**) · Subtitle plural-aware **"{n} holes"** |
 | Gameplay — timer | Live **"mm:ss"**; content description **"Elapsed time"** |
+| Gameplay — back / restart | Back content description **"Navigate back"**; restart content description **"Restart board"** |
 | Results — top bar title | **"Results"** |
 | Results — headline 3★ (1 peg, D-08) | **"Perfect!"** |
 | Results — headline 2★ (2–3 pegs, D-08) | **"Solved!"** |
@@ -218,13 +233,13 @@ All strings live in `res/values/strings.xml` (no magic strings); counts are plur
 | Results — primary CTA (D-06) | **"Next board"** |
 | Results — secondary actions (D-06) | **"Replay"** · **"Catalog"** · **"Home"** |
 | Onboarding — primary dismiss (D-13) | **"Got it"** |
-| Onboarding — skip (D-13) | **"Skip"** |
+| Onboarding — skip (D-13) | **"Skip tutorial"** |
 | Onboarding — step captions | e.g. **"Tap a peg, then tap an empty hole two cells away."** / **"The peg jumps straight over its neighbor — only up, down, left, or right."** / **"The jumped peg is removed. Clear the board down to one peg."** (final wording the planner may refine; orthogonal-only + remove-jumped + goal must remain) |
 | Empty state | **N/A** — Home (2 fixed tiles), Catalog (5 fixed boards), and the board are never data-empty. |
 | Error state | **N/A for network** — everything is local. The DataStore `onboardingSeen` read fails **open** (treat missing/error as not-seen → show onboarding). An invalid/unknown `levelId` route arg fails fast in tests and never reaches the user (catalog only emits valid ids). |
 | Destructive confirmation | **None** — no `error`-styled destructive action (Results actions act on a finished game; mid-game leave per A-1). The Phase-1 mid-game **restart** confirm ("Restart this board?" / "Your current progress will be lost." / "Restart Board" / "Keep Playing") is reused unchanged for the gameplay restart icon. |
 
-**Button-copy rationale (consistent with Phase 1):** every label names its outcome — **"Next board"** / **"Replay"** / **"Catalog"** / **"Home"** name the destination or object, never a bare verb. The disabled badge says **"Coming soon"** (honest reservation, D-09) rather than hiding the slot. Headlines are tiered to the star outcome so the result is legible at a glance (D-08).
+**Button-copy rationale (consistent with Phase 1):** every label names its outcome — **"Next board"** / **"Replay"** / **"Catalog"** / **"Home"** name the destination or object, never a bare verb; the onboarding dismiss is **"Skip tutorial"** (names the object it skips), not a bare **"Skip"**. The disabled badge says **"Coming soon"** (honest reservation, D-09) rather than hiding the slot. Headlines are tiered to the star outcome so the result is legible at a glance (D-08).
 
 ---
 
