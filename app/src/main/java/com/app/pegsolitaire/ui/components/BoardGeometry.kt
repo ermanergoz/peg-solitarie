@@ -22,11 +22,21 @@ import kotlin.math.min
  */
 class BoardGeometry private constructor(
     private val spec: BoardSpec,
+    /**
+     * The square grid dimension (cells per side) derived from the [spec] bounds:
+     * `max(maxRow, maxCol) + 1`. English-33/European-37 = 7, Asymmetric-39 = 8,
+     * Diamond-41/Wiegleb-45 = 9. Drives both the cell size and the [positionAt]
+     * bounds-range, so every footprint renders and hit-tests in bounds.
+     */
+    val gridDimension: Int,
     /** Edge length of one grid cell in pixels (0 until the canvas has been measured). */
     val cellSize: Float,
     private val originX: Float,
     private val originY: Float,
 ) {
+    /** The valid in-grid index range for both row and col (per-board, T-04-01). */
+    private val gridRange: IntRange = 0 until gridDimension
+
     /** Whether the canvas has been measured to a usable size. */
     val isReady: Boolean get() = cellSize > NO_SIZE
 
@@ -64,7 +74,7 @@ class BoardGeometry private constructor(
         val row = floor((offset.y - originY) / cellSize).toInt()
         val position = Position(row = row, col = col)
         return position.takeIf {
-            row in GRID_RANGE && col in GRID_RANGE && it in spec && withinHitRadius(offset, it)
+            row in gridRange && col in gridRange && it in spec && withinHitRadius(offset, it)
         }
     }
 
@@ -79,7 +89,9 @@ class BoardGeometry private constructor(
 
     companion object {
         private const val NO_SIZE = 0f
-        private val GRID_RANGE = 0 until BoardMetrics.GRID_DIMENSION
+
+        /** One-cell padding to convert a max index into a count (dimension = maxIndex + 1). */
+        private const val INDEX_TO_COUNT = 1
 
         /**
          * Builds geometry for [spec] centered in a [size] canvas. A zero/degenerate
@@ -90,11 +102,30 @@ class BoardGeometry private constructor(
             spec: BoardSpec,
             size: Size,
         ): BoardGeometry {
-            val cellSize = min(size.width, size.height) / BoardMetrics.GRID_DIMENSION
-            val gridExtent = cellSize * BoardMetrics.GRID_DIMENSION
+            val gridDimension = gridDimensionOf(spec)
+            val cellSize = min(size.width, size.height) / gridDimension
+            val gridExtent = cellSize * gridDimension
             val originX = (size.width - gridExtent) * BoardMetrics.CELL_CENTER_FRACTION
             val originY = (size.height - gridExtent) * BoardMetrics.CELL_CENTER_FRACTION
-            return BoardGeometry(spec = spec, cellSize = cellSize, originX = originX, originY = originY)
+            return BoardGeometry(
+                spec = spec,
+                gridDimension = gridDimension,
+                cellSize = cellSize,
+                originX = originX,
+                originY = originY,
+            )
+        }
+
+        /**
+         * Derives the square grid dimension from the [spec]'s in-play bounds:
+         * `max(maxRow, maxCol) + 1`. This replaces the former hardcoded `7`, so
+         * the 8-wide (Asymmetric-39) and 9-wide (Diamond-41/Wiegleb-45) footprints
+         * size and hit-test correctly.
+         */
+        private fun gridDimensionOf(spec: BoardSpec): Int {
+            val rows = spec.inPlay.maxOf { it.row } + INDEX_TO_COUNT
+            val cols = spec.inPlay.maxOf { it.col } + INDEX_TO_COUNT
+            return maxOf(rows, cols)
         }
     }
 }

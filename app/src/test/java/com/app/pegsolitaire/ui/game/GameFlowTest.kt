@@ -173,11 +173,14 @@ private const val ROBOLECTRIC_SDK = 34
 /** The English-33 start: 33 holes minus the empty center. */
 private const val INITIAL_PEG_COUNT = 32
 
+/** This flow drives the English-33 board, which occupies a 7×7 lattice. */
+private const val ENGLISH33_GRID_DIMENSION = 7
+
 /** A cell center as a fraction of the square board canvas (grid centered, origin 0). */
 private fun androidx.compose.ui.test.TouchInjectionScope.percentOffsetForCell(
     row: Int,
     col: Int,
 ) = percentOffset(
-    x = (col + BoardMetrics.CELL_CENTER_FRACTION) / BoardMetrics.GRID_DIMENSION,
-    y = (row + BoardMetrics.CELL_CENTER_FRACTION) / BoardMetrics.GRID_DIMENSION,
+    x = (col + BoardMetrics.CELL_CENTER_FRACTION) / ENGLISH33_GRID_DIMENSION,
+    y = (row + BoardMetrics.CELL_CENTER_FRACTION) / ENGLISH33_GRID_DIMENSION,
 )
