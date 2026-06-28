@@ -7,7 +7,7 @@ import org.junit.Test
  * Behaviour spec for the immutable English-33 domain model.
  *
  * Magic numbers are intentional and acceptable in test code (detekt's
- * `MagicNumber` rule excludes `**/test/**`) — the fixtures here ARE the
+ * `MagicNumber` rule excludes the test source set) — the fixtures here ARE the
  * specification of the canonical board geometry.
  */
 class BoardTest {
