@@ -38,6 +38,14 @@ extensions.configure<ApplicationExtension> {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
+    // Robolectric-backed unit tests (Plan 05 GameFlowTest) need the merged Android
+    // resources (strings/dimens/theme) on the JVM test classpath.
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
 }
 
 configure<KotlinAndroidProjectExtension> {

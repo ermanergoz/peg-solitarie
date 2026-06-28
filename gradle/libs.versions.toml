@@ -17,7 +17,10 @@ composeBom = "2026.06.00"        # governs all androidx.compose.* versions
 # --- DI (APPLIED: KSP plugin + Hilt Gradle plugin wired into :app via the
 #     android-app convention plugin; hilt-compiler runs under KSP, no KAPT) ---
 hilt = "2.60"
-hiltNavigationCompose = "1.4.0-rc01"
+# 1.4.0-rc01 transitively forces androidx.hilt hilt-lifecycle-viewmodel-compose
+# 1.4.0-rc01 + lifecycle 2.11.0-rc01, both requiring compileSdk 37 (uninstallable
+# here). 1.3.0 is the CLAUDE.md-pinned line that keeps minCompileSdk 36.
+hiltNavigationCompose = "1.3.0"
 
 # --- AndroidX (not governed by the Compose BOM) ---
 androidxActivityCompose = "1.13.0"
@@ -43,6 +46,9 @@ truth = "1.4.4"
 turbine = "1.2.1"
 mockk = "1.14.2"
 coroutines = "1.11.0"
+# JVM-side Android runtime for the end-to-end Compose UI test (Plan 05 GameFlowTest).
+# Runs Compose UI tests without an emulator; the emulated SDK is pinned via @Config.
+robolectric = "4.16"
 
 [libraries]
 # --- Convention-plugin classpath (consumed by build-logic, so every plugin
@@ -61,6 +67,10 @@ androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-toolin
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+# Curated Material Symbols set (BOM-governed). Phase 1 uses only Icons.Rounded.Refresh
+# for the top-bar restart control (UI-SPEC); the heavy `material-icons-extended` set
+# is intentionally avoided.
+androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core" }
 
 # --- AndroidX ---
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidxActivityCompose" }
@@ -87,6 +97,7 @@ truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
 
 [bundles]
 compose = [
