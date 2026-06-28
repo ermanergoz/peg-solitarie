@@ -86,6 +86,12 @@ None yet.
 
 - Phase 3 difficulty-curve knob values cannot be set from research — require a dedicated playtest-iteration loop before the `generatorVersion` contract is frozen.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260628-n4f | Deselect a peg only when that same peg is re-tapped (tapping a different peg is a no-op) | 2026-06-28 | 675de73 | [260628-n4f-deselect-only-on-retap](./quick/260628-n4f-deselect-only-on-retap/) |
+
 ## Deferred Items
 
 Items acknowledged and carried forward from previous milestone close:
