@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Phase 2 UI-SPEC approved
-last_updated: "2026-06-28T19:45:13.206Z"
+stopped_at: Completed 02-02-PLAN.md (Diamond-41 fixture deferred)
+last_updated: "2026-06-28T22:56:48.834Z"
 last_activity: 2026-06-28
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 13
-  completed_plans: 6
+  completed_plans: 7
   percent: 20
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 02 (classic-mode-scoring-navigation) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Next: Phase 02 (classic-mode-scoring-navigation) — not yet planned
 Last activity: 2026-06-28
 
-Progress: [█████░░░░░] 46%
+Progress: [█████░░░░░] 54%
 
 ## Performance Metrics
 
@@ -58,6 +58,7 @@ Progress: [█████░░░░░] 46%
 | Phase 01 P04 | 13 | 2 tasks | 10 files |
 | Phase 01 P05 | 18 | 2 tasks | 9 files |
 | Phase 02 P01 | 6 | 2 tasks | 4 files |
+| Phase 02 P02 | 188 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,7 @@ Recent decisions affecting current work:
 - [Phase 01]: Plan 05: walking skeleton closed end-to-end — MainActivity → GameRoute (hiltViewModel + collectAsStateWithLifecycle) → stateless GameScreen (Scaffold/top-bar RestartControl + BoardCanvas + D-05 GameOverDialog + D-06 confirm); Robolectric Compose GameFlowTest proves tap→jump→game-over→restart on the JVM
 - [Phase 01]: Plan 05: hilt-navigation-compose pinned 1.3.0 + androidx.lifecycle atomic group force-resolved 2.9.4 — the 1.4.0-rc01 line transitively requires compileSdk 37; deprecated hiltViewModel() kept as the 36-safe path
 - [Phase 02]: Plan 01: ScoreCalculator is a pure-domain object (Int-only inputs, no domain-type coupling) — stars() derived from pegs remaining alone (D-02, no target arg), score() time term floored at 0 so it never drops below the peg base; structural star counts (3/2) extracted to ScoreParams to satisfy the detekt MagicNumber gate
+- [Phase ?]: [Phase 02] Plan 02: Four square-grid Classic boards (European-37/Asymmetric-39/Diamond-41/Wiegleb-45) added; RulesEngine unchanged. D-19 recorded-solution fixtures prove English-33/European-37/Asymmetric-39/Wiegleb-45 solvable to one peg via RulesEngine replay; authoring solver (test-only) uses symmetry-canonical memo + inward heuristic for the 45-hole Wiegleb cross. Diamond-41 D-19 proof DEFERRED (needs pagoda pruning); ships with off-center (4,2) start, geometry verified.
 
 ### Pending Todos
 
@@ -87,6 +89,7 @@ None yet.
 ### Blockers/Concerns
 
 - Phase 3 difficulty-curve knob values cannot be set from research — require a dedicated playtest-iteration loop before the `generatorVersion` contract is frozen.
+- Diamond-41 D-19 recorded-solution proof deferred: its 41-hole space (4 solvable starts, none center-finishing) defeats the DFS+symmetry+heuristic authoring solver; needs pagoda-function pruning. Board ships with off-center (4,2) start but (4,2)'s specific solvability is literature-asserted, not yet verified by fixture.
 
 ### Quick Tasks Completed
 
@@ -104,6 +107,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-28T19:44:08.846Z
-Stopped at: Phase 2 UI-SPEC approved
+Last session: 2026-06-28T22:56:48.829Z
+Stopped at: Completed 02-02-PLAN.md (Diamond-41 fixture deferred)
 Resume file: None
