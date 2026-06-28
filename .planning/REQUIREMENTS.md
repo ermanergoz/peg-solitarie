@@ -17,7 +17,7 @@ Slice 1 — Playable Core. Fully playable and testable; ads and Play Games exist
 
 ### Classic Mode
 
-- [ ] **CLAS-01**: Player can browse and select from a catalog of classic boards (English-33, European-37, Triangle-15, Diamond-41)
+- [ ] **CLAS-01**: Player can browse and select from a catalog of classic boards (English-33, European-37, Diamond-41, Wiegleb-45, Asymmetric 3-3-2-2 — Triangle-15 removed; all boards are orthogonal square-grid, see Phase 2 CONTEXT board-catalog resolution)
 - [ ] **CLAS-02**: Player can play any classic board to completion with correct rules
 
 ### Challenge Mode

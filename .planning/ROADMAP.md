@@ -40,12 +40,12 @@ Decimal phases appear between their surrounding integers in numeric order.
 **UI hint**: yes
 
 ### Phase 2: Classic Mode, Scoring & Navigation
-**Goal**: Players can launch the app to a Home screen, choose one of four classic boards, play it to completion with correct rules, and land on a results screen showing stars and a ranking score — establishing the complete five-screen navigation flow and the `LevelRepository` seam (with the Challenge source stubbed) so the generator slots in behind it next phase.
+**Goal**: Players can launch the app to a Home screen, choose one of five classic boards, play it to completion with correct rules, and land on a results screen showing stars and a ranking score — establishing the complete five-screen navigation flow and the `LevelRepository` seam (with the Challenge source stubbed) so the generator slots in behind it next phase.
 **Mode:** mvp
 **Depends on**: Phase 1
 **Requirements**: CLAS-01, CLAS-02, SCOR-01, SCOR-02, SCOR-03, NAV-01, NAV-02, ONB-01
 **Success Criteria** (what must be TRUE):
-  1. Player can browse a catalog of classic boards (English-33, European-37, Triangle-15, Diamond-41) and select one to play.
+  1. Player can browse a catalog of classic boards (English-33, European-37, Diamond-41, Wiegleb-45, Asymmetric 3-3-2-2) and select one to play.
   2. Player can play any selected classic board to completion with correct orthogonal jump rules.
   3. At level end the player sees a results screen showing stars (1–3 from pegs remaining), pegs remaining, elapsed time, and a numeric score.
   4. Player can navigate between Home, mode selection, gameplay, and results screens.

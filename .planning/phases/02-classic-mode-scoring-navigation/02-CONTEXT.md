@@ -35,7 +35,19 @@ Deliver the complete **five-screen navigation flow** (Home → Classic catalog �
 - **D-09:** **Challenge mode is shown but disabled with a "Coming soon" badge** on Home. Reserves the slot honestly so Home's layout does not change when Phase 3 lands; no placeholder route is built.
 - **D-10:** **Home is a mode-select screen (Classic / Challenge) and the Classic catalog is a separate screen.** Matches NAV-01 (Home with entries to both modes) and the full five-screen flow; the stubbed Challenge entry slots cleanly into the same structure later.
 - **D-11:** **The catalog presents each board as a card with a mini board-shape preview** (reusing Phase 1's `BoardCanvas`/`BoardGeometry` to render the footprint) plus name and hole count. Visual and recognizable; reuses existing rendering rather than a flat text list.
-- **D-12:** **Boards are ordered by ascending size: Triangle-15 → English-33 → European-37 → Diamond-41.** A natural small→large ramp that also defines the "Next board" wrap sequence (D-06).
+- **D-12:** ~~**Boards are ordered by ascending size: Triangle-15 → English-33 → European-37 → Diamond-41.**~~ **SUPERSEDED by D-17 below** (Triangle-15 removed). Catalog ordering is still ascending hole count, over the new 5-board set.
+
+### Board Catalog Resolution (post-research, user-approved 2026-06-28) — overrides D-11/D-12 + the Triangle-15 discretion item
+- **D-17 (BLOCKING conflict resolved):** Research found **Triangle-15 is irreconcilable with the locked orthogonal-only jump rule** — authentic triangular peg solitaire requires 3-axis (diagonal) jumps, which `RulesEngine` (4 orthogonal directions) cannot express and the project bans. **Resolution (user decision):** **drop Triangle-15 entirely** and adopt a **5-board, all-orthogonal-square-grid catalog**, so the orthogonal-only rule and `RulesEngine` stay unchanged and **no triangular-lattice geometry is built**.
+- **D-18 (the locked catalog):** The Classic catalog is exactly these **five** boards (standard Wikipedia peg-solitaire variants, all playable orthogonally):
+  1. **English-33** (standard cross, 33 holes) — already built in Phase 1.
+  2. **European / French-37** (octagon, 37 holes) — **must use a documented solvable off-center starting vacancy** (a center-empty start is provably unsolvable to one peg, so it could never earn 3★ under D-01); lock the chosen start with a **recorded-solution golden test** (D-19).
+  3. **Diamond-41** (square diamond, 41 holes) — clean orthogonal board.
+  4. **J.C. Wiegleb-45** (Germany, 1779; larger German cross, 45 holes) — **new footprint, exact layout + solvable start to be fixed by research.**
+  5. **Asymmetric 3-3-2-2** (George Bell; asymmetric cross on a square grid) — **new footprint + hole count + solvable start to be fixed by research.**
+  - All five fit the existing ≤64-hole `Long`-bitmask `BoardSpec`. The only `BoardGeometry`/`BoardMetrics` generalization needed is **deriving the grid dimension per board** (away from the hardcoded English-33 `GRID_DIMENSION = 7` / `aspect = 1f`); **no `BoardLattice`/triangle strategy is required.**
+  - **Catalog order (replaces D-12):** ascending hole count → English-33 (33) → European-37 (37) → Diamond-41 (41) → Wiegleb-45 (45) → Asymmetric 3-3-2-2 (slot by its researched hole count). This sequence also defines the "Next board" wrap order (D-06).
+- **D-19 (solvability validation, no Solver yet):** No Solver exists until Phase 4. Validate every non-trivial board's starting vacancy is solvable to one peg by committing a **recorded-solution golden test** per board (replay a known winning move-list through `RulesEngine` to a single peg), reusing the existing `BoardCodec` / golden-master harness. This both guarantees 3★ is reachable (D-01 fairness) and forward-feeds the Phase-3 generator contract.
 
 ### Onboarding
 - **D-13:** **First-time how-to-play is a dismissable, illustrated overlay** (a few steps showing the orthogonal jump: a peg hops an adjacent peg into an empty hole; the jumped peg is removed). Skippable; low build cost vs a dedicated screen or interactive demo.
@@ -48,8 +60,8 @@ Left to research + planning to resolve against the design spec, the existing cod
 - **Navigation library wiring** — introducing Navigation Compose 2.9.8 (already in the stack, not yet wired; Phase 1 routes `MainActivity → GameRoute` directly) and the type-safe nav graph for the five destinations.
 - **How the selected board reaches `GameViewModel`** — the VM currently takes a hardcoded injected `Board` (`DomainModule.provideInitialBoard`); planning decides the mechanism (nav arg + `SavedStateHandle`, repository lookup by level id, etc.) so the played board comes from the user's catalog selection.
 - **`LevelRepository` interface shape** — the abstraction that serves a level (board + spec + metadata) with a real Classic source and a stubbed Challenge source; design it so Phase 3's generator drops in behind the same seam.
-- **The three new board footprints + initial states** — European-37, Triangle-15, Diamond-41 in-play positions and starting empty hole(s), following the standard definitions; all fit the existing ≤64-hole `Long`-bitmask `BoardSpec` scheme.
-- **Triangle-15 rendering** — it is a triangular lattice rather than the square grid `BoardCanvas`/`BoardGeometry` currently assume; planning decides how the geometry generalizes (it must still emit bounds-checked `onCellTap`).
+- **The four new board footprints + initial states** — European-37, Diamond-41, Wiegleb-45, Asymmetric 3-3-2-2 (per D-18) in-play positions and starting empty hole(s), following the standard definitions; all fit the existing ≤64-hole `Long`-bitmask `BoardSpec` scheme. (Was "three new boards incl. Triangle-15"; Triangle-15 removed per D-17.)
+- **Board rendering (square grid only)** — all five boards are square-grid; `BoardCanvas`/`BoardGeometry` only need their hardcoded English-33 grid dimension generalized to a per-board dimension (D-18). No triangular-lattice geometry. `onCellTap` must stay bounds-checked for every footprint.
 - **Where `ScoreCalculator` lives and its exact constants** (`PEG_VALUE`, `TIME_BONUS_CAP`, `DECAY`, the 2★ band) — pure-Kotlin domain, JVM-unit-tested, per QUAL-01/QUAL-04.
 
 </decisions>
