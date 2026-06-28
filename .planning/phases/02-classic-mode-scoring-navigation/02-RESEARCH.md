@@ -605,7 +605,7 @@ class ResultsViewModel @Inject constructor(
 
 **These assumptions need confirmation before they become locked decisions.** A1/A2/A5 are validated by committing the recorded-solution golden fixtures (no runtime Solver). A4 is validated by a dependency-resolution dry run. The center-unsolvability of European-37 and Diamond-41, and the center-solvability of Wiegleb-45/Asymmetric-39, are **VERIFIED facts** (not assumptions).
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **[RESOLVED] Triangle-15 vs. the locked orthogonal-only rule.**
    The earlier BLOCKING conflict (authentic triangular solitaire needs 3-axis/diagonal jumps `RulesEngine` cannot express) was escalated and **resolved by the user (CONTEXT D-17/D-18): Triangle-15 is dropped**, replaced by a 5-board all-orthogonal-square-grid catalog. No triangular-lattice geometry is built; `RulesEngine` and the orthogonal-only rule are unchanged. **No further action.**
@@ -617,10 +617,12 @@ class ResultsViewModel @Inject constructor(
    - What we know: center is unsolvable; only 4 SVSS problems solvable (26 moves) `[VERIFIED: gibell.net/Bell-Beasley]`; solvable starts are off-center (Bell's "f8/c5/d8/g5").
    - What's unclear: the precise `(row,col)` in our top-row-0 convention.
    - Recommendation: let the authoring solver enumerate in-play holes and select the first that reduces to one peg; commit that vacancy + its line as the fixture. Candidates to try first: `(4,2)`, `(1,5)` and their symmetric images.
+   - [RESOLVED: authoring solver in 02-02 T2 enumerates in-play holes and commits the first solvable vacancy as the SolutionTest fixture]
 
 4. **Game-end → Results transition mechanism.**
    - What we know: Phase 1 made terminal status replayable state; navigation needs a one-shot.
    - Recommendation: One-shot effect channel per compose-skill (preferred) or a guarded `LaunchedEffect(status)`. Planner picks; both documented above.
+   - [RESOLVED: GameViewModel emits via Channel<ScoreResult>(CONFLATED) with a finishedEmitted guard; GameRoute consumes once in LaunchedEffect(Unit) per 02-05]
 
 ## Environment Availability
 

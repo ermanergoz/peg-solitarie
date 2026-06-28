@@ -50,7 +50,15 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. At level end the player sees a results screen showing stars (1–3 from pegs remaining), pegs remaining, elapsed time, and a numeric score.
   4. Player can navigate between Home, mode selection, gameplay, and results screens.
   5. A first-time player sees a brief, skippable how-to-play explanation of the jump rule.
-**Plans**: TBD
+**Plans**: 8 plans (waves 1→5)
+- [ ] 02-01-PLAN.md — ScoreCalculator: pure-domain stars + time-decay score [SCOR-01, SCOR-02]
+- [ ] 02-02-PLAN.md — 4 new Classic board footprints + golden solvability fixtures [CLAS-02]
+- [ ] 02-03-PLAN.md — Build deps (navigation/serialization/datastore) + all Phase-2 dimens & strings [NAV-02, ONB-01]
+- [ ] 02-04-PLAN.md — LevelRepository seam (real Classic + stub Challenge) + per-board BoardGeometry [CLAS-01, CLAS-02]
+- [ ] 02-05-PLAN.md — Type-safe Routes + Gameplay loads board by levelId + visible timer + one-shot Results hop [CLAS-02, SCOR-02, NAV-02]
+- [ ] 02-06-PLAN.md — Results destination: score/stars/pegs/time, tiered headline, wrapping Next-board [SCOR-01, SCOR-02, SCOR-03]
+- [ ] 02-07-PLAN.md — Classic catalog screen + read-only board previews over LevelRepository [CLAS-01]
+- [ ] 02-08-PLAN.md — Home mode-select + onboarding overlay (DataStore flag) + type-safe NavHost wiring [NAV-01, NAV-02, ONB-01]
 **UI hint**: yes
 
 ### Phase 3: Challenge Generation & Difficulty Curve
