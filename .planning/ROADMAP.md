@@ -53,7 +53,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 8 plans (waves 1→5)
 - [x] 02-01-PLAN.md — ScoreCalculator: pure-domain stars + time-decay score [SCOR-01, SCOR-02]
 - [x] 02-02-PLAN.md — 4 new Classic board footprints + golden solvability fixtures [CLAS-02]
-- [ ] 02-03-PLAN.md — Build deps (navigation/serialization/datastore) + all Phase-2 dimens & strings [NAV-02, ONB-01]
+- [x] 02-03-PLAN.md — Build deps (navigation/serialization/datastore) + all Phase-2 dimens & strings [NAV-02, ONB-01]
 - [ ] 02-04-PLAN.md — LevelRepository seam (real Classic + stub Challenge) + per-board BoardGeometry [CLAS-01, CLAS-02]
 - [ ] 02-05-PLAN.md — Type-safe Routes + Gameplay loads board by levelId + visible timer + one-shot Results hop [CLAS-02, SCOR-02, NAV-02]
 - [ ] 02-06-PLAN.md — Results destination: score/stars/pegs/time, tiered headline, wrapping Next-board [SCOR-01, SCOR-02, SCOR-03]
@@ -111,7 +111,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Domain Foundation & Playable Board | 5/5 | Complete   | 2026-06-28 |
-| 2. Classic Mode, Scoring & Navigation | 2/8 | In Progress|  |
+| 2. Classic Mode, Scoring & Navigation | 3/8 | In Progress|  |
 | 3. Challenge Generation & Difficulty Curve | 0/TBD | Not started | - |
 | 4. Assist — Hint & Undo | 0/TBD | Not started | - |
 | 5. Persistence, Resume & Settings | 0/TBD | Not started | - |

@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Completed 02-02-PLAN.md (Diamond-41 fixture deferred)
-last_updated: "2026-06-28T22:56:48.834Z"
+stopped_at: Completed 02-03-PLAN.md
+last_updated: "2026-06-28T23:02:41.503Z"
 last_activity: 2026-06-28
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 13
-  completed_plans: 7
+  completed_plans: 8
   percent: 20
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 02 (classic-mode-scoring-navigation) — EXECUTING
-Plan: 3 of 8
+Plan: 4 of 8
 Next: Phase 02 (classic-mode-scoring-navigation) — not yet planned
 Last activity: 2026-06-28
 
-Progress: [█████░░░░░] 54%
+Progress: [██████░░░░] 62%
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Progress: [█████░░░░░] 54%
 | Phase 01 P05 | 18 | 2 tasks | 9 files |
 | Phase 02 P01 | 6 | 2 tasks | 4 files |
 | Phase 02 P02 | 188 | 2 tasks | 6 files |
+| Phase 02 P03 | 9 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,7 @@ Recent decisions affecting current work:
 - [Phase 01]: Plan 05: hilt-navigation-compose pinned 1.3.0 + androidx.lifecycle atomic group force-resolved 2.9.4 — the 1.4.0-rc01 line transitively requires compileSdk 37; deprecated hiltViewModel() kept as the 36-safe path
 - [Phase 02]: Plan 01: ScoreCalculator is a pure-domain object (Int-only inputs, no domain-type coupling) — stars() derived from pegs remaining alone (D-02, no target arg), score() time term floored at 0 so it never drops below the peg base; structural star counts (3/2) extracted to ScoreParams to satisfy the detekt MagicNumber gate
 - [Phase ?]: [Phase 02] Plan 02: Four square-grid Classic boards (European-37/Asymmetric-39/Diamond-41/Wiegleb-45) added; RulesEngine unchanged. D-19 recorded-solution fixtures prove English-33/European-37/Asymmetric-39/Wiegleb-45 solvable to one peg via RulesEngine replay; authoring solver (test-only) uses symmetry-canonical memo + inward heuristic for the 45-hole Wiegleb cross. Diamond-41 D-19 proof DEFERRED (needs pagoda pruning); ships with off-center (4,2) start, geometry verified.
+- [Phase ?]: [Phase 02] Plan 03: navigation-compose pinned 2.9.8 (stable, not 2.10.x alpha which needs compileSdk 37); kotlin-serialization plugin APPLIED to :app (Pitfall 6 — @Serializable routes crash without it); datastore-preferences 1.2.1 added for onboardingSeen. Existing atomic-group lifecycle 2.9.4 guard already absorbs navigation's transitive lifecycle, so no new resolutionStrategy guard needed. All Phase-2 dimens/strings centralized here for downstream UI plans (02-05/06/07).
 
 ### Pending Todos
 
@@ -107,6 +109,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-28T22:56:48.829Z
-Stopped at: Completed 02-02-PLAN.md (Diamond-41 fixture deferred)
+Last session: 2026-06-28T23:02:22.569Z
+Stopped at: Completed 02-03-PLAN.md
 Resume file: None
