@@ -51,7 +51,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   4. Player can navigate between Home, mode selection, gameplay, and results screens.
   5. A first-time player sees a brief, skippable how-to-play explanation of the jump rule.
 **Plans**: 8 plans (waves 1→5)
-- [ ] 02-01-PLAN.md — ScoreCalculator: pure-domain stars + time-decay score [SCOR-01, SCOR-02]
+- [x] 02-01-PLAN.md — ScoreCalculator: pure-domain stars + time-decay score [SCOR-01, SCOR-02]
 - [ ] 02-02-PLAN.md — 4 new Classic board footprints + golden solvability fixtures [CLAS-02]
 - [ ] 02-03-PLAN.md — Build deps (navigation/serialization/datastore) + all Phase-2 dimens & strings [NAV-02, ONB-01]
 - [ ] 02-04-PLAN.md — LevelRepository seam (real Classic + stub Challenge) + per-board BoardGeometry [CLAS-01, CLAS-02]
@@ -111,7 +111,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Domain Foundation & Playable Board | 5/5 | Complete   | 2026-06-28 |
-| 2. Classic Mode, Scoring & Navigation | 0/TBD | Not started | - |
+| 2. Classic Mode, Scoring & Navigation | 1/8 | In Progress|  |
 | 3. Challenge Generation & Difficulty Curve | 0/TBD | Not started | - |
 | 4. Assist — Hint & Undo | 0/TBD | Not started | - |
 | 5. Persistence, Resume & Settings | 0/TBD | Not started | - |

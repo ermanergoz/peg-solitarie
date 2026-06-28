@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: in_progress
 stopped_at: Phase 2 UI-SPEC approved
-last_updated: "2026-06-28T19:34:29.439Z"
-last_activity: 2026-06-28 -- Phase 02 planning complete
+last_updated: "2026-06-28T19:45:13.206Z"
+last_activity: 2026-06-28
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 13
-  completed_plans: 5
+  completed_plans: 6
   percent: 20
 ---
 
@@ -25,11 +25,12 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 
 ## Current Position
 
-Phase: 01 (domain-foundation-playable-board) — COMPLETE & VERIFIED (2026-06-28)
+Phase: 02 (classic-mode-scoring-navigation) — EXECUTING
+Plan: 2 of 8
 Next: Phase 02 (classic-mode-scoring-navigation) — not yet planned
-Last activity: 2026-06-28 -- Phase 02 planning complete
+Last activity: 2026-06-28
 
-Progress: Phase 1 [██████████] 100% · Milestone [██░░░░░░░░] 20% (1/5 phases)
+Progress: [█████░░░░░] 46%
 
 ## Performance Metrics
 
@@ -56,6 +57,7 @@ Progress: Phase 1 [██████████] 100% · Milestone [██░�
 | Phase 01 P03 | 9 | 2 tasks | 7 files |
 | Phase 01 P04 | 13 | 2 tasks | 10 files |
 | Phase 01 P05 | 18 | 2 tasks | 9 files |
+| Phase 02 P01 | 6 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -76,6 +78,7 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 1] Plan 04: QUAL-03 split locked — fixed dp/sp in dimens.xml (dimensionResource/LocalDensity.toPx), proportional ratios in BoardMetrics, durations/easings in GameAnim, colors as MaterialTheme.colorScheme roles; baseline M3 theme (zero hex)
 - [Phase 01]: Plan 05: walking skeleton closed end-to-end — MainActivity → GameRoute (hiltViewModel + collectAsStateWithLifecycle) → stateless GameScreen (Scaffold/top-bar RestartControl + BoardCanvas + D-05 GameOverDialog + D-06 confirm); Robolectric Compose GameFlowTest proves tap→jump→game-over→restart on the JVM
 - [Phase 01]: Plan 05: hilt-navigation-compose pinned 1.3.0 + androidx.lifecycle atomic group force-resolved 2.9.4 — the 1.4.0-rc01 line transitively requires compileSdk 37; deprecated hiltViewModel() kept as the 36-safe path
+- [Phase 02]: Plan 01: ScoreCalculator is a pure-domain object (Int-only inputs, no domain-type coupling) — stars() derived from pegs remaining alone (D-02, no target arg), score() time term floored at 0 so it never drops below the peg base; structural star counts (3/2) extracted to ScoreParams to satisfy the detekt MagicNumber gate
 
 ### Pending Todos
 
@@ -101,6 +104,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-28T15:17:49.761Z
+Last session: 2026-06-28T19:44:08.846Z
 Stopped at: Phase 2 UI-SPEC approved
-Resume file: .planning/phases/02-classic-mode-scoring-navigation/02-UI-SPEC.md
+Resume file: None
