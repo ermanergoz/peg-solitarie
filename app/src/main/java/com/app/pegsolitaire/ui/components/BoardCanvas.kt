@@ -52,10 +52,19 @@ private const val REMOVAL_START = 1f
  * move restarts the animation cleanly; [onAnimationFinished] fires when the slide
  * lands (the move is already committed to domain state).
  *
+ * In read-only mode ([interactive] `= false`, the catalog mini-preview D-11) the leaf
+ * renders only the resting pegs and the recessed start-empty hole: it suppresses tap
+ * emission (no `pointerInput`), the selection ring, the legal-destination dots and all
+ * animation. The default ([interactive] `= true`) keeps the full Phase-1 gameplay
+ * behavior unchanged.
+ *
  * @param state the immutable board state to render (single source of truth).
- * @param onCellTap emits the bounds-checked tapped [Position] up to the ViewModel.
+ * @param onCellTap emits the bounds-checked tapped [Position] up to the ViewModel
+ *   (never called when [interactive] is `false`).
  * @param onAnimationFinished invoked once the jump slide completes.
  * @param modifier layout modifier for the (square) canvas.
+ * @param interactive whether the board accepts taps and draws the selection/destination/
+ *   animation overlays; `false` for the static catalog preview.
  */
 @Composable
 fun BoardCanvas(
@@ -63,6 +72,7 @@ fun BoardCanvas(
     onCellTap: (Position) -> Unit,
     onAnimationFinished: () -> Unit,
     modifier: Modifier = Modifier,
+    interactive: Boolean = true,
 ) {
     val spec = state.board.spec
     var canvasSize by remember { mutableStateOf(Size.Zero) }
@@ -86,8 +96,8 @@ fun BoardCanvas(
     val jumpOffset = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
     val removalProgress = remember { Animatable(REMOVAL_START) }
 
-    LaunchedEffect(transition?.id, geometry) {
-        if (transition != null && geometry.isReady) {
+    LaunchedEffect(transition?.id, geometry, interactive) {
+        if (interactive && transition != null && geometry.isReady) {
             jumpOffset.snapTo(geometry.center(transition.from))
             removalProgress.snapTo(REMOVAL_START)
             launch {
@@ -110,14 +120,23 @@ fun BoardCanvas(
                 .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO)
                 .testTag(BOARD_CANVAS_TEST_TAG)
                 .onSizeChanged { canvasSize = it.toSize() }
-                .pointerInput(geometry) {
-                    detectTapGestures { offset -> geometry.positionAt(offset)?.let(onCellTap) }
-                },
+                .then(
+                    // Read-only previews never attach a tap handler, so they can
+                    // never emit onCellTap (the parent Card owns the tap).
+                    if (interactive) {
+                        Modifier.pointerInput(geometry) {
+                            detectTapGestures { offset -> geometry.positionAt(offset)?.let(onCellTap) }
+                        }
+                    } else {
+                        Modifier
+                    },
+                ),
     ) {
         drawBoard(
             state = state,
             geometry = geometry,
             palette = palette,
+            interactive = interactive,
             jumpOffset = { jumpOffset.value },
             removalProgress = { removalProgress.value },
         )
@@ -143,38 +162,27 @@ private fun DrawScope.drawBoard(
     state: GameUiState,
     geometry: BoardGeometry,
     palette: BoardPalette,
+    interactive: Boolean,
     jumpOffset: () -> Offset,
     removalProgress: () -> Float,
 ) {
     if (!geometry.isReady) return
     val board = state.board
-    val transition = state.animating
+    // Read-only previews never play an animation nor highlight a selection/targets,
+    // so the in-flight jumper, the selection ring and the destination dots are all
+    // suppressed regardless of the incoming state.
+    val transition = if (interactive) state.animating else null
     val jumperLanding = transition?.to
 
     for (position in board.spec.inPlay) {
-        val center = geometry.center(position)
-        when (board.cellAt(position)) {
-            Cell.Empty -> {
-                drawHole(center, geometry, palette)
-                if (position in state.legalTargets) {
-                    drawCircle(
-                        color = palette.accent.copy(alpha = BoardMetrics.DESTINATION_DOT_ALPHA),
-                        radius = geometry.destinationDotRadius,
-                        center = center,
-                    )
-                }
-            }
-
-            Cell.Peg ->
-                when {
-                    // The in-flight jumper lands here; draw the hole, the moving peg is an overlay.
-                    position == jumperLanding -> drawHole(center, geometry, palette)
-                    position == state.selected -> drawSelectedPeg(center, geometry, palette)
-                    else -> drawCircle(color = palette.peg, radius = geometry.pegRadius, center = center)
-                }
-
-            Cell.Blocked -> Unit
-        }
+        drawCell(
+            state = state,
+            geometry = geometry,
+            palette = palette,
+            interactive = interactive,
+            position = position,
+            jumperLanding = jumperLanding,
+        )
     }
 
     if (transition != null) {
@@ -190,6 +198,45 @@ private fun DrawScope.drawBoard(
             )
         }
         drawCircle(color = palette.peg, radius = geometry.pegRadius, center = jumpOffset())
+    }
+}
+
+/**
+ * Draws a single in-play cell: an empty hole (plus the legal-destination dot when
+ * [interactive] and this cell is a target), or a peg (the recessed landing hole under
+ * the in-flight jumper, the enlarged selected peg, or a resting peg). All
+ * interaction overlays are suppressed when [interactive] is `false` (read-only preview).
+ */
+private fun DrawScope.drawCell(
+    state: GameUiState,
+    geometry: BoardGeometry,
+    palette: BoardPalette,
+    interactive: Boolean,
+    position: Position,
+    jumperLanding: Position?,
+) {
+    val center = geometry.center(position)
+    when (state.board.cellAt(position)) {
+        Cell.Empty -> {
+            drawHole(center, geometry, palette)
+            if (interactive && position in state.legalTargets) {
+                drawCircle(
+                    color = palette.accent.copy(alpha = BoardMetrics.DESTINATION_DOT_ALPHA),
+                    radius = geometry.destinationDotRadius,
+                    center = center,
+                )
+            }
+        }
+
+        Cell.Peg ->
+            when {
+                // The in-flight jumper lands here; draw the hole, the moving peg is an overlay.
+                position == jumperLanding -> drawHole(center, geometry, palette)
+                interactive && position == state.selected -> drawSelectedPeg(center, geometry, palette)
+                else -> drawCircle(color = palette.peg, radius = geometry.pegRadius, center = center)
+            }
+
+        Cell.Blocked -> Unit
     }
 }
 
