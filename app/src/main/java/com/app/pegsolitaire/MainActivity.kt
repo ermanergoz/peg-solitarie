@@ -12,8 +12,12 @@ import dagger.hilt.android.AndroidEntryPoint
  *
  * `@AndroidEntryPoint` registers this activity with Hilt's generated component
  * graph so the [GameRoute] can inject the `@HiltViewModel` `GameViewModel` via
- * `hiltViewModel()`. Hosts the one playable English-33 game route inside the
- * Material 3 [AppTheme] — the whole walking skeleton end-to-end.
+ * `hiltViewModel()`. Hosts the gameplay route inside the Material 3 [AppTheme].
+ *
+ * The `onFinished`/`onNavigateBack` hand-offs and the `Gameplay(levelId)` route arg
+ * are stubbed here only as an interim seam: the real `AppNavHost` (02-08) replaces
+ * this direct host with a typed back stack that supplies the selected `levelId` and
+ * wires finish→Results / back navigation.
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -21,7 +25,10 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             AppTheme {
-                GameRoute()
+                GameRoute(
+                    onFinished = {},
+                    onNavigateBack = {},
+                )
             }
         }
     }

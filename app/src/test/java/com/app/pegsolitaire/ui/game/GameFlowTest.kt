@@ -26,6 +26,9 @@ import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.theme.AppTheme
+import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -80,23 +83,27 @@ class GameFlowTest {
     }
 
     @Test
-    fun reachingATerminalPositionShowsTheGameOverDialog() {
-        // A two-peg line that resolves to a single peg in one jump → Won ("Perfect!").
+    fun reachingATerminalPositionEmitsTheFinishEventInsteadOfADialog() {
+        // A two-peg line that resolves to a single peg in one jump → Won.
         val nearWin =
             Board(spec = Boards.English33, pegs = 0L)
                 .withPeg(Position(row = 3, col = 1))
                 .withPeg(Position(row = 3, col = 2))
-        startGame(nearWin)
+        val viewModel = startGame(nearWin)
 
         tapCell(row = 3, col = 1)
         tapCell(row = 3, col = 3)
 
         assertStatus(GameStatus.Won)
+
+        // D-05: the Phase-1 game-over dialog is gone — the VM emits a single finish
+        // event (carrying the ScoreCalculator-consistent result) for GameRoute to turn
+        // into a Results navigation; no in-screen overlay appears.
+        val result = runBlocking { viewModel.finished.first() }
+        assertThat(result.pegsRemaining).isEqualTo(1)
+        assertThat(result.stars).isEqualTo(ScoreCalculator.stars(pegsRemaining = 1))
         composeRule
-            .onNodeWithText(context.getString(R.string.game_over_perfect_headline))
-            .assertIsDisplayed()
-        composeRule
-            .onNodeWithText(context.getString(R.string.play_again))
+            .onNodeWithContentDescription(context.getString(R.string.elapsed_time))
             .assertIsDisplayed()
     }
 
@@ -145,6 +152,7 @@ class GameFlowTest {
                     onConfirmRestart = viewModel::onConfirmRestart,
                     onDismissRestart = viewModel::onDismissRestart,
                     onAnimationFinished = viewModel::onAnimationFinished,
+                    onNavigateBack = {},
                 )
             }
         }

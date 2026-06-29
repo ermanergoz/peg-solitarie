@@ -5,9 +5,14 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -15,10 +20,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -26,6 +27,7 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.domain.model.GameStatus
@@ -52,10 +54,12 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  * The stateless playable-board screen (Route/Screen/Leaf middle layer).
  *
  * Renders [state] and forwards events; owns no game logic (state hoisting). An M3
- * [Scaffold] hosts a [TopAppBar] (title + the [RestartControl] D-06 action) over a
- * centered `surfaceContainerHigh` board panel containing the [BoardCanvas]. The
- * [GameOverDialog] (D-05) overlays on a terminal [GameStatus]; the mid-game confirm
- * [AlertDialog] (D-06) overlays when [GameUiState.confirmRestart] is set.
+ * [Scaffold] hosts a [TopAppBar] (a back nav, the title, the live `mm:ss` elapsed
+ * timer D-04, and the [RestartControl] D-06 action) over a centered
+ * `surfaceContainerHigh` board panel containing the [BoardCanvas]. Reaching a
+ * terminal [GameStatus] no longer raises an in-screen dialog — the ViewModel emits a
+ * one-shot finish event and [GameRoute] navigates to Results (D-05); only the
+ * mid-game confirm [AlertDialog] (D-06) still overlays, when [GameUiState.confirmRestart].
  *
  * Minimal test semantics ([PegCountKey]/[GameStatusKey]/[LegalTargetCountKey]) are
  * attached to the [GAME_STATE_TEST_TAG] node so the end-to-end flow test asserts on
@@ -64,9 +68,10 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  * @param state the immutable UI state to render.
  * @param onCellTap forwards a tapped board [Position] to the ViewModel.
  * @param onRestart top-bar restart intent (VM decides confirm vs. immediate reset).
- * @param onConfirmRestart confirms a restart (mid-game confirm or game-over "Play Again").
+ * @param onConfirmRestart confirms a restart (mid-game confirm dialog).
  * @param onDismissRestart dismisses the mid-game restart confirmation.
  * @param onAnimationFinished signals the jump slide completed.
+ * @param onNavigateBack leaves the gameplay screen (top-bar back nav).
  * @param modifier layout modifier for the screen.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -78,19 +83,16 @@ fun GameScreen(
     onConfirmRestart: () -> Unit,
     onDismissRestart: () -> Unit,
     onAnimationFinished: () -> Unit,
+    onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(R.string.app_name),
-                        style = MaterialTheme.typography.titleLarge,
-                    )
-                },
-                actions = { RestartControl(onRestart = onRestart) },
+            GameTopBar(
+                elapsedSeconds = state.elapsedSeconds,
+                onRestart = onRestart,
+                onNavigateBack = onNavigateBack,
             )
         },
     ) { contentPadding ->
@@ -127,11 +129,6 @@ fun GameScreen(
         }
     }
 
-    GameOverOverlay(
-        state = state,
-        onPlayAgain = onConfirmRestart,
-    )
-
     if (state.confirmRestart) {
         RestartConfirmDialog(
             onConfirm = onConfirmRestart,
@@ -141,26 +138,58 @@ fun GameScreen(
 }
 
 /**
- * Shows the [GameOverDialog] on a terminal status, with a transient "View Board"
- * dismissal. Game-over is replayable [GameStatus] (it survives rotation), but the
- * player may hide the overlay to inspect the final board; that hide is ephemeral
- * view state, reset whenever the game identity ([GameUiState.status]/board) changes.
+ * The gameplay top bar: a back nav, the app title, the live `mm:ss` elapsed timer
+ * (D-04), and the [RestartControl] (D-06). Stateless — every value/handler is hoisted.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GameTopBar(
+    elapsedSeconds: Int,
+    onRestart: () -> Unit,
+    onNavigateBack: () -> Unit,
+) {
+    TopAppBar(
+        navigationIcon = {
+            IconButton(onClick = onNavigateBack) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                    contentDescription = stringResource(R.string.navigate_back),
+                    modifier = Modifier.size(dimensionResource(R.dimen.top_bar_icon_size)),
+                )
+            }
+        },
+        title = {
+            Text(
+                text = stringResource(R.string.app_name),
+                style = MaterialTheme.typography.titleLarge,
+            )
+        },
+        actions = {
+            ElapsedTimeLabel(elapsedSeconds = elapsedSeconds)
+            RestartControl(onRestart = onRestart)
+        },
+    )
+}
+
+/**
+ * The live `mm:ss` elapsed timer shown in the gameplay top bar (D-04).
+ *
+ * The zero-padded time is a computed clock string ([GameTimerFormat]), not a string
+ * resource; the `elapsed_time` content description is attached for screen readers so
+ * the value is announced as the elapsed time rather than a bare number.
  */
 @Composable
-private fun GameOverOverlay(
-    state: GameUiState,
-    onPlayAgain: () -> Unit,
-) {
-    val isGameOver = state.status == GameStatus.Won || state.status == GameStatus.Stuck
-    var dismissed by remember(state.status, state.board) { mutableStateOf(false) }
-    if (isGameOver && !dismissed) {
-        GameOverDialog(
-            status = state.status,
-            pegCount = state.board.pegCount,
-            onPlayAgain = onPlayAgain,
-            onViewBoard = { dismissed = true },
-        )
-    }
+private fun ElapsedTimeLabel(elapsedSeconds: Int) {
+    val description = stringResource(R.string.elapsed_time)
+    Text(
+        text = GameTimerFormat.format(elapsedSeconds),
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier =
+            Modifier
+                .padding(end = dimensionResource(R.dimen.spacing_sm))
+                .semantics { contentDescription = description },
+    )
 }
 
 /** The mid-game restart confirmation (D-06): confirm discards progress, dismiss keeps playing. */
