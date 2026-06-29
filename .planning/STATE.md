@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: in_progress
 stopped_at: Completed 02-05-PLAN.md
-last_updated: "2026-06-29T20:58:15.639Z"
+last_updated: "2026-06-29T21:06:31.924Z"
 last_activity: 2026-06-29
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 13
-  completed_plans: 10
+  completed_plans: 11
   percent: 20
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 02 (classic-mode-scoring-navigation) — EXECUTING
-Plan: 6 of 8
+Plan: 7 of 8
 Next: Phase 02 (classic-mode-scoring-navigation) — not yet planned
 Last activity: 2026-06-29
 
-Progress: [████████░░] 77%
+Progress: [█████████░] 85%
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Progress: [████████░░] 77%
 | Phase 02 P03 | 9 | 2 tasks | 4 files |
 | Phase 02 P04 | 5 | 2 tasks | 10 files |
 | Phase Phase 02 PP05 | 20 | 3 tasks tasks | 11 files files |
+| Phase 02 P07 | 14 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,7 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 02] Plan 02: Four square-grid Classic boards (European-37/Asymmetric-39/Diamond-41/Wiegleb-45) added; RulesEngine unchanged. D-19 recorded-solution fixtures prove English-33/European-37/Asymmetric-39/Wiegleb-45 solvable to one peg via RulesEngine replay; authoring solver (test-only) uses symmetry-canonical memo + inward heuristic for the 45-hole Wiegleb cross. Diamond-41 D-19 proof DEFERRED (needs pagoda pruning); ships with off-center (4,2) start, geometry verified.
 - [Phase ?]: [Phase 02] Plan 03: navigation-compose pinned 2.9.8 (stable, not 2.10.x alpha which needs compileSdk 37); kotlin-serialization plugin APPLIED to :app (Pitfall 6 — @Serializable routes crash without it); datastore-preferences 1.2.1 added for onboardingSeen. Existing atomic-group lifecycle 2.9.4 guard already absorbs navigation's transitive lifecycle, so no new resolutionStrategy guard needed. All Phase-2 dimens/strings centralized here for downstream UI plans (02-05/06/07).
 - [Phase ?]: [Phase 02] Plan 04: LevelRepository single-source-of-truth seam — DefaultClassicLevelSource serves 5 boards as descriptors in D-18 order with names from R.string.board_* (resolved String, not @StringRes) and fail-fast loadClassic via requireNotNull (T-02-04-ID); StubChallengeLevelSource throws (Phase-3 swaps it). BoardGeometry derives gridDimension=max(maxRow,maxCol)+1 from BoardSpec bounds (7/8/9), removing hardcoded GRID_DIMENSION=7.
+- [Phase ?]: [Phase 02] Plan 07: Classic catalog UI — read-only BoardCanvas variant (interactive flag, default true keeps Phase-1 gameplay verbatim) shared by gameplay and the catalog mini-preview; ClassicCatalogViewModel is a pure pass-through of LevelRepository.classicCatalog() (D-18 order, no reordering); LazyVerticalGrid(Adaptive) of whole-card-tappable surfaceContainerHigh cards forwards descriptor.id to Gameplay(levelId). CLAS-01 satisfied at UI layer.
 
 ### Pending Todos
 
@@ -112,6 +114,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-29T20:56:34.673Z
+Last session: 2026-06-29T21:06:23.481Z
 Stopped at: Completed 02-05-PLAN.md
 Resume file: None
