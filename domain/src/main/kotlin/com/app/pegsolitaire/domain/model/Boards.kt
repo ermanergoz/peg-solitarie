@@ -126,10 +126,13 @@ private object Asymmetric39Layout {
  * is given by [halfWidth]; a position is in-play iff its column falls within
  * `(CENTER_INDEX - hw[row])..(CENTER_INDEX + hw[row])`.
  *
- * Center-empty `(4,4)` is provably unsolvable to one peg (only four off-center
- * single-vacancy starts solve), so the game starts from the off-center
- * [startVacancy] — validated by the authoring solver and locked with a
- * recorded-solution fixture (D-19). D-02 ignores the target for stars.
+ * The diamond is the canonical center-empty board (40 pegs). Unlike the cross
+ * boards it is NOT reducible to one peg: the GF(4) "colour" invariant
+ * (sum of omega^(r+c) and omega^(r-c) over occupied cells, both conserved by every
+ * jump) admits no single-peg target from the centre start, and search confirms the
+ * floor is several pegs. So the diamond is scored on fewest pegs remaining (the
+ * game's actual objective) rather than a one-peg solve — no D-19 fixture exists or
+ * is possible for it. D-02 ignores the target for stars.
  */
 private object Diamond41Layout {
     /** The board is a square lattice of this many rows and columns. */
@@ -141,8 +144,8 @@ private object Diamond41Layout {
     /** Per-row half-width: row R spans `(center-hw[R])..(center+hw[R])`. */
     private val halfWidth = intArrayOf(0, 1, 2, 3, 4, 3, 2, 1, 0)
 
-    /** Off-center empty start hole (center is provably unsolvable). */
-    val startVacancy = Position(row = 4, col = 2)
+    /** The canonical center empty start hole (GF(4) invariant: not one-peg solvable; scored on fewest pegs left). */
+    val startVacancy = Position(row = CENTER_INDEX, col = CENTER_INDEX)
 
     /** Every in-play coordinate of the diamond, generated from the layout rules. */
     val inPlayPositions: List<Position> =
@@ -200,10 +203,13 @@ private object Wiegleb45Layout {
  * 3-3-2-2 (39), Diamond-41 (41), Wiegleb-45 (45). Every footprint is <= 64 holes,
  * so the same `Long`-bitmask scheme and the unchanged `RulesEngine` carry all five.
  *
- * European-37 and Diamond-41 start OFF-CENTER (their center-empty positions are
- * provably unsolvable to one peg); the other three start center-empty. Each
- * non-trivial board's solvability to one peg is locked by a committed
- * recorded-solution fixture replayed through `RulesEngine` (D-19).
+ * European-37 starts OFF-CENTER (its center-empty position is provably unsolvable
+ * to one peg, but an off-center start IS — locked by a fixture); the other four
+ * start center-empty. The four cross boards (English-33, European-37, Asymmetric-39,
+ * Wiegleb-45) each reduce to one peg, locked by a committed recorded-solution
+ * fixture replayed through `RulesEngine` (D-19). Diamond-41 is the exception: the
+ * GF(4) colour invariant proves its center start has no one-peg solution, so it is
+ * scored on fewest pegs remaining (the original game's objective) — no fixture.
  */
 object Boards {
     /** The English-33 cross footprint, with the center hole as the solve target. */
@@ -245,14 +251,14 @@ object Boards {
             .fold(Board(spec = Asymmetric39, pegs = 0L)) { board, position -> board.withPeg(position) }
             .withoutPeg(Asymmetric39Layout.center)
 
-    /** The Diamond-41 board; the off-center start hole is the (D-02-ignored) target. */
+    /** The Diamond-41 board; the center start hole is the (D-02-ignored) target. */
     val Diamond41: BoardSpec =
         BoardSpec(
             inPlay = Diamond41Layout.inPlayPositions,
             target = Diamond41Layout.startVacancy,
         )
 
-    /** The Diamond-41 start: every hole filled except the off-center (4,2) vacancy → 40 pegs. */
+    /** The Diamond-41 start: every hole filled except the center (4,4) vacancy → 40 pegs. */
     val diamond41Initial: Board =
         Diamond41.inPlay
             .fold(Board(spec = Diamond41, pegs = 0L)) { board, position -> board.withPeg(position) }

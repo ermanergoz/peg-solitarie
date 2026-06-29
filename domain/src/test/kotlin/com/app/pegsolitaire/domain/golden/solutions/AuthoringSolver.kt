@@ -30,8 +30,9 @@ import kotlin.random.Random
  *  - a per-attempt distinct-position cap with seeded restarts, abandoning an unlucky
  *    ordering so the next seed can retry.
  *
- * The 41-hole Diamond-41 is NOT handled here (see [SolutionFixtures] — its proof is
- * deferred). Fixtures are emitted in our exact `(row,col)`/[Move] encoding by
+ * The 41-hole Diamond-41 is NOT handled here (see [SolutionFixtures] — by the GF(4)
+ * invariant it has no one-peg solution, so there is nothing to author). Fixtures are
+ * emitted in our exact `(row,col)`/[Move] encoding by
  * construction (Pitfall 7); a fixed seed sequence keeps regenerated fixtures
  * byte-stable.
  */
@@ -231,13 +232,13 @@ object AuthoringSolver {
  * fixture (D-19). [Fixture.startVacancy] pins each board's documented start so the
  * fixture replays from the same `Boards.*Initial` the shipped test folds.
  *
- * **Diamond-41 is intentionally absent.** The 41-hole diamond has only four
- * single-vacancy solvable starts and (by parity) none finishes at the centre, so it
- * defeats both an exhaustive search (its symmetry-reduced reachable space exceeds
- * ~360M positions — beyond a practical heap) and the inward heuristic that cracks
- * the cross boards. Generating its winning line needs pagoda-function pruning, which
- * this authoring tool does not implement; its D-19 proof is DEFERRED. The board
- * itself still ships in `Boards.kt` with its documented off-center start, and its
+ * **Diamond-41 is intentionally absent — there is no one-peg solution to author.**
+ * The GF(4) colour invariant (sum of omega^(r+c) and omega^(r-c) over occupied cells,
+ * both conserved by every jump) admits no single-peg target from the diamond's
+ * canonical center start, and randomized + backtracking search confirm the floor is
+ * several pegs. The diamond is therefore scored on fewest pegs remaining (the
+ * original game's objective), not a one-peg solve, so no D-19 fixture exists or is
+ * possible. The board ships in `Boards.kt` with its canonical center start; its
  * footprint/peg-count is covered by `SolutionTest`'s sanity checks.
  */
 internal object SolutionFixtures {

@@ -18,10 +18,12 @@ import java.io.File
  * A single peg proves 3-star is reachable (D-01 fairness) without shipping a
  * Solver, and locks the off-center start for European-37.
  *
- * **Diamond-41's recorded-solution proof is DEFERRED** (see [SolutionFixtures]): its
- * 41-hole footprint defeats the authoring solver, so no fixture is committed and no
- * replay test exists for it yet. Its footprint and start peg-count are still covered
- * by the sanity checks below.
+ * **Diamond-41 has NO one-peg fixture by design** (see [SolutionFixtures]): the GF(4)
+ * colour invariant proves its canonical center start cannot reduce to one peg, and
+ * search confirms the floor is several pegs. The diamond is therefore scored on
+ * fewest pegs remaining (the original game's objective), not a one-peg solve — so no
+ * recorded solution exists or is possible. Its footprint and start peg-count are
+ * still covered by the sanity checks below.
  *
  * The fixtures were GENERATED once by [AuthoringSolver] against the real `Boards.*`
  * values (Pitfall 7 — never hand-transcribe). Re-run with `UPDATE_GOLDEN=true` to
