@@ -1,6 +1,9 @@
 package com.app.pegsolitaire.ui.game
 
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
 import app.cash.turbine.test
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.ClassicLevelIds
@@ -50,6 +53,13 @@ import kotlin.time.TimeSource
 class GameViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
 
+    // Owns every VM built in a test so [tearDown] (and the in-body cancellation a few
+    // ever-Playing tests need) can clear it: clearing the store cancels each
+    // `viewModelScope`, stopping the eager per-second ticker so `runTest` does not
+    // hang draining an infinite `delay`-loop on a board that never reaches terminal.
+    private val viewModelStore = ViewModelStore()
+    private var viewModelKey = 0
+
     // A peg above the empty center; its only legal jump lands in the center hole.
     private val pegAboveCenter = Position(row = 1, col = 3)
     private val centerHole = Position(row = 3, col = 3)
@@ -62,6 +72,7 @@ class GameViewModelTest {
 
     @After
     fun tearDown() {
+        viewModelStore.clear()
         Dispatchers.resetMain()
     }
 
@@ -104,6 +115,8 @@ class GameViewModelTest {
             advanceTimeBy(ONE_TICK_MILLIS)
             runCurrent()
             assertThat(viewModel.uiState.value.elapsedSeconds).isEqualTo(3)
+
+            cancelTickers() // board stays Playing; stop the eager ticker so runTest can finish.
         }
 
     @Test
@@ -250,6 +263,7 @@ class GameViewModelTest {
                 assertThat(transition.id).isEqualTo(1)
                 cancelAndIgnoreRemainingEvents()
             }
+            cancelTickers() // board stays Playing; stop the eager ticker so runTest can finish.
         }
 
     @Test
@@ -268,6 +282,7 @@ class GameViewModelTest {
                 assertThat(awaitItem().animating).isNull()
                 cancelAndIgnoreRemainingEvents()
             }
+            cancelTickers() // board stays Playing; stop the eager ticker so runTest can finish.
         }
 
     @Test
@@ -424,6 +439,7 @@ class GameViewModelTest {
                 assertThat(kept.board).isEqualTo(afterJump.board)
                 cancelAndIgnoreRemainingEvents()
             }
+            cancelTickers() // board stays Playing; stop the eager ticker so runTest can finish.
         }
 
     @Test
@@ -457,14 +473,29 @@ class GameViewModelTest {
         board: Board,
         levelId: String = ClassicLevelIds.ENGLISH33,
         timeSource: TimeSource = TestTimeSource(),
-    ): GameViewModel =
-        GameViewModel(
-            rulesEngine = RulesEngine,
-            levelRepository = FakeLevelRepository(boardsById = mapOf(levelId to board)),
-            scoreCalculator = ScoreCalculator,
-            timeSource = timeSource,
-            savedStateHandle = SavedStateHandle(mapOf(LEVEL_ID_ARG to levelId)),
-        )
+    ): GameViewModel {
+        val factory =
+            object : ViewModelProvider.Factory {
+                @Suppress("UNCHECKED_CAST")
+                override fun <T : ViewModel> create(modelClass: Class<T>): T =
+                    GameViewModel(
+                        rulesEngine = RulesEngine,
+                        levelRepository = FakeLevelRepository(boardsById = mapOf(levelId to board)),
+                        scoreCalculator = ScoreCalculator,
+                        timeSource = timeSource,
+                        savedStateHandle = SavedStateHandle(mapOf(LEVEL_ID_ARG to levelId)),
+                    ) as T
+            }
+        return ViewModelProvider(viewModelStore, factory)["vm${viewModelKey++}", GameViewModel::class.java]
+    }
+
+    /**
+     * Stops every running ticker by clearing the store (cancels each `viewModelScope`).
+     * A few tests leave the board mid-game (status stays `Playing`), so the eager
+     * per-second ticker would otherwise loop forever and hang `runTest` cleanup; those
+     * tests call this before returning so the scheduler can go idle.
+     */
+    private fun cancelTickers() = viewModelStore.clear()
 
     /** A 1x3 strip (pegs at cols 0,1; hole at col 2): one jump leaves a lone peg → Won. */
     private fun wonInOneJumpBoard(): Board =

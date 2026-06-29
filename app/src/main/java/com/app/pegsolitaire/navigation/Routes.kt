@@ -2,7 +2,7 @@ package com.app.pegsolitaire.navigation
 
 import kotlinx.serialization.Serializable
 
-/**
+/*
  * The type-safe navigation contract for the whole Phase-2 nav graph.
  *
  * Every screen is reached by an `@Serializable` route instance and reads its
