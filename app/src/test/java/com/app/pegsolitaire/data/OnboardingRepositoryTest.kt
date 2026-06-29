@@ -66,9 +66,8 @@ class OnboardingRepositoryTest {
         object : DataStore<Preferences> {
             override val data: Flow<Preferences> = flow { throw IOException("corrupt store") }
 
-            override suspend fun updateData(
-                transform: suspend (t: Preferences) -> Preferences,
-            ): Preferences = error("not used in the read path")
+            override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
+                error("not used in the read path")
         }
 
     private companion object {

@@ -118,7 +118,6 @@ private class FakeOnboardingRepository(
 private object NoopPreferencesDataStore : DataStore<Preferences> {
     override val data: Flow<Preferences> = emptyFlow()
 
-    override suspend fun updateData(
-        transform: suspend (t: Preferences) -> Preferences,
-    ): Preferences = error("not used by the fake")
+    override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
+        error("not used by the fake")
 }
