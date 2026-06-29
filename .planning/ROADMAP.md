@@ -13,7 +13,7 @@ This milestone delivers **Slice 1 — the playable core**: a polished, fully tes
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Domain Foundation & Playable Board** - Pure-Kotlin core + one hardcoded board playable end-to-end, with CI standards gates established up front (completed 2026-06-28)
-- [ ] **Phase 2: Classic Mode, Scoring & Navigation** - Home → pick 1 of 4 classic boards → play → results with stars/score; full screen flow + LevelRepository seam
+- [x] **Phase 2: Classic Mode, Scoring & Navigation** - Home → pick 1 of 4 classic boards → play → results with stars/score; full screen flow + LevelRepository seam (completed 2026-06-29)
 - [ ] **Phase 3: Challenge Generation & Difficulty Curve** - Infinite, deterministic, guaranteed-solvable generated levels with scaling difficulty (project #1 risk)
 - [ ] **Phase 4: Assist — Hint & Undo** - State-relative hint (canonical line + Solver fallback + "no winning move" state) and undo
 - [ ] **Phase 5: Persistence, Resume & Settings** - Per-level results, continue-from-highest, in-progress resume, sound/haptics — migration-safe
@@ -58,7 +58,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 02-05-PLAN.md — Type-safe Routes + Gameplay loads board by levelId + visible timer + one-shot Results hop [CLAS-02, SCOR-02, NAV-02]
 - [x] 02-06-PLAN.md — Results destination: score/stars/pegs/time, tiered headline, wrapping Next-board [SCOR-01, SCOR-02, SCOR-03]
 - [x] 02-07-PLAN.md — Classic catalog screen + read-only board previews over LevelRepository [CLAS-01]
-- [ ] 02-08-PLAN.md — Home mode-select + onboarding overlay (DataStore flag) + type-safe NavHost wiring [NAV-01, NAV-02, ONB-01]
+- [x] 02-08-PLAN.md — Home mode-select + onboarding overlay (DataStore flag) + type-safe NavHost wiring [NAV-01, NAV-02, ONB-01]
 **UI hint**: yes
 
 ### Phase 3: Challenge Generation & Difficulty Curve
@@ -111,7 +111,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Domain Foundation & Playable Board | 5/5 | Complete   | 2026-06-28 |
-| 2. Classic Mode, Scoring & Navigation | 7/8 | In Progress|  |
+| 2. Classic Mode, Scoring & Navigation | 8/8 | Complete   | 2026-06-29 |
 | 3. Challenge Generation & Difficulty Curve | 0/TBD | Not started | - |
 | 4. Assist — Hint & Undo | 0/TBD | Not started | - |
 | 5. Persistence, Resume & Settings | 0/TBD | Not started | - |

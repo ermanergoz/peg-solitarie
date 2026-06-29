@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Completed 02-06-PLAN.md
-last_updated: "2026-06-29T21:19:58.911Z"
+stopped_at: Completed 02-08-PLAN.md
+last_updated: "2026-06-29T21:38:42.828Z"
 last_activity: 2026-06-29
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 13
-  completed_plans: 12
-  percent: 20
+  completed_plans: 13
+  percent: 40
 ---
 
 # Project State
@@ -30,7 +30,7 @@ Plan: 8 of 8
 Next: Phase 02 (classic-mode-scoring-navigation) — not yet planned
 Last activity: 2026-06-29
 
-Progress: [█████████░] 92%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -64,6 +64,7 @@ Progress: [█████████░] 92%
 | Phase Phase 02 PP05 | 20 | 3 tasks tasks | 11 files files |
 | Phase 02 P07 | 14 | 2 tasks | 7 files |
 | Phase 02 P06 | 18 | 2 tasks | 6 files |
+| Phase 02 P08 | 35 | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -90,6 +91,9 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 02] Plan 04: LevelRepository single-source-of-truth seam — DefaultClassicLevelSource serves 5 boards as descriptors in D-18 order with names from R.string.board_* (resolved String, not @StringRes) and fail-fast loadClassic via requireNotNull (T-02-04-ID); StubChallengeLevelSource throws (Phase-3 swaps it). BoardGeometry derives gridDimension=max(maxRow,maxCol)+1 from BoardSpec bounds (7/8/9), removing hardcoded GRID_DIMENSION=7.
 - [Phase ?]: [Phase 02] Plan 07: Classic catalog UI — read-only BoardCanvas variant (interactive flag, default true keeps Phase-1 gameplay verbatim) shared by gameplay and the catalog mini-preview; ClassicCatalogViewModel is a pure pass-through of LevelRepository.classicCatalog() (D-18 order, no reordering); LazyVerticalGrid(Adaptive) of whole-card-tappable surfaceContainerHigh cards forwards descriptor.id to Gameplay(levelId). CLAS-01 satisfied at UI layer.
 - [Phase ?]: [Phase 02] Plan 06: Results destination quadruple — display-only ResultsViewModel passes ScoreCalculator route-arg values through verbatim and computes only the wrapping next-board id from classicCatalog() D-18 order (unknown id -> index 0, T-02-06-NEXT); stars->headline tier reuses ScoreParams bands (D-08). Star icons substituted to material-icons-core (Filled.Star / Outlined.Star as StarBorder) since Icons.Rounded.* stars are extended-set only (intentionally avoided). Results content scrolls (verticalScroll+Center) so all 4 actions stay reachable.
+- [Phase ?]: [Phase 02] Plan 08: AppNavHost closes the 5-screen spine into MainActivity (replacing the Phase-1 direct GameRoute()); destination bodies are default-valued @Composable slots wired to the real *Route so NavFlowTest drives the real nav lambdas without Hilt test infra (NAV-02).
+- [Phase ?]: [Phase 02] Plan 08: OnboardingRepository is a single onboarding_seen DataStore-Preferences boolean with a catch->emptyPreferences fail-open (D-16); an internal DataStore constructor seam makes default/markSeen/fail-open unit-testable; the open class is faked via a MutableStateFlow in HomeViewModelTest.
+- [Phase ?]: [Phase 02] Plan 08: How-to-play uses core-set Icons.Rounded.Info (extended-set HelpOutline avoided); onboarding illustrations reuse read-only BoardPreview over a 1x3 jump board; NavFlowTest asserts reachability via currentDestination.route (reified hasRoute<T>() unresolvable on navigation-compose 2.9.8 test classpath).
 
 ### Pending Todos
 
@@ -116,6 +120,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-29T21:19:39.881Z
-Stopped at: Completed 02-06-PLAN.md
+Last session: 2026-06-29T21:38:07.811Z
+Stopped at: Completed 02-08-PLAN.md
 Resume file: None

@@ -48,7 +48,7 @@ Slice 1 — Playable Core. Fully playable and testable; ads and Play Games exist
 
 ### Navigation & Screens
 
-- [ ] **NAV-01**: App presents a Home screen with entry to Classic and Challenge modes
+- [x] **NAV-01**: App presents a Home screen with entry to Classic and Challenge modes
 - [x] **NAV-02**: Player can navigate between Home, mode selection, gameplay, and results screens
 
 ### Settings
@@ -120,7 +120,7 @@ Each v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for ph
 | SCOR-01 | Phase 2 | Complete |
 | SCOR-02 | Phase 2 | Complete |
 | SCOR-03 | Phase 2 | Complete |
-| NAV-01 | Phase 2 | Pending |
+| NAV-01 | Phase 2 | Complete |
 | NAV-02 | Phase 2 | Complete |
 | ONB-01 | Phase 2 | Complete |
 | CHAL-01 | Phase 3 | Pending |
