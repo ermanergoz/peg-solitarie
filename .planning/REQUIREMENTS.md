@@ -32,7 +32,7 @@ Slice 1 — Playable Core. Fully playable and testable; ads and Play Games exist
 
 - [x] **SCOR-01**: Player earns 1–3 stars at level end based on pegs remaining
 - [x] **SCOR-02**: Elapsed time contributes to a separate numeric score
-- [ ] **SCOR-03**: Results screen shows stars, pegs remaining, time, and score
+- [x] **SCOR-03**: Results screen shows stars, pegs remaining, time, and score
 
 ### Assist
 
@@ -119,7 +119,7 @@ Each v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for ph
 | CLAS-02 | Phase 2 | Complete |
 | SCOR-01 | Phase 2 | Complete |
 | SCOR-02 | Phase 2 | Complete |
-| SCOR-03 | Phase 2 | Pending |
+| SCOR-03 | Phase 2 | Complete |
 | NAV-01 | Phase 2 | Pending |
 | NAV-02 | Phase 2 | Complete |
 | ONB-01 | Phase 2 | Complete |

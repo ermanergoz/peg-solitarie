@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in_progress
-stopped_at: Completed 02-05-PLAN.md
-last_updated: "2026-06-29T21:06:31.924Z"
+stopped_at: Completed 02-06-PLAN.md
+last_updated: "2026-06-29T21:19:58.911Z"
 last_activity: 2026-06-29
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 13
-  completed_plans: 11
+  completed_plans: 12
   percent: 20
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 02 (classic-mode-scoring-navigation) — EXECUTING
-Plan: 7 of 8
+Plan: 8 of 8
 Next: Phase 02 (classic-mode-scoring-navigation) — not yet planned
 Last activity: 2026-06-29
 
-Progress: [█████████░] 85%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Progress: [█████████░] 85%
 | Phase 02 P04 | 5 | 2 tasks | 10 files |
 | Phase Phase 02 PP05 | 20 | 3 tasks tasks | 11 files files |
 | Phase 02 P07 | 14 | 2 tasks | 7 files |
+| Phase 02 P06 | 18 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,7 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 02] Plan 03: navigation-compose pinned 2.9.8 (stable, not 2.10.x alpha which needs compileSdk 37); kotlin-serialization plugin APPLIED to :app (Pitfall 6 — @Serializable routes crash without it); datastore-preferences 1.2.1 added for onboardingSeen. Existing atomic-group lifecycle 2.9.4 guard already absorbs navigation's transitive lifecycle, so no new resolutionStrategy guard needed. All Phase-2 dimens/strings centralized here for downstream UI plans (02-05/06/07).
 - [Phase ?]: [Phase 02] Plan 04: LevelRepository single-source-of-truth seam — DefaultClassicLevelSource serves 5 boards as descriptors in D-18 order with names from R.string.board_* (resolved String, not @StringRes) and fail-fast loadClassic via requireNotNull (T-02-04-ID); StubChallengeLevelSource throws (Phase-3 swaps it). BoardGeometry derives gridDimension=max(maxRow,maxCol)+1 from BoardSpec bounds (7/8/9), removing hardcoded GRID_DIMENSION=7.
 - [Phase ?]: [Phase 02] Plan 07: Classic catalog UI — read-only BoardCanvas variant (interactive flag, default true keeps Phase-1 gameplay verbatim) shared by gameplay and the catalog mini-preview; ClassicCatalogViewModel is a pure pass-through of LevelRepository.classicCatalog() (D-18 order, no reordering); LazyVerticalGrid(Adaptive) of whole-card-tappable surfaceContainerHigh cards forwards descriptor.id to Gameplay(levelId). CLAS-01 satisfied at UI layer.
+- [Phase ?]: [Phase 02] Plan 06: Results destination quadruple — display-only ResultsViewModel passes ScoreCalculator route-arg values through verbatim and computes only the wrapping next-board id from classicCatalog() D-18 order (unknown id -> index 0, T-02-06-NEXT); stars->headline tier reuses ScoreParams bands (D-08). Star icons substituted to material-icons-core (Filled.Star / Outlined.Star as StarBorder) since Icons.Rounded.* stars are extended-set only (intentionally avoided). Results content scrolls (verticalScroll+Center) so all 4 actions stay reachable.
 
 ### Pending Todos
 
@@ -114,6 +116,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-29T21:06:23.481Z
-Stopped at: Completed 02-05-PLAN.md
+Last session: 2026-06-29T21:19:39.881Z
+Stopped at: Completed 02-06-PLAN.md
 Resume file: None
