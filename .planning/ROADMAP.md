@@ -74,7 +74,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 5 plans (waves 1→5)
 - [x] 03-01-PLAN.md — Deterministic reverse-generation core + solvability/tier invariants [CHAL-02, CHAL-03, CHAL-04]
 - [x] 03-02-PLAN.md — Quality gates + freeform footprints + golden-master determinism lock (levels 1/2/10/100/1000) [CHAL-01, CHAL-02, CHAL-03, CHAL-04]
-- [ ] 03-03-PLAN.md — LevelRepository seam (real Challenge source) + solution/version carry-through + level-scaled score + ChallengeProgress [CHAL-01, CHAL-03, CHAL-04]
+- [x] 03-03-PLAN.md — LevelRepository seam (real Challenge source) + solution/version carry-through + level-scaled score + ChallengeProgress [CHAL-01, CHAL-03, CHAL-04]
 - [ ] 03-04-PLAN.md — Challenge routes + GameViewModel challenge load + "Level N" title [CHAL-01, CHAL-04]
 - [ ] 03-05-PLAN.md — Challenge-aware Results (Next level/Retry) + enabled Home tile + NavHost wiring + playability checkpoint [CHAL-01]
 **Risk**: This is the project's #1 risk. The golden-master CI fixture MUST be locked before any difficulty tuning begins (no generator code ships without it). Treat the difficulty-curve sub-phase as a playtest-iteration loop — knob values (minimum solution length per tier, spatial-spread threshold, footprint sizes by level range) cannot be set by static analysis and must be playtested across the full level range before the `generatorVersion` contract is frozen. Quality gates (solution-length floor, spatial spread, branching-factor floor, symmetry-normalized dedup) reject-and-reseed degenerate boards.
@@ -117,6 +117,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Domain Foundation & Playable Board | 5/5 | Complete   | 2026-06-28 |
 | 2. Classic Mode, Scoring & Navigation | 8/8 | Complete   | 2026-06-29 |
-| 3. Challenge Generation & Difficulty Curve | 2/5 | In Progress|  |
+| 3. Challenge Generation & Difficulty Curve | 3/5 | In Progress|  |
 | 4. Assist — Hint & Undo | 0/TBD | Not started | - |
 | 5. Persistence, Resume & Settings | 0/TBD | Not started | - |

@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: ready_to_plan
 stopped_at: Completed 03-02-PLAN.md (generator determinism lock committed)
-last_updated: "2026-07-01T19:07:08.355Z"
+last_updated: "2026-07-01T19:15:28.944Z"
 last_activity: 2026-07-01
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 18
-  completed_plans: 15
+  completed_plans: 16
   percent: 40
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 03 (challenge-generation-difficulty-curve) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Next: Phase 02 (classic-mode-scoring-navigation) — not yet planned
 Last activity: 2026-07-01
 
-Progress: [████████░░] 83%
+Progress: [█████████░] 89%
 
 ## Performance Metrics
 
@@ -67,6 +67,7 @@ Progress: [████████░░] 83%
 | Phase 02 P08 | 35 | 3 tasks | 11 files |
 | Phase 03 P01 | 16 | 3 tasks | 7 files |
 | Phase 03 P02 | 15 | 3 tasks | 14 files |
+| Phase 03 P03-03 | 4 | - tasks | - files |
 
 ## Accumulated Context
 
@@ -100,6 +101,9 @@ Recent decisions affecting current work:
 - [Phase 03]: Plan 01: DifficultyTiers.forLevel is a CONTINUOUS integer-division growth mapping (A4/D-05), not stepped when(range) — solutionLength is the primary lever rising first/steadily (D-06), footprint pool widens later; freeform gated by freeformIntroLevel=40. Knob VALUES are playtest-tunable placeholders in a scoped Curve const object (D-07); structure is final. Invariants locked by output-agnostic JVM tests that survive 03-02 gate/freeform additions.
 - [Phase ?]: [Phase 03] Plan 02: v1 generator completed & FROZEN — six quality gates (min solution length, peg-density band, branching floor, forced-line rejection, bounding-box spread, symmetry-canonical dedup) with deterministic salted reject-and-reseed + best-scoring bounded fallback (never hangs, T-03-04). BoardCanonical lifts AuthoringSolver symmetry canonicalization into main source for the dedup key.
 - [Phase ?]: [Phase 03] Plan 02: dedup is an EXACT rolling window anchored at level 1 (generate(n-1) is a deterministic prefix of generate(n)) so 'no repeat within DEDUP_WINDOW' holds across independent calls. Freeform footprints grown by seeded frontier expansion, <=64-cell cap, independently flood-fill validated, gated at freeformIntroLevel=40. solutionLength capped at SOLUTION_LENGTH_MAX=30 (D-07 tuning) so high-level gates stay satisfiable. Golden fixtures 1/2/10/100/1000 committed & CI-green with NO UPDATE_GOLDEN flag — the determinism lock.
+- [Phase ?]: 03-03: Generator routed behind LevelRepository.loadChallenge; solution+generatorVersion carried as nullable Level fields (Classic stays null)
+- [Phase ?]: 03-03: D-11 level-scaled score is a pure levelMultiplier param on ScoreCalculator (default==Phase-2); stars never re-based
+- [Phase ?]: 03-03: ChallengeProgress is an in-memory @Singleton StateFlow<Int> holder (D-04), shaped as the Phase-5 persistence seam
 
 ### Pending Todos
 
