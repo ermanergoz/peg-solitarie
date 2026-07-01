@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.SettingsRepository
+import com.app.pegsolitaire.domain.generator.DifficultyTiers
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.Cell
 import com.app.pegsolitaire.domain.model.GameStatus
@@ -13,6 +14,7 @@ import com.app.pegsolitaire.domain.model.Move
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
+import com.app.pegsolitaire.domain.scoring.ScoreParams
 import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.app.pegsolitaire.navigation.Gameplay
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -74,7 +76,39 @@ class GameViewModel
         /** The selected board's catalog id (read by `GameRoute` to build the Results route). */
         val levelId: String = savedStateHandle.toRoute<Gameplay>().levelId
 
-        private val initialBoard: Board = levelRepository.loadClassic(levelId).initialBoard
+        /**
+         * The Challenge level number when this is a Challenge game, else `null` for
+         * Classic (read by `GameRoute` for the context-aware title + Results route).
+         * This single route arg — not any `if (challenge)` in board logic — drives both
+         * the load path and the title slot (unified `LevelRef`, Open-Q2).
+         */
+        val challengeLevel: Int? = savedStateHandle.toRoute<Gameplay>().challengeLevel
+
+        /**
+         * The Challenge level clamped to a valid `>= 1` value (T-03-09: an untrusted
+         * nav arg must never crash the load), or `null` for a Classic game.
+         */
+        private val clampedChallengeLevel: Int? =
+            challengeLevel?.coerceAtLeast(MIN_CHALLENGE_LEVEL)
+
+        private val initialBoard: Board =
+            if (clampedChallengeLevel != null) {
+                levelRepository.loadChallenge(clampedChallengeLevel).initialBoard
+            } else {
+                levelRepository.loadClassic(levelId).initialBoard
+            }
+
+        /**
+         * The D-11 level-scaled score factor: the loaded Challenge level's
+         * [DifficultyTiers] multiplier, or [ScoreParams.DEFAULT_LEVEL_MULTIPLIER] (1) for
+         * Classic so the numeric score is byte-identical to Phase 2. `DifficultyTiers` is
+         * pure `:domain`, so referencing it here keeps `ScoreCalculator` free of level
+         * state (no calculator ↔ level coupling).
+         */
+        private val levelMultiplier: Int =
+            clampedChallengeLevel
+                ?.let { DifficultyTiers.forLevel(it).scoreMultiplier }
+                ?: ScoreParams.DEFAULT_LEVEL_MULTIPLIER
 
         private val moveHistory: MutableList<Move> = mutableListOf()
 
@@ -205,6 +239,7 @@ class GameViewModel
                         pegsRemaining = pegsRemaining,
                         pegsCleared = initialBoard.pegCount - pegsRemaining,
                         elapsedSeconds = _uiState.value.elapsedSeconds,
+                        levelMultiplier = levelMultiplier,
                     ),
                 )
             }
@@ -289,5 +324,8 @@ class GameViewModel
 
             /** The visible timer ticks once per second (D-04). */
             const val TIMER_TICK_MILLIS = 1_000L
+
+            /** The lowest valid Challenge level; a `< 1` nav arg clamps up to it (T-03-09). */
+            const val MIN_CHALLENGE_LEVEL = 1
         }
     }
