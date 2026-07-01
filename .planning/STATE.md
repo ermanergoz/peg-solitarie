@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: ready_to_plan
 stopped_at: Completed 03-02-PLAN.md (generator determinism lock committed)
-last_updated: "2026-07-01T19:15:28.944Z"
+last_updated: "2026-07-01T19:23:03.271Z"
 last_activity: 2026-07-01
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 18
-  completed_plans: 16
+  completed_plans: 17
   percent: 40
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 03 (challenge-generation-difficulty-curve) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Next: Phase 02 (classic-mode-scoring-navigation) — not yet planned
 Last activity: 2026-07-01
 
-Progress: [█████████░] 89%
+Progress: [█████████░] 94%
 
 ## Performance Metrics
 
@@ -68,6 +68,7 @@ Progress: [█████████░] 89%
 | Phase 03 P01 | 16 | 3 tasks | 7 files |
 | Phase 03 P02 | 15 | 3 tasks | 14 files |
 | Phase 03 P03-03 | 4 | - tasks | - files |
+| Phase 03 P04 | 4 | - tasks | - files |
 
 ## Accumulated Context
 
@@ -104,6 +105,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 03-03: Generator routed behind LevelRepository.loadChallenge; solution+generatorVersion carried as nullable Level fields (Classic stays null)
 - [Phase ?]: 03-03: D-11 level-scaled score is a pure levelMultiplier param on ScoreCalculator (default==Phase-2); stars never re-based
 - [Phase ?]: 03-03: ChallengeProgress is an in-memory @Singleton StateFlow<Int> holder (D-04), shaped as the Phase-5 persistence seam
+- [Phase ?]: 03-04: Unified LevelRef — one Gameplay route with a nullable challengeLevel drives both mode load paths and the title slot; no separate Challenge VM/route, no if(challenge) in board logic
+- [Phase ?]: 03-04: GameViewModel reads DifficultyTiers.forLevel(n).scoreMultiplier directly (pure :domain) and clamps challengeLevel<1 at the VM boundary (T-03-09)
 
 ### Pending Todos
 
@@ -131,6 +134,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-01T19:06:57.947Z
+Last session: 2026-07-01T19:23:03.266Z
 Stopped at: Completed 03-02-PLAN.md (generator determinism lock committed)
 Resume file: None
