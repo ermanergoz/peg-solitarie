@@ -4,6 +4,7 @@ import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.Cell
 import com.app.pegsolitaire.domain.model.Move
 import com.app.pegsolitaire.domain.model.Position
+import com.app.pegsolitaire.domain.rules.RulesEngine
 import kotlin.random.Random
 
 /**
@@ -43,26 +44,125 @@ object LevelGenerator {
     /**
      * Generates the deterministic, solvable-by-construction level for [levelNumber].
      *
-     * Any `levelNumber < 1` is clamped to level 1 (T-03-01). The reverse walk is
-     * retried with a fresh deterministic salt if it dead-ends before reaching the
-     * tier's [DifficultyTier.solutionLength]; after [GeneratorConstants.MAX_ATTEMPTS]
-     * the best board reached is accepted, so generation always terminates.
+     * Any `levelNumber < 1` is clamped to level 1 (T-03-01). Each level's own
+     * reject-and-reseed loop ([generateForLevel]) reseeds with a fresh deterministic
+     * salt ([stableSeed]) and reverse-walks a candidate, accepting the first that
+     * clears every [passesQualityGates] gate — INCLUDING that its symmetry-canonical
+     * key does not collide with the previous [GeneratorConstants.DEDUP_WINDOW]
+     * levels — or, after [GeneratorConstants.MAX_ATTEMPTS], the best-scoring board
+     * seen (deterministic bounded fallback, T-03-04). Generation always terminates,
+     * so it can never hang on an untrusted level number.
      */
     fun generate(levelNumber: Int): GeneratedLevel {
-        val level = levelNumber.coerceAtLeast(MIN_LEVEL)
-        val tier = DifficultyTiers.forLevel(level)
+        val target = levelNumber.coerceAtLeast(MIN_LEVEL)
 
+        // Exact rolling dedup window: replay the deterministic sequence from level 1,
+        // deduping each level against the ACTUAL accepted canonical keys of the
+        // previous DEDUP_WINDOW levels. Because the anchor (level 1) and every step
+        // are deterministic, generate(n-1) is a prefix of generate(n)'s pass — so the
+        // window is self-consistent across independent calls and "no two boards in a
+        // window share a canonical key" holds by construction (Pitfall 3). No
+        // recursion; membership tests never feed a PRNG index (Pitfall 1).
+        val recentKeys = ArrayDeque<Long>()
+        var produced: GeneratedLevel? = null
+        for (level in MIN_LEVEL..target) {
+            val tier = DifficultyTiers.forLevel(level)
+            produced = generateForLevel(level, tier, forbiddenKeys = recentKeys.toHashSet())
+            recentKeys.addLast(canonicalKeyOf(produced.startingBoard))
+            if (recentKeys.size > GeneratorConstants.DEDUP_WINDOW) recentKeys.removeFirst()
+        }
+        return requireNotNull(produced) { "reverse walk produced no board for level $target" }
+    }
+
+    /**
+     * The bounded reject-and-reseed loop for a single [level]: reverse-walk a
+     * candidate per attempt and return the first that clears [passesQualityGates]
+     * (with [forbiddenKeys] applied to the dedup gate). On exhaustion accept the
+     * best-scoring candidate seen — the deterministic fallback that guarantees
+     * termination (T-03-04). Single-threaded and synchronous (Pitfall 1).
+     */
+    private fun generateForLevel(
+        level: Int,
+        tier: DifficultyTier,
+        forbiddenKeys: Set<Long>,
+    ): GeneratedLevel {
         var best: GeneratedLevel? = null
+        var bestScore = FALLBACK_UNSET_SCORE
         var attempt = 0
         while (attempt < GeneratorConstants.MAX_ATTEMPTS) {
             val rng = Random(stableSeed(level, salt = attempt))
             val candidate = walkBack(level, tier, rng)
-            if (candidate.solution.size >= tier.solutionLength) return candidate
-            if (best == null || candidate.solution.size > best.solution.size) best = candidate
+            if (passesQualityGates(candidate, tier, forbiddenKeys)) return candidate
+            val score = candidate.solution.size
+            if (score > bestScore) {
+                best = candidate
+                bestScore = score
+            }
             attempt++
         }
         return requireNotNull(best) { "reverse walk produced no board for level $level" }
     }
+
+    /**
+     * The six quality gates (RESEARCH §Quality Gates, Pitfall 3), applied to a
+     * finished reverse-walk [candidate]. All thresholds are tier knobs or scoped
+     * [GeneratorConstants] — no inline literals (QUAL-03). Any failure means the
+     * caller reseeds with the next deterministic salt.
+     */
+    private fun passesQualityGates(
+        candidate: GeneratedLevel,
+        tier: DifficultyTier,
+        forbiddenKeys: Set<Long>,
+    ): Boolean {
+        val board = candidate.startingBoard
+        val solution = candidate.solution
+        return solution.size >= tier.minSolutionLength &&
+            board.pegCount in tier.pegRange &&
+            RulesEngine.legalMoves(board).size >= tier.minOpeningMoves &&
+            !isForcedLine(board, solution) &&
+            boundingBoxSpread(board) >= tier.minSpread &&
+            canonicalKeyOf(board) !in forbiddenKeys
+    }
+
+    /**
+     * Whether the opening is a fully forced line: EACH of the first
+     * [GeneratorConstants.FORCED_LINE_PREFIX] recorded moves is the only legal move
+     * on its replayed board. Such openings feel scripted (D-06). A single branching
+     * position within the prefix clears the gate.
+     */
+    private fun isForcedLine(
+        startingBoard: Board,
+        solution: List<Move>,
+    ): Boolean {
+        val prefix = minOf(GeneratorConstants.FORCED_LINE_PREFIX, solution.size)
+        var board = startingBoard
+        for (index in 0 until prefix) {
+            if (RulesEngine.legalMoves(board).size > 1) return false
+            board = RulesEngine.applyMove(board, solution[index])
+        }
+        // An empty prefix (prefix == 0) is not a forced line; a fully-traversed
+        // prefix with no branching position is.
+        return prefix > 0
+    }
+
+    /**
+     * The bounding-box spread of [board]'s pegs — the width plus height of their
+     * axis-aligned bounding box. A clumped opening (all pegs in one small corner)
+     * scores low; the [DifficultyTier.minSpread] gate rejects it.
+     */
+    private fun boundingBoxSpread(board: Board): Int {
+        val pegs = board.spec.inPlay.filter { board.cellAt(it) == Cell.Peg }
+        if (pegs.isEmpty()) return 0
+        val minRow = pegs.minOf { it.row }
+        val maxRow = pegs.maxOf { it.row }
+        val minCol = pegs.minOf { it.col }
+        val maxCol = pegs.maxOf { it.col }
+        return (maxRow - minRow) + (maxCol - minCol)
+    }
+
+    /** The symmetry-canonical dedup key for [board] (lifted [BoardCanonical]). */
+    private fun canonicalKeyOf(board: Board): Long =
+        BoardCanonical.canonical(board.pegs, BoardCanonical.symmetryPermutations(board.spec))
 
     /**
      * A portable splitmix64 finalizer over the level number and rejection [salt].
@@ -162,6 +262,9 @@ object LevelGenerator {
 
     /** The lowest valid level; anything below clamps up to it (T-03-01). */
     private const val MIN_LEVEL = 1
+
+    /** Sentinel "no candidate scored yet" for the bounded fallback (any real score is >= 0). */
+    private const val FALLBACK_UNSET_SCORE = -1
 
     /** An orthogonal step vector used to enumerate candidate un-jumps. */
     private data class Direction(

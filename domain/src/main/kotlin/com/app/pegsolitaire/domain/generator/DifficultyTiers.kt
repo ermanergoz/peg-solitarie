@@ -26,7 +26,9 @@ object DifficultyTiers {
         val level = levelNumber.coerceAtLeast(Curve.MIN_LEVEL)
         val fromStart = level - Curve.MIN_LEVEL
 
-        val solutionLength = Curve.SOLUTION_LENGTH_BASE + fromStart / Curve.SOLUTION_LENGTH_STEP_LEVELS
+        val solutionLength =
+            (Curve.SOLUTION_LENGTH_BASE + fromStart / Curve.SOLUTION_LENGTH_STEP_LEVELS)
+                .coerceAtMost(Curve.SOLUTION_LENGTH_MAX)
         val minSolutionLength =
             maxOf(Curve.SOLUTION_LENGTH_BASE, solutionLength - Curve.MIN_SOLUTION_LENGTH_SLACK)
 
@@ -84,6 +86,17 @@ object DifficultyTiers {
 
         /** Levels between each +1 step of the target solution length (primary lever, D-06). */
         const val SOLUTION_LENGTH_STEP_LEVELS = 25
+
+        /**
+         * Ceiling on the target solution length (D-07 playtest cap). A greedy random
+         * reverse walk reliably fills the canonical pool to ~30 un-jumps but not far
+         * beyond (near-full boards leave too few empty cells to un-jump into), so an
+         * uncapped target would make the `minSolutionLength`/`pegRange` gates
+         * unsatisfiable at very high levels. Past this cap the difficulty lever hands
+         * off to footprint size/shape and freeform variety (D-06 — "trickier before
+         * bigger", then bigger). Playtest-tunable before the version is frozen.
+         */
+        const val SOLUTION_LENGTH_MAX = 30
 
         /** How far below the target the gate floor sits (a short winning line still passes). */
         const val MIN_SOLUTION_LENGTH_SLACK = 1

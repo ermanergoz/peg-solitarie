@@ -56,4 +56,23 @@ object GeneratorConstants {
 
     /** Final splitmix64 xor-shift distance. */
     const val MIX_SHIFT_3 = 31
+
+    /**
+     * Forced-line rejection prefix length K (03-02 quality gate, Pitfall 3). A
+     * starting board is rejected if EACH of the first K moves of its recorded
+     * solution is the *only* legal move — a fully forced opening feels scripted
+     * (D-06). Playtest-tunable; the branching floor already guarantees the opening
+     * move itself is never forced.
+     */
+    const val FORCED_LINE_PREFIX = 3
+
+    /**
+     * Symmetry-normalized dedup window (03-02 quality gate, Pitfall 3): a starting
+     * board is rejected if its symmetry-canonical `pegs` key
+     * ([BoardCanonical.canonical]) matches that of any of the previous
+     * [DEDUP_WINDOW] consecutive levels. "Unique in the player's sequence", NOT a
+     * global uniqueness guarantee — the window is bounded so generation stays
+     * O(window) and never scans the infinite level set. Playtest-tunable.
+     */
+    const val DEDUP_WINDOW = 8
 }
