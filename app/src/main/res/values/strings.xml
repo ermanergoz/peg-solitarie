@@ -56,6 +56,7 @@
     <string name="classic_tile_title">Classic</string>
     <string name="classic_tile_supporting">5 boards</string>
     <string name="challenge_tile_title">Challenge</string>
+    <string name="challenge_tile_supporting">Endless levels</string>
     <string name="coming_soon">Coming soon</string>
     <string name="how_to_play">How to play</string>
 

@@ -45,9 +45,10 @@ private typealias ResultsContent =
 @Composable
 fun AppNavHost(
     navController: NavHostController = rememberNavController(),
-    homeContent: @Composable (onPlayClassic: () -> Unit) -> Unit = { onPlayClassic ->
-        HomeRoute(onPlayClassic = onPlayClassic)
-    },
+    homeContent: @Composable (onPlayClassic: () -> Unit, onPlayChallenge: () -> Unit) -> Unit =
+        { onPlayClassic, onPlayChallenge ->
+            HomeRoute(onPlayClassic = onPlayClassic, onPlayChallenge = onPlayChallenge)
+        },
     catalogContent: @Composable (onSelect: (String) -> Unit, onNavigateBack: () -> Unit) -> Unit =
         { onSelect, onNavigateBack ->
             ClassicCatalogRoute(onSelect = onSelect, onNavigateBack = onNavigateBack)
@@ -69,8 +70,11 @@ fun AppNavHost(
 ) {
     NavHost(navController = navController, startDestination = Home) {
         composable<Home> {
-            // homeContent slot: onPlayClassic
-            homeContent { navController.navigate(ClassicCatalog) }
+            // homeContent slot: onPlayClassic, onPlayChallenge
+            homeContent(
+                { navController.navigate(ClassicCatalog) },
+                { navController.navigate(Gameplay(challengeLevel = CHALLENGE_ENTRY_LEVEL)) },
+            )
         }
         composable<ClassicCatalog> {
             // catalogContent slot: onSelect, onNavigateBack
@@ -119,3 +123,10 @@ private fun NavHostController.toBoardFromCatalog(levelId: String) {
 private fun NavHostController.toChallengeBoard(level: Int) {
     navigate(Gameplay(challengeLevel = level)) { popUpTo<Home>() }
 }
+
+/**
+ * The Challenge level the Home tile enters (D-04). This phase tracks progress in memory
+ * and always starts a Challenge run at level 1 (the `ChallengeProgress` initial value);
+ * Phase 5 (CHAL-05) will source the highest-level-reached from persistence here.
+ */
+private const val CHALLENGE_ENTRY_LEVEL = 1

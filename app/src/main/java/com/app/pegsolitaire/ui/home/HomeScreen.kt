@@ -18,7 +18,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -36,13 +35,14 @@ import com.app.pegsolitaire.ui.onboarding.OnboardingOverlay
  * [Scaffold] hosts a [TopAppBar] (title "Peg Solitaire", a trailing How-to-play
  * affordance — D-15) over a centered column, capped at `content_max_width`, of two
  * stacked mode tiles: an enabled Classic tile whose whole surface navigates to the
- * catalog ([onPlayClassic]) and a disabled Challenge tile carrying a "Coming soon"
- * badge with no route (D-09). While [HomeUiState.onboardingVisible], the
- * [OnboardingOverlay] is hosted over the body (first-run, D-14, or the help affordance,
- * D-15); dismissing it calls [onDismissOnboarding] (which `markSeen()`s, D-13).
+ * catalog ([onPlayClassic]) and an enabled Challenge tile whose whole surface enters
+ * Challenge ([onPlayChallenge]) at level 1 (D-04). While [HomeUiState.onboardingVisible],
+ * the [OnboardingOverlay] is hosted over the body (first-run, D-14, or the help
+ * affordance, D-15); dismissing it calls [onDismissOnboarding] (which `markSeen()`s, D-13).
  *
  * @param state the immutable Home UI state (the onboarding-visibility gate).
  * @param onPlayClassic navigates to the Classic catalog (the screen's primary affordance).
+ * @param onPlayChallenge enters Challenge at the current level (D-04).
  * @param onShowHowToPlay re-opens the onboarding overlay any time (D-15).
  * @param onDismissOnboarding dismisses + persists the onboarding (D-13).
  * @param modifier layout modifier for the screen.
@@ -52,6 +52,7 @@ import com.app.pegsolitaire.ui.onboarding.OnboardingOverlay
 fun HomeScreen(
     state: HomeUiState,
     onPlayClassic: () -> Unit,
+    onPlayChallenge: () -> Unit,
     onShowHowToPlay: () -> Unit,
     onDismissOnboarding: () -> Unit,
     modifier: Modifier = Modifier,
@@ -76,7 +77,7 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_md)),
             ) {
                 ClassicTile(onPlayClassic = onPlayClassic)
-                ChallengeTile()
+                ChallengeTile(onPlayChallenge = onPlayChallenge)
             }
         }
     }
@@ -147,16 +148,15 @@ private fun ClassicTile(onPlayClassic: () -> Unit) {
 }
 
 /**
- * The disabled Challenge tile (D-09): an identical-footprint `surfaceContainerHigh`
- * `Card`, `enabled = false` (disabled-alpha content), with a `secondaryContainer`
- * "Coming soon" pill badge top-right. No `onClick`, no route — it reserves the slot
- * for Phase 3.
+ * The enabled Challenge tile (D-04): a neutral `surfaceContainerHigh` `Card` — an exact
+ * peer of [ClassicTile] (NOT accent; enabling it does not make it accent, UI-SPEC S1) —
+ * whose whole surface enters Challenge at level 1 ([onPlayChallenge]). Title "Challenge"
+ * + supporting "Endless levels". Same `mode_tile_min_height` footprint as Classic.
  */
 @Composable
-private fun ChallengeTile() {
+private fun ChallengeTile(onPlayChallenge: () -> Unit) {
     Card(
-        enabled = false,
-        onClick = {},
+        onClick = onPlayChallenge,
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         modifier =
@@ -164,39 +164,23 @@ private fun ChallengeTile() {
                 .fillMaxWidth()
                 .heightIn(min = dimensionResource(R.dimen.mode_tile_min_height)),
     ) {
-        Box(
+        Column(
             modifier =
                 Modifier
                     .fillMaxWidth()
                     .padding(dimensionResource(R.dimen.spacing_md)),
+            verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_xs)),
         ) {
             Text(
                 text = stringResource(R.string.challenge_tile_title),
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.align(Alignment.CenterStart),
+                color = MaterialTheme.colorScheme.onSurface,
             )
-            ComingSoonBadge(modifier = Modifier.align(Alignment.TopEnd))
+            Text(
+                text = stringResource(R.string.challenge_tile_supporting),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
-    }
-}
-
-/** The "Coming soon" pill badge on the disabled Challenge tile (D-09) — deliberately not accent. */
-@Composable
-private fun ComingSoonBadge(modifier: Modifier = Modifier) {
-    Surface(
-        shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        modifier = modifier,
-    ) {
-        Text(
-            text = stringResource(R.string.coming_soon),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
-            modifier =
-                Modifier.padding(
-                    horizontal = dimensionResource(R.dimen.spacing_sm),
-                    vertical = dimensionResource(R.dimen.spacing_xs),
-                ),
-        )
     }
 }
