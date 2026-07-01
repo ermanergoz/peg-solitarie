@@ -1,49 +1,127 @@
 package com.app.pegsolitaire.ui.game
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
+import com.app.pegsolitaire.data.LevelRepository
+import com.app.pegsolitaire.data.SettingsRepository
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.Cell
 import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Move
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
+import com.app.pegsolitaire.domain.scoring.ScoreCalculator
+import com.app.pegsolitaire.domain.scoring.ScoreResult
+import com.app.pegsolitaire.navigation.Gameplay
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.time.TimeMark
+import kotlin.time.TimeSource
 
 /**
  * The single authority that turns untrusted taps into validated domain moves and
  * drives the playable board over an immutable [StateFlow]<[GameUiState]>.
  *
- * All gameplay logic lives here; the Canvas (later plans) is a pure render that
- * only emits [onCellTap] upward. The [RulesEngine] is the sole move authority —
- * every selection rebuilds its legal targets from the engine and a jump only ever
- * applies a [Move] that is a member of `legalMoves` (security seam T-03-01).
+ * The board it plays is selected by the user: the `Gameplay` route's `levelId`
+ * (read via [SavedStateHandle.toRoute]) is resolved through [LevelRepository] —
+ * a forged/unknown id fails fast in the repository, never silently loading the
+ * wrong board (T-02-05-ID); there is no hardcoded English-33 inject (CLAS-02).
  *
- * Selection/jump/restart/game-over follow the locked decisions D-02..D-06:
- * tap-to-select with legal-destination highlights, always-two-step jump (no
- * auto-jump), deselect by re-tap, mid-game restart confirmation, and game-over as
- * replayable [GameUiState.status] (never a one-shot effect).
+ * All gameplay logic (selection/jump/restart, the [RulesEngine] legal-move
+ * authority T-03-01, D-02..D-06) is unchanged from Phase 1. This plan adds two
+ * things: a visible elapsed [GameUiState.elapsedSeconds] timer that starts on the
+ * first move, ticks once per second against the injected [TimeSource], and stops
+ * at a terminal status (D-04); and a one-shot [finished] event carrying the
+ * [ScoreResult] (stars + score) emitted exactly once on Won/Stuck (SCOR-02) — the
+ * Phase-1 game-over overlay is replaced by a navigation to Results (D-05).
+ *
+ * A player-toggleable, persisted hint gate ([GameUiState.showHints]) is collected from
+ * the [SettingsRepository] (fail-open default ON) and flipped by [onToggleHints]; it is
+ * render-only — the destination dots are hidden when off, but selection/jump logic is
+ * unchanged.
  *
  * @param rulesEngine the pure-domain rules authority (injected via `DomainModule`).
- * @param initialBoard the starting board to play and to restart back to (D-01/D-06).
+ * @param levelRepository resolves the selected board from the route's `levelId`.
+ * @param scoreCalculator the pure-domain scoring authority (stars + score).
+ * @param settingsRepository the persisted hint on/off setting (fail-open default ON).
+ * @param timeSource the monotonic clock the timer marks against (test-swappable).
+ * @param savedStateHandle carries the typed `Gameplay(levelId)` route arg.
  */
 @HiltViewModel
 class GameViewModel
     @Inject
     constructor(
         private val rulesEngine: RulesEngine,
-        private val initialBoard: Board,
+        levelRepository: LevelRepository,
+        private val scoreCalculator: ScoreCalculator,
+        private val settingsRepository: SettingsRepository,
+        private val timeSource: TimeSource,
+        savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
+        /** The selected board's catalog id (read by `GameRoute` to build the Results route). */
+        val levelId: String = savedStateHandle.toRoute<Gameplay>().levelId
+
+        private val initialBoard: Board = levelRepository.loadClassic(levelId).initialBoard
+
         private val moveHistory: MutableList<Move> = mutableListOf()
 
         private val _uiState = MutableStateFlow(GameUiState.initial(initialBoard))
 
         /** Read-only state stream for the UI; the mutable flow never leaks (Pitfall 10). */
         val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
+
+        private val _finished = Channel<ScoreResult>(Channel.CONFLATED)
+
+        /**
+         * Fires exactly once when the game reaches Won/Stuck, carrying the computed
+         * [ScoreResult]. Consumed once by `GameRoute` inside a `LaunchedEffect` to
+         * navigate to Results (one-shot — a recomposition can never re-fire it,
+         * Pitfall 4).
+         */
+        val finished: Flow<ScoreResult> = _finished.receiveAsFlow()
+
+        /** The instant the first move was applied; `null` until then (timer not started). */
+        private var startMark: TimeMark? = null
+
+        /** The running per-second ticker, held so a restart/terminal can cancel it. */
+        private var tickerJob: Job? = null
+
+        /** Guards the one-shot [finished] emission so it never re-fires (Pitfall 4). */
+        private var finishedEmitted = false
+
+        init {
+            // The persisted hint setting is the single source of truth for showHints:
+            // collect it into state (fail-open default true until the first emission).
+            viewModelScope.launch {
+                settingsRepository.hintsEnabled.collect { enabled ->
+                    _uiState.update { it.copy(showHints = enabled) }
+                }
+            }
+        }
+
+        /**
+         * Toggles the persisted hint setting (D — player control). Writes the flipped
+         * value through [SettingsRepository]; the collected [SettingsRepository.hintsEnabled]
+         * flow is the authority that drives [GameUiState.showHints], so state updates when
+         * the write lands (single source of truth — no separate optimistic local flip).
+         */
+        fun onToggleHints() {
+            val current = _uiState.value.showHints
+            viewModelScope.launch { settingsRepository.setHintsEnabled(!current) }
+        }
 
         /**
          * Routes a tap on [position] through the locked tap-behavior table
@@ -57,7 +135,9 @@ class GameViewModel
         fun onCellTap(position: Position) {
             val state = _uiState.value
             when {
-                state.selected == position -> clearSelection()
+                // Re-tapping the selected peg is the only deselect (D-04); clear inline.
+                state.selected == position ->
+                    _uiState.update { it.copy(selected = null, legalTargets = emptyList()) }
                 state.selected != null && position in state.legalTargets ->
                     performJump(from = state.selected, to = position)
                 state.selected == null && state.board.cellAt(position) == Cell.Peg ->
@@ -77,16 +157,12 @@ class GameViewModel
             _uiState.update { it.copy(selected = position, legalTargets = targets) }
         }
 
-        /** Clears the current selection and its highlights (D-04 deselect). */
-        private fun clearSelection() {
-            _uiState.update { it.copy(selected = null, legalTargets = emptyList()) }
-        }
-
         /**
          * Commits the jump [from] → [to] to domain state, THEN sets the animation
          * transition (animate-from-committed-state, RESEARCH Q5). The move is
          * re-derived from [RulesEngine.legalMoves] and only applied if present —
-         * the tap-asserted destination is never trusted (T-03-01).
+         * the tap-asserted destination is never trusted (T-03-01). The first applied
+         * move starts the timer; a terminal result emits the one-shot [finished].
          */
         private fun performJump(
             from: Position,
@@ -99,6 +175,7 @@ class GameViewModel
                     .firstOrNull { it.from == from && it.to == to } ?: return
             val nextBoard = rulesEngine.applyMove(board, move)
             moveHistory.add(move)
+            startTimerIfNeeded()
             val transition =
                 MoveTransition(
                     from = move.from,
@@ -106,15 +183,52 @@ class GameViewModel
                     removed = move.over,
                     id = moveHistory.size,
                 )
+            val status = statusFor(nextBoard)
             _uiState.update {
                 it.copy(
                     board = nextBoard,
                     selected = null,
                     legalTargets = emptyList(),
-                    status = statusFor(nextBoard),
+                    status = status,
                     animating = transition,
                 )
             }
+            // One-shot finish (Pitfall 4): on the FIRST transition to a terminal
+            // status, emit the ScoreResult exactly once for GameRoute to consume.
+            if (!finishedEmitted && status != GameStatus.Playing) {
+                finishedEmitted = true
+                tickerJob?.cancel()
+                tickerJob = null
+                val pegsRemaining = nextBoard.pegCount
+                _finished.trySend(
+                    scoreCalculator.evaluate(
+                        pegsRemaining = pegsRemaining,
+                        pegsCleared = initialBoard.pegCount - pegsRemaining,
+                        elapsedSeconds = _uiState.value.elapsedSeconds,
+                    ),
+                )
+            }
+        }
+
+        /**
+         * Starts the visible elapsed timer on the first move (D-04): marks the
+         * monotonic [timeSource] and launches a ticker that writes whole elapsed
+         * seconds into state once per second while the game is [GameStatus.Playing],
+         * stopping at a terminal status so the displayed time freezes.
+         */
+        private fun startTimerIfNeeded() {
+            if (startMark != null) return
+            val mark = timeSource.markNow()
+            startMark = mark
+            tickerJob =
+                viewModelScope.launch {
+                    while (isActive && _uiState.value.status == GameStatus.Playing) {
+                        _uiState.update {
+                            it.copy(elapsedSeconds = mark.elapsedNow().inWholeSeconds.toInt())
+                        }
+                        delay(TIMER_TICK_MILLIS)
+                    }
+                }
         }
 
         /** Clears the in-flight animation once the slide completes (state already committed). */
@@ -148,7 +262,13 @@ class GameViewModel
 
         private fun resetToInitial() {
             moveHistory.clear()
-            _uiState.value = GameUiState.initial(initialBoard)
+            tickerJob?.cancel()
+            tickerJob = null
+            startMark = null
+            finishedEmitted = false
+            // Preserve the player's hint choice across a restart; the collected
+            // settings flow only re-emits on change, so carry it forward explicitly.
+            _uiState.value = GameUiState.initial(initialBoard).copy(showHints = _uiState.value.showHints)
         }
 
         /**
@@ -166,5 +286,8 @@ class GameViewModel
         private companion object {
             /** A board solved to a single remaining peg is a Won game (D-05 "Perfect"). */
             const val SOLVED_PEG_COUNT = 1
+
+            /** The visible timer ticks once per second (D-04). */
+            const val TIMER_TICK_MILLIS = 1_000L
         }
     }
