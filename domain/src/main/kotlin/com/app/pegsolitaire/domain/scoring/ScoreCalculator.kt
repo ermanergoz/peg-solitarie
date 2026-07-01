@@ -29,29 +29,45 @@ object ScoreCalculator {
     /**
      * The ranking score (D-03): [pegsCleared] × [ScoreParams.PEG_VALUE] plus a
      * time bonus that starts at [ScoreParams.TIME_BONUS_CAP] and loses
-     * [ScoreParams.DECAY_PER_SECOND] per elapsed second, floored at 0 so the
-     * score never drops below the peg base regardless of [elapsedSeconds].
+     * [ScoreParams.DECAY_PER_SECOND] per elapsed second, floored at 0 so the base
+     * never drops below the peg term regardless of [elapsedSeconds]. The whole base
+     * is then multiplied by [levelMultiplier] (D-11) — a pure difficulty/level factor
+     * the caller (Challenge's `GameViewModel`) supplies. At the default
+     * [ScoreParams.DEFAULT_LEVEL_MULTIPLIER] the result is byte-identical to the
+     * Phase-2 formula, so Classic is untouched; this function stays free of any
+     * level state (no `ScoreCalculator` ↔ level coupling).
      */
     fun score(
         pegsCleared: Int,
         elapsedSeconds: Int,
+        levelMultiplier: Int = ScoreParams.DEFAULT_LEVEL_MULTIPLIER,
     ): Int =
-        pegsCleared * ScoreParams.PEG_VALUE +
-            maxOf(0, ScoreParams.TIME_BONUS_CAP - elapsedSeconds * ScoreParams.DECAY_PER_SECOND)
+        (
+            pegsCleared * ScoreParams.PEG_VALUE +
+                maxOf(0, ScoreParams.TIME_BONUS_CAP - elapsedSeconds * ScoreParams.DECAY_PER_SECOND)
+        ) * levelMultiplier
 
     /**
      * Assembles a [ScoreResult] for the Results destination (02-07): computes
-     * [stars] from [pegsRemaining] and [score] from [pegsCleared]/[elapsedSeconds],
-     * bundling the inputs alongside the derived values.
+     * [stars] from [pegsRemaining] and [score] from [pegsCleared]/[elapsedSeconds]
+     * (scaled by [levelMultiplier], D-11), bundling the inputs alongside the derived
+     * values. [stars] is deliberately NOT re-based on the multiplier — a 1-peg solve
+     * stays 3 stars whatever the level (D-11).
      */
     fun evaluate(
         pegsRemaining: Int,
         pegsCleared: Int,
         elapsedSeconds: Int,
+        levelMultiplier: Int = ScoreParams.DEFAULT_LEVEL_MULTIPLIER,
     ): ScoreResult =
         ScoreResult(
             stars = stars(pegsRemaining),
-            score = score(pegsCleared = pegsCleared, elapsedSeconds = elapsedSeconds),
+            score =
+                score(
+                    pegsCleared = pegsCleared,
+                    elapsedSeconds = elapsedSeconds,
+                    levelMultiplier = levelMultiplier,
+                ),
             pegsRemaining = pegsRemaining,
             pegsCleared = pegsCleared,
             elapsedSeconds = elapsedSeconds,
