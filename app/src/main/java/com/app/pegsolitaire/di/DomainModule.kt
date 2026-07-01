@@ -1,5 +1,6 @@
 package com.app.pegsolitaire.di
 
+import com.app.pegsolitaire.domain.generator.LevelGenerator
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import dagger.Module
@@ -31,6 +32,15 @@ object DomainModule {
     @Provides
     @Singleton
     fun provideScoreCalculator(): ScoreCalculator = ScoreCalculator
+
+    /**
+     * The stateless, deterministic Challenge-level generator (CHAL-01..04). Provided
+     * here as an `:app` seam because the domain object carries no Hilt annotations
+     * (QUAL-01); `GeneratedChallengeLevelSource` injects it behind the repository.
+     */
+    @Provides
+    @Singleton
+    fun provideLevelGenerator(): LevelGenerator = LevelGenerator
 
     /**
      * The monotonic clock the in-game timer marks against (D-04). Provided as an
