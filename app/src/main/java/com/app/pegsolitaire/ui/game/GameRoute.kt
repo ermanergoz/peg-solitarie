@@ -44,6 +44,7 @@ fun GameRoute(
                     pegsRemaining = result.pegsRemaining,
                     elapsedSeconds = result.elapsedSeconds,
                     score = result.score,
+                    challengeLevel = viewModel.challengeLevel,
                 ),
             )
         }
@@ -59,5 +60,6 @@ fun GameRoute(
         onToggleHints = viewModel::onToggleHints,
         onNavigateBack = onNavigateBack,
         modifier = modifier,
+        challengeLevel = viewModel.challengeLevel,
     )
 }
