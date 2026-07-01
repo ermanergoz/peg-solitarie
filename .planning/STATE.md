@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: ready_to_plan
 stopped_at: Completed 03-02-PLAN.md (generator determinism lock committed)
-last_updated: "2026-07-01T19:23:03.271Z"
+last_updated: "2026-07-01T19:47:41.067Z"
 last_activity: 2026-07-01
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 18
-  completed_plans: 17
-  percent: 40
+  completed_plans: 18
+  percent: 60
 ---
 
 # Project State
@@ -30,7 +30,7 @@ Plan: 5 of 5
 Next: Phase 02 (classic-mode-scoring-navigation) — not yet planned
 Last activity: 2026-07-01
 
-Progress: [█████████░] 94%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -69,6 +69,7 @@ Progress: [█████████░] 94%
 | Phase 03 P02 | 15 | 3 tasks | 14 files |
 | Phase 03 P03-03 | 4 | - tasks | - files |
 | Phase 03 P04 | 4 | - tasks | - files |
+| Phase 03 P05 | 6 | - tasks | - files |
 
 ## Accumulated Context
 
@@ -107,6 +108,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 03-03: ChallengeProgress is an in-memory @Singleton StateFlow<Int> holder (D-04), shaped as the Phase-5 persistence seam
 - [Phase ?]: 03-04: Unified LevelRef — one Gameplay route with a nullable challengeLevel drives both mode load paths and the title slot; no separate Challenge VM/route, no if(challenge) in board logic
 - [Phase ?]: 03-04: GameViewModel reads DifficultyTiers.forLevel(n).scoreMultiplier directly (pure :domain) and clamps challengeLevel<1 at the VM boundary (T-03-09)
+- [Phase ?]: 03-05: Mode routing lives in AppNavHost (Results invokes onNextLevel/onRetry; graph selects destination) — screens stay mode-agnostic; every Challenge board-hop uses popUpTo(Home) so the infinite ladder never grows the back stack (T-03-11). Home Challenge tile enabled as a neutral surfaceContainerHigh peer (not accent), entering Challenge at level 1 (D-04). On-device playability checkpoint APPROVED by user.
 
 ### Pending Todos
 
@@ -134,6 +136,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-01T19:23:03.266Z
+Last session: 2026-07-01T19:47:33.804Z
 Stopped at: Completed 03-02-PLAN.md (generator determinism lock committed)
 Resume file: None

@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Domain Foundation & Playable Board** - Pure-Kotlin core + one hardcoded board playable end-to-end, with CI standards gates established up front (completed 2026-06-28)
 - [x] **Phase 2: Classic Mode, Scoring & Navigation** - Home → pick 1 of 5 classic boards → play → results with stars/score; full screen flow + LevelRepository seam (completed 2026-06-29)
-- [ ] **Phase 3: Challenge Generation & Difficulty Curve** - Infinite, deterministic, guaranteed-solvable generated levels with scaling difficulty (project #1 risk)
+- [x] **Phase 3: Challenge Generation & Difficulty Curve** - Infinite, deterministic, guaranteed-solvable generated levels with scaling difficulty (project #1 risk) (completed 2026-07-01)
 - [ ] **Phase 4: Assist — Hint & Undo** - State-relative hint (canonical line + Solver fallback + "no winning move" state) and undo
 - [ ] **Phase 5: Persistence, Resume & Settings** - Per-level results, continue-from-highest, in-progress resume, sound/haptics — migration-safe
 
@@ -76,7 +76,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 03-02-PLAN.md — Quality gates + freeform footprints + golden-master determinism lock (levels 1/2/10/100/1000) [CHAL-01, CHAL-02, CHAL-03, CHAL-04]
 - [x] 03-03-PLAN.md — LevelRepository seam (real Challenge source) + solution/version carry-through + level-scaled score + ChallengeProgress [CHAL-01, CHAL-03, CHAL-04]
 - [x] 03-04-PLAN.md — Challenge routes + GameViewModel challenge load + "Level N" title [CHAL-01, CHAL-04]
-- [ ] 03-05-PLAN.md — Challenge-aware Results (Next level/Retry) + enabled Home tile + NavHost wiring + playability checkpoint [CHAL-01]
+- [x] 03-05-PLAN.md — Challenge-aware Results (Next level/Retry) + enabled Home tile + NavHost wiring + playability checkpoint [CHAL-01]
 **Risk**: This is the project's #1 risk. The golden-master CI fixture MUST be locked before any difficulty tuning begins (no generator code ships without it). Treat the difficulty-curve sub-phase as a playtest-iteration loop — knob values (minimum solution length per tier, spatial-spread threshold, footprint sizes by level range) cannot be set by static analysis and must be playtested across the full level range before the `generatorVersion` contract is frozen. Quality gates (solution-length floor, spatial spread, branching-factor floor, symmetry-normalized dedup) reject-and-reseed degenerate boards.
 
 ### Phase 4: Assist — Hint & Undo
@@ -117,6 +117,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Domain Foundation & Playable Board | 5/5 | Complete   | 2026-06-28 |
 | 2. Classic Mode, Scoring & Navigation | 8/8 | Complete   | 2026-06-29 |
-| 3. Challenge Generation & Difficulty Curve | 4/5 | In Progress|  |
+| 3. Challenge Generation & Difficulty Curve | 5/5 | Complete   | 2026-07-01 |
 | 4. Assist — Hint & Undo | 0/TBD | Not started | - |
 | 5. Persistence, Resume & Settings | 0/TBD | Not started | - |
