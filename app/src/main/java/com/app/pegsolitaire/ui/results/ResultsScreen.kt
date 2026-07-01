@@ -66,9 +66,11 @@ private var SemanticsPropertyReceiver.earnedStarCountValue by EarnedStarCountKey
  * [ResultsUiState.elapsedSeconds] via [GameTimerFormat] — no scoring is recomputed here.
  *
  * @param state the immutable Results UI state to render.
- * @param onReplay re-plays the same level (carries `replayId`).
- * @param onCatalog pops back to the Classic catalog.
+ * @param onReplay re-plays the same level (carries `replayId`). Classic only.
+ * @param onCatalog pops back to the Classic catalog. Classic only.
  * @param onHome pops back to Home.
+ * @param onNextLevel advances a solved Challenge level to N+1 (carries the next level, D-01).
+ * @param onRetry reloads the same deterministic Challenge board when stuck (carries N, D-10).
  * @param onNavigateBack leaves the Results screen (top-bar back nav).
  * @param modifier layout modifier for the screen.
  */
@@ -79,6 +81,8 @@ fun ResultsScreen(
     onReplay: (String) -> Unit,
     onCatalog: () -> Unit,
     onHome: () -> Unit,
+    onNextLevel: (Int) -> Unit,
+    onRetry: (Int) -> Unit,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -117,6 +121,8 @@ fun ResultsScreen(
                     onReplay = onReplay,
                     onCatalog = onCatalog,
                     onHome = onHome,
+                    onNextLevel = onNextLevel,
+                    onRetry = onRetry,
                 )
             }
         }
@@ -228,9 +234,15 @@ private fun Metric(
 }
 
 /**
- * The three actions: a single filled `primary` Replay [Button] (the one accent on the
- * screen, carrying `replayId`) over neutral Catalog / Home buttons with `onSurface`
- * labels. Classic has no "next board" (a Challenge-mode concept), so it is absent.
+ * The end-of-game actions, mode-aware with strict one-accent discipline (UI-SPEC S3):
+ * exactly one filled `primary` [Button] per state, the sole accent on the screen.
+ *
+ * - Classic ([ResultsUiState.challengeLevel] == null): a filled Replay (carrying
+ *   `replayId`) over neutral Catalog / Home buttons — Classic has no "next board".
+ * - Challenge solved ([ResultsUiState.showNextLevel], D-01): a filled "Next level"
+ *   advancing to N+1 over a neutral Home. No Replay/Catalog.
+ * - Challenge stuck (D-10): a filled "Retry" reloading the same deterministic board (N)
+ *   over a neutral Home. "Next level" is absent.
  */
 @Composable
 private fun ResultsActions(
@@ -238,40 +250,86 @@ private fun ResultsActions(
     onReplay: (String) -> Unit,
     onCatalog: () -> Unit,
     onHome: () -> Unit,
+    onNextLevel: (Int) -> Unit,
+    onRetry: (Int) -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_sm)),
     ) {
-        Button(
-            onClick = { onReplay(state.replayId) },
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(
-                text = stringResource(R.string.action_replay),
-                style = MaterialTheme.typography.labelLarge,
+        val challengeLevel = state.challengeLevel
+        if (challengeLevel == null) {
+            ClassicActions(replayId = state.replayId, onReplay = onReplay, onCatalog = onCatalog)
+        } else if (state.showNextLevel) {
+            PrimaryAction(
+                textRes = R.string.action_next_level,
+                onClick = { onNextLevel(challengeLevel + 1) },
+            )
+        } else {
+            PrimaryAction(
+                textRes = R.string.action_retry,
+                onClick = { onRetry(challengeLevel) },
             )
         }
-        OutlinedButton(
-            onClick = onCatalog,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(
-                text = stringResource(R.string.action_catalog),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
-        TextButton(
-            onClick = onHome,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(
-                text = stringResource(R.string.action_home),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
+        NeutralAction(textRes = R.string.action_home, onClick = onHome)
+    }
+}
+
+/**
+ * The Classic action pair: the one filled `primary` Replay accent over a neutral
+ * `OutlinedButton` Catalog (the shared Home neutral is appended by the caller).
+ */
+@Composable
+private fun ClassicActions(
+    replayId: String,
+    onReplay: (String) -> Unit,
+    onCatalog: () -> Unit,
+) {
+    PrimaryAction(textRes = R.string.action_replay, onClick = { onReplay(replayId) })
+    OutlinedButton(
+        onClick = onCatalog,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = stringResource(R.string.action_catalog),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+/** The single filled `primary` accent button for the current state (the one accent, UI-SPEC S3). */
+@Composable
+private fun PrimaryAction(
+    textRes: Int,
+    onClick: () -> Unit,
+) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = stringResource(textRes),
+            style = MaterialTheme.typography.labelLarge,
+        )
+    }
+}
+
+/** A neutral secondary action with an `onSurface` label — deliberately not accent. */
+@Composable
+private fun NeutralAction(
+    textRes: Int,
+    onClick: () -> Unit,
+) {
+    TextButton(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = stringResource(textRes),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 

@@ -21,6 +21,9 @@ import androidx.compose.runtime.Immutable
  * @property score the ranking score (SCORE metric, D-03).
  * @property headlineTier the star-tiered headline bucket (D-08).
  * @property replayId the board just played — Replay re-plays this same level.
+ * @property challengeLevel the Challenge level just played, or `null` for a Classic game.
+ *   When non-null the screen renders the mode-aware Challenge actions (Next level / Retry,
+ *   D-01/D-10) instead of the Classic Replay / Catalog / Home trio.
  */
 @Immutable
 data class ResultsUiState(
@@ -30,7 +33,20 @@ data class ResultsUiState(
     val score: Int,
     val headlineTier: ResultsHeadlineTier,
     val replayId: String,
-)
+    val challengeLevel: Int? = null,
+) {
+    /**
+     * Whether the "Next level" action is offered (D-01): only a solved Challenge level
+     * advances. Solved ⇔ exactly one peg by construction, so a stuck Challenge board
+     * ([pegsRemaining] >= 2) yields `false` and gets Retry instead (D-10). Always `false`
+     * for Classic ([challengeLevel] == null).
+     */
+    val showNextLevel: Boolean
+        get() = challengeLevel != null && pegsRemaining == PEGS_REMAINING_SOLVED
+}
+
+/** A solved board leaves exactly one peg — the sole state that unlocks the next level (D-01). */
+private const val PEGS_REMAINING_SOLVED = 1
 
 /**
  * The three star-outcome headline buckets (D-08). The tier → string-resource mapping

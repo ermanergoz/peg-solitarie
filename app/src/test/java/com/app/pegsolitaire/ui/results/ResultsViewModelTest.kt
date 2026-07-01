@@ -55,23 +55,69 @@ class ResultsViewModelTest {
         assertThat(state.score).isEqualTo(SAMPLE_SCORE)
     }
 
+    @Test
+    fun solvedChallengeLevelOffersNextLevel() {
+        val viewModel =
+            viewModelFor(
+                levelId = "",
+                stars = THREE_STARS,
+                pegsRemaining = SOLVED_PEGS_REMAINING,
+                challengeLevel = SAMPLE_CHALLENGE_LEVEL,
+            )
+
+        val state = viewModel.uiState.value
+        assertThat(state.challengeLevel).isEqualTo(SAMPLE_CHALLENGE_LEVEL)
+        assertThat(state.showNextLevel).isTrue()
+    }
+
+    @Test
+    fun stuckChallengeLevelDoesNotOfferNextLevel() {
+        val viewModel =
+            viewModelFor(
+                levelId = "",
+                stars = ONE_STAR,
+                pegsRemaining = SAMPLE_PEGS_REMAINING,
+                challengeLevel = SAMPLE_CHALLENGE_LEVEL,
+            )
+
+        assertThat(viewModel.uiState.value.showNextLevel).isFalse()
+    }
+
+    @Test
+    fun classicResultsNeverOffersNextLevelAndKeepsReplaySemantics() {
+        val viewModel =
+            viewModelFor(
+                levelId = ClassicLevelIds.ENGLISH33,
+                stars = THREE_STARS,
+                pegsRemaining = SOLVED_PEGS_REMAINING,
+                challengeLevel = null,
+            )
+
+        val state = viewModel.uiState.value
+        assertThat(state.challengeLevel).isNull()
+        assertThat(state.showNextLevel).isFalse()
+        assertThat(state.replayId).isEqualTo(ClassicLevelIds.ENGLISH33)
+    }
+
     private fun viewModelFor(
         levelId: String,
         stars: Int,
         pegsRemaining: Int = SAMPLE_PEGS_REMAINING,
         elapsedSeconds: Int = SAMPLE_ELAPSED_SECONDS,
         score: Int = SAMPLE_SCORE,
+        challengeLevel: Int? = null,
     ): ResultsViewModel =
         ResultsViewModel(
             savedStateHandle =
                 SavedStateHandle(
-                    mapOf(
-                        LEVEL_ID_ARG to levelId,
-                        STARS_ARG to stars,
-                        PEGS_REMAINING_ARG to pegsRemaining,
-                        ELAPSED_SECONDS_ARG to elapsedSeconds,
-                        SCORE_ARG to score,
-                    ),
+                    buildMap {
+                        put(LEVEL_ID_ARG, levelId)
+                        put(STARS_ARG, stars)
+                        put(PEGS_REMAINING_ARG, pegsRemaining)
+                        put(ELAPSED_SECONDS_ARG, elapsedSeconds)
+                        put(SCORE_ARG, score)
+                        if (challengeLevel != null) put(CHALLENGE_LEVEL_ARG, challengeLevel)
+                    },
                 ),
         )
 }
@@ -85,6 +131,7 @@ private const val STARS_ARG = "stars"
 private const val PEGS_REMAINING_ARG = "pegsRemaining"
 private const val ELAPSED_SECONDS_ARG = "elapsedSeconds"
 private const val SCORE_ARG = "score"
+private const val CHALLENGE_LEVEL_ARG = "challengeLevel"
 
 /** Earned-star counts for the three D-08 headline tiers. */
 private const val THREE_STARS = 3
@@ -95,3 +142,9 @@ private const val ONE_STAR = 1
 private const val SAMPLE_PEGS_REMAINING = 3
 private const val SAMPLE_ELAPSED_SECONDS = 75
 private const val SAMPLE_SCORE = 1234
+
+/** A solved board leaves exactly one peg — the sole state that unlocks the next level (D-01). */
+private const val SOLVED_PEGS_REMAINING = 1
+
+/** An arbitrary in-progress Challenge level number. */
+private const val SAMPLE_CHALLENGE_LEVEL = 5

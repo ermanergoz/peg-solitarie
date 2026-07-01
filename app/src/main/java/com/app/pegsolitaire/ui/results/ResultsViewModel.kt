@@ -41,6 +41,7 @@ class ResultsViewModel
                     score = args.score,
                     headlineTier = tierFor(args.stars),
                     replayId = args.levelId,
+                    challengeLevel = args.challengeLevel,
                 ),
             )
 

@@ -49,6 +49,8 @@ class ResultsScreenTest {
                     onReplay = {},
                     onCatalog = {},
                     onHome = {},
+                    onNextLevel = {},
+                    onRetry = {},
                     onNavigateBack = {},
                 )
             }
@@ -80,6 +82,55 @@ class ResultsScreenTest {
         composeRule.onAllNodesWithText(NEXT_BOARD_LABEL).assertCountEquals(0)
     }
 
+    @Test
+    fun solvedChallengeShowsExactlyOneNextLevelAndNoReplayOrRetry() {
+        composeRule.setContent {
+            AppTheme {
+                ResultsScreen(
+                    state = SOLVED_CHALLENGE_STATE,
+                    onReplay = {},
+                    onCatalog = {},
+                    onHome = {},
+                    onNextLevel = {},
+                    onRetry = {},
+                    onNavigateBack = {},
+                )
+            }
+        }
+        composeRule.waitForIdle()
+
+        // Exactly one filled primary "Next level" (the sole accent), plus neutral Home.
+        composeRule.onAllNodesWithText(context.getString(R.string.action_next_level)).assertCountEquals(1)
+        assertTextDisplayed(R.string.action_home)
+        // No Retry, Replay, or Catalog on a solved Challenge result.
+        composeRule.onAllNodesWithText(context.getString(R.string.action_retry)).assertCountEquals(0)
+        composeRule.onAllNodesWithText(context.getString(R.string.action_replay)).assertCountEquals(0)
+        composeRule.onAllNodesWithText(context.getString(R.string.action_catalog)).assertCountEquals(0)
+    }
+
+    @Test
+    fun stuckChallengeShowsExactlyOneRetryAndNoNextLevel() {
+        composeRule.setContent {
+            AppTheme {
+                ResultsScreen(
+                    state = STUCK_CHALLENGE_STATE,
+                    onReplay = {},
+                    onCatalog = {},
+                    onHome = {},
+                    onNextLevel = {},
+                    onRetry = {},
+                    onNavigateBack = {},
+                )
+            }
+        }
+        composeRule.waitForIdle()
+
+        // Exactly one filled primary "Retry" (the sole accent), plus neutral Home; no "Next level".
+        composeRule.onAllNodesWithText(context.getString(R.string.action_retry)).assertCountEquals(1)
+        assertTextDisplayed(R.string.action_home)
+        composeRule.onAllNodesWithText(context.getString(R.string.action_next_level)).assertCountEquals(0)
+    }
+
     private fun assertTextDisplayed(resId: Int) {
         composeRule.onNodeWithText(context.getString(resId)).performScrollTo().assertIsDisplayed()
     }
@@ -106,3 +157,37 @@ private val SAMPLE_STATE =
         headlineTier = ResultsHeadlineTier.SOLVED,
         replayId = ClassicLevelIds.ENGLISH33,
     )
+
+/** A solved Challenge level (one peg) — offers "Next level" (D-01). */
+private val SOLVED_CHALLENGE_STATE =
+    ResultsUiState(
+        stars = PERFECT_STARS,
+        pegsRemaining = SOLVED_PEGS_REMAINING,
+        elapsedSeconds = SAMPLE_ELAPSED_SECONDS,
+        score = SAMPLE_SCORE,
+        headlineTier = ResultsHeadlineTier.PERFECT,
+        replayId = "",
+        challengeLevel = SAMPLE_CHALLENGE_LEVEL,
+    )
+
+/** A stuck Challenge level (pegs left) — offers "Retry", not "Next level" (D-10). */
+private val STUCK_CHALLENGE_STATE =
+    ResultsUiState(
+        stars = STUCK_STARS,
+        pegsRemaining = SAMPLE_PEGS_REMAINING,
+        elapsedSeconds = SAMPLE_ELAPSED_SECONDS,
+        score = SAMPLE_SCORE,
+        headlineTier = ResultsHeadlineTier.STUCK,
+        replayId = "",
+        challengeLevel = SAMPLE_CHALLENGE_LEVEL,
+    )
+
+/** An arbitrary in-progress Challenge level number. */
+private const val SAMPLE_CHALLENGE_LEVEL = 5
+
+/** A textbook solve earns three stars and leaves a single peg. */
+private const val PERFECT_STARS = 3
+private const val SOLVED_PEGS_REMAINING = 1
+
+/** A stuck board floors at one star. */
+private const val STUCK_STARS = 1
