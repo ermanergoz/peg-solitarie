@@ -34,7 +34,10 @@ in scoring/persistence whose tests give false confidence.
 
 ## Critical Issues
 
-### CR-01: Diamond-41 ships as a "guaranteed-solvable" Classic board with no solvability proof, and its KDoc falsely claims one exists
+### CR-01: Diamond-41 ships as a "guaranteed-solvable" Classic board with no solvability proof, and its KDoc falsely claims one exists  — ✅ RESOLVED (commit 6b3d77d)
+
+> **Resolution:** Traced to a faulty requirement, not a code defect. The reference game scores on fewest pegs remaining (no one-peg win), and the GF(4) colour invariant proves the canonical center-start diamond has no single-peg solution. Diamond-41 realigned to its authentic center start; all false D-19 fixture claims removed and replaced with the GF(4) rationale across Boards.kt / SolutionTest.kt / AuthoringSolver.kt. D-19 now correctly scopes to the four cross boards that genuinely reduce to one peg. WR-01/WR-02/WR-03/IN-01/IN-02 remain open as advisory follow-ups.
+
 
 **File:** `domain/src/main/kotlin/com/app/pegsolitaire/domain/model/Boards.kt` (Diamond41Layout KDoc + spec)
 **Also:** `app/.../data/ClassicLevelSource.kt` (ships it in the catalog);

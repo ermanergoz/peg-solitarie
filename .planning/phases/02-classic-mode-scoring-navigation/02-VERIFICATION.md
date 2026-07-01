@@ -1,9 +1,25 @@
 ---
 phase: 02-classic-mode-scoring-navigation
 verified: 2026-06-30T00:00:00Z
-status: gaps_found
-score: 5/6 must-have truths verified
+status: passed
+score: 6/6 (gap resolved — faulty requirement corrected)
 overrides_applied: 0
+resolution: >
+  The single gap (Diamond-41 missing a D-19 one-peg fixture + false KDoc) was traced to
+  a FAULTY INTERNAL REQUIREMENT, not a code defect. The reference game
+  (github.com/ermanergoz/peg-solitarie) scores on FEWEST PEGS REMAINING with no one-peg
+  win condition, and the GF(4) colour invariant PROVES the canonical center-start
+  diamond has no single-peg solution (randomized + backtracking search confirm a floor
+  of several pegs). Resolution (commit 6b3d77d): Diamond-41 realigned to its canonical
+  center start (40 pegs); all false "validated fixture (D-19)" claims removed from
+  Boards.kt, SolutionTest.kt, and AuthoringSolver.kt and replaced with the GF(4)
+  rationale. D-19 correctly applies only to the four cross boards (english33 / european37
+  / asymmetric39 / wiegleb45), which DO reduce to one peg and have committed fixtures.
+  All 5 ROADMAP success criteria met; gates green (:domain:test :app:testDebugUnitTest
+  ktlintCheck detekt → BUILD SUCCESSFUL).
+follow_ups:
+  - "Star fairness (non-blocking, product decision): under D-01 (<=1 peg -> 3 stars) the diamond's ~5-peg floor caps it at 1 star. Consider per-board star thresholds so the diamond rewards skill, or accept it as the hardest board."
+original_status_was: gaps_found
 gaps:
   - truth: "Every non-trivial board has a committed recorded winning move-list that replays through RulesEngine down to exactly one peg (D-19 — proves 3-star is reachable without shipping a Solver)."
     status: failed
