@@ -72,7 +72,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Difficulty visibly scales with level number via board size/shape, peg density, and starting empty-pattern.
   4. Every generated/served board carries a `generatorVersion` stamp, and all difficulty knobs are data-driven (frozen before release, never magic literals).
 **Plans**: 5 plans (waves 1→5)
-- [ ] 03-01-PLAN.md — Deterministic reverse-generation core + solvability/tier invariants [CHAL-02, CHAL-03, CHAL-04]
+- [x] 03-01-PLAN.md — Deterministic reverse-generation core + solvability/tier invariants [CHAL-02, CHAL-03, CHAL-04]
 - [ ] 03-02-PLAN.md — Quality gates + freeform footprints + golden-master determinism lock (levels 1/2/10/100/1000) [CHAL-01, CHAL-02, CHAL-03, CHAL-04]
 - [ ] 03-03-PLAN.md — LevelRepository seam (real Challenge source) + solution/version carry-through + level-scaled score + ChallengeProgress [CHAL-01, CHAL-03, CHAL-04]
 - [ ] 03-04-PLAN.md — Challenge routes + GameViewModel challenge load + "Level N" title [CHAL-01, CHAL-04]
@@ -117,6 +117,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|----------------|--------|-----------|
 | 1. Domain Foundation & Playable Board | 5/5 | Complete   | 2026-06-28 |
 | 2. Classic Mode, Scoring & Navigation | 8/8 | Complete   | 2026-06-29 |
-| 3. Challenge Generation & Difficulty Curve | 0/5 | Not started | - |
+| 3. Challenge Generation & Difficulty Curve | 1/5 | In Progress|  |
 | 4. Assist — Hint & Undo | 0/TBD | Not started | - |
 | 5. Persistence, Resume & Settings | 0/TBD | Not started | - |

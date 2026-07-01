@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: ready_to_plan
 stopped_at: Phase 03 UI-SPEC approved
-last_updated: "2026-07-01T18:30:56.771Z"
-last_activity: 2026-07-01 -- Phase 03 execution started
+last_updated: "2026-07-01T18:43:34.054Z"
+last_activity: 2026-07-01
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 18
-  completed_plans: 13
+  completed_plans: 14
   percent: 40
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 03 (challenge-generation-difficulty-curve) — EXECUTING
-Plan: 1 of 5
+Plan: 2 of 5
 Next: Phase 02 (classic-mode-scoring-navigation) — not yet planned
-Last activity: 2026-07-01 -- Phase 03 execution started
+Last activity: 2026-07-01
 
-Progress: [██████████] 100%
+Progress: [████████░░] 78%
 
 ## Performance Metrics
 
@@ -65,6 +65,7 @@ Progress: [██████████] 100%
 | Phase 02 P07 | 14 | 2 tasks | 7 files |
 | Phase 02 P06 | 18 | 2 tasks | 6 files |
 | Phase 02 P08 | 35 | 3 tasks | 11 files |
+| Phase 03 P01 | 16 | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 02] Plan 08: AppNavHost closes the 5-screen spine into MainActivity (replacing the Phase-1 direct GameRoute()); destination bodies are default-valued @Composable slots wired to the real *Route so NavFlowTest drives the real nav lambdas without Hilt test infra (NAV-02).
 - [Phase ?]: [Phase 02] Plan 08: OnboardingRepository is a single onboarding_seen DataStore-Preferences boolean with a catch->emptyPreferences fail-open (D-16); an internal DataStore constructor seam makes default/markSeen/fail-open unit-testable; the open class is faked via a MutableStateFlow in HomeViewModelTest.
 - [Phase ?]: [Phase 02] Plan 08: How-to-play uses core-set Icons.Rounded.Info (extended-set HelpOutline avoided); onboarding illustrations reuse read-only BoardPreview over a 1x3 jump board; NavFlowTest asserts reachability via currentDestination.route (reified hasRoute<T>() unresolvable on navigation-compose 2.9.8 test classpath).
+- [Phase 03]: Plan 01: Challenge generator is pure-:domain reverse-generation (un-jump from a solved 1-peg board) — solvable by construction; recorded solution replays forward through unchanged RulesEngine.applyMove (no ReverseMove type). Determinism via portable splitmix64 stableSeed + PRNG index only against a RulesEngine-sorted List + single-threaded generate; bounded MAX_ATTEMPTS accepts best board so an untrusted levelNumber never hangs (T-03-01). GENERATOR_VERSION stamped from day one.
+- [Phase 03]: Plan 01: DifficultyTiers.forLevel is a CONTINUOUS integer-division growth mapping (A4/D-05), not stepped when(range) — solutionLength is the primary lever rising first/steadily (D-06), footprint pool widens later; freeform gated by freeformIntroLevel=40. Knob VALUES are playtest-tunable placeholders in a scoped Curve const object (D-07); structure is final. Invariants locked by output-agnostic JVM tests that survive 03-02 gate/freeform additions.
 
 ### Pending Todos
 
@@ -121,6 +124,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-01T15:09:27.997Z
+Last session: 2026-07-01T18:43:14.673Z
 Stopped at: Phase 03 UI-SPEC approved
-Resume file: .planning/phases/03-challenge-generation-difficulty-curve/03-UI-SPEC.md
+Resume file: None
