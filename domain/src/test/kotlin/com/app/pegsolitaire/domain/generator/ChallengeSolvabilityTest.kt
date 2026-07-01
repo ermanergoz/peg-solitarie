@@ -42,8 +42,11 @@ class ChallengeSolvabilityTest {
             val first = LevelGenerator.generate(n)
             val second = LevelGenerator.generate(n)
 
+            // Freeform footprints (levels >= freeformIntroLevel) are fresh BoardSpec
+            // instances per call, so identity does not hold — but the footprint CONTENT
+            // (its in-play positions), the pegs, and the solution are fully deterministic.
             assertThat(second.startingBoard.pegs).isEqualTo(first.startingBoard.pegs)
-            assertThat(second.startingBoard.spec).isSameInstanceAs(first.startingBoard.spec)
+            assertThat(second.startingBoard.spec.inPlay).isEqualTo(first.startingBoard.spec.inPlay)
             assertThat(second.solution).isEqualTo(first.solution)
         }
     }

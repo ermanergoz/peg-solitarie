@@ -75,4 +75,40 @@ object GeneratorConstants {
      * O(window) and never scans the infinite level set. Playtest-tunable.
      */
     const val DEDUP_WINDOW = 8
+
+    /**
+     * Hard cap on a footprint's in-play cell count — the domain `Board` is a single
+     * `Long` peg-bitmask, so no footprint (canonical or freeform) may exceed 64
+     * cells (D-09, T-03-05). The freeform builder rejects any candidate above this.
+     */
+    const val MAX_IN_PLAY_CELLS = 64
+
+    /**
+     * The square bounding-box side length freeform shapes are grown within (D-09).
+     * Sized so `dim * dim` == [MAX_IN_PLAY_CELLS] (8x8 == 64) — the shape can never
+     * out-grow the bitmask cap, and the box stays proportionate to the cell count so
+     * `BoardGeometry` renders it at a sensible scale (RESEARCH grid-dimension
+     * caution). Playtest-tunable.
+     */
+    const val FREEFORM_BOUNDING_DIM = 8
+
+    /**
+     * Lower bound on a freeform shape's cell count, so a freeform board is never a
+     * tiny sliver with no room to play. Playtest-tunable.
+     */
+    const val FREEFORM_MIN_CELLS = 12
+
+    /**
+     * Extra cells grown above the tier's upper peg bound, so a freeform footprint
+     * has empty headroom for the reverse walk to un-jump into (a too-tight shape
+     * would dead-end and reseed). Playtest-tunable.
+     */
+    const val FREEFORM_SIZE_HEADROOM = 6
+
+    /**
+     * How many candidate shapes the freeform builder grows before keeping the most
+     * symmetric one (D-09 — "prefer symmetric/aesthetically-intentional shapes where
+     * cheap"). Bounded so the build stays cheap. Playtest-tunable.
+     */
+    const val FREEFORM_SYMMETRY_CANDIDATES = 4
 }

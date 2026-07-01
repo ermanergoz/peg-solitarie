@@ -111,8 +111,11 @@ class QualityGateTest {
             val first = LevelGenerator.generate(n)
             val second = LevelGenerator.generate(n)
 
+            // Freeform footprints are fresh BoardSpec instances per call, so identity
+            // does not hold — but the CONTENT (footprint + pegs + solution) is fully
+            // deterministic, which is what CHAL-03 requires.
             assertThat(second.startingBoard.pegs).isEqualTo(first.startingBoard.pegs)
-            assertThat(second.startingBoard.spec).isSameInstanceAs(first.startingBoard.spec)
+            assertThat(second.startingBoard.spec.inPlay).isEqualTo(first.startingBoard.spec.inPlay)
             assertThat(second.solution).isEqualTo(first.solution)
         }
     }

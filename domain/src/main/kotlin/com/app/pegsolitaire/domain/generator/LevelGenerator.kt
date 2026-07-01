@@ -1,6 +1,7 @@
 package com.app.pegsolitaire.domain.generator
 
 import com.app.pegsolitaire.domain.model.Board
+import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Cell
 import com.app.pegsolitaire.domain.model.Move
 import com.app.pegsolitaire.domain.model.Position
@@ -191,7 +192,7 @@ object LevelGenerator {
         tier: DifficultyTier,
         rng: Random,
     ): GeneratedLevel {
-        val footprint = tier.footprintPool[rng.nextInt(tier.footprintPool.size)]
+        val footprint = pickFootprint(level, tier, rng)
         val target = footprint.inPlay[rng.nextInt(footprint.inPlay.size)]
         var board = Board(spec = footprint, pegs = 0L).withPeg(target)
 
@@ -210,6 +211,27 @@ object LevelGenerator {
             solution = reverse.asReversed().toList(),
             generatorVersion = GeneratorConstants.GENERATOR_VERSION,
         )
+    }
+
+    /**
+     * Picks the footprint for one reverse-walk attempt: a canonical
+     * [DifficultyTier.footprintPool] spec below [DifficultyTier.freeformIntroLevel]
+     * (D-08), and at/above it a [FreeformFootprints.build] shape when one is
+     * produced — otherwise falling back to the canonical pool (D-09). A freeform
+     * shape that admits no reverse walk to the tier's length simply fails the
+     * quality gates and reseeds. The PRNG index is drawn against the pool `List`
+     * (Pitfall 1); freeform draws are deterministic in [rng].
+     */
+    private fun pickFootprint(
+        level: Int,
+        tier: DifficultyTier,
+        rng: Random,
+    ): BoardSpec {
+        if (level >= tier.freeformIntroLevel) {
+            val freeform = FreeformFootprints.build(rng, tier)
+            if (freeform != null) return freeform
+        }
+        return tier.footprintPool[rng.nextInt(tier.footprintPool.size)]
     }
 
     /**
