@@ -13,7 +13,7 @@ This milestone delivers **Slice 1 — the playable core**: a polished, fully tes
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Domain Foundation & Playable Board** - Pure-Kotlin core + one hardcoded board playable end-to-end, with CI standards gates established up front (completed 2026-06-28)
-- [x] **Phase 2: Classic Mode, Scoring & Navigation** - Home → pick 1 of 4 classic boards → play → results with stars/score; full screen flow + LevelRepository seam (completed 2026-06-29)
+- [x] **Phase 2: Classic Mode, Scoring & Navigation** - Home → pick 1 of 5 classic boards → play → results with stars/score; full screen flow + LevelRepository seam (completed 2026-06-29)
 - [ ] **Phase 3: Challenge Generation & Difficulty Curve** - Infinite, deterministic, guaranteed-solvable generated levels with scaling difficulty (project #1 risk)
 - [ ] **Phase 4: Assist — Hint & Undo** - State-relative hint (canonical line + Solver fallback + "no winning move" state) and undo
 - [ ] **Phase 5: Persistence, Resume & Settings** - Per-level results, continue-from-highest, in-progress resume, sound/haptics — migration-safe
