@@ -17,8 +17,8 @@ Slice 1 — Playable Core. Fully playable and testable; ads and Play Games exist
 
 ### Classic Mode
 
-- [ ] **CLAS-01**: Player can browse and select from a catalog of classic boards (English-33, European-37, Diamond-41, Wiegleb-45, Asymmetric 3-3-2-2 — Triangle-15 removed; all boards are orthogonal square-grid, see Phase 2 CONTEXT board-catalog resolution)
-- [ ] **CLAS-02**: Player can play any classic board to completion with correct rules
+- [x] **CLAS-01**: Player can browse and select from a catalog of classic boards (English-33, European-37, Diamond-41, Wiegleb-45, Asymmetric 3-3-2-2 — Triangle-15 removed; all boards are orthogonal square-grid, see Phase 2 CONTEXT board-catalog resolution)
+- [x] **CLAS-02**: Player can play any classic board to completion with correct rules
 
 ### Challenge Mode
 
@@ -30,9 +30,9 @@ Slice 1 — Playable Core. Fully playable and testable; ads and Play Games exist
 
 ### Scoring
 
-- [ ] **SCOR-01**: Player earns 1–3 stars at level end based on pegs remaining
-- [ ] **SCOR-02**: Elapsed time contributes to a separate numeric score
-- [ ] **SCOR-03**: Results screen shows stars, pegs remaining, time, and score
+- [x] **SCOR-01**: Player earns 1–3 stars at level end based on pegs remaining
+- [x] **SCOR-02**: Elapsed time contributes to a separate numeric score
+- [x] **SCOR-03**: Results screen shows stars, pegs remaining, time, and score
 
 ### Assist
 
@@ -48,8 +48,8 @@ Slice 1 — Playable Core. Fully playable and testable; ads and Play Games exist
 
 ### Navigation & Screens
 
-- [ ] **NAV-01**: App presents a Home screen with entry to Classic and Challenge modes
-- [ ] **NAV-02**: Player can navigate between Home, mode selection, gameplay, and results screens
+- [x] **NAV-01**: App presents a Home screen with entry to Classic and Challenge modes
+- [x] **NAV-02**: Player can navigate between Home, mode selection, gameplay, and results screens
 
 ### Settings
 
@@ -58,7 +58,7 @@ Slice 1 — Playable Core. Fully playable and testable; ads and Play Games exist
 
 ### Onboarding
 
-- [ ] **ONB-01**: First-time player sees a brief how-to-play explanation of the jump rule
+- [x] **ONB-01**: First-time player sees a brief how-to-play explanation of the jump rule
 
 ### Quality & Standards
 
@@ -115,14 +115,14 @@ Each v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for ph
 | QUAL-02 | Phase 1 | Complete |
 | QUAL-03 | Phase 1 | Complete |
 | QUAL-04 | Phase 1 | Complete |
-| CLAS-01 | Phase 2 | Pending |
-| CLAS-02 | Phase 2 | Pending |
-| SCOR-01 | Phase 2 | Pending |
-| SCOR-02 | Phase 2 | Pending |
-| SCOR-03 | Phase 2 | Pending |
-| NAV-01 | Phase 2 | Pending |
-| NAV-02 | Phase 2 | Pending |
-| ONB-01 | Phase 2 | Pending |
+| CLAS-01 | Phase 2 | Complete |
+| CLAS-02 | Phase 2 | Complete |
+| SCOR-01 | Phase 2 | Complete |
+| SCOR-02 | Phase 2 | Complete |
+| SCOR-03 | Phase 2 | Complete |
+| NAV-01 | Phase 2 | Complete |
+| NAV-02 | Phase 2 | Complete |
+| ONB-01 | Phase 2 | Complete |
 | CHAL-01 | Phase 3 | Pending |
 | CHAL-02 | Phase 3 | Pending |
 | CHAL-03 | Phase 3 | Pending |

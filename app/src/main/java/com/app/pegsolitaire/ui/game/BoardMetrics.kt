@@ -5,14 +5,14 @@ package com.app.pegsolitaire.ui.game
  *
  * These are deliberately **not** `dimens.xml` tokens: they are proportional, not
  * fixed dp. Every radius is `ratio × cellSize`, where
- * `cellSize = min(width, height) / GRID_DIMENSION` is derived from the measured
- * canvas size. Keeping them in this scoped object (rather than inline) satisfies
- * QUAL-03's no-magic-number rule while keeping the geometry resolution-independent.
+ * `cellSize = min(width, height) / gridDimension` is derived from the measured
+ * canvas size and the per-board `gridDimension` (7/8/9, computed in
+ * [com.app.pegsolitaire.ui.components.BoardGeometry] from the `BoardSpec` bounds —
+ * not hardcoded here, so every footprint renders in bounds). Keeping these ratios
+ * in this scoped object (rather than inline) satisfies QUAL-03's no-magic-number
+ * rule while keeping the geometry resolution-independent.
  */
 object BoardMetrics {
-    /** English-33 occupies a 7×7 lattice. */
-    const val GRID_DIMENSION = 7
-
     /** Resting/jumping peg radius = ratio × cellSize. */
     const val PEG_RADIUS_RATIO = 0.34f
 

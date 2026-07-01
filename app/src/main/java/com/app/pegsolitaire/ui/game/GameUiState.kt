@@ -19,9 +19,14 @@ import com.app.pegsolitaire.domain.model.Position
  * @property selected the currently-selected peg, or `null` when nothing is selected.
  * @property legalTargets the empty holes the [selected] peg may legally jump to
  *   (D-04 highlight); always empty when [selected] is `null`.
- * @property status the lifecycle status driving the game-over overlay (D-05).
+ * @property status the lifecycle status driving the finish hand-off to Results (D-05).
  * @property animating the in-flight jump animation, or `null` when settled (D-07/D-08).
  * @property confirmRestart whether the mid-game restart confirmation is showing (D-06).
+ * @property elapsedSeconds whole seconds shown on the in-game timer (D-04); 0 until
+ *   the first move, then ticked once per second by the ViewModel until terminal.
+ * @property showHints whether legal-destination hint dots are drawn (player-toggled,
+ *   persisted via `SettingsRepository`); fail-open default `true`. Purely a render
+ *   gate — selection/jump logic is unchanged whether hints are on or off.
  */
 @Immutable
 data class GameUiState(
@@ -31,14 +36,16 @@ data class GameUiState(
     val status: GameStatus,
     val animating: MoveTransition?,
     val confirmRestart: Boolean,
+    val elapsedSeconds: Int = 0,
+    val showHints: Boolean = true,
 ) {
     companion object {
         /**
-         * The deterministic English-33 starting state (D-01): a full board with
-         * the center hole empty, nothing selected, no highlights, `Playing`, no
-         * animation, and no restart prompt. [board] defaults to
-         * [Boards.english33Initial] but is overridable so the ViewModel can reset
-         * to its injected initial board.
+         * The deterministic starting state: a full board with its start hole empty,
+         * nothing selected, no highlights, `Playing`, no animation, no restart
+         * prompt, the timer at 0, and hints on. [board] defaults to
+         * [Boards.english33Initial] but is overridable so the ViewModel can reset to
+         * its selected board.
          */
         fun initial(board: Board = Boards.english33Initial): GameUiState =
             GameUiState(
@@ -48,6 +55,8 @@ data class GameUiState(
                 status = GameStatus.Playing,
                 animating = null,
                 confirmRestart = false,
+                elapsedSeconds = 0,
+                showHints = true,
             )
     }
 }

@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: in_progress
-stopped_at: Phase 2 UI-SPEC approved
-last_updated: "2026-06-28T19:34:29.439Z"
-last_activity: 2026-06-28 -- Phase 02 planning complete
+status: ready_to_plan
+stopped_at: Phase 02 complete (8/8) — ready to discuss Phase 3
+last_updated: 2026-06-29T22:32:23.975Z
+last_activity: 2026-06-29
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 13
-  completed_plans: 5
-  percent: 20
+  completed_plans: 13
+  percent: 40
 ---
 
 # Project State
@@ -21,21 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-28)
 
 **Core value:** Infinite, never-repeating, always-solvable Challenge levels that feel fair and satisfying.
-**Current focus:** Phase 02 — classic-mode-scoring-navigation
+**Current focus:** Phase 3 — challenge generation & difficulty curve
 
 ## Current Position
 
-Phase: 01 (domain-foundation-playable-board) — COMPLETE & VERIFIED (2026-06-28)
+Phase: 3
+Plan: Not started
 Next: Phase 02 (classic-mode-scoring-navigation) — not yet planned
-Last activity: 2026-06-28 -- Phase 02 planning complete
+Last activity: 2026-07-01 - Completed quick task 260701-n9t: Phase 2 UI polish (hint toggle, Results next-board removal, uniform catalog cards)
 
-Progress: Phase 1 [██████████] 100% · Milestone [██░░░░░░░░] 20% (1/5 phases)
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 0
+- Total plans completed: 8
 - Average duration: — min
 - Total execution time: 0.0 hours
 
@@ -43,7 +44,7 @@ Progress: Phase 1 [██████████] 100% · Milestone [██░�
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 02 | 8 | - | - |
 
 **Recent Trend:**
 
@@ -56,6 +57,14 @@ Progress: Phase 1 [██████████] 100% · Milestone [██░�
 | Phase 01 P03 | 9 | 2 tasks | 7 files |
 | Phase 01 P04 | 13 | 2 tasks | 10 files |
 | Phase 01 P05 | 18 | 2 tasks | 9 files |
+| Phase 02 P01 | 6 | 2 tasks | 4 files |
+| Phase 02 P02 | 188 | 2 tasks | 6 files |
+| Phase 02 P03 | 9 | 2 tasks | 4 files |
+| Phase 02 P04 | 5 | 2 tasks | 10 files |
+| Phase Phase 02 PP05 | 20 | 3 tasks tasks | 11 files files |
+| Phase 02 P07 | 14 | 2 tasks | 7 files |
+| Phase 02 P06 | 18 | 2 tasks | 6 files |
+| Phase 02 P08 | 35 | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -76,6 +85,15 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 1] Plan 04: QUAL-03 split locked — fixed dp/sp in dimens.xml (dimensionResource/LocalDensity.toPx), proportional ratios in BoardMetrics, durations/easings in GameAnim, colors as MaterialTheme.colorScheme roles; baseline M3 theme (zero hex)
 - [Phase 01]: Plan 05: walking skeleton closed end-to-end — MainActivity → GameRoute (hiltViewModel + collectAsStateWithLifecycle) → stateless GameScreen (Scaffold/top-bar RestartControl + BoardCanvas + D-05 GameOverDialog + D-06 confirm); Robolectric Compose GameFlowTest proves tap→jump→game-over→restart on the JVM
 - [Phase 01]: Plan 05: hilt-navigation-compose pinned 1.3.0 + androidx.lifecycle atomic group force-resolved 2.9.4 — the 1.4.0-rc01 line transitively requires compileSdk 37; deprecated hiltViewModel() kept as the 36-safe path
+- [Phase 02]: Plan 01: ScoreCalculator is a pure-domain object (Int-only inputs, no domain-type coupling) — stars() derived from pegs remaining alone (D-02, no target arg), score() time term floored at 0 so it never drops below the peg base; structural star counts (3/2) extracted to ScoreParams to satisfy the detekt MagicNumber gate
+- [Phase ?]: [Phase 02] Plan 02: Four square-grid Classic boards (European-37/Asymmetric-39/Diamond-41/Wiegleb-45) added; RulesEngine unchanged. D-19 recorded-solution fixtures prove English-33/European-37/Asymmetric-39/Wiegleb-45 solvable to one peg via RulesEngine replay; authoring solver (test-only) uses symmetry-canonical memo + inward heuristic for the 45-hole Wiegleb cross. Diamond-41 D-19 proof DEFERRED (needs pagoda pruning); ships with off-center (4,2) start, geometry verified.
+- [Phase ?]: [Phase 02] Plan 03: navigation-compose pinned 2.9.8 (stable, not 2.10.x alpha which needs compileSdk 37); kotlin-serialization plugin APPLIED to :app (Pitfall 6 — @Serializable routes crash without it); datastore-preferences 1.2.1 added for onboardingSeen. Existing atomic-group lifecycle 2.9.4 guard already absorbs navigation's transitive lifecycle, so no new resolutionStrategy guard needed. All Phase-2 dimens/strings centralized here for downstream UI plans (02-05/06/07).
+- [Phase ?]: [Phase 02] Plan 04: LevelRepository single-source-of-truth seam — DefaultClassicLevelSource serves 5 boards as descriptors in D-18 order with names from R.string.board_* (resolved String, not @StringRes) and fail-fast loadClassic via requireNotNull (T-02-04-ID); StubChallengeLevelSource throws (Phase-3 swaps it). BoardGeometry derives gridDimension=max(maxRow,maxCol)+1 from BoardSpec bounds (7/8/9), removing hardcoded GRID_DIMENSION=7.
+- [Phase ?]: [Phase 02] Plan 07: Classic catalog UI — read-only BoardCanvas variant (interactive flag, default true keeps Phase-1 gameplay verbatim) shared by gameplay and the catalog mini-preview; ClassicCatalogViewModel is a pure pass-through of LevelRepository.classicCatalog() (D-18 order, no reordering); LazyVerticalGrid(Adaptive) of whole-card-tappable surfaceContainerHigh cards forwards descriptor.id to Gameplay(levelId). CLAS-01 satisfied at UI layer.
+- [Phase ?]: [Phase 02] Plan 06: Results destination quadruple — display-only ResultsViewModel passes ScoreCalculator route-arg values through verbatim and computes only the wrapping next-board id from classicCatalog() D-18 order (unknown id -> index 0, T-02-06-NEXT); stars->headline tier reuses ScoreParams bands (D-08). Star icons substituted to material-icons-core (Filled.Star / Outlined.Star as StarBorder) since Icons.Rounded.* stars are extended-set only (intentionally avoided). Results content scrolls (verticalScroll+Center) so all 4 actions stay reachable.
+- [Phase ?]: [Phase 02] Plan 08: AppNavHost closes the 5-screen spine into MainActivity (replacing the Phase-1 direct GameRoute()); destination bodies are default-valued @Composable slots wired to the real *Route so NavFlowTest drives the real nav lambdas without Hilt test infra (NAV-02).
+- [Phase ?]: [Phase 02] Plan 08: OnboardingRepository is a single onboarding_seen DataStore-Preferences boolean with a catch->emptyPreferences fail-open (D-16); an internal DataStore constructor seam makes default/markSeen/fail-open unit-testable; the open class is faked via a MutableStateFlow in HomeViewModelTest.
+- [Phase ?]: [Phase 02] Plan 08: How-to-play uses core-set Icons.Rounded.Info (extended-set HelpOutline avoided); onboarding illustrations reuse read-only BoardPreview over a 1x3 jump board; NavFlowTest asserts reachability via currentDestination.route (reified hasRoute<T>() unresolvable on navigation-compose 2.9.8 test classpath).
 
 ### Pending Todos
 
@@ -84,12 +102,14 @@ None yet.
 ### Blockers/Concerns
 
 - Phase 3 difficulty-curve knob values cannot be set from research — require a dedicated playtest-iteration loop before the `generatorVersion` contract is frozen.
+- Diamond-41 D-19 recorded-solution proof deferred: its 41-hole space (4 solvable starts, none center-finishing) defeats the DFS+symmetry+heuristic authoring solver; needs pagoda-function pruning. Board ships with off-center (4,2) start but (4,2)'s specific solvability is literature-asserted, not yet verified by fixture.
 
 ### Quick Tasks Completed
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260628-n4f | Deselect a peg only when that same peg is re-tapped (tapping a different peg is a no-op) | 2026-06-28 | 675de73 | [260628-n4f-deselect-only-on-retap](./quick/260628-n4f-deselect-only-on-retap/) |
+| 260701-n9t | Phase 2 UI polish: remove Next-board from Classic Results, uniform catalog card heights, persisted hint toggle | 2026-07-01 | cca6cb3 | [260701-n9t-phase-2-ui-polish-remove-next-board-from](./quick/260701-n9t-phase-2-ui-polish-remove-next-board-from/) |
 
 ## Deferred Items
 
@@ -101,6 +121,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-06-28T15:17:49.761Z
-Stopped at: Phase 2 UI-SPEC approved
-Resume file: .planning/phases/02-classic-mode-scoring-navigation/02-UI-SPEC.md
+Last session: 2026-06-29T21:38:07.811Z
+Stopped at: Completed 02-08-PLAN.md
+Resume file: None
