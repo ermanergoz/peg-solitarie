@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 Phase: 3
 Plan: Not started
 Next: Phase 02 (classic-mode-scoring-navigation) — not yet planned
-Last activity: 2026-06-29
+Last activity: 2026-07-01 - Completed quick task 260701-n9t: Phase 2 UI polish (hint toggle, Results next-board removal, uniform catalog cards)
 
 Progress: [██████████] 100%
 
@@ -109,6 +109,7 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260628-n4f | Deselect a peg only when that same peg is re-tapped (tapping a different peg is a no-op) | 2026-06-28 | 675de73 | [260628-n4f-deselect-only-on-retap](./quick/260628-n4f-deselect-only-on-retap/) |
+| 260701-n9t | Phase 2 UI polish: remove Next-board from Classic Results, uniform catalog card heights, persisted hint toggle | 2026-07-01 | cca6cb3 | [260701-n9t-phase-2-ui-polish-remove-next-board-from](./quick/260701-n9t-phase-2-ui-polish-remove-next-board-from/) |
 
 ## Deferred Items
 
