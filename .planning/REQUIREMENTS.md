@@ -22,10 +22,10 @@ Slice 1 — Playable Core. Fully playable and testable; ads and Play Games exist
 
 ### Challenge Mode
 
-- [ ] **CHAL-01**: Player can play sequential Challenge levels numbered from 1
-- [ ] **CHAL-02**: Each Challenge level is procedurally generated and guaranteed solvable
-- [ ] **CHAL-03**: Challenge level N is deterministic — the same board every time (carries a generatorVersion)
-- [ ] **CHAL-04**: Challenge difficulty scales with level number via board size/shape, peg density, and starting pattern
+- [x] **CHAL-01**: Player can play sequential Challenge levels numbered from 1
+- [x] **CHAL-02**: Each Challenge level is procedurally generated and guaranteed solvable
+- [x] **CHAL-03**: Challenge level N is deterministic — the same board every time (carries a generatorVersion)
+- [x] **CHAL-04**: Challenge difficulty scales with level number via board size/shape, peg density, and starting pattern
 - [ ] **CHAL-05**: Player can continue from their highest reached Challenge level
 
 ### Scoring
@@ -123,10 +123,10 @@ Each v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for ph
 | NAV-01 | Phase 2 | Complete |
 | NAV-02 | Phase 2 | Complete |
 | ONB-01 | Phase 2 | Complete |
-| CHAL-01 | Phase 3 | Pending |
-| CHAL-02 | Phase 3 | Pending |
-| CHAL-03 | Phase 3 | Pending |
-| CHAL-04 | Phase 3 | Pending |
+| CHAL-01 | Phase 3 | Complete |
+| CHAL-02 | Phase 3 | Complete |
+| CHAL-03 | Phase 3 | Complete |
+| CHAL-04 | Phase 3 | Complete |
 | ASST-01 | Phase 4 | Pending |
 | ASST-02 | Phase 4 | Pending |
 | ASST-03 | Phase 4 | Pending |

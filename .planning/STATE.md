@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: ready_to_plan
-stopped_at: Phase 03 UI-SPEC approved
-last_updated: "2026-07-01T18:43:34.054Z"
+stopped_at: Completed 03-02-PLAN.md (generator determinism lock committed)
+last_updated: "2026-07-01T19:07:08.355Z"
 last_activity: 2026-07-01
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 18
-  completed_plans: 14
+  completed_plans: 15
   percent: 40
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 03 (challenge-generation-difficulty-curve) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Next: Phase 02 (classic-mode-scoring-navigation) — not yet planned
 Last activity: 2026-07-01
 
-Progress: [████████░░] 78%
+Progress: [████████░░] 83%
 
 ## Performance Metrics
 
@@ -66,6 +66,7 @@ Progress: [████████░░] 78%
 | Phase 02 P06 | 18 | 2 tasks | 6 files |
 | Phase 02 P08 | 35 | 3 tasks | 11 files |
 | Phase 03 P01 | 16 | 3 tasks | 7 files |
+| Phase 03 P02 | 15 | 3 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -97,6 +98,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 02] Plan 08: How-to-play uses core-set Icons.Rounded.Info (extended-set HelpOutline avoided); onboarding illustrations reuse read-only BoardPreview over a 1x3 jump board; NavFlowTest asserts reachability via currentDestination.route (reified hasRoute<T>() unresolvable on navigation-compose 2.9.8 test classpath).
 - [Phase 03]: Plan 01: Challenge generator is pure-:domain reverse-generation (un-jump from a solved 1-peg board) — solvable by construction; recorded solution replays forward through unchanged RulesEngine.applyMove (no ReverseMove type). Determinism via portable splitmix64 stableSeed + PRNG index only against a RulesEngine-sorted List + single-threaded generate; bounded MAX_ATTEMPTS accepts best board so an untrusted levelNumber never hangs (T-03-01). GENERATOR_VERSION stamped from day one.
 - [Phase 03]: Plan 01: DifficultyTiers.forLevel is a CONTINUOUS integer-division growth mapping (A4/D-05), not stepped when(range) — solutionLength is the primary lever rising first/steadily (D-06), footprint pool widens later; freeform gated by freeformIntroLevel=40. Knob VALUES are playtest-tunable placeholders in a scoped Curve const object (D-07); structure is final. Invariants locked by output-agnostic JVM tests that survive 03-02 gate/freeform additions.
+- [Phase ?]: [Phase 03] Plan 02: v1 generator completed & FROZEN — six quality gates (min solution length, peg-density band, branching floor, forced-line rejection, bounding-box spread, symmetry-canonical dedup) with deterministic salted reject-and-reseed + best-scoring bounded fallback (never hangs, T-03-04). BoardCanonical lifts AuthoringSolver symmetry canonicalization into main source for the dedup key.
+- [Phase ?]: [Phase 03] Plan 02: dedup is an EXACT rolling window anchored at level 1 (generate(n-1) is a deterministic prefix of generate(n)) so 'no repeat within DEDUP_WINDOW' holds across independent calls. Freeform footprints grown by seeded frontier expansion, <=64-cell cap, independently flood-fill validated, gated at freeformIntroLevel=40. solutionLength capped at SOLUTION_LENGTH_MAX=30 (D-07 tuning) so high-level gates stay satisfiable. Golden fixtures 1/2/10/100/1000 committed & CI-green with NO UPDATE_GOLDEN flag — the determinism lock.
 
 ### Pending Todos
 
@@ -124,6 +127,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-01T18:43:14.673Z
-Stopped at: Phase 03 UI-SPEC approved
+Last session: 2026-07-01T19:06:57.947Z
+Stopped at: Completed 03-02-PLAN.md (generator determinism lock committed)
 Resume file: None
