@@ -135,7 +135,9 @@ class GameViewModel
         fun onCellTap(position: Position) {
             val state = _uiState.value
             when {
-                state.selected == position -> clearSelection()
+                // Re-tapping the selected peg is the only deselect (D-04); clear inline.
+                state.selected == position ->
+                    _uiState.update { it.copy(selected = null, legalTargets = emptyList()) }
                 state.selected != null && position in state.legalTargets ->
                     performJump(from = state.selected, to = position)
                 state.selected == null && state.board.cellAt(position) == Cell.Peg ->
@@ -153,11 +155,6 @@ class GameViewModel
                     .filter { it.from == position }
                     .map { it.to }
             _uiState.update { it.copy(selected = position, legalTargets = targets) }
-        }
-
-        /** Clears the current selection and its highlights (D-04 deselect). */
-        private fun clearSelection() {
-            _uiState.update { it.copy(selected = null, legalTargets = emptyList()) }
         }
 
         /**

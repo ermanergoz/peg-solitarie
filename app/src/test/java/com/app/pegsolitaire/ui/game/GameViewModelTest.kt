@@ -190,7 +190,8 @@ class GameViewModelTest {
     @Test
     fun showHintsReflectsTheSettingAndSelectionStillComputesTargets() =
         runTest(testDispatcher) {
-            val viewModel = viewModelFor(Boards.english33Initial, settings = FakeSettingsRepository(hintsEnabled = true))
+            val viewModel =
+                viewModelFor(Boards.english33Initial, settings = FakeSettingsRepository(hintsEnabled = true))
             runCurrent()
             assertThat(viewModel.uiState.value.showHints).isTrue()
 
@@ -218,7 +219,8 @@ class GameViewModelTest {
     @Test
     fun hintsOffHidesShowHintsButTargetsAreStillComputedOnSelection() =
         runTest(testDispatcher) {
-            val viewModel = viewModelFor(Boards.english33Initial, settings = FakeSettingsRepository(hintsEnabled = false))
+            val viewModel =
+                viewModelFor(Boards.english33Initial, settings = FakeSettingsRepository(hintsEnabled = false))
             runCurrent()
             assertThat(viewModel.uiState.value.showHints).isFalse()
 

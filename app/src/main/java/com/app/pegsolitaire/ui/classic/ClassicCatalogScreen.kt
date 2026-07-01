@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
 
@@ -115,6 +116,11 @@ private fun CatalogTopBar(onNavigateBack: () -> Unit) {
  * is the tap target → [onSelect] with the descriptor's `levelId`. It stacks the
  * read-only [BoardPreview], the board name (`titleMedium`, `onSurface`) and a
  * plural-aware "{n} holes" subtitle (`bodyMedium`, `onSurfaceVariant`).
+ *
+ * Every card is given the same fixed `catalog_card_height` so cards in the same grid
+ * row line up even when a name wraps to two lines; the name allows up to 2 lines
+ * (ellipsized past that) so a long name like "Asymmetric 3-3-2-2" wraps rather than
+ * being truncated to one line.
  */
 @Composable
 private fun BoardCard(
@@ -128,7 +134,7 @@ private fun BoardCard(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .heightIn(min = dimensionResource(R.dimen.board_min_touch_target)),
+                .height(dimensionResource(R.dimen.catalog_card_height)),
     ) {
         Column(
             modifier =
@@ -143,6 +149,8 @@ private fun BoardCard(
                 text = descriptor.displayName,
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
+                maxLines = MAX_NAME_LINES,
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text =
@@ -157,3 +165,6 @@ private fun BoardCard(
         }
     }
 }
+
+/** Board names may wrap to at most two lines (a long name like "Asymmetric 3-3-2-2" wraps, never truncates to one). */
+private const val MAX_NAME_LINES = 2
