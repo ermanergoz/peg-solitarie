@@ -3,7 +3,9 @@ package com.app.pegsolitaire.ui.results
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
@@ -22,7 +24,8 @@ import org.robolectric.annotation.Config
  * Robolectric + Compose UI test (`createComposeRule`, JVM, no emulator) for the
  * stateless [ResultsScreen]: rendering a sample [ResultsUiState] surfaces the tiered
  * headline (D-08), the 2-filled/1-outline star row, the SCORE / TIME / PEGS LEFT
- * metric block (captions + the mm:ss-formatted time), and the four action buttons.
+ * metric block (captions + the mm:ss-formatted time), and the three action buttons
+ * (Replay / Catalog / Home) — with no "Next board" action (Classic has no next board).
  *
  * Assertions read the row-level [EarnedStarCountKey] semantics (the star icons are
  * decorative) and the visible copy via `onNodeWithText`, so they are deterministic
@@ -38,12 +41,11 @@ class ResultsScreenTest {
     private val context get() = RuntimeEnvironment.getApplication()
 
     @Test
-    fun rendersHeadlineStarsMetricsAndTheFourActions() {
+    fun rendersHeadlineStarsMetricsAndTheThreeActions() {
         composeRule.setContent {
             AppTheme {
                 ResultsScreen(
                     state = SAMPLE_STATE,
-                    onNextBoard = {},
                     onReplay = {},
                     onCatalog = {},
                     onHome = {},
@@ -69,11 +71,13 @@ class ResultsScreenTest {
         composeRule.onNodeWithText(SAMPLE_SCORE.toString()).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText(SAMPLE_PEGS_REMAINING.toString()).performScrollTo().assertIsDisplayed()
 
-        // The four actions.
-        assertTextDisplayed(R.string.action_next_board)
+        // The three actions (Replay is the single filled primary; Catalog / Home neutral).
         assertTextDisplayed(R.string.action_replay)
         assertTextDisplayed(R.string.action_catalog)
         assertTextDisplayed(R.string.action_home)
+
+        // No "Next board" action — Classic has no next board.
+        composeRule.onAllNodesWithText(NEXT_BOARD_LABEL).assertCountEquals(0)
     }
 
     private fun assertTextDisplayed(resId: Int) {
@@ -89,7 +93,10 @@ private const val SAMPLE_PEGS_REMAINING = 5
 private const val SAMPLE_ELAPSED_SECONDS = 75
 private const val SAMPLE_SCORE = 1280
 
-/** A 2-star (Solved) result on English-33 with European-37 as the next board. */
+/** The removed "Next board" label — asserted absent so the Challenge-mode action never appears. */
+private const val NEXT_BOARD_LABEL = "Next board"
+
+/** A 2-star (Solved) result on English-33; Replay re-plays the same board. */
 private val SAMPLE_STATE =
     ResultsUiState(
         stars = SAMPLE_STARS,
@@ -98,5 +105,4 @@ private val SAMPLE_STATE =
         score = SAMPLE_SCORE,
         headlineTier = ResultsHeadlineTier.SOLVED,
         replayId = ClassicLevelIds.ENGLISH33,
-        nextId = ClassicLevelIds.EUROPEAN37,
     )

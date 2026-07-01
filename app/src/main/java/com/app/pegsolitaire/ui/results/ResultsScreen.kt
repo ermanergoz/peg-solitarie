@@ -57,15 +57,15 @@ private var SemanticsPropertyReceiver.earnedStarCountValue by EarnedStarCountKey
  * [Scaffold] hosts a [TopAppBar] (a back nav, the "Results" title) over a centered
  * content column capped at `content_max_width`, stacking: the star-tiered headline
  * (D-08), the 3-star row (the first [ResultsUiState.stars] filled `primary`, the rest
- * outline `outlineVariant`), the SCORE / TIME / PEGS LEFT metric block, and the four
- * actions — a single filled `primary` "Next board" [Button] (wrapping `nextId`, D-06)
- * plus neutral Replay / Catalog / Home buttons.
+ * outline `outlineVariant`), the SCORE / TIME / PEGS LEFT metric block, and the three
+ * actions — a single filled `primary` Replay [Button] (the one accent, wrapping
+ * `replayId`) plus neutral Catalog / Home buttons. Classic has no "next board", so that
+ * Challenge-mode action is intentionally absent.
  *
  * Every value is read straight from [state]; mm:ss is formatted from
  * [ResultsUiState.elapsedSeconds] via [GameTimerFormat] — no scoring is recomputed here.
  *
  * @param state the immutable Results UI state to render.
- * @param onNextBoard navigates to the wrapping next catalog board (carries `nextId`).
  * @param onReplay re-plays the same level (carries `replayId`).
  * @param onCatalog pops back to the Classic catalog.
  * @param onHome pops back to Home.
@@ -76,7 +76,6 @@ private var SemanticsPropertyReceiver.earnedStarCountValue by EarnedStarCountKey
 @Composable
 fun ResultsScreen(
     state: ResultsUiState,
-    onNextBoard: (String) -> Unit,
     onReplay: (String) -> Unit,
     onCatalog: () -> Unit,
     onHome: () -> Unit,
@@ -115,7 +114,6 @@ fun ResultsScreen(
                 MetricBlock(state = state)
                 ResultsActions(
                     state = state,
-                    onNextBoard = onNextBoard,
                     onReplay = onReplay,
                     onCatalog = onCatalog,
                     onHome = onHome,
@@ -230,14 +228,13 @@ private fun Metric(
 }
 
 /**
- * The four actions (D-06): a single filled `primary` "Next board" [Button] (the one
- * accent on the screen, carrying the wrapping `nextId`) over neutral Replay / Catalog
- * / Home buttons with `onSurface` labels.
+ * The three actions: a single filled `primary` Replay [Button] (the one accent on the
+ * screen, carrying `replayId`) over neutral Catalog / Home buttons with `onSurface`
+ * labels. Classic has no "next board" (a Challenge-mode concept), so it is absent.
  */
 @Composable
 private fun ResultsActions(
     state: ResultsUiState,
-    onNextBoard: (String) -> Unit,
     onReplay: (String) -> Unit,
     onCatalog: () -> Unit,
     onHome: () -> Unit,
@@ -247,22 +244,12 @@ private fun ResultsActions(
         verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_sm)),
     ) {
         Button(
-            onClick = { onNextBoard(state.nextId) },
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(
-                text = stringResource(R.string.action_next_board),
-                style = MaterialTheme.typography.labelLarge,
-            )
-        }
-        OutlinedButton(
             onClick = { onReplay(state.replayId) },
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(
                 text = stringResource(R.string.action_replay),
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurface,
             )
         }
         OutlinedButton(

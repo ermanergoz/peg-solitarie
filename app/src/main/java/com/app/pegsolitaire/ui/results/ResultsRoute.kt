@@ -14,11 +14,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
  * the typed `Results` args from the back-stack entry's `SavedStateHandle`), collects
  * its read-only `uiState` in a lifecycle-aware way ([collectAsStateWithLifecycle]),
  * and hands the immutable state plus the hoisted navigation lambdas down to the
- * stateless [ResultsScreen]. It owns no logic — the wrapping next-board id and the
- * headline tier are computed in the ViewModel; the actual navigation targets are
- * supplied by the `AppNavHost` (02-08).
+ * stateless [ResultsScreen]. It owns no logic — the headline tier is computed in the
+ * ViewModel; the actual navigation targets are supplied by the `AppNavHost` (02-08).
  *
- * @param onNextBoard navigates to the wrapping next catalog board (the VM's `nextId`).
  * @param onReplay re-plays the same level (the VM's `replayId`).
  * @param onCatalog pops back to the Classic catalog.
  * @param onHome pops back to Home.
@@ -27,7 +25,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
  */
 @Composable
 fun ResultsRoute(
-    onNextBoard: (String) -> Unit,
     onReplay: (String) -> Unit,
     onCatalog: () -> Unit,
     onHome: () -> Unit,
@@ -39,7 +36,6 @@ fun ResultsRoute(
 
     ResultsScreen(
         state = state,
-        onNextBoard = onNextBoard,
         onReplay = onReplay,
         onCatalog = onCatalog,
         onHome = onHome,

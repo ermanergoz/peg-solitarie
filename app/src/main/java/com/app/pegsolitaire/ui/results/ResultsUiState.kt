@@ -12,8 +12,8 @@ import androidx.compose.runtime.Immutable
  * The four display values ([stars], [pegsRemaining], [elapsedSeconds], [score]) are
  * the typed `Results` route args verbatim — they were computed in-game by the
  * pure-domain `ScoreCalculator` (02-01) and are NEVER re-derived here. [headlineTier]
- * is the star-outcome bucket the screen resolves to its copy (D-08); [replayId] and
- * [nextId] are the catalog ids the Replay / Next-board actions navigate to.
+ * is the star-outcome bucket the screen resolves to its copy (D-08); [replayId] is the
+ * catalog id the Replay action navigates to.
  *
  * @property stars 1-3 earned, from pegs remaining (D-01); drives the filled-star row.
  * @property pegsRemaining pegs left on the terminal board (PEGS LEFT metric).
@@ -21,7 +21,6 @@ import androidx.compose.runtime.Immutable
  * @property score the ranking score (SCORE metric, D-03).
  * @property headlineTier the star-tiered headline bucket (D-08).
  * @property replayId the board just played — Replay re-plays this same level.
- * @property nextId the next catalog board in D-18 order, wrapping at the end (D-06).
  */
 @Immutable
 data class ResultsUiState(
@@ -31,7 +30,6 @@ data class ResultsUiState(
     val score: Int,
     val headlineTier: ResultsHeadlineTier,
     val replayId: String,
-    val nextId: String,
 )
 
 /**

@@ -51,7 +51,7 @@ class NavFlowTest {
                 homeContent = { onPlayClassic -> StubDestination(HOME_TAG, onPlayClassic) },
                 catalogContent = { onSelect, _ -> StubDestination(CATALOG_TAG) { onSelect(SELECTED_LEVEL_ID) } },
                 gameplayContent = { onFinished, _ -> StubDestination(GAMEPLAY_TAG) { onFinished(sampleResults()) } },
-                resultsContent = { _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
+                resultsContent = { _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
             )
         }
 

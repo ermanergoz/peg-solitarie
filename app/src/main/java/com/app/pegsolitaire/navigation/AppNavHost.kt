@@ -10,10 +10,9 @@ import com.app.pegsolitaire.ui.game.GameRoute
 import com.app.pegsolitaire.ui.home.HomeRoute
 import com.app.pegsolitaire.ui.results.ResultsRoute
 
-/** The five Results actions, hoisted so [AppNavHost]'s content is test-injectable. */
+/** The four Results actions, hoisted so [AppNavHost]'s content is test-injectable. */
 private typealias ResultsContent =
     @Composable (
-        onNextBoard: (String) -> Unit,
         onReplay: (String) -> Unit,
         onCatalog: () -> Unit,
         onHome: () -> Unit,
@@ -25,8 +24,8 @@ private typealias ResultsContent =
  *
  * `NavHost` over the five `@Serializable` [Routes] with `startDestination = Home`:
  * Home → ClassicCatalog → Gameplay(levelId) → Results(...). Back arrows pop
- * (Catalog→Home, Gameplay→Catalog, Results→Catalog); the Results actions navigate
- * Next/Replay → `Gameplay(id)` (popping up to `ClassicCatalog` so board-hops don't grow
+ * (Catalog→Home, Gameplay→Catalog, Results→Catalog); the Results Replay action
+ * navigates → `Gameplay(id)` (popping up to `ClassicCatalog` so board-hops don't grow
  * the back stack unboundedly — T-02-08-NAV) and Catalog/Home pop back to those
  * destinations. This replaces the Phase-1 direct `GameRoute()` host in `MainActivity`.
  *
@@ -55,9 +54,8 @@ fun AppNavHost(
         { onFinished, onNavigateBack ->
             GameRoute(onFinished = onFinished, onNavigateBack = onNavigateBack)
         },
-    resultsContent: ResultsContent = { onNextBoard, onReplay, onCatalog, onHome, onNavigateBack ->
+    resultsContent: ResultsContent = { onReplay, onCatalog, onHome, onNavigateBack ->
         ResultsRoute(
-            onNextBoard = onNextBoard,
             onReplay = onReplay,
             onCatalog = onCatalog,
             onHome = onHome,
@@ -85,9 +83,8 @@ fun AppNavHost(
             )
         }
         composable<Results> {
-            // resultsContent slot: onNextBoard, onReplay, onCatalog, onHome, onNavigateBack
+            // resultsContent slot: onReplay, onCatalog, onHome, onNavigateBack
             resultsContent(
-                { levelId -> navController.toBoardFromCatalog(levelId) },
                 { levelId -> navController.toBoardFromCatalog(levelId) },
                 { navController.popBackStack(ClassicCatalog, inclusive = false) },
                 { navController.popBackStack(Home, inclusive = false) },
