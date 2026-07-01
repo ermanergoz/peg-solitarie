@@ -5,6 +5,10 @@ plugins {
     // is realised before Hilt applies. KSP runs Hilt's processor — no KAPT.
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    // Generates serializers for `@Serializable` type-safe nav routes (NAV-02).
+    // Pitfall 6: without applying this plugin, navigating a @Serializable route
+    // crashes at runtime — the runtime json artifact alone is not enough.
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -60,6 +64,14 @@ dependencies {
     ksp(libs.hilt.compiler)
     // hiltViewModel() for scoping the GameViewModel to the route.
     implementation(libs.hilt.navigation.compose)
+
+    // Navigation: type-safe NavHost between Home / Catalog / Gameplay / Results
+    // (NAV-02). kept on 2.9.8 (stable) — 2.10.x needs compileSdk 37. The
+    // serialization runtime backs the `@Serializable` route classes.
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.kotlinx.serialization.json)
+    // Persistence: DataStore Preferences for the first-run onboardingSeen flag (ONB-01).
+    implementation(libs.androidx.datastore.preferences)
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)

@@ -23,6 +23,26 @@
     <dimen name="dialog_padding">24dp</dimen>
 
     <!--
+      Phase-2 layout tokens (multiples of 4) — owned here so the downstream UI
+      plans (Catalog 02-05, Home/onboarding 02-06, Results 02-07) consume them via
+      dimensionResource(...) with no hardcoded dp (QUAL-03).
+    -->
+    <!-- Caps the content column width on Home / Catalog / Results (tablet sprawl). -->
+    <dimen name="content_max_width">480dp</dimen>
+    <!-- Min height of the Home Classic / Challenge mode tiles (tap target + label + badge). -->
+    <dimen name="mode_tile_min_height">96dp</dimen>
+    <!-- LazyVerticalGrid(GridCells.Adaptive(min)) minimum catalog card width. -->
+    <dimen name="catalog_grid_min_cell_width">160dp</dimen>
+    <!-- Square edge of the mini BoardCanvas preview inside each catalog card. -->
+    <dimen name="catalog_preview_size">96dp</dimen>
+    <!-- Fixed height of every catalog BoardCard so equal grid-row cards align even when a name wraps to 2 lines. -->
+    <dimen name="catalog_card_height">216dp</dimen>
+    <!-- Rendered size of each of the 3 result stars (earned + unearned). -->
+    <dimen name="results_star_size">48dp</dimen>
+    <!-- Square edge of each onboarding step's jump illustration. -->
+    <dimen name="onboarding_illustration_size">160dp</dimen>
+
+    <!--
       Stroke widths (rendering, not layout spacing) — an INTENTIONAL sub-4dp
       exception to the 8-point grid: a 4dp ring/outline would overpower the small
       peg geometry. Do not round these up.

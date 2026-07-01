@@ -11,21 +11,34 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.data.ClassicLevelDescriptor
+import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.data.Level
+import com.app.pegsolitaire.data.LevelRepository
+import com.app.pegsolitaire.data.SettingsRepository
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
+import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.theme.AppTheme
+import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import kotlin.time.TestTimeSource
 
 /**
  * End-to-end Compose flow test for the playable English-33 board, run JVM-side via
@@ -73,23 +86,27 @@ class GameFlowTest {
     }
 
     @Test
-    fun reachingATerminalPositionShowsTheGameOverDialog() {
-        // A two-peg line that resolves to a single peg in one jump → Won ("Perfect!").
+    fun reachingATerminalPositionEmitsTheFinishEventInsteadOfADialog() {
+        // A two-peg line that resolves to a single peg in one jump → Won.
         val nearWin =
             Board(spec = Boards.English33, pegs = 0L)
                 .withPeg(Position(row = 3, col = 1))
                 .withPeg(Position(row = 3, col = 2))
-        startGame(nearWin)
+        val viewModel = startGame(nearWin)
 
         tapCell(row = 3, col = 1)
         tapCell(row = 3, col = 3)
 
         assertStatus(GameStatus.Won)
+
+        // D-05: the Phase-1 game-over dialog is gone — the VM emits a single finish
+        // event (carrying the ScoreCalculator-consistent result) for GameRoute to turn
+        // into a Results navigation; no in-screen overlay appears.
+        val result = runBlocking { viewModel.finished.first() }
+        assertThat(result.pegsRemaining).isEqualTo(1)
+        assertThat(result.stars).isEqualTo(ScoreCalculator.stars(pegsRemaining = 1))
         composeRule
-            .onNodeWithText(context.getString(R.string.game_over_perfect_headline))
-            .assertIsDisplayed()
-        composeRule
-            .onNodeWithText(context.getString(R.string.play_again))
+            .onNodeWithContentDescription(context.getString(R.string.elapsed_time))
             .assertIsDisplayed()
     }
 
@@ -120,7 +137,15 @@ class GameFlowTest {
     }
 
     private fun startGame(initialBoard: Board): GameViewModel {
-        val viewModel = GameViewModel(RulesEngine, initialBoard)
+        val viewModel =
+            GameViewModel(
+                rulesEngine = RulesEngine,
+                levelRepository = SingleBoardLevelRepository(initialBoard),
+                scoreCalculator = ScoreCalculator,
+                settingsRepository = HintsOnSettingsRepository,
+                timeSource = TestTimeSource(),
+                savedStateHandle = SavedStateHandle(mapOf(LEVEL_ID_ARG to ClassicLevelIds.ENGLISH33)),
+            )
         composeRule.setContent {
             AppTheme {
                 val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -131,6 +156,8 @@ class GameFlowTest {
                     onConfirmRestart = viewModel::onConfirmRestart,
                     onDismissRestart = viewModel::onDismissRestart,
                     onAnimationFinished = viewModel::onAnimationFinished,
+                    onToggleHints = viewModel::onToggleHints,
+                    onNavigateBack = {},
                 )
             }
         }
@@ -170,14 +197,49 @@ class GameFlowTest {
 /** Robolectric has no android-all jar for Android 16 (SDK 36) yet; emulate SDK 34. */
 private const val ROBOLECTRIC_SDK = 34
 
+/** The `Gameplay(levelId)` route arg key (the route's property name). */
+private const val LEVEL_ID_ARG = "levelId"
+
 /** The English-33 start: 33 holes minus the empty center. */
 private const val INITIAL_PEG_COUNT = 32
+
+/** This flow drives the English-33 board, which occupies a 7×7 lattice. */
+private const val ENGLISH33_GRID_DIMENSION = 7
 
 /** A cell center as a fraction of the square board canvas (grid centered, origin 0). */
 private fun androidx.compose.ui.test.TouchInjectionScope.percentOffsetForCell(
     row: Int,
     col: Int,
 ) = percentOffset(
-    x = (col + BoardMetrics.CELL_CENTER_FRACTION) / BoardMetrics.GRID_DIMENSION,
-    y = (row + BoardMetrics.CELL_CENTER_FRACTION) / BoardMetrics.GRID_DIMENSION,
+    x = (col + BoardMetrics.CELL_CENTER_FRACTION) / ENGLISH33_GRID_DIMENSION,
+    y = (row + BoardMetrics.CELL_CENTER_FRACTION) / ENGLISH33_GRID_DIMENSION,
 )
+
+/**
+ * A minimal [LevelRepository] that always loads the one [board] it was built with,
+ * under [ClassicLevelIds.ENGLISH33] — lets the flow test drive [GameViewModel] over
+ * the new levelId seam without the Android-resource-backed real source.
+ */
+private class SingleBoardLevelRepository(
+    private val board: Board,
+) : LevelRepository {
+    override fun classicCatalog(): List<ClassicLevelDescriptor> = emptyList()
+
+    override fun loadClassic(levelId: String): Level =
+        Level(
+            id = levelId,
+            displayName = levelId,
+            spec = board.spec,
+            initialBoard = board,
+            holeCount = board.spec.inPlay.size,
+        )
+
+    override fun loadChallenge(levelNumber: Int): Level = error("Challenge is a Phase-3 stub")
+}
+
+/** A fixed hints-on [SettingsRepository]; this flow test never toggles the setting. */
+private object HintsOnSettingsRepository : SettingsRepository {
+    override val hintsEnabled: Flow<Boolean> = flowOf(true)
+
+    override suspend fun setHintsEnabled(enabled: Boolean) = Unit
+}

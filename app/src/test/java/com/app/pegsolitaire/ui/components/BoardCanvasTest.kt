@@ -4,7 +4,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.Position
-import com.app.pegsolitaire.ui.game.BoardMetrics
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
@@ -32,7 +31,7 @@ class BoardCanvasTest {
     @Test
     fun cellSizeFillsTheSquareCanvas() {
         assertThat(geometry.isReady).isTrue()
-        assertThat(geometry.cellSize).isEqualTo(CANVAS_EDGE_PX / BoardMetrics.GRID_DIMENSION)
+        assertThat(geometry.cellSize).isEqualTo(CANVAS_EDGE_PX / geometry.gridDimension)
     }
 
     @Test
