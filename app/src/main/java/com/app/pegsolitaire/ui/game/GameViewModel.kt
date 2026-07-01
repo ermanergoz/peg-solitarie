@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.app.pegsolitaire.data.LevelRepository
+import com.app.pegsolitaire.data.SettingsRepository
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.Cell
 import com.app.pegsolitaire.domain.model.GameStatus
@@ -47,9 +48,15 @@ import kotlin.time.TimeSource
  * [ScoreResult] (stars + score) emitted exactly once on Won/Stuck (SCOR-02) — the
  * Phase-1 game-over overlay is replaced by a navigation to Results (D-05).
  *
+ * A player-toggleable, persisted hint gate ([GameUiState.showHints]) is collected from
+ * the [SettingsRepository] (fail-open default ON) and flipped by [onToggleHints]; it is
+ * render-only — the destination dots are hidden when off, but selection/jump logic is
+ * unchanged.
+ *
  * @param rulesEngine the pure-domain rules authority (injected via `DomainModule`).
  * @param levelRepository resolves the selected board from the route's `levelId`.
  * @param scoreCalculator the pure-domain scoring authority (stars + score).
+ * @param settingsRepository the persisted hint on/off setting (fail-open default ON).
  * @param timeSource the monotonic clock the timer marks against (test-swappable).
  * @param savedStateHandle carries the typed `Gameplay(levelId)` route arg.
  */
@@ -60,6 +67,7 @@ class GameViewModel
         private val rulesEngine: RulesEngine,
         levelRepository: LevelRepository,
         private val scoreCalculator: ScoreCalculator,
+        private val settingsRepository: SettingsRepository,
         private val timeSource: TimeSource,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
@@ -93,6 +101,27 @@ class GameViewModel
 
         /** Guards the one-shot [finished] emission so it never re-fires (Pitfall 4). */
         private var finishedEmitted = false
+
+        init {
+            // The persisted hint setting is the single source of truth for showHints:
+            // collect it into state (fail-open default true until the first emission).
+            viewModelScope.launch {
+                settingsRepository.hintsEnabled.collect { enabled ->
+                    _uiState.update { it.copy(showHints = enabled) }
+                }
+            }
+        }
+
+        /**
+         * Toggles the persisted hint setting (D — player control). Writes the flipped
+         * value through [SettingsRepository]; the collected [SettingsRepository.hintsEnabled]
+         * flow is the authority that drives [GameUiState.showHints], so state updates when
+         * the write lands (single source of truth — no separate optimistic local flip).
+         */
+        fun onToggleHints() {
+            val current = _uiState.value.showHints
+            viewModelScope.launch { settingsRepository.setHintsEnabled(!current) }
+        }
 
         /**
          * Routes a tap on [position] through the locked tap-behavior table
@@ -240,7 +269,9 @@ class GameViewModel
             tickerJob = null
             startMark = null
             finishedEmitted = false
-            _uiState.value = GameUiState.initial(initialBoard)
+            // Preserve the player's hint choice across a restart; the collected
+            // settings flow only re-emits on change, so carry it forward explicitly.
+            _uiState.value = GameUiState.initial(initialBoard).copy(showHints = _uiState.value.showHints)
         }
 
         /**

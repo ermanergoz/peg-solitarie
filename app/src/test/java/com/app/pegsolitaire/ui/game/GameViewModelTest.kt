@@ -9,6 +9,7 @@ import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
+import com.app.pegsolitaire.data.SettingsRepository
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Boards
@@ -18,6 +19,9 @@ import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
@@ -179,6 +183,50 @@ class GameViewModelTest {
                 expectNoEvents()
                 cancelAndIgnoreRemainingEvents()
             }
+        }
+
+    // ---- Persisted hint toggle ----------------------------------------------
+
+    @Test
+    fun showHintsReflectsTheSettingAndSelectionStillComputesTargets() =
+        runTest(testDispatcher) {
+            val viewModel = viewModelFor(Boards.english33Initial, settings = FakeSettingsRepository(hintsEnabled = true))
+            runCurrent()
+            assertThat(viewModel.uiState.value.showHints).isTrue()
+
+            viewModel.onCellTap(pegAboveCenter)
+            runCurrent()
+            assertThat(viewModel.uiState.value.legalTargets).containsExactly(centerHole)
+            assertThat(viewModel.uiState.value.showHints).isTrue()
+        }
+
+    @Test
+    fun onToggleHintsFlipsShowHintsAndPersistsTheNewValue() =
+        runTest(testDispatcher) {
+            val settings = FakeSettingsRepository(hintsEnabled = true)
+            val viewModel = viewModelFor(Boards.english33Initial, settings = settings)
+            runCurrent()
+            assertThat(viewModel.uiState.value.showHints).isTrue()
+
+            viewModel.onToggleHints()
+            runCurrent()
+
+            assertThat(settings.lastWritten).isFalse()
+            assertThat(viewModel.uiState.value.showHints).isFalse()
+        }
+
+    @Test
+    fun hintsOffHidesShowHintsButTargetsAreStillComputedOnSelection() =
+        runTest(testDispatcher) {
+            val viewModel = viewModelFor(Boards.english33Initial, settings = FakeSettingsRepository(hintsEnabled = false))
+            runCurrent()
+            assertThat(viewModel.uiState.value.showHints).isFalse()
+
+            // The gate is render-only: selection/jump logic is unchanged when hints are off.
+            viewModel.onCellTap(pegAboveCenter)
+            runCurrent()
+            assertThat(viewModel.uiState.value.legalTargets).containsExactly(centerHole)
+            assertThat(viewModel.uiState.value.showHints).isFalse()
         }
 
     // ---- Preserved Phase-1 behaviors ----------------------------------------
@@ -473,6 +521,7 @@ class GameViewModelTest {
         board: Board,
         levelId: String = ClassicLevelIds.ENGLISH33,
         timeSource: TimeSource = TestTimeSource(),
+        settings: SettingsRepository = FakeSettingsRepository(),
     ): GameViewModel {
         val factory =
             object : ViewModelProvider.Factory {
@@ -482,6 +531,7 @@ class GameViewModelTest {
                         rulesEngine = RulesEngine,
                         levelRepository = FakeLevelRepository(boardsById = mapOf(levelId to board)),
                         scoreCalculator = ScoreCalculator,
+                        settingsRepository = settings,
                         timeSource = timeSource,
                         savedStateHandle = SavedStateHandle(mapOf(LEVEL_ID_ARG to levelId)),
                     ) as T
@@ -561,4 +611,25 @@ private class FakeLevelRepository(
     }
 
     override fun loadChallenge(levelNumber: Int): Level = error("Challenge is a Phase-3 stub")
+}
+
+/**
+ * An in-memory [SettingsRepository] backed by a `MutableStateFlow` so a write both
+ * records the last-written value ([lastWritten]) and re-emits through [hintsEnabled] —
+ * letting the collected flow drive `showHints` exactly as the DataStore-backed impl does.
+ */
+private class FakeSettingsRepository(
+    hintsEnabled: Boolean = true,
+) : SettingsRepository {
+    private val state = MutableStateFlow(hintsEnabled)
+
+    override val hintsEnabled: Flow<Boolean> = state.asStateFlow()
+
+    var lastWritten: Boolean? = null
+        private set
+
+    override suspend fun setHintsEnabled(enabled: Boolean) {
+        lastWritten = enabled
+        state.value = enabled
+    }
 }

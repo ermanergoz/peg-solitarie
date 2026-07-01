@@ -1,27 +1,18 @@
 package com.app.pegsolitaire.data
 
-import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
-import androidx.datastore.preferences.preferencesDataStore
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** The single app-wide Preferences store (D-16: only persistence pulled into Phase 2). */
-private val Context.onboardingDataStore by preferencesDataStore(name = OnboardingPreferences.STORE_NAME)
-
-/** Scoped constants for the onboarding Preferences store (QUAL-03 — no inline magic strings). */
+/** Scoped constants for the onboarding Preferences key (QUAL-03 — no inline magic strings). */
 internal object OnboardingPreferences {
-    /** DataStore file name; folds into the broader Phase-5 preferences store. */
-    const val STORE_NAME = "app_prefs"
-
     /** The single boolean key tracking whether the first-run how-to-play has been seen. */
     val SEEN_KEY = booleanPreferencesKey("onboarding_seen")
 
@@ -38,31 +29,28 @@ internal object OnboardingPreferences {
  * it only re-teaches the harmless tutorial (T-02-08-DS). `HomeViewModel` collects
  * [onboardingSeen] to gate the overlay and calls [markSeen] on dismiss.
  *
- * The primary `internal` constructor takes the [DataStore] directly so unit tests can
- * inject a real temp-file store or a throwing one; the Hilt `@Inject` constructor
- * delegates to it over the app's real Preferences file. As a constructor-injectable
- * `@Singleton`, no Hilt module entry is needed.
+ * The `@Inject internal` constructor takes the shared [DataStore] directly: Hilt
+ * provides the single `app_prefs` store (see `DataModule`), and unit tests construct
+ * the repository with a real temp-file store or a throwing one over the same seam. As
+ * a constructor-injectable `@Singleton`, no Hilt `@Binds` entry is needed.
  */
 @Singleton
-open class OnboardingRepository internal constructor(
-    private val dataStore: DataStore<Preferences>,
-) {
+open class OnboardingRepository
     @Inject
-    constructor(
-        @ApplicationContext context: Context,
-    ) : this(context.onboardingDataStore)
+    internal constructor(
+        private val dataStore: DataStore<Preferences>,
+    ) {
+        /**
+         * Emits `false` until [markSeen] has run (fresh install), then `true`. A read error
+         * is caught and degraded to empty preferences (→ `false`), the D-16 fail-open path.
+         */
+        open val onboardingSeen: Flow<Boolean> =
+            dataStore.data
+                .catch { emit(emptyPreferences()) }
+                .map { it[OnboardingPreferences.SEEN_KEY] ?: OnboardingPreferences.DEFAULT_SEEN }
 
-    /**
-     * Emits `false` until [markSeen] has run (fresh install), then `true`. A read error
-     * is caught and degraded to empty preferences (→ `false`), the D-16 fail-open path.
-     */
-    open val onboardingSeen: Flow<Boolean> =
-        dataStore.data
-            .catch { emit(emptyPreferences()) }
-            .map { it[OnboardingPreferences.SEEN_KEY] ?: OnboardingPreferences.DEFAULT_SEEN }
-
-    /** Persists that the onboarding has been seen (D-13 — called when the overlay is dismissed). */
-    open suspend fun markSeen() {
-        dataStore.edit { it[OnboardingPreferences.SEEN_KEY] = true }
+        /** Persists that the onboarding has been seen (D-13 — called when the overlay is dismissed). */
+        open suspend fun markSeen() {
+            dataStore.edit { it[OnboardingPreferences.SEEN_KEY] = true }
+        }
     }
-}

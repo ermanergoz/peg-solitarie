@@ -24,6 +24,9 @@ import com.app.pegsolitaire.domain.model.Position
  * @property confirmRestart whether the mid-game restart confirmation is showing (D-06).
  * @property elapsedSeconds whole seconds shown on the in-game timer (D-04); 0 until
  *   the first move, then ticked once per second by the ViewModel until terminal.
+ * @property showHints whether legal-destination hint dots are drawn (player-toggled,
+ *   persisted via `SettingsRepository`); fail-open default `true`. Purely a render
+ *   gate — selection/jump logic is unchanged whether hints are on or off.
  */
 @Immutable
 data class GameUiState(
@@ -34,13 +37,15 @@ data class GameUiState(
     val animating: MoveTransition?,
     val confirmRestart: Boolean,
     val elapsedSeconds: Int = 0,
+    val showHints: Boolean = true,
 ) {
     companion object {
         /**
          * The deterministic starting state: a full board with its start hole empty,
          * nothing selected, no highlights, `Playing`, no animation, no restart
-         * prompt, and the timer at 0. [board] defaults to [Boards.english33Initial]
-         * but is overridable so the ViewModel can reset to its selected board.
+         * prompt, the timer at 0, and hints on. [board] defaults to
+         * [Boards.english33Initial] but is overridable so the ViewModel can reset to
+         * its selected board.
          */
         fun initial(board: Board = Boards.english33Initial): GameUiState =
             GameUiState(
@@ -51,6 +56,7 @@ data class GameUiState(
                 animating = null,
                 confirmRestart = false,
                 elapsedSeconds = 0,
+                showHints = true,
             )
     }
 }

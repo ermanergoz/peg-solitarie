@@ -18,6 +18,7 @@ import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
+import com.app.pegsolitaire.data.SettingsRepository
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.GameStatus
@@ -27,7 +28,9 @@ import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
@@ -139,6 +142,7 @@ class GameFlowTest {
                 rulesEngine = RulesEngine,
                 levelRepository = SingleBoardLevelRepository(initialBoard),
                 scoreCalculator = ScoreCalculator,
+                settingsRepository = HintsOnSettingsRepository,
                 timeSource = TestTimeSource(),
                 savedStateHandle = SavedStateHandle(mapOf(LEVEL_ID_ARG to ClassicLevelIds.ENGLISH33)),
             )
@@ -152,6 +156,7 @@ class GameFlowTest {
                     onConfirmRestart = viewModel::onConfirmRestart,
                     onDismissRestart = viewModel::onDismissRestart,
                     onAnimationFinished = viewModel::onAnimationFinished,
+                    onToggleHints = viewModel::onToggleHints,
                     onNavigateBack = {},
                 )
             }
@@ -230,4 +235,11 @@ private class SingleBoardLevelRepository(
         )
 
     override fun loadChallenge(levelNumber: Int): Level = error("Challenge is a Phase-3 stub")
+}
+
+/** A fixed hints-on [SettingsRepository]; this flow test never toggles the setting. */
+private object HintsOnSettingsRepository : SettingsRepository {
+    override val hintsEnabled: Flow<Boolean> = flowOf(true)
+
+    override suspend fun setHintsEnabled(enabled: Boolean) = Unit
 }

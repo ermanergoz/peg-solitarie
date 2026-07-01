@@ -56,6 +56,7 @@ fun GameRoute(
         onConfirmRestart = viewModel::onConfirmRestart,
         onDismissRestart = viewModel::onDismissRestart,
         onAnimationFinished = viewModel::onAnimationFinished,
+        onToggleHints = viewModel::onToggleHints,
         onNavigateBack = onNavigateBack,
         modifier = modifier,
     )

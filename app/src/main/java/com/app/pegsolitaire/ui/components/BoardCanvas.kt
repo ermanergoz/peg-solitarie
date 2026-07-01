@@ -219,7 +219,7 @@ private fun DrawScope.drawCell(
     when (state.board.cellAt(position)) {
         Cell.Empty -> {
             drawHole(center, geometry, palette)
-            if (interactive && position in state.legalTargets) {
+            if (interactive && state.showHints && position in state.legalTargets) {
                 drawCircle(
                     color = palette.accent.copy(alpha = BoardMetrics.DESTINATION_DOT_ALPHA),
                     radius = geometry.destinationDotRadius,

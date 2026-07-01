@@ -71,6 +71,7 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  * @param onConfirmRestart confirms a restart (mid-game confirm dialog).
  * @param onDismissRestart dismisses the mid-game restart confirmation.
  * @param onAnimationFinished signals the jump slide completed.
+ * @param onToggleHints toggles the persisted legal-destination hint dots.
  * @param onNavigateBack leaves the gameplay screen (top-bar back nav).
  * @param modifier layout modifier for the screen.
  */
@@ -83,6 +84,7 @@ fun GameScreen(
     onConfirmRestart: () -> Unit,
     onDismissRestart: () -> Unit,
     onAnimationFinished: () -> Unit,
+    onToggleHints: () -> Unit,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -91,7 +93,9 @@ fun GameScreen(
         topBar = {
             GameTopBar(
                 elapsedSeconds = state.elapsedSeconds,
+                showHints = state.showHints,
                 onRestart = onRestart,
+                onToggleHints = onToggleHints,
                 onNavigateBack = onNavigateBack,
             )
         },
@@ -139,13 +143,16 @@ fun GameScreen(
 
 /**
  * The gameplay top bar: a back nav, the app title, the live `mm:ss` elapsed timer
- * (D-04), and the [RestartControl] (D-06). Stateless — every value/handler is hoisted.
+ * (D-04), the [HintToggleControl], and the [RestartControl] (D-06). Stateless — every
+ * value/handler is hoisted.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GameTopBar(
     elapsedSeconds: Int,
+    showHints: Boolean,
     onRestart: () -> Unit,
+    onToggleHints: () -> Unit,
     onNavigateBack: () -> Unit,
 ) {
     TopAppBar(
@@ -166,6 +173,7 @@ private fun GameTopBar(
         },
         actions = {
             ElapsedTimeLabel(elapsedSeconds = elapsedSeconds)
+            HintToggleControl(showHints = showHints, onToggleHints = onToggleHints)
             RestartControl(onRestart = onRestart)
         },
     )
