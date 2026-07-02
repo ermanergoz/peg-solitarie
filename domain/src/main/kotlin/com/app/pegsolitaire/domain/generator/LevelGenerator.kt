@@ -45,17 +45,22 @@ object LevelGenerator {
     /**
      * Generates the deterministic, solvable-by-construction level for [levelNumber].
      *
-     * Any `levelNumber < 1` is clamped to level 1 (T-03-01). Each level's own
-     * reject-and-reseed loop ([generateForLevel]) reseeds with a fresh deterministic
-     * salt ([stableSeed]) and reverse-walks a candidate, accepting the first that
-     * clears every [passesQualityGates] gate — INCLUDING that its symmetry-canonical
-     * key does not collide with the previous [GeneratorConstants.DEDUP_WINDOW]
-     * levels — or, after [GeneratorConstants.MAX_ATTEMPTS], the best-scoring board
-     * seen (deterministic bounded fallback, T-03-04). Generation always terminates,
-     * so it can never hang on an untrusted level number.
+     * The level number is an untrusted nav arg, so it is clamped into
+     * `[MIN_LEVEL, GeneratorConstants.MAX_CHALLENGE_LEVEL]` (T-03-01/T-03-09):
+     * anything `< 1` clamps up to level 1 and anything above the ceiling clamps down
+     * to it. Because the replay chain is O(level), that upper clamp is what bounds the
+     * worst-case work — a forged huge level can no longer loop for billions of
+     * iterations (CR-01). Each level's own reject-and-reseed loop ([generateForLevel])
+     * reseeds with a fresh deterministic salt ([stableSeed]) and reverse-walks a
+     * candidate, accepting the first that clears every [passesQualityGates] gate —
+     * INCLUDING that its symmetry-canonical key does not collide with the previous
+     * [GeneratorConstants.DEDUP_WINDOW] levels — or, after
+     * [GeneratorConstants.MAX_ATTEMPTS], the best-scoring non-colliding board seen
+     * (deterministic bounded fallback, T-03-04). The clamp bounds the chain length, so
+     * generation is not just terminating but bounded in cost.
      */
     fun generate(levelNumber: Int): GeneratedLevel {
-        val target = levelNumber.coerceAtLeast(MIN_LEVEL)
+        val target = levelNumber.coerceIn(MIN_LEVEL, GeneratorConstants.MAX_CHALLENGE_LEVEL)
 
         // Exact rolling dedup window: replay the deterministic sequence from level 1,
         // deduping each level against the ACTUAL accepted canonical keys of the
@@ -79,8 +84,12 @@ object LevelGenerator {
      * The bounded reject-and-reseed loop for a single [level]: reverse-walk a
      * candidate per attempt and return the first that clears [passesQualityGates]
      * (with [forbiddenKeys] applied to the dedup gate). On exhaustion accept the
-     * best-scoring candidate seen — the deterministic fallback that guarantees
-     * termination (T-03-04). Single-threaded and synchronous (Pitfall 1).
+     * best-scoring candidate that STILL clears the dedup gate, preferring it over the
+     * overall best so the deterministic fallback can never silently emit a board that
+     * collides on the symmetry-canonical key with a recent level (WR-01 — the
+     * never-repeating core value). Only if EVERY candidate collided does it fall back
+     * to the overall best, which still guarantees termination (T-03-04). Deterministic
+     * (same seeds → same choice every run), single-threaded, and synchronous (Pitfall 1).
      */
     private fun generateForLevel(
         level: Int,
@@ -89,6 +98,8 @@ object LevelGenerator {
     ): GeneratedLevel {
         var best: GeneratedLevel? = null
         var bestScore = FALLBACK_UNSET_SCORE
+        var dedupBest: GeneratedLevel? = null
+        var dedupBestScore = FALLBACK_UNSET_SCORE
         var attempt = 0
         while (attempt < GeneratorConstants.MAX_ATTEMPTS) {
             val rng = Random(stableSeed(level, salt = attempt))
@@ -99,16 +110,28 @@ object LevelGenerator {
                 best = candidate
                 bestScore = score
             }
+            // Track the best candidate that at least clears the non-negotiable dedup
+            // gate, so the fallback prefers a non-colliding board over a shorter-but-
+            // colliding one (WR-01).
+            if (canonicalKeyOf(candidate.startingBoard) !in forbiddenKeys && score > dedupBestScore) {
+                dedupBest = candidate
+                dedupBestScore = score
+            }
             attempt++
         }
-        return requireNotNull(best) { "reverse walk produced no board for level $level" }
+        return requireNotNull(dedupBest ?: best) { "reverse walk produced no board for level $level" }
     }
 
     /**
-     * The six quality gates (RESEARCH §Quality Gates, Pitfall 3), applied to a
+     * The five quality gates (RESEARCH §Quality Gates, Pitfall 3), applied to a
      * finished reverse-walk [candidate]. All thresholds are tier knobs or scoped
      * [GeneratorConstants] — no inline literals (QUAL-03). Any failure means the
      * caller reseeds with the next deterministic salt.
+     *
+     * A forced-line gate was removed (dead code, WR-02): it only ran once the
+     * [DifficultyTier.minOpeningMoves] branching floor (>= 2) had already passed on
+     * the opening board, so it could never fire — the branching floor already
+     * guarantees the opening move is not the sole legal move.
      */
     private fun passesQualityGates(
         candidate: GeneratedLevel,
@@ -120,30 +143,8 @@ object LevelGenerator {
         return solution.size >= tier.minSolutionLength &&
             board.pegCount in tier.pegRange &&
             RulesEngine.legalMoves(board).size >= tier.minOpeningMoves &&
-            !isForcedLine(board, solution) &&
             boundingBoxSpread(board) >= tier.minSpread &&
             canonicalKeyOf(board) !in forbiddenKeys
-    }
-
-    /**
-     * Whether the opening is a fully forced line: EACH of the first
-     * [GeneratorConstants.FORCED_LINE_PREFIX] recorded moves is the only legal move
-     * on its replayed board. Such openings feel scripted (D-06). A single branching
-     * position within the prefix clears the gate.
-     */
-    private fun isForcedLine(
-        startingBoard: Board,
-        solution: List<Move>,
-    ): Boolean {
-        val prefix = minOf(GeneratorConstants.FORCED_LINE_PREFIX, solution.size)
-        var board = startingBoard
-        for (index in 0 until prefix) {
-            if (RulesEngine.legalMoves(board).size > 1) return false
-            board = RulesEngine.applyMove(board, solution[index])
-        }
-        // An empty prefix (prefix == 0) is not a forced line; a fully-traversed
-        // prefix with no branching position is.
-        return prefix > 0
     }
 
     /**

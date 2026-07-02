@@ -15,12 +15,12 @@ import org.junit.Test
  * sampled level set) are intentional and acceptable in test code — the sample IS
  * the spec.
  *
- * The six gates asserted over every sampled level:
+ * The five quality gates asserted over every sampled level (the forced-line gate was
+ * removed as dead code — WR-02/IN-03 — since the branching-factor floor already
+ * guarantees the opening move is never the sole legal move):
  *  - non-trivial depth (`solution.size >= tier.minSolutionLength`);
  *  - peg-density bounds (`pegCount in tier.pegRange`);
  *  - branching-factor floor (`legalMoves(start).size >= tier.minOpeningMoves`);
- *  - forced-line rejection (the opening `FORCED_LINE_PREFIX` moves are not each the
- *    only legal move);
  *  - spatial spread (bounding-box spread `>= tier.minSpread`);
  *  - symmetry-normalized dedup (no two starting boards in a sliding window of
  *    consecutive levels share a symmetry-canonical `pegs` key).
@@ -56,24 +56,6 @@ class QualityGateTest {
             val tier = DifficultyTiers.forLevel(n)
             assertThat(RulesEngine.legalMoves(level.startingBoard).size)
                 .isAtLeast(tier.minOpeningMoves)
-        }
-    }
-
-    @Test
-    fun theOpeningIsNotAScriptedForcedLine() {
-        sampleLevels.forEach { n ->
-            val level = LevelGenerator.generate(n)
-            val prefix = minOf(GeneratorConstants.FORCED_LINE_PREFIX, level.solution.size)
-
-            // At least one of the first K positions must offer more than one legal move —
-            // otherwise the opening is a single forced line (feels scripted, D-06).
-            var board = level.startingBoard
-            var anyBranching = false
-            for (i in 0 until prefix) {
-                if (RulesEngine.legalMoves(board).size > 1) anyBranching = true
-                board = RulesEngine.applyMove(board, level.solution[i])
-            }
-            assertThat(anyBranching).isTrue()
         }
     }
 

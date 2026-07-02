@@ -29,6 +29,19 @@ object GeneratorConstants {
     const val MAX_ATTEMPTS = 1_000
 
     /**
+     * Hard upper ceiling on the (untrusted) Challenge level number (CR-01, T-03-09).
+     * `generate` replays the deterministic chain from level 1 to the target to build
+     * the rolling dedup window, so the work is O(level); a forged nav arg (e.g.
+     * `challengeLevel = 2_000_000_000`) would otherwise loop billions of times and
+     * hang. The level is upper-clamped to this frozen ceiling so worst-case work is
+     * bounded — a value above it plays the same board as the cap. Set well above any
+     * realistically hand-reached level and above every golden-fixture level (<= 1000),
+     * so the frozen determinism lock is untouched; product-tunable upward if
+     * progression ever approaches it.
+     */
+    const val MAX_CHALLENGE_LEVEL = 10_000
+
+    /**
      * Left-shift applied to the level number before mixing in the salt, so the
      * level number and the per-attempt salt occupy disjoint bit ranges of the raw
      * seed (a 32-bit salt below a level number shifted up 32 bits).
@@ -56,15 +69,6 @@ object GeneratorConstants {
 
     /** Final splitmix64 xor-shift distance. */
     const val MIX_SHIFT_3 = 31
-
-    /**
-     * Forced-line rejection prefix length K (03-02 quality gate, Pitfall 3). A
-     * starting board is rejected if EACH of the first K moves of its recorded
-     * solution is the *only* legal move — a fully forced opening feels scripted
-     * (D-06). Playtest-tunable; the branching floor already guarantees the opening
-     * move itself is never forced.
-     */
-    const val FORCED_LINE_PREFIX = 3
 
     /**
      * Symmetry-normalized dedup window (03-02 quality gate, Pitfall 3): a starting
