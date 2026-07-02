@@ -1,10 +1,11 @@
 ---
 phase: 4
 slug: assist-hint-undo
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-07-02
+reviewed_at: 2026-07-02
 ---
 
 # Phase 4 — UI Design Contract
