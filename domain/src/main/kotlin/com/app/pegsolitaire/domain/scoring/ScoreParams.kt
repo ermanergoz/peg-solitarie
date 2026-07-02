@@ -49,4 +49,12 @@ object ScoreParams {
      * at `TIME_BONUS_CAP / DECAY_PER_SECOND` = 500 seconds and never goes negative.
      */
     const val DECAY_PER_SECOND = 10
+
+    /**
+     * The neutral level/difficulty multiplier (D-11). At this default the numeric
+     * score is byte-identical to the base Phase-2 formula, so Classic (which never
+     * passes a multiplier) is untouched. Challenge callers pass a difficulty-scaled
+     * multiplier `> 1` to make climbing the ladder score more — stars are NOT re-based.
+     */
+    const val DEFAULT_LEVEL_MULTIPLIER = 1
 }

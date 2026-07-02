@@ -17,9 +17,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
  * stateless [ResultsScreen]. It owns no logic — the headline tier is computed in the
  * ViewModel; the actual navigation targets are supplied by the `AppNavHost` (02-08).
  *
- * @param onReplay re-plays the same level (the VM's `replayId`).
- * @param onCatalog pops back to the Classic catalog.
+ * @param onReplay re-plays the same level (the VM's `replayId`). Classic only.
+ * @param onCatalog pops back to the Classic catalog. Classic only.
  * @param onHome pops back to Home.
+ * @param onNextLevel advances a solved Challenge level to N+1 (D-01).
+ * @param onRetry reloads the same deterministic Challenge board when stuck (D-10).
  * @param onNavigateBack leaves the Results screen (top-bar back nav).
  * @param modifier layout modifier forwarded to [ResultsScreen].
  */
@@ -28,6 +30,8 @@ fun ResultsRoute(
     onReplay: (String) -> Unit,
     onCatalog: () -> Unit,
     onHome: () -> Unit,
+    onNextLevel: (Int) -> Unit,
+    onRetry: (Int) -> Unit,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -39,6 +43,8 @@ fun ResultsRoute(
         onReplay = onReplay,
         onCatalog = onCatalog,
         onHome = onHome,
+        onNextLevel = onNextLevel,
+        onRetry = onRetry,
         onNavigateBack = onNavigateBack,
         modifier = modifier,
     )

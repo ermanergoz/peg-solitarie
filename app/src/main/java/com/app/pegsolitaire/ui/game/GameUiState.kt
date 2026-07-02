@@ -2,6 +2,7 @@ package com.app.pegsolitaire.ui.game
 
 import androidx.compose.runtime.Immutable
 import com.app.pegsolitaire.domain.model.Board
+import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Position
@@ -27,6 +28,9 @@ import com.app.pegsolitaire.domain.model.Position
  * @property showHints whether legal-destination hint dots are drawn (player-toggled,
  *   persisted via `SettingsRepository`); fail-open default `true`. Purely a render
  *   gate — selection/jump logic is unchanged whether hints are on or off.
+ * @property isLoading whether the board is still being generated off the main thread
+ *   (Challenge only, CR-01): while `true` the screen shows a loading indicator instead
+ *   of the board. Classic boards resolve synchronously, so they are never in this state.
  */
 @Immutable
 data class GameUiState(
@@ -38,6 +42,7 @@ data class GameUiState(
     val confirmRestart: Boolean,
     val elapsedSeconds: Int = 0,
     val showHints: Boolean = true,
+    val isLoading: Boolean = false,
 ) {
     companion object {
         /**
@@ -57,6 +62,29 @@ data class GameUiState(
                 confirmRestart = false,
                 elapsedSeconds = 0,
                 showHints = true,
+                isLoading = false,
             )
+
+        /**
+         * The transient loading state shown while a Challenge board is generated off
+         * the main thread (CR-01). It carries an empty placeholder board (the screen
+         * renders a progress indicator, not the board, while [isLoading]) so the state
+         * stays a total, non-null value — no board logic runs against it.
+         */
+        fun loading(): GameUiState =
+            GameUiState(
+                board = Board(spec = EMPTY_SPEC, pegs = 0L),
+                selected = null,
+                legalTargets = emptyList(),
+                status = GameStatus.Playing,
+                animating = null,
+                confirmRestart = false,
+                elapsedSeconds = 0,
+                showHints = true,
+                isLoading = true,
+            )
+
+        /** An empty footprint backing the [loading] placeholder board (no in-play cells). */
+        private val EMPTY_SPEC = BoardSpec(inPlay = emptyList(), target = null)
     }
 }

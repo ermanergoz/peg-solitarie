@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -74,6 +75,9 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  * @param onToggleHints toggles the persisted legal-destination hint dots.
  * @param onNavigateBack leaves the gameplay screen (top-bar back nav).
  * @param modifier layout modifier for the screen.
+ * @param challengeLevel the Challenge level number when this is a Challenge game (drives
+ *   the "Level N" top-bar title, S2/D-03), or `null` for Classic (app-name title). This
+ *   is a pure presentation flag — it reaches only the title slot, never the board logic.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,6 +91,7 @@ fun GameScreen(
     onToggleHints: () -> Unit,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
+    challengeLevel: Int? = null,
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -94,6 +99,7 @@ fun GameScreen(
             GameTopBar(
                 elapsedSeconds = state.elapsedSeconds,
                 showHints = state.showHints,
+                challengeLevel = challengeLevel,
                 onRestart = onRestart,
                 onToggleHints = onToggleHints,
                 onNavigateBack = onNavigateBack,
@@ -114,21 +120,25 @@ fun GameScreen(
                     },
             contentAlignment = Alignment.Center,
         ) {
-            Surface(
-                shape = MaterialTheme.shapes.large,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                modifier =
-                    Modifier
-                        .widthIn(max = dimensionResource(R.dimen.board_max_size))
-                        .fillMaxWidth()
-                        .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO),
-            ) {
-                BoardCanvas(
-                    state = state,
-                    onCellTap = onCellTap,
-                    onAnimationFinished = onAnimationFinished,
-                    modifier = Modifier.padding(dimensionResource(R.dimen.spacing_md)),
-                )
+            if (state.isLoading) {
+                LoadingIndicator()
+            } else {
+                Surface(
+                    shape = MaterialTheme.shapes.large,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier =
+                        Modifier
+                            .widthIn(max = dimensionResource(R.dimen.board_max_size))
+                            .fillMaxWidth()
+                            .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO),
+                ) {
+                    BoardCanvas(
+                        state = state,
+                        onCellTap = onCellTap,
+                        onAnimationFinished = onAnimationFinished,
+                        modifier = Modifier.padding(dimensionResource(R.dimen.spacing_md)),
+                    )
+                }
             }
         }
     }
@@ -142,15 +152,18 @@ fun GameScreen(
 }
 
 /**
- * The gameplay top bar: a back nav, the app title, the live `mm:ss` elapsed timer
- * (D-04), the [HintToggleControl], and the [RestartControl] (D-06). Stateless — every
- * value/handler is hoisted.
+ * The gameplay top bar: a back nav, the context-aware title, the live `mm:ss` elapsed
+ * timer (D-04), the [HintToggleControl], and the [RestartControl] (D-06). Stateless —
+ * every value/handler is hoisted. The title slot is the only mode-aware element (S2): a
+ * non-null [challengeLevel] renders the "Level N" indicator, else the app name; the
+ * actions row is identical in both modes.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GameTopBar(
     elapsedSeconds: Int,
     showHints: Boolean,
+    challengeLevel: Int?,
     onRestart: () -> Unit,
     onToggleHints: () -> Unit,
     onNavigateBack: () -> Unit,
@@ -165,18 +178,38 @@ private fun GameTopBar(
                 )
             }
         },
-        title = {
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.titleLarge,
-            )
-        },
+        title = { GameTopBarTitle(challengeLevel = challengeLevel) },
         actions = {
             ElapsedTimeLabel(elapsedSeconds = elapsedSeconds)
             HintToggleControl(showHints = showHints, onToggleHints = onToggleHints)
             RestartControl(onRestart = onRestart)
         },
     )
+}
+
+/**
+ * The context-aware gameplay title (S2 / D-03). In Challenge mode ([challengeLevel] set)
+ * it renders the neutral "Level N" indicator (`titleLarge`, `onSurface` — deliberately
+ * NOT accent per UI-SPEC S3) with a `challenge_level_indicator_desc` screen-reader
+ * description; otherwise it renders the static app-name title. This is the sole
+ * presentation delta — no `if (challenge)` reaches the board/selection/jump logic.
+ */
+@Composable
+private fun GameTopBarTitle(challengeLevel: Int?) {
+    if (challengeLevel != null) {
+        val description = stringResource(R.string.challenge_level_indicator_desc, challengeLevel)
+        Text(
+            text = stringResource(R.string.challenge_level_indicator, challengeLevel),
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.semantics { contentDescription = description },
+        )
+    } else {
+        Text(
+            text = stringResource(R.string.app_name),
+            style = MaterialTheme.typography.titleLarge,
+        )
+    }
 }
 
 /**
@@ -197,6 +230,19 @@ private fun ElapsedTimeLabel(elapsedSeconds: Int) {
             Modifier
                 .padding(end = dimensionResource(R.dimen.spacing_sm))
                 .semantics { contentDescription = description },
+    )
+}
+
+/**
+ * The centered progress indicator shown while a Challenge board is generated off the
+ * main thread (CR-01). Carries the `loading_level` content description so screen
+ * readers announce the wait; it replaces the board panel until the state settles.
+ */
+@Composable
+private fun LoadingIndicator() {
+    val description = stringResource(R.string.loading_level)
+    CircularProgressIndicator(
+        modifier = Modifier.semantics { contentDescription = description },
     )
 }
 

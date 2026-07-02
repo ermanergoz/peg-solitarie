@@ -56,4 +56,42 @@ class ScoreCalculatorTest {
         assertThat(ScoreCalculator.score(pegsCleared = 5, elapsedSeconds = Int.MAX_VALUE))
             .isAtLeast(pegBase)
     }
+
+    @Test
+    fun scoreWithDefaultMultiplierEqualsThePhase2ScoreForEqualInputs() {
+        // D-11: levelMultiplier = 1 is byte-identical to the Phase-2 score — Classic
+        // (which never passes a multiplier) is completely untouched.
+        val phase2 = ScoreCalculator.score(pegsCleared = 20, elapsedSeconds = 42)
+
+        assertThat(ScoreCalculator.score(pegsCleared = 20, elapsedSeconds = 42, levelMultiplier = 1))
+            .isEqualTo(phase2)
+    }
+
+    @Test
+    fun scoreWithMultiplierGreaterThanOneScalesStrictlyLarger() {
+        // D-11: climbing the Challenge ladder scales the numeric score up.
+        val base = ScoreCalculator.score(pegsCleared = 20, elapsedSeconds = 42, levelMultiplier = 1)
+        val scaled = ScoreCalculator.score(pegsCleared = 20, elapsedSeconds = 42, levelMultiplier = 3)
+
+        assertThat(scaled).isGreaterThan(base)
+        assertThat(scaled).isEqualTo(base * 3)
+    }
+
+    @Test
+    fun levelMultiplierNeverRebasesStars() {
+        // D-11: the star model is unchanged — a 1-peg solve is 3 stars regardless of
+        // the level multiplier; only the numeric score scales.
+        val plain = ScoreCalculator.evaluate(pegsRemaining = 1, pegsCleared = 20, elapsedSeconds = 42)
+        val scaled =
+            ScoreCalculator.evaluate(
+                pegsRemaining = 1,
+                pegsCleared = 20,
+                elapsedSeconds = 42,
+                levelMultiplier = 4,
+            )
+
+        assertThat(scaled.stars).isEqualTo(3)
+        assertThat(scaled.stars).isEqualTo(plain.stars)
+        assertThat(scaled.score).isEqualTo(plain.score * 4)
+    }
 }

@@ -10,6 +10,7 @@ import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.SettingsRepository
+import com.app.pegsolitaire.domain.generator.LevelGenerator
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Boards
@@ -93,6 +94,39 @@ class GameViewModelTest {
             val other = viewModelFor(tiny, levelId = OTHER_LEVEL_ID)
             assertThat(other.levelId).isEqualTo(OTHER_LEVEL_ID)
             assertThat(other.uiState.value.board).isEqualTo(tiny)
+        }
+
+    @Test
+    fun challengeLevelArgLoadsAGeneratedSolvableBoardAndIsExposed() =
+        runTest(testDispatcher) {
+            // The `board` passed here is unused for Challenge — the VM branches on the
+            // route arg and loads via loadChallenge (the generator), not loadClassic.
+            val viewModel =
+                viewModelFor(Boards.english33Initial, challengeLevel = FIRST_CHALLENGE_LEVEL)
+            runCurrent()
+
+            assertThat(viewModel.challengeLevel).isEqualTo(FIRST_CHALLENGE_LEVEL)
+            // A generated board is real and playable: non-empty and reducible (the
+            // generator deals solvable-by-construction boards).
+            assertThat(viewModel.uiState.value.board.pegCount).isGreaterThan(1)
+            assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Playing)
+
+            cancelTickers() // the generated board stays Playing; stop any eager ticker.
+        }
+
+    @Test
+    fun challengeLevelBelowOneIsClampedWithoutCrashing() =
+        runTest(testDispatcher) {
+            // A forged `challengeLevel = 0` nav arg must clamp to level 1, not crash (T-03-09).
+            val viewModel =
+                viewModelFor(Boards.english33Initial, challengeLevel = BELOW_MIN_CHALLENGE_LEVEL)
+            runCurrent()
+
+            assertThat(viewModel.challengeLevel).isEqualTo(BELOW_MIN_CHALLENGE_LEVEL)
+            assertThat(viewModel.uiState.value.board.pegCount).isGreaterThan(1)
+            assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Playing)
+
+            cancelTickers()
         }
 
     @Test
@@ -522,9 +556,15 @@ class GameViewModelTest {
     private fun viewModelFor(
         board: Board,
         levelId: String = ClassicLevelIds.ENGLISH33,
+        challengeLevel: Int? = null,
         timeSource: TimeSource = TestTimeSource(),
         settings: SettingsRepository = FakeSettingsRepository(),
     ): GameViewModel {
+        val args =
+            buildMap<String, Any?> {
+                put(LEVEL_ID_ARG, levelId)
+                if (challengeLevel != null) put(CHALLENGE_LEVEL_ARG, challengeLevel)
+            }
         val factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
@@ -535,7 +575,8 @@ class GameViewModelTest {
                         scoreCalculator = ScoreCalculator,
                         settingsRepository = settings,
                         timeSource = timeSource,
-                        savedStateHandle = SavedStateHandle(mapOf(LEVEL_ID_ARG to levelId)),
+                        defaultDispatcher = testDispatcher,
+                        savedStateHandle = SavedStateHandle(args),
                     ) as T
             }
         return ViewModelProvider(viewModelStore, factory)["vm${viewModelKey++}", GameViewModel::class.java]
@@ -579,8 +620,17 @@ private const val ROBOLECTRIC_SDK = 34
 /** The `Gameplay(levelId)` route arg key (the route's property name). */
 private const val LEVEL_ID_ARG = "levelId"
 
+/** The `Gameplay(challengeLevel)` route arg key (the route's property name). */
+private const val CHALLENGE_LEVEL_ARG = "challengeLevel"
+
 /** A second valid catalog id used to prove board selection is levelId-driven. */
 private const val OTHER_LEVEL_ID = ClassicLevelIds.EUROPEAN37
+
+/** The first Challenge level (the on-ramp), used to prove the challenge load path. */
+private const val FIRST_CHALLENGE_LEVEL = 1
+
+/** A forged sub-1 Challenge nav arg that must clamp to level 1 (T-03-09). */
+private const val BELOW_MIN_CHALLENGE_LEVEL = 0
 
 /** One timer tick (1s) of virtual time, plus a margin so the `delay(1000)` fires. */
 private const val ONE_TICK_MILLIS = 1_001L
@@ -612,7 +662,23 @@ private class FakeLevelRepository(
         )
     }
 
-    override fun loadChallenge(levelNumber: Int): Level = error("Challenge is a Phase-3 stub")
+    override fun loadChallenge(levelNumber: Int): Level {
+        // Route Challenge loads through the real pure-domain generator (as the
+        // production GeneratedChallengeLevelSource does) so the VM's challenge path
+        // is exercised against a genuine solvable-by-construction board.
+        val clamped = levelNumber.coerceAtLeast(1)
+        val generated = LevelGenerator.generate(clamped)
+        val spec = generated.startingBoard.spec
+        return Level(
+            id = "challenge-$clamped",
+            displayName = "challenge-$clamped",
+            spec = spec,
+            initialBoard = generated.startingBoard,
+            holeCount = spec.inPlay.size,
+            solution = generated.solution,
+            generatorVersion = generated.generatorVersion,
+        )
+    }
 }
 
 /**
