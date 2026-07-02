@@ -84,6 +84,38 @@ class ResultsViewModelTest {
     }
 
     @Test
+    fun stuckTwoStarChallengeShowsStuckHeadlineNotSolved() {
+        // A Challenge board stranded at 2-3 pegs earns 2 stars but is NOT solved: its
+        // headline must read STUCK ("Out of moves"), consistent with the Retry action —
+        // never the contradictory "Solved!" (WR-03).
+        val viewModel =
+            viewModelFor(
+                levelId = "",
+                stars = TWO_STARS,
+                pegsRemaining = SAMPLE_PEGS_REMAINING,
+                challengeLevel = SAMPLE_CHALLENGE_LEVEL,
+            )
+
+        val state = viewModel.uiState.value
+        assertThat(state.headlineTier).isEqualTo(ResultsHeadlineTier.STUCK)
+        assertThat(state.showNextLevel).isFalse()
+    }
+
+    @Test
+    fun solvedChallengeStillShowsACelebratoryHeadline() {
+        // A genuinely solved Challenge board (one peg) keeps its star-derived headline.
+        val viewModel =
+            viewModelFor(
+                levelId = "",
+                stars = THREE_STARS,
+                pegsRemaining = SOLVED_PEGS_REMAINING,
+                challengeLevel = SAMPLE_CHALLENGE_LEVEL,
+            )
+
+        assertThat(viewModel.uiState.value.headlineTier).isEqualTo(ResultsHeadlineTier.PERFECT)
+    }
+
+    @Test
     fun classicResultsNeverOffersNextLevelAndKeepsReplaySemantics() {
         val viewModel =
             viewModelFor(
