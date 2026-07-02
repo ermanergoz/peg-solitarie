@@ -7,10 +7,10 @@ import com.app.pegsolitaire.data.ChallengeLevelSource
 import com.app.pegsolitaire.data.ClassicLevelSource
 import com.app.pegsolitaire.data.DefaultClassicLevelSource
 import com.app.pegsolitaire.data.DefaultLevelRepository
+import com.app.pegsolitaire.data.GeneratedChallengeLevelSource
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.SettingsRepository
 import com.app.pegsolitaire.data.SettingsRepositoryImpl
-import com.app.pegsolitaire.data.StubChallengeLevelSource
 import com.app.pegsolitaire.data.appDataStore
 import dagger.Binds
 import dagger.Module
@@ -42,7 +42,7 @@ abstract class DataModule {
 
     @Binds
     @Singleton
-    abstract fun bindChallengeLevelSource(impl: StubChallengeLevelSource): ChallengeLevelSource
+    abstract fun bindChallengeLevelSource(impl: GeneratedChallengeLevelSource): ChallengeLevelSource
 
     @Binds
     @Singleton

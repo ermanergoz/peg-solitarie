@@ -6,13 +6,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.ui.results.ResultsHeadlineTier
+import com.app.pegsolitaire.ui.results.ResultsScreen
+import com.app.pegsolitaire.ui.results.ResultsUiState
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
@@ -48,10 +53,10 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { onPlayClassic -> StubDestination(HOME_TAG, onPlayClassic) },
+                homeContent = { onPlayClassic, _ -> StubDestination(HOME_TAG, onPlayClassic) },
                 catalogContent = { onSelect, _ -> StubDestination(CATALOG_TAG) { onSelect(SELECTED_LEVEL_ID) } },
                 gameplayContent = { onFinished, _ -> StubDestination(GAMEPLAY_TAG) { onFinished(sampleResults()) } },
-                resultsContent = { _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
+                resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
             )
         }
 
@@ -79,8 +84,109 @@ class NavFlowTest {
             .isEqualTo(SELECTED_LEVEL_ID)
     }
 
+    @Test
+    fun homeChallengeTileEntersGameplayAtLevelOne() {
+        composeRule.setContent {
+            navController = rememberNavController()
+            AppNavHost(
+                navController = navController,
+                homeContent = { _, onPlayChallenge -> StubDestination(HOME_TAG) { onPlayChallenge() } },
+                catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
+                gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
+                resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
+            )
+        }
+
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(HOME_ROUTE)
+
+        // Home Challenge tile → Gameplay carrying a Challenge level (level 1 this phase, D-04).
+        composeRule.onNodeWithTag(HOME_TAG).performClick()
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(GAMEPLAY_ROUTE)
+        assertThat(navController.currentBackStackEntry?.toRoute<Gameplay>()?.challengeLevel)
+            .isEqualTo(CHALLENGE_ENTRY_LEVEL)
+    }
+
+    @Test
+    fun challengeRetryReloadsSameBoardWithoutGrowingBackStack() {
+        composeRule.setContent {
+            navController = rememberNavController()
+            AppNavHost(
+                navController = navController,
+                homeContent = { _, onPlayChallenge -> StubDestination(HOME_TAG) { onPlayChallenge() } },
+                catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
+                gameplayContent = { onFinished, _ ->
+                    StubDestination(GAMEPLAY_TAG) { onFinished(stuckChallengeResults()) }
+                },
+                resultsContent = { _, _, _, _, onRetry, _ ->
+                    StubDestination(RESULTS_TAG) { onRetry(CHALLENGE_ENTRY_LEVEL) }
+                },
+            )
+        }
+
+        // Home → Challenge Gameplay(level 1) → stuck Results → Retry.
+        composeRule.onNodeWithTag(HOME_TAG).performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(GAMEPLAY_TAG).performClick()
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(RESULTS_ROUTE)
+
+        composeRule.onNodeWithTag(RESULTS_TAG).performClick()
+        composeRule.waitForIdle()
+
+        // Retry reloads the identical deterministic board (same challenge level)...
+        assertThat(currentRoute()).contains(GAMEPLAY_ROUTE)
+        assertThat(navController.currentBackStackEntry?.toRoute<Gameplay>()?.challengeLevel)
+            .isEqualTo(CHALLENGE_ENTRY_LEVEL)
+        // ...and popUpTo<Home> collapsed the prior Gameplay+Results so the ladder stays bounded (T-03-11).
+        val belowDestination = navController.previousBackStackEntry?.destination
+        val belowRoute = belowDestination?.route.orEmpty()
+        assertThat(belowRoute).contains(HOME_ROUTE)
+    }
+
+    @Test
+    fun stuckChallengeResultsSurfacesRetryNotNextLevel() {
+        composeRule.setContent {
+            ResultsScreen(
+                state = stuckChallengeState(),
+                onReplay = {},
+                onCatalog = {},
+                onHome = {},
+                onNextLevel = {},
+                onRetry = {},
+                onNavigateBack = {},
+            )
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onAllNodesWithText(RETRY_LABEL).assertCountEquals(1)
+        composeRule.onAllNodesWithText(NEXT_LEVEL_LABEL).assertCountEquals(0)
+    }
+
     /** The current destination's serialized route pattern (its `@Serializable` qualified name). */
     private fun currentRoute(): String = navController.currentDestination?.route.orEmpty()
+
+    private fun stuckChallengeResults(): Results =
+        Results(
+            levelId = "",
+            stars = STUCK_STARS,
+            pegsRemaining = STUCK_PEGS_REMAINING,
+            elapsedSeconds = SAMPLE_ELAPSED_SECONDS,
+            score = SAMPLE_SCORE,
+            challengeLevel = CHALLENGE_ENTRY_LEVEL,
+        )
+
+    private fun stuckChallengeState(): ResultsUiState =
+        ResultsUiState(
+            stars = STUCK_STARS,
+            pegsRemaining = STUCK_PEGS_REMAINING,
+            elapsedSeconds = SAMPLE_ELAPSED_SECONDS,
+            score = SAMPLE_SCORE,
+            headlineTier = ResultsHeadlineTier.STUCK,
+            replayId = "",
+            challengeLevel = CHALLENGE_ENTRY_LEVEL,
+        )
 
     /** A tappable full-screen stand-in destination that fires [onClick] (a nav callback). */
     @Composable
@@ -129,3 +235,14 @@ private const val SAMPLE_STARS = 2
 private const val SAMPLE_PEGS_REMAINING = 5
 private const val SAMPLE_ELAPSED_SECONDS = 75
 private const val SAMPLE_SCORE = 1280
+
+/** The Challenge level the Home tile enters this phase (D-04) — mirrors `AppNavHost`. */
+private const val CHALLENGE_ENTRY_LEVEL = 1
+
+/** A stuck Challenge board floors at one star with 2+ pegs left → Retry, not Next level (D-10). */
+private const val STUCK_STARS = 1
+private const val STUCK_PEGS_REMAINING = 3
+
+/** Visible action labels asserted by the stuck-Results render (verbatim from `strings.xml`). */
+private const val RETRY_LABEL = "Retry"
+private const val NEXT_LEVEL_LABEL = "Next level"

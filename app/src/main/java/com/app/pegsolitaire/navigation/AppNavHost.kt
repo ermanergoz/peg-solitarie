@@ -10,12 +10,14 @@ import com.app.pegsolitaire.ui.game.GameRoute
 import com.app.pegsolitaire.ui.home.HomeRoute
 import com.app.pegsolitaire.ui.results.ResultsRoute
 
-/** The four Results actions, hoisted so [AppNavHost]'s content is test-injectable. */
+/** The Results actions, hoisted so [AppNavHost]'s content is test-injectable. */
 private typealias ResultsContent =
     @Composable (
         onReplay: (String) -> Unit,
         onCatalog: () -> Unit,
         onHome: () -> Unit,
+        onNextLevel: (Int) -> Unit,
+        onRetry: (Int) -> Unit,
         onNavigateBack: () -> Unit,
     ) -> Unit
 
@@ -43,9 +45,10 @@ private typealias ResultsContent =
 @Composable
 fun AppNavHost(
     navController: NavHostController = rememberNavController(),
-    homeContent: @Composable (onPlayClassic: () -> Unit) -> Unit = { onPlayClassic ->
-        HomeRoute(onPlayClassic = onPlayClassic)
-    },
+    homeContent: @Composable (onPlayClassic: () -> Unit, onPlayChallenge: () -> Unit) -> Unit =
+        { onPlayClassic, onPlayChallenge ->
+            HomeRoute(onPlayClassic = onPlayClassic, onPlayChallenge = onPlayChallenge)
+        },
     catalogContent: @Composable (onSelect: (String) -> Unit, onNavigateBack: () -> Unit) -> Unit =
         { onSelect, onNavigateBack ->
             ClassicCatalogRoute(onSelect = onSelect, onNavigateBack = onNavigateBack)
@@ -54,19 +57,24 @@ fun AppNavHost(
         { onFinished, onNavigateBack ->
             GameRoute(onFinished = onFinished, onNavigateBack = onNavigateBack)
         },
-    resultsContent: ResultsContent = { onReplay, onCatalog, onHome, onNavigateBack ->
+    resultsContent: ResultsContent = { onReplay, onCatalog, onHome, onNextLevel, onRetry, onNavigateBack ->
         ResultsRoute(
             onReplay = onReplay,
             onCatalog = onCatalog,
             onHome = onHome,
+            onNextLevel = onNextLevel,
+            onRetry = onRetry,
             onNavigateBack = onNavigateBack,
         )
     },
 ) {
     NavHost(navController = navController, startDestination = Home) {
         composable<Home> {
-            // homeContent slot: onPlayClassic
-            homeContent { navController.navigate(ClassicCatalog) }
+            // homeContent slot: onPlayClassic, onPlayChallenge
+            homeContent(
+                { navController.navigate(ClassicCatalog) },
+                { navController.navigate(Gameplay(challengeLevel = CHALLENGE_ENTRY_LEVEL)) },
+            )
         }
         composable<ClassicCatalog> {
             // catalogContent slot: onSelect, onNavigateBack
@@ -83,11 +91,13 @@ fun AppNavHost(
             )
         }
         composable<Results> {
-            // resultsContent slot: onReplay, onCatalog, onHome, onNavigateBack
+            // resultsContent slot: onReplay, onCatalog, onHome, onNextLevel, onRetry, onNavigateBack
             resultsContent(
                 { levelId -> navController.toBoardFromCatalog(levelId) },
                 { navController.popBackStack(ClassicCatalog, inclusive = false) },
                 { navController.popBackStack(Home, inclusive = false) },
+                { nextLevel -> navController.toChallengeBoard(nextLevel) },
+                { sameLevel -> navController.toChallengeBoard(sameLevel) },
                 { navController.popBackStack() },
             )
         }
@@ -102,3 +112,21 @@ fun AppNavHost(
 private fun NavHostController.toBoardFromCatalog(levelId: String) {
     navigate(Gameplay(levelId)) { popUpTo<ClassicCatalog>() }
 }
+
+/**
+ * Hops to a Challenge board (`Gameplay(challengeLevel = level)`) while popping up to
+ * [Home], so the infinite Challenge ladder never grows the back stack unboundedly
+ * (T-03-11): each Next-level/Retry hop replaces the current gameplay+results pair, leaving
+ * only Home + the current board. Next level passes N+1 (D-01); Retry passes the same N and
+ * so reloads the identical deterministic board (D-10).
+ */
+private fun NavHostController.toChallengeBoard(level: Int) {
+    navigate(Gameplay(challengeLevel = level)) { popUpTo<Home>() }
+}
+
+/**
+ * The Challenge level the Home tile enters (D-04). This phase tracks progress in memory
+ * and always starts a Challenge run at level 1 (the `ChallengeProgress` initial value);
+ * Phase 5 (CHAL-05) will source the highest-level-reached from persistence here.
+ */
+private const val CHALLENGE_ENTRY_LEVEL = 1

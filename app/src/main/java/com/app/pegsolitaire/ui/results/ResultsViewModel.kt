@@ -39,8 +39,14 @@ class ResultsViewModel
                     pegsRemaining = args.pegsRemaining,
                     elapsedSeconds = args.elapsedSeconds,
                     score = args.score,
-                    headlineTier = tierFor(args.stars),
+                    headlineTier =
+                        tierFor(
+                            stars = args.stars,
+                            pegsRemaining = args.pegsRemaining,
+                            challengeLevel = args.challengeLevel,
+                        ),
                     replayId = args.levelId,
+                    challengeLevel = args.challengeLevel,
                 ),
             )
 
@@ -48,13 +54,27 @@ class ResultsViewModel
         val uiState: StateFlow<ResultsUiState> = _uiState.asStateFlow()
 
         private companion object {
+            /** A solved board leaves exactly one peg; a Challenge board that did not is stuck. */
+            const val PEGS_REMAINING_SOLVED = 1
+
             /**
-             * Maps the earned star count to its headline bucket (D-08): the top band
+             * Maps the terminal outcome to its headline bucket (D-08). For a Challenge
+             * result the headline must agree with the offered action (WR-03): a board
+             * that did NOT fold to a single peg is stuck regardless of star count, so a
+             * 2-star Challenge board left with 2-3 pegs reads "Out of moves" (STUCK) over
+             * its Retry action instead of a contradictory "Solved!". Otherwise (and for
+             * Classic, [challengeLevel] `null`, star-only headline D-08): the top band
              * (>= [ScoreParams.THREE_STARS]) is PERFECT, the middle band
-             * ([ScoreParams.TWO_STARS]) is SOLVED, everything else (the 1-star floor) is STUCK.
+             * ([ScoreParams.TWO_STARS]) is SOLVED, everything else (the 1-star floor) STUCK.
              */
-            fun tierFor(stars: Int): ResultsHeadlineTier =
+            fun tierFor(
+                stars: Int,
+                pegsRemaining: Int,
+                challengeLevel: Int?,
+            ): ResultsHeadlineTier =
                 when {
+                    challengeLevel != null && pegsRemaining != PEGS_REMAINING_SOLVED ->
+                        ResultsHeadlineTier.STUCK
                     stars >= ScoreParams.THREE_STARS -> ResultsHeadlineTier.PERFECT
                     stars == ScoreParams.TWO_STARS -> ResultsHeadlineTier.SOLVED
                     else -> ResultsHeadlineTier.STUCK
