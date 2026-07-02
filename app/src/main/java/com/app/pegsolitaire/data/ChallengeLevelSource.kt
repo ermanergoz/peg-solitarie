@@ -1,5 +1,6 @@
 package com.app.pegsolitaire.data
 
+import com.app.pegsolitaire.domain.generator.GeneratorConstants
 import com.app.pegsolitaire.domain.generator.LevelGenerator
 import javax.inject.Inject
 
@@ -19,10 +20,14 @@ interface ChallengeLevelSource {
  * [com.app.pegsolitaire.domain.generator.GeneratedLevel] onto the data-layer [Level],
  * carrying the recorded `solution` and `generatorVersion` through (RESEARCH Open Q1).
  *
- * `levelNumber < 1` is clamped to level 1 at this data boundary (T-03-07 / V5) before
- * the untrusted number reaches the generator. The [Level.displayName] is a stable,
- * non-UI label (the id) — the visible "Level N" copy is a UI-layer string resource
- * added in 03-04, so no Android resource lookup lives in the data layer here.
+ * The untrusted `levelNumber` is clamped into
+ * `[MIN_CHALLENGE_LEVEL, GeneratorConstants.MAX_CHALLENGE_LEVEL]` at this data
+ * boundary (T-03-07 / T-03-09 / V5) before it reaches the generator: a `< 1` value
+ * clamps up to level 1 and a forged huge value clamps down to the frozen ceiling, so
+ * the id and the generated board stay consistent and the O(level) replay can never
+ * hang (CR-01). The [Level.displayName] is a stable, non-UI label (the id) — the
+ * visible "Level N" copy is a UI-layer string resource added in 03-04, so no Android
+ * resource lookup lives in the data layer here.
  */
 class GeneratedChallengeLevelSource
     @Inject
@@ -30,7 +35,7 @@ class GeneratedChallengeLevelSource
         private val generator: LevelGenerator,
     ) : ChallengeLevelSource {
         override fun load(levelNumber: Int): Level {
-            val clamped = levelNumber.coerceAtLeast(MIN_CHALLENGE_LEVEL)
+            val clamped = levelNumber.coerceIn(MIN_CHALLENGE_LEVEL, GeneratorConstants.MAX_CHALLENGE_LEVEL)
             val generated = generator.generate(clamped)
             val spec = generated.startingBoard.spec
             val id = "$CHALLENGE_ID_PREFIX$clamped"

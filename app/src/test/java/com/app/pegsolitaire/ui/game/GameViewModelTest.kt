@@ -575,6 +575,7 @@ class GameViewModelTest {
                         scoreCalculator = ScoreCalculator,
                         settingsRepository = settings,
                         timeSource = timeSource,
+                        defaultDispatcher = testDispatcher,
                         savedStateHandle = SavedStateHandle(args),
                     ) as T
             }

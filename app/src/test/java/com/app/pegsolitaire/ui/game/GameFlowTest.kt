@@ -28,6 +28,7 @@ import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -144,6 +145,7 @@ class GameFlowTest {
                 scoreCalculator = ScoreCalculator,
                 settingsRepository = HintsOnSettingsRepository,
                 timeSource = TestTimeSource(),
+                defaultDispatcher = Dispatchers.Unconfined,
                 savedStateHandle = SavedStateHandle(mapOf(LEVEL_ID_ARG to ClassicLevelIds.ENGLISH33)),
             )
         composeRule.setContent {

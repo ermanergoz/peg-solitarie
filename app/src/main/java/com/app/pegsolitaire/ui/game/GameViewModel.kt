@@ -7,6 +7,7 @@ import androidx.navigation.toRoute
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.SettingsRepository
 import com.app.pegsolitaire.domain.generator.DifficultyTiers
+import com.app.pegsolitaire.domain.generator.GeneratorConstants
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.Cell
 import com.app.pegsolitaire.domain.model.GameStatus
@@ -18,6 +19,7 @@ import com.app.pegsolitaire.domain.scoring.ScoreParams
 import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.app.pegsolitaire.navigation.Gameplay
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -29,6 +31,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import kotlin.time.TimeMark
 import kotlin.time.TimeSource
@@ -60,6 +63,8 @@ import kotlin.time.TimeSource
  * @param scoreCalculator the pure-domain scoring authority (stars + score).
  * @param settingsRepository the persisted hint on/off setting (fail-open default ON).
  * @param timeSource the monotonic clock the timer marks against (test-swappable).
+ * @param defaultDispatcher the background dispatcher the O(level) Challenge generation
+ *   runs on, off the main thread (CR-01); tests swap in the test dispatcher.
  * @param savedStateHandle carries the typed `Gameplay(levelId)` route arg.
  */
 @HiltViewModel
@@ -67,10 +72,11 @@ class GameViewModel
     @Inject
     constructor(
         private val rulesEngine: RulesEngine,
-        levelRepository: LevelRepository,
+        private val levelRepository: LevelRepository,
         private val scoreCalculator: ScoreCalculator,
         private val settingsRepository: SettingsRepository,
         private val timeSource: TimeSource,
+        private val defaultDispatcher: CoroutineDispatcher,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         /** The selected board's catalog id (read by `GameRoute` to build the Results route). */
@@ -85,18 +91,33 @@ class GameViewModel
         val challengeLevel: Int? = savedStateHandle.toRoute<Gameplay>().challengeLevel
 
         /**
-         * The Challenge level clamped to a valid `>= 1` value (T-03-09: an untrusted
-         * nav arg must never crash the load), or `null` for a Classic game.
+         * The Challenge level clamped into a valid, bounded range (T-03-09: an untrusted
+         * nav arg must never crash — or hang — the load), or `null` for a Classic game.
+         * The upper clamp to [GeneratorConstants.MAX_CHALLENGE_LEVEL] bounds both the
+         * O(level) generation cost and the level-scaled score, matching the board the
+         * generator actually produces (CR-01).
          */
         private val clampedChallengeLevel: Int? =
-            challengeLevel?.coerceAtLeast(MIN_CHALLENGE_LEVEL)
+            challengeLevel?.coerceIn(MIN_CHALLENGE_LEVEL, GeneratorConstants.MAX_CHALLENGE_LEVEL)
 
-        private val initialBoard: Board =
-            if (clampedChallengeLevel != null) {
-                levelRepository.loadChallenge(clampedChallengeLevel).initialBoard
-            } else {
+        /**
+         * The Classic board, resolved synchronously (a cheap catalog lookup) so its load
+         * stays byte-identical to Phase 2 and the board is present at the first frame;
+         * `null` for a Challenge game, whose board is generated off the main thread in
+         * [init] (CR-01) — the O(level) reverse-walk must never block construction.
+         */
+        private val classicBoard: Board? =
+            if (clampedChallengeLevel == null) {
                 levelRepository.loadClassic(levelId).initialBoard
+            } else {
+                null
             }
+
+        /**
+         * The board the game plays and resets to: set at construction for Classic, set
+         * by the async load for Challenge (`null` until the generation completes).
+         */
+        private var initialBoard: Board? = classicBoard
 
         /**
          * The D-11 level-scaled score factor: the loaded Challenge level's
@@ -112,7 +133,10 @@ class GameViewModel
 
         private val moveHistory: MutableList<Move> = mutableListOf()
 
-        private val _uiState = MutableStateFlow(GameUiState.initial(initialBoard))
+        private val _uiState =
+            MutableStateFlow(
+                classicBoard?.let { GameUiState.initial(it) } ?: GameUiState.loading(),
+            )
 
         /** Read-only state stream for the UI; the mutable flow never leaks (Pitfall 10). */
         val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
@@ -142,6 +166,21 @@ class GameViewModel
             viewModelScope.launch {
                 settingsRepository.hintsEnabled.collect { enabled ->
                     _uiState.update { it.copy(showHints = enabled) }
+                }
+            }
+            // Challenge generation is O(level); load it OFF the main thread and swap the
+            // loading state for the playable board when ready (CR-01, T-03-09). Classic
+            // is already resolved synchronously above, so this runs for Challenge only —
+            // the load path branches here, never the board/selection/jump logic.
+            val challengeLevelToLoad = clampedChallengeLevel
+            if (challengeLevelToLoad != null) {
+                viewModelScope.launch {
+                    val board =
+                        withContext(defaultDispatcher) {
+                            levelRepository.loadChallenge(challengeLevelToLoad).initialBoard
+                        }
+                    initialBoard = board
+                    _uiState.update { GameUiState.initial(board).copy(showHints = it.showHints) }
                 }
             }
         }
@@ -234,10 +273,13 @@ class GameViewModel
                 tickerJob?.cancel()
                 tickerJob = null
                 val pegsRemaining = nextBoard.pegCount
+                // A jump can only fire once the board is loaded, so initialBoard is
+                // non-null here; fall back to the current count defensively.
+                val startingPegCount = initialBoard?.pegCount ?: pegsRemaining
                 _finished.trySend(
                     scoreCalculator.evaluate(
                         pegsRemaining = pegsRemaining,
-                        pegsCleared = initialBoard.pegCount - pegsRemaining,
+                        pegsCleared = startingPegCount - pegsRemaining,
                         elapsedSeconds = _uiState.value.elapsedSeconds,
                         levelMultiplier = levelMultiplier,
                     ),
@@ -296,6 +338,8 @@ class GameViewModel
         }
 
         private fun resetToInitial() {
+            // No-op while the Challenge board is still loading (no board to reset to).
+            val board = initialBoard ?: return
             moveHistory.clear()
             tickerJob?.cancel()
             tickerJob = null
@@ -303,7 +347,7 @@ class GameViewModel
             finishedEmitted = false
             // Preserve the player's hint choice across a restart; the collected
             // settings flow only re-emits on change, so carry it forward explicitly.
-            _uiState.value = GameUiState.initial(initialBoard).copy(showHints = _uiState.value.showHints)
+            _uiState.value = GameUiState.initial(board).copy(showHints = _uiState.value.showHints)
         }
 
         /**

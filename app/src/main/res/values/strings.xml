@@ -77,6 +77,8 @@
     <!-- Hint toggle (icon-only; content description reflects the on/off state). -->
     <string name="hints_on">Hints on</string>
     <string name="hints_off">Hints off</string>
+    <!-- Shown while a Challenge board is generated off the main thread (CR-01). -->
+    <string name="loading_level">Loading level</string>
 
     <!-- Results. -->
     <string name="results_title">Results</string>

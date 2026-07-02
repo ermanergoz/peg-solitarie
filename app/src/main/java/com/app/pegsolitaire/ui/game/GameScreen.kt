@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -119,21 +120,25 @@ fun GameScreen(
                     },
             contentAlignment = Alignment.Center,
         ) {
-            Surface(
-                shape = MaterialTheme.shapes.large,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                modifier =
-                    Modifier
-                        .widthIn(max = dimensionResource(R.dimen.board_max_size))
-                        .fillMaxWidth()
-                        .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO),
-            ) {
-                BoardCanvas(
-                    state = state,
-                    onCellTap = onCellTap,
-                    onAnimationFinished = onAnimationFinished,
-                    modifier = Modifier.padding(dimensionResource(R.dimen.spacing_md)),
-                )
+            if (state.isLoading) {
+                LoadingIndicator()
+            } else {
+                Surface(
+                    shape = MaterialTheme.shapes.large,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier =
+                        Modifier
+                            .widthIn(max = dimensionResource(R.dimen.board_max_size))
+                            .fillMaxWidth()
+                            .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO),
+                ) {
+                    BoardCanvas(
+                        state = state,
+                        onCellTap = onCellTap,
+                        onAnimationFinished = onAnimationFinished,
+                        modifier = Modifier.padding(dimensionResource(R.dimen.spacing_md)),
+                    )
+                }
             }
         }
     }
@@ -225,6 +230,19 @@ private fun ElapsedTimeLabel(elapsedSeconds: Int) {
             Modifier
                 .padding(end = dimensionResource(R.dimen.spacing_sm))
                 .semantics { contentDescription = description },
+    )
+}
+
+/**
+ * The centered progress indicator shown while a Challenge board is generated off the
+ * main thread (CR-01). Carries the `loading_level` content description so screen
+ * readers announce the wait; it replaces the board panel until the state settles.
+ */
+@Composable
+private fun LoadingIndicator() {
+    val description = stringResource(R.string.loading_level)
+    CircularProgressIndicator(
+        modifier = Modifier.semantics { contentDescription = description },
     )
 }
 

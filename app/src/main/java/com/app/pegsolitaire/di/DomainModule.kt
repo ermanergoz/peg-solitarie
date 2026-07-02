@@ -7,6 +7,8 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Singleton
 import kotlin.time.TimeSource
 
@@ -49,4 +51,13 @@ object DomainModule {
      */
     @Provides
     fun provideTimeSource(): TimeSource = TimeSource.Monotonic
+
+    /**
+     * The background dispatcher the O(level) Challenge generation runs on, keeping the
+     * reverse-walk off the main thread so ViewModel construction never blocks the UI
+     * (CR-01, T-03-09). [Dispatchers.Default] is the CPU-bound pool; tests inject a
+     * test dispatcher instead for deterministic virtual-time control.
+     */
+    @Provides
+    fun provideDefaultDispatcher(): CoroutineDispatcher = Dispatchers.Default
 }
