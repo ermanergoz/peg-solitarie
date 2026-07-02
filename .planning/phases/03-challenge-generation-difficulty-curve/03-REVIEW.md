@@ -47,7 +47,8 @@ findings:
   warning: 3
   info: 3
   total: 7
-status: issues_found
+status: resolved
+resolved: 2026-07-02
 ---
 
 # Phase 3: Code Review Report
@@ -55,7 +56,19 @@ status: issues_found
 **Reviewed:** 2026-07-01
 **Depth:** standard
 **Files Reviewed:** 38
-**Status:** issues_found
+**Status:** resolved
+
+## Resolution (2026-07-02)
+
+All four actionable findings were fixed and the full gate
+(`ktlintCheck detekt :domain:test :app:testDebugUnitTest assembleDebug`) is green;
+the golden-master fixtures (levels 1/2/10/100/1000) remain byte-identical.
+
+- **CR-01** — `LevelGenerator.generate()` now `coerceIn(MIN_LEVEL, MAX_CHALLENGE_LEVEL=10_000)` (cap >1000, fixtures untouched), and `GameViewModel` generates the Challenge board on an injected `CoroutineDispatcher` off the main thread (Classic stays synchronous), with a loading `GameUiState`/`CircularProgressIndicator`. Fixed in `5eedff8`, `26d61a4`.
+- **WR-01** — exhaustion fallback now prefers the best candidate that still clears the symmetry-canonical dedup gate. Fixed in `5eedff8`.
+- **WR-02** — dead forced-line gate + `FORCED_LINE_PREFIX` + tautological test removed (the `minOpeningMoves >= 2` floor already covers it). Fixed in `5eedff8`.
+- **WR-03** — a stuck Challenge board (pegsRemaining != 1) now shows the STUCK headline instead of "Solved!", consistent with the Retry action; positive+negative Results tests added. Fixed in `487039e`.
+- Info items IN-01/IN-02/IN-03 remain as low-priority notes (IN-03's forced-line tautology was resolved alongside WR-02).
 
 ## Summary
 
