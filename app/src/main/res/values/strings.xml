@@ -74,6 +74,8 @@
     <!-- Challenge gameplay top-bar "Level N" title + its screen-reader description (S2, D-03). -->
     <string name="challenge_level_indicator">Level %1$d</string>
     <string name="challenge_level_indicator_desc">Challenge level %1$d</string>
+    <!-- Undo control (icon-only; disabled when there is nothing to undo, ASST-02). -->
+    <string name="undo_action">Undo</string>
     <!-- Hint toggle (icon-only; content description reflects the on/off state). -->
     <string name="hints_on">Hints on</string>
     <string name="hints_off">Hints off</string>

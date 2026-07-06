@@ -161,6 +161,7 @@ class GameFlowTest {
                     onDismissRestart = viewModel::onDismissRestart,
                     onAnimationFinished = viewModel::onAnimationFinished,
                     onToggleHints = viewModel::onToggleHints,
+                    onUndo = viewModel::onUndo,
                     onNavigateBack = {},
                 )
             }

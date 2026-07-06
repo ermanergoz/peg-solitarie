@@ -58,6 +58,7 @@ fun GameRoute(
         onDismissRestart = viewModel::onDismissRestart,
         onAnimationFinished = viewModel::onAnimationFinished,
         onToggleHints = viewModel::onToggleHints,
+        onUndo = viewModel::onUndo,
         onNavigateBack = onNavigateBack,
         modifier = modifier,
         challengeLevel = viewModel.challengeLevel,
