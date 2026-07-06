@@ -89,10 +89,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. After the player deviates from the canonical line, the hint falls back to the Solver (on `Dispatchers.Default`, node/time-budgeted) and still returns a legal, win-preserving move.
   3. When the position is genuinely unsolvable, the player sees a clear "no winning move — undo or restart" state rather than a crash, illegal move, or silent no-op.
   4. Player can undo the last move, restoring the exact prior board state.
-**Plans**: 5 plans (waves 1→4)
+**Plans**: 6 plans (waves 1→5)
 - [ ] 04-01-PLAN.md — Undo rescue slice + AdGateway auto-grant seam [ASST-02]
 - [ ] 04-02-PLAN.md — Production budgeted, cancellable Solver + Pagoda fast-reject (port of AuthoringSolver) [ASST-01, ASST-03]
-- [ ] 04-03-PLAN.md — State-relative hint pipeline: recorded-line→Solver, off-thread thinking, source+dest highlight, D-02 rename [ASST-01, ASST-03]
+- [ ] 04-03-PLAN.md — Hint logic: GetHintUseCase (recorded-line→Solver) + off-thread cancellable VM orchestration + state fields [ASST-01, ASST-03]
+- [ ] 04-03b-PLAN.md — Hint rendering + wiring: BoardCanvas source+dest highlight, HintControl thinking state, D-02 rename [ASST-01, ASST-03]
 - [ ] 04-04-PLAN.md — No-winning-move + stuck-rescue banner (narrow finished→Won, timer-resume) [ASST-03]
 - [ ] 04-05-PLAN.md — On-device assist playtest checkpoint [ASST-01, ASST-02, ASST-03]
 
