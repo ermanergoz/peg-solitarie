@@ -31,6 +31,10 @@ import com.app.pegsolitaire.domain.model.Position
  * @property isLoading whether the board is still being generated off the main thread
  *   (Challenge only, CR-01): while `true` the screen shows a loading indicator instead
  *   of the board. Classic boards resolve synchronously, so they are never in this state.
+ * @property canUndo whether there is at least one move to undo (ASST-02, D-05): mirrors
+ *   `moveHistory.isNotEmpty()`, so it is `false` at the initial board, `true` after any
+ *   jump, and `false` again once undo walks back to the start. Drives the Undo control's
+ *   enabled state; render-only, no game logic depends on it.
  */
 @Immutable
 data class GameUiState(
@@ -43,6 +47,7 @@ data class GameUiState(
     val elapsedSeconds: Int = 0,
     val showHints: Boolean = true,
     val isLoading: Boolean = false,
+    val canUndo: Boolean = false,
 ) {
     companion object {
         /**
@@ -63,6 +68,7 @@ data class GameUiState(
                 elapsedSeconds = 0,
                 showHints = true,
                 isLoading = false,
+                canUndo = false,
             )
 
         /**
@@ -82,6 +88,7 @@ data class GameUiState(
                 elapsedSeconds = 0,
                 showHints = true,
                 isLoading = true,
+                canUndo = false,
             )
 
         /** An empty footprint backing the [loading] placeholder board (no in-play cells). */

@@ -18,6 +18,8 @@ import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
+import com.app.pegsolitaire.platform.ads.AdGateway
+import com.app.pegsolitaire.platform.ads.AdReason
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -263,6 +265,151 @@ class GameViewModelTest {
             runCurrent()
             assertThat(viewModel.uiState.value.legalTargets).containsExactly(centerHole)
             assertThat(viewModel.uiState.value.showHints).isFalse()
+        }
+
+    // ---- Undo (ASST-02, D-05/D-07) ------------------------------------------
+
+    @Test
+    fun undoRestoresTheExactPriorBoardAndDropsTheLastMove() =
+        runTest(testDispatcher) {
+            val viewModel = englishViewModel()
+            runCurrent()
+            val initialBoard = viewModel.uiState.value.board
+            assertThat(viewModel.uiState.value.canUndo).isFalse()
+
+            viewModel.onCellTap(pegAboveCenter)
+            viewModel.onCellTap(centerHole)
+            runCurrent()
+            assertThat(viewModel.uiState.value.board).isNotEqualTo(initialBoard)
+            assertThat(viewModel.uiState.value.canUndo).isTrue()
+
+            viewModel.onUndo()
+            runCurrent()
+            assertThat(viewModel.uiState.value.board).isEqualTo(initialBoard)
+            assertThat(viewModel.uiState.value.canUndo).isFalse()
+
+            cancelTickers() // board stays Playing after undo; stop the eager ticker.
+        }
+
+    @Test
+    fun repeatedUndoWalksAllTheWayBackToTheInitialBoardAndRescuesAStuckGame() =
+        runTest(testDispatcher) {
+            val viewModel = viewModelFor(twoMoveStuckLine())
+            runCurrent()
+            val initialBoard = viewModel.uiState.value.board
+
+            // Move A keeps the game Playing.
+            viewModel.onCellTap(Position(row = 0, col = 2))
+            viewModel.onCellTap(Position(row = 0, col = 4))
+            runCurrent()
+            val afterMoveA = viewModel.uiState.value.board
+
+            // Move B strands two non-adjacent pegs → Stuck.
+            viewModel.onCellTap(Position(row = 0, col = 0))
+            viewModel.onCellTap(Position(row = 0, col = 2))
+            runCurrent()
+            assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Stuck)
+
+            // First undo rescues the Stuck board back to a playable position.
+            viewModel.onUndo()
+            runCurrent()
+            assertThat(viewModel.uiState.value.board).isEqualTo(afterMoveA)
+            assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Playing)
+            assertThat(viewModel.uiState.value.canUndo).isTrue()
+
+            // Second undo returns to the initial board; nothing left to undo.
+            viewModel.onUndo()
+            runCurrent()
+            assertThat(viewModel.uiState.value.board).isEqualTo(initialBoard)
+            assertThat(viewModel.uiState.value.canUndo).isFalse()
+
+            cancelTickers() // board is Playing again; stop the eager ticker.
+        }
+
+    @Test
+    fun undoWithNoMovesIsANoOp() =
+        runTest(testDispatcher) {
+            val viewModel = englishViewModel()
+            runCurrent()
+            val before = viewModel.uiState.value
+            assertThat(before.canUndo).isFalse()
+
+            viewModel.onUndo()
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.board).isEqualTo(before.board)
+            assertThat(viewModel.uiState.value.canUndo).isFalse()
+        }
+
+    @Test
+    fun undoDoesNotTouchTheElapsedTimer() =
+        runTest(testDispatcher) {
+            val timeSource = TestTimeSource()
+            val viewModel = viewModelFor(Boards.english33Initial, timeSource = timeSource)
+            runCurrent()
+
+            // First move starts the timer; advance real time so it reads 4s.
+            viewModel.onCellTap(pegAboveCenter)
+            viewModel.onCellTap(centerHole)
+            runCurrent()
+            timeSource += 4.seconds
+            advanceTimeBy(ONE_TICK_MILLIS)
+            runCurrent()
+            assertThat(viewModel.uiState.value.elapsedSeconds).isEqualTo(4)
+
+            // Undo must NOT reset the timer (D-07).
+            viewModel.onUndo()
+            runCurrent()
+            assertThat(viewModel.uiState.value.elapsedSeconds).isEqualTo(4)
+
+            // And the ticker keeps counting real time after the undo.
+            timeSource += 2.seconds
+            advanceTimeBy(ONE_TICK_MILLIS)
+            runCurrent()
+            assertThat(viewModel.uiState.value.elapsedSeconds).isEqualTo(6)
+
+            cancelTickers()
+        }
+
+    @Test
+    fun undoRequestsTheUndoGrantThroughTheAdGateway() =
+        runTest(testDispatcher) {
+            val gateway = FakeAdGateway()
+            val viewModel = viewModelFor(Boards.english33Initial, adGateway = gateway)
+            runCurrent()
+
+            viewModel.onCellTap(pegAboveCenter)
+            viewModel.onCellTap(centerHole)
+            runCurrent()
+
+            viewModel.onUndo()
+            runCurrent()
+
+            assertThat(gateway.lastReason).isEqualTo(AdReason.UNDO)
+
+            cancelTickers()
+        }
+
+    @Test
+    fun undoIsSkippedWhenTheGrantIsDenied() =
+        runTest(testDispatcher) {
+            val deniedGateway = FakeAdGateway(grant = false)
+            val viewModel = viewModelFor(Boards.english33Initial, adGateway = deniedGateway)
+            runCurrent()
+
+            viewModel.onCellTap(pegAboveCenter)
+            viewModel.onCellTap(centerHole)
+            runCurrent()
+            val afterJump = viewModel.uiState.value.board
+
+            viewModel.onUndo()
+            runCurrent()
+
+            // Grant denied → the undo does not proceed; the board is unchanged.
+            assertThat(viewModel.uiState.value.board).isEqualTo(afterJump)
+            assertThat(viewModel.uiState.value.canUndo).isTrue()
+
+            cancelTickers()
         }
 
     // ---- Preserved Phase-1 behaviors ----------------------------------------
@@ -559,6 +706,7 @@ class GameViewModelTest {
         challengeLevel: Int? = null,
         timeSource: TimeSource = TestTimeSource(),
         settings: SettingsRepository = FakeSettingsRepository(),
+        adGateway: AdGateway = FakeAdGateway(),
     ): GameViewModel {
         val args =
             buildMap<String, Any?> {
@@ -576,6 +724,7 @@ class GameViewModelTest {
                         settingsRepository = settings,
                         timeSource = timeSource,
                         defaultDispatcher = testDispatcher,
+                        adGateway = adGateway,
                         savedStateHandle = SavedStateHandle(args),
                     ) as T
             }
@@ -700,4 +849,23 @@ private class FakeSettingsRepository(
         lastWritten = enabled
         state.value = enabled
     }
+}
+
+/**
+ * A fake [AdGateway] that records the last requested [AdReason] and returns a
+ * configurable [grant] (default `true`, matching the Slice-1 auto-grant stub), so the
+ * VM tests assert both that undo requests the grant and that a denial skips the undo.
+ */
+private class FakeAdGateway(
+    private val grant: Boolean = true,
+) : AdGateway {
+    var lastReason: AdReason? = null
+        private set
+
+    override suspend fun requestRewarded(reason: AdReason): Boolean {
+        lastReason = reason
+        return grant
+    }
+
+    override fun showInterstitial() = Unit
 }

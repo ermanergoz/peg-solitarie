@@ -18,6 +18,8 @@ import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.scoring.ScoreParams
 import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.app.pegsolitaire.navigation.Gameplay
+import com.app.pegsolitaire.platform.ads.AdGateway
+import com.app.pegsolitaire.platform.ads.AdReason
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
@@ -65,8 +67,11 @@ import kotlin.time.TimeSource
  * @param timeSource the monotonic clock the timer marks against (test-swappable).
  * @param defaultDispatcher the background dispatcher the O(level) Challenge generation
  *   runs on, off the main thread (CR-01); tests swap in the test dispatcher.
+ * @param adGateway the Slice-1 auto-grant gateway hint/undo request grants through (D-11);
+ *   the no-op stub always grants, so undo is free — Slice 2 swaps only the binding.
  * @param savedStateHandle carries the typed `Gameplay(levelId)` route arg.
  */
+@Suppress("TooManyFunctions") // UI event hub: each gesture is one small public handler
 @HiltViewModel
 class GameViewModel
     @Inject
@@ -77,6 +82,7 @@ class GameViewModel
         private val settingsRepository: SettingsRepository,
         private val timeSource: TimeSource,
         private val defaultDispatcher: CoroutineDispatcher,
+        private val adGateway: AdGateway,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         /** The selected board's catalog id (read by `GameRoute` to build the Results route). */
@@ -264,6 +270,7 @@ class GameViewModel
                     legalTargets = emptyList(),
                     status = status,
                     animating = transition,
+                    canUndo = moveHistory.isNotEmpty(),
                 )
             }
             // One-shot finish (Pitfall 4): on the FIRST transition to a terminal
@@ -335,6 +342,42 @@ class GameViewModel
         /** Dismisses the restart confirmation, keeping the current game (D-06). */
         fun onDismissRestart() {
             _uiState.update { it.copy(confirmRestart = false) }
+        }
+
+        /**
+         * Undo the last move (ASST-02, D-05): requests the [AdReason.UNDO] grant (Slice-1
+         * stub auto-grants), then rebuilds the board by folding [RulesEngine.applyMove] over
+         * the remaining [moveHistory] from [initialBoard] — never trusting any external or
+         * serialized state (T-04-01-U). Repeated calls walk all the way back to the initial
+         * board; an empty history is a no-op. The board's [statusFor] status is recomputed
+         * and [finishedEmitted] is cleared when the undone board is Playing again, so a
+         * previously Stuck game becomes playable and can re-emit a later terminal result.
+         *
+         * The timer is deliberately untouched (D-07): [startMark], [tickerJob], and
+         * [GameUiState.elapsedSeconds] all keep counting real time across an undo.
+         */
+        fun onUndo() {
+            viewModelScope.launch {
+                if (!adGateway.requestRewarded(AdReason.UNDO)) return@launch
+                if (moveHistory.isEmpty()) return@launch
+                moveHistory.removeAt(moveHistory.lastIndex)
+                val base = initialBoard ?: return@launch
+                val board = moveHistory.fold(base) { b, m -> rulesEngine.applyMove(b, m) }
+                val status = statusFor(board)
+                if (status == GameStatus.Playing) finishedEmitted = false
+                // D-07: startMark / tickerJob / elapsedSeconds are intentionally NOT touched
+                // here — undo rescues the board but the real elapsed time keeps running.
+                _uiState.update {
+                    it.copy(
+                        board = board,
+                        selected = null,
+                        legalTargets = emptyList(),
+                        animating = null,
+                        status = status,
+                        canUndo = moveHistory.isNotEmpty(),
+                    )
+                }
+            }
         }
 
         private fun resetToInitial() {
