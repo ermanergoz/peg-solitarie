@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: ready_to_plan
 stopped_at: Phase 04 UI-SPEC approved
-last_updated: "2026-07-06T20:06:31.388Z"
-last_activity: 2026-07-06 -- Phase 04 planning complete
+last_updated: "2026-07-06T23:10:19.728Z"
+last_activity: 2026-07-06
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 24
-  completed_plans: 18
+  completed_plans: 19
   percent: 60
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-28)
 
 **Core value:** Infinite, never-repeating, always-solvable Challenge levels that feel fair and satisfying.
-**Current focus:** Phase 4 — assist — hint & undo
+**Current focus:** Phase 04 — assist-hint-undo
 
 ## Current Position
 
-Phase: 4
-Plan: Not started
+Phase: 04 (assist-hint-undo) — EXECUTING
+Plan: 2 of 6
 Next: Phase 02 (classic-mode-scoring-navigation) — not yet planned
-Last activity: 2026-07-06 -- Phase 04 planning complete
+Last activity: 2026-07-06
 
-Progress: [██████████] 100%
+Progress: [████████░░] 79%
 
 ## Performance Metrics
 
@@ -71,6 +71,7 @@ Progress: [██████████] 100%
 | Phase 03 P03-03 | 4 | - tasks | - files |
 | Phase 03 P04 | 4 | - tasks | - files |
 | Phase 03 P05 | 6 | - tasks | - files |
+| Phase 04 P01 | 60 | 3 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -110,6 +111,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 03-04: Unified LevelRef — one Gameplay route with a nullable challengeLevel drives both mode load paths and the title slot; no separate Challenge VM/route, no if(challenge) in board logic
 - [Phase ?]: 03-04: GameViewModel reads DifficultyTiers.forLevel(n).scoreMultiplier directly (pure :domain) and clamps challengeLevel<1 at the VM boundary (T-03-09)
 - [Phase ?]: 03-05: Mode routing lives in AppNavHost (Results invokes onNextLevel/onRetry; graph selects destination) — screens stay mode-agnostic; every Challenge board-hop uses popUpTo(Home) so the infinite ladder never grows the back stack (T-03-11). Home Challenge tile enabled as a neutral surfaceContainerHigh peer (not accent), entering Challenge at level 1 (D-04). On-device playability checkpoint APPROVED by user.
+- [Phase ?]: 04-01: Undo is a pure replay — onUndo() folds RulesEngine.applyMove over the remaining moveHistory from initialBoard (multi-step to start, trusts only in-memory moves T-04-01-U); it deliberately never touches startMark/tickerJob/elapsedSeconds (D-07) and clears finishedEmitted when the rebuilt board is Playing so a rescued Stuck game can re-finish.
+- [Phase ?]: 04-01: AdGateway/AdReason/NoOpAdGateway seam + PlatformModule @Binds @Singleton (D-11) is the sole Slice-2 rewarded-ad swap point; onUndo requests AdReason.UNDO and no-ops on denial. 04-03 Hint reuses it unchanged for AdReason.HINT.
+- [Phase ?]: 04-01: Undo glyph is a local auto-mirrored UndoIcon ImageVector (core icon set lacks undo; material-icons-extended intentionally avoided per libs.versions.toml). GameViewModel carries @Suppress(TooManyFunctions) as the UI event hub.
 
 ### Pending Todos
 
@@ -137,6 +141,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-02T15:11:38.018Z
+Last session: 2026-07-06T23:09:56.248Z
 Stopped at: Phase 04 UI-SPEC approved
-Resume file: .planning/phases/04-assist-hint-undo/04-UI-SPEC.md
+Resume file: None
