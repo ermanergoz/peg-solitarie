@@ -96,7 +96,12 @@ class GetHintUseCaseTest {
         val board = solvableStrip()
         // A fabricated move whose `from` is the empty hole — never a member of
         // legalMoves(board); the guard must reject it and defer to the Solver.
-        val bogus = Move(from = Position(row = 0, col = 2), over = Position(row = 0, col = 1), to = Position(row = 0, col = 0))
+        val bogus =
+            Move(
+                from = Position(row = 0, col = 2),
+                over = Position(row = 0, col = 1),
+                to = Position(row = 0, col = 0),
+            )
 
         val move = useCase(board = board, solution = listOf(bogus), movesPlayed = 0)
 
