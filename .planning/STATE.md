@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: ready_to_plan
-stopped_at: Phase 04 UI-SPEC approved
-last_updated: "2026-07-07T23:33:51.104Z"
+stopped_at: Completed 04-03b-PLAN.md
+last_updated: "2026-07-07T23:47:08.707Z"
 last_activity: 2026-07-07
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 24
-  completed_plans: 21
+  completed_plans: 22
   percent: 60
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 04 (assist-hint-undo) — EXECUTING
-Plan: 4 of 6 (Wave 1 complete: 04-01 undo+AdGateway, 04-02 Solver+Pagoda; next 04-03 hint logic)
-Next: 04-03 (hint logic: GetHintUseCase + off-thread VM orchestration)
-Last activity: 2026-07-07
+Plan: 5 of 6 (04-01/04-02/04-03/04-03b complete: undo+AdGateway, Solver+Pagoda, hint logic + hint rendering/wiring)
+Next: 04-04 (no-winning-move + stuck-rescue banner)
+Last activity: 2026-07-08
 
-Progress: [█████████░] 88%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
@@ -73,6 +73,7 @@ Progress: [█████████░] 88%
 | Phase 03 P05 | 6 | - tasks | - files |
 | Phase 04 P01 | 60 | 3 tasks | 15 files |
 | Phase 04 P03 | 40 | 2 tasks | 7 files |
+| Phase 04 P03b | 25 | 1 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -119,6 +120,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 04-01: Undo glyph is a local auto-mirrored UndoIcon ImageVector (core icon set lacks undo; material-icons-extended intentionally avoided per libs.versions.toml). GameViewModel carries @Suppress(TooManyFunctions) as the UI event hub.
 - [Phase ?]: 04-03: GetHintUseCase is pure :domain — recorded-line-first (guarded by range + RulesEngine legality, never blind solution[moveCount]) then budgeted Solver; null folds to no-win (D-04)
 - [Phase ?]: 04-03: onHintRequested runs off defaultDispatcher on a cancellable grant-gated hintJob (AdReason.HINT); onRecordedLine flips on deviation, recomputed on undo; solverThinking raised synchronously
+- [Phase 04-03b]: Winning-move Hint highlight is a render-only BoardCanvas overlay (tertiary source glow + target ring + faint A->B arrow) gated on interactive && both hint positions set — never performs the jump (D-01); tertiary reserved so a hint never reads as a selection.
+- [Phase 04-03b]: HintControl thinking state puts hint_thinking on the disabled IconButton (not the spinner, whose ProgressBarRangeInfo splits the semantics node) — announces as one disabled unit and blocks double-taps (D-10).
+- [Phase 04-03b]: D-02 rename: dots toggle strings hints_on/off -> show_moves_on/off (Show/Hide possible moves), distinct from the Hint action.
 
 ### Pending Todos
 
@@ -147,6 +151,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-07T23:33:21.867Z
-Stopped at: Phase 04 UI-SPEC approved
+Last session: 2026-07-07T23:47:08.702Z
+Stopped at: Completed 04-03b-PLAN.md
 Resume file: None
