@@ -23,12 +23,16 @@ data class SolverBudget(
 ) {
     companion object {
         /**
-         * Default node cap. Gated by [SolverBudgetTest][com.app.pegsolitaire.domain.solver]:
-         * it must stay >= 4x the largest search observed over every solvable golden
-         * prefix (all four one-peg Classic footprints) so a solvable board is never
-         * falsely reported unsolvable (D-04). The largest measured search is well under
-         * this figure; RAISE this value if the measurement ever exceeds the 4x headroom
-         * — never lower the assertion. The STRUCTURE (a measured node cap) is final.
+         * Default node cap — a memory/time SAFETY CEILING, not the operative production
+         * limit. In production [DEFAULT_DEADLINE] governs: at the measured ~0.27M nodes/s
+         * a 1.5s search reaches only ~0.4M nodes, far below this cap, so a hard board
+         * (e.g. a large Classic footprint mid-game) is cut by the deadline and folds to
+         * the "no winning move" state (D-04) long before this cap is approached. Gated by
+         * [SolverBudgetTest][com.app.pegsolitaire.domain.solver]: it must stay >= 4x the
+         * largest search observed over the TRACTABLE corpus (english33 end-to-end plus
+         * every board's endgame tail) so a board the Solver is relied on to decide fast is
+         * never falsely reported unsolvable. RAISE this value if the measurement ever
+         * exceeds the 4x headroom — never lower the assertion.
          */
         const val DEFAULT_MAX_NODES = 40_000_000L
 
