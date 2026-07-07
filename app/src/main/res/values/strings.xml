@@ -76,9 +76,13 @@
     <string name="challenge_level_indicator_desc">Challenge level %1$d</string>
     <!-- Undo control (icon-only; disabled when there is nothing to undo, ASST-02). -->
     <string name="undo_action">Undo</string>
-    <!-- Hint toggle (icon-only; content description reflects the on/off state). -->
-    <string name="hints_on">Hints on</string>
-    <string name="hints_off">Hints off</string>
+    <!-- Winning-move Hint action (icon-only; distinct from the show-moves toggle, D-01/D-02). -->
+    <string name="hint_action">Hint</string>
+    <!-- Announced while the Solver computes a hint; the control is disabled (D-10). -->
+    <string name="hint_thinking">Finding a move</string>
+    <!-- Show-possible-moves toggle (icon-only; content description reflects the on/off state, D-02). -->
+    <string name="show_moves_on">Show possible moves</string>
+    <string name="show_moves_off">Hide possible moves</string>
     <!-- Shown while a Challenge board is generated off the main thread (CR-01). -->
     <string name="loading_level">Loading level</string>
 
