@@ -35,6 +35,18 @@ import com.app.pegsolitaire.domain.model.Position
  *   `moveHistory.isNotEmpty()`, so it is `false` at the initial board, `true` after any
  *   jump, and `false` again once undo walks back to the start. Drives the Undo control's
  *   enabled state; render-only, no game logic depends on it.
+ * @property hintSource the peg to move for the revealed winning move (ASST-01, D-01), or
+ *   `null` when no hint is shown; the [BoardCanvas] glows this cell (rendering ships in
+ *   04-03b). Cleared on any jump/undo (a new position invalidates a shown hint).
+ * @property hintTarget the destination hole of the revealed winning move (ASST-01, D-01),
+ *   or `null` when no hint is shown; paired with [hintSource] to draw the A→B highlight.
+ * @property solverThinking whether the off-thread Solver is computing a hint (D-10): set
+ *   the instant a hint is requested and cleared when the search resolves (to a highlight
+ *   or [noWinningMove]); the Hint control shows a spinner/disabled state while `true`.
+ * @property noWinningMove whether the last hint found no winning move (ASST-03, D-04/D-08):
+ *   the Solver returned nothing (unsolvable / budget-missed) so the position is dead; the
+ *   inline "no winning move — undo or restart" banner (deferred to 04-04) renders on this.
+ *   Cleared on any jump/undo and when a new hint is requested.
  */
 @Immutable
 data class GameUiState(
@@ -48,6 +60,10 @@ data class GameUiState(
     val showHints: Boolean = true,
     val isLoading: Boolean = false,
     val canUndo: Boolean = false,
+    val hintSource: Position? = null,
+    val hintTarget: Position? = null,
+    val solverThinking: Boolean = false,
+    val noWinningMove: Boolean = false,
 ) {
     companion object {
         /**
@@ -69,6 +85,10 @@ data class GameUiState(
                 showHints = true,
                 isLoading = false,
                 canUndo = false,
+                hintSource = null,
+                hintTarget = null,
+                solverThinking = false,
+                noWinningMove = false,
             )
 
         /**
@@ -89,6 +109,10 @@ data class GameUiState(
                 showHints = true,
                 isLoading = true,
                 canUndo = false,
+                hintSource = null,
+                hintTarget = null,
+                solverThinking = false,
+                noWinningMove = false,
             )
 
         /** An empty footprint backing the [loading] placeholder board (no in-play cells). */

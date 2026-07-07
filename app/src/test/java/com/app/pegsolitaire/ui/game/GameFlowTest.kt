@@ -25,6 +25,7 @@ import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
+import com.app.pegsolitaire.domain.usecase.GetHintUseCase
 import com.app.pegsolitaire.platform.ads.NoOpAdGateway
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.theme.AppTheme
@@ -148,6 +149,7 @@ class GameFlowTest {
                 timeSource = TestTimeSource(),
                 defaultDispatcher = Dispatchers.Unconfined,
                 adGateway = NoOpAdGateway(),
+                getHintUseCase = GetHintUseCase(),
                 savedStateHandle = SavedStateHandle(mapOf(LEVEL_ID_ARG to ClassicLevelIds.ENGLISH33)),
             )
         composeRule.setContent {

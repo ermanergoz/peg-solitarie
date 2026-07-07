@@ -18,15 +18,19 @@ import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
+import com.app.pegsolitaire.domain.usecase.GetHintUseCase
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -57,6 +61,10 @@ import kotlin.time.TimeSource
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [ROBOLECTRIC_SDK])
+// The single behavior spec for GameViewModel (gameplay + timer + undo + hint); kept
+// together so one file exhaustively documents the VM's contract.
+@Suppress("LargeClass")
+@OptIn(ExperimentalCoroutinesApi::class) // runCurrent/advanceUntilIdle/advanceTimeBy virtual-time control
 class GameViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
 
@@ -412,6 +420,194 @@ class GameViewModelTest {
             cancelTickers()
         }
 
+    // ---- Hint (ASST-01/ASST-03, D-01/D-03/D-04/D-10) ------------------------
+
+    @Test
+    fun hintOnTheRecordedLineReturnsTheRecordedMoveWithoutSolverLatency() =
+        runTest(testDispatcher) {
+            val viewModel =
+                viewModelFor(Boards.english33Initial, challengeLevel = FIRST_CHALLENGE_LEVEL)
+            runCurrent() // finish the async Challenge load (board + recorded solution)
+
+            viewModel.onHintRequested()
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            // The generator is deterministic, so the recorded first move here is exactly
+            // the one the VM captured; proving hintSource/hintTarget == solution[0] proves
+            // the recorded branch was taken (no Solver search).
+            val recordedFirst = LevelGenerator.generate(FIRST_CHALLENGE_LEVEL).solution.first()
+            assertThat(state.hintSource).isEqualTo(recordedFirst.from)
+            assertThat(state.hintTarget).isEqualTo(recordedFirst.to)
+            assertThat(state.solverThinking).isFalse()
+            assertThat(state.noWinningMove).isFalse()
+
+            cancelTickers()
+        }
+
+    @Test
+    fun hintOnClassicSetsSolverThinkingThenResolvesToALegalHighlightAndAJumpClearsIt() =
+        runTest(testDispatcher) {
+            // A tiny solvable Classic strip keeps the Solver fallback instant.
+            val viewModel = viewModelFor(wonInOneJumpBoard())
+            runCurrent()
+
+            viewModel.onHintRequested()
+            // solverThinking is raised synchronously, before the off-thread search runs.
+            assertThat(viewModel.uiState.value.solverThinking).isTrue()
+
+            advanceUntilIdle()
+            val hinted = viewModel.uiState.value
+            assertThat(hinted.solverThinking).isFalse()
+            assertThat(hinted.hintSource).isEqualTo(Position(row = 0, col = 0))
+            assertThat(hinted.hintTarget).isEqualTo(Position(row = 0, col = 2))
+            // The highlighted move is a legal move on the current board (gameplay authority).
+            val hintedMove =
+                RulesEngine
+                    .legalMoves(hinted.board)
+                    .firstOrNull { it.from == hinted.hintSource && it.to == hinted.hintTarget }
+            assertThat(hintedMove).isNotNull()
+
+            // Performing a jump clears the shown highlight.
+            viewModel.onCellTap(Position(row = 0, col = 0))
+            viewModel.onCellTap(Position(row = 0, col = 2))
+            runCurrent()
+            val afterJump = viewModel.uiState.value
+            assertThat(afterJump.hintSource).isNull()
+            assertThat(afterJump.hintTarget).isNull()
+        }
+
+    @Test
+    fun hintRequestsTheHintGrantThroughTheAdGateway() =
+        runTest(testDispatcher) {
+            val gateway = FakeAdGateway()
+            val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = gateway)
+            runCurrent()
+
+            viewModel.onHintRequested()
+            advanceUntilIdle()
+
+            assertThat(gateway.lastReason).isEqualTo(AdReason.HINT)
+        }
+
+    @Test
+    fun hintDeniedByTheGatewayDoesNotProceedAndClearsThinking() =
+        runTest(testDispatcher) {
+            val denied = FakeAdGateway(grant = false)
+            val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = denied)
+            runCurrent()
+
+            viewModel.onHintRequested()
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertThat(state.hintSource).isNull()
+            assertThat(state.hintTarget).isNull()
+            assertThat(state.noWinningMove).isFalse()
+            assertThat(state.solverThinking).isFalse()
+        }
+
+    @Test
+    fun hintOnAnUnsolvablePositionSetsNoWinningMove() =
+        runTest(testDispatcher) {
+            // Two pegs separated by an empty hole: no legal jump → Solver returns null.
+            val spec = BoardSpec(inPlay = (0..2).map { Position(row = 0, col = it) }, target = null)
+            val board =
+                Board(spec = spec, pegs = 0L)
+                    .withPeg(Position(row = 0, col = 0))
+                    .withPeg(Position(row = 0, col = 2))
+            val viewModel = viewModelFor(board)
+            runCurrent()
+
+            viewModel.onHintRequested()
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertThat(state.noWinningMove).isTrue()
+            assertThat(state.hintSource).isNull()
+            assertThat(state.solverThinking).isFalse()
+        }
+
+    @Test
+    fun aSecondHintRequestCancelsThePriorSearchSoOnlyOneProceeds() =
+        runTest(testDispatcher) {
+            // The gateway gates every grant until released, so both hint jobs launch and
+            // suspend; only the SECOND (uncancelled) job may proceed past the gate.
+            val gateway = GatedAdGateway()
+            val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = gateway)
+            runCurrent()
+
+            viewModel.onHintRequested()
+            runCurrent()
+            assertThat(gateway.started).isEqualTo(1)
+
+            // Second request cancels the first in-flight job before releasing the gate.
+            viewModel.onHintRequested()
+            runCurrent()
+            assertThat(gateway.started).isEqualTo(2)
+
+            gateway.release()
+            advanceUntilIdle()
+
+            // Exactly one job proceeded past the grant — the prior search was cancelled.
+            assertThat(gateway.proceeded).isEqualTo(1)
+            assertThat(viewModel.uiState.value.hintSource).isEqualTo(Position(row = 0, col = 0))
+            assertThat(viewModel.uiState.value.solverThinking).isFalse()
+
+            cancelTickers()
+        }
+
+    @Test
+    fun deviatingFromTheRecordedLineFlipsOnRecordedLine() =
+        runTest(testDispatcher) {
+            val viewModel =
+                viewModelFor(Boards.english33Initial, challengeLevel = CHALLENGE_LEVEL_WITH_CHOICES)
+            runCurrent()
+            assertThat(viewModel.isOnRecordedLine()).isTrue()
+
+            val recordedFirst =
+                LevelGenerator.generate(CHALLENGE_LEVEL_WITH_CHOICES).solution.first()
+            // Pick a LEGAL move that is NOT the recorded first move — a genuine deviation.
+            val deviating =
+                RulesEngine.legalMoves(viewModel.uiState.value.board).first { it != recordedFirst }
+            viewModel.onCellTap(deviating.from)
+            viewModel.onCellTap(deviating.to)
+            runCurrent()
+
+            assertThat(viewModel.isOnRecordedLine()).isFalse()
+
+            cancelTickers()
+        }
+
+    @Test
+    fun undoRecomputesOnRecordedLineAndClearsTheHint() =
+        runTest(testDispatcher) {
+            val viewModel =
+                viewModelFor(Boards.english33Initial, challengeLevel = CHALLENGE_LEVEL_WITH_CHOICES)
+            runCurrent()
+
+            val recordedFirst =
+                LevelGenerator.generate(CHALLENGE_LEVEL_WITH_CHOICES).solution.first()
+            val deviating =
+                RulesEngine.legalMoves(viewModel.uiState.value.board).first { it != recordedFirst }
+            viewModel.onCellTap(deviating.from)
+            viewModel.onCellTap(deviating.to)
+            runCurrent()
+            assertThat(viewModel.isOnRecordedLine()).isFalse()
+
+            // Undo walks back to the start, so the moveHistory prefix matches the line again.
+            viewModel.onUndo()
+            runCurrent()
+
+            assertThat(viewModel.isOnRecordedLine()).isTrue()
+            val state = viewModel.uiState.value
+            assertThat(state.hintSource).isNull()
+            assertThat(state.hintTarget).isNull()
+            assertThat(state.noWinningMove).isFalse()
+
+            cancelTickers()
+        }
+
     // ---- Preserved Phase-1 behaviors ----------------------------------------
 
     @Test
@@ -725,6 +921,7 @@ class GameViewModelTest {
                         timeSource = timeSource,
                         defaultDispatcher = testDispatcher,
                         adGateway = adGateway,
+                        getHintUseCase = GetHintUseCase(),
                         savedStateHandle = SavedStateHandle(args),
                     ) as T
             }
@@ -777,6 +974,13 @@ private const val OTHER_LEVEL_ID = ClassicLevelIds.EUROPEAN37
 
 /** The first Challenge level (the on-ramp), used to prove the challenge load path. */
 private const val FIRST_CHALLENGE_LEVEL = 1
+
+/**
+ * A Challenge level whose generated board offers several legal opening moves, so a
+ * genuine deviation from the recorded first move is always available (the level-1
+ * on-ramp can be too small to deviate from).
+ */
+private const val CHALLENGE_LEVEL_WITH_CHOICES = 10
 
 /** A forged sub-1 Challenge nav arg that must clamp to level 1 (T-03-09). */
 private const val BELOW_MIN_CHALLENGE_LEVEL = 0
@@ -865,6 +1069,36 @@ private class FakeAdGateway(
     override suspend fun requestRewarded(reason: AdReason): Boolean {
         lastReason = reason
         return grant
+    }
+
+    override fun showInterstitial() = Unit
+}
+
+/**
+ * An [AdGateway] whose [requestRewarded] suspends on a shared gate until [release],
+ * counting how many grants [started] (entered the gate) and how many [proceeded] past
+ * it. A cancelled hint job's suspended `await` throws before [proceeded] increments, so
+ * `proceeded == 1` after two rapid requests proves the first search was cancelled (no
+ * overlapping Solver work — the logic half of D-10).
+ */
+private class GatedAdGateway : AdGateway {
+    private val gate = CompletableDeferred<Unit>()
+
+    var started = 0
+        private set
+
+    var proceeded = 0
+        private set
+
+    fun release() {
+        gate.complete(Unit)
+    }
+
+    override suspend fun requestRewarded(reason: AdReason): Boolean {
+        started++
+        gate.await()
+        proceeded++
+        return true
     }
 
     override fun showInterstitial() = Unit
