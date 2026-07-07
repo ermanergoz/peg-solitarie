@@ -36,9 +36,9 @@ Slice 1 — Playable Core. Fully playable and testable; ads and Play Games exist
 
 ### Assist
 
-- [ ] **ASST-01**: Player can use a hint that reveals the next winning move (free in Slice 1)
+- [x] **ASST-01**: Player can use a hint that reveals the next winning move (free in Slice 1)
 - [x] **ASST-02**: Player can undo the last move
-- [ ] **ASST-03**: Hint handles deviation — falls back to the solver, and shows a clear "no winning move" state when the position is unsolvable
+- [x] **ASST-03**: Hint handles deviation — falls back to the solver, and shows a clear "no winning move" state when the position is unsolvable
 
 ### Persistence
 
@@ -127,9 +127,9 @@ Each v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for ph
 | CHAL-02 | Phase 3 | Complete |
 | CHAL-03 | Phase 3 | Complete |
 | CHAL-04 | Phase 3 | Complete |
-| ASST-01 | Phase 4 | Pending |
+| ASST-01 | Phase 4 | Complete |
 | ASST-02 | Phase 4 | Complete |
-| ASST-03 | Phase 4 | Pending |
+| ASST-03 | Phase 4 | Complete |
 | PERS-01 | Phase 5 | Pending |
 | PERS-02 | Phase 5 | Pending |
 | PERS-03 | Phase 5 | Pending |

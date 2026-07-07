@@ -4,14 +4,14 @@ milestone: v1.0
 milestone_name: milestone
 status: ready_to_plan
 stopped_at: Phase 04 UI-SPEC approved
-last_updated: "2026-07-06T23:10:19.728Z"
-last_activity: 2026-07-06
+last_updated: "2026-07-07T23:33:51.104Z"
+last_activity: 2026-07-07
 progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 24
-  completed_plans: 20
-  percent: 63
+  completed_plans: 21
+  percent: 60
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 04 (assist-hint-undo) — EXECUTING
-Plan: 3 of 6 (Wave 1 complete: 04-01 undo+AdGateway, 04-02 Solver+Pagoda; next 04-03 hint logic)
+Plan: 4 of 6 (Wave 1 complete: 04-01 undo+AdGateway, 04-02 Solver+Pagoda; next 04-03 hint logic)
 Next: 04-03 (hint logic: GetHintUseCase + off-thread VM orchestration)
-Last activity: 2026-07-08 -- Wave 1 complete (04-01, 04-02)
+Last activity: 2026-07-07
 
-Progress: [████████░░] 79%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -72,6 +72,7 @@ Progress: [████████░░] 79%
 | Phase 03 P04 | 4 | - tasks | - files |
 | Phase 03 P05 | 6 | - tasks | - files |
 | Phase 04 P01 | 60 | 3 tasks | 15 files |
+| Phase 04 P03 | 40 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -116,6 +117,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 04-01: Undo is a pure replay — onUndo() folds RulesEngine.applyMove over the remaining moveHistory from initialBoard (multi-step to start, trusts only in-memory moves T-04-01-U); it deliberately never touches startMark/tickerJob/elapsedSeconds (D-07) and clears finishedEmitted when the rebuilt board is Playing so a rescued Stuck game can re-finish.
 - [Phase ?]: 04-01: AdGateway/AdReason/NoOpAdGateway seam + PlatformModule @Binds @Singleton (D-11) is the sole Slice-2 rewarded-ad swap point; onUndo requests AdReason.UNDO and no-ops on denial. 04-03 Hint reuses it unchanged for AdReason.HINT.
 - [Phase ?]: 04-01: Undo glyph is a local auto-mirrored UndoIcon ImageVector (core icon set lacks undo; material-icons-extended intentionally avoided per libs.versions.toml). GameViewModel carries @Suppress(TooManyFunctions) as the UI event hub.
+- [Phase ?]: 04-03: GetHintUseCase is pure :domain — recorded-line-first (guarded by range + RulesEngine legality, never blind solution[moveCount]) then budgeted Solver; null folds to no-win (D-04)
+- [Phase ?]: 04-03: onHintRequested runs off defaultDispatcher on a cancellable grant-gated hintJob (AdReason.HINT); onRecordedLine flips on deviation, recomputed on undo; solverThinking raised synchronously
 
 ### Pending Todos
 
@@ -144,6 +147,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-06T23:09:56.248Z
+Last session: 2026-07-07T23:33:21.867Z
 Stopped at: Phase 04 UI-SPEC approved
 Resume file: None
