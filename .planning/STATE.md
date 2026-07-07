@@ -10,8 +10,8 @@ progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 24
-  completed_plans: 19
-  percent: 60
+  completed_plans: 20
+  percent: 63
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 04 (assist-hint-undo) — EXECUTING
-Plan: 2 of 6
-Next: Phase 02 (classic-mode-scoring-navigation) — not yet planned
-Last activity: 2026-07-06
+Plan: 3 of 6 (Wave 1 complete: 04-01 undo+AdGateway, 04-02 Solver+Pagoda; next 04-03 hint logic)
+Next: 04-03 (hint logic: GetHintUseCase + off-thread VM orchestration)
+Last activity: 2026-07-08 -- Wave 1 complete (04-01, 04-02)
 
 Progress: [████████░░] 79%
 
@@ -111,6 +111,8 @@ Recent decisions affecting current work:
 - [Phase ?]: 03-04: Unified LevelRef — one Gameplay route with a nullable challengeLevel drives both mode load paths and the title slot; no separate Challenge VM/route, no if(challenge) in board logic
 - [Phase ?]: 03-04: GameViewModel reads DifficultyTiers.forLevel(n).scoreMultiplier directly (pure :domain) and clamps challengeLevel<1 at the VM boundary (T-03-09)
 - [Phase ?]: 03-05: Mode routing lives in AppNavHost (Results invokes onNextLevel/onRetry; graph selects destination) — screens stay mode-agnostic; every Challenge board-hop uses popUpTo(Home) so the infinite ladder never grows the back stack (T-03-11). Home Challenge tile enabled as a neutral surfaceContainerHigh peer (not accent), entering Challenge at level 1 (D-04). On-device playability checkpoint APPROVED by user.
+- [Phase 04]: 04-01: Undo = pure replay (fold RulesEngine.applyMove over remaining moveHistory from initialBoard), repeatable to start, timer untouched (D-07); AdGateway/AdReason/NoOpAdGateway auto-grant seam (D-11) is the single Slice-2 rewarded-ad swap point, reused by Hint. Undo glyph is a local ImageVector (material-icons-extended intentionally avoided).
+- [Phase 04]: 04-02: Production Solver = memoised symmetry-canonical DFS + mod-3 colour-parity Pagoda fast-reject + deterministic jittered restarts, pure :domain, coroutine-free shouldCancel deadline hook. SolverBudget.DEFAULT_MAX_NODES=40M is a memory/time SAFETY CEILING; the 1.5s deadline is the operative production limit. SolverBudgetTest right-sized (user-approved) to a CI-fast, honest guarantee (correctness + endgame-tail completeness + 4x headroom) — universal early-position completeness is NOT achievable at a usable deadline.
 - [Phase ?]: 04-01: Undo is a pure replay — onUndo() folds RulesEngine.applyMove over the remaining moveHistory from initialBoard (multi-step to start, trusts only in-memory moves T-04-01-U); it deliberately never touches startMark/tickerJob/elapsedSeconds (D-07) and clears finishedEmitted when the rebuilt board is Playing so a rescued Stuck game can re-finish.
 - [Phase ?]: 04-01: AdGateway/AdReason/NoOpAdGateway seam + PlatformModule @Binds @Singleton (D-11) is the sole Slice-2 rewarded-ad swap point; onUndo requests AdReason.UNDO and no-ops on denial. 04-03 Hint reuses it unchanged for AdReason.HINT.
 - [Phase ?]: 04-01: Undo glyph is a local auto-mirrored UndoIcon ImageVector (core icon set lacks undo; material-icons-extended intentionally avoided per libs.versions.toml). GameViewModel carries @Suppress(TooManyFunctions) as the UI event hub.
@@ -123,6 +125,7 @@ None yet.
 
 - Phase 3 difficulty-curve knob values cannot be set from research — require a dedicated playtest-iteration loop before the `generatorVersion` contract is frozen.
 - Diamond-41 D-19 recorded-solution proof deferred: its 41-hole space (4 solvable starts, none center-finishing) defeats the DFS+symmetry+heuristic authoring solver; needs pagoda-function pruning. Board ships with off-center (4,2) start but (4,2)'s specific solvability is literature-asserted, not yet verified by fixture.
+- [04-02] Solver performance envelope: the deviation-hint Solver reliably decides endgame/easy positions within the 1.5s deadline, but hard EARLY positions on the larger Classic boards (European-37/Asymmetric-39/Wiegleb-45) — and a few english33 mid positions — exceed it and fold to the D-04 "no winning move" state. Jittered restarts don't shortcut them; widening coverage needs a stronger solver (weighted pagoda pruning / better heuristic). VERIFY acceptability at the 04-05 playtest / phase verification; candidate for a follow-up solver-improvement task if unacceptable.
 
 ### Quick Tasks Completed
 
