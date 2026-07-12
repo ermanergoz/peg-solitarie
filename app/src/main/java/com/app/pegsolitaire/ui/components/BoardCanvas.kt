@@ -66,6 +66,7 @@ private const val REMOVAL_START = 1f
  * @param interactive whether the board accepts taps and draws the selection/destination/
  *   animation overlays; `false` for the static catalog preview.
  */
+@Suppress("LongMethod") // One cohesive render unit; the added `tertiary` hint color is one line over.
 @Composable
 fun BoardCanvas(
     state: GameUiState,
@@ -88,6 +89,7 @@ fun BoardCanvas(
             holeFill = MaterialTheme.colorScheme.surfaceContainerLowest,
             holeOutline = MaterialTheme.colorScheme.outlineVariant,
             accent = MaterialTheme.colorScheme.primary,
+            hint = MaterialTheme.colorScheme.tertiary,
             ringWidthPx = with(density) { dimensionResource(R.dimen.peg_selected_ring_width).toPx() },
             holeOutlinePx = with(density) { dimensionResource(R.dimen.hole_outline_width).toPx() },
         )
@@ -149,6 +151,7 @@ private class BoardPalette(
     val holeFill: Color,
     val holeOutline: Color,
     val accent: Color,
+    val hint: Color,
     val ringWidthPx: Float,
     val holeOutlinePx: Float,
 )
@@ -183,6 +186,15 @@ private fun DrawScope.drawBoard(
             position = position,
             jumperLanding = jumperLanding,
         )
+    }
+
+    // Winning-move hint overlay (D-01): render-only source glow + target ring + faint A→B
+    // arrow, in the `tertiary` accent. Suppressed in read-only previews (like selection/dots)
+    // and it never performs the jump — the player still makes the move.
+    val hintSource = state.hintSource
+    val hintTarget = state.hintTarget
+    if (interactive && hintSource != null && hintTarget != null) {
+        drawHintHighlight(geometry, palette, hintSource, hintTarget)
     }
 
     if (transition != null) {
@@ -271,6 +283,44 @@ private fun DrawScope.drawSelectedPeg(
         radius = geometry.selectedRingRadius,
         center = center,
         style = Stroke(width = palette.ringWidthPx),
+    )
+}
+
+/**
+ * Draws the revealed winning-move hint (D-01): a `tertiary` ring around the destination
+ * hole (B), a slightly larger glow ring around the peg to move (A), and a faint A→B line
+ * connecting them. Render-only — it reads [source]/[target] and never mutates game state
+ * nor performs the jump; the caller suppresses it entirely in read-only previews.
+ *
+ * Draw order matches the UI-SPEC: target ring → source glow ring → arrow, so the source
+ * glow sits above the connector where they overlap.
+ */
+private fun DrawScope.drawHintHighlight(
+    geometry: BoardGeometry,
+    palette: BoardPalette,
+    source: Position,
+    target: Position,
+) {
+    val sourceCenter = geometry.center(source)
+    val targetCenter = geometry.center(target)
+    val ringColor = palette.hint.copy(alpha = BoardMetrics.HINT_HIGHLIGHT_ALPHA)
+    drawCircle(
+        color = ringColor,
+        radius = geometry.hintTargetRingRadius,
+        center = targetCenter,
+        style = Stroke(width = palette.ringWidthPx),
+    )
+    drawCircle(
+        color = ringColor,
+        radius = geometry.hintSourceRingRadius,
+        center = sourceCenter,
+        style = Stroke(width = palette.ringWidthPx),
+    )
+    drawLine(
+        color = palette.hint.copy(alpha = BoardMetrics.HINT_ARROW_ALPHA),
+        start = sourceCenter,
+        end = targetCenter,
+        strokeWidth = BoardMetrics.HINT_ARROW_WIDTH_RATIO * geometry.cellSize,
     )
 }
 

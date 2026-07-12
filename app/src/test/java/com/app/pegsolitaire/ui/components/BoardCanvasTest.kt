@@ -4,6 +4,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.Position
+import com.app.pegsolitaire.ui.game.BoardMetrics
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
@@ -60,6 +61,27 @@ class BoardCanvasTest {
     fun tappingOutsideTheBoardIsDropped() {
         assertThat(geometry.positionAt(Offset(-CANVAS_EDGE_PX, -CANVAS_EDGE_PX))).isNull()
         assertThat(geometry.positionAt(Offset(FAR_OUTSIDE_PX, FAR_OUTSIDE_PX))).isNull()
+    }
+
+    /**
+     * The winning-move hint overlay (D-01) is driven by these two proportional radii. The
+     * source glow (A) must be strictly larger than the selection ring so a hint never reads
+     * as a selection, and the target ring (B) strictly larger than the legal-move dot so it
+     * reads as a target, not a dot — the visual-distinctness contract the highlight relies on.
+     */
+    @Test
+    fun hintRingRadiiAreDistinctFromSelectionAndDot() {
+        assertThat(geometry.hintSourceRingRadius).isGreaterThan(geometry.selectedRingRadius)
+        assertThat(geometry.hintTargetRingRadius).isGreaterThan(geometry.destinationDotRadius)
+    }
+
+    /** Both hint rings scale proportionally with the measured cell size (resolution-independent). */
+    @Test
+    fun hintRingRadiiAreProportionalToCellSize() {
+        assertThat(geometry.hintSourceRingRadius)
+            .isEqualTo(BoardMetrics.HINT_SOURCE_RING_RATIO * geometry.cellSize)
+        assertThat(geometry.hintTargetRingRadius)
+            .isEqualTo(BoardMetrics.HINT_TARGET_RING_RATIO * geometry.cellSize)
     }
 
     private companion object {

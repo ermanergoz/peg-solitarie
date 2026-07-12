@@ -18,13 +18,19 @@ import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
+import com.app.pegsolitaire.domain.usecase.GetHintUseCase
+import com.app.pegsolitaire.platform.ads.AdGateway
+import com.app.pegsolitaire.platform.ads.AdReason
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -55,6 +61,10 @@ import kotlin.time.TimeSource
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [ROBOLECTRIC_SDK])
+// The single behavior spec for GameViewModel (gameplay + timer + undo + hint); kept
+// together so one file exhaustively documents the VM's contract.
+@Suppress("LargeClass")
+@OptIn(ExperimentalCoroutinesApi::class) // runCurrent/advanceUntilIdle/advanceTimeBy virtual-time control
 class GameViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
 
@@ -263,6 +273,502 @@ class GameViewModelTest {
             runCurrent()
             assertThat(viewModel.uiState.value.legalTargets).containsExactly(centerHole)
             assertThat(viewModel.uiState.value.showHints).isFalse()
+        }
+
+    // ---- Undo (ASST-02, D-05/D-07) ------------------------------------------
+
+    @Test
+    fun undoRestoresTheExactPriorBoardAndDropsTheLastMove() =
+        runTest(testDispatcher) {
+            val viewModel = englishViewModel()
+            runCurrent()
+            val initialBoard = viewModel.uiState.value.board
+            assertThat(viewModel.uiState.value.canUndo).isFalse()
+
+            viewModel.onCellTap(pegAboveCenter)
+            viewModel.onCellTap(centerHole)
+            runCurrent()
+            assertThat(viewModel.uiState.value.board).isNotEqualTo(initialBoard)
+            assertThat(viewModel.uiState.value.canUndo).isTrue()
+
+            viewModel.onUndo()
+            runCurrent()
+            assertThat(viewModel.uiState.value.board).isEqualTo(initialBoard)
+            assertThat(viewModel.uiState.value.canUndo).isFalse()
+
+            cancelTickers() // board stays Playing after undo; stop the eager ticker.
+        }
+
+    @Test
+    fun repeatedUndoWalksAllTheWayBackToTheInitialBoardAndRescuesAStuckGame() =
+        runTest(testDispatcher) {
+            val viewModel = viewModelFor(twoMoveStuckLine())
+            runCurrent()
+            val initialBoard = viewModel.uiState.value.board
+
+            // Move A keeps the game Playing.
+            viewModel.onCellTap(Position(row = 0, col = 2))
+            viewModel.onCellTap(Position(row = 0, col = 4))
+            runCurrent()
+            val afterMoveA = viewModel.uiState.value.board
+
+            // Move B strands two non-adjacent pegs → Stuck.
+            viewModel.onCellTap(Position(row = 0, col = 0))
+            viewModel.onCellTap(Position(row = 0, col = 2))
+            runCurrent()
+            assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Stuck)
+
+            // First undo rescues the Stuck board back to a playable position.
+            viewModel.onUndo()
+            runCurrent()
+            assertThat(viewModel.uiState.value.board).isEqualTo(afterMoveA)
+            assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Playing)
+            assertThat(viewModel.uiState.value.canUndo).isTrue()
+
+            // Second undo returns to the initial board; nothing left to undo.
+            viewModel.onUndo()
+            runCurrent()
+            assertThat(viewModel.uiState.value.board).isEqualTo(initialBoard)
+            assertThat(viewModel.uiState.value.canUndo).isFalse()
+
+            cancelTickers() // board is Playing again; stop the eager ticker.
+        }
+
+    @Test
+    fun undoWithNoMovesIsANoOp() =
+        runTest(testDispatcher) {
+            val viewModel = englishViewModel()
+            runCurrent()
+            val before = viewModel.uiState.value
+            assertThat(before.canUndo).isFalse()
+
+            viewModel.onUndo()
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.board).isEqualTo(before.board)
+            assertThat(viewModel.uiState.value.canUndo).isFalse()
+        }
+
+    @Test
+    fun undoDoesNotTouchTheElapsedTimer() =
+        runTest(testDispatcher) {
+            val timeSource = TestTimeSource()
+            val viewModel = viewModelFor(Boards.english33Initial, timeSource = timeSource)
+            runCurrent()
+
+            // First move starts the timer; advance real time so it reads 4s.
+            viewModel.onCellTap(pegAboveCenter)
+            viewModel.onCellTap(centerHole)
+            runCurrent()
+            timeSource += 4.seconds
+            advanceTimeBy(ONE_TICK_MILLIS)
+            runCurrent()
+            assertThat(viewModel.uiState.value.elapsedSeconds).isEqualTo(4)
+
+            // Undo must NOT reset the timer (D-07).
+            viewModel.onUndo()
+            runCurrent()
+            assertThat(viewModel.uiState.value.elapsedSeconds).isEqualTo(4)
+
+            // And the ticker keeps counting real time after the undo.
+            timeSource += 2.seconds
+            advanceTimeBy(ONE_TICK_MILLIS)
+            runCurrent()
+            assertThat(viewModel.uiState.value.elapsedSeconds).isEqualTo(6)
+
+            cancelTickers()
+        }
+
+    @Test
+    fun undoRequestsTheUndoGrantThroughTheAdGateway() =
+        runTest(testDispatcher) {
+            val gateway = FakeAdGateway()
+            val viewModel = viewModelFor(Boards.english33Initial, adGateway = gateway)
+            runCurrent()
+
+            viewModel.onCellTap(pegAboveCenter)
+            viewModel.onCellTap(centerHole)
+            runCurrent()
+
+            viewModel.onUndo()
+            runCurrent()
+
+            assertThat(gateway.lastReason).isEqualTo(AdReason.UNDO)
+
+            cancelTickers()
+        }
+
+    @Test
+    fun undoIsSkippedWhenTheGrantIsDenied() =
+        runTest(testDispatcher) {
+            val deniedGateway = FakeAdGateway(grant = false)
+            val viewModel = viewModelFor(Boards.english33Initial, adGateway = deniedGateway)
+            runCurrent()
+
+            viewModel.onCellTap(pegAboveCenter)
+            viewModel.onCellTap(centerHole)
+            runCurrent()
+            val afterJump = viewModel.uiState.value.board
+
+            viewModel.onUndo()
+            runCurrent()
+
+            // Grant denied → the undo does not proceed; the board is unchanged.
+            assertThat(viewModel.uiState.value.board).isEqualTo(afterJump)
+            assertThat(viewModel.uiState.value.canUndo).isTrue()
+
+            cancelTickers()
+        }
+
+    // ---- Stuck-rescue state machine (ASST-03, D-06/D-08) --------------------
+
+    @Test
+    fun reachingADeadEndSetsTheRescueFlagAndEmitsNoFinishedEvent() =
+        runTest(testDispatcher) {
+            val viewModel = viewModelFor(twoMoveStuckLine())
+            viewModel.finished.test {
+                expectNoEvents()
+
+                // Move A keeps the game Playing; Move B strands two pegs → Stuck.
+                viewModel.onCellTap(Position(row = 0, col = 2))
+                viewModel.onCellTap(Position(row = 0, col = 4))
+                runCurrent()
+                viewModel.onCellTap(Position(row = 0, col = 0))
+                viewModel.onCellTap(Position(row = 0, col = 2))
+                runCurrent()
+
+                val state = viewModel.uiState.value
+                assertThat(state.status).isEqualTo(GameStatus.Stuck)
+                assertThat(state.stuck).isTrue()
+                assertThat(state.showRescueBanner).isTrue()
+                assertThat(state.noWinningMove).isFalse()
+                // D-06: Stuck no longer emits a finished event (it is rescuable, not
+                // auto-navigating); the board also stays interactive (2 pegs remain).
+                assertThat(state.board.pegCount).isEqualTo(2)
+                expectNoEvents()
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun wonEmitsFinishedAndNeverSetsTheRescueFlag() =
+        runTest(testDispatcher) {
+            val viewModel = viewModelFor(wonInOneJumpBoard())
+            viewModel.finished.test {
+                expectNoEvents()
+
+                viewModel.onCellTap(Position(row = 0, col = 0))
+                viewModel.onCellTap(Position(row = 0, col = 2))
+                runCurrent()
+
+                // Won still routes to Results (emits exactly once) and shows no banner.
+                awaitItem()
+                val state = viewModel.uiState.value
+                assertThat(state.status).isEqualTo(GameStatus.Won)
+                assertThat(state.stuck).isFalse()
+                assertThat(state.showRescueBanner).isFalse()
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun undoingOutOfAStuckBoardResumesTheTickerAndClearsTheRescueFlag() =
+        runTest(testDispatcher) {
+            val timeSource = TestTimeSource()
+            val viewModel = viewModelFor(twoMoveStuckLine(), timeSource = timeSource)
+            runCurrent()
+
+            // Move A starts the timer (Playing) and it ticks to 2s.
+            viewModel.onCellTap(Position(row = 0, col = 2))
+            viewModel.onCellTap(Position(row = 0, col = 4))
+            runCurrent()
+            timeSource += 2.seconds
+            advanceTimeBy(ONE_TICK_MILLIS)
+            runCurrent()
+            assertThat(viewModel.uiState.value.elapsedSeconds).isEqualTo(2)
+
+            // Move B reaches Stuck → the ticker freezes.
+            viewModel.onCellTap(Position(row = 0, col = 0))
+            viewModel.onCellTap(Position(row = 0, col = 2))
+            runCurrent()
+            assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Stuck)
+            timeSource += 5.seconds
+            advanceTimeBy(FIVE_SECONDS_MILLIS)
+            runCurrent()
+            assertThat(viewModel.uiState.value.elapsedSeconds).isEqualTo(2) // frozen
+
+            // Undo rescues to Playing → the rescue flag clears and the ticker RESUMES,
+            // reflecting the real elapsed time since the (never-reset) mark (D-07).
+            viewModel.onUndo()
+            runCurrent()
+            assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Playing)
+            assertThat(viewModel.uiState.value.stuck).isFalse()
+            assertThat(viewModel.uiState.value.showRescueBanner).isFalse()
+
+            timeSource += 1.seconds
+            advanceTimeBy(ONE_TICK_MILLIS)
+            runCurrent()
+            assertThat(viewModel.uiState.value.elapsedSeconds).isEqualTo(EIGHT_SECONDS)
+
+            cancelTickers()
+        }
+
+    @Test
+    fun stuckThenUndoThenReSolveToWonEmitsExactlyOneFinishedEvent() =
+        runTest(testDispatcher) {
+            val viewModel = viewModelFor(forkBoardWithStuckTrap())
+            viewModel.finished.test {
+                expectNoEvents()
+
+                // A wrong line strands a peg → Stuck (no emission; the guard is untouched).
+                jump(viewModel, from = Position(row = 2, col = 2), to = Position(row = 2, col = 4))
+                jump(viewModel, from = Position(row = 3, col = 3), to = Position(row = 3, col = 1))
+                runCurrent()
+                assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Stuck)
+                expectNoEvents()
+
+                // Undo all the way back to the initial board (finishedEmitted must reset).
+                viewModel.onUndo()
+                runCurrent()
+                viewModel.onUndo()
+                runCurrent()
+                assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Playing)
+                assertThat(viewModel.uiState.value.canUndo).isFalse()
+
+                // Re-solve to one peg → a finished event fires exactly once (guard reset).
+                jump(viewModel, from = Position(row = 3, col = 3), to = Position(row = 3, col = 1))
+                jump(viewModel, from = Position(row = 2, col = 3), to = Position(row = 2, col = 1))
+                jump(viewModel, from = Position(row = 3, col = 1), to = Position(row = 1, col = 1))
+                runCurrent()
+
+                val result = awaitItem()
+                assertThat(result.pegsRemaining).isEqualTo(1)
+                assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Won)
+                expectNoEvents()
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun noWinningMoveIsUndoneBackToAPlayableRescueFreeBoard() =
+        runTest(testDispatcher) {
+            // twoMoveStuckLine is Playing but unwinnable: its only line strands two pegs, so a
+            // hint folds to no-win, raising the rescue banner with a still-Playing status.
+            val viewModel = viewModelFor(twoMoveStuckLine())
+            runCurrent()
+
+            // Make the one available first move (still Playing) so there is a move to undo.
+            viewModel.onCellTap(Position(row = 0, col = 2))
+            viewModel.onCellTap(Position(row = 0, col = 4))
+            runCurrent()
+            assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Playing)
+
+            viewModel.onHintRequested()
+            // runCurrent (not advanceUntilIdle): the board is still Playing after the move, so
+            // the 1s timer ticker is live — advanceUntilIdle would advance virtual time forever
+            // and spin. runCurrent drains the queued off-thread hint job (which folds to no-win)
+            // without touching the pending ticker delay.
+            runCurrent()
+            assertThat(viewModel.uiState.value.noWinningMove).isTrue()
+            assertThat(viewModel.uiState.value.showRescueBanner).isTrue()
+
+            // Undo clears both the no-win flag and the derived rescue banner (D-08).
+            viewModel.onUndo()
+            runCurrent()
+            val state = viewModel.uiState.value
+            assertThat(state.noWinningMove).isFalse()
+            assertThat(state.stuck).isFalse()
+            assertThat(state.showRescueBanner).isFalse()
+
+            cancelTickers()
+        }
+
+    // ---- Hint (ASST-01/ASST-03, D-01/D-03/D-04/D-10) ------------------------
+
+    @Test
+    fun hintOnTheRecordedLineReturnsTheRecordedMoveWithoutSolverLatency() =
+        runTest(testDispatcher) {
+            val viewModel =
+                viewModelFor(Boards.english33Initial, challengeLevel = FIRST_CHALLENGE_LEVEL)
+            runCurrent() // finish the async Challenge load (board + recorded solution)
+
+            viewModel.onHintRequested()
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            // The generator is deterministic, so the recorded first move here is exactly
+            // the one the VM captured; proving hintSource/hintTarget == solution[0] proves
+            // the recorded branch was taken (no Solver search).
+            val recordedFirst = LevelGenerator.generate(FIRST_CHALLENGE_LEVEL).solution.first()
+            assertThat(state.hintSource).isEqualTo(recordedFirst.from)
+            assertThat(state.hintTarget).isEqualTo(recordedFirst.to)
+            assertThat(state.solverThinking).isFalse()
+            assertThat(state.noWinningMove).isFalse()
+
+            cancelTickers()
+        }
+
+    @Test
+    fun hintOnClassicSetsSolverThinkingThenResolvesToALegalHighlightAndAJumpClearsIt() =
+        runTest(testDispatcher) {
+            // A tiny solvable Classic strip keeps the Solver fallback instant.
+            val viewModel = viewModelFor(wonInOneJumpBoard())
+            runCurrent()
+
+            viewModel.onHintRequested()
+            // solverThinking is raised synchronously, before the off-thread search runs.
+            assertThat(viewModel.uiState.value.solverThinking).isTrue()
+
+            advanceUntilIdle()
+            val hinted = viewModel.uiState.value
+            assertThat(hinted.solverThinking).isFalse()
+            assertThat(hinted.hintSource).isEqualTo(Position(row = 0, col = 0))
+            assertThat(hinted.hintTarget).isEqualTo(Position(row = 0, col = 2))
+            // The highlighted move is a legal move on the current board (gameplay authority).
+            val hintedMove =
+                RulesEngine
+                    .legalMoves(hinted.board)
+                    .firstOrNull { it.from == hinted.hintSource && it.to == hinted.hintTarget }
+            assertThat(hintedMove).isNotNull()
+
+            // Performing a jump clears the shown highlight.
+            viewModel.onCellTap(Position(row = 0, col = 0))
+            viewModel.onCellTap(Position(row = 0, col = 2))
+            runCurrent()
+            val afterJump = viewModel.uiState.value
+            assertThat(afterJump.hintSource).isNull()
+            assertThat(afterJump.hintTarget).isNull()
+        }
+
+    @Test
+    fun hintRequestsTheHintGrantThroughTheAdGateway() =
+        runTest(testDispatcher) {
+            val gateway = FakeAdGateway()
+            val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = gateway)
+            runCurrent()
+
+            viewModel.onHintRequested()
+            advanceUntilIdle()
+
+            assertThat(gateway.lastReason).isEqualTo(AdReason.HINT)
+        }
+
+    @Test
+    fun hintDeniedByTheGatewayDoesNotProceedAndClearsThinking() =
+        runTest(testDispatcher) {
+            val denied = FakeAdGateway(grant = false)
+            val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = denied)
+            runCurrent()
+
+            viewModel.onHintRequested()
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertThat(state.hintSource).isNull()
+            assertThat(state.hintTarget).isNull()
+            assertThat(state.noWinningMove).isFalse()
+            assertThat(state.solverThinking).isFalse()
+        }
+
+    @Test
+    fun hintOnAnUnsolvablePositionSetsNoWinningMove() =
+        runTest(testDispatcher) {
+            // Two pegs separated by an empty hole: no legal jump → Solver returns null.
+            val spec = BoardSpec(inPlay = (0..2).map { Position(row = 0, col = it) }, target = null)
+            val board =
+                Board(spec = spec, pegs = 0L)
+                    .withPeg(Position(row = 0, col = 0))
+                    .withPeg(Position(row = 0, col = 2))
+            val viewModel = viewModelFor(board)
+            runCurrent()
+
+            viewModel.onHintRequested()
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertThat(state.noWinningMove).isTrue()
+            assertThat(state.hintSource).isNull()
+            assertThat(state.solverThinking).isFalse()
+        }
+
+    @Test
+    fun aSecondHintRequestCancelsThePriorSearchSoOnlyOneProceeds() =
+        runTest(testDispatcher) {
+            // The gateway gates every grant until released, so both hint jobs launch and
+            // suspend; only the SECOND (uncancelled) job may proceed past the gate.
+            val gateway = GatedAdGateway()
+            val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = gateway)
+            runCurrent()
+
+            viewModel.onHintRequested()
+            runCurrent()
+            assertThat(gateway.started).isEqualTo(1)
+
+            // Second request cancels the first in-flight job before releasing the gate.
+            viewModel.onHintRequested()
+            runCurrent()
+            assertThat(gateway.started).isEqualTo(2)
+
+            gateway.release()
+            advanceUntilIdle()
+
+            // Exactly one job proceeded past the grant — the prior search was cancelled.
+            assertThat(gateway.proceeded).isEqualTo(1)
+            assertThat(viewModel.uiState.value.hintSource).isEqualTo(Position(row = 0, col = 0))
+            assertThat(viewModel.uiState.value.solverThinking).isFalse()
+
+            cancelTickers()
+        }
+
+    @Test
+    fun deviatingFromTheRecordedLineFlipsOnRecordedLine() =
+        runTest(testDispatcher) {
+            val viewModel =
+                viewModelFor(Boards.english33Initial, challengeLevel = CHALLENGE_LEVEL_WITH_CHOICES)
+            runCurrent()
+            assertThat(viewModel.isOnRecordedLine()).isTrue()
+
+            val recordedFirst =
+                LevelGenerator.generate(CHALLENGE_LEVEL_WITH_CHOICES).solution.first()
+            // Pick a LEGAL move that is NOT the recorded first move — a genuine deviation.
+            val deviating =
+                RulesEngine.legalMoves(viewModel.uiState.value.board).first { it != recordedFirst }
+            viewModel.onCellTap(deviating.from)
+            viewModel.onCellTap(deviating.to)
+            runCurrent()
+
+            assertThat(viewModel.isOnRecordedLine()).isFalse()
+
+            cancelTickers()
+        }
+
+    @Test
+    fun undoRecomputesOnRecordedLineAndClearsTheHint() =
+        runTest(testDispatcher) {
+            val viewModel =
+                viewModelFor(Boards.english33Initial, challengeLevel = CHALLENGE_LEVEL_WITH_CHOICES)
+            runCurrent()
+
+            val recordedFirst =
+                LevelGenerator.generate(CHALLENGE_LEVEL_WITH_CHOICES).solution.first()
+            val deviating =
+                RulesEngine.legalMoves(viewModel.uiState.value.board).first { it != recordedFirst }
+            viewModel.onCellTap(deviating.from)
+            viewModel.onCellTap(deviating.to)
+            runCurrent()
+            assertThat(viewModel.isOnRecordedLine()).isFalse()
+
+            // Undo walks back to the start, so the moveHistory prefix matches the line again.
+            viewModel.onUndo()
+            runCurrent()
+
+            assertThat(viewModel.isOnRecordedLine()).isTrue()
+            val state = viewModel.uiState.value
+            assertThat(state.hintSource).isNull()
+            assertThat(state.hintTarget).isNull()
+            assertThat(state.noWinningMove).isFalse()
+
+            cancelTickers()
         }
 
     // ---- Preserved Phase-1 behaviors ----------------------------------------
@@ -551,6 +1057,16 @@ class GameViewModelTest {
 
     // ---- Helpers -------------------------------------------------------------
 
+    /** Selects [from] then taps [to] — the two-tap gesture the VM turns into one jump. */
+    private fun jump(
+        viewModel: GameViewModel,
+        from: Position,
+        to: Position,
+    ) {
+        viewModel.onCellTap(from)
+        viewModel.onCellTap(to)
+    }
+
     private fun englishViewModel(): GameViewModel = viewModelFor(Boards.english33Initial)
 
     private fun viewModelFor(
@@ -559,6 +1075,7 @@ class GameViewModelTest {
         challengeLevel: Int? = null,
         timeSource: TimeSource = TestTimeSource(),
         settings: SettingsRepository = FakeSettingsRepository(),
+        adGateway: AdGateway = FakeAdGateway(),
     ): GameViewModel {
         val args =
             buildMap<String, Any?> {
@@ -576,6 +1093,8 @@ class GameViewModelTest {
                         settingsRepository = settings,
                         timeSource = timeSource,
                         defaultDispatcher = testDispatcher,
+                        adGateway = adGateway,
+                        getHintUseCase = GetHintUseCase(),
                         savedStateHandle = SavedStateHandle(args),
                     ) as T
             }
@@ -612,6 +1131,34 @@ class GameViewModelTest {
             inPlay = (0 until length).map { Position(row = 0, col = it) },
             target = null,
         )
+
+    /**
+     * A small board that is solvable to one peg BUT has a losing fork, so a test can drive it
+     * into Stuck, undo, then re-solve to Won on the same board (proving the finished guard is
+     * reset). Cells form a 2×2 peg block (rows 2–3, cols 2–3) over an L of empty holes plus a
+     * spare hole at (2,4).
+     *
+     * Winning line: (3,3)→(3,1), (2,3)→(2,1), (3,1)→(1,1) ⇒ one peg (Won).
+     * Losing fork:  (2,2)→(2,4), then (3,3)→(3,1) strands two pegs ⇒ Stuck.
+     */
+    private fun forkBoardWithStuckTrap(): Board {
+        val cells =
+            listOf(
+                Position(row = 1, col = 1),
+                Position(row = 2, col = 1),
+                Position(row = 3, col = 1),
+                Position(row = 2, col = 2),
+                Position(row = 2, col = 3),
+                Position(row = 3, col = 2),
+                Position(row = 3, col = 3),
+                Position(row = 2, col = 4),
+            )
+        return Board(spec = BoardSpec(inPlay = cells, target = null), pegs = 0L)
+            .withPeg(Position(row = 2, col = 2))
+            .withPeg(Position(row = 2, col = 3))
+            .withPeg(Position(row = 3, col = 2))
+            .withPeg(Position(row = 3, col = 3))
+    }
 }
 
 /** Robolectric has no android-all jar for Android 16 (SDK 36) yet; emulate SDK 34. */
@@ -629,6 +1176,13 @@ private const val OTHER_LEVEL_ID = ClassicLevelIds.EUROPEAN37
 /** The first Challenge level (the on-ramp), used to prove the challenge load path. */
 private const val FIRST_CHALLENGE_LEVEL = 1
 
+/**
+ * A Challenge level whose generated board offers several legal opening moves, so a
+ * genuine deviation from the recorded first move is always available (the level-1
+ * on-ramp can be too small to deviate from).
+ */
+private const val CHALLENGE_LEVEL_WITH_CHOICES = 10
+
 /** A forged sub-1 Challenge nav arg that must clamp to level 1 (T-03-09). */
 private const val BELOW_MIN_CHALLENGE_LEVEL = 0
 
@@ -640,6 +1194,9 @@ private const val TWO_SECONDS_MILLIS = 2_000L
 
 /** Five seconds of virtual time. */
 private const val FIVE_SECONDS_MILLIS = 5_000L
+
+/** Total real elapsed after a rescue-undo resumes the timer (2s + 5s frozen + 1s). */
+private const val EIGHT_SECONDS = 8
 
 /**
  * A minimal in-memory [LevelRepository] for ViewModel tests: returns the board
@@ -700,4 +1257,53 @@ private class FakeSettingsRepository(
         lastWritten = enabled
         state.value = enabled
     }
+}
+
+/**
+ * A fake [AdGateway] that records the last requested [AdReason] and returns a
+ * configurable [grant] (default `true`, matching the Slice-1 auto-grant stub), so the
+ * VM tests assert both that undo requests the grant and that a denial skips the undo.
+ */
+private class FakeAdGateway(
+    private val grant: Boolean = true,
+) : AdGateway {
+    var lastReason: AdReason? = null
+        private set
+
+    override suspend fun requestRewarded(reason: AdReason): Boolean {
+        lastReason = reason
+        return grant
+    }
+
+    override fun showInterstitial() = Unit
+}
+
+/**
+ * An [AdGateway] whose [requestRewarded] suspends on a shared gate until [release],
+ * counting how many grants [started] (entered the gate) and how many [proceeded] past
+ * it. A cancelled hint job's suspended `await` throws before [proceeded] increments, so
+ * `proceeded == 1` after two rapid requests proves the first search was cancelled (no
+ * overlapping Solver work — the logic half of D-10).
+ */
+private class GatedAdGateway : AdGateway {
+    private val gate = CompletableDeferred<Unit>()
+
+    var started = 0
+        private set
+
+    var proceeded = 0
+        private set
+
+    fun release() {
+        gate.complete(Unit)
+    }
+
+    override suspend fun requestRewarded(reason: AdReason): Boolean {
+        started++
+        gate.await()
+        proceeded++
+        return true
+    }
+
+    override fun showInterstitial() = Unit
 }

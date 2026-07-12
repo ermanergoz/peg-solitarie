@@ -17,7 +17,11 @@ import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.scoring.ScoreParams
 import com.app.pegsolitaire.domain.scoring.ScoreResult
+import com.app.pegsolitaire.domain.solver.SolverBudget
+import com.app.pegsolitaire.domain.usecase.GetHintUseCase
 import com.app.pegsolitaire.navigation.Gameplay
+import com.app.pegsolitaire.platform.ads.AdGateway
+import com.app.pegsolitaire.platform.ads.AdReason
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
@@ -65,8 +69,13 @@ import kotlin.time.TimeSource
  * @param timeSource the monotonic clock the timer marks against (test-swappable).
  * @param defaultDispatcher the background dispatcher the O(level) Challenge generation
  *   runs on, off the main thread (CR-01); tests swap in the test dispatcher.
+ * @param adGateway the Slice-1 auto-grant gateway hint/undo request grants through (D-11);
+ *   the no-op stub always grants, so undo is free — Slice 2 swaps only the binding.
+ * @param getHintUseCase the pure-domain hint decision (ASST-01/ASST-03): recorded-line-first
+ *   then the budgeted Solver, run off the main thread by [onHintRequested].
  * @param savedStateHandle carries the typed `Gameplay(levelId)` route arg.
  */
+@Suppress("TooManyFunctions", "LongParameterList") // UI event hub: each gesture is one small handler
 @HiltViewModel
 class GameViewModel
     @Inject
@@ -77,6 +86,8 @@ class GameViewModel
         private val settingsRepository: SettingsRepository,
         private val timeSource: TimeSource,
         private val defaultDispatcher: CoroutineDispatcher,
+        private val adGateway: AdGateway,
+        private val getHintUseCase: GetHintUseCase,
         savedStateHandle: SavedStateHandle,
     ) : ViewModel() {
         /** The selected board's catalog id (read by `GameRoute` to build the Results route). */
@@ -160,6 +171,27 @@ class GameViewModel
         /** Guards the one-shot [finished] emission so it never re-fires (Pitfall 4). */
         private var finishedEmitted = false
 
+        /**
+         * The in-flight hint search, held so a repeat [onHintRequested] cancels the prior
+         * job — no overlapping Solver searches (the logic half of D-10, threat T-04-SD).
+         */
+        private var hintJob: Job? = null
+
+        /**
+         * The Challenge recorded winning line (D-03), captured by the async [init] load;
+         * `null` for Classic (which has no recorded line and always uses the Solver).
+         */
+        private var solution: List<Move>? = null
+
+        /**
+         * Whether the player is still on the recorded [solution] line (D-03). Starts `true`,
+         * flips to `false` the moment a played move deviates from the recorded move at that
+         * ply, and is recomputed by [onUndo] (undo can walk back onto the line). Only while
+         * `true` is [solution] handed to [getHintUseCase] — so the recorded branch is never
+         * blind-indexed after a deviation (Pitfall 5).
+         */
+        private var onRecordedLine = true
+
         init {
             // The persisted hint setting is the single source of truth for showHints:
             // collect it into state (fail-open default true until the first emission).
@@ -175,12 +207,17 @@ class GameViewModel
             val challengeLevelToLoad = clampedChallengeLevel
             if (challengeLevelToLoad != null) {
                 viewModelScope.launch {
-                    val board =
+                    val level =
                         withContext(defaultDispatcher) {
-                            levelRepository.loadChallenge(challengeLevelToLoad).initialBoard
+                            levelRepository.loadChallenge(challengeLevelToLoad)
                         }
-                    initialBoard = board
-                    _uiState.update { GameUiState.initial(board).copy(showHints = it.showHints) }
+                    initialBoard = level.initialBoard
+                    // Capture the recorded winning line so the hint can serve it instantly
+                    // while the player stays on it (D-03); Classic leaves solution null.
+                    solution = level.solution
+                    _uiState.update {
+                        GameUiState.initial(level.initialBoard).copy(showHints = it.showHints)
+                    }
                 }
             }
         }
@@ -248,6 +285,12 @@ class GameViewModel
                     .firstOrNull { it.from == from && it.to == to } ?: return
             val nextBoard = rulesEngine.applyMove(board, move)
             moveHistory.add(move)
+            // Deviation is permanent (D-03): once a played move differs from the recorded
+            // move at this ply, drop off the line so the hint uses the Solver, not a stale
+            // recorded index. Never flips back except via undo (which recomputes it).
+            if (onRecordedLine && move != solution?.getOrNull(moveHistory.size - 1)) {
+                onRecordedLine = false
+            }
             startTimerIfNeeded()
             val transition =
                 MoveTransition(
@@ -264,26 +307,38 @@ class GameViewModel
                     legalTargets = emptyList(),
                     status = status,
                     animating = transition,
+                    canUndo = moveHistory.isNotEmpty(),
+                    // A new move invalidates any shown hint / no-win state.
+                    hintSource = null,
+                    hintTarget = null,
+                    noWinningMove = false,
+                    // A dead-end board becomes a rescuable in-board state (D-06): flag it for
+                    // the banner instead of auto-navigating. Won never sets this (it routes
+                    // to Results); any non-terminal board clears it.
+                    stuck = status == GameStatus.Stuck,
                 )
             }
-            // One-shot finish (Pitfall 4): on the FIRST transition to a terminal
-            // status, emit the ScoreResult exactly once for GameRoute to consume.
-            if (!finishedEmitted && status != GameStatus.Playing) {
-                finishedEmitted = true
+            // A terminal status FREEZES the timer for BOTH Won and Stuck (D-04). Only Won
+            // emits the one-shot finish (Pitfall 4) → Results; Stuck is now rescuable via
+            // Undo (D-06) and deliberately emits nothing / never sets finishedEmitted.
+            if (status != GameStatus.Playing) {
                 tickerJob?.cancel()
                 tickerJob = null
-                val pegsRemaining = nextBoard.pegCount
-                // A jump can only fire once the board is loaded, so initialBoard is
-                // non-null here; fall back to the current count defensively.
-                val startingPegCount = initialBoard?.pegCount ?: pegsRemaining
-                _finished.trySend(
-                    scoreCalculator.evaluate(
-                        pegsRemaining = pegsRemaining,
-                        pegsCleared = startingPegCount - pegsRemaining,
-                        elapsedSeconds = _uiState.value.elapsedSeconds,
-                        levelMultiplier = levelMultiplier,
-                    ),
-                )
+                if (status == GameStatus.Won && !finishedEmitted) {
+                    finishedEmitted = true
+                    val pegsRemaining = nextBoard.pegCount
+                    // A jump can only fire once the board is loaded, so initialBoard is
+                    // non-null here; fall back to the current count defensively.
+                    val startingPegCount = initialBoard?.pegCount ?: pegsRemaining
+                    _finished.trySend(
+                        scoreCalculator.evaluate(
+                            pegsRemaining = pegsRemaining,
+                            pegsCleared = startingPegCount - pegsRemaining,
+                            elapsedSeconds = _uiState.value.elapsedSeconds,
+                            levelMultiplier = levelMultiplier,
+                        ),
+                    )
+                }
             }
         }
 
@@ -297,16 +352,36 @@ class GameViewModel
             if (startMark != null) return
             val mark = timeSource.markNow()
             startMark = mark
-            tickerJob =
-                viewModelScope.launch {
-                    while (isActive && _uiState.value.status == GameStatus.Playing) {
-                        _uiState.update {
-                            it.copy(elapsedSeconds = mark.elapsedNow().inWholeSeconds.toInt())
-                        }
-                        delay(TIMER_TICK_MILLIS)
-                    }
-                }
+            tickerJob = launchTicker(mark)
         }
+
+        /**
+         * Resumes the per-second ticker after a rescue-undo returns a frozen (Stuck) board to
+         * [GameStatus.Playing] (D-06/D-07). The existing [startMark] is reused — never reset —
+         * so the displayed elapsed time reflects the real wall-clock since the first move; the
+         * ticker only relaunches when it is not already running (a mid-game undo is a no-op).
+         */
+        private fun resumeTickerIfNeeded() {
+            val mark = startMark ?: return
+            if (tickerJob != null) return
+            tickerJob = launchTicker(mark)
+        }
+
+        /**
+         * The shared per-second ticker loop: writes whole elapsed seconds (measured from
+         * [mark]) into state once per second while the game is [GameStatus.Playing], stopping
+         * at a terminal status so the displayed time freezes. Used by both the first-move
+         * start ([startTimerIfNeeded]) and the rescue-undo resume ([resumeTickerIfNeeded]).
+         */
+        private fun launchTicker(mark: TimeMark): Job =
+            viewModelScope.launch {
+                while (isActive && _uiState.value.status == GameStatus.Playing) {
+                    _uiState.update {
+                        it.copy(elapsedSeconds = mark.elapsedNow().inWholeSeconds.toInt())
+                    }
+                    delay(TIMER_TICK_MILLIS)
+                }
+            }
 
         /** Clears the in-flight animation once the slide completes (state already committed). */
         fun onAnimationFinished() {
@@ -337,14 +412,128 @@ class GameViewModel
             _uiState.update { it.copy(confirmRestart = false) }
         }
 
+        /**
+         * Undo the last move (ASST-02, D-05): requests the [AdReason.UNDO] grant (Slice-1
+         * stub auto-grants), then rebuilds the board by folding [RulesEngine.applyMove] over
+         * the remaining [moveHistory] from [initialBoard] — never trusting any external or
+         * serialized state (T-04-01-U). Repeated calls walk all the way back to the initial
+         * board; an empty history is a no-op. The board's [statusFor] status is recomputed
+         * and [finishedEmitted] is cleared when the undone board is Playing again, so a
+         * previously Stuck game becomes playable and can re-emit a later terminal result.
+         *
+         * The timer is deliberately untouched (D-07): [startMark], [tickerJob], and
+         * [GameUiState.elapsedSeconds] all keep counting real time across an undo.
+         */
+        fun onUndo() {
+            viewModelScope.launch {
+                if (!adGateway.requestRewarded(AdReason.UNDO)) return@launch
+                if (moveHistory.isEmpty()) return@launch
+                moveHistory.removeAt(moveHistory.lastIndex)
+                val base = initialBoard ?: return@launch
+                val board = moveHistory.fold(base) { b, m -> rulesEngine.applyMove(b, m) }
+                val status = statusFor(board)
+                if (status == GameStatus.Playing) finishedEmitted = false
+                // Undo can walk back onto the recorded line (D-03): recompute by comparing
+                // the remaining moveHistory prefix against the recorded solution. Classic
+                // (null solution) has no line, so it stays off. Never blind-indexed.
+                onRecordedLine =
+                    solution?.let { line -> moveHistory.indices.all { i -> moveHistory[i] == line.getOrNull(i) } }
+                        ?: false
+                // D-07: startMark / elapsedSeconds are intentionally NOT reset here — undo
+                // rescues the board but the real elapsed time keeps running; the ticker
+                // itself is resumed below when the board returns to Playing.
+                _uiState.update {
+                    it.copy(
+                        board = board,
+                        selected = null,
+                        legalTargets = emptyList(),
+                        animating = null,
+                        status = status,
+                        canUndo = moveHistory.isNotEmpty(),
+                        // Undo invalidates any shown hint and clears the rescue banner.
+                        hintSource = null,
+                        hintTarget = null,
+                        noWinningMove = false,
+                        stuck = false,
+                    )
+                }
+                // Undoing out of a frozen (Stuck) board back to Playing resumes the timer that
+                // the terminal freeze stopped, reusing the never-reset startMark (D-06/D-07).
+                if (status == GameStatus.Playing) resumeTickerIfNeeded()
+            }
+        }
+
+        /**
+         * Reveal the next winning move (ASST-01/ASST-03, D-01/D-10). Cancels any prior
+         * search (no overlapping Solver work, threat T-04-SD), raises [GameUiState.solverThinking]
+         * immediately, requests the [AdReason.HINT] grant (Slice-1 stub auto-grants), then
+         * resolves the move OFF the main thread via [getHintUseCase] on [defaultDispatcher]:
+         *  - on the recorded line (Challenge) the use case returns the recorded move instantly,
+         *    with no Solver call;
+         *  - otherwise (Classic, or after a deviation) it runs the budgeted Solver, cancelled
+         *    cooperatively once the wall-clock [SolverBudget.deadline] passes or the job is
+         *    cancelled — the deadline crosses into pure `:domain` only as a plain lambda.
+         *
+         * A found move sets [GameUiState.hintSource]/[GameUiState.hintTarget]; a `null`
+         * result sets [GameUiState.noWinningMove] (D-04; its banner ships in 04-04). Either
+         * way [GameUiState.solverThinking] clears.
+         */
+        fun onHintRequested() {
+            hintJob?.cancel()
+            _uiState.update {
+                it.copy(
+                    solverThinking = true,
+                    noWinningMove = false,
+                    hintSource = null,
+                    hintTarget = null,
+                )
+            }
+            hintJob =
+                viewModelScope.launch {
+                    if (!adGateway.requestRewarded(AdReason.HINT)) {
+                        _uiState.update { it.copy(solverThinking = false) }
+                        return@launch
+                    }
+                    val deadline = timeSource.markNow() + SolverBudget.DEFAULT.deadline
+                    val move =
+                        withContext(defaultDispatcher) {
+                            getHintUseCase(
+                                board = _uiState.value.board,
+                                solution = solution.takeIf { onRecordedLine },
+                                movesPlayed = moveHistory.size,
+                                shouldCancel = { !isActive || deadline.hasPassedNow() },
+                            )
+                        }
+                    _uiState.update {
+                        if (move != null) {
+                            it.copy(hintSource = move.from, hintTarget = move.to, solverThinking = false)
+                        } else {
+                            it.copy(noWinningMove = true, solverThinking = false)
+                        }
+                    }
+                }
+        }
+
+        /**
+         * Whether the player is still on the Challenge recorded line (drives which hint path
+         * runs). Exposed `internal` purely so the ViewModel test can assert the D-03 deviation
+         * tracking; production code never reads it from outside the ViewModel.
+         */
+        internal fun isOnRecordedLine(): Boolean = onRecordedLine
+
         private fun resetToInitial() {
             // No-op while the Challenge board is still loading (no board to reset to).
             val board = initialBoard ?: return
             moveHistory.clear()
             tickerJob?.cancel()
             tickerJob = null
+            hintJob?.cancel()
+            hintJob = null
             startMark = null
             finishedEmitted = false
+            // Back to the start ⇒ back on the recorded line (D-03) with no hint shown; the
+            // fresh GameUiState.initial(board) below already carries cleared hint fields.
+            onRecordedLine = true
             // Preserve the player's hint choice across a restart; the collected
             // settings flow only re-emits on change, so carry it forward explicitly.
             _uiState.value = GameUiState.initial(board).copy(showHints = _uiState.value.showHints)

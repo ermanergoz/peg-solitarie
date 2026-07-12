@@ -25,6 +25,8 @@ import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
+import com.app.pegsolitaire.domain.usecase.GetHintUseCase
+import com.app.pegsolitaire.platform.ads.NoOpAdGateway
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
@@ -112,6 +114,51 @@ class GameFlowTest {
     }
 
     @Test
+    fun reachingAStuckPositionSurfacesTheRescueBannerOverTheStillPresentBoard() {
+        // Two adjacent pegs that resolve in one jump, plus an isolated peg with no
+        // neighbour: after the jump two pegs remain with no legal move → Stuck (D-06),
+        // which is now rescuable in-board rather than auto-navigating.
+        val stuckBoard =
+            Board(spec = Boards.English33, pegs = 0L)
+                .withPeg(Position(row = 3, col = 1))
+                .withPeg(Position(row = 3, col = 2))
+                .withPeg(Position(row = 0, col = 3))
+        startGame(stuckBoard)
+
+        // A Playing board shows no rescue banner.
+        composeRule.onNodeWithTag(NOWIN_BANNER_TEST_TAG).assertDoesNotExist()
+
+        // Drive the only line into the dead end.
+        tapCell(row = 3, col = 1)
+        tapCell(row = 3, col = 3)
+        assertStatus(GameStatus.Stuck)
+
+        // D-08: the non-blocking stuck banner surfaces over the STILL-PRESENT, interactive
+        // board (the board canvas remains displayed beneath the overlay, not replaced).
+        composeRule.onNodeWithTag(NOWIN_BANNER_TEST_TAG).assertIsDisplayed()
+        composeRule
+            .onNodeWithText(context.getString(R.string.stuck_message))
+            .assertIsDisplayed()
+        composeRule.onNodeWithTag(BOARD_CANVAS_TEST_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun aWonGameNeverSurfacesTheRescueBanner() {
+        // A one-jump win → Won routes to Results; it must not raise the rescue banner.
+        val nearWin =
+            Board(spec = Boards.English33, pegs = 0L)
+                .withPeg(Position(row = 3, col = 1))
+                .withPeg(Position(row = 3, col = 2))
+        startGame(nearWin)
+
+        tapCell(row = 3, col = 1)
+        tapCell(row = 3, col = 3)
+
+        assertStatus(GameStatus.Won)
+        composeRule.onNodeWithTag(NOWIN_BANNER_TEST_TAG).assertDoesNotExist()
+    }
+
+    @Test
     fun midGameRestartConfirmsThenResetsToTheInitialBoard() {
         val vm = startGame(Boards.english33Initial)
 
@@ -146,6 +193,8 @@ class GameFlowTest {
                 settingsRepository = HintsOnSettingsRepository,
                 timeSource = TestTimeSource(),
                 defaultDispatcher = Dispatchers.Unconfined,
+                adGateway = NoOpAdGateway(),
+                getHintUseCase = GetHintUseCase(),
                 savedStateHandle = SavedStateHandle(mapOf(LEVEL_ID_ARG to ClassicLevelIds.ENGLISH33)),
             )
         composeRule.setContent {
@@ -159,6 +208,9 @@ class GameFlowTest {
                     onDismissRestart = viewModel::onDismissRestart,
                     onAnimationFinished = viewModel::onAnimationFinished,
                     onToggleHints = viewModel::onToggleHints,
+                    onUndo = viewModel::onUndo,
+                    onHint = viewModel::onHintRequested,
+                    onHome = {},
                     onNavigateBack = {},
                 )
             }
