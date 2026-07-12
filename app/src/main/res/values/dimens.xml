@@ -43,6 +43,12 @@
     <dimen name="onboarding_illustration_size">160dp</dimen>
 
     <!--
+      Phase-4 token: min height of the inline no-win/stuck rescue banner (multiple of 4)
+      so its three actions (Undo · Restart · Home) stay tap-reachable (UI-SPEC §4).
+    -->
+    <dimen name="nowin_banner_min_height">48dp</dimen>
+
+    <!--
       Stroke widths (rendering, not layout spacing) — an INTENTIONAL sub-4dp
       exception to the 8-point grid: a 4dp ring/outline would overpower the small
       peg geometry. Do not round these up.

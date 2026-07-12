@@ -3,6 +3,7 @@ package com.app.pegsolitaire.di
 import com.app.pegsolitaire.domain.generator.LevelGenerator
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
+import com.app.pegsolitaire.domain.usecase.GetHintUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -43,6 +44,15 @@ object DomainModule {
     @Provides
     @Singleton
     fun provideLevelGenerator(): LevelGenerator = LevelGenerator
+
+    /**
+     * The pure-domain hint decision (ASST-01/ASST-03): recorded-line-first, else the
+     * budgeted `Solver`. Provided here as an `:app` seam since the use case is plain
+     * Kotlin with no Hilt annotations (QUAL-01); `GameViewModel` runs it off-thread.
+     */
+    @Provides
+    @Singleton
+    fun provideGetHintUseCase(): GetHintUseCase = GetHintUseCase()
 
     /**
      * The monotonic clock the in-game timer marks against (D-04). Provided as an

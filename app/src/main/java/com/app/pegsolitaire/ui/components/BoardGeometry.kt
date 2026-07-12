@@ -52,6 +52,12 @@ class BoardGeometry private constructor(
     /** Outer radius of the selected-peg ring. */
     val selectedRingRadius: Float get() = BoardMetrics.SELECTED_RING_RATIO * cellSize
 
+    /** Glow-ring radius around the peg to move (A) in a revealed hint. */
+    val hintSourceRingRadius: Float get() = BoardMetrics.HINT_SOURCE_RING_RATIO * cellSize
+
+    /** Ring radius around the destination hole (B) in a revealed hint. */
+    val hintTargetRingRadius: Float get() = BoardMetrics.HINT_TARGET_RING_RATIO * cellSize
+
     /** The pixel center of [position]'s cell. */
     fun center(position: Position): Offset =
         Offset(

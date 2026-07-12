@@ -34,6 +34,27 @@ object BoardMetrics {
     /** Alpha of the `primary` legal-destination dot. */
     const val DESTINATION_DOT_ALPHA = 0.38f
 
+    /**
+     * Glow-ring radius around the peg to move (A) for a revealed hint = ratio × cellSize.
+     * Slightly larger than [SELECTED_RING_RATIO] so a hint never reads as a selection (D-01).
+     */
+    const val HINT_SOURCE_RING_RATIO = 0.42f
+
+    /**
+     * Ring radius around the destination hole (B) for a revealed hint = ratio × cellSize.
+     * Larger than [DESTINATION_DOT_RATIO] so it reads as a target, not a legal-move dot.
+     */
+    const val HINT_TARGET_RING_RATIO = 0.30f
+
+    /** Stroke width of the faint A→B hint arrow as a fraction of cellSize. */
+    const val HINT_ARROW_WIDTH_RATIO = 0.06f
+
+    /** Alpha of the `tertiary` hint source/target rings. */
+    const val HINT_HIGHLIGHT_ALPHA = 0.9f
+
+    /** Alpha of the deliberately faint `tertiary` A→B hint arrow (D-01). */
+    const val HINT_ARROW_ALPHA = 0.5f
+
     /** Fraction of a cell from its top-left edge to its center (geometry origin offset). */
     const val CELL_CENTER_FRACTION = 0.5f
 

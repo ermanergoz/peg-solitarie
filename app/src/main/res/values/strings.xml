@@ -74,11 +74,27 @@
     <!-- Challenge gameplay top-bar "Level N" title + its screen-reader description (S2, D-03). -->
     <string name="challenge_level_indicator">Level %1$d</string>
     <string name="challenge_level_indicator_desc">Challenge level %1$d</string>
-    <!-- Hint toggle (icon-only; content description reflects the on/off state). -->
-    <string name="hints_on">Hints on</string>
-    <string name="hints_off">Hints off</string>
+    <!-- Undo control (icon-only; disabled when there is nothing to undo, ASST-02). -->
+    <string name="undo_action">Undo</string>
+    <!-- Winning-move Hint action (icon-only; distinct from the show-moves toggle, D-01/D-02). -->
+    <string name="hint_action">Hint</string>
+    <!-- Announced while the Solver computes a hint; the control is disabled (D-10). -->
+    <string name="hint_thinking">Finding a move</string>
+    <!-- Show-possible-moves toggle (icon-only; content description reflects the on/off state, D-02). -->
+    <string name="show_moves_on">Show possible moves</string>
+    <string name="show_moves_off">Hide possible moves</string>
     <!-- Shown while a Challenge board is generated off the main thread (CR-01). -->
     <string name="loading_level">Loading level</string>
+
+    <!--
+      Inline no-win / stuck rescue banner (ASST-03, D-06/D-08/D-09). One shared banner
+      surfaces either message over the still-interactive board; rescue_restart is the
+      label form of the Restart action (distinct from the restart_board content-desc),
+      and the banner reuses undo_action + action_home for its other two actions.
+    -->
+    <string name="nowin_message">No winning move — undo or restart</string>
+    <string name="stuck_message">No moves left — undo or restart</string>
+    <string name="rescue_restart">Restart</string>
 
     <!-- Results. -->
     <string name="results_title">Results</string>
