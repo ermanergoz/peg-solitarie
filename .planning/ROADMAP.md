@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Domain Foundation & Playable Board** - Pure-Kotlin core + one hardcoded board playable end-to-end, with CI standards gates established up front (completed 2026-06-28)
 - [x] **Phase 2: Classic Mode, Scoring & Navigation** - Home → pick 1 of 5 classic boards → play → results with stars/score; full screen flow + LevelRepository seam (completed 2026-06-29)
 - [x] **Phase 3: Challenge Generation & Difficulty Curve** - Infinite, deterministic, guaranteed-solvable generated levels with scaling difficulty (project #1 risk) (completed 2026-07-01)
-- [ ] **Phase 4: Assist — Hint & Undo** - State-relative hint (canonical line + Solver fallback + "no winning move" state) and undo
+- [x] **Phase 4: Assist — Hint & Undo** - State-relative hint (canonical line + Solver fallback + "no winning move" state) and undo (completed 2026-07-12)
 - [ ] **Phase 5: Persistence, Resume & Settings** - Per-level results, continue-from-highest, in-progress resume, sound/haptics — migration-safe
 
 ## Phase Details
@@ -95,7 +95,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 04-03-PLAN.md — Hint logic: GetHintUseCase (recorded-line→Solver) + off-thread cancellable VM orchestration + state fields [ASST-01, ASST-03]
 - [x] 04-03b-PLAN.md — Hint rendering + wiring: BoardCanvas source+dest highlight, HintControl thinking state, D-02 rename [ASST-01, ASST-03]
 - [x] 04-04-PLAN.md — No-winning-move + stuck-rescue banner (narrow finished→Won, timer-resume) [ASST-03]
-- [ ] 04-05-PLAN.md — On-device assist playtest checkpoint [ASST-01, ASST-02, ASST-03]
+- [x] 04-05-PLAN.md — On-device assist playtest checkpoint [ASST-01, ASST-02, ASST-03]
 
 ### Phase 5: Persistence, Resume & Settings
 **Goal**: Players' progress survives leaving the app: per-level best results, the highest Challenge level reached (so Challenge mode continues where they left off), and a full in-progress resume (board cells + complete move history + elapsed time + `generatorVersion`), plus sound and haptics settings — all on a migration-safe Room/DataStore storage layer, with the `GamesService` no-op stub wired alongside `AdGateway` for Slice 2.
@@ -124,5 +124,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Domain Foundation & Playable Board | 5/5 | Complete   | 2026-06-28 |
 | 2. Classic Mode, Scoring & Navigation | 8/8 | Complete   | 2026-06-29 |
 | 3. Challenge Generation & Difficulty Curve | 5/5 | Complete   | 2026-07-01 |
-| 4. Assist — Hint & Undo | 5/6 | In Progress|  |
+| 4. Assist — Hint & Undo | 6/6 | Complete   | 2026-07-12 |
 | 5. Persistence, Resume & Settings | 0/TBD | Not started | - |
