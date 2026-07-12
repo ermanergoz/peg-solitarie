@@ -10,8 +10,8 @@ progress:
   total_phases: 5
   completed_phases: 3
   total_plans: 24
-  completed_plans: 22
-  percent: 60
+  completed_plans: 23
+  percent: 63
 ---
 
 # Project State
@@ -26,9 +26,9 @@ See: .planning/PROJECT.md (updated 2026-06-28)
 ## Current Position
 
 Phase: 04 (assist-hint-undo) — EXECUTING
-Plan: 5 of 6 (04-01/04-02/04-03/04-03b complete: undo+AdGateway, Solver+Pagoda, hint logic + hint rendering/wiring)
-Next: 04-04 (no-winning-move + stuck-rescue banner)
-Last activity: 2026-07-08
+Plan: 6 of 6 (04-01/04-02/04-03/04-03b/04-04 complete: undo+AdGateway, Solver+Pagoda, hint logic + rendering, no-win/rescue banner)
+Next: 04-05 — on-device assist playtest CHECKPOINT (autonomous:false; requires human testing)
+Last activity: 2026-07-13 -- Waves 1-4 complete; only the 04-05 playtest checkpoint remains
 
 Progress: [█████████░] 92%
 
