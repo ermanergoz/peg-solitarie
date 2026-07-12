@@ -45,8 +45,17 @@ import com.app.pegsolitaire.domain.model.Position
  *   or [noWinningMove]); the Hint control shows a spinner/disabled state while `true`.
  * @property noWinningMove whether the last hint found no winning move (ASST-03, D-04/D-08):
  *   the Solver returned nothing (unsolvable / budget-missed) so the position is dead; the
- *   inline "no winning move — undo or restart" banner (deferred to 04-04) renders on this.
- *   Cleared on any jump/undo and when a new hint is requested.
+ *   inline "no winning move — undo or restart" banner (04-04) renders on this. Cleared on
+ *   any jump/undo and when a new hint is requested.
+ * @property stuck whether the board has reached a dead-end with 2+ pegs (D-06): a Stuck
+ *   position no longer auto-navigates to Results — it becomes a rescuable in-board state
+ *   showing the "no moves left — undo or restart" banner. Set the moment a jump strands the
+ *   board; cleared when an undo returns it to a Playing position (or on restart). A Won game
+ *   never sets this (Won still proceeds to Results).
+ * @property showRescueBanner derived: whether the inline rescue banner should render over the
+ *   still-interactive board (ASST-03, D-08). `true` when the board is [stuck] or the last
+ *   hint found [noWinningMove]. Not a constructor field, so it never affects equality — it is
+ *   a pure view of the two rescue flags for the UI to switch on.
  */
 @Immutable
 data class GameUiState(
@@ -64,7 +73,11 @@ data class GameUiState(
     val hintTarget: Position? = null,
     val solverThinking: Boolean = false,
     val noWinningMove: Boolean = false,
+    val stuck: Boolean = false,
 ) {
+    /** Whether the inline no-win/stuck rescue banner should surface over the live board (D-08). */
+    val showRescueBanner: Boolean get() = stuck || noWinningMove
+
     companion object {
         /**
          * The deterministic starting state: a full board with its start hole empty,
@@ -89,6 +102,7 @@ data class GameUiState(
                 hintTarget = null,
                 solverThinking = false,
                 noWinningMove = false,
+                stuck = false,
             )
 
         /**
@@ -113,6 +127,7 @@ data class GameUiState(
                 hintTarget = null,
                 solverThinking = false,
                 noWinningMove = false,
+                stuck = false,
             )
 
         /** An empty footprint backing the [loading] placeholder board (no in-play cells). */

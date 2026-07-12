@@ -62,6 +62,11 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  * one-shot finish event and [GameRoute] navigates to Results (D-05); only the
  * mid-game confirm [AlertDialog] (D-06) still overlays, when [GameUiState.confirmRestart].
  *
+ * When the board is a rescuable no-win/stuck position ([GameUiState.showRescueBanner],
+ * ASST-03/D-06/D-08) an inline, non-blocking [NoWinBanner] surfaces over the still-visible,
+ * still-interactive board (Undo · Restart · Home, D-09) — a Stuck board is rescued via Undo
+ * rather than auto-navigating; only a Won game routes to Results.
+ *
  * Minimal test semantics ([PegCountKey]/[GameStatusKey]/[LegalTargetCountKey]) are
  * attached to the [GAME_STATE_TEST_TAG] node so the end-to-end flow test asserts on
  * state deterministically rather than on pixels.
@@ -76,6 +81,8 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  * @param onUndo undoes the last move (ASST-02); the control disables when nothing to undo.
  * @param onHint requests a winning-move hint (ASST-01); the control shows a thinking
  *   spinner + disables while [GameUiState.solverThinking] (D-10).
+ * @param onHome leaves to the Home root from the rescue banner (D-09); wired to the same
+ *   destination as the top-bar back nav ([onNavigateBack]).
  * @param onNavigateBack leaves the gameplay screen (top-bar back nav).
  * @param modifier layout modifier for the screen.
  * @param challengeLevel the Challenge level number when this is a Challenge game (drives
@@ -95,6 +102,7 @@ fun GameScreen(
     onToggleHints: () -> Unit,
     onUndo: () -> Unit,
     onHint: () -> Unit,
+    onHome: () -> Unit,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
     challengeLevel: Int? = null,
@@ -149,6 +157,24 @@ fun GameScreen(
                         modifier = Modifier.padding(dimensionResource(R.dimen.spacing_md)),
                     )
                 }
+            }
+            // The rescue banner overlays the still-interactive board (non-blocking, D-08):
+            // it sits in the same Box so taps still reach the board beneath it. Only a
+            // no-win/stuck position raises it; a Won game routes to Results instead.
+            if (state.showRescueBanner) {
+                NoWinBanner(
+                    message =
+                        stringResource(
+                            if (state.noWinningMove) R.string.nowin_message else R.string.stuck_message,
+                        ),
+                    onUndo = onUndo,
+                    onRestart = onRestart,
+                    onHome = onHome,
+                    modifier =
+                        Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth(),
+                )
             }
         }
     }

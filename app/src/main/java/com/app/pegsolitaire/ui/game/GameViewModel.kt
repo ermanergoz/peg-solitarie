@@ -312,26 +312,33 @@ class GameViewModel
                     hintSource = null,
                     hintTarget = null,
                     noWinningMove = false,
+                    // A dead-end board becomes a rescuable in-board state (D-06): flag it for
+                    // the banner instead of auto-navigating. Won never sets this (it routes
+                    // to Results); any non-terminal board clears it.
+                    stuck = status == GameStatus.Stuck,
                 )
             }
-            // One-shot finish (Pitfall 4): on the FIRST transition to a terminal
-            // status, emit the ScoreResult exactly once for GameRoute to consume.
-            if (!finishedEmitted && status != GameStatus.Playing) {
-                finishedEmitted = true
+            // A terminal status FREEZES the timer for BOTH Won and Stuck (D-04). Only Won
+            // emits the one-shot finish (Pitfall 4) → Results; Stuck is now rescuable via
+            // Undo (D-06) and deliberately emits nothing / never sets finishedEmitted.
+            if (status != GameStatus.Playing) {
                 tickerJob?.cancel()
                 tickerJob = null
-                val pegsRemaining = nextBoard.pegCount
-                // A jump can only fire once the board is loaded, so initialBoard is
-                // non-null here; fall back to the current count defensively.
-                val startingPegCount = initialBoard?.pegCount ?: pegsRemaining
-                _finished.trySend(
-                    scoreCalculator.evaluate(
-                        pegsRemaining = pegsRemaining,
-                        pegsCleared = startingPegCount - pegsRemaining,
-                        elapsedSeconds = _uiState.value.elapsedSeconds,
-                        levelMultiplier = levelMultiplier,
-                    ),
-                )
+                if (status == GameStatus.Won && !finishedEmitted) {
+                    finishedEmitted = true
+                    val pegsRemaining = nextBoard.pegCount
+                    // A jump can only fire once the board is loaded, so initialBoard is
+                    // non-null here; fall back to the current count defensively.
+                    val startingPegCount = initialBoard?.pegCount ?: pegsRemaining
+                    _finished.trySend(
+                        scoreCalculator.evaluate(
+                            pegsRemaining = pegsRemaining,
+                            pegsCleared = startingPegCount - pegsRemaining,
+                            elapsedSeconds = _uiState.value.elapsedSeconds,
+                            levelMultiplier = levelMultiplier,
+                        ),
+                    )
+                }
             }
         }
 
@@ -345,16 +352,36 @@ class GameViewModel
             if (startMark != null) return
             val mark = timeSource.markNow()
             startMark = mark
-            tickerJob =
-                viewModelScope.launch {
-                    while (isActive && _uiState.value.status == GameStatus.Playing) {
-                        _uiState.update {
-                            it.copy(elapsedSeconds = mark.elapsedNow().inWholeSeconds.toInt())
-                        }
-                        delay(TIMER_TICK_MILLIS)
-                    }
-                }
+            tickerJob = launchTicker(mark)
         }
+
+        /**
+         * Resumes the per-second ticker after a rescue-undo returns a frozen (Stuck) board to
+         * [GameStatus.Playing] (D-06/D-07). The existing [startMark] is reused — never reset —
+         * so the displayed elapsed time reflects the real wall-clock since the first move; the
+         * ticker only relaunches when it is not already running (a mid-game undo is a no-op).
+         */
+        private fun resumeTickerIfNeeded() {
+            val mark = startMark ?: return
+            if (tickerJob != null) return
+            tickerJob = launchTicker(mark)
+        }
+
+        /**
+         * The shared per-second ticker loop: writes whole elapsed seconds (measured from
+         * [mark]) into state once per second while the game is [GameStatus.Playing], stopping
+         * at a terminal status so the displayed time freezes. Used by both the first-move
+         * start ([startTimerIfNeeded]) and the rescue-undo resume ([resumeTickerIfNeeded]).
+         */
+        private fun launchTicker(mark: TimeMark): Job =
+            viewModelScope.launch {
+                while (isActive && _uiState.value.status == GameStatus.Playing) {
+                    _uiState.update {
+                        it.copy(elapsedSeconds = mark.elapsedNow().inWholeSeconds.toInt())
+                    }
+                    delay(TIMER_TICK_MILLIS)
+                }
+            }
 
         /** Clears the in-flight animation once the slide completes (state already committed). */
         fun onAnimationFinished() {
@@ -412,8 +439,9 @@ class GameViewModel
                 onRecordedLine =
                     solution?.let { line -> moveHistory.indices.all { i -> moveHistory[i] == line.getOrNull(i) } }
                         ?: false
-                // D-07: startMark / tickerJob / elapsedSeconds are intentionally NOT touched
-                // here — undo rescues the board but the real elapsed time keeps running.
+                // D-07: startMark / elapsedSeconds are intentionally NOT reset here — undo
+                // rescues the board but the real elapsed time keeps running; the ticker
+                // itself is resumed below when the board returns to Playing.
                 _uiState.update {
                     it.copy(
                         board = board,
@@ -422,12 +450,16 @@ class GameViewModel
                         animating = null,
                         status = status,
                         canUndo = moveHistory.isNotEmpty(),
-                        // Undo invalidates any shown hint / no-win state.
+                        // Undo invalidates any shown hint and clears the rescue banner.
                         hintSource = null,
                         hintTarget = null,
                         noWinningMove = false,
+                        stuck = false,
                     )
                 }
+                // Undoing out of a frozen (Stuck) board back to Playing resumes the timer that
+                // the terminal freeze stopped, reusing the never-reset startMark (D-06/D-07).
+                if (status == GameStatus.Playing) resumeTickerIfNeeded()
             }
         }
 

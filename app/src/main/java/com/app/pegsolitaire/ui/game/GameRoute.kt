@@ -60,6 +60,7 @@ fun GameRoute(
         onToggleHints = viewModel::onToggleHints,
         onUndo = viewModel::onUndo,
         onHint = viewModel::onHintRequested,
+        onHome = onNavigateBack,
         onNavigateBack = onNavigateBack,
         modifier = modifier,
         challengeLevel = viewModel.challengeLevel,
