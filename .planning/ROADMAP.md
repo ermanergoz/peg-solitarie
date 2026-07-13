@@ -108,7 +108,14 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Player can leave a game in progress and resume it with the board, full move history (undo still intact), and elapsed time exactly restored — the stored board is restored, never regenerated.
   4. Player can toggle sound and haptics on/off, and the choices persist.
   5. Storage is migration-safe: `exportSchema = true` with schema committed to VCS, explicit Room `Migration` objects with a migration test, and no `fallbackToDestructiveMigration` in release builds.
-**Plans**: TBD
+**Plans**: 7 plans (waves 1→4)
+- [ ] 05-01-PLAN.md — Room 2.8.4 foundation (KSP, exportSchema, DAOs/entities, migration-test spike) + GamesService no-op stub [PERS-01, PERS-03]
+- [ ] 05-02-PLAN.md — DataStore: sound/haptics settings + Challenge currentLevel over shared app_prefs [SET-01, SET-02, PERS-02, CHAL-05]
+- [ ] 05-03-PLAN.md — ProgressRepository (best-result upsert) + resume DTO/SnapshotMapper (regeneration-free, fail-safe) [PERS-01, PERS-03]
+- [ ] 05-04-PLAN.md — Settings screen + Home gear + real haptics on jump [SET-01, SET-02]
+- [ ] 05-05-PLAN.md — Results "New best!" cue + Classic catalog star pips [PERS-01]
+- [ ] 05-06-PLAN.md — Wire ChallengeProgress: advance-on-solve + Home continue-at-level [PERS-02, CHAL-05]
+- [ ] 05-07-PLAN.md — Resume save/restore/clear + lifecycle onStop + Home Continue affordances [PERS-03]
 
 ## Future Milestone (out of scope for this roadmap)
 
@@ -125,4 +132,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Classic Mode, Scoring & Navigation | 8/8 | Complete   | 2026-06-29 |
 | 3. Challenge Generation & Difficulty Curve | 5/5 | Complete   | 2026-07-01 |
 | 4. Assist — Hint & Undo | 6/6 | Complete   | 2026-07-12 |
-| 5. Persistence, Resume & Settings | 0/TBD | Not started | - |
+| 5. Persistence, Resume & Settings | 0/7 | Planned | - |
