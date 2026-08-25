@@ -7,8 +7,10 @@ import com.app.pegsolitaire.data.ChallengeLevelSource
 import com.app.pegsolitaire.data.ClassicLevelSource
 import com.app.pegsolitaire.data.DefaultClassicLevelSource
 import com.app.pegsolitaire.data.DefaultLevelRepository
+import com.app.pegsolitaire.data.DefaultProgressRepository
 import com.app.pegsolitaire.data.GeneratedChallengeLevelSource
 import com.app.pegsolitaire.data.LevelRepository
+import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.data.SettingsRepository
 import com.app.pegsolitaire.data.SettingsRepositoryImpl
 import com.app.pegsolitaire.data.appDataStore
@@ -50,6 +52,14 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindSettingsRepository(impl: SettingsRepositoryImpl): SettingsRepository
+
+    /**
+     * The single source of truth for per-level bests (PERS-01) and resume snapshots
+     * (PERS-03). A `@Singleton` because it fronts the process-wide Room connection.
+     */
+    @Binds
+    @Singleton
+    abstract fun bindProgressRepository(impl: DefaultProgressRepository): ProgressRepository
 
     /**
      * Instance `@Provides` cannot live on an abstract `@Module`, so the single shared
