@@ -53,8 +53,8 @@ Slice 1 — Playable Core. Fully playable and testable; ads and Play Games exist
 
 ### Settings
 
-- [ ] **SET-01**: Player can toggle sound on/off
-- [ ] **SET-02**: Player can toggle haptics on/off
+- [x] **SET-01**: Player can toggle sound on/off
+- [x] **SET-02**: Player can toggle haptics on/off
 
 ### Onboarding
 
@@ -133,8 +133,8 @@ Each v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for ph
 | PERS-01 | Phase 5 | Pending |
 | PERS-02 | Phase 5 | Pending |
 | PERS-03 | Phase 5 | Pending |
-| SET-01 | Phase 5 | Pending |
-| SET-02 | Phase 5 | Pending |
+| SET-01 | Phase 5 | Complete |
+| SET-02 | Phase 5 | Complete |
 | CHAL-05 | Phase 5 | Pending |
 
 **Coverage:**
