@@ -26,7 +26,7 @@ Slice 1 — Playable Core. Fully playable and testable; ads and Play Games exist
 - [x] **CHAL-02**: Each Challenge level is procedurally generated and guaranteed solvable
 - [x] **CHAL-03**: Challenge level N is deterministic — the same board every time (carries a generatorVersion)
 - [x] **CHAL-04**: Challenge difficulty scales with level number via board size/shape, peg density, and starting pattern
-- [ ] **CHAL-05**: Player can continue from their highest reached Challenge level
+- [x] **CHAL-05**: Player can continue from their highest reached Challenge level
 
 ### Scoring
 
@@ -43,8 +43,8 @@ Slice 1 — Playable Core. Fully playable and testable; ads and Play Games exist
 ### Persistence
 
 - [x] **PERS-01**: Player's per-level results (stars, best time, best score) are saved locally
-- [ ] **PERS-02**: Player's highest Challenge level reached is saved
-- [ ] **PERS-03**: Player can resume an in-progress game after leaving (board + move history + elapsed time restored)
+- [x] **PERS-02**: Player's highest Challenge level reached is saved
+- [x] **PERS-03**: Player can resume an in-progress game after leaving (board + move history + elapsed time restored)
 
 ### Navigation & Screens
 
@@ -131,11 +131,11 @@ Each v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for ph
 | ASST-02 | Phase 4 | Complete |
 | ASST-03 | Phase 4 | Complete |
 | PERS-01 | Phase 5 | Complete |
-| PERS-02 | Phase 5 | Pending |
-| PERS-03 | Phase 5 | Pending |
+| PERS-02 | Phase 5 | Complete |
+| PERS-03 | Phase 5 | Complete |
 | SET-01 | Phase 5 | Complete |
 | SET-02 | Phase 5 | Complete |
-| CHAL-05 | Phase 5 | Pending |
+| CHAL-05 | Phase 5 | Complete |
 
 **Coverage:**
 - v1 requirements: 30 total
