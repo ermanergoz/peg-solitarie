@@ -97,4 +97,11 @@
 
     <!-- Slide-up distance of the staggered card/tile entrance (Modifier.clayEntrance). -->
     <dimen name="entrance_slide_distance">16dp</dimen>
+
+    <!-- Home mode-tile glyphs (local ImageVectors) + resume-chip play accent. -->
+    <dimen name="mode_glyph_size">28dp</dimen>
+
+    <!-- Ambient Home background blobs: diameter + drift amplitude (±16dp, ~8s). -->
+    <dimen name="blob_size">240dp</dimen>
+    <dimen name="blob_drift_range">16dp</dimen>
 </resources>
