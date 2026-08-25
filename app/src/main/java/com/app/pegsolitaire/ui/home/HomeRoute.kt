@@ -18,12 +18,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
  *
  * @param onPlayClassic navigates to the Classic catalog (supplied by `AppNavHost`).
  * @param onPlayChallenge enters Challenge at the current level (supplied by `AppNavHost`, D-04).
+ * @param onOpenSettings opens the Settings destination (supplied by `AppNavHost`, D-14).
  * @param modifier layout modifier forwarded to [HomeScreen].
  */
 @Composable
 fun HomeRoute(
     onPlayClassic: () -> Unit,
     onPlayChallenge: () -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val viewModel: HomeViewModel = hiltViewModel()
@@ -35,6 +37,7 @@ fun HomeRoute(
         onPlayChallenge = onPlayChallenge,
         onShowHowToPlay = viewModel::onShowHowToPlay,
         onDismissOnboarding = viewModel::onDismissOnboarding,
+        onOpenSettings = onOpenSettings,
         modifier = modifier,
     )
 }
