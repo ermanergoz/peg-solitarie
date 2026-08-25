@@ -38,13 +38,15 @@ import com.app.pegsolitaire.ui.onboarding.OnboardingOverlay
  * D-14) over a centered column, capped at `content_max_width`, of two
  * stacked mode tiles: an enabled Classic tile whose whole surface navigates to the
  * catalog ([onPlayClassic]) and an enabled Challenge tile whose whole surface enters
- * Challenge ([onPlayChallenge]) at level 1 (D-04). While [HomeUiState.onboardingVisible],
+ * Challenge ([onPlayChallenge]) at the player's persisted
+ * [HomeUiState.challengeCurrentLevel] (CHAL-05). While [HomeUiState.onboardingVisible],
  * the [OnboardingOverlay] is hosted over the body (first-run, D-14, or the help
  * affordance, D-15); dismissing it calls [onDismissOnboarding] (which `markSeen()`s, D-13).
  *
- * @param state the immutable Home UI state (the onboarding-visibility gate).
+ * @param state the immutable Home UI state (the onboarding gate + the persisted level).
  * @param onPlayClassic navigates to the Classic catalog (the screen's primary affordance).
- * @param onPlayChallenge enters Challenge at the current level (D-04).
+ * @param onPlayChallenge enters Challenge at the level it is handed — the persisted
+ *   [HomeUiState.challengeCurrentLevel] (CHAL-05); the screen never invents the level.
  * @param onShowHowToPlay re-opens the onboarding overlay any time (D-15).
  * @param onDismissOnboarding dismisses + persists the onboarding (D-13).
  * @param onOpenSettings opens the Settings destination from the top-bar gear (Phase-5
@@ -56,7 +58,7 @@ import com.app.pegsolitaire.ui.onboarding.OnboardingOverlay
 fun HomeScreen(
     state: HomeUiState,
     onPlayClassic: () -> Unit,
-    onPlayChallenge: () -> Unit,
+    onPlayChallenge: (level: Int) -> Unit,
     onShowHowToPlay: () -> Unit,
     onDismissOnboarding: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -87,7 +89,10 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_md)),
             ) {
                 ClassicTile(onPlayClassic = onPlayClassic)
-                ChallengeTile(onPlayChallenge = onPlayChallenge)
+                ChallengeTile(
+                    currentLevel = state.challengeCurrentLevel,
+                    onPlayChallenge = onPlayChallenge,
+                )
             }
         }
     }
@@ -174,13 +179,17 @@ private fun ClassicTile(onPlayClassic: () -> Unit) {
 /**
  * The enabled Challenge tile (D-04): a neutral `surfaceContainerHigh` `Card` — an exact
  * peer of [ClassicTile] (NOT accent; enabling it does not make it accent, UI-SPEC S1) —
- * whose whole surface enters Challenge at level 1 ([onPlayChallenge]). Title "Challenge"
- * + supporting "Endless levels". Same `mode_tile_min_height` footprint as Classic.
+ * whose whole surface enters Challenge at [currentLevel], the player's persisted ladder
+ * position (CHAL-05). Title "Challenge" + supporting "Continue — Level N", so the stored
+ * progress is visible, not just used. Same `mode_tile_min_height` footprint as Classic.
  */
 @Composable
-private fun ChallengeTile(onPlayChallenge: () -> Unit) {
+private fun ChallengeTile(
+    currentLevel: Int,
+    onPlayChallenge: (level: Int) -> Unit,
+) {
     Card(
-        onClick = onPlayChallenge,
+        onClick = { onPlayChallenge(currentLevel) },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         modifier =
@@ -201,7 +210,7 @@ private fun ChallengeTile(onPlayChallenge: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = stringResource(R.string.challenge_tile_supporting),
+                text = stringResource(R.string.challenge_tile_continue, currentLevel),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

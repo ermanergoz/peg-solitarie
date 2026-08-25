@@ -50,7 +50,7 @@ fun AppNavHost(
     navController: NavHostController = rememberNavController(),
     homeContent: @Composable (
         onPlayClassic: () -> Unit,
-        onPlayChallenge: () -> Unit,
+        onPlayChallenge: (level: Int) -> Unit,
         onOpenSettings: () -> Unit,
     ) -> Unit =
         { onPlayClassic, onPlayChallenge, onOpenSettings ->
@@ -84,10 +84,12 @@ fun AppNavHost(
 ) {
     NavHost(navController = navController, startDestination = Home) {
         composable<Home> {
-            // homeContent slot: onPlayClassic, onPlayChallenge, onOpenSettings
+            // homeContent slot: onPlayClassic, onPlayChallenge(level), onOpenSettings.
+            // The level comes from Home's UiState (the persisted ChallengeProgress
+            // level, CHAL-05) — the host carries it, it never picks one.
             homeContent(
                 { navController.navigate(ClassicCatalog) },
-                { navController.navigate(Gameplay(challengeLevel = CHALLENGE_ENTRY_LEVEL)) },
+                { level -> navController.toChallengeBoard(level) },
                 { navController.navigate(Settings) },
             )
         }
@@ -135,17 +137,13 @@ private fun NavHostController.toBoardFromCatalog(levelId: String) {
 /**
  * Hops to a Challenge board (`Gameplay(challengeLevel = level)`) while popping up to
  * [Home], so the infinite Challenge ladder never grows the back stack unboundedly
- * (T-03-11): each Next-level/Retry hop replaces the current gameplay+results pair, leaving
- * only Home + the current board. Next level passes N+1 (D-01); Retry passes the same N and
- * so reloads the identical deterministic board (D-10).
+ * (T-03-11): each entry/Next-level/Retry hop replaces the current gameplay+results pair,
+ * leaving only Home + the current board. The Home tile passes the player's persisted
+ * current level (CHAL-05); Next level passes N+1 (D-01); Retry passes the same N and so
+ * reloads the identical deterministic board (D-10). An out-of-range level is clamped at
+ * the `GameViewModel` boundary, so a corrupt stored value can never load a bad board
+ * (T-05-11).
  */
 private fun NavHostController.toChallengeBoard(level: Int) {
     navigate(Gameplay(challengeLevel = level)) { popUpTo<Home>() }
 }
-
-/**
- * The Challenge level the Home tile enters (D-04). This phase tracks progress in memory
- * and always starts a Challenge run at level 1 (the `ChallengeProgress` initial value);
- * Phase 5 (CHAL-05) will source the highest-level-reached from persistence here.
- */
-private const val CHALLENGE_ENTRY_LEVEL = 1

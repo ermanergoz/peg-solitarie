@@ -34,6 +34,7 @@ import com.app.pegsolitaire.platform.ads.NoOpAdGateway
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
+import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -231,6 +232,8 @@ class GameFlowTest {
                 levelRepository = SingleBoardLevelRepository(initialBoard),
                 scoreCalculator = ScoreCalculator,
                 settingsRepository = settings,
+                // Classic-only flow test: the Challenge ladder is never touched here.
+                challengeProgress = mockk(relaxed = true),
                 timeSource = TestTimeSource(),
                 defaultDispatcher = Dispatchers.Unconfined,
                 adGateway = NoOpAdGateway(),

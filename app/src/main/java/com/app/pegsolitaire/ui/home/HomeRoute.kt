@@ -17,14 +17,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
  * handlers come from the ViewModel.
  *
  * @param onPlayClassic navigates to the Classic catalog (supplied by `AppNavHost`).
- * @param onPlayChallenge enters Challenge at the current level (supplied by `AppNavHost`, D-04).
+ * @param onPlayChallenge enters Challenge at the level the screen hands it — the persisted
+ *   `HomeUiState.challengeCurrentLevel` (supplied by `AppNavHost`, CHAL-05).
  * @param onOpenSettings opens the Settings destination (supplied by `AppNavHost`, D-14).
  * @param modifier layout modifier forwarded to [HomeScreen].
  */
 @Composable
 fun HomeRoute(
     onPlayClassic: () -> Unit,
-    onPlayChallenge: () -> Unit,
+    onPlayChallenge: (level: Int) -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
