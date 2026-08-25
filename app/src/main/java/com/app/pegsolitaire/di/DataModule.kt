@@ -18,6 +18,9 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import javax.inject.Singleton
 
 /**
@@ -50,8 +53,9 @@ abstract class DataModule {
 
     /**
      * Instance `@Provides` cannot live on an abstract `@Module`, so the single shared
-     * `app_prefs` `DataStore<Preferences>` (consumed by every preferences repository) is
-     * provided here on the module's companion object.
+     * `app_prefs` `DataStore<Preferences>` (consumed by every preferences repository) and
+     * the application-lifetime [CoroutineScope] are provided here on the module's
+     * companion object.
      */
     companion object {
         @Provides
@@ -59,5 +63,19 @@ abstract class DataModule {
         fun provideAppDataStore(
             @ApplicationContext context: Context,
         ): DataStore<Preferences> = context.appDataStore
+
+        /**
+         * The app-lifetime scope used for fire-and-forget persistence writes from
+         * `@Singleton` holders (e.g. `ChallengeProgress.advanceToNext()`), plus the
+         * sharing scope for their `stateIn`-backed StateFlows.
+         *
+         * `SupervisorJob` so one failed write never cancels the sibling writers, and
+         * `Dispatchers.Default` because DataStore already moves file IO to its own
+         * dispatcher. Never cancelled — it is scoped to the process.
+         */
+        @Provides
+        @Singleton
+        @ApplicationScope
+        fun provideApplicationScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     }
 }
