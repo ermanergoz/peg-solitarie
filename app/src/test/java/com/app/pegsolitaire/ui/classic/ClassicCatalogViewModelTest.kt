@@ -96,8 +96,10 @@ class ClassicCatalogViewModelTest {
             val viewModel = viewModelWith()
             runCurrent()
 
-            assertThat(viewModel.uiState.value.boards.map { it.earnedStars })
-                .containsExactly(NO_STARS, NO_STARS, NO_STARS, NO_STARS, NO_STARS)
+            assertThat(
+                viewModel.uiState.value.boards
+                    .map { it.earnedStars },
+            ).containsExactly(NO_STARS, NO_STARS, NO_STARS, NO_STARS, NO_STARS)
         }
 
     @Test
@@ -109,7 +111,9 @@ class ClassicCatalogViewModelTest {
                 )
             runCurrent()
 
-            val byId = viewModel.uiState.value.boards.associate { it.descriptor.id to it.earnedStars }
+            val byId =
+                viewModel.uiState.value.boards
+                    .associate { it.descriptor.id to it.earnedStars }
             assertThat(byId[ClassicLevelIds.EUROPEAN37]).isEqualTo(TWO_STARS)
             assertThat(byId[ClassicLevelIds.ENGLISH33]).isEqualTo(NO_STARS)
             assertThat(byId[ClassicLevelIds.WIEGLEB45]).isEqualTo(NO_STARS)
@@ -121,12 +125,20 @@ class ClassicCatalogViewModelTest {
             val results = MutableStateFlow(emptyList<LevelResult>())
             val viewModel = ClassicCatalogViewModel(FakeLevelRepository(D18_CATALOG), FakeProgressRepository(results))
             runCurrent()
-            assertThat(viewModel.uiState.value.boards.first().earnedStars).isEqualTo(NO_STARS)
+            assertThat(
+                viewModel.uiState.value.boards
+                    .first()
+                    .earnedStars,
+            ).isEqualTo(NO_STARS)
 
             results.value = listOf(classicResult(ClassicLevelIds.ENGLISH33, THREE_STARS))
             runCurrent()
 
-            assertThat(viewModel.uiState.value.boards.first().earnedStars).isEqualTo(THREE_STARS)
+            assertThat(
+                viewModel.uiState.value.boards
+                    .first()
+                    .earnedStars,
+            ).isEqualTo(THREE_STARS)
         }
 
     @Test

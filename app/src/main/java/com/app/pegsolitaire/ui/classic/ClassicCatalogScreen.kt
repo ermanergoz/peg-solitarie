@@ -80,8 +80,8 @@ fun ClassicCatalogScreen(
                 horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_md)),
                 verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_md)),
             ) {
-                items(items = state.boards, key = { it.id }) { descriptor ->
-                    BoardCard(descriptor = descriptor, onSelect = onSelect)
+                items(items = state.boards, key = { it.descriptor.id }) { board ->
+                    BoardCard(board = board, onSelect = onSelect)
                 }
             }
         }
@@ -114,8 +114,9 @@ private fun CatalogTopBar(onNavigateBack: () -> Unit) {
 /**
  * One catalog board card (D-11): a `surfaceContainerHigh` `Card` whose whole surface
  * is the tap target → [onSelect] with the descriptor's `levelId`. It stacks the
- * read-only [BoardPreview], the board name (`titleMedium`, `onSurface`) and a
- * plural-aware "{n} holes" subtitle (`bodyMedium`, `onSurfaceVariant`).
+ * read-only [BoardPreview] with its earned-star pips (D-10), the board name
+ * (`titleMedium`, `onSurface`) and a plural-aware "{n} holes" subtitle (`bodyMedium`,
+ * `onSurfaceVariant`).
  *
  * Every card is given the same fixed `catalog_card_height` so cards in the same grid
  * row line up even when a name wraps to two lines; the name allows up to 2 lines
@@ -124,9 +125,10 @@ private fun CatalogTopBar(onNavigateBack: () -> Unit) {
  */
 @Composable
 private fun BoardCard(
-    descriptor: ClassicLevelDescriptor,
+    board: ClassicBoardUiState,
     onSelect: (String) -> Unit,
 ) {
+    val descriptor: ClassicLevelDescriptor = board.descriptor
     Card(
         onClick = { onSelect(descriptor.id) },
         shape = MaterialTheme.shapes.large,
@@ -144,7 +146,7 @@ private fun BoardCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_sm)),
         ) {
-            BoardPreview(board = descriptor.previewBoard)
+            BoardPreview(board = descriptor.previewBoard, earnedStars = board.earnedStars)
             Text(
                 text = descriptor.displayName,
                 style = MaterialTheme.typography.titleMedium,
