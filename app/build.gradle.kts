@@ -18,8 +18,10 @@ plugins {
 // Export the Room schema JSON to a VCS-committed directory (Success Criterion 5).
 // Combined with `exportSchema = true` on @Database, KSP writes `schemas/<db>/1.json`
 // here — the diffable migration contract validated by the MigrationTestHelper spike.
+val roomSchemaDir = "$projectDir/schemas"
+
 room {
-    schemaDirectory("$projectDir/schemas")
+    schemaDirectory(roomSchemaDir)
 }
 
 android {
@@ -31,11 +33,26 @@ android {
         versionName = "0.1.0"
     }
 
-    // Put the exported Room schema on the unit-test asset path so Robolectric's
-    // MigrationTestHelper can resolve `schemas/<db>/1.json` JVM-side — this project
-    // has no `androidTest` source set, so the migration test runs in `test/`
-    // (RESEARCH Pitfall 1).
-    sourceSets.getByName("test").assets.srcDir("$projectDir/schemas")
+    // Put the exported Room schema on the DEBUG variant's assets so Robolectric's
+    // MigrationTestHelper can resolve `<db-class>/1.json` JVM-side (this project has
+    // no `androidTest` source set, so the migration test runs in `test/`).
+    //
+    // RESEARCH Pitfall 1 proposed the `test` source set — that does NOT work: AGP
+    // points Robolectric at the MAIN variant's merged assets (the generated
+    // `test_config.properties` sets `android_merged_assets=…/mergeDebugAssets`), so a
+    // test-only asset srcDir is never on the path and every MigrationTestHelper
+    // constructor — including the `File`-based one, whose `file` argument is the
+    // *database* file, not the schema dir — fails with "Cannot find the schema file in
+    // the assets folder". `debug` is the narrowest source set Robolectric can actually
+    // see; release APKs never carry the schema JSON.
+    sourceSets.getByName("debug").assets.srcDir(roomSchemaDir)
+}
+
+// The schema JSON is produced by KSP and copied into `schemas/` by the Room plugin's
+// `copyRoomSchemas` task, so the asset merge above must run after it (Gradle otherwise
+// reports consuming another task's output without a declared dependency).
+tasks.matching { it.name == "mergeDebugAssets" }.configureEach {
+    dependsOn("copyRoomSchemas")
 }
 
 // Pin androidx.core to the highest line whose minCompileSdk is 36. The default

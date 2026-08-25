@@ -14,16 +14,18 @@ import org.robolectric.annotation.Config
  * The database ships at version 1, so there is no migration to run yet — what this
  * test proves is that the *harness* is real: `exportSchema = true` plus the Room
  * Gradle plugin's `schemaDirectory` actually wrote `<db-class>/1.json`, that JSON is
- * on the unit-test asset path, and [MigrationTestHelper] can open a database from it.
+ * reachable from the test, and [MigrationTestHelper] can open a database from it.
  * With that in place, the day a v2 entity change lands, a single
  * `helper.runMigrationsAndValidate(TEST_DB, 2, true, MIGRATION_1_2)` line turns this
  * into a real migration test — and a forgotten migration fails the build instead of
- * silently wiping player results on device.
+ * silently wiping a player's stars, best times and in-progress game on device.
  *
  * Runs JVM-side under Robolectric: the project has no `androidTest` source set, so
  * `InstrumentationRegistry.getInstrumentation()` is served by Robolectric's monitor
- * shadow and the exported schema is resolved from `app/schemas` (wired onto the
- * `test` source set's assets in `app/build.gradle.kts`).
+ * shadow. [MigrationTestHelper] loads schemas from *assets* on Android (all of its
+ * constructors do — the `File` one takes a database file, not a schema directory), and
+ * Robolectric resolves assets from the merged **debug** assets, which is why
+ * `app/build.gradle.kts` puts `schemas/` on the debug source set rather than `test`.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [ROBOLECTRIC_SDK])
@@ -37,8 +39,8 @@ class MigrationTest {
 
     @Test
     fun exportedVersion1SchemaOpens() {
-        // Throws FileNotFoundException if the schema was never exported or is not on
-        // the test asset path — i.e. this asserts the migration contract exists.
+        // Throws FileNotFoundException if the schema was never exported or is not
+        // reachable — i.e. this asserts the v1 migration contract exists and loads.
         helper.createDatabase(TEST_DB, SCHEMA_VERSION_1).close()
     }
 }
