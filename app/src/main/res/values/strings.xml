@@ -107,6 +107,11 @@
     <string name="action_replay">Replay</string>
     <string name="action_catalog">Catalog</string>
     <string name="action_home">Home</string>
+    <!--
+      Results "New best!" cue (PERS-01, D-09): shown only when the play actually improved
+      one of the level's stored bests (stars, time or score).
+    -->
+    <string name="results_new_best">New best!</string>
     <!-- Challenge-aware Results actions (S3, D-01/D-10). -->
     <string name="action_next_level">Next level</string>
     <string name="action_retry">Retry</string>
