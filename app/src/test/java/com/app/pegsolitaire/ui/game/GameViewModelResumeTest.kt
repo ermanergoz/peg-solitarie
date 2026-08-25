@@ -198,6 +198,51 @@ class GameViewModelResumeTest {
             cancelTickers()
         }
 
+    // ---- In-flight restore window (WR-01) ------------------------------------
+
+    @Test
+    fun leavingDuringAnInFlightRestoreNeverOverwritesTheStoredSnapshot() =
+        runTest(testDispatcher) {
+            val time = TestTimeSource()
+            playTwoMovesAndLeave(time)
+            val savesBefore = progressRepository.saves.size
+
+            val resumed = viewModelFor(sixPegStrip(), resume = true)
+            // The restore has not resolved yet: the screen is loading, not a fresh board.
+            assertThat(resumed.uiState.value.isLoading).isTrue()
+
+            // An ON_STOP in this window (player backgrounds right after tapping Continue)
+            // must save NOTHING — the stored snapshot is the very game being restored.
+            resumed.onLeaveScreen()
+            runCurrent()
+
+            assertThat(progressRepository.saves).hasSize(savesBefore)
+            val stored = progressRepository.snapshots[ProgressPersistenceKeys.MODE_CLASSIC]
+            assertThat(stored!!.moves).hasSize(2)
+            // ...and the restore then lands intact, history and all.
+            assertThat(resumed.uiState.value.isLoading).isFalse()
+            assertThat(resumed.uiState.value.canUndo).isTrue()
+            cancelTickers()
+        }
+
+    @Test
+    fun tapsDuringAnInFlightRestoreAreIgnoredNotSilentlyDiscarded() =
+        runTest(testDispatcher) {
+            val time = TestTimeSource()
+            val left = playTwoMovesAndLeave(time)
+
+            val resumed = viewModelFor(sixPegStrip(), resume = true)
+            // A fast tap before the restore resolves must not play a move on a board the
+            // restore would then silently replace (WR-01): the loading placeholder has no
+            // tappable cells, so the tap is a no-op.
+            resumed.onCellTap(Position(row = 0, col = FIRST_JUMP_FROM_COL))
+            runCurrent()
+
+            assertThat(resumed.uiState.value.board.pegs).isEqualTo(left.board.pegs)
+            assertThat(resumed.uiState.value.selected).isNull()
+            cancelTickers()
+        }
+
     // ---- Fail-safe restore (T-05-03/T-05-04) ---------------------------------
 
     @Test

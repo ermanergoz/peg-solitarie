@@ -149,9 +149,15 @@ class GameViewModel
          * stays byte-identical to Phase 2 and the board is present at the first frame;
          * `null` for a Challenge game, whose board is generated off the main thread in
          * [init] (CR-01) — the O(level) reverse-walk must never block construction.
+         *
+         * Also `null` on the [resume] path: a Continue entry starts in the loading state
+         * and only leaves it when the restore resolves, so an `ON_STOP` during the
+         * in-flight restore can never snapshot an untouched fresh board over the very
+         * game being restored, and early taps can never play moves the restore would
+         * silently discard (WR-01).
          */
         private val classicBoard: Board? =
-            if (clampedChallengeLevel == null) {
+            if (clampedChallengeLevel == null && !resume) {
                 levelRepository.loadClassic(levelId).initialBoard
             } else {
                 null
@@ -258,7 +264,7 @@ class GameViewModel
                         progressRepository.loadSnapshot(mode)?.let { dto ->
                             SnapshotMapper.fromDto(dto, rulesEngine)
                         }
-                    if (restored != null) applyRestored(restored) else loadChallengeBoardIfNeeded()
+                    if (restored != null) applyRestored(restored) else loadFreshBoard()
                 }
             } else {
                 viewModelScope.launch { loadChallengeBoardIfNeeded() }
@@ -286,6 +292,35 @@ class GameViewModel
             _uiState.update {
                 GameUiState
                     .initial(level.initialBoard)
+                    .copy(showHints = it.showHints, hapticsOn = it.hapticsOn)
+            }
+        }
+
+        /**
+         * The fallback for a Continue with nothing usable to resume (absent or corrupt
+         * snapshot, T-05-03): loads the mode's fresh board so the player still lands on a
+         * playable game. Classic is deferred to here on the resume path (never installed
+         * at construction) so the fresh board is not live while a restore is in flight
+         * (WR-01); Challenge takes the same async generation path as a normal entry.
+         */
+        private suspend fun loadFreshBoard() {
+            if (clampedChallengeLevel != null) {
+                loadChallengeBoardIfNeeded()
+            } else {
+                installClassicBoard()
+            }
+        }
+
+        /**
+         * Resolves and installs the Classic board on the resume-fallback path, replacing
+         * the loading state exactly as the Challenge load does.
+         */
+        private fun installClassicBoard() {
+            val board = levelRepository.loadClassic(levelId).initialBoard
+            initialBoard = board
+            _uiState.update {
+                GameUiState
+                    .initial(board)
                     .copy(showHints = it.showHints, hapticsOn = it.hapticsOn)
             }
         }
@@ -324,8 +359,11 @@ class GameViewModel
          * backgrounding or navigating away (D-04); `GameRoute` calls it on `ON_STOP`.
          *
          * Only a game still in progress is saved: a Won or Stuck board would resurrect a
-         * finished game as a stale "Continue" (Pitfall 4), and a Challenge board still
-         * generating has no [initialBoard] to snapshot yet. What is stored is the initial
+         * finished game as a stale "Continue" (Pitfall 4), and a board still loading —
+         * a Challenge board mid-generation, or either mode's in-flight restore — has no
+         * [initialBoard] yet, so leaving during that window saves nothing rather than
+         * overwriting the stored snapshot with an empty-history one (WR-01). What is
+         * stored is the initial
          * board plus the full move history — never the current board — because replaying
          * that history is what keeps undo working after the resume (D-06).
          */
