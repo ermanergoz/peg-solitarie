@@ -2,6 +2,7 @@ package com.app.pegsolitaire.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.app.pegsolitaire.data.ChallengeProgress
 import com.app.pegsolitaire.data.OnboardingRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,13 +22,21 @@ import javax.inject.Inject
  * time independent of the flag (D-15); dismissing it ([onDismissOnboarding]) persists
  * `markSeen()` and hides it (D-13).
  *
+ * It also mirrors [ChallengeProgress.currentLevel] into
+ * [HomeUiState.challengeCurrentLevel] (CHAL-05 / PERS-02): the Challenge tile is labelled
+ * with — and enters at — the player's persisted level, so closing the app and returning
+ * continues the ladder instead of restarting it at level 1.
+ *
  * @param onboardingRepository the DataStore-backed onboarding flag (single source of truth).
+ * @param challengeProgress the persisted Challenge ladder position (single source of truth
+ *   for the tile's entry level; fail-open to level 1 on a corrupt read).
  */
 @HiltViewModel
 class HomeViewModel
     @Inject
     constructor(
         private val onboardingRepository: OnboardingRepository,
+        challengeProgress: ChallengeProgress,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(HomeUiState())
 
@@ -40,6 +49,14 @@ class HomeViewModel
             viewModelScope.launch {
                 onboardingRepository.onboardingSeen.collect { seen ->
                     _uiState.update { it.copy(onboardingVisible = !seen) }
+                }
+            }
+            // The persisted ladder position is the single source of truth for the tile's
+            // entry level (CHAL-05): collecting it means a solve that advances the level
+            // is reflected the moment Home is shown again, with no hardcoded fallback.
+            viewModelScope.launch {
+                challengeProgress.currentLevel.collect { level ->
+                    _uiState.update { it.copy(challengeCurrentLevel = level) }
                 }
             }
         }
