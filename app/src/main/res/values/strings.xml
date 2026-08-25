@@ -67,6 +67,11 @@
         <item quantity="one">%d hole</item>
         <item quantity="other">%d holes</item>
     </plurals>
+    <!--
+      Screen-reader description of a catalog card's earned-star pips (PERS-01, D-10):
+      the row announces its count once ("1 of 3 stars") instead of three anonymous icons.
+    -->
+    <string name="catalog_stars_earned">%1$d of %2$d stars</string>
 
     <!-- Gameplay top bar (timer + back; restart_board reused from Phase 1). -->
     <string name="navigate_back">Navigate back</string>
@@ -107,6 +112,11 @@
     <string name="action_replay">Replay</string>
     <string name="action_catalog">Catalog</string>
     <string name="action_home">Home</string>
+    <!--
+      Results "New best!" cue (PERS-01, D-09): shown only when the play actually improved
+      one of the level's stored bests (stars, time or score).
+    -->
+    <string name="results_new_best">New best!</string>
     <!-- Challenge-aware Results actions (S3, D-01/D-10). -->
     <string name="action_next_level">Next level</string>
     <string name="action_retry">Retry</string>

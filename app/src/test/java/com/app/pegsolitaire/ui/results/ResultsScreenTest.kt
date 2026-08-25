@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.data.NewBests
 import com.app.pegsolitaire.ui.game.GameTimerFormat
 import com.app.pegsolitaire.ui.theme.AppTheme
 import org.junit.Rule
@@ -131,6 +132,48 @@ class ResultsScreenTest {
         composeRule.onAllNodesWithText(context.getString(R.string.action_next_level)).assertCountEquals(0)
     }
 
+    @Test
+    fun theNewBestCueAppearsOnlyWhenThisPlayImprovedAStoredBest() {
+        composeRule.setContent {
+            AppTheme {
+                ResultsScreen(
+                    state = SAMPLE_STATE.copy(newBests = A_NEW_TIME_ONLY),
+                    onReplay = {},
+                    onCatalog = {},
+                    onHome = {},
+                    onNextLevel = {},
+                    onRetry = {},
+                    onNavigateBack = {},
+                )
+            }
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(RESULTS_NEW_BEST_TEST_TAG).assertExists()
+        assertTextDisplayed(R.string.results_new_best)
+    }
+
+    @Test
+    fun aPlayThatBeatNothingShowsNoNewBestCue() {
+        composeRule.setContent {
+            AppTheme {
+                ResultsScreen(
+                    state = SAMPLE_STATE,
+                    onReplay = {},
+                    onCatalog = {},
+                    onHome = {},
+                    onNextLevel = {},
+                    onRetry = {},
+                    onNavigateBack = {},
+                )
+            }
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(RESULTS_NEW_BEST_TEST_TAG).assertDoesNotExist()
+        composeRule.onAllNodesWithText(context.getString(R.string.results_new_best)).assertCountEquals(0)
+    }
+
     private fun assertTextDisplayed(resId: Int) {
         composeRule.onNodeWithText(context.getString(resId)).performScrollTo().assertIsDisplayed()
     }
@@ -184,6 +227,9 @@ private val STUCK_CHALLENGE_STATE =
 
 /** An arbitrary in-progress Challenge level number. */
 private const val SAMPLE_CHALLENGE_LEVEL = 5
+
+/** A play that beat only the stored time — enough to earn the "New best!" cue (D-09). */
+private val A_NEW_TIME_ONLY = NewBests(stars = false, time = true, score = false)
 
 /** A textbook solve earns three stars and leaves a single peg. */
 private const val PERFECT_STARS = 3
