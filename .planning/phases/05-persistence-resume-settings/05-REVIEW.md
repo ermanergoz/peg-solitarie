@@ -71,7 +71,13 @@ findings:
   warning: 3
   info: 4
   total: 9
-status: issues_found
+fixes:
+  fixed_at: 2026-08-26
+  scope: critical_warning
+  fixed: 5
+  skipped: 0
+  open_info: 4
+status: critical_warning_fixed
 ---
 
 # Phase 5: Code Review Report
@@ -79,7 +85,9 @@ status: issues_found
 **Reviewed:** 2026-08-25T12:00:00Z
 **Depth:** standard
 **Files Reviewed:** 62
-**Status:** issues_found
+**Status:** critical_warning_fixed — all Critical and Warning findings fixed 2026-08-26
+(commits `0fe00c6` WR-01, `cf11498` CR-01, `141236e` CR-02, `4dcf369` WR-02, `aae5b4b`
+WR-03); Info findings remain open (out of fix scope).
 
 ## Summary
 
@@ -92,6 +100,8 @@ However, tracing the resume and ladder-advance flows end to end surfaces two Cri
 ### Critical Issues
 
 ### CR-01: Classic "Continue" crashes when the stored snapshot's `levelId` is not a known catalog id
+
+**Status:** Fixed — commit `cf11498`. `HomeViewModel` now validates the stored `levelId` against `levelRepository.classicCatalog()` before offering the Continue tile and purges a decodable-but-unknown row; `GameViewModel` no longer resolves the Classic board synchronously in the constructor on the resume path (deferred by WR-01's loading gate), and the resume-fallback load catches the unknown-id `IllegalArgumentException`, degrading to the default board. Regression tests: `continueWithAnUnknownClassicLevelIdRestoresTheSnapshotInsteadOfCrashing`, `continueWithAnUnknownClassicLevelIdAndNoSnapshotFallsBackToADefaultBoard`, `aClassicSnapshotOnAnUnknownBoardOffersNoContinueAndPurgesTheRow` (the test `CountingLevelRepository.loadClassic` now fails fast like production).
 
 **File:** `app/src/main/java/com/app/pegsolitaire/ui/game/GameViewModel.kt:153-158` (with `app/src/main/java/com/app/pegsolitaire/ui/home/HomeViewModel.kt:78-92` and `app/src/main/java/com/app/pegsolitaire/data/resume/SnapshotMapper.kt`)
 **Issue:** `SnapshotMapper` validates every structural aspect of the untrusted blob *except* `levelId`. `HomeViewModel` reads the decoded DTO's `levelId` verbatim and hands it to the Classic Continue tile; `AppNavHost` navigates `Gameplay(levelId = <blob value>, resume = true)`; and `GameViewModel` resolves it **synchronously in the constructor**:
@@ -116,6 +126,8 @@ val classicLevelId =
 and/or make the ViewModel-side load defensive on the resume path (a `loadClassicOrNull` used when `resume == true`, falling back to a safe default board plus snapshot clear). Add a test with a snapshot carrying a bogus `levelId`.
 
 ### CR-02: Re-solving the same board advances the Challenge ladder again — persisted level skips levels
+
+**Status:** Fixed — commit `141236e`. `advanceToNext()` replaced by `advancePast(solvedLevel)` writing `max(current, solvedLevel + 1)` inside the `edit` transaction; `GameViewModel` keys the call on the level actually solved. Regression tests: `advancingPastTheSameSolvedLevelTwiceAdvancesOnlyOnce`, `advancingPastAnOlderLevelNeverMovesTheLadderBackwards`, `reSolvingTheSameBoardAfterAnUndoOnlyEverAdvancesPastTheSolvedLevel` (Won → undo → re-solve fires only `advancePast(N)`, never N+1).
 
 **File:** `app/src/main/java/com/app/pegsolitaire/ui/game/GameViewModel.kt:461-473, 583` (with `app/src/main/java/com/app/pegsolitaire/data/ChallengeProgress.kt:76-85`)
 **Issue:** `ChallengeProgress.advanceToNext()` is a blind `current + 1` increment with no knowledge of which level was solved, and the only guard in `GameViewModel` is `finishedEmitted` — which `onUndo` deliberately resets whenever the undone board returns to `Playing` (line 583, needed for the Stuck-rescue flow). These interact into a level skip that needs no tampering:
@@ -148,6 +160,8 @@ Alternatively keep a separate `ladderAdvanced` latch in the ViewModel that undo 
 
 ### WR-01: `onLeaveScreen` during an in-flight restore can overwrite the saved snapshot with a fresh-board snapshot
 
+**Status:** Fixed — commit `0fe00c6`. The resume path now starts in `GameUiState.loading()` for both modes (the Classic board is no longer installed at construction when `resume == true`); with `initialBoard` null until the restore resolves, `onLeaveScreen` early-returns and the loading placeholder has no tappable cells, so neither the overwrite nor the discarded-early-moves/`startMark` issue can occur. Regression tests: `leavingDuringAnInFlightRestoreNeverOverwritesTheStoredSnapshot`, `tapsDuringAnInFlightRestoreAreIgnoredNotSilentlyDiscarded`.
+
 **File:** `app/src/main/java/com/app/pegsolitaire/ui/game/GameViewModel.kt:236-266, 303-320, 332-352` (with `app/src/main/java/com/app/pegsolitaire/ui/game/GameRoute.kt:51-58`)
 **Issue:** For a Classic resume, the ViewModel constructor synchronously installs the **fresh** catalog board (`status = Playing`, empty history, fully interactive) while the snapshot load + replay runs asynchronously in `init`. In that window:
 - If `ON_STOP` fires (player taps Continue then immediately backgrounds — most likely on the first DB access, when Room opens the connection cold), `onLeaveScreen()` sees a Playing board with a non-null `initialBoard` and saves a snapshot of the *untouched fresh board with empty move history*, racing — and typically overwriting — the very snapshot being restored. The player's saved game is silently destroyed.
@@ -155,6 +169,8 @@ Alternatively keep a separate `ladderAdvanced` latch in the ViewModel that undo 
 **Fix:** Introduce a `restoring` state for the resume path: start Classic resume in `GameUiState.loading()` (or gate `onCellTap`/`onLeaveScreen` on a `restorePending` flag) until the restore coroutine resolves either to `applyRestored(...)` or the fallback. `onLeaveScreen` should early-return while a restore is pending.
 
 ### WR-02: Unusable snapshot rows are never cleared — a corrupt Challenge blob leaves a permanent phantom "Continue Challenge" tile
+
+**Status:** Fixed — commit `4dcf369`. `DefaultProgressRepository.loadSnapshot` purges a row whose blob fails to decode or claims another mode; `HomeViewModel` keys the Challenge tile on the blob decoding (not row existence), which also triggers the purge on a Home visit; `GameViewModel`'s restore fallback purges a row that decoded but did not replay. Regression tests: `purgingACorruptBlobDropsItsModeFromTheObservedResumeModes`, `aHealthySnapshotIsNeverPurgedByLoading`, `anUnreadableChallengeSnapshotOffersNoContinue`, plus purge assertions in the existing corrupt/mismatched-blob and tampered-snapshot tests.
 
 **File:** `app/src/main/java/com/app/pegsolitaire/data/ProgressRepository.kt:163-169` (with `app/src/main/java/com/app/pegsolitaire/ui/home/HomeViewModel.kt:78-92`, `app/src/main/java/com/app/pegsolitaire/ui/game/GameViewModel.kt:255-262`)
 **Issue:** `loadSnapshot` degrades a corrupt/mismatched blob to `null` but leaves the row in place, and the fallback path in `GameViewModel.init` loads a fresh board without clearing it. Home's Challenge Continue tile is driven purely by row existence (`observeResumeModes`), not decodability — so a corrupt Challenge row produces a "Continue Challenge — pick up Level N" tile that forever silently starts a fresh board, surviving until the player happens to solve or restart in that mode. The KDoc on `ProgressRepository.loadSnapshot` ("the Continue affordance simply disappears") is not what the code does for Challenge. The Classic side hides the tile (Home decodes the blob for `levelId`) but its corrupt row also lingers, re-decoded on every `observeResumeModes` emission.
@@ -172,6 +188,8 @@ override suspend fun loadSnapshot(mode: String): ResumeSnapshotDto? {
 or in `GameViewModel` when the restore fails (`if (restored == null) { progressRepository.clearSnapshot(mode); loadChallengeBoardIfNeeded() }`). Note Home's Challenge tile still needs the blob to be at least decodable before offering the tile, or it will keep showing until a load attempt clears it.
 
 ### WR-03: Restored Challenge game takes its level identity from the nav route and ignores the snapshot's `ChallengeStamp` — wrong multiplier/title/result keying possible
+
+**Status:** Fixed — commit `aae5b4b`. Both suggested fixes applied: `HomeUiState.challengeResumeAvailable` became `challengeResumeLevel` (the snapshot's stamped level, which the Continue tile labels and resumes into — never `challengeCurrentLevel`), and `GameViewModel.applyRestored` adopts the stamp (clamped, T-03-09) as the active level driving `challengeLevel` exposure (title + Results route), the score multiplier, the ladder advance, and re-saved snapshots. Regression tests: `aRestoredChallengeGameTakesItsLevelFromTheSnapshotStampNotTheRoute`, `aChallengeSnapshotOffersAContinueAtItsStampedLevelNotTheColdStartLadder`, and the HomeScreen render test now pins a stamped level that diverges from the ladder level.
 
 **File:** `app/src/main/java/com/app/pegsolitaire/ui/game/GameViewModel.kt:173-176, 303-320` (with `app/src/main/java/com/app/pegsolitaire/ui/home/HomeScreen.kt:111-121`, `app/src/main/java/com/app/pegsolitaire/data/ChallengeProgress.kt:58-68`)
 **Issue:** `levelMultiplier`, the "Level N" title, and the `challengeLevel` carried into `Results` (and thus the level the result is recorded under, and the `+1` for "Next level") are all derived from the route arg. `applyRestored` never reads `restored.challenge` — the provenance stamp is dropped at exactly the point it exists to serve. Home's Continue tile supplies `challengeCurrentLevel`, a `stateIn(..., Eagerly, initialValue = 1)` StateFlow: at cold start, before the first DataStore emission lands, a fast tap on "Continue Challenge" navigates with `level = 1` while the restored board is really level N. The player then plays level N's board scored with level 1's multiplier, sees "Level 1" in the title, has the solve recorded under `challenge/1`, and "Next level" offers level 2. The same seam means the corrupt-snapshot fallback (WR-02) generates level 1 instead of level N in that window.
