@@ -176,6 +176,10 @@ None — no external service configuration required.
 - **05-06 (Challenge continue)** can read `ChallengeProgress.currentLevel.value` for the Home tile and call `advanceToNext()` on a Challenge solve — no further data-layer work needed.
 - Any other `@Singleton` needing a long-lived writer scope can now inject `@ApplicationScope CoroutineScope`.
 
+## Self-Check: PASSED
+
+All 7 claimed files verified present on disk; all 4 task commits (`14dfcb5`, `0f9f2c7`, `2b198c4`, `070c226`) plus the metadata commit (`213766e`) verified in `git log`. No files were deleted by any commit in this plan.
+
 ---
 *Phase: 05-persistence-resume-settings*
 *Completed: 2026-08-25*
