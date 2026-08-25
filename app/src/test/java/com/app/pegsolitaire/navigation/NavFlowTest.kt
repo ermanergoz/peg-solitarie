@@ -29,9 +29,10 @@ import org.robolectric.annotation.Config
  * Robolectric + Compose reachability proof for the type-safe nav graph (NAV-02).
  *
  * Hosts [AppNavHost] over a real captured [NavHostController] and drives the spine
- * Home → ClassicCatalog → Gameplay(levelId) → Results(...), asserting each of the five
- * `@Serializable` routes is reached via `currentDestination.hasRoute<...>()` and that
- * the selected-board `levelId` round-trips through `Gameplay`/`Results` args.
+ * Home → ClassicCatalog → Gameplay(levelId) → Results(...) plus the Home → Settings
+ * branch (D-14), asserting each of the six `@Serializable` routes is reached via
+ * `currentDestination.hasRoute<...>()` and that the selected-board `levelId`
+ * round-trips through `Gameplay`/`Results` args.
  *
  * The destination bodies are lightweight stand-ins (each a tappable [Box] that fires the
  * nav callback `AppNavHost` supplies), so the test exercises `AppNavHost`'s real
@@ -53,7 +54,7 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { onPlayClassic, _ -> StubDestination(HOME_TAG, onPlayClassic) },
+                homeContent = { onPlayClassic, _, _, _, _ -> StubDestination(HOME_TAG, onPlayClassic) },
                 catalogContent = { onSelect, _ -> StubDestination(CATALOG_TAG) { onSelect(SELECTED_LEVEL_ID) } },
                 gameplayContent = { onFinished, _ -> StubDestination(GAMEPLAY_TAG) { onFinished(sampleResults()) } },
                 resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
@@ -85,12 +86,17 @@ class NavFlowTest {
     }
 
     @Test
-    fun homeChallengeTileEntersGameplayAtLevelOne() {
+    fun homeChallengeTileEntersGameplayAtThePersistedLevel() {
         composeRule.setContent {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { _, onPlayChallenge -> StubDestination(HOME_TAG) { onPlayChallenge() } },
+                // The Home tile supplies the level from its UiState (the persisted
+                // ChallengeProgress.currentLevel) — the host must carry it through, not
+                // substitute a hardcoded entry level (CHAL-05).
+                homeContent = { _, onPlayChallenge, _, _, _ ->
+                    StubDestination(HOME_TAG) { onPlayChallenge(PERSISTED_CHALLENGE_LEVEL) }
+                },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
                 gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
                 resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
@@ -100,12 +106,117 @@ class NavFlowTest {
         composeRule.waitForIdle()
         assertThat(currentRoute()).contains(HOME_ROUTE)
 
-        // Home Challenge tile → Gameplay carrying a Challenge level (level 1 this phase, D-04).
+        // Home Challenge tile → Gameplay carrying the PERSISTED Challenge level.
         composeRule.onNodeWithTag(HOME_TAG).performClick()
         composeRule.waitForIdle()
         assertThat(currentRoute()).contains(GAMEPLAY_ROUTE)
         assertThat(navController.currentBackStackEntry?.toRoute<Gameplay>()?.challengeLevel)
-            .isEqualTo(CHALLENGE_ENTRY_LEVEL)
+            .isEqualTo(PERSISTED_CHALLENGE_LEVEL)
+    }
+
+    @Test
+    fun homeContinueEntersTheSavedClassicBoardInResumeMode() {
+        composeRule.setContent {
+            navController = rememberNavController()
+            AppNavHost(
+                navController = navController,
+                // The Continue affordance carries the board its snapshot was taken on
+                // (PERS-03); the host must route to THAT board with resume = true, never
+                // to a fresh start.
+                homeContent = { _, _, onResumeClassic, _, _ ->
+                    StubDestination(HOME_TAG) { onResumeClassic(SELECTED_LEVEL_ID) }
+                },
+                catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
+                gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
+                resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
+            )
+        }
+
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(HOME_TAG).performClick()
+        composeRule.waitForIdle()
+
+        assertThat(currentRoute()).contains(GAMEPLAY_ROUTE)
+        val route = navController.currentBackStackEntry?.toRoute<Gameplay>()
+        assertThat(route?.levelId).isEqualTo(SELECTED_LEVEL_ID)
+        assertThat(route?.resume).isTrue()
+    }
+
+    @Test
+    fun homeContinueEntersTheSavedChallengeGameInResumeMode() {
+        composeRule.setContent {
+            navController = rememberNavController()
+            AppNavHost(
+                navController = navController,
+                homeContent = { _, _, _, onResumeChallenge, _ ->
+                    StubDestination(HOME_TAG) { onResumeChallenge(PERSISTED_CHALLENGE_LEVEL) }
+                },
+                catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
+                gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
+                resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
+            )
+        }
+
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(HOME_TAG).performClick()
+        composeRule.waitForIdle()
+
+        assertThat(currentRoute()).contains(GAMEPLAY_ROUTE)
+        val route = navController.currentBackStackEntry?.toRoute<Gameplay>()
+        assertThat(route?.challengeLevel).isEqualTo(PERSISTED_CHALLENGE_LEVEL)
+        assertThat(route?.resume).isTrue()
+    }
+
+    @Test
+    fun playingChallengeFreshNeverAsksForAResume() {
+        // The mode tile and the Continue affordance are different intents: entering the
+        // ladder must not silently resurrect the saved game (D-01 — Continue is explicit).
+        composeRule.setContent {
+            navController = rememberNavController()
+            AppNavHost(
+                navController = navController,
+                homeContent = { _, onPlayChallenge, _, _, _ ->
+                    StubDestination(HOME_TAG) { onPlayChallenge(PERSISTED_CHALLENGE_LEVEL) }
+                },
+                catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
+                gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
+                resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
+            )
+        }
+
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(HOME_TAG).performClick()
+        composeRule.waitForIdle()
+
+        assertThat(navController.currentBackStackEntry?.toRoute<Gameplay>()?.resume).isFalse()
+    }
+
+    @Test
+    fun homeGearOpensSettingsAndBackReturnsToHome() {
+        composeRule.setContent {
+            navController = rememberNavController()
+            AppNavHost(
+                navController = navController,
+                homeContent = { _, _, _, _, onOpenSettings -> StubDestination(HOME_TAG) { onOpenSettings() } },
+                catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
+                gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
+                resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
+                settingsContent = { onBack -> StubDestination(SETTINGS_TAG) { onBack() } },
+            )
+        }
+
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(HOME_ROUTE)
+
+        // Home gear → the Settings destination (D-14).
+        composeRule.onNodeWithTag(HOME_TAG).performClick()
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(SETTINGS_ROUTE)
+
+        // Settings back nav pops straight back to Home (no arg surface, T-05-08).
+        composeRule.onNodeWithTag(SETTINGS_TAG).performClick()
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(HOME_ROUTE)
     }
 
     @Test
@@ -114,18 +225,20 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { _, onPlayChallenge -> StubDestination(HOME_TAG) { onPlayChallenge() } },
+                homeContent = { _, onPlayChallenge, _, _, _ ->
+                    StubDestination(HOME_TAG) { onPlayChallenge(PERSISTED_CHALLENGE_LEVEL) }
+                },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
                 gameplayContent = { onFinished, _ ->
                     StubDestination(GAMEPLAY_TAG) { onFinished(stuckChallengeResults()) }
                 },
                 resultsContent = { _, _, _, _, onRetry, _ ->
-                    StubDestination(RESULTS_TAG) { onRetry(CHALLENGE_ENTRY_LEVEL) }
+                    StubDestination(RESULTS_TAG) { onRetry(PERSISTED_CHALLENGE_LEVEL) }
                 },
             )
         }
 
-        // Home → Challenge Gameplay(level 1) → stuck Results → Retry.
+        // Home → Challenge Gameplay(persisted level) → stuck Results → Retry.
         composeRule.onNodeWithTag(HOME_TAG).performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithTag(GAMEPLAY_TAG).performClick()
@@ -138,7 +251,7 @@ class NavFlowTest {
         // Retry reloads the identical deterministic board (same challenge level)...
         assertThat(currentRoute()).contains(GAMEPLAY_ROUTE)
         assertThat(navController.currentBackStackEntry?.toRoute<Gameplay>()?.challengeLevel)
-            .isEqualTo(CHALLENGE_ENTRY_LEVEL)
+            .isEqualTo(PERSISTED_CHALLENGE_LEVEL)
         // ...and popUpTo<Home> collapsed the prior Gameplay+Results so the ladder stays bounded (T-03-11).
         val belowDestination = navController.previousBackStackEntry?.destination
         val belowRoute = belowDestination?.route.orEmpty()
@@ -174,7 +287,7 @@ class NavFlowTest {
             pegsRemaining = STUCK_PEGS_REMAINING,
             elapsedSeconds = SAMPLE_ELAPSED_SECONDS,
             score = SAMPLE_SCORE,
-            challengeLevel = CHALLENGE_ENTRY_LEVEL,
+            challengeLevel = PERSISTED_CHALLENGE_LEVEL,
         )
 
     private fun stuckChallengeState(): ResultsUiState =
@@ -185,7 +298,7 @@ class NavFlowTest {
             score = SAMPLE_SCORE,
             headlineTier = ResultsHeadlineTier.STUCK,
             replayId = "",
-            challengeLevel = CHALLENGE_ENTRY_LEVEL,
+            challengeLevel = PERSISTED_CHALLENGE_LEVEL,
         )
 
     /** A tappable full-screen stand-in destination that fires [onClick] (a nav callback). */
@@ -220,6 +333,7 @@ private const val HOME_TAG = "stub_home"
 private const val CATALOG_TAG = "stub_catalog"
 private const val GAMEPLAY_TAG = "stub_gameplay"
 private const val RESULTS_TAG = "stub_results"
+private const val SETTINGS_TAG = "stub_settings"
 
 // Each route's serialized pattern is its fully-qualified class name; the simple name is
 // a stable, unambiguous substring of `currentDestination.route` for the reachability check.
@@ -227,6 +341,7 @@ private const val HOME_ROUTE = "Home"
 private const val CATALOG_ROUTE = "ClassicCatalog"
 private const val GAMEPLAY_ROUTE = "Gameplay"
 private const val RESULTS_ROUTE = "Results"
+private const val SETTINGS_ROUTE = "Settings"
 
 /** A real catalog id, proving navigation carries the selected board through the graph. */
 private val SELECTED_LEVEL_ID = ClassicLevelIds.EUROPEAN37
@@ -236,8 +351,12 @@ private const val SAMPLE_PEGS_REMAINING = 5
 private const val SAMPLE_ELAPSED_SECONDS = 75
 private const val SAMPLE_SCORE = 1280
 
-/** The Challenge level the Home tile enters this phase (D-04) — mirrors `AppNavHost`. */
-private const val CHALLENGE_ENTRY_LEVEL = 1
+/**
+ * The Challenge level the Home tile carries in these tests: the player's *persisted*
+ * level (CHAL-05). Deliberately not 1, so a host that silently substituted a hardcoded
+ * entry level would fail the assertion instead of accidentally matching it.
+ */
+private const val PERSISTED_CHALLENGE_LEVEL = 7
 
 /** A stuck Challenge board floors at one star with 2+ pegs left → Retry, not Next level (D-10). */
 private const val STUCK_STARS = 1

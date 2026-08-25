@@ -14,17 +14,32 @@ import javax.inject.Singleton
 /**
  * The single source of truth for player-tunable gameplay settings.
  *
- * The only setting so far is [hintsEnabled] — whether the legal-destination dots are
- * drawn on the board. The read **fails open** to `true`: a missing key (fresh install)
- * or a corrupt/IO read both degrade to "hints on", so a damaged store can never hide a
- * beginner's help, it only re-shows the harmless hint dots.
+ * Three flags so far: [hintsEnabled] (legal-destination dots drawn on the board),
+ * [soundOn] (SET-01 — persisted flag only for now; no audio engine yet, D-16) and
+ * [hapticsOn] (SET-02 — gates the light haptic fired on a jump, D-15).
+ *
+ * Every read **fails open** to `true` (D-17): a missing key (fresh install) or a
+ * corrupt/IO read both degrade to "helper on", so a damaged store can never silently
+ * strip a beginner's help — it only re-enables the harmless assists.
  */
 interface SettingsRepository {
     /** Whether legal-destination hint dots are shown; fail-open default `true`. */
     val hintsEnabled: Flow<Boolean>
 
+    /** Whether sound effects are enabled; fail-open default `true` (SET-01). */
+    val soundOn: Flow<Boolean>
+
+    /** Whether haptic feedback is enabled; fail-open default `true` (SET-02). */
+    val hapticsOn: Flow<Boolean>
+
     /** Persists the player's hint on/off choice. */
     suspend fun setHintsEnabled(enabled: Boolean)
+
+    /** Persists the player's sound on/off choice. */
+    suspend fun setSoundOn(on: Boolean)
+
+    /** Persists the player's haptics on/off choice. */
+    suspend fun setHapticsOn(on: Boolean)
 }
 
 /** Scoped constants for the settings Preferences keys (QUAL-03 — no inline magic strings). */
@@ -34,6 +49,18 @@ internal object SettingsPreferences {
 
     /** Fail-open default: a missing/corrupt read is treated as "hints on" (show help). */
     const val DEFAULT_HINTS = true
+
+    /** The boolean key tracking whether the player wants sound effects (SET-01). */
+    val SOUND_KEY = booleanPreferencesKey("sound_on")
+
+    /** Fail-open default: a missing/corrupt read is treated as "sound on" (D-17). */
+    const val DEFAULT_SOUND = true
+
+    /** The boolean key tracking whether the player wants haptic feedback (SET-02). */
+    val HAPTICS_KEY = booleanPreferencesKey("haptics_on")
+
+    /** Fail-open default: a missing/corrupt read is treated as "haptics on" (D-17). */
+    const val DEFAULT_HAPTICS = true
 }
 
 /**
@@ -55,7 +82,36 @@ class SettingsRepositoryImpl
                 .catch { emit(emptyPreferences()) }
                 .map { it[SettingsPreferences.HINTS_KEY] ?: SettingsPreferences.DEFAULT_HINTS }
 
+        override val soundOn: Flow<Boolean> =
+            dataStore.data
+                .catch { emit(emptyPreferences()) }
+                .map { it[SettingsPreferences.SOUND_KEY] ?: SettingsPreferences.DEFAULT_SOUND }
+
+        override val hapticsOn: Flow<Boolean> =
+            dataStore.data
+                .catch { emit(emptyPreferences()) }
+                .map { it[SettingsPreferences.HAPTICS_KEY] ?: SettingsPreferences.DEFAULT_HAPTICS }
+
+        // The setters are best-effort (T-05-13): a disk-full/IO failure drops the write —
+        // the toggle simply does not stick — instead of crashing the Settings screen.
+        // The flows above stay the single source of truth, so the UI keeps showing the
+        // value that actually persisted.
+
         override suspend fun setHintsEnabled(enabled: Boolean) {
-            dataStore.edit { it[SettingsPreferences.HINTS_KEY] = enabled }
+            storageFailSafe(fallback = Unit) {
+                dataStore.edit { it[SettingsPreferences.HINTS_KEY] = enabled }
+            }
+        }
+
+        override suspend fun setSoundOn(on: Boolean) {
+            storageFailSafe(fallback = Unit) {
+                dataStore.edit { it[SettingsPreferences.SOUND_KEY] = on }
+            }
+        }
+
+        override suspend fun setHapticsOn(on: Boolean) {
+            storageFailSafe(fallback = Unit) {
+                dataStore.edit { it[SettingsPreferences.HAPTICS_KEY] = on }
+            }
         }
     }
