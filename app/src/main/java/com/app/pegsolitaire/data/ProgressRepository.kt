@@ -10,6 +10,7 @@ import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
 import com.app.pegsolitaire.data.resume.SnapshotMapper
 import com.app.pegsolitaire.domain.scoring.ScoreResult
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -43,7 +44,12 @@ interface ProgressRepository {
         nowMs: Long,
     ): NewBests
 
-    /** Every stored result for [mode], re-emitted on change (Classic catalog pips, D-10). */
+    /**
+     * Every stored result for [mode], re-emitted on change (Classic catalog pips, D-10).
+     *
+     * A failing database read (corrupt file, disk I/O) degrades to an empty list
+     * (T-05-10): the catalog renders as unplayed rather than crashing.
+     */
     fun observeResults(mode: String): Flow<List<LevelResult>>
 
     /**
@@ -58,7 +64,8 @@ interface ProgressRepository {
     /**
      * The snapshot [mode] can resume into, or `null` when there is none **or the stored
      * blob is unusable** — a corrupt or mismatched payload degrades to "no resume" rather
-     * than throwing (Security §V5). An unusable row is also **purged** (WR-02), so the
+     * than throwing (Security §V5), and so does a read that fails at the database itself
+     * (T-05-10). An unusable row is also **purged** (WR-02), so the
      * Continue affordance genuinely disappears instead of lingering as a phantom tile
      * that can only ever start a fresh board.
      */
@@ -67,7 +74,10 @@ interface ProgressRepository {
     /** Drops [mode]'s snapshot — solved, restarted, or new game (D-05). */
     suspend fun clearSnapshot(mode: String)
 
-    /** The modes currently holding a snapshot; drives the Home "Continue" tiles (D-01/D-11). */
+    /**
+     * The modes currently holding a snapshot; drives the Home "Continue" tiles (D-01/D-11).
+     * A failing database read degrades to "no modes" — no tiles, never a crash (T-05-10).
+     */
     fun observeResumeModes(): Flow<List<String>>
 }
 
@@ -147,7 +157,12 @@ class DefaultProgressRepository
             }
 
         override fun observeResults(mode: String): Flow<List<LevelResult>> =
-            levelResultDao.observe(mode).map { rows -> rows.map { it.toLevelResult() } }
+            levelResultDao
+                .observe(mode)
+                .map { rows -> rows.map { it.toLevelResult() } }
+                // A read that fails at the database (corrupt file, disk I/O) renders as
+                // "nothing solved yet" instead of crashing the catalog (T-05-10).
+                .catch { emit(emptyList()) }
 
         override suspend fun saveSnapshot(
             dto: ResumeSnapshotDto,
@@ -162,26 +177,34 @@ class DefaultProgressRepository
             )
         }
 
-        override suspend fun loadSnapshot(mode: String): ResumeSnapshotDto? {
-            val entity = resumeDao.get(mode) ?: return null
-            val dto =
-                SnapshotMapper
-                    .decode(entity.jsonBlob)
-                    // A payload claiming a different mode than the row it sits in is tampered
-                    // or corrupt state; refuse it rather than resuming the wrong game.
-                    ?.takeIf { it.mode == mode }
-            // A row that cannot be used is purged, not just skipped (WR-02): leaving it
-            // would keep the mode listed in observeResumeModes forever, feeding Home a
-            // phantom "Continue" tile that can only ever start a fresh board.
-            if (dto == null) resumeDao.clear(mode)
-            return dto
-        }
+        override suspend fun loadSnapshot(mode: String): ResumeSnapshotDto? =
+            // A DAO read that throws (corrupt DB, disk I/O) fails safe to the same "no
+            // resume" a missing row yields, matching the blob guard below (T-05-10).
+            storageFailSafe(fallback = null) {
+                val entity = resumeDao.get(mode) ?: return@storageFailSafe null
+                val dto =
+                    SnapshotMapper
+                        .decode(entity.jsonBlob)
+                        // A payload claiming a different mode than the row it sits in is tampered
+                        // or corrupt state; refuse it rather than resuming the wrong game.
+                        ?.takeIf { it.mode == mode }
+                // A row that cannot be used is purged, not just skipped (WR-02): leaving it
+                // would keep the mode listed in observeResumeModes forever, feeding Home a
+                // phantom "Continue" tile that can only ever start a fresh board.
+                if (dto == null) resumeDao.clear(mode)
+                dto
+            }
 
         override suspend fun clearSnapshot(mode: String) {
             resumeDao.clear(mode)
         }
 
-        override fun observeResumeModes(): Flow<List<String>> = resumeDao.observeModes()
+        override fun observeResumeModes(): Flow<List<String>> =
+            resumeDao
+                .observeModes()
+                // Same fail-safe as observeResults: a failing read means no Continue
+                // tiles on Home, never a crash (T-05-10).
+                .catch { emit(emptyList()) }
 
         private fun LevelResultEntity.toLevelResult(): LevelResult =
             LevelResult(
