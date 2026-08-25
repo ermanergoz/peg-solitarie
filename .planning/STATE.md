@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: milestone_complete
-stopped_at: Milestone complete (Phase 05 was final phase)
-last_updated: 2026-08-25T20:54:42.048Z
-last_activity: 2026-08-25 -- Phase 05 execution started
+status: Awaiting next milestone
+stopped_at: Session resumed, proceeding to Phase 05 execution (plan 05-01 in progress — Gradle wiring applied, source files pending)
+last_updated: "2026-08-25T21:49:04.231Z"
+last_activity: 2026-08-25 — Milestone v1.0 completed and archived
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 31
   completed_plans: 31
-  percent: 80
+  percent: 100
 ---
 
 # Project State
@@ -21,16 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-28)
 
 **Core value:** Infinite, never-repeating, always-solvable Challenge levels that feel fair and satisfying.
-**Current focus:** Milestone complete
+**Current focus:** v1.0 shipped — planning next milestone (Slice 2)
 
 ## Current Position
 
-Phase: 05
-Plan: Not started
-Next: 04-05 — on-device assist playtest CHECKPOINT (autonomous:false; requires human testing)
-Last activity: 2026-08-25
-
-Progress: [█████████░] 92%
+Milestone v1.0 (Slice 1 — Playable Core) SHIPPED 2026-08-26. All 5 phases, 31 plans, 30/30 requirements.
+Next: /gsd:new-milestone for Slice 2 (Play Games, AdMob, polish).
 
 ## Performance Metrics
 
@@ -150,9 +146,14 @@ Items acknowledged and carried forward from previous milestone close:
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
 | Milestone | Slice 2 — Play Games, AdMob, visual polish (PGS-01..04, ADS-01..02, POLI-01) | Deferred to future milestone | Roadmap creation |
+| Artifact audit | Quick tasks 260628-n4f, 260701-n9t flagged "missing" — verified complete (commits 675de73, cca6cb3), acknowledged as false positives | Acknowledged at v1.0 close | 2026-08-26 |
 
 ## Session Continuity
 
 Last session: 2026-08-25
 Stopped at: Session resumed, proceeding to Phase 05 execution (plan 05-01 in progress — Gradle wiring applied, source files pending)
 Resume file: .planning/phases/05-persistence-resume-settings/05-CONTEXT.md
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone
