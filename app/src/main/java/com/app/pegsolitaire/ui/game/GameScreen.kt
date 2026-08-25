@@ -21,8 +21,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
@@ -107,6 +110,8 @@ fun GameScreen(
     modifier: Modifier = Modifier,
     challengeLevel: Int? = null,
 ) {
+    JumpHaptic(animatingMoveId = state.animating?.id, hapticsOn = state.hapticsOn)
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
@@ -184,6 +189,36 @@ fun GameScreen(
             onConfirm = onConfirmRestart,
             onDismiss = onDismissRestart,
         )
+    }
+}
+
+/**
+ * Fires one light haptic tick as each jump animation begins (SET-02 / D-15).
+ *
+ * Haptic emission is a Compose UI concern, so it lives here rather than in the ViewModel:
+ * the screen reads the already-collected [GameUiState.hapticsOn] gate (it never touches
+ * `SettingsRepository`) and the effect is keyed on the [MoveTransition.id] move ordinal —
+ * so it fires exactly once per jump, not once per recomposition. When the setting is off
+ * nothing fires and gameplay is otherwise identical.
+ *
+ * [HapticFeedbackType.ContextClick] is the lightest type in the pinned Compose BOM that is
+ * available across the whole supported range (`CONTEXT_CLICK`, API 23 ≤ minSdk 24) — the
+ * newer `SegmentTick`/`GestureEnd` constants map to API-34-only platform constants and
+ * would be silent on most devices, and `LongPress` is far too heavy for a peg hop.
+ *
+ * @param animatingMoveId the in-flight jump's move ordinal, or `null` when settled.
+ * @param hapticsOn the persisted haptics gate carried by the UI state.
+ */
+@Composable
+private fun JumpHaptic(
+    animatingMoveId: Int?,
+    hapticsOn: Boolean,
+) {
+    val haptics = LocalHapticFeedback.current
+    LaunchedEffect(animatingMoveId) {
+        if (animatingMoveId != null && hapticsOn) {
+            haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+        }
     }
 }
 
