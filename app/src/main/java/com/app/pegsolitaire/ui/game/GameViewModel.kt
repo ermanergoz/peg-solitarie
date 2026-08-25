@@ -107,13 +107,22 @@ class GameViewModel
         /** The selected board's catalog id (read by `GameRoute` to build the Results route). */
         val levelId: String = savedStateHandle.toRoute<Gameplay>().levelId
 
+        /** The raw `Gameplay` route Challenge arg, or `null` for a Classic game. */
+        private val routeChallengeLevel: Int? = savedStateHandle.toRoute<Gameplay>().challengeLevel
+
         /**
          * The Challenge level number when this is a Challenge game, else `null` for
          * Classic (read by `GameRoute` for the context-aware title + Results route).
-         * This single route arg — not any `if (challenge)` in board logic — drives both
+         * This single value — not any `if (challenge)` in board logic — drives both
          * the load path and the title slot (unified `LevelRef`, Open-Q2).
+         *
+         * Sourced from the route arg until a restore lands; after a successful restore
+         * the snapshot's own [ChallengeStamp] wins (WR-03) — at a cold start the Home
+         * Continue tile can navigate with a stale ladder value before the first DataStore
+         * emission, and the board actually restored is the stamped level, so the title,
+         * the score multiplier and the Results keying must all follow the stamp.
          */
-        val challengeLevel: Int? = savedStateHandle.toRoute<Gameplay>().challengeLevel
+        val challengeLevel: Int? get() = stampedChallengeLevel ?: routeChallengeLevel
 
         /**
          * The Challenge level clamped into a valid, bounded range (T-03-09: an untrusted
@@ -123,7 +132,24 @@ class GameViewModel
          * generator actually produces (CR-01).
          */
         private val clampedChallengeLevel: Int? =
-            challengeLevel?.coerceIn(MIN_CHALLENGE_LEVEL, GeneratorConstants.MAX_CHALLENGE_LEVEL)
+            routeChallengeLevel?.coerceIn(MIN_CHALLENGE_LEVEL, GeneratorConstants.MAX_CHALLENGE_LEVEL)
+
+        /**
+         * The Challenge level restored from the snapshot's provenance stamp, clamped into
+         * the same valid range as the route arg; `null` until a restore lands and always
+         * `null` for Classic. Once set it is authoritative (WR-03): the stamp travels with
+         * the board it describes, while the route arg is only what Home believed at tap
+         * time.
+         */
+        private var stampedChallengeLevel: Int? = null
+
+        /**
+         * The level this Challenge game is actually being played as — the restored stamp
+         * when there is one, else the clamped route arg; `null` for Classic. Everything
+         * level-keyed after construction reads THIS: the score multiplier, the ladder
+         * advance on solve, and the level stamped into a re-saved snapshot.
+         */
+        private val activeChallengeLevel: Int? get() = stampedChallengeLevel ?: clampedChallengeLevel
 
         /**
          * Whether this entry is the Home "Continue" affordance (PERS-03, D-01) rather than a
@@ -171,16 +197,18 @@ class GameViewModel
         private var initialBoard: Board? = classicBoard
 
         /**
-         * The D-11 level-scaled score factor: the loaded Challenge level's
+         * The D-11 level-scaled score factor: the played Challenge level's
          * [DifficultyTiers] multiplier, or [ScoreParams.DEFAULT_LEVEL_MULTIPLIER] (1) for
          * Classic so the numeric score is byte-identical to Phase 2. `DifficultyTiers` is
          * pure `:domain`, so referencing it here keeps `ScoreCalculator` free of level
-         * state (no calculator ↔ level coupling).
+         * state (no calculator ↔ level coupling). Derived from [activeChallengeLevel] so
+         * a restored game is scored at its stamped level, not the route's (WR-03).
          */
-        private val levelMultiplier: Int =
-            clampedChallengeLevel
-                ?.let { DifficultyTiers.forLevel(it).scoreMultiplier }
-                ?: ScoreParams.DEFAULT_LEVEL_MULTIPLIER
+        private val levelMultiplier: Int
+            get() =
+                activeChallengeLevel
+                    ?.let { DifficultyTiers.forLevel(it).scoreMultiplier }
+                    ?: ScoreParams.DEFAULT_LEVEL_MULTIPLIER
 
         private val moveHistory: MutableList<Move> = mutableListOf()
 
@@ -356,6 +384,14 @@ class GameViewModel
          * Solver for a resumed Challenge game, which is the same path a deviated line takes.
          */
         private fun applyRestored(restored: RestoredGame) {
+            // The snapshot's provenance stamp is authoritative for a restored Challenge
+            // game (WR-03): the board being installed IS the stamped level, whatever the
+            // route claimed. Clamped like the route arg — the stamp is stored state and
+            // equally untrusted (T-03-09).
+            restored.challenge
+                ?.level
+                ?.coerceIn(MIN_CHALLENGE_LEVEL, GeneratorConstants.MAX_CHALLENGE_LEVEL)
+                ?.let { stampedChallengeLevel = it }
             initialBoard = restored.initialBoard
             moveHistory.clear()
             moveHistory.addAll(restored.moveHistory)
@@ -394,12 +430,12 @@ class GameViewModel
             val dto =
                 SnapshotMapper.toDto(
                     mode = mode,
-                    levelId = clampedChallengeLevel?.toString() ?: levelId,
+                    levelId = activeChallengeLevel?.toString() ?: levelId,
                     initialBoard = board,
                     moveHistory = moveHistory.toList(),
                     elapsedMs = state.elapsedSeconds * MILLIS_IN_SECOND,
                     challenge =
-                        clampedChallengeLevel?.let {
+                        activeChallengeLevel?.let {
                             ChallengeStamp(
                                 level = it,
                                 generatorVersion = GeneratorConstants.GENERATOR_VERSION,
@@ -523,14 +559,15 @@ class GameViewModel
                     // (D-05). Both modes clear — the latch keeps it to once per solve.
                     clearSnapshot()
                     // Only a SOLVE unlocks the next Challenge level (D-02: no skipping) —
-                    // Classic (clampedChallengeLevel == null) and Stuck never advance. The
-                    // advance is keyed to the SOLVED level and idempotent at the store
-                    // (max(current, N+1)), so a re-solve of the same board — back from
-                    // Results, undo (which resets finishedEmitted), re-jump — can never
-                    // skip a level (CR-02); the write is transactional inside
-                    // ChallengeProgress.
-                    if (clampedChallengeLevel != null) {
-                        challengeProgress.advancePast(clampedChallengeLevel)
+                    // Classic (activeChallengeLevel == null) and Stuck never advance. The
+                    // advance is keyed to the SOLVED level — the restored stamp when there
+                    // is one (WR-03) — and idempotent at the store (max(current, N+1)), so
+                    // a re-solve of the same board — back from Results, undo (which resets
+                    // finishedEmitted), re-jump — can never skip a level (CR-02); the
+                    // write is transactional inside ChallengeProgress.
+                    val solvedChallengeLevel = activeChallengeLevel
+                    if (solvedChallengeLevel != null) {
+                        challengeProgress.advancePast(solvedChallengeLevel)
                     }
                     val pegsRemaining = nextBoard.pegCount
                     // A jump can only fire once the board is loaded, so initialBoard is

@@ -199,6 +199,41 @@ class GameViewModelResumeTest {
             cancelTickers()
         }
 
+    // ---- Restored Challenge identity (WR-03) ---------------------------------
+
+    @Test
+    fun aRestoredChallengeGameTakesItsLevelFromTheSnapshotStampNotTheRoute() =
+        runTest(testDispatcher) {
+            // Save a level-7 Challenge game.
+            val time = TestTimeSource()
+            val viewModel =
+                viewModelFor(sixPegStrip(), challengeLevel = PLAYED_CHALLENGE_LEVEL, timeSource = time)
+            runCurrent()
+            jump(viewModel, fromCol = FIRST_JUMP_FROM_COL, toCol = FIRST_JUMP_TO_COL)
+            tickTo(time, PLAYED_SECONDS)
+            viewModel.onLeaveScreen()
+            runCurrent()
+            cancelTickers()
+
+            // Cold start: Home's ladder flow has not emitted yet, so the Continue tap can
+            // navigate with the stale initial level — the snapshot's stamp must win
+            // (WR-03): it names the level the restored board actually is.
+            val resumed =
+                viewModelFor(sixPegStrip(), challengeLevel = STALE_ROUTE_LEVEL, resume = true)
+            runCurrent()
+
+            assertThat(resumed.challengeLevel).isEqualTo(PLAYED_CHALLENGE_LEVEL)
+
+            // Leaving again re-saves under the stamped level too, not the stale route's —
+            // otherwise one background trip would corrupt the snapshot's own provenance.
+            resumed.onLeaveScreen()
+            runCurrent()
+            val saved = progressRepository.snapshots[ProgressPersistenceKeys.MODE_CHALLENGE]
+            assertThat(saved!!.challengeLevel).isEqualTo(PLAYED_CHALLENGE_LEVEL)
+            assertThat(saved.levelId).isEqualTo(PLAYED_CHALLENGE_LEVEL.toString())
+            cancelTickers()
+        }
+
     // ---- In-flight restore window (WR-01) ------------------------------------
 
     @Test
@@ -472,6 +507,12 @@ private const val PLAYED_CHALLENGE_LEVEL = 7
 
 /** A levelId no catalog board has ever had — the CR-01 stale/tampered resume id. */
 private const val UNKNOWN_LEVEL_ID = "ghost-board"
+
+/**
+ * The cold-start route level for a Challenge Continue: Home's ladder StateFlow initial
+ * value before the first DataStore emission lands — NOT the level the snapshot holds.
+ */
+private const val STALE_ROUTE_LEVEL = 1
 
 /** The 1x7 fixture strip and the six pegs on it (hole at the last column). */
 private const val STRIP_LENGTH = 7

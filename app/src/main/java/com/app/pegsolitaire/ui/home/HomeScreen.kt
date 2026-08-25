@@ -54,7 +54,8 @@ import com.app.pegsolitaire.ui.onboarding.OnboardingOverlay
  *   [HomeUiState.challengeCurrentLevel] (CHAL-05); the screen never invents the level.
  * @param onResumeClassic continues the saved Classic game on the board id it is handed —
  *   [HomeUiState.classicResumeLevelId], the board the snapshot was taken on (PERS-03).
- * @param onResumeChallenge continues the saved Challenge game at the persisted level.
+ * @param onResumeChallenge continues the saved Challenge game at the snapshot's own
+ *   stamped level ([HomeUiState.challengeResumeLevel], WR-03) — never the ladder level.
  * @param onShowHowToPlay re-opens the onboarding overlay any time (D-15).
  * @param onDismissOnboarding dismisses + persists the onboarding (D-13).
  * @param onOpenSettings opens the Settings destination from the top-bar gear (Phase-5
@@ -108,15 +109,19 @@ fun HomeScreen(
                         onResume = { onResumeClassic(resumeLevelId) },
                     )
                 }
-                if (state.challengeResumeAvailable) {
+                // The Challenge Continue carries the SNAPSHOT's stamped level (WR-03),
+                // never challengeCurrentLevel — the ladder flow can lag at a cold start
+                // while the stamp always names the level the saved board really is.
+                val challengeResumeLevel = state.challengeResumeLevel
+                if (challengeResumeLevel != null) {
                     ResumeTile(
                         title = stringResource(R.string.resume_challenge_title),
                         supporting =
                             stringResource(
                                 R.string.resume_challenge_supporting,
-                                state.challengeCurrentLevel,
+                                challengeResumeLevel,
                             ),
-                        onResume = { onResumeChallenge(state.challengeCurrentLevel) },
+                        onResume = { onResumeChallenge(challengeResumeLevel) },
                     )
                 }
                 ClassicTile(onPlayClassic = onPlayClassic)

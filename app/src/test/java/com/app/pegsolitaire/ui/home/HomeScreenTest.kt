@@ -68,23 +68,27 @@ class HomeScreenTest {
     @Test
     fun bothContinueAffordancesRenderTogetherAndResumeTheirOwnMode() {
         // D-03: a Classic and a Challenge game coexist, so Home shows both entries.
+        // The Challenge Continue deliberately diverges from the ladder level here: the
+        // tile must label and resume at the SNAPSHOT's stamped level (WR-03), never at
+        // challengeCurrentLevel (which can lag at a cold start).
         var resumedLevel: Int? = null
         renderHome(
             state =
                 HomeUiState(
                     challengeCurrentLevel = PERSISTED_LEVEL,
                     classicResumeLevelId = RESUMABLE_LEVEL_ID,
-                    challengeResumeAvailable = true,
+                    challengeResumeLevel = STAMPED_RESUME_LEVEL,
                 ),
             onResumeChallenge = { level -> resumedLevel = level },
         )
 
         composeRule.onNodeWithText(RESUME_CLASSIC_LABEL).assertExists()
         composeRule.onNodeWithText(RESUME_CHALLENGE_LABEL).assertExists()
+        composeRule.onNodeWithText(STAMPED_RESUME_SUPPORTING).assertExists()
 
         composeRule.onNodeWithText(RESUME_CHALLENGE_LABEL).performClick()
         composeRule.waitForIdle()
-        assertThat(resumedLevel).isEqualTo(PERSISTED_LEVEL)
+        assertThat(resumedLevel).isEqualTo(STAMPED_RESUME_LEVEL)
     }
 
     private fun renderHome(
@@ -124,3 +128,9 @@ private val RESUMABLE_LEVEL_ID = ClassicLevelIds.EUROPEAN37
 /** The rendered Continue-affordance titles (verbatim from `strings.xml`). */
 private const val RESUME_CLASSIC_LABEL = "Continue Classic"
 private const val RESUME_CHALLENGE_LABEL = "Continue Challenge"
+
+/** The snapshot's stamped level — deliberately NOT the ladder level (WR-03). */
+private const val STAMPED_RESUME_LEVEL = 9
+
+/** The rendered supporting copy for [STAMPED_RESUME_LEVEL] (verbatim from `strings.xml`). */
+private const val STAMPED_RESUME_SUPPORTING = "Pick up Level 9 where you left off"

@@ -240,6 +240,26 @@ class HomeViewModelTest {
         }
 
     @Test
+    fun aChallengeSnapshotOffersAContinueAtItsStampedLevelNotTheColdStartLadder() =
+        runTest(testDispatcher) {
+            // WR-03: at a cold start the ladder flow still sits at its fail-open initial
+            // value while the snapshot's stamp names the real level — the tile must carry
+            // the stamp, or the restored level-N board gets played AS level 1.
+            val progress = FakeResumeProgressRepository()
+            progress.put(ProgressPersistenceKeys.MODE_CHALLENGE, PERSISTED_LEVEL.toString())
+            val viewModel =
+                viewModelFor(
+                    FakeOnboardingRepository(initiallySeen = true),
+                    persistedLevel = FIRST_LEVEL,
+                    progress = progress,
+                )
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.challengeCurrentLevel).isEqualTo(FIRST_LEVEL)
+            assertThat(viewModel.uiState.value.challengeResumeLevel).isEqualTo(PERSISTED_LEVEL)
+        }
+
+    @Test
     fun anUnreadableChallengeSnapshotOffersNoContinue() =
         runTest(testDispatcher) {
             // WR-02: the Challenge mode lists a row but its blob does not decode — keying
@@ -397,6 +417,10 @@ private class FakeResumeProgressRepository : ProgressRepository {
         ResumeSnapshotDto(
             mode = mode,
             levelId = levelId,
+            // A Challenge snapshot always carries its provenance stamp (WR-03) — the
+            // level the tile must label and resume into.
+            challengeLevel =
+                levelId.toIntOrNull().takeIf { mode == ProgressPersistenceKeys.MODE_CHALLENGE },
             inPlay = emptyList(),
             initialPegs = 0L,
             moves = emptyList(),

@@ -31,11 +31,12 @@ import javax.inject.Inject
  * continues the ladder instead of restarting it at level 1.
  *
  * Finally it mirrors which modes hold a saved in-progress game (PERS-03, D-01/D-03) into
- * [HomeUiState.classicResumeLevelId] / [HomeUiState.challengeResumeAvailable], so Home can
+ * [HomeUiState.classicResumeLevelId] / [HomeUiState.challengeResumeLevel], so Home can
  * offer up to two independent "Continue" affordances. Both snapshots are opened before a
  * tile is offered — the Classic one to learn which board to resume into, the Challenge
- * one to prove the blob actually decodes (WR-02; the load also lets the repository purge
- * a corrupt row) — and an unreadable blob degrades to "no resume" (T-05-03). A Classic
+ * one to read its stamped level (WR-03) and prove the blob actually decodes (WR-02; the
+ * load also lets the repository purge a corrupt row) — and an unreadable blob degrades
+ * to "no resume" (T-05-03). A Classic
  * blob whose `levelId` is no longer a catalog board (DB tampering, or an app update that
  * removed a board while an old snapshot survived) is equally unusable: the affordance is
  * withheld and the stale row purged, so a bogus id can never reach the Gameplay route's
@@ -97,14 +98,21 @@ class HomeViewModel
                     // The Challenge tile is keyed on the blob DECODING, not on the row
                     // existing (WR-02): loading it lets the repository purge a corrupt row,
                     // so a phantom "Continue Challenge" that could only ever start a fresh
-                    // board never survives a visit to Home.
-                    val challengeResumable =
-                        ProgressPersistenceKeys.MODE_CHALLENGE in modes &&
-                            progressRepository.loadSnapshot(ProgressPersistenceKeys.MODE_CHALLENGE) != null
+                    // board never survives a visit to Home. The level offered is the
+                    // snapshot's own provenance stamp (WR-03), never the ladder flow —
+                    // which at a cold start may still be its fail-open initial value.
+                    val challengeResumeLevel =
+                        if (ProgressPersistenceKeys.MODE_CHALLENGE in modes) {
+                            progressRepository
+                                .loadSnapshot(ProgressPersistenceKeys.MODE_CHALLENGE)
+                                ?.challengeLevel
+                        } else {
+                            null
+                        }
                     _uiState.update {
                         it.copy(
                             classicResumeLevelId = classicLevelId,
-                            challengeResumeAvailable = challengeResumable,
+                            challengeResumeLevel = challengeResumeLevel,
                         )
                     }
                 }

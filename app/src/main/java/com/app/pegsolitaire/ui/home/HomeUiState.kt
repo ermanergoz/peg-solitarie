@@ -23,18 +23,24 @@ import com.app.pegsolitaire.data.ChallengeProgressPreferences
  *   what an unreadable snapshot degrades to, so a corrupt blob simply hides the
  *   affordance instead of surfacing an error (T-05-03). Doubles as the board the
  *   Continue affordance resumes into: the screen carries the id, the host never guesses.
- * @property challengeResumeAvailable whether the Challenge mode holds a saved
- *   in-progress game (PERS-03). Independent of [classicResumeLevelId] — a Classic and a
- *   Challenge game coexist, so Home can show up to two Continue affordances (D-03). The
- *   level to resume into is [challengeCurrentLevel]; the snapshot is keyed by mode.
+ * @property challengeResumeLevel the level of the saved in-progress Challenge game
+ *   (PERS-03), read from the snapshot's own provenance stamp — or `null` when there is
+ *   nothing usable to continue. Independent of [classicResumeLevelId] — a Classic and a
+ *   Challenge game coexist, so Home can show up to two Continue affordances (D-03).
+ *   Deliberately NOT [challengeCurrentLevel] (WR-03): at a cold start the ladder flow
+ *   can still be at its fail-open initial value while the stamp always names the level
+ *   the snapshot actually holds, so the tile labels — and resumes into — the real one.
  */
 @Immutable
 data class HomeUiState(
     val onboardingVisible: Boolean = false,
     val challengeCurrentLevel: Int = ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL,
     val classicResumeLevelId: String? = null,
-    val challengeResumeAvailable: Boolean = false,
+    val challengeResumeLevel: Int? = null,
 ) {
     /** Whether a Classic game can be continued — i.e. a resumable board id is known. */
     val classicResumeAvailable: Boolean get() = classicResumeLevelId != null
+
+    /** Whether a Challenge game can be continued — i.e. a stamped resume level is known. */
+    val challengeResumeAvailable: Boolean get() = challengeResumeLevel != null
 }
