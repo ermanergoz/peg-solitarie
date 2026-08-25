@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Every fixed UI dp/sp value lives here (QUAL-03). Composables read these via
+  `dimensionResource(...)` — no raw `.dp`/`.sp` literal ever appears in a
+  composable (the custom dpSpLiteralCheck gate fails the build on one).
+
+  Proportional board geometry (peg/hole/dot/ring radii, cell size) is NOT here:
+  it scales with the canvas and is expressed as unitless ratios in `BoardMetrics`.
+-->
+<resources>
+    <!-- Spacing scale: 8-point grid (all multiples of 4). -->
+    <dimen name="spacing_xs">4dp</dimen>
+    <dimen name="spacing_sm">8dp</dimen>
+    <dimen name="spacing_md">16dp</dimen>
+    <dimen name="spacing_lg">24dp</dimen>
+    <dimen name="spacing_xl">32dp</dimen>
+
+    <!-- Phase-1 layout tokens (multiples of 4). -->
+    <dimen name="board_screen_margin">16dp</dimen>
+    <dimen name="board_max_size">480dp</dimen>
+    <dimen name="board_min_touch_target">48dp</dimen>
+    <dimen name="top_bar_icon_size">24dp</dimen>
+    <dimen name="dialog_padding">24dp</dimen>
+
+    <!--
+      Phase-2 layout tokens (multiples of 4) — owned here so the downstream UI
+      plans (Catalog 02-05, Home/onboarding 02-06, Results 02-07) consume them via
+      dimensionResource(...) with no hardcoded dp (QUAL-03).
+    -->
+    <!-- Caps the content column width on Home / Catalog / Results (tablet sprawl). -->
+    <dimen name="content_max_width">480dp</dimen>
+    <!-- Min height of the Home Classic / Challenge mode tiles (tap target + label + badge). -->
+    <dimen name="mode_tile_min_height">96dp</dimen>
+    <!-- LazyVerticalGrid(GridCells.Adaptive(min)) minimum catalog card width. -->
+    <dimen name="catalog_grid_min_cell_width">160dp</dimen>
+    <!-- Square edge of the mini BoardCanvas preview inside each catalog card. -->
+    <dimen name="catalog_preview_size">96dp</dimen>
+    <!--
+      Fixed height of every catalog BoardCard so equal grid-row cards align even when a
+      name wraps to 2 lines. Raised in Phase 5 to seat the earned-star pip row (D-10)
+      under the preview without clipping a 2-line name.
+    -->
+    <dimen name="catalog_card_height">248dp</dimen>
+    <!-- Rendered size of each earned-star pip on a catalog card (pip scale, not the Results star). -->
+    <dimen name="catalog_star_pip_size">16dp</dimen>
+    <!-- Rendered size of each of the 3 result stars (earned + unearned). -->
+    <dimen name="results_star_size">48dp</dimen>
+    <!-- Square edge of each onboarding step's jump illustration. -->
+    <dimen name="onboarding_illustration_size">160dp</dimen>
+
+    <!--
+      Phase-4 token: min height of the inline no-win/stuck rescue banner (multiple of 4)
+      so its three actions (Undo · Restart · Home) stay tap-reachable (UI-SPEC §4).
+    -->
+    <dimen name="nowin_banner_min_height">48dp</dimen>
+
+    <!--
+      Phase-5 token: min height of a Settings toggle row (label + supporting line beside
+      an M3 Switch), a multiple of 4 that keeps the row comfortably tap-sized (D-14).
+    -->
+    <dimen name="settings_row_min_height">72dp</dimen>
+
+    <!--
+      Phase-5 token: min height of a Home "Continue" tile (PERS-03, D-01). Deliberately
+      shorter than mode_tile_min_height — a resume affordance sits above the two mode
+      tiles without competing with them — while staying comfortably tap-sized.
+    -->
+    <dimen name="resume_tile_min_height">72dp</dimen>
+
+    <!--
+      Stroke widths (rendering, not layout spacing) — an INTENTIONAL sub-4dp
+      exception to the 8-point grid: a 4dp ring/outline would overpower the small
+      peg geometry. Do not round these up.
+    -->
+    <dimen name="peg_selected_ring_width">3dp</dimen>
+    <dimen name="hole_outline_width">1dp</dimen>
+</resources>

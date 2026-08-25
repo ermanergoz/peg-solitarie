@@ -1,0 +1,91 @@
+package com.app.pegsolitaire.ui.components
+
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import com.app.pegsolitaire.domain.model.Boards
+import com.app.pegsolitaire.domain.model.Position
+import com.app.pegsolitaire.ui.game.BoardMetrics
+import com.google.common.truth.Truth.assertThat
+import org.junit.Test
+
+/**
+ * Fast JVM coverage of the tappable surface the [BoardCanvas] exposes — its
+ * hoisted [BoardGeometry]. Driving the math directly (no Robolectric) validates
+ * the security-relevant behavior the Canvas depends on: a tap is mapped to an
+ * in-play [Position] only when it lands inside the English-33 footprint and within
+ * a cell's hit radius (T-04-01), otherwise it is dropped.
+ *
+ * Full on-device render + tap-to-jump is covered end-to-end by Plan 05's flow test.
+ */
+class BoardCanvasTest {
+    private val spec = Boards.English33
+    private val geometry = BoardGeometry.forCanvas(spec, Size(CANVAS_EDGE_PX, CANVAS_EDGE_PX))
+
+    @Test
+    fun zeroSizeGeometryIsNotReadyAndDropsTaps() {
+        val unmeasured = BoardGeometry.forCanvas(spec, Size.Zero)
+
+        assertThat(unmeasured.isReady).isFalse()
+        assertThat(unmeasured.positionAt(Offset.Zero)).isNull()
+    }
+
+    @Test
+    fun cellSizeFillsTheSquareCanvas() {
+        assertThat(geometry.isReady).isTrue()
+        assertThat(geometry.cellSize).isEqualTo(CANVAS_EDGE_PX / geometry.gridDimension)
+    }
+
+    @Test
+    fun tappingACellCenterMapsToThatPosition() {
+        val centerHole = Position(row = 3, col = 3)
+
+        assertThat(geometry.positionAt(geometry.center(centerHole))).isEqualTo(centerHole)
+    }
+
+    @Test
+    fun everyInPlayCellCenterHitTestsToItself() {
+        spec.inPlay.forEach { position ->
+            assertThat(geometry.positionAt(geometry.center(position))).isEqualTo(position)
+        }
+    }
+
+    @Test
+    fun tappingABlockedCornerIsDropped() {
+        val corner = Position(row = 0, col = 0)
+
+        assertThat(corner in spec).isFalse()
+        assertThat(geometry.positionAt(geometry.center(corner))).isNull()
+    }
+
+    @Test
+    fun tappingOutsideTheBoardIsDropped() {
+        assertThat(geometry.positionAt(Offset(-CANVAS_EDGE_PX, -CANVAS_EDGE_PX))).isNull()
+        assertThat(geometry.positionAt(Offset(FAR_OUTSIDE_PX, FAR_OUTSIDE_PX))).isNull()
+    }
+
+    /**
+     * The winning-move hint overlay (D-01) is driven by these two proportional radii. The
+     * source glow (A) must be strictly larger than the selection ring so a hint never reads
+     * as a selection, and the target ring (B) strictly larger than the legal-move dot so it
+     * reads as a target, not a dot — the visual-distinctness contract the highlight relies on.
+     */
+    @Test
+    fun hintRingRadiiAreDistinctFromSelectionAndDot() {
+        assertThat(geometry.hintSourceRingRadius).isGreaterThan(geometry.selectedRingRadius)
+        assertThat(geometry.hintTargetRingRadius).isGreaterThan(geometry.destinationDotRadius)
+    }
+
+    /** Both hint rings scale proportionally with the measured cell size (resolution-independent). */
+    @Test
+    fun hintRingRadiiAreProportionalToCellSize() {
+        assertThat(geometry.hintSourceRingRadius)
+            .isEqualTo(BoardMetrics.HINT_SOURCE_RING_RATIO * geometry.cellSize)
+        assertThat(geometry.hintTargetRingRadius)
+            .isEqualTo(BoardMetrics.HINT_TARGET_RING_RATIO * geometry.cellSize)
+    }
+
+    private companion object {
+        const val CANVAS_EDGE_PX = 700f
+        const val FAR_OUTSIDE_PX = 1400f
+    }
+}

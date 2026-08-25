@@ -1,0 +1,36 @@
+# Gradle
+.gradle/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android / local SDK location (per-machine, never committed)
+local.properties
+
+# IDE
+.idea/
+*.iml
+.kotlin/
+
+# OS
+.DS_Store
+
+# Android build intermediates
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Signing — never commit release keystores or signing secrets
+*.jks
+*.keystore
+keystore.properties
+
+# Memory dumps (e.g. LeakCanary heap dumps)
+*.hprof
+
+# Build outputs (if produced outside build/)
+*.apk
+*.aab
+*.ap_
+
+# Play / Firebase config — uncomment when Play Games / AdMob land in Slice 2 (may carry keys)
+# google-services.json

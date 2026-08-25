@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  All user-facing copy (CLAUDE.md no-magic-strings rule). Wording is the verbatim
+  Copywriting Contract from the Phase-1 UI-SPEC. The pegs-remaining count is a
+  plural-aware resource so "1 peg" / "n pegs" agree grammatically.
+
+  The game-over and restart-confirm strings are consumed by the dialogs in
+  Plan 05; they are declared here so the copy contract lives in one place.
+-->
+<resources>
+    <string name="app_name">Peg Solitaire</string>
+
+    <!-- Top-bar restart control (icon-only; this is its content description). -->
+    <string name="restart_board">Restart Board</string>
+
+    <!-- Game-over dialog (D-05). -->
+    <string name="play_again">Play Again</string>
+    <string name="view_board">View Board</string>
+    <string name="game_over_perfect_headline">Perfect!</string>
+    <string name="game_over_perfect_body">You cleared the board down to a single peg.</string>
+    <string name="game_over_near_headline">So close!</string>
+    <string name="game_over_stuck_headline">No moves left</string>
+
+    <!-- Mid-game restart confirmation (D-06). -->
+    <string name="restart_confirm_title">Restart this board?</string>
+    <string name="restart_confirm_body">Your current progress will be lost.</string>
+    <string name="keep_playing">Keep Playing</string>
+
+    <!-- Pegs-remaining body copy, plural-aware ({n}). -->
+    <plurals name="pegs_remaining">
+        <item quantity="one">%d peg remaining.</item>
+        <item quantity="other">%d pegs remaining.</item>
+    </plurals>
+    <plurals name="pegs_remaining_retry">
+        <item quantity="one">%d peg remaining. Try again?</item>
+        <item quantity="other">%d pegs remaining. Try again?</item>
+    </plurals>
+
+    <!--
+      ============================ Phase-2 copy ============================
+      All Phase-2 user-facing strings, declared here up front so the Classic-flow
+      UI plans (Catalog 02-05, Home/onboarding 02-06, Results 02-07) read them via
+      stringResource(...) with no magic strings. Verbatim from the Phase-2 UI-SPEC
+      Copywriting Contract. Phase-1 strings above are reused, not duplicated
+      (e.g. restart_board for the gameplay restart content description).
+    -->
+
+    <!-- Classic board display names (catalog cards, ascending hole count). -->
+    <string name="board_english33">English-33</string>
+    <string name="board_european37">European-37</string>
+    <string name="board_asymmetric39">Asymmetric 3-3-2-2</string>
+    <string name="board_diamond41">Diamond-41</string>
+    <string name="board_wiegleb45">Wiegleb-45</string>
+
+    <!-- Home (mode select). -->
+    <string name="classic_tile_title">Classic</string>
+    <string name="classic_tile_supporting">5 boards</string>
+    <string name="challenge_tile_title">Challenge</string>
+    <!-- The Challenge tile's supporting line: the player's persisted ladder position (CHAL-05). -->
+    <string name="challenge_tile_continue">Continue — Level %1$d</string>
+    <string name="coming_soon">Coming soon</string>
+    <string name="how_to_play">How to play</string>
+
+    <!-- Classic catalog. -->
+    <string name="catalog_title">Classic</string>
+    <!-- Hole-count subtitle on each catalog card, plural-aware. -->
+    <plurals name="holes_count">
+        <item quantity="one">%d hole</item>
+        <item quantity="other">%d holes</item>
+    </plurals>
+    <!--
+      Screen-reader description of a catalog card's earned-star pips (PERS-01, D-10):
+      the row announces its count once ("1 of 3 stars") instead of three anonymous icons.
+    -->
+    <string name="catalog_stars_earned">%1$d of %2$d stars</string>
+
+    <!-- Gameplay top bar (timer + back; restart_board reused from Phase 1). -->
+    <string name="navigate_back">Navigate back</string>
+    <string name="elapsed_time">Elapsed time</string>
+    <!-- Challenge gameplay top-bar "Level N" title + its screen-reader description (S2, D-03). -->
+    <string name="challenge_level_indicator">Level %1$d</string>
+    <string name="challenge_level_indicator_desc">Challenge level %1$d</string>
+    <!-- Undo control (icon-only; disabled when there is nothing to undo, ASST-02). -->
+    <string name="undo_action">Undo</string>
+    <!-- Winning-move Hint action (icon-only; distinct from the show-moves toggle, D-01/D-02). -->
+    <string name="hint_action">Hint</string>
+    <!-- Announced while the Solver computes a hint; the control is disabled (D-10). -->
+    <string name="hint_thinking">Finding a move</string>
+    <!-- Show-possible-moves toggle (icon-only; content description reflects the on/off state, D-02). -->
+    <string name="show_moves_on">Show possible moves</string>
+    <string name="show_moves_off">Hide possible moves</string>
+    <!-- Shown while a Challenge board is generated off the main thread (CR-01). -->
+    <string name="loading_level">Loading level</string>
+
+    <!--
+      Inline no-win / stuck rescue banner (ASST-03, D-06/D-08/D-09). One shared banner
+      surfaces either message over the still-interactive board; rescue_restart is the
+      label form of the Restart action (distinct from the restart_board content-desc),
+      and the banner reuses undo_action + action_home for its other two actions.
+    -->
+    <string name="nowin_message">No winning move — undo or restart</string>
+    <string name="stuck_message">No moves left — undo or restart</string>
+    <string name="rescue_restart">Restart</string>
+
+    <!-- Results. -->
+    <string name="results_title">Results</string>
+    <string name="results_headline_perfect">Perfect!</string>
+    <string name="results_headline_solved">Solved!</string>
+    <string name="results_headline_stuck">Out of moves</string>
+    <string name="results_label_score">SCORE</string>
+    <string name="results_label_time">TIME</string>
+    <string name="results_label_pegs_left">PEGS LEFT</string>
+    <string name="action_replay">Replay</string>
+    <string name="action_catalog">Catalog</string>
+    <string name="action_home">Home</string>
+    <!--
+      Results "New best!" cue (PERS-01, D-09): shown only when the play actually improved
+      one of the level's stored bests (stars, time or score).
+    -->
+    <string name="results_new_best">New best!</string>
+    <!-- Challenge-aware Results actions (S3, D-01/D-10). -->
+    <string name="action_next_level">Next level</string>
+    <string name="action_retry">Retry</string>
+    <string name="challenge_load_error">Couldn\'t load this level. Tap Retry.</string>
+
+    <!--
+      ============================ Phase-5 copy ============================
+      Settings (SET-01/SET-02, D-14..D-17). The sound supporting line states the
+      honest Phase-5 truth — the choice is saved now and consumed when the audio
+      pass lands (D-16) — while haptics describes the feedback that fires today
+      (D-15). settings_action is the Home gear's content description.
+    -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_action">Settings</string>
+    <string name="settings_sound_label">Sound</string>
+    <string name="settings_sound_supporting">Saved for the upcoming sound effects</string>
+    <string name="settings_haptics_label">Haptics</string>
+    <string name="settings_haptics_supporting">Vibrate lightly on each jump</string>
+
+    <!--
+      Home "Continue" affordances for a saved in-progress game (PERS-03, D-01/D-03). Each
+      mode has its own tile and they can appear together, so the titles name the mode
+      rather than relying on position. The supporting lines say what is actually being
+      resumed — the exact board, not a fresh start.
+    -->
+    <string name="resume_classic_title">Continue Classic</string>
+    <string name="resume_classic_supporting">Pick up your saved board</string>
+    <string name="resume_challenge_title">Continue Challenge</string>
+    <string name="resume_challenge_supporting">Pick up Level %1$d where you left off</string>
+
+    <!-- Onboarding overlay (first-run how-to-play of the orthogonal jump). -->
+    <string name="onboarding_got_it">Got it</string>
+    <string name="onboarding_skip">Skip tutorial</string>
+    <string name="onboarding_step_1">Tap a peg, then tap an empty hole two cells away.</string>
+    <string name="onboarding_step_2">The peg jumps straight over its neighbor — only up, down, left, or right.</string>
+    <string name="onboarding_step_3">The jumped peg is removed. Clear the board down to one peg.</string>
+</resources>
