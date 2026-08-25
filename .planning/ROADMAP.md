@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Classic Mode, Scoring & Navigation** - Home → pick 1 of 5 classic boards → play → results with stars/score; full screen flow + LevelRepository seam (completed 2026-06-29)
 - [x] **Phase 3: Challenge Generation & Difficulty Curve** - Infinite, deterministic, guaranteed-solvable generated levels with scaling difficulty (project #1 risk) (completed 2026-07-01)
 - [x] **Phase 4: Assist — Hint & Undo** - State-relative hint (canonical line + Solver fallback + "no winning move" state) and undo (completed 2026-07-12)
-- [ ] **Phase 5: Persistence, Resume & Settings** - Per-level results, continue-from-highest, in-progress resume, sound/haptics — migration-safe
+- [x] **Phase 5: Persistence, Resume & Settings** - Per-level results, continue-from-highest, in-progress resume, sound/haptics — migration-safe (completed 2026-08-25)
 
 ## Phase Details
 
@@ -115,7 +115,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 05-04-PLAN.md — Settings screen + Home gear + real haptics on jump [SET-01, SET-02]
 - [x] 05-05-PLAN.md — Results "New best!" cue + Classic catalog star pips [PERS-01]
 - [x] 05-06-PLAN.md — Wire ChallengeProgress: advance-on-solve + Home continue-at-level [PERS-02, CHAL-05]
-- [ ] 05-07-PLAN.md — Resume save/restore/clear + lifecycle onStop + Home Continue affordances [PERS-03]
+- [x] 05-07-PLAN.md — Resume save/restore/clear + lifecycle onStop + Home Continue affordances [PERS-03]
 
 ## Future Milestone (out of scope for this roadmap)
 
@@ -132,4 +132,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Classic Mode, Scoring & Navigation | 8/8 | Complete   | 2026-06-29 |
 | 3. Challenge Generation & Difficulty Curve | 5/5 | Complete   | 2026-07-01 |
 | 4. Assist — Hint & Undo | 6/6 | Complete   | 2026-07-12 |
-| 5. Persistence, Resume & Settings | 6/7 | In Progress|  |
+| 5. Persistence, Resume & Settings | 7/7 | Complete   | 2026-08-25 |
