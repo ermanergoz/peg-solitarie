@@ -291,9 +291,17 @@ private class SingleBoardLevelRepository(
     override fun loadChallenge(levelNumber: Int): Level = error("Challenge is a Phase-3 stub")
 }
 
-/** A fixed hints-on [SettingsRepository]; this flow test never toggles the setting. */
+/** A fixed all-on [SettingsRepository]; this flow test never toggles a setting. */
 private object HintsOnSettingsRepository : SettingsRepository {
     override val hintsEnabled: Flow<Boolean> = flowOf(true)
 
+    override val soundOn: Flow<Boolean> = flowOf(true)
+
+    override val hapticsOn: Flow<Boolean> = flowOf(true)
+
     override suspend fun setHintsEnabled(enabled: Boolean) = Unit
+
+    override suspend fun setSoundOn(on: Boolean) = Unit
+
+    override suspend fun setHapticsOn(on: Boolean) = Unit
 }

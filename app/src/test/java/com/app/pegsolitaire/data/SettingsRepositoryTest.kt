@@ -14,14 +14,14 @@ import org.junit.rules.TemporaryFolder
 import java.io.IOException
 
 /**
- * Unit coverage of [SettingsRepositoryImpl]'s DataStore-backed `hintsEnabled` flag and
- * its fail-open contract (pure JVM, no Android).
+ * Unit coverage of [SettingsRepositoryImpl]'s DataStore-backed flags — `hintsEnabled`,
+ * `soundOn` (SET-01) and `hapticsOn` (SET-02) — and their fail-open contract (pure JVM,
+ * no Android).
  *
- *  - a real Preferences store over a temp file proves the default is `true` (fresh
- *    install → hints on) and that [SettingsRepositoryImpl.setHintsEnabled] round-trips
- *    `false` back to `true`;
- *  - a deliberately-throwing store proves the read **fails open** — a corrupt/IO error
- *    degrades to "hints on" (`true`) rather than crashing, mirroring [OnboardingRepository].
+ *  - a real Preferences store over a temp file proves each flag defaults to `true` (fresh
+ *    install → every helper on) and that the setters round-trip `false` back to `true`;
+ *  - a deliberately-throwing store proves each read **fails open** — a corrupt/IO error
+ *    degrades to `true` rather than crashing, mirroring [OnboardingRepository] (D-17).
  */
 class SettingsRepositoryTest {
     @get:Rule
@@ -53,6 +53,77 @@ class SettingsRepositoryTest {
             val repository = SettingsRepositoryImpl(throwingDataStore())
 
             // A corrupt/IO read must degrade to "hints on" (never hide beginner help), never throw.
+            assertThat(repository.hintsEnabled.first()).isTrue()
+        }
+
+    @Test
+    fun soundOnDefaultsToTrueOnAFreshStore() =
+        runTest {
+            val repository = SettingsRepositoryImpl(realDataStore())
+
+            // D-17: fresh install ships both audio/haptic helpers ON.
+            assertThat(repository.soundOn.first()).isTrue()
+        }
+
+    @Test
+    fun setSoundOnFalseThenTrueRoundTrips() =
+        runTest {
+            val repository = SettingsRepositoryImpl(realDataStore())
+
+            repository.setSoundOn(false)
+            assertThat(repository.soundOn.first()).isFalse()
+
+            repository.setSoundOn(true)
+            assertThat(repository.soundOn.first()).isTrue()
+        }
+
+    @Test
+    fun soundOnFailsOpenToTrueWhenTheReadErrors() =
+        runTest {
+            val repository = SettingsRepositoryImpl(throwingDataStore())
+
+            // A corrupt/IO read must degrade to the ON default, never throw.
+            assertThat(repository.soundOn.first()).isTrue()
+        }
+
+    @Test
+    fun hapticsOnDefaultsToTrueOnAFreshStore() =
+        runTest {
+            val repository = SettingsRepositoryImpl(realDataStore())
+
+            assertThat(repository.hapticsOn.first()).isTrue()
+        }
+
+    @Test
+    fun setHapticsOnFalseThenTrueRoundTrips() =
+        runTest {
+            val repository = SettingsRepositoryImpl(realDataStore())
+
+            repository.setHapticsOn(false)
+            assertThat(repository.hapticsOn.first()).isFalse()
+
+            repository.setHapticsOn(true)
+            assertThat(repository.hapticsOn.first()).isTrue()
+        }
+
+    @Test
+    fun hapticsOnFailsOpenToTrueWhenTheReadErrors() =
+        runTest {
+            val repository = SettingsRepositoryImpl(throwingDataStore())
+
+            assertThat(repository.hapticsOn.first()).isTrue()
+        }
+
+    @Test
+    fun theThreeFlagsArePersistedIndependently() =
+        runTest {
+            val repository = SettingsRepositoryImpl(realDataStore())
+
+            repository.setSoundOn(false)
+
+            // Turning sound off must not disturb the sibling flags.
+            assertThat(repository.soundOn.first()).isFalse()
+            assertThat(repository.hapticsOn.first()).isTrue()
             assertThat(repository.hintsEnabled.first()).isTrue()
         }
 

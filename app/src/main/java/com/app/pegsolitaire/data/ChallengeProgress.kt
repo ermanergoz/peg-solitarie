@@ -1,43 +1,96 @@
 package com.app.pegsolitaire.data
 
-import kotlinx.coroutines.flow.MutableStateFlow
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.intPreferencesKey
+import com.app.pegsolitaire.di.ApplicationScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Scoped constant for the Challenge starting level (QUAL-03 — no inline literal). */
-private const val FIRST_CHALLENGE_LEVEL = 1
+/** Scoped constants for the Challenge-progress Preferences keys (QUAL-03 — no inline literals). */
+internal object ChallengeProgressPreferences {
+    /** The int key holding the player's current Challenge level (1-based). */
+    val CURRENT_LEVEL_KEY = intPreferencesKey("challenge_current_level")
+
+    /** Fail-open default: a fresh install — or a corrupt/IO read — starts at level 1. */
+    const val DEFAULT_CURRENT_LEVEL = 1
+}
 
 /**
- * The in-memory holder for the player's current Challenge level (D-04).
+ * The single source of truth for the player's current Challenge level (PERS-02 / CHAL-05).
  *
- * This phase tracks the current level in memory only — Challenge restarts at level 1
- * each session. It is deliberately shaped as the persistence seam Phase 5 (CHAL-05 /
- * PERS-02) will back with DataStore so "continue from highest level reached" drops in
- * behind the same interface without touching the gameplay/results wiring.
+ * Backed by the **shared** `app_prefs` DataStore (never a second `preferencesDataStore`
+ * delegate — that crashes at runtime; see `AppPreferences`), so the level survives process
+ * death: closing and reopening the app resumes the same Challenge level.
  *
- * Exposes the current level as a read-only [StateFlow] (the UI observes it; only this
- * holder mutates it) and advances on solve (D-02 — only a 1-peg solve unlocks N+1).
- * A constructor-injectable `@Singleton`, mirroring the repository-seam shape — no Hilt
- * `@Binds` entry needed. Zero Android dependencies, so it is JVM-unit-testable.
+ * The public surface is deliberately unchanged from the Phase-3 in-memory seam —
+ * [currentLevel] is still a hot [StateFlow] with a synchronously readable `.value` (via
+ * `stateIn` over the DataStore flow), and [advanceToNext]/[reset] are still plain
+ * (non-`suspend`) calls that write through on the injected app-lifetime [CoroutineScope].
+ * Reads **fail open** to [ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL], mirroring
+ * [SettingsRepositoryImpl]: a damaged store drops the player back to level 1 rather than
+ * crashing the Challenge entry point.
  */
 @Singleton
 class ChallengeProgress
     @Inject
-    constructor() {
-        private val _currentLevel = MutableStateFlow(FIRST_CHALLENGE_LEVEL)
+    constructor(
+        private val dataStore: DataStore<Preferences>,
+        @ApplicationScope private val scope: CoroutineScope,
+    ) {
+        /**
+         * The current Challenge level (1-based).
+         *
+         * `stateIn(..., Eagerly, DEFAULT)` keeps the pre-existing synchronous `.value`
+         * contract intact while the actual value is sourced from disk: the initial value is
+         * the fail-open default and the persisted level lands as soon as the first
+         * DataStore read completes.
+         */
+        val currentLevel: StateFlow<Int> =
+            dataStore.data
+                .catch { emit(emptyPreferences()) }
+                .map {
+                    it[ChallengeProgressPreferences.CURRENT_LEVEL_KEY]
+                        ?: ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL
+                }.stateIn(
+                    scope = scope,
+                    started = SharingStarted.Eagerly,
+                    initialValue = ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL,
+                )
 
-        /** The current Challenge level (1-based), starting at [FIRST_CHALLENGE_LEVEL]. */
-        val currentLevel: StateFlow<Int> = _currentLevel.asStateFlow()
-
-        /** Advances to the next level (N → N+1) — called when the player solves level N. */
+        /**
+         * Advances to the next level (N → N+1) — called when the player solves level N.
+         *
+         * The increment is computed *inside* the `edit` transaction (not from the cached
+         * [currentLevel] value) so two rapid solves can never collapse into one level.
+         */
         fun advanceToNext() {
-            _currentLevel.value += 1
+            scope.launch {
+                dataStore.edit { preferences ->
+                    val current =
+                        preferences[ChallengeProgressPreferences.CURRENT_LEVEL_KEY]
+                            ?: ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL
+                    preferences[ChallengeProgressPreferences.CURRENT_LEVEL_KEY] = current + 1
+                }
+            }
         }
 
         /** Resets progress back to the first level (a fresh Challenge run). */
         fun reset() {
-            _currentLevel.value = FIRST_CHALLENGE_LEVEL
+            scope.launch {
+                dataStore.edit {
+                    it[ChallengeProgressPreferences.CURRENT_LEVEL_KEY] =
+                        ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL
+                }
+            }
         }
     }
