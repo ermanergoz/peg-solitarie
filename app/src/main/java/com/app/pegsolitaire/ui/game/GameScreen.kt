@@ -1,5 +1,6 @@
 package com.app.pegsolitaire.ui.game
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -39,6 +40,7 @@ import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.ui.components.BoardCanvas
 import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
+import com.app.pegsolitaire.ui.theme.ctaGradientBrush
 import com.app.pegsolitaire.ui.theme.withTabularFigures
 
 /** Test tag of the board-state node carrying the [PegCountKey]/[GameStatusKey]/[LegalTargetCountKey] semantics. */
@@ -337,14 +339,23 @@ private fun LoadingIndicator() {
     )
 }
 
-/** The mid-game restart confirmation (D-06): confirm discards progress, dismiss keeps playing. */
+/**
+ * The mid-game restart confirmation (D-06): confirm discards progress, dismiss keeps
+ * playing. A chunky extraLarge clay dialog whose confirm action rides the CtaGradient
+ * (the one accent) over a quiet "Keep Playing" clay chip. The action labels are the
+ * unchanged `restart_board` / `keep_playing` copy the flow test drives.
+ */
 @Composable
 private fun RestartConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val shape = MaterialTheme.shapes.extraLarge
     AlertDialog(
         onDismissRequest = onDismiss,
+        shape = shape,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        tonalElevation = dimensionResource(R.dimen.elevation_dialog),
         title = {
             Text(
                 text = stringResource(R.string.restart_confirm_title),
@@ -358,18 +369,31 @@ private fun RestartConfirmDialog(
             )
         },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
+            val buttonShape = MaterialTheme.shapes.medium
+            TextButton(
+                onClick = onConfirm,
+                shape = buttonShape,
+                modifier =
+                    Modifier
+                        .claySquish()
+                        .background(brush = ctaGradientBrush(), shape = buttonShape),
+            ) {
                 Text(
                     text = stringResource(R.string.restart_board),
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     style = MaterialTheme.typography.labelLarge,
                 )
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss,
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.claySquish(),
+            ) {
                 Text(
                     text = stringResource(R.string.keep_playing),
+                    color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.labelLarge,
                 )
             }
