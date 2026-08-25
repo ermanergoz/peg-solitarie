@@ -113,8 +113,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] 05-02-PLAN.md — DataStore: sound/haptics settings + Challenge currentLevel over shared app_prefs [SET-01, SET-02, PERS-02, CHAL-05]
 - [x] 05-03-PLAN.md — ProgressRepository (best-result upsert) + resume DTO/SnapshotMapper (regeneration-free, fail-safe) [PERS-01, PERS-03]
 - [x] 05-04-PLAN.md — Settings screen + Home gear + real haptics on jump [SET-01, SET-02]
-- [ ] 05-05-PLAN.md — Results "New best!" cue + Classic catalog star pips [PERS-01]
-- [ ] 05-06-PLAN.md — Wire ChallengeProgress: advance-on-solve + Home continue-at-level [PERS-02, CHAL-05]
+- [x] 05-05-PLAN.md — Results "New best!" cue + Classic catalog star pips [PERS-01]
+- [x] 05-06-PLAN.md — Wire ChallengeProgress: advance-on-solve + Home continue-at-level [PERS-02, CHAL-05]
 - [ ] 05-07-PLAN.md — Resume save/restore/clear + lifecycle onStop + Home Continue affordances [PERS-03]
 
 ## Future Milestone (out of scope for this roadmap)
@@ -132,4 +132,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Classic Mode, Scoring & Navigation | 8/8 | Complete   | 2026-06-29 |
 | 3. Challenge Generation & Difficulty Curve | 5/5 | Complete   | 2026-07-01 |
 | 4. Assist — Hint & Undo | 6/6 | Complete   | 2026-07-12 |
-| 5. Persistence, Resume & Settings | 4/7 | In Progress|  |
+| 5. Persistence, Resume & Settings | 6/7 | In Progress|  |
