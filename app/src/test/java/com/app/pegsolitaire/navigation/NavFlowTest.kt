@@ -29,9 +29,10 @@ import org.robolectric.annotation.Config
  * Robolectric + Compose reachability proof for the type-safe nav graph (NAV-02).
  *
  * Hosts [AppNavHost] over a real captured [NavHostController] and drives the spine
- * Home → ClassicCatalog → Gameplay(levelId) → Results(...), asserting each of the five
- * `@Serializable` routes is reached via `currentDestination.hasRoute<...>()` and that
- * the selected-board `levelId` round-trips through `Gameplay`/`Results` args.
+ * Home → ClassicCatalog → Gameplay(levelId) → Results(...) plus the Home → Settings
+ * branch (D-14), asserting each of the six `@Serializable` routes is reached via
+ * `currentDestination.hasRoute<...>()` and that the selected-board `levelId`
+ * round-trips through `Gameplay`/`Results` args.
  *
  * The destination bodies are lightweight stand-ins (each a tappable [Box] that fires the
  * nav callback `AppNavHost` supplies), so the test exercises `AppNavHost`'s real
@@ -53,7 +54,7 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { onPlayClassic, _ -> StubDestination(HOME_TAG, onPlayClassic) },
+                homeContent = { onPlayClassic, _, _ -> StubDestination(HOME_TAG, onPlayClassic) },
                 catalogContent = { onSelect, _ -> StubDestination(CATALOG_TAG) { onSelect(SELECTED_LEVEL_ID) } },
                 gameplayContent = { onFinished, _ -> StubDestination(GAMEPLAY_TAG) { onFinished(sampleResults()) } },
                 resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
@@ -90,7 +91,7 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { _, onPlayChallenge -> StubDestination(HOME_TAG) { onPlayChallenge() } },
+                homeContent = { _, onPlayChallenge, _ -> StubDestination(HOME_TAG) { onPlayChallenge() } },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
                 gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
                 resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
@@ -109,12 +110,40 @@ class NavFlowTest {
     }
 
     @Test
+    fun homeGearOpensSettingsAndBackReturnsToHome() {
+        composeRule.setContent {
+            navController = rememberNavController()
+            AppNavHost(
+                navController = navController,
+                homeContent = { _, _, onOpenSettings -> StubDestination(HOME_TAG) { onOpenSettings() } },
+                catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
+                gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
+                resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
+                settingsContent = { onBack -> StubDestination(SETTINGS_TAG) { onBack() } },
+            )
+        }
+
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(HOME_ROUTE)
+
+        // Home gear → the Settings destination (D-14).
+        composeRule.onNodeWithTag(HOME_TAG).performClick()
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(SETTINGS_ROUTE)
+
+        // Settings back nav pops straight back to Home (no arg surface, T-05-08).
+        composeRule.onNodeWithTag(SETTINGS_TAG).performClick()
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(HOME_ROUTE)
+    }
+
+    @Test
     fun challengeRetryReloadsSameBoardWithoutGrowingBackStack() {
         composeRule.setContent {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { _, onPlayChallenge -> StubDestination(HOME_TAG) { onPlayChallenge() } },
+                homeContent = { _, onPlayChallenge, _ -> StubDestination(HOME_TAG) { onPlayChallenge() } },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
                 gameplayContent = { onFinished, _ ->
                     StubDestination(GAMEPLAY_TAG) { onFinished(stuckChallengeResults()) }
@@ -220,6 +249,7 @@ private const val HOME_TAG = "stub_home"
 private const val CATALOG_TAG = "stub_catalog"
 private const val GAMEPLAY_TAG = "stub_gameplay"
 private const val RESULTS_TAG = "stub_results"
+private const val SETTINGS_TAG = "stub_settings"
 
 // Each route's serialized pattern is its fully-qualified class name; the simple name is
 // a stable, unambiguous substring of `currentDestination.route` for the reachability check.
@@ -227,6 +257,7 @@ private const val HOME_ROUTE = "Home"
 private const val CATALOG_ROUTE = "ClassicCatalog"
 private const val GAMEPLAY_ROUTE = "Gameplay"
 private const val RESULTS_ROUTE = "Results"
+private const val SETTINGS_ROUTE = "Settings"
 
 /** A real catalog id, proving navigation carries the selected board through the graph. */
 private val SELECTED_LEVEL_ID = ClassicLevelIds.EUROPEAN37

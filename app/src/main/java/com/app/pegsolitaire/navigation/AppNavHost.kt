@@ -9,6 +9,7 @@ import com.app.pegsolitaire.ui.classic.ClassicCatalogRoute
 import com.app.pegsolitaire.ui.game.GameRoute
 import com.app.pegsolitaire.ui.home.HomeRoute
 import com.app.pegsolitaire.ui.results.ResultsRoute
+import com.app.pegsolitaire.ui.settings.SettingsRoute
 
 /** The Results actions, hoisted so [AppNavHost]'s content is test-injectable. */
 private typealias ResultsContent =
@@ -22,14 +23,15 @@ private typealias ResultsContent =
     ) -> Unit
 
 /**
- * The type-safe navigation host wiring the full five-screen spine (NAV-02).
+ * The type-safe navigation host wiring the full six-screen spine (NAV-02).
  *
- * `NavHost` over the five `@Serializable` [Routes] with `startDestination = Home`:
- * Home → ClassicCatalog → Gameplay(levelId) → Results(...). Back arrows pop
- * (Catalog→Home, Gameplay→Catalog, Results→Catalog); the Results Replay action
- * navigates → `Gameplay(id)` (popping up to `ClassicCatalog` so board-hops don't grow
- * the back stack unboundedly — T-02-08-NAV) and Catalog/Home pop back to those
- * destinations. This replaces the Phase-1 direct `GameRoute()` host in `MainActivity`.
+ * `NavHost` over the six `@Serializable` [Routes] with `startDestination = Home`:
+ * Home → ClassicCatalog → Gameplay(levelId) → Results(...), plus Home → Settings
+ * (the top-bar gear, D-14). Back arrows pop (Catalog→Home, Gameplay→Catalog,
+ * Results→Catalog, Settings→Home); the Results Replay action navigates →
+ * `Gameplay(id)` (popping up to `ClassicCatalog` so board-hops don't grow the back
+ * stack unboundedly — T-02-08-NAV) and Catalog/Home pop back to those destinations.
+ * This replaces the Phase-1 direct `GameRoute()` host in `MainActivity`.
  *
  * Each destination's body is a default-valued slot wired to the real `*Route` composable;
  * the slots exist so `NavFlowTest` can drive the graph with lightweight stand-ins (the
@@ -41,13 +43,22 @@ private typealias ResultsContent =
  * @param catalogContent the ClassicCatalog destination body (defaults to [ClassicCatalogRoute]).
  * @param gameplayContent the Gameplay destination body (defaults to [GameRoute]).
  * @param resultsContent the Results destination body (defaults to [ResultsRoute]).
+ * @param settingsContent the Settings destination body (defaults to [SettingsRoute], D-14).
  */
 @Composable
 fun AppNavHost(
     navController: NavHostController = rememberNavController(),
-    homeContent: @Composable (onPlayClassic: () -> Unit, onPlayChallenge: () -> Unit) -> Unit =
-        { onPlayClassic, onPlayChallenge ->
-            HomeRoute(onPlayClassic = onPlayClassic, onPlayChallenge = onPlayChallenge)
+    homeContent: @Composable (
+        onPlayClassic: () -> Unit,
+        onPlayChallenge: () -> Unit,
+        onOpenSettings: () -> Unit,
+    ) -> Unit =
+        { onPlayClassic, onPlayChallenge, onOpenSettings ->
+            HomeRoute(
+                onPlayClassic = onPlayClassic,
+                onPlayChallenge = onPlayChallenge,
+                onOpenSettings = onOpenSettings,
+            )
         },
     catalogContent: @Composable (onSelect: (String) -> Unit, onNavigateBack: () -> Unit) -> Unit =
         { onSelect, onNavigateBack ->
@@ -67,14 +78,22 @@ fun AppNavHost(
             onNavigateBack = onNavigateBack,
         )
     },
+    settingsContent: @Composable (onBack: () -> Unit) -> Unit = { onBack ->
+        SettingsRoute(onBack = onBack)
+    },
 ) {
     NavHost(navController = navController, startDestination = Home) {
         composable<Home> {
-            // homeContent slot: onPlayClassic, onPlayChallenge
+            // homeContent slot: onPlayClassic, onPlayChallenge, onOpenSettings
             homeContent(
                 { navController.navigate(ClassicCatalog) },
                 { navController.navigate(Gameplay(challengeLevel = CHALLENGE_ENTRY_LEVEL)) },
+                { navController.navigate(Settings) },
             )
+        }
+        composable<Settings> {
+            // settingsContent slot: onBack (pops back to Home, D-14)
+            settingsContent { navController.popBackStack() }
         }
         composable<ClassicCatalog> {
             // catalogContent slot: onSelect, onNavigateBack

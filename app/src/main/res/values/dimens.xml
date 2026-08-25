@@ -49,6 +49,12 @@
     <dimen name="nowin_banner_min_height">48dp</dimen>
 
     <!--
+      Phase-5 token: min height of a Settings toggle row (label + supporting line beside
+      an M3 Switch), a multiple of 4 that keeps the row comfortably tap-sized (D-14).
+    -->
+    <dimen name="settings_row_min_height">72dp</dimen>
+
+    <!--
       Stroke widths (rendering, not layout spacing) — an INTENTIONAL sub-4dp
       exception to the 8-point grid: a 4dp ring/outline would overpower the small
       peg geometry. Do not round these up.

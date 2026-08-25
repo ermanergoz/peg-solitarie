@@ -112,6 +112,20 @@
     <string name="action_retry">Retry</string>
     <string name="challenge_load_error">Couldn\'t load this level. Tap Retry.</string>
 
+    <!--
+      ============================ Phase-5 copy ============================
+      Settings (SET-01/SET-02, D-14..D-17). The sound supporting line states the
+      honest Phase-5 truth — the choice is saved now and consumed when the audio
+      pass lands (D-16) — while haptics describes the feedback that fires today
+      (D-15). settings_action is the Home gear's content description.
+    -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_action">Settings</string>
+    <string name="settings_sound_label">Sound</string>
+    <string name="settings_sound_supporting">Saved for the upcoming sound effects</string>
+    <string name="settings_haptics_label">Haptics</string>
+    <string name="settings_haptics_supporting">Vibrate lightly on each jump</string>
+
     <!-- Onboarding overlay (first-run how-to-play of the orthogonal jump). -->
     <string name="onboarding_got_it">Got it</string>
     <string name="onboarding_skip">Skip tutorial</string>

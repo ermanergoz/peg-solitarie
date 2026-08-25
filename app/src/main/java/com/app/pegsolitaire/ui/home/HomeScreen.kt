@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,7 +34,8 @@ import com.app.pegsolitaire.ui.onboarding.OnboardingOverlay
  *
  * Renders [state] and forwards events; owns no logic (state hoisting). An M3
  * [Scaffold] hosts a [TopAppBar] (title "Peg Solitaire", a trailing How-to-play
- * affordance — D-15) over a centered column, capped at `content_max_width`, of two
+ * affordance — D-15 — and a Settings gear opening the Settings destination, Phase-5
+ * D-14) over a centered column, capped at `content_max_width`, of two
  * stacked mode tiles: an enabled Classic tile whose whole surface navigates to the
  * catalog ([onPlayClassic]) and an enabled Challenge tile whose whole surface enters
  * Challenge ([onPlayChallenge]) at level 1 (D-04). While [HomeUiState.onboardingVisible],
@@ -45,6 +47,8 @@ import com.app.pegsolitaire.ui.onboarding.OnboardingOverlay
  * @param onPlayChallenge enters Challenge at the current level (D-04).
  * @param onShowHowToPlay re-opens the onboarding overlay any time (D-15).
  * @param onDismissOnboarding dismisses + persists the onboarding (D-13).
+ * @param onOpenSettings opens the Settings destination from the top-bar gear (Phase-5
+ *   D-14); a hoisted lambda supplied by `AppNavHost` — the screen never sees a controller.
  * @param modifier layout modifier for the screen.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,11 +59,17 @@ fun HomeScreen(
     onPlayChallenge: () -> Unit,
     onShowHowToPlay: () -> Unit,
     onDismissOnboarding: () -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        topBar = { HomeTopBar(onShowHowToPlay = onShowHowToPlay) },
+        topBar = {
+            HomeTopBar(
+                onShowHowToPlay = onShowHowToPlay,
+                onOpenSettings = onOpenSettings,
+            )
+        },
     ) { contentPadding ->
         Box(
             modifier =
@@ -87,10 +97,17 @@ fun HomeScreen(
     }
 }
 
-/** The Home top bar: the app title and the permanent How-to-play affordance (D-15). */
+/**
+ * The Home top bar: the app title, the permanent How-to-play affordance (D-15) and the
+ * Settings gear (Phase-5 D-14). The gear uses the curated core Material icon set already
+ * on the classpath (`Icons.Rounded.Settings`) — no `material-icons-extended` dependency.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HomeTopBar(onShowHowToPlay: () -> Unit) {
+private fun HomeTopBar(
+    onShowHowToPlay: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
     TopAppBar(
         title = {
             Text(
@@ -103,6 +120,13 @@ private fun HomeTopBar(onShowHowToPlay: () -> Unit) {
                 Icon(
                     imageVector = Icons.Rounded.Info,
                     contentDescription = stringResource(R.string.how_to_play),
+                    modifier = Modifier.size(dimensionResource(R.dimen.top_bar_icon_size)),
+                )
+            }
+            IconButton(onClick = onOpenSettings) {
+                Icon(
+                    imageVector = Icons.Rounded.Settings,
+                    contentDescription = stringResource(R.string.settings_action),
                     modifier = Modifier.size(dimensionResource(R.dimen.top_bar_icon_size)),
                 )
             }

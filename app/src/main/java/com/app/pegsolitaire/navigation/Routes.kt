@@ -27,6 +27,15 @@ data object Home
 data object ClassicCatalog
 
 /**
+ * The Settings screen (SET-01/SET-02, D-14): sound + haptics toggles; no arguments.
+ *
+ * Reached from the Home top-bar gear and popped back to Home. Carrying no args keeps the
+ * new route surface inert — nothing untrusted crosses it (threat T-05-08).
+ */
+@Serializable
+data object Settings
+
+/**
  * The playable gameplay screen for one board — Classic or Challenge (CLAS-02 / CHAL-01).
  *
  * A single unified `LevelRef` carried as one route (Open-Q2): Classic navigates with a

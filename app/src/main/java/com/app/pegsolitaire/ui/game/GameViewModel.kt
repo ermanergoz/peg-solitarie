@@ -200,6 +200,13 @@ class GameViewModel
                     _uiState.update { it.copy(showHints = enabled) }
                 }
             }
+            // Same contract for the persisted haptics flag (SET-02, D-15): the state
+            // carries it, the screen fires the tick. Fail-open ON until the first emission.
+            viewModelScope.launch {
+                settingsRepository.hapticsOn.collect { on ->
+                    _uiState.update { it.copy(hapticsOn = on) }
+                }
+            }
             // Challenge generation is O(level); load it OFF the main thread and swap the
             // loading state for the playable board when ready (CR-01, T-03-09). Classic
             // is already resolved synchronously above, so this runs for Challenge only —
@@ -216,7 +223,9 @@ class GameViewModel
                     // while the player stays on it (D-03); Classic leaves solution null.
                     solution = level.solution
                     _uiState.update {
-                        GameUiState.initial(level.initialBoard).copy(showHints = it.showHints)
+                        GameUiState
+                            .initial(level.initialBoard)
+                            .copy(showHints = it.showHints, hapticsOn = it.hapticsOn)
                     }
                 }
             }
@@ -534,9 +543,15 @@ class GameViewModel
             // Back to the start ⇒ back on the recorded line (D-03) with no hint shown; the
             // fresh GameUiState.initial(board) below already carries cleared hint fields.
             onRecordedLine = true
-            // Preserve the player's hint choice across a restart; the collected
-            // settings flow only re-emits on change, so carry it forward explicitly.
-            _uiState.value = GameUiState.initial(board).copy(showHints = _uiState.value.showHints)
+            // Preserve the player's hint + haptics choices across a restart; the collected
+            // settings flows only re-emit on change, so carry them forward explicitly.
+            _uiState.value =
+                GameUiState
+                    .initial(board)
+                    .copy(
+                        showHints = _uiState.value.showHints,
+                        hapticsOn = _uiState.value.hapticsOn,
+                    )
         }
 
         /**
