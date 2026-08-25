@@ -34,7 +34,7 @@ internal object ChallengeProgressPreferences {
  *
  * The public surface is deliberately unchanged from the Phase-3 in-memory seam —
  * [currentLevel] is still a hot [StateFlow] with a synchronously readable `.value` (via
- * `stateIn` over the DataStore flow), and [advanceToNext]/[reset] are still plain
+ * `stateIn` over the DataStore flow), and [advancePast]/[reset] are still plain
  * (non-`suspend`) calls that write through on the injected app-lifetime [CoroutineScope].
  * Reads **fail open** to [ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL], mirroring
  * [SettingsRepositoryImpl]: a damaged store drops the player back to level 1 rather than
@@ -68,18 +68,23 @@ class ChallengeProgress
                 )
 
         /**
-         * Advances to the next level (N → N+1) — called when the player solves level N.
+         * Advances the ladder past [solvedLevel] — called when the player solves that level.
          *
-         * The increment is computed *inside* the `edit` transaction (not from the cached
-         * [currentLevel] value) so two rapid solves can never collapse into one level.
+         * The write is `max(current, solvedLevel + 1)`, keyed on the level actually solved
+         * rather than a blind `current + 1`: re-solving the same board (back from Results →
+         * undo → re-jump) is **idempotent** and can never skip a level (Phase-3 D-02), and
+         * solving an older board a Continue restored can never move the ladder backwards.
+         * The merge is computed *inside* the `edit` transaction (not from the cached
+         * [currentLevel] value) so concurrent writes can never interleave into a lost update.
          */
-        fun advanceToNext() {
+        fun advancePast(solvedLevel: Int) {
             scope.launch {
                 dataStore.edit { preferences ->
                     val current =
                         preferences[ChallengeProgressPreferences.CURRENT_LEVEL_KEY]
                             ?: ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL
-                    preferences[ChallengeProgressPreferences.CURRENT_LEVEL_KEY] = current + 1
+                    preferences[ChallengeProgressPreferences.CURRENT_LEVEL_KEY] =
+                        maxOf(current, solvedLevel + 1)
                 }
             }
         }

@@ -40,12 +40,12 @@ class ChallengeProgressTest {
         }
 
     @Test
-    fun advanceToNextPersistsSoAFreshInstanceResumesAtTheNextLevel() =
+    fun advancePastPersistsSoAFreshInstanceResumesAtTheNextLevel() =
         runTest {
             val store = realDataStore()
             val progress = ChallengeProgress(store, backgroundScope)
 
-            progress.advanceToNext()
+            progress.advancePast(FIRST_LEVEL)
             assertThat(progress.currentLevel.first { it == SECOND_LEVEL }).isEqualTo(SECOND_LEVEL)
 
             // "Restart": a brand-new holder over the same store must see the persisted level.
@@ -54,14 +54,41 @@ class ChallengeProgressTest {
         }
 
     @Test
-    fun advanceToNextTwiceReachesLevelThree() =
+    fun advancingPastConsecutiveSolvedLevelsReachesLevelThree() =
         runTest {
             val progress = ChallengeProgress(realDataStore(), backgroundScope)
 
-            progress.advanceToNext()
+            progress.advancePast(FIRST_LEVEL)
             assertThat(progress.currentLevel.first { it == SECOND_LEVEL }).isEqualTo(SECOND_LEVEL)
 
-            progress.advanceToNext()
+            progress.advancePast(SECOND_LEVEL)
+            assertThat(progress.currentLevel.first { it == THIRD_LEVEL }).isEqualTo(THIRD_LEVEL)
+        }
+
+    @Test
+    fun advancingPastTheSameSolvedLevelTwiceAdvancesOnlyOnce() =
+        runTest {
+            // CR-02: re-solving the same board (back from Results → undo → re-jump) fires
+            // a second advance for the SAME level — the ladder must not skip a level.
+            val progress = ChallengeProgress(realDataStore(), backgroundScope)
+
+            progress.advancePast(FIRST_LEVEL)
+            progress.advancePast(FIRST_LEVEL)
+
+            assertThat(progress.currentLevel.first { it == SECOND_LEVEL }).isEqualTo(SECOND_LEVEL)
+        }
+
+    @Test
+    fun advancingPastAnOlderLevelNeverMovesTheLadderBackwards() =
+        runTest {
+            // Solving a level below the ladder (a stale resumed board) keeps the maximum.
+            val progress = ChallengeProgress(realDataStore(), backgroundScope)
+            progress.advancePast(FIRST_LEVEL)
+            progress.advancePast(SECOND_LEVEL)
+            progress.currentLevel.first { it == THIRD_LEVEL }
+
+            progress.advancePast(FIRST_LEVEL)
+
             assertThat(progress.currentLevel.first { it == THIRD_LEVEL }).isEqualTo(THIRD_LEVEL)
         }
 
@@ -70,8 +97,8 @@ class ChallengeProgressTest {
         runTest {
             val store = realDataStore()
             val progress = ChallengeProgress(store, backgroundScope)
-            progress.advanceToNext()
-            progress.advanceToNext()
+            progress.advancePast(FIRST_LEVEL)
+            progress.advancePast(SECOND_LEVEL)
             progress.currentLevel.first { it == THIRD_LEVEL }
 
             progress.reset()

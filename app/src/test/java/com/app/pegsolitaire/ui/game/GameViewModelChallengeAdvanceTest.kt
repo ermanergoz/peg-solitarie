@@ -44,13 +44,15 @@ import kotlin.time.TestTimeSource
  * only thing that moves the persisted [ChallengeProgress] level forward (Phase-3 D-02 —
  * no skipping, no advance for merely reaching a board).
  *
- * The seam under test is the previously-uncalled [ChallengeProgress.advanceToNext]: a
- * relaxed MockK stand-in records whether the ViewModel actually calls it, so a persisted
+ * The seam under test is [ChallengeProgress.advancePast]: a relaxed MockK stand-in
+ * records whether the ViewModel actually calls it — and with which level — so a persisted
  * level that never advances (the "invisible feature" trap) fails here rather than on a
- * device. The three cases pin the full truth table:
- *  - a Challenge board played to Won advances exactly once;
+ * device. The cases pin the full truth table:
+ *  - a Challenge board played to Won advances exactly once, keyed to the solved level;
  *  - the same board played as a **Classic** level never advances;
- *  - a Challenge board driven into Stuck never advances.
+ *  - a Challenge board driven into Stuck never advances;
+ *  - a back→undo→re-solve cycle (CR-02) only ever advances past the SAME solved level,
+ *    so the idempotent store write cannot skip a level.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [ADVANCE_ROBOLECTRIC_SDK])
@@ -86,7 +88,37 @@ class GameViewModelChallengeAdvanceTest {
             jumpToWin(viewModel)
 
             assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Won)
-            verify(exactly = 1) { progress.advanceToNext() }
+            verify(exactly = 1) { progress.advancePast(PLAYED_CHALLENGE_LEVEL) }
+        }
+
+    @Test
+    fun reSolvingTheSameBoardAfterAnUndoOnlyEverAdvancesPastTheSolvedLevel() =
+        runTest(testDispatcher) {
+            // CR-02: navigating to Results does not pop Gameplay, so back → undo (which
+            // resets the finished latch) → re-jump re-fires the advance. Every advance
+            // must be keyed to the SAME solved level — the store's max(current, N+1) then
+            // makes the second call a no-op instead of a level skip.
+            val progress = mockk<ChallengeProgress>(relaxed = true)
+            val viewModel =
+                viewModelFor(
+                    board = wonInOneJumpBoard(),
+                    challengeLevel = PLAYED_CHALLENGE_LEVEL,
+                    challengeProgress = progress,
+                )
+            runCurrent()
+
+            jumpToWin(viewModel)
+            runCurrent()
+            viewModel.onUndo()
+            runCurrent()
+            jumpToWin(viewModel)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Won)
+            val advancedPast = mutableListOf<Int>()
+            verify(atLeast = 1) { progress.advancePast(capture(advancedPast)) }
+            // Both fires carry the solved level 7 — never 8 (the blind-increment bug).
+            assertThat(advancedPast.toSet()).containsExactly(PLAYED_CHALLENGE_LEVEL)
         }
 
     @Test
@@ -104,7 +136,7 @@ class GameViewModelChallengeAdvanceTest {
             jumpToWin(viewModel)
 
             assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Won)
-            verify(exactly = 0) { progress.advanceToNext() }
+            verify(exactly = 0) { progress.advancePast(any()) }
         }
 
     @Test
@@ -125,7 +157,7 @@ class GameViewModelChallengeAdvanceTest {
             runCurrent()
 
             assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Stuck)
-            verify(exactly = 0) { progress.advanceToNext() }
+            verify(exactly = 0) { progress.advancePast(any()) }
         }
 
     // ---- Helpers -------------------------------------------------------------

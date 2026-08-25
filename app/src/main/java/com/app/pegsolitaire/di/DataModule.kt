@@ -76,7 +76,7 @@ abstract class DataModule {
 
         /**
          * The app-lifetime scope used for fire-and-forget persistence writes from
-         * `@Singleton` holders (e.g. `ChallengeProgress.advanceToNext()`), plus the
+         * `@Singleton` holders (e.g. `ChallengeProgress.advancePast()`), plus the
          * sharing scope for their `stateIn`-backed StateFlows.
          *
          * `SupervisorJob` so one failed write never cancels the sibling writers, and

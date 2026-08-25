@@ -516,10 +516,13 @@ class GameViewModel
                     clearSnapshot()
                     // Only a SOLVE unlocks the next Challenge level (D-02: no skipping) —
                     // Classic (clampedChallengeLevel == null) and Stuck never advance. The
-                    // finishedEmitted latch above makes this exactly-once per solve, and
-                    // the write itself is transactional inside ChallengeProgress.
+                    // advance is keyed to the SOLVED level and idempotent at the store
+                    // (max(current, N+1)), so a re-solve of the same board — back from
+                    // Results, undo (which resets finishedEmitted), re-jump — can never
+                    // skip a level (CR-02); the write is transactional inside
+                    // ChallengeProgress.
                     if (clampedChallengeLevel != null) {
-                        challengeProgress.advanceToNext()
+                        challengeProgress.advancePast(clampedChallengeLevel)
                     }
                     val pegsRemaining = nextBoard.pegCount
                     // A jump can only fire once the board is loaded, so initialBoard is
