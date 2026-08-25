@@ -42,7 +42,7 @@ Slice 1 — Playable Core. Fully playable and testable; ads and Play Games exist
 
 ### Persistence
 
-- [ ] **PERS-01**: Player's per-level results (stars, best time, best score) are saved locally
+- [x] **PERS-01**: Player's per-level results (stars, best time, best score) are saved locally
 - [ ] **PERS-02**: Player's highest Challenge level reached is saved
 - [ ] **PERS-03**: Player can resume an in-progress game after leaving (board + move history + elapsed time restored)
 
@@ -130,7 +130,7 @@ Each v1 requirement maps to exactly one phase. See `.planning/ROADMAP.md` for ph
 | ASST-01 | Phase 4 | Complete |
 | ASST-02 | Phase 4 | Complete |
 | ASST-03 | Phase 4 | Complete |
-| PERS-01 | Phase 5 | Pending |
+| PERS-01 | Phase 5 | Complete |
 | PERS-02 | Phase 5 | Pending |
 | PERS-03 | Phase 5 | Pending |
 | SET-01 | Phase 5 | Complete |
