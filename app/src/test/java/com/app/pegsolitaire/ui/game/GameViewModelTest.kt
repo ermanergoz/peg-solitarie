@@ -1096,6 +1096,10 @@ class GameViewModelTest {
                         // stand-in absorbs the advance-on-solve call (its own spec is
                         // GameViewModelChallengeAdvanceTest).
                         challengeProgress = mockk(relaxed = true),
+                        // Nor is it about the resume snapshot (its spec is
+                        // GameViewModelResumeTest); a relaxed stand-in absorbs the
+                        // save-on-leave / clear-on-solve calls.
+                        progressRepository = mockk(relaxed = true),
                         timeSource = timeSource,
                         defaultDispatcher = testDispatcher,
                         adGateway = adGateway,

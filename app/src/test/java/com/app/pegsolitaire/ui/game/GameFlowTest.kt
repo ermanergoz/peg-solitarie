@@ -234,6 +234,8 @@ class GameFlowTest {
                 settingsRepository = settings,
                 // Classic-only flow test: the Challenge ladder is never touched here.
                 challengeProgress = mockk(relaxed = true),
+                // Nor is the resume snapshot (its spec is GameViewModelResumeTest).
+                progressRepository = mockk(relaxed = true),
                 timeSource = TestTimeSource(),
                 defaultDispatcher = Dispatchers.Unconfined,
                 adGateway = NoOpAdGateway(),

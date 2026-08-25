@@ -6,7 +6,12 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.app.pegsolitaire.data.ChallengeProgress
 import com.app.pegsolitaire.data.LevelRepository
+import com.app.pegsolitaire.data.ProgressPersistenceKeys
+import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.data.SettingsRepository
+import com.app.pegsolitaire.data.resume.ChallengeStamp
+import com.app.pegsolitaire.data.resume.RestoredGame
+import com.app.pegsolitaire.data.resume.SnapshotMapper
 import com.app.pegsolitaire.domain.generator.DifficultyTiers
 import com.app.pegsolitaire.domain.generator.GeneratorConstants
 import com.app.pegsolitaire.domain.model.Board
@@ -69,6 +74,9 @@ import kotlin.time.TimeSource
  * @param settingsRepository the persisted hint on/off setting (fail-open default ON).
  * @param challengeProgress the persisted Challenge ladder position; solving a Challenge
  *   level advances it to N+1 (CHAL-05/PERS-02) — a Classic solve never touches it.
+ * @param progressRepository the per-mode in-progress snapshot store (PERS-03): written by
+ *   [onLeaveScreen] while the game is still Playing (D-04), read back by the `resume`
+ *   route flag, and cleared on solve/restart (D-05).
  * @param timeSource the monotonic clock the timer marks against (test-swappable).
  * @param defaultDispatcher the background dispatcher the O(level) Challenge generation
  *   runs on, off the main thread (CR-01); tests swap in the test dispatcher.
@@ -88,6 +96,7 @@ class GameViewModel
         private val scoreCalculator: ScoreCalculator,
         private val settingsRepository: SettingsRepository,
         private val challengeProgress: ChallengeProgress,
+        private val progressRepository: ProgressRepository,
         private val timeSource: TimeSource,
         private val defaultDispatcher: CoroutineDispatcher,
         private val adGateway: AdGateway,
@@ -114,6 +123,26 @@ class GameViewModel
          */
         private val clampedChallengeLevel: Int? =
             challengeLevel?.coerceIn(MIN_CHALLENGE_LEVEL, GeneratorConstants.MAX_CHALLENGE_LEVEL)
+
+        /**
+         * Whether this entry is the Home "Continue" affordance (PERS-03, D-01) rather than a
+         * fresh start: when `true` [init] rebuilds the game from the mode's stored snapshot
+         * by replay (D-06) and only falls back to the normal load when there is nothing
+         * usable to resume.
+         */
+        private val resume: Boolean = savedStateHandle.toRoute<Gameplay>().resume
+
+        /**
+         * Which mode's single snapshot row this game owns (D-03) — the persistence key for
+         * every save/load/clear below. Derived from the route's Challenge arg alone, so it
+         * agrees with the mode `ResultsViewModel` records results under.
+         */
+        private val mode: String =
+            if (clampedChallengeLevel != null) {
+                ProgressPersistenceKeys.MODE_CHALLENGE
+            } else {
+                ProgressPersistenceKeys.MODE_CLASSIC
+            }
 
         /**
          * The Classic board, resolved synchronously (a cheap catalog lookup) so its load
@@ -169,6 +198,14 @@ class GameViewModel
         /** The instant the first move was applied; `null` until then (timer not started). */
         private var startMark: TimeMark? = null
 
+        /**
+         * Seconds already spent on this game before the current [startMark] — non-zero only
+         * after a resume, where it carries the snapshot's elapsed time (PERS-03). The ticker
+         * adds it to what it measures, so a restored game keeps counting from the time the
+         * player left rather than restarting at zero. Cleared by [resetToInitial].
+         */
+        private var elapsedBaseSeconds: Int = 0
+
         /** The running per-second ticker, held so a restart/terminal can cancel it. */
         private var tickerJob: Job? = null
 
@@ -211,28 +248,112 @@ class GameViewModel
                     _uiState.update { it.copy(hapticsOn = on) }
                 }
             }
-            // Challenge generation is O(level); load it OFF the main thread and swap the
-            // loading state for the playable board when ready (CR-01, T-03-09). Classic
-            // is already resolved synchronously above, so this runs for Challenge only —
-            // the load path branches here, never the board/selection/jump logic.
-            val challengeLevelToLoad = clampedChallengeLevel
-            if (challengeLevelToLoad != null) {
+            // Continue (D-01) rebuilds the left-off game from disk; anything else starts the
+            // board fresh. The restore is tried FIRST and the normal load only runs when
+            // there is nothing usable to resume, so a successful Continue never regenerates
+            // (D-06) and a corrupt snapshot still lands the player on a playable board.
+            if (resume) {
                 viewModelScope.launch {
-                    val level =
-                        withContext(defaultDispatcher) {
-                            levelRepository.loadChallenge(challengeLevelToLoad)
+                    val restored =
+                        progressRepository.loadSnapshot(mode)?.let { dto ->
+                            SnapshotMapper.fromDto(dto, rulesEngine)
                         }
-                    initialBoard = level.initialBoard
-                    // Capture the recorded winning line so the hint can serve it instantly
-                    // while the player stays on it (D-03); Classic leaves solution null.
-                    solution = level.solution
-                    _uiState.update {
-                        GameUiState
-                            .initial(level.initialBoard)
-                            .copy(showHints = it.showHints, hapticsOn = it.hapticsOn)
-                    }
+                    if (restored != null) applyRestored(restored) else loadChallengeBoardIfNeeded()
                 }
+            } else {
+                viewModelScope.launch { loadChallengeBoardIfNeeded() }
             }
+        }
+
+        /**
+         * Loads the Challenge board for this route (a no-op for Classic, already resolved
+         * synchronously at construction).
+         *
+         * Challenge generation is O(level), so it runs OFF the main thread and swaps the
+         * loading state for the playable board when ready (CR-01, T-03-09) — the load path
+         * branches here, never the board/selection/jump logic.
+         */
+        private suspend fun loadChallengeBoardIfNeeded() {
+            val challengeLevelToLoad = clampedChallengeLevel ?: return
+            val level =
+                withContext(defaultDispatcher) {
+                    levelRepository.loadChallenge(challengeLevelToLoad)
+                }
+            initialBoard = level.initialBoard
+            // Capture the recorded winning line so the hint can serve it instantly
+            // while the player stays on it (D-03); Classic leaves solution null.
+            solution = level.solution
+            _uiState.update {
+                GameUiState
+                    .initial(level.initialBoard)
+                    .copy(showHints = it.showHints, hapticsOn = it.hapticsOn)
+            }
+        }
+
+        /**
+         * Seeds the game from a snapshot rebuilt by replay (PERS-03, D-06): the stored
+         * initial board becomes the undo floor, the validated history becomes [moveHistory]
+         * (so [onUndo] works on the very first tap), and the elapsed time resumes from where
+         * the player left it rather than from zero.
+         *
+         * The recorded Challenge line is deliberately NOT restored — it is not stored, and
+         * inventing one would mean regenerating the level. Hints simply fall back to the
+         * Solver for a resumed Challenge game, which is the same path a deviated line takes.
+         */
+        private fun applyRestored(restored: RestoredGame) {
+            initialBoard = restored.initialBoard
+            moveHistory.clear()
+            moveHistory.addAll(restored.moveHistory)
+            onRecordedLine = false
+            elapsedBaseSeconds = (restored.elapsedMs / MILLIS_IN_SECOND).toInt()
+            _uiState.update {
+                GameUiState
+                    .initial(restored.currentBoard)
+                    .copy(
+                        showHints = it.showHints,
+                        hapticsOn = it.hapticsOn,
+                        status = statusFor(restored.currentBoard),
+                        canUndo = moveHistory.isNotEmpty(),
+                        elapsedSeconds = elapsedBaseSeconds,
+                    )
+            }
+        }
+
+        /**
+         * Persists the game as this mode's resume point when the player leaves the screen —
+         * backgrounding or navigating away (D-04); `GameRoute` calls it on `ON_STOP`.
+         *
+         * Only a game still in progress is saved: a Won or Stuck board would resurrect a
+         * finished game as a stale "Continue" (Pitfall 4), and a Challenge board still
+         * generating has no [initialBoard] to snapshot yet. What is stored is the initial
+         * board plus the full move history — never the current board — because replaying
+         * that history is what keeps undo working after the resume (D-06).
+         */
+        fun onLeaveScreen() {
+            val state = _uiState.value
+            if (state.status != GameStatus.Playing) return
+            val board = initialBoard ?: return
+            val dto =
+                SnapshotMapper.toDto(
+                    mode = mode,
+                    levelId = clampedChallengeLevel?.toString() ?: levelId,
+                    initialBoard = board,
+                    moveHistory = moveHistory.toList(),
+                    elapsedMs = state.elapsedSeconds * MILLIS_IN_SECOND,
+                    challenge =
+                        clampedChallengeLevel?.let {
+                            ChallengeStamp(
+                                level = it,
+                                generatorVersion = GeneratorConstants.GENERATOR_VERSION,
+                            )
+                        },
+                )
+            viewModelScope.launch { progressRepository.saveSnapshot(dto) }
+        }
+
+        /** Drops this mode's resume point (D-05): the game it pointed at is over or gone. */
+        private fun clearSnapshot() {
+            viewModelScope.launch { progressRepository.clearSnapshot(mode) }
         }
 
         /**
@@ -339,6 +460,10 @@ class GameViewModel
                 tickerJob = null
                 if (status == GameStatus.Won && !finishedEmitted) {
                     finishedEmitted = true
+                    // A solved game is not resumable: drop this mode's snapshot so the Home
+                    // Continue affordance can never point at a board that is already over
+                    // (D-05). Both modes clear — the latch keeps it to once per solve.
+                    clearSnapshot()
                     // Only a SOLVE unlocks the next Challenge level (D-02: no skipping) —
                     // Classic (clampedChallengeLevel == null) and Stuck never advance. The
                     // finishedEmitted latch above makes this exactly-once per solve, and
@@ -397,7 +522,10 @@ class GameViewModel
             viewModelScope.launch {
                 while (isActive && _uiState.value.status == GameStatus.Playing) {
                     _uiState.update {
-                        it.copy(elapsedSeconds = mark.elapsedNow().inWholeSeconds.toInt())
+                        it.copy(
+                            elapsedSeconds =
+                                elapsedBaseSeconds + mark.elapsedNow().inWholeSeconds.toInt(),
+                        )
                     }
                     delay(TIMER_TICK_MILLIS)
                 }
@@ -550,7 +678,12 @@ class GameViewModel
             hintJob?.cancel()
             hintJob = null
             startMark = null
+            elapsedBaseSeconds = 0
             finishedEmitted = false
+            // Starting this board over abandons the game the snapshot describes, so the
+            // stored resume point goes with it (D-05) — otherwise Continue would drop the
+            // player back into the position they just chose to leave.
+            clearSnapshot()
             // Back to the start ⇒ back on the recorded line (D-03) with no hint shown; the
             // fresh GameUiState.initial(board) below already carries cleared hint fields.
             onRecordedLine = true
@@ -583,6 +716,9 @@ class GameViewModel
 
             /** The visible timer ticks once per second (D-04). */
             const val TIMER_TICK_MILLIS = 1_000L
+
+            /** The timer counts whole seconds; the resume snapshot stores milliseconds. */
+            const val MILLIS_IN_SECOND = 1_000L
 
             /** The lowest valid Challenge level; a `< 1` nav arg clamps up to it (T-03-09). */
             const val MIN_CHALLENGE_LEVEL = 1

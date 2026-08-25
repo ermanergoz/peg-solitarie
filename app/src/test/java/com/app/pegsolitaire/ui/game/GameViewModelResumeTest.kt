@@ -44,9 +44,9 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TestTimeSource
 import kotlin.time.TimeSource
-import kotlin.time.Duration.Companion.seconds
 
 /**
  * The in-progress resume contract (PERS-03, D-04/D-05/D-06) at the ViewModel layer.
