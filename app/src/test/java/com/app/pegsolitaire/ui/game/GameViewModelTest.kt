@@ -22,6 +22,7 @@ import com.app.pegsolitaire.domain.usecase.GetHintUseCase
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
 import com.google.common.truth.Truth.assertThat
+import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -1091,6 +1092,10 @@ class GameViewModelTest {
                         levelRepository = FakeLevelRepository(boardsById = mapOf(levelId to board)),
                         scoreCalculator = ScoreCalculator,
                         settingsRepository = settings,
+                        // This spec is about gameplay, not the Challenge ladder; a relaxed
+                        // stand-in absorbs the advance-on-solve call (its own spec is
+                        // GameViewModelChallengeAdvanceTest).
+                        challengeProgress = mockk(relaxed = true),
                         timeSource = timeSource,
                         defaultDispatcher = testDispatcher,
                         adGateway = adGateway,

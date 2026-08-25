@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import com.app.pegsolitaire.data.ChallengeProgress
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.SettingsRepository
 import com.app.pegsolitaire.domain.generator.DifficultyTiers
@@ -66,6 +67,8 @@ import kotlin.time.TimeSource
  * @param levelRepository resolves the selected board from the route's `levelId`.
  * @param scoreCalculator the pure-domain scoring authority (stars + score).
  * @param settingsRepository the persisted hint on/off setting (fail-open default ON).
+ * @param challengeProgress the persisted Challenge ladder position; solving a Challenge
+ *   level advances it to N+1 (CHAL-05/PERS-02) — a Classic solve never touches it.
  * @param timeSource the monotonic clock the timer marks against (test-swappable).
  * @param defaultDispatcher the background dispatcher the O(level) Challenge generation
  *   runs on, off the main thread (CR-01); tests swap in the test dispatcher.
@@ -84,6 +87,7 @@ class GameViewModel
         private val levelRepository: LevelRepository,
         private val scoreCalculator: ScoreCalculator,
         private val settingsRepository: SettingsRepository,
+        private val challengeProgress: ChallengeProgress,
         private val timeSource: TimeSource,
         private val defaultDispatcher: CoroutineDispatcher,
         private val adGateway: AdGateway,
@@ -335,6 +339,13 @@ class GameViewModel
                 tickerJob = null
                 if (status == GameStatus.Won && !finishedEmitted) {
                     finishedEmitted = true
+                    // Only a SOLVE unlocks the next Challenge level (D-02: no skipping) —
+                    // Classic (clampedChallengeLevel == null) and Stuck never advance. The
+                    // finishedEmitted latch above makes this exactly-once per solve, and
+                    // the write itself is transactional inside ChallengeProgress.
+                    if (clampedChallengeLevel != null) {
+                        challengeProgress.advanceToNext()
+                    }
                     val pegsRemaining = nextBoard.pegCount
                     // A jump can only fire once the board is loaded, so initialBoard is
                     // non-null here; fall back to the current count defensively.
