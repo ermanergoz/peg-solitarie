@@ -2,12 +2,28 @@ package com.app.pegsolitaire.ui.home
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import app.cash.turbine.test
+import com.app.pegsolitaire.data.ChallengeProgress
+import com.app.pegsolitaire.data.ClassicLevelDescriptor
+import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.data.Level
+import com.app.pegsolitaire.data.LevelRepository
+import com.app.pegsolitaire.data.LevelResult
+import com.app.pegsolitaire.data.NewBests
 import com.app.pegsolitaire.data.OnboardingRepository
+import com.app.pegsolitaire.data.ProgressPersistenceKeys
+import com.app.pegsolitaire.data.ProgressRepository
+import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
+import com.app.pegsolitaire.domain.model.Boards
+import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.google.common.truth.Truth.assertThat
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
@@ -18,7 +34,8 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Coverage of [HomeViewModel]'s onboarding-gating behavior (ONB-01, D-13/D-14/D-15).
+ * Coverage of [HomeViewModel]'s onboarding gate (ONB-01, D-13/D-14/D-15) and the
+ * persisted Challenge level it surfaces to the Challenge tile (CHAL-05 / PERS-02).
  *
  * A fake [OnboardingRepository] backed by a settable `MutableStateFlow<Boolean>`
  * stands in for the DataStore so the gate is driven deterministically:
@@ -26,6 +43,14 @@ import org.junit.Test
  *  - once seen it is hidden;
  *  - the help affordance forces it visible again independent of the flag (D-15);
  *  - dismissing persists `markSeen()` and hides it (D-13).
+ *
+ * A [ChallengeProgress] stand-in drives `currentLevel` the same way, proving the tile's
+ * entry level comes from persistence (never a hardcoded 1) and re-emits on an advance.
+ *
+ * A [FakeResumeProgressRepository] drives the per-mode resume snapshots (PERS-03), proving
+ * Home offers a Continue affordance exactly when one exists — for either mode, for both at
+ * once (D-03), dropped again when a solve clears it (T-05-12), and silently absent when the
+ * stored blob is unreadable (T-05-03).
  *
  * `Dispatchers.setMain(StandardTestDispatcher())` makes the `viewModelScope`
  * collector deterministic under `runTest` virtual time.
@@ -47,7 +72,7 @@ class HomeViewModelTest {
     fun onboardingIsVisibleOnFirstLaunchWhenNotYetSeen() =
         runTest(testDispatcher) {
             val repository = FakeOnboardingRepository(initiallySeen = false)
-            val viewModel = HomeViewModel(repository)
+            val viewModel = viewModelFor(repository)
             runCurrent()
 
             assertThat(viewModel.uiState.value.onboardingVisible).isTrue()
@@ -57,7 +82,7 @@ class HomeViewModelTest {
     fun onboardingIsHiddenWhenAlreadySeen() =
         runTest(testDispatcher) {
             val repository = FakeOnboardingRepository(initiallySeen = true)
-            val viewModel = HomeViewModel(repository)
+            val viewModel = viewModelFor(repository)
             runCurrent()
 
             assertThat(viewModel.uiState.value.onboardingVisible).isFalse()
@@ -67,7 +92,7 @@ class HomeViewModelTest {
     fun showHowToPlayForcesTheOverlayVisibleEvenAfterItHasBeenSeen() =
         runTest(testDispatcher) {
             val repository = FakeOnboardingRepository(initiallySeen = true)
-            val viewModel = HomeViewModel(repository)
+            val viewModel = viewModelFor(repository)
             runCurrent()
             assertThat(viewModel.uiState.value.onboardingVisible).isFalse()
 
@@ -81,7 +106,7 @@ class HomeViewModelTest {
     fun dismissOnboardingPersistsSeenAndHidesTheOverlay() =
         runTest(testDispatcher) {
             val repository = FakeOnboardingRepository(initiallySeen = false)
-            val viewModel = HomeViewModel(repository)
+            val viewModel = viewModelFor(repository)
             runCurrent()
             assertThat(viewModel.uiState.value.onboardingVisible).isTrue()
 
@@ -92,7 +117,322 @@ class HomeViewModelTest {
             assertThat(repository.markSeenCount).isEqualTo(1)
             assertThat(repository.seen.value).isTrue()
         }
+
+    // ---- Persisted Challenge level (CHAL-05 / PERS-02) ----------------------
+
+    @Test
+    fun challengeCurrentLevelMirrorsThePersistedLevel() =
+        runTest(testDispatcher) {
+            val viewModel =
+                viewModelFor(
+                    FakeOnboardingRepository(initiallySeen = true),
+                    persistedLevel = PERSISTED_LEVEL,
+                )
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.challengeCurrentLevel).isEqualTo(PERSISTED_LEVEL)
+        }
+
+    @Test
+    fun challengeCurrentLevelDefaultsToLevelOneBeforeTheStoreEmits() =
+        runTest(testDispatcher) {
+            // Nothing collected yet (no runCurrent): the tile must already paint a usable
+            // level rather than 0/blank — the fail-open default (T-05-02).
+            val viewModel =
+                viewModelFor(
+                    FakeOnboardingRepository(initiallySeen = true),
+                    persistedLevel = PERSISTED_LEVEL,
+                )
+
+            assertThat(viewModel.uiState.value.challengeCurrentLevel).isEqualTo(FIRST_LEVEL)
+        }
+
+    @Test
+    fun advancingTheStoredLevelWhileOnHomeReEmitsTheNewLevel() =
+        runTest(testDispatcher) {
+            val levels = MutableStateFlow(FIRST_LEVEL)
+            val viewModel =
+                viewModelFor(FakeOnboardingRepository(initiallySeen = true), levels = levels)
+
+            viewModel.uiState.test {
+                assertThat(awaitItem().challengeCurrentLevel).isEqualTo(FIRST_LEVEL)
+
+                // A solve advanced the persisted level while Home was in the back stack.
+                levels.value = PERSISTED_LEVEL
+                runCurrent()
+
+                assertThat(awaitItem().challengeCurrentLevel).isEqualTo(PERSISTED_LEVEL)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    // ---- Helpers -------------------------------------------------------------
+
+    // ---- Resume affordances (PERS-03, D-01/D-03) -----------------------------
+
+    @Test
+    fun noContinueAffordanceIsOfferedWhenNothingIsSaved() =
+        runTest(testDispatcher) {
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true))
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.classicResumeAvailable).isFalse()
+            assertThat(viewModel.uiState.value.classicResumeLevelId).isNull()
+            assertThat(viewModel.uiState.value.challengeResumeAvailable).isFalse()
+        }
+
+    @Test
+    fun aClassicSnapshotOffersAContinueCarryingItsBoardId() =
+        runTest(testDispatcher) {
+            val progress = FakeResumeProgressRepository()
+            progress.put(ProgressPersistenceKeys.MODE_CLASSIC, RESUMABLE_LEVEL_ID)
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), progress = progress)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.classicResumeAvailable).isTrue()
+            assertThat(viewModel.uiState.value.classicResumeLevelId).isEqualTo(RESUMABLE_LEVEL_ID)
+            assertThat(viewModel.uiState.value.challengeResumeAvailable).isFalse()
+        }
+
+    @Test
+    fun bothModesCanOfferAContinueAtTheSameTime() =
+        runTest(testDispatcher) {
+            // D-03: one snapshot PER MODE — leaving a Classic game to play Challenge keeps
+            // both, so Home shows two independent Continue affordances.
+            val progress = FakeResumeProgressRepository()
+            progress.put(ProgressPersistenceKeys.MODE_CLASSIC, RESUMABLE_LEVEL_ID)
+            progress.put(ProgressPersistenceKeys.MODE_CHALLENGE, PERSISTED_LEVEL.toString())
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), progress = progress)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.classicResumeAvailable).isTrue()
+            assertThat(viewModel.uiState.value.challengeResumeAvailable).isTrue()
+        }
+
+    @Test
+    fun clearingASnapshotWhileOnHomeDropsItsContinueAffordance() =
+        runTest(testDispatcher) {
+            // A solve clears the mode's snapshot (D-05); Home must stop offering it rather
+            // than leaving a stale Continue pointing at a finished board (T-05-12).
+            val progress = FakeResumeProgressRepository()
+            progress.put(ProgressPersistenceKeys.MODE_CHALLENGE, PERSISTED_LEVEL.toString())
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), progress = progress)
+            runCurrent()
+            assertThat(viewModel.uiState.value.challengeResumeAvailable).isTrue()
+
+            progress.clear(ProgressPersistenceKeys.MODE_CHALLENGE)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.challengeResumeAvailable).isFalse()
+        }
+
+    @Test
+    fun anUnreadableClassicSnapshotSimplyOffersNoContinue() =
+        runTest(testDispatcher) {
+            // T-05-03: the mode is listed but its blob does not decode — the affordance
+            // disappears; nothing throws and no error surfaces to the player.
+            val progress = FakeResumeProgressRepository()
+            progress.putUnreadable(ProgressPersistenceKeys.MODE_CLASSIC)
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), progress = progress)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.classicResumeAvailable).isFalse()
+        }
+
+    @Test
+    fun aChallengeSnapshotOffersAContinueAtItsStampedLevelNotTheColdStartLadder() =
+        runTest(testDispatcher) {
+            // WR-03: at a cold start the ladder flow still sits at its fail-open initial
+            // value while the snapshot's stamp names the real level — the tile must carry
+            // the stamp, or the restored level-N board gets played AS level 1.
+            val progress = FakeResumeProgressRepository()
+            progress.put(ProgressPersistenceKeys.MODE_CHALLENGE, PERSISTED_LEVEL.toString())
+            val viewModel =
+                viewModelFor(
+                    FakeOnboardingRepository(initiallySeen = true),
+                    persistedLevel = FIRST_LEVEL,
+                    progress = progress,
+                )
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.challengeCurrentLevel).isEqualTo(FIRST_LEVEL)
+            assertThat(viewModel.uiState.value.challengeResumeLevel).isEqualTo(PERSISTED_LEVEL)
+        }
+
+    @Test
+    fun anUnreadableChallengeSnapshotOffersNoContinue() =
+        runTest(testDispatcher) {
+            // WR-02: the Challenge mode lists a row but its blob does not decode — keying
+            // the tile on row existence alone would show a phantom "Continue Challenge"
+            // that forever starts a fresh board. The tile needs a decodable blob.
+            val progress = FakeResumeProgressRepository()
+            progress.putUnreadable(ProgressPersistenceKeys.MODE_CHALLENGE)
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), progress = progress)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.challengeResumeAvailable).isFalse()
+        }
+
+    @Test
+    fun aClassicSnapshotOnAnUnknownBoardOffersNoContinueAndPurgesTheRow() =
+        runTest(testDispatcher) {
+            // CR-01: the blob decodes but its levelId is not a catalog board (tampering,
+            // or an app update removed the board). Offering it would navigate into the
+            // Gameplay route's fail-fast catalog lookup — an app crash on Continue — so
+            // the affordance is withheld and the stale row purged.
+            val progress = FakeResumeProgressRepository()
+            progress.put(ProgressPersistenceKeys.MODE_CLASSIC, UNKNOWN_LEVEL_ID)
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), progress = progress)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.classicResumeAvailable).isFalse()
+            assertThat(viewModel.uiState.value.classicResumeLevelId).isNull()
+            assertThat(progress.clears).containsExactly(ProgressPersistenceKeys.MODE_CLASSIC)
+        }
+
+    @Test
+    fun aClassicSnapshotOnAKnownBoardIsNeverPurged() =
+        runTest(testDispatcher) {
+            val progress = FakeResumeProgressRepository()
+            progress.put(ProgressPersistenceKeys.MODE_CLASSIC, RESUMABLE_LEVEL_ID)
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), progress = progress)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.classicResumeLevelId).isEqualTo(RESUMABLE_LEVEL_ID)
+            assertThat(progress.clears).isEmpty()
+        }
+
+    // ---- Helpers -------------------------------------------------------------
+
+    /**
+     * Builds the ViewModel over the given onboarding fake, a [ChallengeProgress]
+     * stand-in whose `currentLevel` is driven by [levels] (defaulting to a fixed
+     * [persistedLevel]), a resume store [progress] (empty unless a test fills it), and a
+     * catalog that knows exactly the real Classic ids — neither real store is touched.
+     */
+    private fun viewModelFor(
+        repository: OnboardingRepository,
+        persistedLevel: Int = FIRST_LEVEL,
+        levels: MutableStateFlow<Int> = MutableStateFlow(persistedLevel),
+        progress: ProgressRepository = FakeResumeProgressRepository(),
+    ): HomeViewModel {
+        val challengeProgress = mockk<ChallengeProgress>(relaxed = true)
+        every { challengeProgress.currentLevel } returns levels
+        return HomeViewModel(repository, challengeProgress, progress, CatalogOnlyLevelRepository)
+    }
 }
+
+/** The Classic board a saved game sits on — a real catalog id, carried into the resume. */
+private val RESUMABLE_LEVEL_ID = ClassicLevelIds.EUROPEAN37
+
+/** A levelId no catalog board has ever had — the CR-01 stale/tampered snapshot. */
+private const val UNKNOWN_LEVEL_ID = "ghost-board"
+
+/**
+ * A [LevelRepository] that answers only the catalog question Home asks (CR-01): the real
+ * Classic ids over a placeholder board. The load paths are never taken from Home.
+ */
+private object CatalogOnlyLevelRepository : LevelRepository {
+    override fun classicCatalog(): List<ClassicLevelDescriptor> =
+        listOf(
+            ClassicLevelIds.ENGLISH33,
+            ClassicLevelIds.EUROPEAN37,
+            ClassicLevelIds.ASYMMETRIC39,
+            ClassicLevelIds.DIAMOND41,
+            ClassicLevelIds.WIEGLEB45,
+        ).map { id ->
+            ClassicLevelDescriptor(
+                id = id,
+                displayName = id,
+                holeCount = Boards.english33Initial.spec.inPlay.size,
+                previewBoard = Boards.english33Initial,
+            )
+        }
+
+    override fun loadClassic(levelId: String): Level = error("Home never loads a level")
+
+    override fun loadChallenge(levelNumber: Int): Level = error("Home never loads a level")
+}
+
+/**
+ * A [ProgressRepository] holding just enough of the resume surface for Home: which modes
+ * have a snapshot, and (for Classic) which board it is on. [putUnreadable] models a stored
+ * blob that fails to decode — the repository's own fail-safe, seen from up here as a mode
+ * that lists but cannot be loaded.
+ */
+private class FakeResumeProgressRepository : ProgressRepository {
+    private val snapshots = mutableMapOf<String, ResumeSnapshotDto?>()
+    private val modes = MutableStateFlow<List<String>>(emptyList())
+
+    /** The modes Home purged as unusable (CR-01) — observable by the tests. */
+    val clears = mutableListOf<String>()
+
+    fun put(
+        mode: String,
+        levelId: String,
+    ) {
+        snapshots[mode] = snapshotOf(mode = mode, levelId = levelId)
+        modes.value = snapshots.keys.toList()
+    }
+
+    /** A mode whose row exists but whose payload is unusable (`loadSnapshot` → null). */
+    fun putUnreadable(mode: String) {
+        snapshots[mode] = null
+        modes.value = snapshots.keys.toList()
+    }
+
+    fun clear(mode: String) {
+        snapshots -= mode
+        modes.value = snapshots.keys.toList()
+    }
+
+    override suspend fun recordResult(
+        mode: String,
+        levelId: String,
+        result: ScoreResult,
+        nowMs: Long,
+    ): NewBests = error("Home never records a result")
+
+    override fun observeResults(mode: String): Flow<List<LevelResult>> = flowOf(emptyList())
+
+    override suspend fun saveSnapshot(
+        dto: ResumeSnapshotDto,
+        nowMs: Long,
+    ) = error("Home never saves a snapshot")
+
+    override suspend fun loadSnapshot(mode: String): ResumeSnapshotDto? = snapshots[mode]
+
+    override suspend fun clearSnapshot(mode: String) {
+        clears += mode
+        snapshots -= mode
+        modes.value = snapshots.keys.toList()
+    }
+
+    override fun observeResumeModes(): Flow<List<String>> = modes
+
+    private fun snapshotOf(
+        mode: String,
+        levelId: String,
+    ): ResumeSnapshotDto =
+        ResumeSnapshotDto(
+            mode = mode,
+            levelId = levelId,
+            // A Challenge snapshot always carries its provenance stamp (WR-03) — the
+            // level the tile must label and resume into.
+            challengeLevel =
+                levelId.toIntOrNull().takeIf { mode == ProgressPersistenceKeys.MODE_CHALLENGE },
+            inPlay = emptyList(),
+            initialPegs = 0L,
+            moves = emptyList(),
+            elapsedMs = 0L,
+        )
+}
+
+/** A persisted level well past the on-ramp, so "continues at the stored level" is unambiguous. */
+private const val PERSISTED_LEVEL = 7
+
+/** The fail-open Challenge entry level (a fresh install, or a corrupt read). */
+private const val FIRST_LEVEL = 1
 
 /**
  * A settable in-memory [OnboardingRepository]: overrides the DataStore-backed members

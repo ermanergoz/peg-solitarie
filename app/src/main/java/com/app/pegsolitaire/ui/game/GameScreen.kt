@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -20,8 +21,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
@@ -61,6 +65,11 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  * one-shot finish event and [GameRoute] navigates to Results (D-05); only the
  * mid-game confirm [AlertDialog] (D-06) still overlays, when [GameUiState.confirmRestart].
  *
+ * When the board is a rescuable no-win/stuck position ([GameUiState.showRescueBanner],
+ * ASST-03/D-06/D-08) an inline, non-blocking [NoWinBanner] surfaces over the still-visible,
+ * still-interactive board (Undo · Restart · Home, D-09) — a Stuck board is rescued via Undo
+ * rather than auto-navigating; only a Won game routes to Results.
+ *
  * Minimal test semantics ([PegCountKey]/[GameStatusKey]/[LegalTargetCountKey]) are
  * attached to the [GAME_STATE_TEST_TAG] node so the end-to-end flow test asserts on
  * state deterministically rather than on pixels.
@@ -71,10 +80,19 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  * @param onConfirmRestart confirms a restart (mid-game confirm dialog).
  * @param onDismissRestart dismisses the mid-game restart confirmation.
  * @param onAnimationFinished signals the jump slide completed.
- * @param onToggleHints toggles the persisted legal-destination hint dots.
+ * @param onToggleHints toggles the persisted "Show possible moves" legal-destination dots.
+ * @param onUndo undoes the last move (ASST-02); the control disables when nothing to undo.
+ * @param onHint requests a winning-move hint (ASST-01); the control shows a thinking
+ *   spinner + disables while [GameUiState.solverThinking] (D-10).
+ * @param onHome leaves to the Home root from the rescue banner (D-09); wired to the same
+ *   destination as the top-bar back nav ([onNavigateBack]).
  * @param onNavigateBack leaves the gameplay screen (top-bar back nav).
  * @param modifier layout modifier for the screen.
+ * @param challengeLevel the Challenge level number when this is a Challenge game (drives
+ *   the "Level N" top-bar title, S2/D-03), or `null` for Classic (app-name title). This
+ *   is a pure presentation flag — it reaches only the title slot, never the board logic.
  */
+@Suppress("LongMethod") // Scaffold + top-bar + board panel + confirm dialog; the Hint action is one line over.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameScreen(
@@ -85,17 +103,28 @@ fun GameScreen(
     onDismissRestart: () -> Unit,
     onAnimationFinished: () -> Unit,
     onToggleHints: () -> Unit,
+    onUndo: () -> Unit,
+    onHint: () -> Unit,
+    onHome: () -> Unit,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
+    challengeLevel: Int? = null,
 ) {
+    JumpHaptic(animatingMoveId = state.animating?.id, hapticsOn = state.hapticsOn)
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
             GameTopBar(
                 elapsedSeconds = state.elapsedSeconds,
                 showHints = state.showHints,
+                canUndo = state.canUndo,
+                solverThinking = state.solverThinking,
+                challengeLevel = challengeLevel,
                 onRestart = onRestart,
                 onToggleHints = onToggleHints,
+                onUndo = onUndo,
+                onHint = onHint,
                 onNavigateBack = onNavigateBack,
             )
         },
@@ -114,20 +143,42 @@ fun GameScreen(
                     },
             contentAlignment = Alignment.Center,
         ) {
-            Surface(
-                shape = MaterialTheme.shapes.large,
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                modifier =
-                    Modifier
-                        .widthIn(max = dimensionResource(R.dimen.board_max_size))
-                        .fillMaxWidth()
-                        .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO),
-            ) {
-                BoardCanvas(
-                    state = state,
-                    onCellTap = onCellTap,
-                    onAnimationFinished = onAnimationFinished,
-                    modifier = Modifier.padding(dimensionResource(R.dimen.spacing_md)),
+            if (state.isLoading) {
+                LoadingIndicator()
+            } else {
+                Surface(
+                    shape = MaterialTheme.shapes.large,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier =
+                        Modifier
+                            .widthIn(max = dimensionResource(R.dimen.board_max_size))
+                            .fillMaxWidth()
+                            .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO),
+                ) {
+                    BoardCanvas(
+                        state = state,
+                        onCellTap = onCellTap,
+                        onAnimationFinished = onAnimationFinished,
+                        modifier = Modifier.padding(dimensionResource(R.dimen.spacing_md)),
+                    )
+                }
+            }
+            // The rescue banner overlays the still-interactive board (non-blocking, D-08):
+            // it sits in the same Box so taps still reach the board beneath it. Only a
+            // no-win/stuck position raises it; a Won game routes to Results instead.
+            if (state.showRescueBanner) {
+                NoWinBanner(
+                    message =
+                        stringResource(
+                            if (state.noWinningMove) R.string.nowin_message else R.string.stuck_message,
+                        ),
+                    onUndo = onUndo,
+                    onRestart = onRestart,
+                    onHome = onHome,
+                    modifier =
+                        Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth(),
                 )
             }
         }
@@ -142,17 +193,55 @@ fun GameScreen(
 }
 
 /**
- * The gameplay top bar: a back nav, the app title, the live `mm:ss` elapsed timer
- * (D-04), the [HintToggleControl], and the [RestartControl] (D-06). Stateless — every
- * value/handler is hoisted.
+ * Fires one light haptic tick as each jump animation begins (SET-02 / D-15).
+ *
+ * Haptic emission is a Compose UI concern, so it lives here rather than in the ViewModel:
+ * the screen reads the already-collected [GameUiState.hapticsOn] gate (it never touches
+ * `SettingsRepository`) and the effect is keyed on the [MoveTransition.id] move ordinal —
+ * so it fires exactly once per jump, not once per recomposition. When the setting is off
+ * nothing fires and gameplay is otherwise identical.
+ *
+ * [HapticFeedbackType.ContextClick] is the lightest type in the pinned Compose BOM that is
+ * available across the whole supported range (`CONTEXT_CLICK`, API 23 ≤ minSdk 24) — the
+ * newer `SegmentTick`/`GestureEnd` constants map to API-34-only platform constants and
+ * would be silent on most devices, and `LongPress` is far too heavy for a peg hop.
+ *
+ * @param animatingMoveId the in-flight jump's move ordinal, or `null` when settled.
+ * @param hapticsOn the persisted haptics gate carried by the UI state.
+ */
+@Composable
+private fun JumpHaptic(
+    animatingMoveId: Int?,
+    hapticsOn: Boolean,
+) {
+    val haptics = LocalHapticFeedback.current
+    LaunchedEffect(animatingMoveId) {
+        if (animatingMoveId != null && hapticsOn) {
+            haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+        }
+    }
+}
+
+/**
+ * The gameplay top bar: a back nav, the context-aware title, the live `mm:ss` elapsed
+ * timer (D-04), the [UndoControl] (ASST-02), the [HintControl] (ASST-01), the
+ * [HintToggleControl], and the [RestartControl] (D-06). Stateless — every value/handler
+ * is hoisted. The title slot is the only mode-aware element (S2): a non-null
+ * [challengeLevel] renders the "Level N" indicator, else the app name; the actions row is
+ * identical in both modes.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GameTopBar(
     elapsedSeconds: Int,
     showHints: Boolean,
+    canUndo: Boolean,
+    solverThinking: Boolean,
+    challengeLevel: Int?,
     onRestart: () -> Unit,
     onToggleHints: () -> Unit,
+    onUndo: () -> Unit,
+    onHint: () -> Unit,
     onNavigateBack: () -> Unit,
 ) {
     TopAppBar(
@@ -165,18 +254,40 @@ private fun GameTopBar(
                 )
             }
         },
-        title = {
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.titleLarge,
-            )
-        },
+        title = { GameTopBarTitle(challengeLevel = challengeLevel) },
         actions = {
             ElapsedTimeLabel(elapsedSeconds = elapsedSeconds)
+            UndoControl(canUndo = canUndo, onUndo = onUndo)
+            HintControl(solverThinking = solverThinking, onHint = onHint)
             HintToggleControl(showHints = showHints, onToggleHints = onToggleHints)
             RestartControl(onRestart = onRestart)
         },
     )
+}
+
+/**
+ * The context-aware gameplay title (S2 / D-03). In Challenge mode ([challengeLevel] set)
+ * it renders the neutral "Level N" indicator (`titleLarge`, `onSurface` — deliberately
+ * NOT accent per UI-SPEC S3) with a `challenge_level_indicator_desc` screen-reader
+ * description; otherwise it renders the static app-name title. This is the sole
+ * presentation delta — no `if (challenge)` reaches the board/selection/jump logic.
+ */
+@Composable
+private fun GameTopBarTitle(challengeLevel: Int?) {
+    if (challengeLevel != null) {
+        val description = stringResource(R.string.challenge_level_indicator_desc, challengeLevel)
+        Text(
+            text = stringResource(R.string.challenge_level_indicator, challengeLevel),
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.semantics { contentDescription = description },
+        )
+    } else {
+        Text(
+            text = stringResource(R.string.app_name),
+            style = MaterialTheme.typography.titleLarge,
+        )
+    }
 }
 
 /**
@@ -197,6 +308,19 @@ private fun ElapsedTimeLabel(elapsedSeconds: Int) {
             Modifier
                 .padding(end = dimensionResource(R.dimen.spacing_sm))
                 .semantics { contentDescription = description },
+    )
+}
+
+/**
+ * The centered progress indicator shown while a Challenge board is generated off the
+ * main thread (CR-01). Carries the `loading_level` content description so screen
+ * readers announce the wait; it replaces the board panel until the state settles.
+ */
+@Composable
+private fun LoadingIndicator() {
+    val description = stringResource(R.string.loading_level)
+    CircularProgressIndicator(
+        modifier = Modifier.semantics { contentDescription = description },
     )
 }
 

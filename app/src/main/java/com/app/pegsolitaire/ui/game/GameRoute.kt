@@ -1,10 +1,14 @@
 package com.app.pegsolitaire.ui.game
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.app.pegsolitaire.navigation.Results
 
@@ -22,6 +26,14 @@ import com.app.pegsolitaire.navigation.Results
  * the effect collects a `Channel`-backed flow keyed on `Unit`, a recomposition can
  * never re-fire the navigation or pollute the back stack (T-02-05-NAV, Pitfall 4).
  *
+ * Leaving the screen is the resume-snapshot write point (PERS-03, D-04): a
+ * [DisposableEffect]-registered [LifecycleEventObserver] calls
+ * [GameViewModel.onLeaveScreen] on [Lifecycle.Event.ON_STOP] — the one event that
+ * covers backgrounding, screen-off and navigating away, and the last moment before the
+ * process may be killed. It lives here rather than in `onCleared()`, which does not map
+ * to `onStop` and is not guaranteed on process death. The ViewModel decides whether
+ * anything is actually worth saving (a finished game never is, Pitfall 4).
+ *
  * @param onFinished navigates to the Results destination for a finished game.
  * @param onNavigateBack leaves the gameplay screen (top-bar back nav).
  * @param modifier layout modifier forwarded to [GameScreen].
@@ -34,6 +46,16 @@ fun GameRoute(
 ) {
     val viewModel: GameViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer =
+            LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_STOP) viewModel.onLeaveScreen()
+            }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     LaunchedEffect(Unit) {
         viewModel.finished.collect { result ->
@@ -44,6 +66,7 @@ fun GameRoute(
                     pegsRemaining = result.pegsRemaining,
                     elapsedSeconds = result.elapsedSeconds,
                     score = result.score,
+                    challengeLevel = viewModel.challengeLevel,
                 ),
             )
         }
@@ -57,7 +80,11 @@ fun GameRoute(
         onDismissRestart = viewModel::onDismissRestart,
         onAnimationFinished = viewModel::onAnimationFinished,
         onToggleHints = viewModel::onToggleHints,
+        onUndo = viewModel::onUndo,
+        onHint = viewModel::onHintRequested,
+        onHome = onNavigateBack,
         onNavigateBack = onNavigateBack,
         modifier = modifier,
+        challengeLevel = viewModel.challengeLevel,
     )
 }

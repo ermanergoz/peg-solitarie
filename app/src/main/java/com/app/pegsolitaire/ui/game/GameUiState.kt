@@ -2,6 +2,7 @@ package com.app.pegsolitaire.ui.game
 
 import androidx.compose.runtime.Immutable
 import com.app.pegsolitaire.domain.model.Board
+import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Position
@@ -27,6 +28,38 @@ import com.app.pegsolitaire.domain.model.Position
  * @property showHints whether legal-destination hint dots are drawn (player-toggled,
  *   persisted via `SettingsRepository`); fail-open default `true`. Purely a render
  *   gate — selection/jump logic is unchanged whether hints are on or off.
+ * @property hapticsOn whether haptic feedback is enabled (SET-02, player-toggled in
+ *   Settings and persisted via `SettingsRepository`); fail-open default `true`. Purely a
+ *   feedback gate — the screen fires a light tick as each jump animation begins only
+ *   while this is on; selection/jump logic is identical either way.
+ * @property isLoading whether the board is still being generated off the main thread
+ *   (Challenge only, CR-01): while `true` the screen shows a loading indicator instead
+ *   of the board. Classic boards resolve synchronously, so they are never in this state.
+ * @property canUndo whether there is at least one move to undo (ASST-02, D-05): mirrors
+ *   `moveHistory.isNotEmpty()`, so it is `false` at the initial board, `true` after any
+ *   jump, and `false` again once undo walks back to the start. Drives the Undo control's
+ *   enabled state; render-only, no game logic depends on it.
+ * @property hintSource the peg to move for the revealed winning move (ASST-01, D-01), or
+ *   `null` when no hint is shown; the [BoardCanvas] glows this cell (rendering ships in
+ *   04-03b). Cleared on any jump/undo (a new position invalidates a shown hint).
+ * @property hintTarget the destination hole of the revealed winning move (ASST-01, D-01),
+ *   or `null` when no hint is shown; paired with [hintSource] to draw the A→B highlight.
+ * @property solverThinking whether the off-thread Solver is computing a hint (D-10): set
+ *   the instant a hint is requested and cleared when the search resolves (to a highlight
+ *   or [noWinningMove]); the Hint control shows a spinner/disabled state while `true`.
+ * @property noWinningMove whether the last hint found no winning move (ASST-03, D-04/D-08):
+ *   the Solver returned nothing (unsolvable / budget-missed) so the position is dead; the
+ *   inline "no winning move — undo or restart" banner (04-04) renders on this. Cleared on
+ *   any jump/undo and when a new hint is requested.
+ * @property stuck whether the board has reached a dead-end with 2+ pegs (D-06): a Stuck
+ *   position no longer auto-navigates to Results — it becomes a rescuable in-board state
+ *   showing the "no moves left — undo or restart" banner. Set the moment a jump strands the
+ *   board; cleared when an undo returns it to a Playing position (or on restart). A Won game
+ *   never sets this (Won still proceeds to Results).
+ * @property showRescueBanner derived: whether the inline rescue banner should render over the
+ *   still-interactive board (ASST-03, D-08). `true` when the board is [stuck] or the last
+ *   hint found [noWinningMove]. Not a constructor field, so it never affects equality — it is
+ *   a pure view of the two rescue flags for the UI to switch on.
  */
 @Immutable
 data class GameUiState(
@@ -38,12 +71,23 @@ data class GameUiState(
     val confirmRestart: Boolean,
     val elapsedSeconds: Int = 0,
     val showHints: Boolean = true,
+    val hapticsOn: Boolean = true,
+    val isLoading: Boolean = false,
+    val canUndo: Boolean = false,
+    val hintSource: Position? = null,
+    val hintTarget: Position? = null,
+    val solverThinking: Boolean = false,
+    val noWinningMove: Boolean = false,
+    val stuck: Boolean = false,
 ) {
+    /** Whether the inline no-win/stuck rescue banner should surface over the live board (D-08). */
+    val showRescueBanner: Boolean get() = stuck || noWinningMove
+
     companion object {
         /**
          * The deterministic starting state: a full board with its start hole empty,
          * nothing selected, no highlights, `Playing`, no animation, no restart
-         * prompt, the timer at 0, and hints on. [board] defaults to
+         * prompt, the timer at 0, and hints + haptics on. [board] defaults to
          * [Boards.english33Initial] but is overridable so the ViewModel can reset to
          * its selected board.
          */
@@ -57,6 +101,43 @@ data class GameUiState(
                 confirmRestart = false,
                 elapsedSeconds = 0,
                 showHints = true,
+                hapticsOn = true,
+                isLoading = false,
+                canUndo = false,
+                hintSource = null,
+                hintTarget = null,
+                solverThinking = false,
+                noWinningMove = false,
+                stuck = false,
             )
+
+        /**
+         * The transient loading state shown while a Challenge board is generated off
+         * the main thread (CR-01). It carries an empty placeholder board (the screen
+         * renders a progress indicator, not the board, while [isLoading]) so the state
+         * stays a total, non-null value — no board logic runs against it.
+         */
+        fun loading(): GameUiState =
+            GameUiState(
+                board = Board(spec = EMPTY_SPEC, pegs = 0L),
+                selected = null,
+                legalTargets = emptyList(),
+                status = GameStatus.Playing,
+                animating = null,
+                confirmRestart = false,
+                elapsedSeconds = 0,
+                showHints = true,
+                hapticsOn = true,
+                isLoading = true,
+                canUndo = false,
+                hintSource = null,
+                hintTarget = null,
+                solverThinking = false,
+                noWinningMove = false,
+                stuck = false,
+            )
+
+        /** An empty footprint backing the [loading] placeholder board (no in-play cells). */
+        private val EMPTY_SPEC = BoardSpec(inPlay = emptyList(), target = null)
     }
 }

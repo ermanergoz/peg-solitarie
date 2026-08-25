@@ -56,6 +56,8 @@
     <string name="classic_tile_title">Classic</string>
     <string name="classic_tile_supporting">5 boards</string>
     <string name="challenge_tile_title">Challenge</string>
+    <!-- The Challenge tile's supporting line: the player's persisted ladder position (CHAL-05). -->
+    <string name="challenge_tile_continue">Continue — Level %1$d</string>
     <string name="coming_soon">Coming soon</string>
     <string name="how_to_play">How to play</string>
 
@@ -66,13 +68,39 @@
         <item quantity="one">%d hole</item>
         <item quantity="other">%d holes</item>
     </plurals>
+    <!--
+      Screen-reader description of a catalog card's earned-star pips (PERS-01, D-10):
+      the row announces its count once ("1 of 3 stars") instead of three anonymous icons.
+    -->
+    <string name="catalog_stars_earned">%1$d of %2$d stars</string>
 
     <!-- Gameplay top bar (timer + back; restart_board reused from Phase 1). -->
     <string name="navigate_back">Navigate back</string>
     <string name="elapsed_time">Elapsed time</string>
-    <!-- Hint toggle (icon-only; content description reflects the on/off state). -->
-    <string name="hints_on">Hints on</string>
-    <string name="hints_off">Hints off</string>
+    <!-- Challenge gameplay top-bar "Level N" title + its screen-reader description (S2, D-03). -->
+    <string name="challenge_level_indicator">Level %1$d</string>
+    <string name="challenge_level_indicator_desc">Challenge level %1$d</string>
+    <!-- Undo control (icon-only; disabled when there is nothing to undo, ASST-02). -->
+    <string name="undo_action">Undo</string>
+    <!-- Winning-move Hint action (icon-only; distinct from the show-moves toggle, D-01/D-02). -->
+    <string name="hint_action">Hint</string>
+    <!-- Announced while the Solver computes a hint; the control is disabled (D-10). -->
+    <string name="hint_thinking">Finding a move</string>
+    <!-- Show-possible-moves toggle (icon-only; content description reflects the on/off state, D-02). -->
+    <string name="show_moves_on">Show possible moves</string>
+    <string name="show_moves_off">Hide possible moves</string>
+    <!-- Shown while a Challenge board is generated off the main thread (CR-01). -->
+    <string name="loading_level">Loading level</string>
+
+    <!--
+      Inline no-win / stuck rescue banner (ASST-03, D-06/D-08/D-09). One shared banner
+      surfaces either message over the still-interactive board; rescue_restart is the
+      label form of the Restart action (distinct from the restart_board content-desc),
+      and the banner reuses undo_action + action_home for its other two actions.
+    -->
+    <string name="nowin_message">No winning move — undo or restart</string>
+    <string name="stuck_message">No moves left — undo or restart</string>
+    <string name="rescue_restart">Restart</string>
 
     <!-- Results. -->
     <string name="results_title">Results</string>
@@ -85,6 +113,40 @@
     <string name="action_replay">Replay</string>
     <string name="action_catalog">Catalog</string>
     <string name="action_home">Home</string>
+    <!--
+      Results "New best!" cue (PERS-01, D-09): shown only when the play actually improved
+      one of the level's stored bests (stars, time or score).
+    -->
+    <string name="results_new_best">New best!</string>
+    <!-- Challenge-aware Results actions (S3, D-01/D-10). -->
+    <string name="action_next_level">Next level</string>
+    <string name="action_retry">Retry</string>
+    <string name="challenge_load_error">Couldn\'t load this level. Tap Retry.</string>
+
+    <!--
+      ============================ Phase-5 copy ============================
+      Settings (SET-01/SET-02, D-14..D-17). The sound supporting line states the
+      honest Phase-5 truth — the choice is saved now and consumed when the audio
+      pass lands (D-16) — while haptics describes the feedback that fires today
+      (D-15). settings_action is the Home gear's content description.
+    -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_action">Settings</string>
+    <string name="settings_sound_label">Sound</string>
+    <string name="settings_sound_supporting">Saved for the upcoming sound effects</string>
+    <string name="settings_haptics_label">Haptics</string>
+    <string name="settings_haptics_supporting">Vibrate lightly on each jump</string>
+
+    <!--
+      Home "Continue" affordances for a saved in-progress game (PERS-03, D-01/D-03). Each
+      mode has its own tile and they can appear together, so the titles name the mode
+      rather than relying on position. The supporting lines say what is actually being
+      resumed — the exact board, not a fresh start.
+    -->
+    <string name="resume_classic_title">Continue Classic</string>
+    <string name="resume_classic_supporting">Pick up your saved board</string>
+    <string name="resume_challenge_title">Continue Challenge</string>
+    <string name="resume_challenge_supporting">Pick up Level %1$d where you left off</string>
 
     <!-- Onboarding overlay (first-run how-to-play of the orthogonal jump). -->
     <string name="onboarding_got_it">Got it</string>

@@ -47,6 +47,11 @@ kotlinxSerialization = "1.11.0"
 # DataStore Preferences — single boolean `onboardingSeen` flag (ONB-01) + future
 # scalar settings/challenge progress. Flow-based async KV store (no SharedPreferences).
 datastore = "1.2.1"
+# Room — the project's first relational store (Phase 5): per-level results +
+# in-progress resume snapshot. CLAUDE.md-pinned 2.8.4 stable (NOT Room 3.0 alpha);
+# annotation processor runs under KSP (never KAPT). All five artifacts (runtime,
+# ktx, compiler, testing, gradle-plugin) verified present on Google Maven 2026-07-13.
+room = "2.8.4"
 
 # --- Standards gate tooling (Phase-1 delta — verified live against the
 #     official Gradle Plugin Portal / Maven Central this session) ---
@@ -105,6 +110,14 @@ kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 # DataStore Preferences for the first-run `onboardingSeen` flag (ONB-01).
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
+# --- Room (Phase-5 persistence: results + resume) ---
+# runtime + ktx at implementation; compiler under ksp(...) (no KAPT); testing
+# (MigrationTestHelper) at testImplementation for the Robolectric migration spike.
+androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+androidx-room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
+
 # --- DI (APPLIED: :app uses hilt-android at runtime; hilt-compiler via ksp(...)) ---
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
@@ -140,3 +153,7 @@ detekt = { id = "dev.detekt", version.ref = "detekt" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+# Room Gradle plugin (id `androidx.room`) — declares the exported-schema location
+# as a proper variant-aware Gradle input/output via `room { schemaDirectory(...) }`,
+# avoiding the KSP `room.schemaLocation` apoption-format pitfall.
+room = { id = "androidx.room", version.ref = "room" }
