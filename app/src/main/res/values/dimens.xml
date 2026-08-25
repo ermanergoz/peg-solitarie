@@ -74,4 +74,15 @@
     -->
     <dimen name="peg_selected_ring_width">3dp</dimen>
     <dimen name="hole_outline_width">1dp</dimen>
+
+    <!--
+      Candy-Clay M3 Shapes override (DESIGN-SYSTEM.md §Shape): the five corner
+      radii wired into MaterialTheme.shapes by ui/theme/Theme.kt. The 12dp
+      extraSmall is an intentional off-grid value fixed by the design contract.
+    -->
+    <dimen name="shape_corner_extra_small">12dp</dimen>
+    <dimen name="shape_corner_small">16dp</dimen>
+    <dimen name="shape_corner_medium">20dp</dimen>
+    <dimen name="shape_corner_large">28dp</dimen>
+    <dimen name="shape_corner_extra_large">32dp</dimen>
 </resources>
