@@ -3,10 +3,12 @@ package com.app.pegsolitaire.data
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -21,7 +23,9 @@ import java.io.IOException
  *  - a real Preferences store over a temp file proves each flag defaults to `true` (fresh
  *    install → every helper on) and that the setters round-trip `false` back to `true`;
  *  - a deliberately-throwing store proves each read **fails open** — a corrupt/IO error
- *    degrades to `true` rather than crashing, mirroring [OnboardingRepository] (D-17).
+ *    degrades to `true` rather than crashing, mirroring [OnboardingRepository] (D-17);
+ *  - a store that throws on write proves each setter is **best-effort** (T-05-13) — a
+ *    disk-full/IO failure drops the write instead of crashing the Settings screen.
  */
 class SettingsRepositoryTest {
     @get:Rule
@@ -127,6 +131,22 @@ class SettingsRepositoryTest {
             assertThat(repository.hintsEnabled.first()).isTrue()
         }
 
+    @Test
+    fun aFailingWriteIsDroppedInsteadOfCrashing() =
+        runTest {
+            val repository = SettingsRepositoryImpl(throwingWriteDataStore())
+
+            // T-05-13: a disk-full/IO failure while persisting a toggle must not crash.
+            repository.setHintsEnabled(false)
+            repository.setSoundOn(false)
+            repository.setHapticsOn(false)
+
+            // The writes were dropped; the flows still report what actually persisted.
+            assertThat(repository.hintsEnabled.first()).isTrue()
+            assertThat(repository.soundOn.first()).isTrue()
+            assertThat(repository.hapticsOn.first()).isTrue()
+        }
+
     private fun realDataStore(): DataStore<Preferences> =
         PreferenceDataStoreFactory.create(
             produceFile = { tempFolder.newFile(TEST_STORE_FILE) },
@@ -138,6 +158,15 @@ class SettingsRepositoryTest {
 
             override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
                 error("not used in the read path")
+        }
+
+    /** Reads work (and are empty); every write fails like a full disk. */
+    private fun throwingWriteDataStore(): DataStore<Preferences> =
+        object : DataStore<Preferences> {
+            override val data: Flow<Preferences> = flowOf(emptyPreferences())
+
+            override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
+                throw IOException("disk full")
         }
 
     private companion object {

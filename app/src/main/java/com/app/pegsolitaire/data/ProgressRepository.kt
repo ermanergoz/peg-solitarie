@@ -36,6 +36,10 @@ interface ProgressRepository {
      *
      * @param nowMs epoch millis of this play; stored as `completedAt` only when
      *   something actually improved, keeping that column meaningful as "last improved".
+     *
+     * The write is best-effort (T-05-13): a storage failure drops this play's record —
+     * stored bests keep their prior values — and reports "nothing improved" rather than
+     * crashing the Results screen.
      */
     suspend fun recordResult(
         mode: String,
@@ -54,7 +58,8 @@ interface ProgressRepository {
 
     /**
      * Saves [dto] as the resume point for its own [ResumeSnapshotDto.mode], replacing any
-     * snapshot already stored there (D-03/D-04).
+     * snapshot already stored there (D-03/D-04). Best-effort (T-05-13): a storage failure
+     * drops the save — the previously stored snapshot, if any, survives untouched.
      */
     suspend fun saveSnapshot(
         dto: ResumeSnapshotDto,
@@ -71,7 +76,10 @@ interface ProgressRepository {
      */
     suspend fun loadSnapshot(mode: String): ResumeSnapshotDto?
 
-    /** Drops [mode]'s snapshot — solved, restarted, or new game (D-05). */
+    /**
+     * Drops [mode]'s snapshot — solved, restarted, or new game (D-05). Best-effort
+     * (T-05-13): a storage failure is swallowed rather than crashing the caller.
+     */
     suspend fun clearSnapshot(mode: String)
 
     /**
@@ -134,27 +142,42 @@ class DefaultProgressRepository
             result: ScoreResult,
             nowMs: Long,
         ): NewBests =
-            database.withTransaction {
-                val previous = levelResultDao.find(mode, levelId)
-                val timeMs = result.elapsedSeconds * ProgressConstants.MILLIS_IN_SECOND
-                val newBests =
-                    NewBests(
-                        stars = previous == null || result.stars > previous.stars,
-                        time = previous == null || timeMs < previous.bestTimeMs,
-                        score = previous == null || result.score > previous.bestScore,
-                    )
-                levelResultDao.upsert(
-                    LevelResultEntity(
-                        mode = mode,
-                        levelId = levelId,
-                        stars = maxOf(result.stars, previous?.stars ?: ProgressConstants.NO_STARS),
-                        bestTimeMs = minOf(timeMs, previous?.bestTimeMs ?: Long.MAX_VALUE),
-                        bestScore = maxOf(result.score, previous?.bestScore ?: ProgressConstants.NO_SCORE),
-                        completedAt = if (newBests.any) nowMs else previous?.completedAt ?: nowMs,
-                    ),
-                )
-                newBests
+            // Best-effort (T-05-13), guarded at the TRANSACTION boundary deliberately: a
+            // throwing `find` must abort the whole merge, because degrading it to "no
+            // previous row" inside the transaction would let the upsert overwrite better
+            // stored bests. Failure drops the write and reports "nothing improved".
+            storageFailSafe(fallback = NewBests(stars = false, time = false, score = false)) {
+                database.withTransaction {
+                    recordResultInTransaction(mode, levelId, result, nowMs)
+                }
             }
+
+        private suspend fun recordResultInTransaction(
+            mode: String,
+            levelId: String,
+            result: ScoreResult,
+            nowMs: Long,
+        ): NewBests {
+            val previous = levelResultDao.find(mode, levelId)
+            val timeMs = result.elapsedSeconds * ProgressConstants.MILLIS_IN_SECOND
+            val newBests =
+                NewBests(
+                    stars = previous == null || result.stars > previous.stars,
+                    time = previous == null || timeMs < previous.bestTimeMs,
+                    score = previous == null || result.score > previous.bestScore,
+                )
+            levelResultDao.upsert(
+                LevelResultEntity(
+                    mode = mode,
+                    levelId = levelId,
+                    stars = maxOf(result.stars, previous?.stars ?: ProgressConstants.NO_STARS),
+                    bestTimeMs = minOf(timeMs, previous?.bestTimeMs ?: Long.MAX_VALUE),
+                    bestScore = maxOf(result.score, previous?.bestScore ?: ProgressConstants.NO_SCORE),
+                    completedAt = if (newBests.any) nowMs else previous?.completedAt ?: nowMs,
+                ),
+            )
+            return newBests
+        }
 
         override fun observeResults(mode: String): Flow<List<LevelResult>> =
             levelResultDao
@@ -168,13 +191,17 @@ class DefaultProgressRepository
             dto: ResumeSnapshotDto,
             nowMs: Long,
         ) {
-            resumeDao.upsert(
-                ResumeSnapshotEntity(
-                    mode = dto.mode,
-                    jsonBlob = SnapshotMapper.encode(dto),
-                    updatedAt = nowMs,
-                ),
-            )
+            // Best-effort (T-05-13): a failed save is dropped — losing one resume point
+            // beats crashing the app while the player is backgrounding it.
+            storageFailSafe(fallback = Unit) {
+                resumeDao.upsert(
+                    ResumeSnapshotEntity(
+                        mode = dto.mode,
+                        jsonBlob = SnapshotMapper.encode(dto),
+                        updatedAt = nowMs,
+                    ),
+                )
+            }
         }
 
         override suspend fun loadSnapshot(mode: String): ResumeSnapshotDto? =
@@ -196,7 +223,11 @@ class DefaultProgressRepository
             }
 
         override suspend fun clearSnapshot(mode: String) {
-            resumeDao.clear(mode)
+            // Best-effort (T-05-13). Worst case a stale snapshot lingers; loadSnapshot's
+            // own guards (staleness/purge, T-05-03/WR-02) already cope with that.
+            storageFailSafe(fallback = Unit) {
+                resumeDao.clear(mode)
+            }
         }
 
         override fun observeResumeModes(): Flow<List<String>> =

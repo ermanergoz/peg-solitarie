@@ -78,23 +78,33 @@ class ChallengeProgress
          * [currentLevel] value) so concurrent writes can never interleave into a lost update.
          */
         fun advancePast(solvedLevel: Int) {
+            // Best-effort (T-05-13): the launch runs on the app-lifetime scope, whose
+            // SupervisorJob isolates a failed child but does NOT swallow the exception —
+            // an unguarded IO failure here would still crash the app.
             scope.launch {
-                dataStore.edit { preferences ->
-                    val current =
-                        preferences[ChallengeProgressPreferences.CURRENT_LEVEL_KEY]
-                            ?: ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL
-                    preferences[ChallengeProgressPreferences.CURRENT_LEVEL_KEY] =
-                        maxOf(current, solvedLevel + 1)
+                storageFailSafe(fallback = Unit) {
+                    dataStore.edit { preferences ->
+                        val current =
+                            preferences[ChallengeProgressPreferences.CURRENT_LEVEL_KEY]
+                                ?: ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL
+                        preferences[ChallengeProgressPreferences.CURRENT_LEVEL_KEY] =
+                            maxOf(current, solvedLevel + 1)
+                    }
                 }
             }
         }
 
-        /** Resets progress back to the first level (a fresh Challenge run). */
+        /**
+         * Resets progress back to the first level (a fresh Challenge run). Best-effort
+         * like [advancePast] (T-05-13): a failed write keeps the current ladder.
+         */
         fun reset() {
             scope.launch {
-                dataStore.edit {
-                    it[ChallengeProgressPreferences.CURRENT_LEVEL_KEY] =
-                        ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL
+                storageFailSafe(fallback = Unit) {
+                    dataStore.edit {
+                        it[ChallengeProgressPreferences.CURRENT_LEVEL_KEY] =
+                            ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL
+                    }
                 }
             }
         }

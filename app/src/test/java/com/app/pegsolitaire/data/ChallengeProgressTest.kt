@@ -3,10 +3,13 @@ package com.app.pegsolitaire.data
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -118,6 +121,30 @@ class ChallengeProgressTest {
             assertThat(progress.currentLevel.value).isEqualTo(FIRST_LEVEL)
         }
 
+    @Test
+    fun advancePastDropsTheWriteInsteadOfCrashingWhenTheStoreThrows() =
+        runTest {
+            val progress = ChallengeProgress(throwingWriteDataStore(), backgroundScope)
+
+            // T-05-13: the write runs detached on the app-lifetime scope, where an
+            // uncaught IO failure would crash the whole app — it must be dropped.
+            progress.advancePast(FIRST_LEVEL)
+            advanceUntilIdle()
+
+            assertThat(progress.currentLevel.value).isEqualTo(FIRST_LEVEL)
+        }
+
+    @Test
+    fun resetDropsTheWriteInsteadOfCrashingWhenTheStoreThrows() =
+        runTest {
+            val progress = ChallengeProgress(throwingWriteDataStore(), backgroundScope)
+
+            progress.reset()
+            advanceUntilIdle()
+
+            assertThat(progress.currentLevel.value).isEqualTo(FIRST_LEVEL)
+        }
+
     private fun realDataStore(): DataStore<Preferences> =
         PreferenceDataStoreFactory.create(
             produceFile = { tempFolder.newFile(TEST_STORE_FILE) },
@@ -129,6 +156,15 @@ class ChallengeProgressTest {
 
             override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
                 error("not used in the read path")
+        }
+
+    /** Reads work (and are empty); every write fails like a full disk (T-05-13). */
+    private fun throwingWriteDataStore(): DataStore<Preferences> =
+        object : DataStore<Preferences> {
+            override val data: Flow<Preferences> = flowOf(emptyPreferences())
+
+            override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
+                throw IOException("disk full")
         }
 
     private companion object {

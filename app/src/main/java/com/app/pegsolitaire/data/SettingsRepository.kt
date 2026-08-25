@@ -92,15 +92,26 @@ class SettingsRepositoryImpl
                 .catch { emit(emptyPreferences()) }
                 .map { it[SettingsPreferences.HAPTICS_KEY] ?: SettingsPreferences.DEFAULT_HAPTICS }
 
+        // The setters are best-effort (T-05-13): a disk-full/IO failure drops the write —
+        // the toggle simply does not stick — instead of crashing the Settings screen.
+        // The flows above stay the single source of truth, so the UI keeps showing the
+        // value that actually persisted.
+
         override suspend fun setHintsEnabled(enabled: Boolean) {
-            dataStore.edit { it[SettingsPreferences.HINTS_KEY] = enabled }
+            storageFailSafe(fallback = Unit) {
+                dataStore.edit { it[SettingsPreferences.HINTS_KEY] = enabled }
+            }
         }
 
         override suspend fun setSoundOn(on: Boolean) {
-            dataStore.edit { it[SettingsPreferences.SOUND_KEY] = on }
+            storageFailSafe(fallback = Unit) {
+                dataStore.edit { it[SettingsPreferences.SOUND_KEY] = on }
+            }
         }
 
         override suspend fun setHapticsOn(on: Boolean) {
-            dataStore.edit { it[SettingsPreferences.HAPTICS_KEY] = on }
+            storageFailSafe(fallback = Unit) {
+                dataStore.edit { it[SettingsPreferences.HAPTICS_KEY] = on }
+            }
         }
     }
