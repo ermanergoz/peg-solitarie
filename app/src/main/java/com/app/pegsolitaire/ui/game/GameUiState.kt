@@ -28,6 +28,10 @@ import com.app.pegsolitaire.domain.model.Position
  * @property showHints whether legal-destination hint dots are drawn (player-toggled,
  *   persisted via `SettingsRepository`); fail-open default `true`. Purely a render
  *   gate — selection/jump logic is unchanged whether hints are on or off.
+ * @property hapticsOn whether haptic feedback is enabled (SET-02, player-toggled in
+ *   Settings and persisted via `SettingsRepository`); fail-open default `true`. Purely a
+ *   feedback gate — the screen fires a light tick as each jump animation begins only
+ *   while this is on; selection/jump logic is identical either way.
  * @property isLoading whether the board is still being generated off the main thread
  *   (Challenge only, CR-01): while `true` the screen shows a loading indicator instead
  *   of the board. Classic boards resolve synchronously, so they are never in this state.
@@ -67,6 +71,7 @@ data class GameUiState(
     val confirmRestart: Boolean,
     val elapsedSeconds: Int = 0,
     val showHints: Boolean = true,
+    val hapticsOn: Boolean = true,
     val isLoading: Boolean = false,
     val canUndo: Boolean = false,
     val hintSource: Position? = null,
@@ -82,7 +87,7 @@ data class GameUiState(
         /**
          * The deterministic starting state: a full board with its start hole empty,
          * nothing selected, no highlights, `Playing`, no animation, no restart
-         * prompt, the timer at 0, and hints on. [board] defaults to
+         * prompt, the timer at 0, and hints + haptics on. [board] defaults to
          * [Boards.english33Initial] but is overridable so the ViewModel can reset to
          * its selected board.
          */
@@ -96,6 +101,7 @@ data class GameUiState(
                 confirmRestart = false,
                 elapsedSeconds = 0,
                 showHints = true,
+                hapticsOn = true,
                 isLoading = false,
                 canUndo = false,
                 hintSource = null,
@@ -121,6 +127,7 @@ data class GameUiState(
                 confirmRestart = false,
                 elapsedSeconds = 0,
                 showHints = true,
+                hapticsOn = true,
                 isLoading = true,
                 canUndo = false,
                 hintSource = null,

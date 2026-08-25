@@ -35,8 +35,14 @@
     <dimen name="catalog_grid_min_cell_width">160dp</dimen>
     <!-- Square edge of the mini BoardCanvas preview inside each catalog card. -->
     <dimen name="catalog_preview_size">96dp</dimen>
-    <!-- Fixed height of every catalog BoardCard so equal grid-row cards align even when a name wraps to 2 lines. -->
-    <dimen name="catalog_card_height">216dp</dimen>
+    <!--
+      Fixed height of every catalog BoardCard so equal grid-row cards align even when a
+      name wraps to 2 lines. Raised in Phase 5 to seat the earned-star pip row (D-10)
+      under the preview without clipping a 2-line name.
+    -->
+    <dimen name="catalog_card_height">248dp</dimen>
+    <!-- Rendered size of each earned-star pip on a catalog card (pip scale, not the Results star). -->
+    <dimen name="catalog_star_pip_size">16dp</dimen>
     <!-- Rendered size of each of the 3 result stars (earned + unearned). -->
     <dimen name="results_star_size">48dp</dimen>
     <!-- Square edge of each onboarding step's jump illustration. -->
@@ -47,6 +53,19 @@
       so its three actions (Undo · Restart · Home) stay tap-reachable (UI-SPEC §4).
     -->
     <dimen name="nowin_banner_min_height">48dp</dimen>
+
+    <!--
+      Phase-5 token: min height of a Settings toggle row (label + supporting line beside
+      an M3 Switch), a multiple of 4 that keeps the row comfortably tap-sized (D-14).
+    -->
+    <dimen name="settings_row_min_height">72dp</dimen>
+
+    <!--
+      Phase-5 token: min height of a Home "Continue" tile (PERS-03, D-01). Deliberately
+      shorter than mode_tile_min_height — a resume affordance sits above the two mode
+      tiles without competing with them — while staying comfortably tap-sized.
+    -->
+    <dimen name="resume_tile_min_height">72dp</dimen>
 
     <!--
       Stroke widths (rendering, not layout spacing) — an INTENTIONAL sub-4dp

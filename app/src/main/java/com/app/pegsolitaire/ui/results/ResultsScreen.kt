@@ -20,6 +20,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -40,6 +41,9 @@ import androidx.compose.material.icons.outlined.Star as StarBorder
 /** Test tag of the star row; carries the [EarnedStarCountKey] semantics for the screen test. */
 const val RESULTS_STAR_ROW_TEST_TAG = "results_star_row"
 
+/** Test tag of the "New best!" cue, present only when this play improved a stored best (D-09). */
+const val RESULTS_NEW_BEST_TEST_TAG = "results_new_best"
+
 /**
  * Semantics: how many of the three stars are filled (earned). The individual star
  * icons are decorative (`contentDescription = null`) — the headline + metrics convey
@@ -57,7 +61,8 @@ private var SemanticsPropertyReceiver.earnedStarCountValue by EarnedStarCountKey
  * [Scaffold] hosts a [TopAppBar] (a back nav, the "Results" title) over a centered
  * content column capped at `content_max_width`, stacking: the star-tiered headline
  * (D-08), the 3-star row (the first [ResultsUiState.stars] filled `primary`, the rest
- * outline `outlineVariant`), the SCORE / TIME / PEGS LEFT metric block, and the three
+ * outline `outlineVariant`), the "New best!" cue when this play improved a stored best
+ * ([ResultsUiState.newBests], D-09), the SCORE / TIME / PEGS LEFT metric block, and the three
  * actions — a single filled `primary` Replay [Button] (the one accent, wrapping
  * `replayId`) plus neutral Catalog / Home buttons. Classic has no "next board", so that
  * Challenge-mode action is intentionally absent.
@@ -115,6 +120,9 @@ fun ResultsScreen(
                     textAlign = TextAlign.Center,
                 )
                 StarRow(earned = state.stars)
+                if (state.newBests.any) {
+                    NewBestBadge()
+                }
                 MetricBlock(state = state)
                 ResultsActions(
                     state = state,
@@ -181,6 +189,33 @@ private fun StarRow(earned: Int) {
                 modifier = Modifier.size(dimensionResource(R.dimen.results_star_size)),
             )
         }
+    }
+}
+
+/**
+ * The "New best!" cue (D-09): a small `tertiaryContainer` pill shown only when
+ * [ResultsUiState.newBests] reports that this play improved at least one of the level's
+ * stored bests. It is deliberately NOT the filled `primary` accent — the single accent
+ * on the screen stays the one action button (UI-SPEC S3) — and it is a pure render of
+ * state, so recomposition can never re-fire it.
+ */
+@Composable
+private fun NewBestBadge() {
+    Surface(
+        shape = MaterialTheme.shapes.small,
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        modifier = Modifier.testTag(RESULTS_NEW_BEST_TEST_TAG),
+    ) {
+        Text(
+            text = stringResource(R.string.results_new_best),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onTertiaryContainer,
+            modifier =
+                Modifier.padding(
+                    horizontal = dimensionResource(R.dimen.spacing_sm),
+                    vertical = dimensionResource(R.dimen.spacing_xs),
+                ),
+        )
     }
 }
 

@@ -22,6 +22,7 @@ import com.app.pegsolitaire.domain.usecase.GetHintUseCase
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
 import com.google.common.truth.Truth.assertThat
+import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -1091,6 +1092,14 @@ class GameViewModelTest {
                         levelRepository = FakeLevelRepository(boardsById = mapOf(levelId to board)),
                         scoreCalculator = ScoreCalculator,
                         settingsRepository = settings,
+                        // This spec is about gameplay, not the Challenge ladder; a relaxed
+                        // stand-in absorbs the advance-on-solve call (its own spec is
+                        // GameViewModelChallengeAdvanceTest).
+                        challengeProgress = mockk(relaxed = true),
+                        // Nor is it about the resume snapshot (its spec is
+                        // GameViewModelResumeTest); a relaxed stand-in absorbs the
+                        // save-on-leave / clear-on-solve calls.
+                        progressRepository = mockk(relaxed = true),
                         timeSource = timeSource,
                         defaultDispatcher = testDispatcher,
                         adGateway = adGateway,
@@ -1245,10 +1254,18 @@ private class FakeLevelRepository(
  */
 private class FakeSettingsRepository(
     hintsEnabled: Boolean = true,
+    soundOn: Boolean = true,
+    hapticsOn: Boolean = true,
 ) : SettingsRepository {
     private val state = MutableStateFlow(hintsEnabled)
+    private val soundState = MutableStateFlow(soundOn)
+    private val hapticsState = MutableStateFlow(hapticsOn)
 
     override val hintsEnabled: Flow<Boolean> = state.asStateFlow()
+
+    override val soundOn: Flow<Boolean> = soundState.asStateFlow()
+
+    override val hapticsOn: Flow<Boolean> = hapticsState.asStateFlow()
 
     var lastWritten: Boolean? = null
         private set
@@ -1256,6 +1273,14 @@ private class FakeSettingsRepository(
     override suspend fun setHintsEnabled(enabled: Boolean) {
         lastWritten = enabled
         state.value = enabled
+    }
+
+    override suspend fun setSoundOn(on: Boolean) {
+        soundState.value = on
+    }
+
+    override suspend fun setHapticsOn(on: Boolean) {
+        hapticsState.value = on
     }
 }
 

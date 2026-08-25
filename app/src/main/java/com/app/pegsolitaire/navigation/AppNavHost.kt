@@ -9,6 +9,21 @@ import com.app.pegsolitaire.ui.classic.ClassicCatalogRoute
 import com.app.pegsolitaire.ui.game.GameRoute
 import com.app.pegsolitaire.ui.home.HomeRoute
 import com.app.pegsolitaire.ui.results.ResultsRoute
+import com.app.pegsolitaire.ui.settings.SettingsRoute
+
+/**
+ * The Home actions, hoisted so [AppNavHost]'s content is test-injectable: the two mode
+ * entries, the two PERS-03 Continue entries (each carrying what its resume needs), and the
+ * Settings gear.
+ */
+private typealias HomeContent =
+    @Composable (
+        onPlayClassic: () -> Unit,
+        onPlayChallenge: (level: Int) -> Unit,
+        onResumeClassic: (levelId: String) -> Unit,
+        onResumeChallenge: (level: Int) -> Unit,
+        onOpenSettings: () -> Unit,
+    ) -> Unit
 
 /** The Results actions, hoisted so [AppNavHost]'s content is test-injectable. */
 private typealias ResultsContent =
@@ -22,14 +37,15 @@ private typealias ResultsContent =
     ) -> Unit
 
 /**
- * The type-safe navigation host wiring the full five-screen spine (NAV-02).
+ * The type-safe navigation host wiring the full six-screen spine (NAV-02).
  *
- * `NavHost` over the five `@Serializable` [Routes] with `startDestination = Home`:
- * Home → ClassicCatalog → Gameplay(levelId) → Results(...). Back arrows pop
- * (Catalog→Home, Gameplay→Catalog, Results→Catalog); the Results Replay action
- * navigates → `Gameplay(id)` (popping up to `ClassicCatalog` so board-hops don't grow
- * the back stack unboundedly — T-02-08-NAV) and Catalog/Home pop back to those
- * destinations. This replaces the Phase-1 direct `GameRoute()` host in `MainActivity`.
+ * `NavHost` over the six `@Serializable` [Routes] with `startDestination = Home`:
+ * Home → ClassicCatalog → Gameplay(levelId) → Results(...), plus Home → Settings
+ * (the top-bar gear, D-14). Back arrows pop (Catalog→Home, Gameplay→Catalog,
+ * Results→Catalog, Settings→Home); the Results Replay action navigates →
+ * `Gameplay(id)` (popping up to `ClassicCatalog` so board-hops don't grow the back
+ * stack unboundedly — T-02-08-NAV) and Catalog/Home pop back to those destinations.
+ * This replaces the Phase-1 direct `GameRoute()` host in `MainActivity`.
  *
  * Each destination's body is a default-valued slot wired to the real `*Route` composable;
  * the slots exist so `NavFlowTest` can drive the graph with lightweight stand-ins (the
@@ -41,13 +57,20 @@ private typealias ResultsContent =
  * @param catalogContent the ClassicCatalog destination body (defaults to [ClassicCatalogRoute]).
  * @param gameplayContent the Gameplay destination body (defaults to [GameRoute]).
  * @param resultsContent the Results destination body (defaults to [ResultsRoute]).
+ * @param settingsContent the Settings destination body (defaults to [SettingsRoute], D-14).
  */
 @Composable
 fun AppNavHost(
     navController: NavHostController = rememberNavController(),
-    homeContent: @Composable (onPlayClassic: () -> Unit, onPlayChallenge: () -> Unit) -> Unit =
-        { onPlayClassic, onPlayChallenge ->
-            HomeRoute(onPlayClassic = onPlayClassic, onPlayChallenge = onPlayChallenge)
+    homeContent: HomeContent =
+        { onPlayClassic, onPlayChallenge, onResumeClassic, onResumeChallenge, onOpenSettings ->
+            HomeRoute(
+                onPlayClassic = onPlayClassic,
+                onPlayChallenge = onPlayChallenge,
+                onResumeClassic = onResumeClassic,
+                onResumeChallenge = onResumeChallenge,
+                onOpenSettings = onOpenSettings,
+            )
         },
     catalogContent: @Composable (onSelect: (String) -> Unit, onNavigateBack: () -> Unit) -> Unit =
         { onSelect, onNavigateBack ->
@@ -67,14 +90,28 @@ fun AppNavHost(
             onNavigateBack = onNavigateBack,
         )
     },
+    settingsContent: @Composable (onBack: () -> Unit) -> Unit = { onBack ->
+        SettingsRoute(onBack = onBack)
+    },
 ) {
     NavHost(navController = navController, startDestination = Home) {
         composable<Home> {
-            // homeContent slot: onPlayClassic, onPlayChallenge
+            // homeContent slot: onPlayClassic, onPlayChallenge(level),
+            // onResumeClassic(levelId), onResumeChallenge(level), onOpenSettings.
+            // Every value comes from Home's UiState (the persisted ChallengeProgress level,
+            // CHAL-05; the stored snapshot's board id, PERS-03) — the host carries what it
+            // is handed, it never picks a level or a board itself.
             homeContent(
                 { navController.navigate(ClassicCatalog) },
-                { navController.navigate(Gameplay(challengeLevel = CHALLENGE_ENTRY_LEVEL)) },
+                { level -> navController.toChallengeBoard(level) },
+                { levelId -> navController.navigate(Gameplay(levelId = levelId, resume = true)) },
+                { level -> navController.toChallengeBoard(level, resume = true) },
+                { navController.navigate(Settings) },
             )
+        }
+        composable<Settings> {
+            // settingsContent slot: onBack (pops back to Home, D-14)
+            settingsContent { navController.popBackStack() }
         }
         composable<ClassicCatalog> {
             // catalogContent slot: onSelect, onNavigateBack
@@ -116,17 +153,19 @@ private fun NavHostController.toBoardFromCatalog(levelId: String) {
 /**
  * Hops to a Challenge board (`Gameplay(challengeLevel = level)`) while popping up to
  * [Home], so the infinite Challenge ladder never grows the back stack unboundedly
- * (T-03-11): each Next-level/Retry hop replaces the current gameplay+results pair, leaving
- * only Home + the current board. Next level passes N+1 (D-01); Retry passes the same N and
- * so reloads the identical deterministic board (D-10).
+ * (T-03-11): each entry/Next-level/Retry hop replaces the current gameplay+results pair,
+ * leaving only Home + the current board. The Home tile passes the player's persisted
+ * current level (CHAL-05); Next level passes N+1 (D-01); Retry passes the same N and so
+ * reloads the identical deterministic board (D-10). An out-of-range level is clamped at
+ * the `GameViewModel` boundary, so a corrupt stored value can never load a bad board
+ * (T-05-11).
+ *
+ * [resume] is set only by the Home Continue affordance (PERS-03): the same destination,
+ * asked to rebuild the saved in-progress game instead of starting the level fresh.
  */
-private fun NavHostController.toChallengeBoard(level: Int) {
-    navigate(Gameplay(challengeLevel = level)) { popUpTo<Home>() }
+private fun NavHostController.toChallengeBoard(
+    level: Int,
+    resume: Boolean = false,
+) {
+    navigate(Gameplay(challengeLevel = level, resume = resume)) { popUpTo<Home>() }
 }
-
-/**
- * The Challenge level the Home tile enters (D-04). This phase tracks progress in memory
- * and always starts a Challenge run at level 1 (the `ChallengeProgress` initial value);
- * Phase 5 (CHAL-05) will source the highest-level-reached from persistence here.
- */
-private const val CHALLENGE_ENTRY_LEVEL = 1
