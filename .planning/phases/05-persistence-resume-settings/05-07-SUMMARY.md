@@ -80,7 +80,7 @@ completed: 2026-08-25
 ## Performance
 
 - **Duration:** ~38 min
-- **Tasks:** 2 automatable (Task 1 TDD: RED → GREEN) + 1 blocking human-verify checkpoint (NOT executed — awaiting the user)
+- **Tasks:** 2 automatable (Task 1 TDD: RED → GREEN) + 1 blocking human-verify checkpoint (PASSED — user approved on device, 2026-08-25)
 - **Files modified:** 17 (1 created, 16 modified)
 - **Tests added:** 16 (9 resume VM + 5 Home VM + 3 Home render + 3 nav, minus the 4 pre-existing cases they extend)
 
@@ -222,9 +222,9 @@ None — no external service configuration required.
 
 ## Checkpoint Outcome
 
-**Task 3 (`checkpoint:human-verify`, gate="blocking") was NOT executed — it is awaiting the user.**
+**Task 3 (`checkpoint:human-verify`, gate="blocking") PASSED — the user verified all three device flows (haptics/settings persistence, resume across process death, clear-on-solve + bests) and approved on 2026-08-25.**
 
-Both automatable tasks are complete and committed. The checkpoint covers the two Phase-5 behaviours that cannot be asserted JVM-side (physical haptic actuation, and a real process-death cold start), plus the end-to-end phase sweep. No verification result is recorded here because none has been obtained; the phase must not be marked verified until the user reports back.
+Both automatable tasks are complete and committed. The checkpoint covers the two Phase-5 behaviours that cannot be asserted JVM-side (physical haptic actuation, and a real process-death cold start), plus the end-to-end phase sweep. The user tested on device and reported all behaviours working ("looks all good to me").
 
 One wording note for whoever runs it: the plan's script says "tap the Continue affordance". On Home the affordances are titled **"Continue Classic"** and **"Continue Challenge"** (tiles above the two mode tiles). The Challenge *mode* tile still reads "Continue — Level N" and starts that level fresh — the two are deliberately distinct.
 
