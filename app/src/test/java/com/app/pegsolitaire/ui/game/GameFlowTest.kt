@@ -1,6 +1,10 @@
 package com.app.pegsolitaire.ui.game
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.hapticfeedback.HapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
@@ -71,6 +75,9 @@ class GameFlowTest {
     val composeRule = createComposeRule()
 
     private val context get() = RuntimeEnvironment.getApplication()
+
+    /** Captures every haptic the screen fires, so the SET-02 gate is asserted, not assumed. */
+    private val haptics = RecordingHapticFeedback()
 
     @Test
     fun tappingPegThenHolePerformsTheJumpAndRemovesAPeg() {
@@ -184,13 +191,46 @@ class GameFlowTest {
         assertPegCount(INITIAL_PEG_COUNT)
     }
 
-    private fun startGame(initialBoard: Board): GameViewModel {
+    // ---- Haptics on jump, gated by the persisted setting (SET-02, D-15) ------
+
+    @Test
+    fun aJumpFiresExactlyOneLightHapticWhileHapticsAreOn() {
+        val viewModel = startGame(Boards.english33Initial, settings = AllOnSettingsRepository)
+        assertThat(viewModel.uiState.value.hapticsOn).isTrue()
+        // Nothing fires before a move — the haptic is per jump, not per composition.
+        assertThat(haptics.events).isEmpty()
+
+        tapCell(row = 3, col = 1)
+        tapCell(row = 3, col = 3)
+
+        assertThat(haptics.events).containsExactly(HapticFeedbackType.ContextClick)
+    }
+
+    @Test
+    fun noHapticFiresOnAJumpWhileHapticsAreOff() {
+        val viewModel =
+            startGame(Boards.english33Initial, settings = FixedSettingsRepository(hapticsOn = false))
+        assertThat(viewModel.uiState.value.hapticsOn).isFalse()
+
+        tapCell(row = 3, col = 1)
+        tapCell(row = 3, col = 3)
+
+        // The jump still happened — only the feedback is silenced (the switch is a gate,
+        // never a gameplay change).
+        assertPegCount(INITIAL_PEG_COUNT - 1)
+        assertThat(haptics.events).isEmpty()
+    }
+
+    private fun startGame(
+        initialBoard: Board,
+        settings: SettingsRepository = AllOnSettingsRepository,
+    ): GameViewModel {
         val viewModel =
             GameViewModel(
                 rulesEngine = RulesEngine,
                 levelRepository = SingleBoardLevelRepository(initialBoard),
                 scoreCalculator = ScoreCalculator,
-                settingsRepository = HintsOnSettingsRepository,
+                settingsRepository = settings,
                 timeSource = TestTimeSource(),
                 defaultDispatcher = Dispatchers.Unconfined,
                 adGateway = NoOpAdGateway(),
@@ -199,20 +239,22 @@ class GameFlowTest {
             )
         composeRule.setContent {
             AppTheme {
-                val state by viewModel.uiState.collectAsStateWithLifecycle()
-                GameScreen(
-                    state = state,
-                    onCellTap = viewModel::onCellTap,
-                    onRestart = viewModel::onRestart,
-                    onConfirmRestart = viewModel::onConfirmRestart,
-                    onDismissRestart = viewModel::onDismissRestart,
-                    onAnimationFinished = viewModel::onAnimationFinished,
-                    onToggleHints = viewModel::onToggleHints,
-                    onUndo = viewModel::onUndo,
-                    onHint = viewModel::onHintRequested,
-                    onHome = {},
-                    onNavigateBack = {},
-                )
+                CompositionLocalProvider(LocalHapticFeedback provides haptics) {
+                    val state by viewModel.uiState.collectAsStateWithLifecycle()
+                    GameScreen(
+                        state = state,
+                        onCellTap = viewModel::onCellTap,
+                        onRestart = viewModel::onRestart,
+                        onConfirmRestart = viewModel::onConfirmRestart,
+                        onDismissRestart = viewModel::onDismissRestart,
+                        onAnimationFinished = viewModel::onAnimationFinished,
+                        onToggleHints = viewModel::onToggleHints,
+                        onUndo = viewModel::onUndo,
+                        onHint = viewModel::onHintRequested,
+                        onHome = {},
+                        onNavigateBack = {},
+                    )
+                }
             }
         }
         composeRule.waitForIdle()
@@ -291,17 +333,40 @@ private class SingleBoardLevelRepository(
     override fun loadChallenge(levelNumber: Int): Level = error("Challenge is a Phase-3 stub")
 }
 
-/** A fixed all-on [SettingsRepository]; this flow test never toggles a setting. */
-private object HintsOnSettingsRepository : SettingsRepository {
-    override val hintsEnabled: Flow<Boolean> = flowOf(true)
+/**
+ * A fixed [SettingsRepository] whose flags never change; this flow test never toggles a
+ * setting from the UI, it just starts a game with the flags it wants to prove.
+ */
+private class FixedSettingsRepository(
+    hintsEnabled: Boolean = true,
+    soundOn: Boolean = true,
+    hapticsOn: Boolean = true,
+) : SettingsRepository {
+    override val hintsEnabled: Flow<Boolean> = flowOf(hintsEnabled)
 
-    override val soundOn: Flow<Boolean> = flowOf(true)
+    override val soundOn: Flow<Boolean> = flowOf(soundOn)
 
-    override val hapticsOn: Flow<Boolean> = flowOf(true)
+    override val hapticsOn: Flow<Boolean> = flowOf(hapticsOn)
 
     override suspend fun setHintsEnabled(enabled: Boolean) = Unit
 
     override suspend fun setSoundOn(on: Boolean) = Unit
 
     override suspend fun setHapticsOn(on: Boolean) = Unit
+}
+
+/** The default all-on settings (hints + sound + haptics), matching the fail-open defaults. */
+private val AllOnSettingsRepository = FixedSettingsRepository()
+
+/**
+ * A [HapticFeedback] that records every fire instead of buzzing, so the SET-02 gate is
+ * asserted JVM-side. The physical *feel* of the tick is device-only and is covered by
+ * the end-of-phase manual checkpoint (VALIDATION Manual-Only).
+ */
+private class RecordingHapticFeedback : HapticFeedback {
+    val events = mutableListOf<HapticFeedbackType>()
+
+    override fun performHapticFeedback(hapticFeedbackType: HapticFeedbackType) {
+        events += hapticFeedbackType
+    }
 }
