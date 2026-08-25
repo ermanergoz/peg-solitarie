@@ -85,4 +85,16 @@
     <dimen name="shape_corner_medium">20dp</dimen>
     <dimen name="shape_corner_large">28dp</dimen>
     <dimen name="shape_corner_extra_large">32dp</dimen>
+
+    <!--
+      Candy-Clay elevation tokens (DESIGN-SYSTEM.md §Elevation): soft
+      violet-tinted shadows applied via Modifier.clayShadow. The 6dp card value
+      is an intentional contract-fixed off-grid value.
+    -->
+    <dimen name="elevation_card">6dp</dimen>
+    <dimen name="elevation_pressed">2dp</dimen>
+    <dimen name="elevation_dialog">12dp</dimen>
+
+    <!-- Slide-up distance of the staggered card/tile entrance (Modifier.clayEntrance). -->
+    <dimen name="entrance_slide_distance">16dp</dimen>
 </resources>
