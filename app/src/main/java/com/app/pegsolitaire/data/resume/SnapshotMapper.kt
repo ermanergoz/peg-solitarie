@@ -1,0 +1,180 @@
+package com.app.pegsolitaire.data.resume
+
+import com.app.pegsolitaire.data.resume.ResumeSnapshotFormat.MAX_BOARD_POSITIONS
+import com.app.pegsolitaire.domain.model.Board
+import com.app.pegsolitaire.domain.model.BoardSpec
+import com.app.pegsolitaire.domain.model.Move
+import com.app.pegsolitaire.domain.model.Position
+import com.app.pegsolitaire.domain.rules.RulesEngine
+import kotlinx.serialization.json.Json
+
+/**
+ * The Challenge-only provenance of a snapshot: which generated level it came from and
+ * which generator contract produced it.
+ *
+ * The two always travel together (a level number without its generator version cannot
+ * be trusted to mean the same board later), and both are absent for Classic games.
+ * Carried through the snapshot **only** so a generator change is detectable — never as
+ * an input to rebuilding the board (D-06).
+ */
+data class ChallengeStamp(
+    val level: Int,
+    val generatorVersion: Int,
+)
+
+/**
+ * A game rebuilt from a snapshot: the initial board, the replayed current board, the
+ * full move history (so undo keeps working), the elapsed time, and the Challenge stamp
+ * when there is one.
+ */
+data class RestoredGame(
+    val initialBoard: Board,
+    val currentBoard: Board,
+    val moveHistory: List<Move>,
+    val elapsedMs: Long,
+    val challenge: ChallengeStamp?,
+)
+
+/**
+ * Maps between the app-layer [ResumeSnapshotDto] and the pure-domain game state
+ * (PERS-03).
+ *
+ * **Restore is replay, never regeneration (D-06).** [fromDto] folds
+ * [RulesEngine.applyMove] over the stored history exactly as `GameViewModel.onUndo`
+ * does, so the rebuilt board is bit-identical to the one the player left *and* the
+ * restored history keeps undo working. It never calls the level generator: the
+ * footprint on disk wins, and [ResumeSnapshotDto.challengeLevel] is provenance only.
+ *
+ * **Nothing read back from disk is trusted (Security §V5, T-05-03/T-05-04).** A blob is
+ * app-written but could be corrupted or tampered with, so [decode] never throws
+ * ([Json] failures degrade to `null`) and [fromDto] validates before it rebuilds:
+ * well-formed tuples, a footprint that fits the `Long` peg mask with no duplicates, a
+ * target inside that footprint, a peg mask with no bits outside it, and — the important
+ * one — **every stored move re-checked against [RulesEngine.legalMoves] before it is
+ * applied**. Any failure yields `null`, which callers surface as "no resume" (the
+ * Continue affordance simply disappears) rather than as a crash.
+ */
+object SnapshotMapper {
+    /** Unknown keys are ignored so a future field cannot orphan today's saved games. */
+    private val json = Json { ignoreUnknownKeys = true }
+
+    /**
+     * Builds the snapshot for a game in progress from its **initial** board plus the
+     * moves played since — deliberately not from the current board, because the history
+     * is what makes the restore undoable.
+     */
+    fun toDto(
+        mode: String,
+        levelId: String,
+        initialBoard: Board,
+        moveHistory: List<Move>,
+        elapsedMs: Long,
+        challenge: ChallengeStamp? = null,
+    ): ResumeSnapshotDto =
+        ResumeSnapshotDto(
+            mode = mode,
+            levelId = levelId,
+            challengeLevel = challenge?.level,
+            generatorVersion = challenge?.generatorVersion,
+            inPlay = initialBoard.spec.inPlay.map { it.toTuple() },
+            targetRow = initialBoard.spec.target?.row,
+            targetCol = initialBoard.spec.target?.col,
+            initialPegs = initialBoard.pegs,
+            moves = moveHistory.map { it.toTuple() },
+            elapsedMs = elapsedMs,
+        )
+
+    /**
+     * Rebuilds the game [dto] describes, or `null` when it is structurally invalid or
+     * its move history does not replay legally (fail-safe: the caller treats `null` as
+     * "nothing to resume").
+     */
+    fun fromDto(
+        dto: ResumeSnapshotDto,
+        rulesEngine: RulesEngine,
+    ): RestoredGame? =
+        dto.toInitialBoardOrNull()?.let { initialBoard ->
+            dto.toMoveHistoryOrNull()?.let { moveHistory ->
+                replayOrNull(initialBoard, moveHistory, rulesEngine)?.let { currentBoard ->
+                    RestoredGame(
+                        initialBoard = initialBoard,
+                        currentBoard = currentBoard,
+                        moveHistory = moveHistory,
+                        elapsedMs = dto.elapsedMs,
+                        challenge = dto.toChallengeStampOrNull(),
+                    )
+                }
+            }
+        }
+
+    /** Serializes [dto] to the string stored in the snapshot row's blob column. */
+    fun encode(dto: ResumeSnapshotDto): String = json.encodeToString(dto)
+
+    /**
+     * Parses a stored blob, or `null` if it is corrupt, truncated or missing required
+     * fields. `SerializationException` is an `IllegalArgumentException`, so this single
+     * catch covers every malformed-input failure kotlinx.serialization raises.
+     */
+    fun decode(blob: String): ResumeSnapshotDto? =
+        try {
+            json.decodeFromString<ResumeSnapshotDto>(blob)
+        } catch (ignored: IllegalArgumentException) {
+            null
+        }
+
+    /**
+     * Replays [moveHistory] from [initialBoard], returning the resulting board — or
+     * `null` the moment a stored move is not legal on the board it claims to act upon
+     * (a forged history is never applied, T-05-04).
+     */
+    private fun replayOrNull(
+        initialBoard: Board,
+        moveHistory: List<Move>,
+        rulesEngine: RulesEngine,
+    ): Board? =
+        moveHistory.fold<Move, Board?>(initialBoard) { board, move ->
+            board
+                ?.takeIf { move in rulesEngine.legalMoves(it) }
+                ?.let { rulesEngine.applyMove(it, move) }
+        }
+
+    private fun ResumeSnapshotDto.toInitialBoardOrNull(): Board? {
+        val spec = toBoardSpecOrNull() ?: return null
+        return if (spec.holdsOnly(initialPegs)) Board(spec = spec, pegs = initialPegs) else null
+    }
+
+    private fun ResumeSnapshotDto.toBoardSpecOrNull(): BoardSpec? {
+        val positions = inPlay.mapNotNull { it.toPositionOrNull() }
+        val row = targetRow
+        val col = targetCol
+        val target = if (row != null && col != null) Position(row = row, col = col) else null
+        val footprintIsWellFormed =
+            positions.size == inPlay.size &&
+                positions.size in 1..MAX_BOARD_POSITIONS &&
+                positions.distinct().size == positions.size
+        val targetIsWellFormed = (row == null) == (col == null) && (target == null || target in positions)
+        return if (footprintIsWellFormed && targetIsWellFormed) {
+            BoardSpec(inPlay = positions, target = target)
+        } else {
+            null
+        }
+    }
+
+    private fun ResumeSnapshotDto.toMoveHistoryOrNull(): List<Move>? {
+        val history = moves.mapNotNull { it.toMoveOrNull() }
+        return if (history.size == moves.size) history else null
+    }
+
+    private fun ResumeSnapshotDto.toChallengeStampOrNull(): ChallengeStamp? {
+        val level = challengeLevel
+        val version = generatorVersion
+        return if (level != null && version != null) {
+            ChallengeStamp(level = level, generatorVersion = version)
+        } else {
+            null
+        }
+    }
+
+    /** Whether [pegs] sets no bit outside this spec's `0..size-1` bit indices. */
+    private fun BoardSpec.holdsOnly(pegs: Long): Boolean = size == MAX_BOARD_POSITIONS || (pegs ushr size) == 0L
+}
