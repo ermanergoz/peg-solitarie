@@ -120,6 +120,9 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     // QUAL-01 named domain-purity boundary gate (bytecode-based).
     testImplementation(libs.archunit.junit4)
+    // Spies/mocks for collaborator-call assertions (e.g. proving the resume restore
+    // replays stored moves rather than regenerating a board). Catalog-pinned.
+    testImplementation(libs.mockk)
     // End-to-end Compose UI test (GameFlowTest), run JVM-side via Robolectric.
     testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(libs.robolectric)
