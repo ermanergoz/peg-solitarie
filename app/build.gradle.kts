@@ -9,6 +9,17 @@ plugins {
     // Pitfall 6: without applying this plugin, navigating a @Serializable route
     // crashes at runtime — the runtime json artifact alone is not enough.
     alias(libs.plugins.kotlin.serialization)
+    // Room Gradle plugin — declares the exported-schema directory (below) as a
+    // variant-aware build input/output (Room 2.6+ recommended way; avoids the KSP
+    // `room.schemaLocation` apoption-format pitfall).
+    alias(libs.plugins.room)
+}
+
+// Export the Room schema JSON to a VCS-committed directory (Success Criterion 5).
+// Combined with `exportSchema = true` on @Database, KSP writes `schemas/<db>/1.json`
+// here — the diffable migration contract validated by the MigrationTestHelper spike.
+room {
+    schemaDirectory("$projectDir/schemas")
 }
 
 android {
@@ -19,6 +30,12 @@ android {
         versionCode = 1
         versionName = "0.1.0"
     }
+
+    // Put the exported Room schema on the unit-test asset path so Robolectric's
+    // MigrationTestHelper can resolve `schemas/<db>/1.json` JVM-side — this project
+    // has no `androidTest` source set, so the migration test runs in `test/`
+    // (RESEARCH Pitfall 1).
+    sourceSets.getByName("test").assets.srcDir("$projectDir/schemas")
 }
 
 // Pin androidx.core to the highest line whose minCompileSdk is 36. The default
@@ -73,6 +90,12 @@ dependencies {
     // Persistence: DataStore Preferences for the first-run onboardingSeen flag (ONB-01).
     implementation(libs.androidx.datastore.preferences)
 
+    // Persistence: Room (Phase 5) — results + resume snapshot. Compiler runs under
+    // KSP (never KAPT); room-ktx gives suspend/Flow DAOs + withTransaction.
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+
     testImplementation(libs.junit)
     testImplementation(libs.truth)
     // StateFlow emission assertions + virtual-time coroutines for the ViewModel tests.
@@ -83,5 +106,7 @@ dependencies {
     // End-to-end Compose UI test (GameFlowTest), run JVM-side via Robolectric.
     testImplementation(libs.androidx.compose.ui.test.junit4)
     testImplementation(libs.robolectric)
+    // Room MigrationTestHelper for the JVM-side (Robolectric) migration-safety spike.
+    testImplementation(libs.androidx.room.testing)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
