@@ -16,6 +16,7 @@ import com.app.pegsolitaire.data.SettingsRepository
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardSpec
+import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
@@ -283,6 +284,39 @@ class GameViewModelResumeTest {
             cancelTickers()
         }
 
+    @Test
+    fun continueWithAnUnknownClassicLevelIdRestoresTheSnapshotInsteadOfCrashing() =
+        runTest(testDispatcher) {
+            // CR-01: the resume route's levelId comes from the stored blob — an id the
+            // catalog no longer knows previously hit the fail-fast lookup synchronously in
+            // the CONSTRUCTOR, crashing on the Continue tap. A valid snapshot needs no
+            // catalog lookup at all: the board on disk wins.
+            val time = TestTimeSource()
+            val left = playTwoMovesAndLeave(time)
+
+            val resumed = viewModelFor(sixPegStrip(), resume = true, levelId = UNKNOWN_LEVEL_ID)
+            runCurrent()
+
+            assertThat(resumed.uiState.value.board.pegs).isEqualTo(left.board.pegs)
+            assertThat(resumed.uiState.value.canUndo).isTrue()
+            cancelTickers()
+        }
+
+    @Test
+    fun continueWithAnUnknownClassicLevelIdAndNoSnapshotFallsBackToADefaultBoard() =
+        runTest(testDispatcher) {
+            // CR-01 defense-in-depth: nothing to restore AND the id is unknown — the
+            // fallback load degrades to the default board rather than throwing.
+            val viewModel = viewModelFor(sixPegStrip(), resume = true, levelId = UNKNOWN_LEVEL_ID)
+            runCurrent()
+
+            val state = viewModel.uiState.value
+            assertThat(state.isLoading).isFalse()
+            assertThat(state.board.pegs).isEqualTo(Boards.english33Initial.pegs)
+            assertThat(state.status).isEqualTo(GameStatus.Playing)
+            cancelTickers()
+        }
+
     // ---- Clear on solve / restart (D-05) -------------------------------------
 
     @Test
@@ -370,6 +404,7 @@ class GameViewModelResumeTest {
         board: Board,
         challengeLevel: Int? = null,
         resume: Boolean = false,
+        levelId: String = ClassicLevelIds.ENGLISH33,
         timeSource: TimeSource = TestTimeSource(),
     ): GameViewModel {
         if (!this::levelRepository.isInitialized) {
@@ -377,7 +412,7 @@ class GameViewModelResumeTest {
         }
         val args =
             buildMap<String, Any?> {
-                put(RESUME_LEVEL_ID_ARG, ClassicLevelIds.ENGLISH33)
+                put(RESUME_LEVEL_ID_ARG, levelId)
                 if (challengeLevel != null) put(RESUME_CHALLENGE_LEVEL_ARG, challengeLevel)
                 put(RESUME_ARG, resume)
             }
@@ -431,6 +466,9 @@ private const val RESUME_ARG = "resume"
 
 /** The Challenge level the resume fixture plays — deliberately not 1. */
 private const val PLAYED_CHALLENGE_LEVEL = 7
+
+/** A levelId no catalog board has ever had — the CR-01 stale/tampered resume id. */
+private const val UNKNOWN_LEVEL_ID = "ghost-board"
 
 /** The 1x7 fixture strip and the six pegs on it (hole at the last column). */
 private const val STRIP_LENGTH = 7
@@ -510,6 +548,9 @@ private val FORGED_MOVE_TUPLE = intArrayOf(9, 9, 9, 9, 9, 9)
 /**
  * A [LevelRepository] serving one fixed board through both load paths while counting the
  * Challenge loads — the proof that a resume rebuilds by replay, never by regeneration.
+ * `loadClassic` fails fast on an unknown id exactly like the production catalog source,
+ * so the CR-01 fail-safe (an untrusted resume id must never crash the ViewModel) is
+ * exercised against the real contract rather than a never-throwing stand-in.
  */
 private class CountingLevelRepository(
     private val board: Board,
@@ -519,7 +560,10 @@ private class CountingLevelRepository(
 
     override fun classicCatalog(): List<ClassicLevelDescriptor> = emptyList()
 
-    override fun loadClassic(levelId: String): Level = levelOf(levelId)
+    override fun loadClassic(levelId: String): Level {
+        require(levelId == ClassicLevelIds.ENGLISH33) { "Unknown Classic level id: $levelId" }
+        return levelOf(levelId)
+    }
 
     override fun loadChallenge(levelNumber: Int): Level {
         challengeLoads++

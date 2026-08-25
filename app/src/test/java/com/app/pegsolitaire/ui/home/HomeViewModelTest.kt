@@ -4,13 +4,17 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import app.cash.turbine.test
 import com.app.pegsolitaire.data.ChallengeProgress
+import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.data.Level
+import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.LevelResult
 import com.app.pegsolitaire.data.NewBests
 import com.app.pegsolitaire.data.OnboardingRepository
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
+import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.google.common.truth.Truth.assertThat
 import io.mockk.every
@@ -235,13 +239,42 @@ class HomeViewModelTest {
             assertThat(viewModel.uiState.value.classicResumeAvailable).isFalse()
         }
 
+    @Test
+    fun aClassicSnapshotOnAnUnknownBoardOffersNoContinueAndPurgesTheRow() =
+        runTest(testDispatcher) {
+            // CR-01: the blob decodes but its levelId is not a catalog board (tampering,
+            // or an app update removed the board). Offering it would navigate into the
+            // Gameplay route's fail-fast catalog lookup — an app crash on Continue — so
+            // the affordance is withheld and the stale row purged.
+            val progress = FakeResumeProgressRepository()
+            progress.put(ProgressPersistenceKeys.MODE_CLASSIC, UNKNOWN_LEVEL_ID)
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), progress = progress)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.classicResumeAvailable).isFalse()
+            assertThat(viewModel.uiState.value.classicResumeLevelId).isNull()
+            assertThat(progress.clears).containsExactly(ProgressPersistenceKeys.MODE_CLASSIC)
+        }
+
+    @Test
+    fun aClassicSnapshotOnAKnownBoardIsNeverPurged() =
+        runTest(testDispatcher) {
+            val progress = FakeResumeProgressRepository()
+            progress.put(ProgressPersistenceKeys.MODE_CLASSIC, RESUMABLE_LEVEL_ID)
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), progress = progress)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.classicResumeLevelId).isEqualTo(RESUMABLE_LEVEL_ID)
+            assertThat(progress.clears).isEmpty()
+        }
+
     // ---- Helpers -------------------------------------------------------------
 
     /**
      * Builds the ViewModel over the given onboarding fake, a [ChallengeProgress]
      * stand-in whose `currentLevel` is driven by [levels] (defaulting to a fixed
-     * [persistedLevel]), and a resume store [progress] (empty unless a test fills it) —
-     * neither real store is touched.
+     * [persistedLevel]), a resume store [progress] (empty unless a test fills it), and a
+     * catalog that knows exactly the real Classic ids — neither real store is touched.
      */
     private fun viewModelFor(
         repository: OnboardingRepository,
@@ -251,12 +284,41 @@ class HomeViewModelTest {
     ): HomeViewModel {
         val challengeProgress = mockk<ChallengeProgress>(relaxed = true)
         every { challengeProgress.currentLevel } returns levels
-        return HomeViewModel(repository, challengeProgress, progress)
+        return HomeViewModel(repository, challengeProgress, progress, CatalogOnlyLevelRepository)
     }
 }
 
 /** The Classic board a saved game sits on — a real catalog id, carried into the resume. */
 private val RESUMABLE_LEVEL_ID = ClassicLevelIds.EUROPEAN37
+
+/** A levelId no catalog board has ever had — the CR-01 stale/tampered snapshot. */
+private const val UNKNOWN_LEVEL_ID = "ghost-board"
+
+/**
+ * A [LevelRepository] that answers only the catalog question Home asks (CR-01): the real
+ * Classic ids over a placeholder board. The load paths are never taken from Home.
+ */
+private object CatalogOnlyLevelRepository : LevelRepository {
+    override fun classicCatalog(): List<ClassicLevelDescriptor> =
+        listOf(
+            ClassicLevelIds.ENGLISH33,
+            ClassicLevelIds.EUROPEAN37,
+            ClassicLevelIds.ASYMMETRIC39,
+            ClassicLevelIds.DIAMOND41,
+            ClassicLevelIds.WIEGLEB45,
+        ).map { id ->
+            ClassicLevelDescriptor(
+                id = id,
+                displayName = id,
+                holeCount = Boards.english33Initial.spec.inPlay.size,
+                previewBoard = Boards.english33Initial,
+            )
+        }
+
+    override fun loadClassic(levelId: String): Level = error("Home never loads a level")
+
+    override fun loadChallenge(levelNumber: Int): Level = error("Home never loads a level")
+}
 
 /**
  * A [ProgressRepository] holding just enough of the resume surface for Home: which modes
@@ -267,6 +329,9 @@ private val RESUMABLE_LEVEL_ID = ClassicLevelIds.EUROPEAN37
 private class FakeResumeProgressRepository : ProgressRepository {
     private val snapshots = mutableMapOf<String, ResumeSnapshotDto?>()
     private val modes = MutableStateFlow<List<String>>(emptyList())
+
+    /** The modes Home purged as unusable (CR-01) — observable by the tests. */
+    val clears = mutableListOf<String>()
 
     fun put(
         mode: String,
@@ -303,7 +368,11 @@ private class FakeResumeProgressRepository : ProgressRepository {
 
     override suspend fun loadSnapshot(mode: String): ResumeSnapshotDto? = snapshots[mode]
 
-    override suspend fun clearSnapshot(mode: String) = error("Home never clears a snapshot")
+    override suspend fun clearSnapshot(mode: String) {
+        clears += mode
+        snapshots -= mode
+        modes.value = snapshots.keys.toList()
+    }
 
     override fun observeResumeModes(): Flow<List<String>> = modes
 

@@ -15,6 +15,7 @@ import com.app.pegsolitaire.data.resume.SnapshotMapper
 import com.app.pegsolitaire.domain.generator.DifficultyTiers
 import com.app.pegsolitaire.domain.generator.GeneratorConstants
 import com.app.pegsolitaire.domain.model.Board
+import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.Cell
 import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Move
@@ -314,9 +315,20 @@ class GameViewModel
         /**
          * Resolves and installs the Classic board on the resume-fallback path, replacing
          * the loading state exactly as the Challenge load does.
+         *
+         * The resume route's `levelId` originates in a stored snapshot blob — untrusted
+         * state (Security §V5, T-05-03) — so unlike the fail-fast fresh-entry load, an
+         * unknown id here degrades to the default board instead of crashing (CR-01): the
+         * player still lands on something playable, and the unusable snapshot has already
+         * been dropped by the restore fallback.
          */
         private fun installClassicBoard() {
-            val board = levelRepository.loadClassic(levelId).initialBoard
+            val board =
+                try {
+                    levelRepository.loadClassic(levelId).initialBoard
+                } catch (ignored: IllegalArgumentException) {
+                    Boards.english33Initial
+                }
             initialBoard = board
             _uiState.update {
                 GameUiState
