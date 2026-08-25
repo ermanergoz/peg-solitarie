@@ -58,7 +58,9 @@ interface ProgressRepository {
     /**
      * The snapshot [mode] can resume into, or `null` when there is none **or the stored
      * blob is unusable** — a corrupt or mismatched payload degrades to "no resume" rather
-     * than throwing (Security §V5).
+     * than throwing (Security §V5). An unusable row is also **purged** (WR-02), so the
+     * Continue affordance genuinely disappears instead of lingering as a phantom tile
+     * that can only ever start a fresh board.
      */
     suspend fun loadSnapshot(mode: String): ResumeSnapshotDto?
 
@@ -160,13 +162,20 @@ class DefaultProgressRepository
             )
         }
 
-        override suspend fun loadSnapshot(mode: String): ResumeSnapshotDto? =
-            resumeDao
-                .get(mode)
-                ?.let { SnapshotMapper.decode(it.jsonBlob) }
-                // A payload claiming a different mode than the row it sits in is tampered
-                // or corrupt state; refuse it rather than resuming the wrong game.
-                ?.takeIf { it.mode == mode }
+        override suspend fun loadSnapshot(mode: String): ResumeSnapshotDto? {
+            val entity = resumeDao.get(mode) ?: return null
+            val dto =
+                SnapshotMapper
+                    .decode(entity.jsonBlob)
+                    // A payload claiming a different mode than the row it sits in is tampered
+                    // or corrupt state; refuse it rather than resuming the wrong game.
+                    ?.takeIf { it.mode == mode }
+            // A row that cannot be used is purged, not just skipped (WR-02): leaving it
+            // would keep the mode listed in observeResumeModes forever, feeding Home a
+            // phantom "Continue" tile that can only ever start a fresh board.
+            if (dto == null) resumeDao.clear(mode)
+            return dto
+        }
 
         override suspend fun clearSnapshot(mode: String) {
             resumeDao.clear(mode)

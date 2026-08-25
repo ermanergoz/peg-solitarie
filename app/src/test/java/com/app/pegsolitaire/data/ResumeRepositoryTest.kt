@@ -124,6 +124,9 @@ class ResumeRepositoryTest {
             )
 
             assertThat(repository.loadSnapshot(ProgressPersistenceKeys.MODE_CLASSIC)).isNull()
+            // WR-02: the unusable row is PURGED, not just skipped — otherwise the mode
+            // stays listed forever and Home shows a phantom Continue tile.
+            assertThat(database.resumeDao().get(ProgressPersistenceKeys.MODE_CLASSIC)).isNull()
         }
 
     @Test
@@ -142,6 +145,41 @@ class ResumeRepositoryTest {
             )
 
             assertThat(repository.loadSnapshot(ProgressPersistenceKeys.MODE_CLASSIC)).isNull()
+            // The mismatched row is equally unusable — purged the same way (WR-02).
+            assertThat(database.resumeDao().get(ProgressPersistenceKeys.MODE_CLASSIC)).isNull()
+        }
+
+    @Test
+    fun purgingACorruptBlobDropsItsModeFromTheObservedResumeModes() =
+        runTest {
+            // The full WR-02 loop: a corrupt Challenge row lists its mode (phantom tile)
+            // until a load proves it unusable — then the purge re-emits WITHOUT the mode,
+            // so the Continue affordance disappears rather than surviving forever.
+            database.resumeDao().upsert(
+                ResumeSnapshotEntity(
+                    mode = ProgressPersistenceKeys.MODE_CHALLENGE,
+                    jsonBlob = "}{ not json",
+                    updatedAt = NOW_MS,
+                ),
+            )
+
+            repository.observeResumeModes().test {
+                assertThat(awaitItem()).containsExactly(ProgressPersistenceKeys.MODE_CHALLENGE)
+
+                assertThat(repository.loadSnapshot(ProgressPersistenceKeys.MODE_CHALLENGE)).isNull()
+
+                assertThat(awaitItem()).isEmpty()
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun aHealthySnapshotIsNeverPurgedByLoading() =
+        runTest {
+            repository.saveSnapshot(snapshotOf(play(MOVES_PLAYED).history), NOW_MS)
+
+            assertThat(repository.loadSnapshot(ProgressPersistenceKeys.MODE_CLASSIC)).isNotNull()
+            assertThat(database.resumeDao().get(ProgressPersistenceKeys.MODE_CLASSIC)).isNotNull()
         }
 
     @Test

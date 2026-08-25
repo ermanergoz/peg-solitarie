@@ -32,9 +32,10 @@ import javax.inject.Inject
  *
  * Finally it mirrors which modes hold a saved in-progress game (PERS-03, D-01/D-03) into
  * [HomeUiState.classicResumeLevelId] / [HomeUiState.challengeResumeAvailable], so Home can
- * offer up to two independent "Continue" affordances. Only the Classic snapshot is opened
- * — purely to learn which board to resume into; the Challenge one is answered by its mode
- * key alone, and an unreadable Classic blob degrades to "no resume" (T-05-03). A Classic
+ * offer up to two independent "Continue" affordances. Both snapshots are opened before a
+ * tile is offered — the Classic one to learn which board to resume into, the Challenge
+ * one to prove the blob actually decodes (WR-02; the load also lets the repository purge
+ * a corrupt row) — and an unreadable blob degrades to "no resume" (T-05-03). A Classic
  * blob whose `levelId` is no longer a catalog board (DB tampering, or an app update that
  * removed a board while an old snapshot survived) is equally unusable: the affordance is
  * withheld and the stale row purged, so a bogus id can never reach the Gameplay route's
@@ -93,10 +94,17 @@ class HomeViewModel
                         } else {
                             null
                         }
+                    // The Challenge tile is keyed on the blob DECODING, not on the row
+                    // existing (WR-02): loading it lets the repository purge a corrupt row,
+                    // so a phantom "Continue Challenge" that could only ever start a fresh
+                    // board never survives a visit to Home.
+                    val challengeResumable =
+                        ProgressPersistenceKeys.MODE_CHALLENGE in modes &&
+                            progressRepository.loadSnapshot(ProgressPersistenceKeys.MODE_CHALLENGE) != null
                     _uiState.update {
                         it.copy(
                             classicResumeLevelId = classicLevelId,
-                            challengeResumeAvailable = ProgressPersistenceKeys.MODE_CHALLENGE in modes,
+                            challengeResumeAvailable = challengeResumable,
                         )
                     }
                 }

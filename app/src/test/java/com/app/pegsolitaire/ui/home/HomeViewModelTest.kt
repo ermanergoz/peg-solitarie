@@ -240,6 +240,20 @@ class HomeViewModelTest {
         }
 
     @Test
+    fun anUnreadableChallengeSnapshotOffersNoContinue() =
+        runTest(testDispatcher) {
+            // WR-02: the Challenge mode lists a row but its blob does not decode — keying
+            // the tile on row existence alone would show a phantom "Continue Challenge"
+            // that forever starts a fresh board. The tile needs a decodable blob.
+            val progress = FakeResumeProgressRepository()
+            progress.putUnreadable(ProgressPersistenceKeys.MODE_CHALLENGE)
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), progress = progress)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.challengeResumeAvailable).isFalse()
+        }
+
+    @Test
     fun aClassicSnapshotOnAnUnknownBoardOffersNoContinueAndPurgesTheRow() =
         runTest(testDispatcher) {
             // CR-01: the blob decodes but its levelId is not a catalog board (tampering,

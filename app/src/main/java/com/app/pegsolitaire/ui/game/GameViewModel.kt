@@ -261,11 +261,19 @@ class GameViewModel
             // (D-06) and a corrupt snapshot still lands the player on a playable board.
             if (resume) {
                 viewModelScope.launch {
-                    val restored =
-                        progressRepository.loadSnapshot(mode)?.let { dto ->
-                            SnapshotMapper.fromDto(dto, rulesEngine)
-                        }
-                    if (restored != null) applyRestored(restored) else loadFreshBoard()
+                    val dto = progressRepository.loadSnapshot(mode)
+                    val restored = dto?.let { SnapshotMapper.fromDto(it, rulesEngine) }
+                    if (restored != null) {
+                        applyRestored(restored)
+                    } else {
+                        // A blob that decoded but did not rebuild (bad structure or a
+                        // history that does not replay legally) is unusable — purge the
+                        // row (WR-02) so the Continue affordance disappears instead of
+                        // forever restarting a fresh board. An undecodable row was
+                        // already purged by the repository's own load.
+                        if (dto != null) progressRepository.clearSnapshot(mode)
+                        loadFreshBoard()
+                    }
                 }
             } else {
                 viewModelScope.launch { loadChallengeBoardIfNeeded() }

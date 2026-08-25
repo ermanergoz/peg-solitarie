@@ -281,6 +281,9 @@ class GameViewModelResumeTest {
             // fresh load rather than throwing (T-05-03).
             assertThat(resumed.uiState.value.canUndo).isFalse()
             assertThat(resumed.uiState.value.board.pegs).isEqualTo(sixPegStrip().pegs)
+            // WR-02: the unusable row is purged, so the Continue affordance disappears
+            // instead of forever restarting a fresh board from a phantom tile.
+            assertThat(progressRepository.clears).contains(ProgressPersistenceKeys.MODE_CHALLENGE)
             cancelTickers()
         }
 
