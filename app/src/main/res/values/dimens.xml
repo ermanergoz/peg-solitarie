@@ -73,7 +73,6 @@
       peg geometry. Do not round these up.
     -->
     <dimen name="peg_selected_ring_width">3dp</dimen>
-    <dimen name="hole_outline_width">1dp</dimen>
 
     <!--
       Candy-Clay M3 Shapes override (DESIGN-SYSTEM.md §Shape): the five corner
@@ -104,4 +103,7 @@
     <!-- Ambient Home background blobs: diameter + drift amplitude (±16dp, ~8s). -->
     <dimen name="blob_size">240dp</dimen>
     <dimen name="blob_drift_range">16dp</dimen>
+
+    <!-- Min tap target of a gameplay top-bar icon control (DESIGN-SYSTEM.md Gameplay). -->
+    <dimen name="top_bar_touch_target">48dp</dimen>
 </resources>

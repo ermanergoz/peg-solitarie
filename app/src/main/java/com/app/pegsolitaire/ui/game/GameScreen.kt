@@ -37,6 +37,9 @@ import com.app.pegsolitaire.R
 import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.ui.components.BoardCanvas
+import com.app.pegsolitaire.ui.theme.clayShadow
+import com.app.pegsolitaire.ui.theme.claySquish
+import com.app.pegsolitaire.ui.theme.withTabularFigures
 
 /** Test tag of the board-state node carrying the [PegCountKey]/[GameStatusKey]/[LegalTargetCountKey] semantics. */
 const val GAME_STATE_TEST_TAG = "game_state"
@@ -147,11 +150,14 @@ fun GameScreen(
                 LoadingIndicator()
             } else {
                 Surface(
-                    shape = MaterialTheme.shapes.large,
+                    shape = MaterialTheme.shapes.extraLarge,
                     color = MaterialTheme.colorScheme.surfaceContainerHigh,
                     modifier =
                         Modifier
-                            .widthIn(max = dimensionResource(R.dimen.board_max_size))
+                            .clayShadow(
+                                dimensionResource(R.dimen.elevation_card),
+                                MaterialTheme.shapes.extraLarge,
+                            ).widthIn(max = dimensionResource(R.dimen.board_max_size))
                             .fillMaxWidth()
                             .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO),
                 ) {
@@ -246,7 +252,13 @@ private fun GameTopBar(
 ) {
     TopAppBar(
         navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
+            IconButton(
+                onClick = onNavigateBack,
+                modifier =
+                    Modifier
+                        .claySquish()
+                        .size(dimensionResource(R.dimen.top_bar_touch_target)),
+            ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                     contentDescription = stringResource(R.string.navigate_back),
@@ -295,14 +307,15 @@ private fun GameTopBarTitle(challengeLevel: Int?) {
  *
  * The zero-padded time is a computed clock string ([GameTimerFormat]), not a string
  * resource; the `elapsed_time` content description is attached for screen readers so
- * the value is announced as the elapsed time rather than a bare number.
+ * the value is announced as the elapsed time rather than a bare number. It uses
+ * tabular figures so ticking digits never shift the label horizontally.
  */
 @Composable
 private fun ElapsedTimeLabel(elapsedSeconds: Int) {
     val description = stringResource(R.string.elapsed_time)
     Text(
         text = GameTimerFormat.format(elapsedSeconds),
-        style = MaterialTheme.typography.titleMedium,
+        style = MaterialTheme.typography.titleMedium.withTabularFigures(),
         color = MaterialTheme.colorScheme.onSurface,
         modifier =
             Modifier
