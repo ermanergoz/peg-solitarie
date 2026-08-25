@@ -54,7 +54,7 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { onPlayClassic, _, _ -> StubDestination(HOME_TAG, onPlayClassic) },
+                homeContent = { onPlayClassic, _, _, _, _ -> StubDestination(HOME_TAG, onPlayClassic) },
                 catalogContent = { onSelect, _ -> StubDestination(CATALOG_TAG) { onSelect(SELECTED_LEVEL_ID) } },
                 gameplayContent = { onFinished, _ -> StubDestination(GAMEPLAY_TAG) { onFinished(sampleResults()) } },
                 resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
@@ -94,7 +94,7 @@ class NavFlowTest {
                 // The Home tile supplies the level from its UiState (the persisted
                 // ChallengeProgress.currentLevel) — the host must carry it through, not
                 // substitute a hardcoded entry level (CHAL-05).
-                homeContent = { _, onPlayChallenge, _ ->
+                homeContent = { _, onPlayChallenge, _, _, _ ->
                     StubDestination(HOME_TAG) { onPlayChallenge(PERSISTED_CHALLENGE_LEVEL) }
                 },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
@@ -115,12 +115,89 @@ class NavFlowTest {
     }
 
     @Test
+    fun homeContinueEntersTheSavedClassicBoardInResumeMode() {
+        composeRule.setContent {
+            navController = rememberNavController()
+            AppNavHost(
+                navController = navController,
+                // The Continue affordance carries the board its snapshot was taken on
+                // (PERS-03); the host must route to THAT board with resume = true, never
+                // to a fresh start.
+                homeContent = { _, _, onResumeClassic, _, _ ->
+                    StubDestination(HOME_TAG) { onResumeClassic(SELECTED_LEVEL_ID) }
+                },
+                catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
+                gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
+                resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
+            )
+        }
+
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(HOME_TAG).performClick()
+        composeRule.waitForIdle()
+
+        assertThat(currentRoute()).contains(GAMEPLAY_ROUTE)
+        val route = navController.currentBackStackEntry?.toRoute<Gameplay>()
+        assertThat(route?.levelId).isEqualTo(SELECTED_LEVEL_ID)
+        assertThat(route?.resume).isTrue()
+    }
+
+    @Test
+    fun homeContinueEntersTheSavedChallengeGameInResumeMode() {
+        composeRule.setContent {
+            navController = rememberNavController()
+            AppNavHost(
+                navController = navController,
+                homeContent = { _, _, _, onResumeChallenge, _ ->
+                    StubDestination(HOME_TAG) { onResumeChallenge(PERSISTED_CHALLENGE_LEVEL) }
+                },
+                catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
+                gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
+                resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
+            )
+        }
+
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(HOME_TAG).performClick()
+        composeRule.waitForIdle()
+
+        assertThat(currentRoute()).contains(GAMEPLAY_ROUTE)
+        val route = navController.currentBackStackEntry?.toRoute<Gameplay>()
+        assertThat(route?.challengeLevel).isEqualTo(PERSISTED_CHALLENGE_LEVEL)
+        assertThat(route?.resume).isTrue()
+    }
+
+    @Test
+    fun playingChallengeFreshNeverAsksForAResume() {
+        // The mode tile and the Continue affordance are different intents: entering the
+        // ladder must not silently resurrect the saved game (D-01 — Continue is explicit).
+        composeRule.setContent {
+            navController = rememberNavController()
+            AppNavHost(
+                navController = navController,
+                homeContent = { _, onPlayChallenge, _, _, _ ->
+                    StubDestination(HOME_TAG) { onPlayChallenge(PERSISTED_CHALLENGE_LEVEL) }
+                },
+                catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
+                gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
+                resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
+            )
+        }
+
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(HOME_TAG).performClick()
+        composeRule.waitForIdle()
+
+        assertThat(navController.currentBackStackEntry?.toRoute<Gameplay>()?.resume).isFalse()
+    }
+
+    @Test
     fun homeGearOpensSettingsAndBackReturnsToHome() {
         composeRule.setContent {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { _, _, onOpenSettings -> StubDestination(HOME_TAG) { onOpenSettings() } },
+                homeContent = { _, _, _, _, onOpenSettings -> StubDestination(HOME_TAG) { onOpenSettings() } },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
                 gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
                 resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
@@ -148,7 +225,7 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { _, onPlayChallenge, _ ->
+                homeContent = { _, onPlayChallenge, _, _, _ ->
                     StubDestination(HOME_TAG) { onPlayChallenge(PERSISTED_CHALLENGE_LEVEL) }
                 },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },

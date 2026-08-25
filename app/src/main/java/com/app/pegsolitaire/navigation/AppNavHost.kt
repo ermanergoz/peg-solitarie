@@ -11,6 +11,20 @@ import com.app.pegsolitaire.ui.home.HomeRoute
 import com.app.pegsolitaire.ui.results.ResultsRoute
 import com.app.pegsolitaire.ui.settings.SettingsRoute
 
+/**
+ * The Home actions, hoisted so [AppNavHost]'s content is test-injectable: the two mode
+ * entries, the two PERS-03 Continue entries (each carrying what its resume needs), and the
+ * Settings gear.
+ */
+private typealias HomeContent =
+    @Composable (
+        onPlayClassic: () -> Unit,
+        onPlayChallenge: (level: Int) -> Unit,
+        onResumeClassic: (levelId: String) -> Unit,
+        onResumeChallenge: (level: Int) -> Unit,
+        onOpenSettings: () -> Unit,
+    ) -> Unit
+
 /** The Results actions, hoisted so [AppNavHost]'s content is test-injectable. */
 private typealias ResultsContent =
     @Composable (
@@ -48,15 +62,13 @@ private typealias ResultsContent =
 @Composable
 fun AppNavHost(
     navController: NavHostController = rememberNavController(),
-    homeContent: @Composable (
-        onPlayClassic: () -> Unit,
-        onPlayChallenge: (level: Int) -> Unit,
-        onOpenSettings: () -> Unit,
-    ) -> Unit =
-        { onPlayClassic, onPlayChallenge, onOpenSettings ->
+    homeContent: HomeContent =
+        { onPlayClassic, onPlayChallenge, onResumeClassic, onResumeChallenge, onOpenSettings ->
             HomeRoute(
                 onPlayClassic = onPlayClassic,
                 onPlayChallenge = onPlayChallenge,
+                onResumeClassic = onResumeClassic,
+                onResumeChallenge = onResumeChallenge,
                 onOpenSettings = onOpenSettings,
             )
         },
@@ -84,12 +96,16 @@ fun AppNavHost(
 ) {
     NavHost(navController = navController, startDestination = Home) {
         composable<Home> {
-            // homeContent slot: onPlayClassic, onPlayChallenge(level), onOpenSettings.
-            // The level comes from Home's UiState (the persisted ChallengeProgress
-            // level, CHAL-05) — the host carries it, it never picks one.
+            // homeContent slot: onPlayClassic, onPlayChallenge(level),
+            // onResumeClassic(levelId), onResumeChallenge(level), onOpenSettings.
+            // Every value comes from Home's UiState (the persisted ChallengeProgress level,
+            // CHAL-05; the stored snapshot's board id, PERS-03) — the host carries what it
+            // is handed, it never picks a level or a board itself.
             homeContent(
                 { navController.navigate(ClassicCatalog) },
                 { level -> navController.toChallengeBoard(level) },
+                { levelId -> navController.navigate(Gameplay(levelId = levelId, resume = true)) },
+                { level -> navController.toChallengeBoard(level, resume = true) },
                 { navController.navigate(Settings) },
             )
         }
@@ -143,7 +159,13 @@ private fun NavHostController.toBoardFromCatalog(levelId: String) {
  * reloads the identical deterministic board (D-10). An out-of-range level is clamped at
  * the `GameViewModel` boundary, so a corrupt stored value can never load a bad board
  * (T-05-11).
+ *
+ * [resume] is set only by the Home Continue affordance (PERS-03): the same destination,
+ * asked to rebuild the saved in-progress game instead of starting the level fresh.
  */
-private fun NavHostController.toChallengeBoard(level: Int) {
-    navigate(Gameplay(challengeLevel = level)) { popUpTo<Home>() }
+private fun NavHostController.toChallengeBoard(
+    level: Int,
+    resume: Boolean = false,
+) {
+    navigate(Gameplay(challengeLevel = level, resume = resume)) { popUpTo<Home>() }
 }

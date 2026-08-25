@@ -137,6 +137,17 @@
     <string name="settings_haptics_label">Haptics</string>
     <string name="settings_haptics_supporting">Vibrate lightly on each jump</string>
 
+    <!--
+      Home "Continue" affordances for a saved in-progress game (PERS-03, D-01/D-03). Each
+      mode has its own tile and they can appear together, so the titles name the mode
+      rather than relying on position. The supporting lines say what is actually being
+      resumed — the exact board, not a fresh start.
+    -->
+    <string name="resume_classic_title">Continue Classic</string>
+    <string name="resume_classic_supporting">Pick up your saved board</string>
+    <string name="resume_challenge_title">Continue Challenge</string>
+    <string name="resume_challenge_supporting">Pick up Level %1$d where you left off</string>
+
     <!-- Onboarding overlay (first-run how-to-play of the orthogonal jump). -->
     <string name="onboarding_got_it">Got it</string>
     <string name="onboarding_skip">Skip tutorial</string>

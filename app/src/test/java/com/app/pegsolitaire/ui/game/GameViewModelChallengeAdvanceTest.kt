@@ -169,6 +169,9 @@ class GameViewModelChallengeAdvanceTest {
                         scoreCalculator = ScoreCalculator,
                         settingsRepository = AlwaysOnSettingsRepository,
                         challengeProgress = challengeProgress,
+                        // The resume snapshot has its own spec (GameViewModelResumeTest);
+                        // a relaxed stand-in absorbs the clear-on-solve call.
+                        progressRepository = mockk(relaxed = true),
                         timeSource = TestTimeSource(),
                         defaultDispatcher = testDispatcher,
                         adGateway = GrantingAdGateway,

@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.app.pegsolitaire.data.ChallengeProgress
 import com.app.pegsolitaire.data.OnboardingRepository
+import com.app.pegsolitaire.data.ProgressPersistenceKeys
+import com.app.pegsolitaire.data.ProgressRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,9 +29,17 @@ import javax.inject.Inject
  * with — and enters at — the player's persisted level, so closing the app and returning
  * continues the ladder instead of restarting it at level 1.
  *
+ * Finally it mirrors which modes hold a saved in-progress game (PERS-03, D-01/D-03) into
+ * [HomeUiState.classicResumeLevelId] / [HomeUiState.challengeResumeAvailable], so Home can
+ * offer up to two independent "Continue" affordances. Only the Classic snapshot is opened
+ * — purely to learn which board to resume into; the Challenge one is answered by its mode
+ * key alone, and an unreadable Classic blob degrades to "no resume" (T-05-03).
+ *
  * @param onboardingRepository the DataStore-backed onboarding flag (single source of truth).
  * @param challengeProgress the persisted Challenge ladder position (single source of truth
  *   for the tile's entry level; fail-open to level 1 on a corrupt read).
+ * @param progressRepository the per-mode resume snapshot store (single source of truth for
+ *   which Continue affordances exist).
  */
 @HiltViewModel
 class HomeViewModel
@@ -37,6 +47,7 @@ class HomeViewModel
     constructor(
         private val onboardingRepository: OnboardingRepository,
         challengeProgress: ChallengeProgress,
+        progressRepository: ProgressRepository,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(HomeUiState())
 
@@ -57,6 +68,27 @@ class HomeViewModel
             viewModelScope.launch {
                 challengeProgress.currentLevel.collect { level ->
                     _uiState.update { it.copy(challengeCurrentLevel = level) }
+                }
+            }
+            // Which modes can be continued (PERS-03, D-01/D-03). Collecting the mode list —
+            // rather than polling on every Home render — means a snapshot saved while
+            // backgrounding, or cleared by a solve, is reflected the next time Home is shown.
+            // The Classic blob is opened only to learn WHICH board to resume; a null (absent
+            // or corrupt) simply hides the affordance rather than surfacing an error.
+            viewModelScope.launch {
+                progressRepository.observeResumeModes().collect { modes ->
+                    val classicLevelId =
+                        if (ProgressPersistenceKeys.MODE_CLASSIC in modes) {
+                            progressRepository.loadSnapshot(ProgressPersistenceKeys.MODE_CLASSIC)?.levelId
+                        } else {
+                            null
+                        }
+                    _uiState.update {
+                        it.copy(
+                            classicResumeLevelId = classicLevelId,
+                            challengeResumeAvailable = ProgressPersistenceKeys.MODE_CHALLENGE in modes,
+                        )
+                    }
                 }
             }
         }

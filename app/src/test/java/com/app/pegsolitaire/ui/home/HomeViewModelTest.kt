@@ -4,7 +4,14 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import app.cash.turbine.test
 import com.app.pegsolitaire.data.ChallengeProgress
+import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.data.LevelResult
+import com.app.pegsolitaire.data.NewBests
 import com.app.pegsolitaire.data.OnboardingRepository
+import com.app.pegsolitaire.data.ProgressPersistenceKeys
+import com.app.pegsolitaire.data.ProgressRepository
+import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
+import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.google.common.truth.Truth.assertThat
 import io.mockk.every
 import io.mockk.mockk
@@ -12,6 +19,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
@@ -34,6 +42,11 @@ import org.junit.Test
  *
  * A [ChallengeProgress] stand-in drives `currentLevel` the same way, proving the tile's
  * entry level comes from persistence (never a hardcoded 1) and re-emits on an advance.
+ *
+ * A [FakeResumeProgressRepository] drives the per-mode resume snapshots (PERS-03), proving
+ * Home offers a Continue affordance exactly when one exists — for either mode, for both at
+ * once (D-03), dropped again when a solve clears it (T-05-12), and silently absent when the
+ * stored blob is unreadable (T-05-03).
  *
  * `Dispatchers.setMain(StandardTestDispatcher())` makes the `viewModelScope`
  * collector deterministic under `runTest` virtual time.
@@ -151,20 +164,161 @@ class HomeViewModelTest {
 
     // ---- Helpers -------------------------------------------------------------
 
+    // ---- Resume affordances (PERS-03, D-01/D-03) -----------------------------
+
+    @Test
+    fun noContinueAffordanceIsOfferedWhenNothingIsSaved() =
+        runTest(testDispatcher) {
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true))
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.classicResumeAvailable).isFalse()
+            assertThat(viewModel.uiState.value.classicResumeLevelId).isNull()
+            assertThat(viewModel.uiState.value.challengeResumeAvailable).isFalse()
+        }
+
+    @Test
+    fun aClassicSnapshotOffersAContinueCarryingItsBoardId() =
+        runTest(testDispatcher) {
+            val progress = FakeResumeProgressRepository()
+            progress.put(ProgressPersistenceKeys.MODE_CLASSIC, RESUMABLE_LEVEL_ID)
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), progress = progress)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.classicResumeAvailable).isTrue()
+            assertThat(viewModel.uiState.value.classicResumeLevelId).isEqualTo(RESUMABLE_LEVEL_ID)
+            assertThat(viewModel.uiState.value.challengeResumeAvailable).isFalse()
+        }
+
+    @Test
+    fun bothModesCanOfferAContinueAtTheSameTime() =
+        runTest(testDispatcher) {
+            // D-03: one snapshot PER MODE — leaving a Classic game to play Challenge keeps
+            // both, so Home shows two independent Continue affordances.
+            val progress = FakeResumeProgressRepository()
+            progress.put(ProgressPersistenceKeys.MODE_CLASSIC, RESUMABLE_LEVEL_ID)
+            progress.put(ProgressPersistenceKeys.MODE_CHALLENGE, PERSISTED_LEVEL.toString())
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), progress = progress)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.classicResumeAvailable).isTrue()
+            assertThat(viewModel.uiState.value.challengeResumeAvailable).isTrue()
+        }
+
+    @Test
+    fun clearingASnapshotWhileOnHomeDropsItsContinueAffordance() =
+        runTest(testDispatcher) {
+            // A solve clears the mode's snapshot (D-05); Home must stop offering it rather
+            // than leaving a stale Continue pointing at a finished board (T-05-12).
+            val progress = FakeResumeProgressRepository()
+            progress.put(ProgressPersistenceKeys.MODE_CHALLENGE, PERSISTED_LEVEL.toString())
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), progress = progress)
+            runCurrent()
+            assertThat(viewModel.uiState.value.challengeResumeAvailable).isTrue()
+
+            progress.clear(ProgressPersistenceKeys.MODE_CHALLENGE)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.challengeResumeAvailable).isFalse()
+        }
+
+    @Test
+    fun anUnreadableClassicSnapshotSimplyOffersNoContinue() =
+        runTest(testDispatcher) {
+            // T-05-03: the mode is listed but its blob does not decode — the affordance
+            // disappears; nothing throws and no error surfaces to the player.
+            val progress = FakeResumeProgressRepository()
+            progress.putUnreadable(ProgressPersistenceKeys.MODE_CLASSIC)
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), progress = progress)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.classicResumeAvailable).isFalse()
+        }
+
+    // ---- Helpers -------------------------------------------------------------
+
     /**
-     * Builds the ViewModel over the given onboarding fake and a [ChallengeProgress]
+     * Builds the ViewModel over the given onboarding fake, a [ChallengeProgress]
      * stand-in whose `currentLevel` is driven by [levels] (defaulting to a fixed
-     * [persistedLevel]) — the store is never touched.
+     * [persistedLevel]), and a resume store [progress] (empty unless a test fills it) —
+     * neither real store is touched.
      */
     private fun viewModelFor(
         repository: OnboardingRepository,
         persistedLevel: Int = FIRST_LEVEL,
         levels: MutableStateFlow<Int> = MutableStateFlow(persistedLevel),
+        progress: ProgressRepository = FakeResumeProgressRepository(),
     ): HomeViewModel {
-        val progress = mockk<ChallengeProgress>(relaxed = true)
-        every { progress.currentLevel } returns levels
-        return HomeViewModel(repository, progress)
+        val challengeProgress = mockk<ChallengeProgress>(relaxed = true)
+        every { challengeProgress.currentLevel } returns levels
+        return HomeViewModel(repository, challengeProgress, progress)
     }
+}
+
+/** The Classic board a saved game sits on — a real catalog id, carried into the resume. */
+private val RESUMABLE_LEVEL_ID = ClassicLevelIds.EUROPEAN37
+
+/**
+ * A [ProgressRepository] holding just enough of the resume surface for Home: which modes
+ * have a snapshot, and (for Classic) which board it is on. [putUnreadable] models a stored
+ * blob that fails to decode — the repository's own fail-safe, seen from up here as a mode
+ * that lists but cannot be loaded.
+ */
+private class FakeResumeProgressRepository : ProgressRepository {
+    private val snapshots = mutableMapOf<String, ResumeSnapshotDto?>()
+    private val modes = MutableStateFlow<List<String>>(emptyList())
+
+    fun put(
+        mode: String,
+        levelId: String,
+    ) {
+        snapshots[mode] = snapshotOf(mode = mode, levelId = levelId)
+        modes.value = snapshots.keys.toList()
+    }
+
+    /** A mode whose row exists but whose payload is unusable (`loadSnapshot` → null). */
+    fun putUnreadable(mode: String) {
+        snapshots[mode] = null
+        modes.value = snapshots.keys.toList()
+    }
+
+    fun clear(mode: String) {
+        snapshots -= mode
+        modes.value = snapshots.keys.toList()
+    }
+
+    override suspend fun recordResult(
+        mode: String,
+        levelId: String,
+        result: ScoreResult,
+        nowMs: Long,
+    ): NewBests = error("Home never records a result")
+
+    override fun observeResults(mode: String): Flow<List<LevelResult>> = flowOf(emptyList())
+
+    override suspend fun saveSnapshot(
+        dto: ResumeSnapshotDto,
+        nowMs: Long,
+    ) = error("Home never saves a snapshot")
+
+    override suspend fun loadSnapshot(mode: String): ResumeSnapshotDto? = snapshots[mode]
+
+    override suspend fun clearSnapshot(mode: String) = error("Home never clears a snapshot")
+
+    override fun observeResumeModes(): Flow<List<String>> = modes
+
+    private fun snapshotOf(
+        mode: String,
+        levelId: String,
+    ): ResumeSnapshotDto =
+        ResumeSnapshotDto(
+            mode = mode,
+            levelId = levelId,
+            inPlay = emptyList(),
+            initialPegs = 0L,
+            moves = emptyList(),
+            elapsedMs = 0L,
+        )
 }
 
 /** A persisted level well past the on-ramp, so "continues at the stored level" is unambiguous. */
