@@ -1,308 +1,429 @@
 # Pitfalls Research
 
-**Domain:** Native Android peg-solitaire game — procedural (reverse-generated) levels, Jetpack Compose rendering, Clean Architecture/MVVM, AdMob + Play Games Services v2
-**Researched:** 2026-06-28
-**Confidence:** HIGH for generation/architecture/Compose reasoning (verified against published peg-solitaire math + official Android/Compose docs); HIGH for AdMob/PGS policy mechanics (official help docs); MEDIUM where the recommendation is a judgement call (difficulty tuning, Room-vs-DataStore).
+**Domain:** Adding Play Games Services v2, AdMob + UMP, and SFX audio to an **already-shipped** Kotlin/Compose Android game
+**Researched:** 2026-08-27
+**Confidence:** HIGH for SDK mechanics, dependency-graph facts and Play/AdMob policy (verified against official docs plus direct inspection of the published AARs on Google Maven); MEDIUM where a mitigation is a judgement call about this codebase's structure (variant isolation, Robolectric provider behaviour).
 
-This catalogue is deliberately specific to *this* project. Generic advice ("write tests", "handle errors") is omitted in favour of failure modes that are unique to reverse-generated peg solitaire, Compose `Canvas` game rendering, StateFlow-driven MVVM, and the Slice 2 SDK integrations.
+> **Supersedes** the v1.0 pitfalls file's Slice-2 sections (old Pitfalls 13 & 14). Slice-1 pitfalls (generator determinism, solver blowup, Compose recomposition, Room migrations) remain valid and are preserved in git history at the v1.0 milestone commit — this document does **not** repeat them.
+
+This catalogue is scoped to *this* system: `:app` (Compose, Hilt, Room + DataStore, 43 test files / 293 JVM tests, ~10 Robolectric-backed Compose tests, **no `androidTest` source set**), a pure-JVM `:domain` guarded by `DomainPurityTest`, `compileSdk 36` / `minSdk 24` / `targetSdk 36` with 37 uninstallable, detekt+ktlint+dimens gates in `check`, and two no-op Hilt seams (`AdGateway`, `GamesService`) in `PlatformModule`.
+
+---
+
+## Verified Baseline (read this before the pitfalls)
+
+Facts established by fetching and unpacking the actual artifacts from `dl.google.com/dl/android/maven2` on 2026-08-27 — **HIGH confidence**:
+
+| Fact | Value | Consequence |
+|---|---|---|
+| Latest `play-services-ads` | **25.4.0** (2026-06-17) | The `CLAUDE.md` pin of **23.6.0 is ~2 major versions stale** |
+| Latest `play-services-games-v2` | **22.0.0** (2026-07-29) | The pin of "~21.x" is one major stale |
+| Latest `user-messaging-platform` | **4.0.0** | GMA 25.0.0 bumped its UMP dependency to 4.0.0 |
+| GMA legacy SDK status | **"in maintenance mode"** — Google directs new work to the **GMA Next-Gen SDK** | Decide explicitly; do not drift into it by accident |
+| `minCompileSdk` across the whole Slice-2 graph | max = **34** (`androidx.browser:1.8.0`, `androidx.webkit:1.12.1`); `privacysandbox.ads` = 33; all `com.google.android.gms` AARs = 1 | **compileSdk 36 is SAFE.** No Slice-2 SDK forces 37. |
+| `play-services-games-v2:22.0.0` `minSdkVersion` | **24** | Exactly the project's `minSdk 24`. Zero headroom — a future bump to 25 would be a hard block. |
+| `play-services-ads:25.4.0` `minSdkVersion` | 23 | Fine |
+| New transitives entering the graph | `androidx.browser 1.8.0`, `androidx.webkit 1.12.1`, `androidx.privacysandbox.ads 1.0.0-beta05`, `androidx.datastore 1.0.0`, `androidx.core 1.10.1`, `kotlin-stdlib 2.1.0`, `kotlinx-coroutines 1.8.0`, `play-services-basement 18.9.0` | A **beta** artifact lands in the release graph; `datastore` and `core` requests are *below* the project's pins |
+| Manifest-merged ContentProviders | `com.google.android.gms.ads.MobileAdsInitProvider`, `com.google.android.gms.games.provider.PlayGamesInitProvider` | Both auto-run at **cold start**, before `App.onCreate` finishes |
+| Manifest-merged permissions | `INTERNET`, `ACCESS_NETWORK_STATE`, `RECEIVE_BOOT_COMPLETED`, `com.google.android.gms.permission.AD_ID`, `ACCESS_ADSERVICES_{AD_ID,ATTRIBUTION,TOPICS}` | App currently declares **zero** permissions |
+| `PlayGames.get*Client(...)` signatures (javap on the 22.0.0 AAR) | **every** getter takes `android.app.Activity` — `getGamesSignInClient`, `getLeaderboardsClient`, `getAchievementsClient`, `getSnapshotsClient`, `getPlayersClient`, `getRecallClient` | There is **no** `Context` overload |
+| `PlayGamesSdk.initialize(...)` | takes `android.content.Context` | Only the SDK init is Context-scoped |
+| `RewardedAd.show(...)` | takes `(Activity, OnUserEarnedRewardListener)` | Same Activity requirement |
+| `kotlinx-coroutines-play-services` | **1.11.0** published, matches the project's coroutines pin exactly | Use it — don't hand-roll `Task` → `suspend` bridges |
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Non-deterministic generation despite a "seeded" PRNG
+### Pitfall 1: The existing seam signatures physically cannot host the real SDKs — no `Activity`
 
 **What goes wrong:**
-Level N renders differently on different devices, different OS versions, or after a code refactor — even though generation is "seeded by level number." Retry/resume/leaderboard comparisons silently break because "level 5" is no longer one fixed board.
+`AdGateway.requestRewarded(reason): Boolean` and `GamesService.signIn(): Boolean` / `submitScore(id, score)` take **no `Activity`**, and both are `@Singleton`-bound in `PlatformModule`. Every real call site needs one:
+
+- `RewardedAd.show(activity, listener)` — Activity required
+- `PlayGames.getGamesSignInClient(activity)` / `getLeaderboardsClient(activity)` / `getSnapshotsClient(activity)` — **verified by `javap`: no `Context` overload exists**
+- `UserMessagingPlatform.loadAndShowConsentFormIfRequired(activity, callback)` — Activity required
+
+The "swap one Hilt binding, nothing else changes" promise written into `PlatformModule`'s KDoc is **false as written**. The discovery usually happens mid-implementation, and the panic fix is one of: (a) a `@Singleton` holding a static `Activity` reference (guaranteed leak, LeakCanary-visible, and it survives config change into a destroyed Activity), (b) `applicationContext` cast to Activity (`ClassCastException`), or (c) an `AppCompatActivity.currentActivity` global.
 
 **Why it happens:**
-The PRNG itself is deterministic, but the *consumption order* is not. Reverse-generation enumerates candidate reverse-moves and picks one with the PRNG. If candidates come from a `HashSet<Move>`/`HashMap` or `Set` whose iteration order is unspecified, the PRNG index maps to a different move per run. Other silent sources: `String.hashCode()` is stable across JVMs but a custom `hashCode()` or `Object.hashCode()` (identity) is not; relying on `Set.toList()` ordering; parallel/coroutine-dispatched generation; or seeding from `hash(N)` using a non-portable hash.
+The Slice-1 seams were designed from the *gameplay* side ("what does the game need?") without ever compiling against the SDK. Every fullscreen Play/AdMob surface is Activity-scoped because it launches an Activity, and no amount of interface design removes that.
 
 **How to avoid:**
-- Enumerate candidate moves into a **deterministically sorted `List`** (e.g. sort by `(row, col, direction)`) before every PRNG draw. Never draw an index against an unordered collection.
-- Use `kotlin.random.Random(seed)` or `java.util.Random(seed)` (both have a *specified* algorithm) — not `Random.Default`/`ThreadLocalRandom`.
-- Derive the seed with a portable, pinned hash (e.g. a fixed splitmix/`Long`-mixing of N, or `Random(N.toLong())` directly). Avoid `Object.hashCode`, avoid `UUID`, avoid system time.
-- Generate single-threaded and synchronously for a given level.
-- **Golden-master test:** snapshot the board + solution for levels 1, 2, 10, 100, 1000 to a fixture; CI fails if regeneration ever differs. This is the single most valuable test in the project.
+- Introduce a **`CurrentActivityProvider`** — an `Application.ActivityLifecycleCallbacks` singleton holding a `WeakReference<Activity>`, updated on `onActivityResumed` and cleared on `onActivityPaused`. Register it in `App.onCreate`. This is the standard, leak-safe pattern; the project's single-Activity Compose architecture makes it trivially correct.
+- **Or** change the seam signatures to accept an `Activity` and hoist activity access into the Compose layer via `LocalActivity` / `LocalContext.findActivity()`, passing it down as an event parameter. This keeps ViewModels Activity-free but pushes plumbing into the UI.
+- Decide this **before** writing any SDK code. It determines the shape of every subsequent phase.
+- Whichever you pick, add a detekt/ArchUnit rule forbidding `android.app.Activity` fields outside `platform/`.
 
 **Warning signs:**
-A generation unit test that passes locally but flakes in CI; "the board looked different yesterday"; any use of `HashSet`/`HashMap`/`buildSet` in the generator hot path; `forEach` over a `Map` to pick a move.
+A `lateinit var activity: Activity` anywhere; `context as Activity`; `AdGateway` implementations that compile but `show()` is unreachable; LeakCanary reporting a retained `MainActivity` after rotation.
 
-**Phase to address:** Challenge generator phase (Slice 1). Lock the golden-master test before any difficulty tuning.
+**Phase to address:** **Phase A — SDK seam & build baseline**, before any SDK is added. This is the single highest-leverage decision in the milestone.
 
 ---
 
-### Pitfall 2: Changing the generator after release silently rewrites every Challenge level
+### Pitfall 2: The 293-test suite dies at cold start because of auto-init ContentProviders
 
 **What goes wrong:**
-A post-launch tweak to difficulty knobs, reverse-walk logic, or seed derivation changes the output of level N for everyone. Players' in-progress resumes, recorded best times, stars, and (Slice 2) leaderboard entries now refer to a *different* board than the one that produced them. "Level 5 is always the same board" — the project's headline promise — is broken retroactively.
+Both `play-services-ads-api` and `play-services-games-v2` declare ContentProviders in their manifests (`MobileAdsInitProvider`, `PlayGamesInitProvider` — **verified in the AAR manifests**). Manifest merge puts them in `:app`'s merged manifest. The ~10 Robolectric-backed Compose tests (`GameFlowTest`, `HomeScreenTest`, `ResultsScreenTest`, …) run against that merged manifest with `isIncludeAndroidResources = true`. When Robolectric brings up the application, the providers can be instantiated — inside a JVM with no Play services, no network, and no AdMob app ID. Result: slow, flaky, or hard-failing tests, plus network attempts from CI. The 293-green invariant is the project's main safety net, and it breaks in a way that looks unrelated to the change that caused it.
+
+Separately, `PlayGamesInitProvider` means **automatic sign-in fires on every cold start** without you calling anything, and `MobileAdsInitProvider` runs ad-SDK bootstrap on the startup path *before* `App.onCreate` completes — measurable cold-start regression on low-end devices.
 
 **Why it happens:**
-Determinism-by-seed is treated as automatically stable, but it is only stable *for a fixed algorithm*. Any change to candidate ordering, knob curves, or footprint selection is a breaking change to the entire infinite level set.
+ContentProvider auto-init is invisible: it isn't in your source, your Hilt graph, or your `Application` class. Developers assume "I didn't call `MobileAds.initialize()`, so nothing runs." Robolectric's provider handling has historically varied across versions (MEDIUM confidence on exact 4.16 behaviour — **verify empirically in the first spike**, don't assume either way).
 
 **How to avoid:**
-- Treat the generator as a **versioned, frozen contract**. Stamp every generated/saved level with a `generatorVersion`.
-- Make difficulty parameters **data-driven** (a table/config) so early tuning happens *before* the version is frozen — the spec already calls for this; honour it.
-- After first public release, never mutate v1 in place. Ship `generatorV2` as a parallel algorithm and decide a migration policy (e.g. v2 only applies to levels above the player's current max, or starts a new "season").
-- Persist the *board itself* for an in-progress resume (Pitfall 11), not just the level number, so a generator change can't corrupt a save mid-flight.
+- **Structural (recommended):** add a `flavorDimension` — e.g. `play` vs `nosdk` — and declare the SDKs as `playImplementation(...)`. Bind the real `AdGateway`/`GamesService` in a `src/play/` Hilt module and the existing no-ops in `src/nosdk/`. Run `check`/CI against the `nosdk` variant. The SDKs are then not on the unit-test classpath *or* in the test manifest at all, and CI stays genuinely offline. This is the only mitigation that also keeps CI free of the Google Maven artifacts.
+- **Tactical minimum:** in `src/debug/AndroidManifest.xml` (the source set Robolectric actually sees — the project already learned this for the Room schema assets), remove the providers:
+  ```xml
+  <provider android:name="com.google.android.gms.ads.MobileAdsInitProvider"
+            tools:node="remove" />
+  <provider android:name="com.google.android.gms.games.provider.PlayGamesInitProvider"
+            tools:node="remove" />
+  ```
+  Then initialise both SDKs **explicitly** from `App.onCreate` on `Dispatchers.IO`, so production behaviour is deliberate and test behaviour is inert.
+- Also remove `PlayGamesInitProvider` in **release** if you want sign-in to happen at a moment you choose rather than at process start.
+- Guard the invariant: add a test that asserts `AdGateway`/`GamesService` resolve to the fake in tests, and a CI job that runs `check` with **no network** (`--offline` after a warm cache) so an accidental SDK call fails loudly.
 
 **Warning signs:**
-Roadmap tasks like "improve difficulty curve" scheduled *after* launch with no version gate; no `generatorVersion` field in the persistence model; resume logic that regenerates from N rather than restoring stored cells.
+Test wall-clock jumps after adding the dependency; `IllegalStateException: Missing application ID` from a *test*; Robolectric logs mentioning `gms`; a cold-start regression in the Play Console vitals after release; a sign-in toast on app launch you never coded.
 
-**Phase to address:** Generator phase (introduce `generatorVersion` from day one); Persistence phase; revisited at Slice 2 leaderboard design.
+**Phase to address:** **Phase A — SDK seam & build baseline.** Prove `./gradlew check` stays green **in the same commit** that adds the dependencies.
 
 ---
 
-### Pitfall 3: Reverse-generation produces trivial, degenerate, or duplicate boards
+### Pitfall 3: Shipping the wrong ad unit IDs in the wrong build → non-appealable account suspension
 
 **What goes wrong:**
-Reverse-generation guarantees *a* solution exists, but not that the puzzle is *good*. Common failures: (a) the board is solvable in a glaringly obvious near-linear line (trivial); (b) pegs form a single dense clump with the target hole adjacent (degenerate / no challenge); (c) two different level numbers generate the *same* starting board (violates "unique"); (d) the starting position is actually already near-solved.
+Two symmetric failures. (a) **Real** ad unit IDs in `debug`/CI/emulator builds: you, your testers, and your automated Compose tests generate impressions and clicks on live inventory. Google classifies this as invalid traffic. Per AdMob's own help centre, **account suspensions for invalid traffic are non-appealable**, and additional issues found during suspension can permanently disable the account. (b) **Test** ad unit IDs left in the release build: zero revenue, discovered weeks later.
+
+For this project the risk is unusually high because rewarded ads gate **hint, undo and retry** — the three most-tapped controls in the game — and because the Robolectric Compose tests already drive those controls (`HintControlTest`, `UndoControlTest`). Wire real IDs and your CI becomes a click farm.
 
 **Why it happens:**
-A pure random reverse walk tends to "undo" moves locally, producing compact, low-branching boards. Uniqueness across seeds is assumed, never enforced — birthday-paradox collisions are real for small footprints with few pegs (early levels have a small board state space).
+One hardcoded constant, "I'll swap it before release." The project's own no-magic-strings rule pushes IDs into a constants object, which then looks safely centralised and is *never made build-type aware*.
 
 **How to avoid:**
-- Add **quality gates** in the generator's validation step, rejecting-and-reseeding (deterministically: derive a sub-seed sequence from N) until the board passes:
-  - minimum reverse-move count (solution length) scaled by level → guarantees non-trivial depth;
-  - spatial spread metric (pegs not all in one corner/clump);
-  - branching-factor / "first-move-count" floor so the opening isn't forced;
-  - reject boards where the recorded solution's first K moves are the *only* legal moves (degenerate forced line).
-- **Enforce uniqueness explicitly:** keep a canonical-form hash (normalize for board symmetry/rotation/reflection) of recently generated boards; on collision, perturb the sub-seed. For small early footprints, accept that the *pool* is finite and design the difficulty curve so tiny boards are only used for the first handful of levels.
-- Distinguish two different meanings of "unique" with stakeholders: *non-repeating in a player's sequence* vs *globally distinct boards*. The former is cheaper and probably what's intended.
+- IDs come from **`buildConfigField`**, never a shared constants object: real IDs on `release`, Google's test IDs (`ca-app-pub-3940256099942544/...`) on `debug`. Same for the manifest `com.google.android.gms.ads.APPLICATION_ID` — use a `manifestPlaceholders` per build type.
+- Add `RequestConfiguration.Builder().setTestDeviceIds(...)` with your physical device's hashed ID, taken from logcat on first run, for any device you'll ever hold.
+- Add a **release-blocking test** that asserts `BuildConfig.REWARDED_AD_UNIT_ID` does *not* start with the Google test publisher prefix in the release variant, and *does* in debug.
+- Never tap your own live ads. Never ask friends/testers to "check the ads work" on a live build.
+- If you adopt the flavor isolation from Pitfall 2, the `nosdk` variant additionally can't serve ads at all.
 
 **Warning signs:**
-Playtest feedback "these all feel the same"; generator has no rejection loop; no symmetry-normalized dedup; early levels solvable without thought.
+An ad unit ID string literal in any `Constants.kt`; the AdMob dashboard showing impressions from your own device model; `manifestPlaceholders` absent from `app/build.gradle.kts`; "Ads restricted" or "invalid traffic" mail from AdMob.
 
-**Phase to address:** Generator phase + dedicated difficulty-tuning sub-phase (Slice 1). Flag for playtesting iteration.
+**Recovery:** none for suspension. Prevention is the whole strategy.
+
+**Phase to address:** **Phase C — UMP + AdMob**, but the `buildConfigField` plumbing lands in **Phase A** so it physically cannot be forgotten.
 
 ---
 
-### Pitfall 4: Hint gives an illegal or losing move after the player deviates
+### Pitfall 4: The no-op `AdGateway` auto-grants, so no opt-in UI exists — the swap silently makes the app policy-violating
 
 **What goes wrong:**
-The hint blindly returns "the next move from the recorded winning solution." Once the player makes any move *not* on the canonical line, the recorded next move is illegal (its pegs aren't where the script expects) or, worse, legal but leading to a dead end. The hint then crashes, no-ops, or actively misleads — the exact opposite of its purpose, and directly damages the project's core "always feels fair" value.
+`NoOpAdGateway.requestRewarded()` returns `true`. That means today's hint/undo/retry UI almost certainly **calls it and proceeds immediately** — there is no "Watch an ad for a free hint? [Yes] [No]" dialog anywhere, because none was needed. Swapping in a real AdMob implementation therefore produces an app where tapping *Hint* launches a fullscreen video with **no affirmative opt-in**. AdMob's rewarded inventory policy is explicit: rewarded ads "must only be served after a user affirmatively and unambiguously opts in (such as by tapping a button that represents 'yes' or 'accept')", must not oblige the user to interact, must be skippable/dismissible, and declining "must not impede or interfere with the normal usage" of the app. That's an immediate *Rewards implementation — User choice* / *Full disclosure* violation, the two most commonly reported AdMob restrictions.
 
 **Why it happens:**
-The recorded solution is a fixed sequence indexed by move number, but the player's actual board can diverge after move 1. Developers test hints only on the happy path (player follows hints), so deviation is never exercised.
+The seam was designed to make ads invisible to gameplay. It succeeded — including making the *consent moment* invisible. The stub's `true` return is a false green: every existing test passes, and the missing dialog is only a policy problem once a real SDK is behind it.
 
 **How to avoid:**
-- Hint logic must be **state-relative, not script-relative**:
-  1. If the recorded solution's next move is *legal in the current board* → return it.
-  2. Else, run the `Solver` from the current state to find any move that preserves a win.
-  3. If the Solver proves no win exists → return an explicit "no winning move — undo or restart" result (a first-class state, not an exception).
-- Crucially: **the player can reach genuinely unsolvable states.** "Challenge levels are always solvable" applies only to the *starting* position, not every reachable position. The spec acknowledges this; the implementation and tests must too.
-- Property-test hints: from random *legal-but-off-script* play, assert every returned hint is a legal move and (when one exists) keeps a win reachable.
+- Build the **opt-in dialog first, in a phase before the SDK arrives**, while the stub is still in place. It is pure Compose + ViewModel work, it is testable with the existing Robolectric harness, and it must state both the action and the reward ("Watch a short ad to get a hint?").
+- Decline path must be first-class: the player who taps *No* must land back exactly where they were with the game fully usable. Since Slice 1 shipped hints as free, consider keeping **N free hints per level** so the ad is genuinely optional — this also satisfies "must not impede normal usage" by construction.
+- Grant the reward **only** in `OnUserEarnedRewardListener`, never in `onAdDismissedFullScreenContent` and never optimistically before `show()`.
+- Because `requestRewarded` returns `Boolean`, make **`false` mean "not granted"** and audit every call site for correct handling — the stub never returned `false`, so those branches have literally never executed. Add tests that force `false`.
 
 **Warning signs:**
-Hint code that indexes `solution[moveCount]`; no Solver fallback path; no "unsolvable" UI state; hint tests that always follow previous hints.
+No dialog composable in `ui/game` for ads; call sites that ignore the return value of `requestRewarded`; `AdReason` used only for logging; zero tests exercising a `false` grant.
 
-**Phase to address:** Hint/undo phase (Slice 1), depends on Solver phase. The "unsolvable detection" UI state must be designed here, not bolted on.
+**Phase to address:** **Phase B/C boundary** — ship the opt-in UI + `false`-path handling against the *stub*, then swap the SDK in behind it.
 
 ---
 
-### Pitfall 5: Solver blows up the main thread (peg solitaire is NP-complete)
+### Pitfall 5: UMP sequencing errors — requesting ads before consent, or shipping without a privacy entry point
 
 **What goes wrong:**
-The `Solver` (used for board validation and as the deviation hint fallback) does an unbounded search. On a small board it's instant; on a larger high-level footprint the search space explodes and the call either ANRs the UI thread or takes seconds, freezing the game when the player taps "hint."
+Four distinct sequencing errors, all common:
+1. Calling `MobileAds.initialize()` and immediately `RewardedAd.load()` without ever checking `canRequestAds()`. In EEA/UK this serves personalised ads without consent — a GDPR and Google EU User Consent Policy breach.
+2. Checking `canRequestAds()` **before** `requestConsentInfoUpdate()`. It **always returns `false` until `requestConsentInfoUpdate()` has been called** — so the check silently disables ads everywhere, and the "fix" is usually to delete the check.
+3. Initialising the Mobile Ads SDK twice — once eagerly and once in the consent callback — producing duplicate ad requests. Google's own sample uses an `AtomicBoolean` guard for exactly this.
+4. Not implementing `getPrivacyOptionsRequirementStatus()` → no "Privacy options" entry point. Google requires a persistent, user-reachable way to change consent when required. This project *has* a Settings screen (`ui/settings/SettingsScreen.kt`), so the omission is pure oversight, and it is a common cause of app rejection/ad restriction.
+5. Inferring consent by reading TCF strings out of SharedPreferences/DataStore instead of calling `requestConsentInfoUpdate()` on every launch — Google's docs warn this "can lead to a TCF 3.3 error if consent is expired".
 
 **Why it happens:**
-Generalized peg solitaire is NP-complete; naive DFS over move sequences is exponential. The Solver is written for correctness on test boards and never stress-tested on the largest generated footprints, and it's called synchronously from a use case invoked on the UI dispatcher.
+`MobileAds.initialize()` is policy-safe to call before the form (it processes no personal data), which developers over-generalise into "ads are safe before consent". They aren't — the boundary is at the **ad request**, not initialisation.
 
 **How to avoid:**
-- **Prefer the recorded solution; treat the Solver as the rare fallback** (Pitfall 4). Most hints cost O(1) because the player is on-script.
-- Prune the Solver with **pagoda functions / resource counts** (a real-valued board function that cannot increase under play; negative in corners) to cut unsolvable branches early — the standard, well-documented peg-solitaire technique.
-- Run any Solver call on `Dispatchers.Default`, off the UI thread, with a **bounded budget** (node/time limit). On budget exhaustion, degrade gracefully to "couldn't find a hint — try undo," never freeze.
-- Cap generated footprint size so the worst-case board stays inside the Solver's tractable range; let solution *length* (not raw board area) carry late-game difficulty.
+Fixed order, every launch, no exceptions:
+```
+requestConsentInfoUpdate()          // ALWAYS, every app launch
+  └─> loadAndShowConsentFormIfRequired(activity) { formError ->
+        if (canRequestAds()) initializeMobileAdsOnce()   // AtomicBoolean guard
+      }
+// plus, in parallel, immediately after requestConsentInfoUpdate:
+if (canRequestAds()) initializeMobileAdsOnce()           // same guard
+```
+- Model this as a `ConsentGateway` with a `StateFlow<ConsentState>` that `AdGateway` **must** observe; `AdGateway.requestRewarded` returns `false` unless consent state permits. That makes "no ad request before consent" a type-level invariant rather than a code-review promise.
+- Add a `PrivacyOptions` row to `SettingsScreen`, visibility driven by `getPrivacyOptionsRequirementStatus() == REQUIRED`, calling `showPrivacyOptionsForm(activity)`.
+- Test with `ConsentDebugSettings` + `DEBUG_GEOGRAPHY_EEA` and a hashed test device ID; use `consentInformation.reset()` between runs to replay first-install. Emulators are test devices by default (UMP ≥ 2.2.0).
+- Pin **UMP 4.0.0** to match GMA 25.x's declared dependency.
 
 **Warning signs:**
-Solver called from a composable or non-suspending use case; no time/node cap; no pagoda/heuristic pruning; "hint sometimes hangs"; StrictMode/ANR reports on hint taps.
+`canRequestAds()` called at the top of `onCreate`; no `AtomicBoolean` around init; no privacy row in Settings; consent state read from DataStore; consent tested only outside the EEA.
 
-**Phase to address:** Solver phase (Slice 1). Macro/stress test against the largest footprint the difficulty curve can produce.
+**Phase to address:** **Phase C — UMP + AdMob.** UMP is implemented **first**, ads second.
 
 ---
 
-### Pitfall 6: StateFlow doesn't recompose because the Board is mutated in place
+### Pitfall 6: Interstitial cadence — this game's retry loop is a policy landmine
 
 **What goes wrong:**
-After applying a move, the UI doesn't update — or updates only sometimes. The ViewModel holds `MutableStateFlow<GameState>`, the move handler mutates the existing `Board` (e.g. flips a cell in a backing array) and re-assigns the same reference. `StateFlow` dedupes by `equals()`; the value is reference-equal/structurally-equal to the previous, so **no emission, no recomposition.**
+"Interstitials between levels" sounds compliant. In practice, peg solitaire play is **retry-dense**: a player who fails a Challenge level taps *Restart* five times in two minutes. If the interstitial hook fires on level end (including failed levels) or on restart, you produce back-to-back fullscreen ads during the most frustrating part of the game. AdMob's disallowed-implementations policy specifically prohibits: interstitials on app load and app exit; more than one interstitial per **two** user actions (back-button presses count); and an interstitial "immediately after another interstitial ad was shown to and closed by the user". It also prohibits ads that "appear suddenly while users are engaged in tasks like gaming".
+
+Add accidental clicks: the Results screen's celebratory CTA (the Candy-Clay "Next Level" action) is a big, primed tap target. If an interstitial lands there under latency, the player's queued tap hits the ad. Accidental clicks are explicitly counted as invalid traffic.
 
 **Why it happens:**
-Mixing mutable model objects with StateFlow's conflation/equality semantics. The classic Android trap of "I called `.value = state` but nothing happened."
+The `AdGateway.showInterstitial()` seam has **no cadence parameter and no state** — it is a fire-and-forget method, so the natural implementation is "call it at level end". All frequency logic has to be invented at swap time.
 
 **How to avoid:**
-- Make domain models **immutable** (`data class` with `val`, persistent/`ImmutableList`-style cells). Apply a move by producing a **new** `GameState` via `copy()` — never mutate.
-- Drive `Canvas` from this immutable state; a genuinely new value guarantees the draw phase re-runs.
-- Annotate UI state as `@Immutable`/`@Stable` so Compose can skip correctly rather than over-recompose.
+- Put cadence in the **repository layer with persisted state**, not in the SDK wrapper: minimum N completed levels **and** minimum M minutes since the last interstitial, reset across process death via DataStore (the project already has DataStore for scalars).
+- **Never** show an interstitial after a *failed* level or a restart — only after a *won* level, and not on every win.
+- **Never** on app open (use App Open ads if you want that surface, which is a separate format with its own rules) and never on exit/back.
+- Enforce a **latency guard**: pre-load the interstitial, and if it isn't already loaded at the decision point, skip it entirely rather than showing it late over the next screen.
+- Add a **tap-quiescence delay** before any fullscreen ad on the Results screen (~500ms after the last user tap) so queued taps can't land on the ad.
+- Unit-test the cadence policy as pure logic — it's a perfect fit for the existing JVM test style, and it means the rule is verified without the SDK.
 
 **Warning signs:**
-`var` fields inside `Board`/`Cell`; `IntArray`/`Array` mutated then re-emitted; "UI updates after I rotate the screen but not on the move"; equality overridden in a way that hides changes.
+`showInterstitial()` called in a `LaunchedEffect` on the Results route; no persisted "last interstitial at" timestamp; ad shown on restart; AdMob "ad serving limited" notice; a spike in CTR that looks too good.
 
-**Phase to address:** Domain model + RulesEngine phase, and the ViewModel/UDF wiring phase (Slice 1). Cheap to get right early, expensive to retrofit.
+**Phase to address:** **Phase C — UMP + AdMob.** Design the cadence policy as domain-ish pure logic during **Phase A** so it can be tested before the SDK exists.
 
 ---
 
-### Pitfall 7: The elapsed-time clock recomposes the whole board every tick
+### Pitfall 7: Play Console setup ordering — publish the app before PGS and every non-tester breaks
 
 **What goes wrong:**
-A 1 Hz (or worse, per-frame) timer for the score clock lives in the same `UiState`. Every tick emits a new state, recomposing the entire gameplay screen — including the `Canvas` and all peg animations — burning CPU and causing jank, especially on 90/120 Hz panels where the frame budget is ~8–11 ms.
+Play Games Services has **four independent publish/approval switches**, and getting the order wrong produces sign-in failures that look like code bugs:
+
+1. **OAuth consent screen (Google Cloud) not published** → non-tester accounts get 404/OAuth errors. Google's doc: *"Before publishing the app in the Play Console, publish the consent screen in Google Cloud. Without this step, the public audience won't be able to use any of the Play Games Services features."*
+2. **PGS settings not published before the app** → Google's doc: *"At release, publish the Play Games Services settings first before you publish your game… This might cause players who are authenticating in with non-tester accounts to encounter errors."*
+3. **You are not a tester.** *"The account that created the game in the Play Console does not automatically become a tester."* You will debug a working integration for a day.
+4. **OAuth client created directly in Google Cloud instead of through Play Console** → no association with your achievements/leaderboards.
 
 **Why it happens:**
-Elapsed time is bundled into the single immutable `UiState` for convenience. Compose recomposes every reader of that state on each tick, even though only a clock label changed.
+The Play Console UI does not enforce the ordering, and the failure mode (`ERROR_NOT_AUTHORIZED`, silent `isAuthenticated() == false`) is identical to a code bug. Under Gitflow, PGS validation is also easy to defer to `release/*`, which is exactly when the ordering mistake becomes expensive.
 
 **How to avoid:**
-- Isolate the timer: expose elapsed time as a **separate `StateFlow`/state**, and read it inside a small leaf composable (the clock label) so only that node recomposes. Or pass it as a **lambda** (`time: () -> Long`) so the read is deferred to the draw/layout phase, not composition.
-- Keep board cells and timer in different state holders; never let a clock tick invalidate the `Canvas`.
-- Drive jump/removal animations with `Animatable`/`animate*AsState` (recomposition-optimized) rather than feeding raw animation progress through `UiState`.
+- Write the ordering into the phase plan as an explicit, ticked checklist: Cloud project + Games API → PGS project in Play Console → configure **and publish** the OAuth consent screen (scopes `games`, `games_lite`, `drive.appdata`) → create the Android credential **through Play Console** → add game properties (display name minimum) → **add yourself and testers** (allow a couple of hours to propagate) → **Publish Game (PGS)** → publish app.
+- Verify `@string/game_services_project_id` is the **numeric project ID only**. Using the full `…apps.googleusercontent.com` client ID is a documented error.
+- Do the whole console setup in **Phase A/D kickoff**, not at release. Sign-in cannot be validated locally without it.
 
 **Warning signs:**
-Layout Inspector shows the board composable recomposing once per second; battery drain on the gameplay screen; jank during idle (no interaction) play; `UiState` contains `elapsedMs` read by the board.
+`isAuthenticated()` false on every account; sign-in works for you but not a second Gmail; PGS status "Ready to publish"; app ID string containing dots.
 
-**Phase to address:** Gameplay screen / Compose rendering phase (Slice 1). Verify with the Compose recomposition counts in Layout Inspector.
+**Phase to address:** **Phase D — Play Games v2**, front-loaded as a prerequisite task.
 
 ---
 
-### Pitfall 8: Canvas allocates and over-draws every frame
+### Pitfall 8: SHA-1 registered is the **upload** key, not the Play **app signing** key
 
 **What goes wrong:**
-The board `Canvas` allocates objects (`Path`, `Paint`, `Brush`, lists, `Offset` arrays, boxed primitives) inside `DrawScope` on each draw, and/or redraws the full board every frame even when one peg moves. Allocation in the frame path triggers GC pauses → visible stutter during the jump animation; over-draw wastes GPU.
+The classic PGS failure: everything works on your machine, then the internal-testing build downloaded from Play **cannot sign in** (`ERROR_NOT_AUTHORIZED`). With Play App Signing enabled, Google re-signs your AAB with the *app signing key*, which is a different certificate from your *upload key*. The OAuth client must carry the **app signing** SHA-1 (Play Console → App integrity), not the upload certificate.
+
+The mirror-image failure: you register only the **release** SHA-1, so local `debug` builds can never authenticate — and since this project has **no `androidTest` source set**, your only manual verification path is a debug build on a device.
 
 **Why it happens:**
-Treating `Canvas` like a one-shot drawing surface and re-creating geometry per frame; not memoizing static board grid; animating by redrawing everything.
+Play Console shows both fingerprints on nearby pages, the labels are similar, and the error surfaces only after a Play-distributed install.
 
 **How to avoid:**
-- Hoist allocations out of the draw lambda: `remember` static geometry (grid lines, hole positions), reuse `Path`/`Brush` objects, precompute cell-center offsets once per board size.
-- Read animating values via lambda-based reads so only the **draw phase** re-runs (when state is read inside `Canvas`, Compose skips composition and runs draw only — exploit this).
-- Avoid `drawIntoCanvas`/native bitmap churn; avoid per-frame `String`/object creation for labels inside the canvas.
-- Measure with macrobenchmark before/after, not by eye.
+- Register **two Android credentials, same package name**: one with the Play **app signing** SHA-1 (release) and one with `~/.android/debug.keystore`'s SHA-1 (`keytool -list -keystore ~/.android/debug.keystore -v`, alias `androiddebugkey`). This is the documented best practice.
+- If CI or a second developer machine builds debug APKs, their debug keystores have *different* SHA-1s — either share one debug keystore in the repo (it's not a secret) or register each.
+- Verify the shipped artifact: `unzip app.apk && keytool -printcert -file META-INF/CERT.RSA` and compare.
+- Test sign-in from an **internal testing track download**, not just a local install, before merging `release/*` to `main`.
 
 **Warning signs:**
-`Path()`/`Paint()`/`mutableListOf()` inside `DrawScope`; GC log spam during animation; frame-time spikes in the Compose tracing; jank that worsens on larger (Diamond-41 / high-level) boards.
+Sign-in OK on `adb install`, fails from Play; only one credential listed in PGS; the SHA-1 in PGS matches "Upload certificate" on the App integrity page.
 
-**Phase to address:** Compose rendering phase (Slice 1).
+**Phase to address:** **Phase D — Play Games v2**, and again as a release-gate item in the final phase.
 
 ---
 
-### Pitfall 9: Android dependencies leak into the "pure Kotlin" domain
+### Pitfall 9: Writing PGS v2 as if it were v1 (sign-in buttons, sign-out, `GoogleSignIn`)
 
 **What goes wrong:**
-The domain layer (RulesEngine, Generator, Solver, Scoring) imports `android.*`, `Context`, `Log`, `Parcelable`, or a coroutine `Dispatcher`/`SavedStateHandle`. Suddenly the high-value game logic can't be unit-tested on the JVM, requires Robolectric/instrumentation, and the architecture's central promise (testable, SDK-free core) is gone.
+Most tutorials, Stack Overflow answers, and model training data predate v2. Code written that way won't even compile against `play-services-games-v2` (`GoogleSignInClient`, `Games.getXxxClient()`, `GamesClient`, `GamesMetadataClient`, `GoogleApiClient` are all removed), and the *design* is also wrong: **v2 authenticates automatically at launch, and there is no sign-out.** Games that ship a "Sign out" button in Settings simply cannot implement it. Games that ship an always-visible "Sign in" button show it to already-signed-in players.
 
-**Why it happens:**
-Convenience: `android.util.Log` for debugging, `@Parcelize` on `Board` for the resume bundle, injecting `Context` to read a resource. Each is a small step that hardens into a dependency.
+Two more v1-era assumptions that bite:
+- The v1 SDK relied on Google Sign-In, which was removed from `play-services-auth`. Anything still on v1 has an unresolvable dependency; `com.google.android.gms:play-services-games:25.0.0` removed the v1 API entirely.
+- **Login quota**: automatic sign-in at every launch multiplies your login requests versus v1's opt-in flow. Google's migration doc explicitly says to review quota.
+
+The current `GamesService.signIn(): Boolean` seam models an *interactive, user-triggered* sign-in — a v1 shape. In v2 the right model is closer to `observeAuthState(): StateFlow<Boolean>` plus an optional `promptSignIn()` for the manual retry case.
 
 **How to avoid:**
-- Put the domain in a **pure Kotlin/JVM module** (or at least a package with an enforced dependency rule) so an Android import won't even compile. A Gradle module boundary is the strongest guard.
-- Keep serialization (`@Parcelize`, Room entities, DataStore) in the **data layer**; map to/from domain models. Domain `Board` stays Android-free; a `BoardEntity` lives in data.
-- Use a logging interface or none; pass dispatchers in from the data/UI layer, don't reach for `Dispatchers` inside pure logic.
-- The `AdGateway`/`GamesService` interfaces already model this discipline — apply the same to persistence and logging.
+- Flow: `PlayGamesSdk.initialize(context)` (or let `PlayGamesInitProvider` do it) → `PlayGames.getGamesSignInClient(activity).isAuthenticated()` → if `false`, **then** show an in-game "Sign in to Play Games" affordance calling `signIn()`.
+- Remove any sign-out concept from the Settings design before it's built.
+- Reshape the seam now: `signIn()` stays for the manual retry, but add an authentication-state flow so the UI doesn't have to call a suspend function to render a badge.
+- Use `kotlinx-coroutines-play-services:1.11.0` `.await()` on the returned `Task<T>` instead of hand-rolling `suspendCancellableCoroutine` (double-resume and leaked continuations are the standard bugs there).
+- Beware the docs' **anonymous-listener warning**: the Play Games SDK holds some listeners as **weak references**, so anonymous lambdas can be GC'd before invocation. Hold strong references in your `GamesService` implementation.
 
 **Warning signs:**
-`import android.` in `domain/`; domain tests needing Robolectric; `Context` parameters on use cases; Room annotations on domain models.
+`import com.google.android.gms.auth.api.signin.*`; a "Sign out" row in Settings; `signIn()` called unconditionally at startup; `Task` bridged with a hand-written `suspendCoroutine`.
 
-**Phase to address:** Project/module scaffolding phase (first phase). Enforce with a module boundary or an ArchUnit/Konsist test from the start.
+**Phase to address:** **Phase D — Play Games v2.**
 
 ---
 
-### Pitfall 10: Business logic creeps into composables; MutableStateFlow leaks out of the ViewModel
+### Pitfall 10: Saved Games conflict handling that quietly deletes a player's stars
 
 **What goes wrong:**
-Move-legality checks, scoring, or generation get written inline in a composable; or the ViewModel exposes `MutableStateFlow`/`var` publicly so the UI can write state directly. Result: untestable logic, broken unidirectional data flow, race conditions on shared mutable state, and recomposition-driven re-execution of logic that shouldn't run during a draw.
+`SnapshotsClient.open()` returns `DataOrConflict<Snapshot>`. The path of least resistance is `RESOLUTION_POLICY_MOST_RECENTLY_MODIFIED`, which — per Google's own wording — "blindly chooses the most recent data, [so] it is possible that a player's changes may get lost." For this game the cloud blob is *the entire progress model*: per-level stars, best times, best scores, and `highestLevelReached`. A player who plays offline on a tablet and then opens the phone can lose weeks of progress in one sync. Worse: the first sign-in on a device where the player already has local progress can be treated as "cloud wins", wiping a fully-populated local Room DB.
+
+Two more specific traps:
+- `RESOLUTION_POLICY_HIGHEST_PROGRESS` / `LONGEST_PLAYTIME` are *not* semantically correct here — "longest playtime" is not "most stars".
+- Snapshots have a **max data size** (`getSnapshotsClient(activity).getMaxDataSize()`). A naive dump of the whole Room DB including in-progress board snapshots and move histories can approach it as the Challenge ladder grows.
 
 **Why it happens:**
-Speed during prototyping; "it's just one `if`." Compose makes it tempting to compute in the composable because the state is right there.
+Conflicts essentially never fire during single-device development, so the branch is written blind and never executed until real users have two devices.
 
 **How to avoid:**
-- Composables **render state and emit events only** (state down, events up). All decisions live in use cases/ViewModel.
-- ViewModel exposes `val uiState: StateFlow<UiState>` (read-only), backed by a private `MutableStateFlow`. One-off effects (navigate, show dialog) via a `SharedFlow`/`Channel`, not booleans in `UiState`.
-- Collect with `collectAsStateWithLifecycle()` (not bare `collectAsState`) so the flow isn't collected while the screen is in the background — avoids wasted work and stale-resume bugs.
+- Use **`RESOLUTION_POLICY_MANUAL`** and implement a **field-wise merge**, because this domain has a natural join: `highestLevelReached = max(local, remote)`; per `(mode, levelId)` take `max(stars)`, `min(bestTimeMs)`, `max(bestScore)`. Union of level keys. This is a **pure function over two progress snapshots** — put it in `:domain` and unit-test it exhaustively with the existing JVM harness. That is the single most valuable test in this phase.
+- **Never** sync the `InProgressGame` resume snapshot to the cloud. It's device-local, it's the largest blob, and merging it is meaningless. Sync only results + ladder position.
+- Local Room stays the **single source of truth**; cloud is a second data source behind `ProgressRepository`, exactly as the v1.0 architecture already anticipated. A signed-out or offline player is never blocked.
+- Sync at coarse checkpoints (level complete, app foreground/background), never per move.
+- Version the cloud blob with a **format version byte** and `generatorVersion`, mirroring the local persistence discipline.
+- Test the conflict path deliberately: two emulators, same account, both offline, both play, both come online.
 
 **Warning signs:**
-`RulesEngine`/`Solver` called inside `@Composable`; public `MutableStateFlow`; `LaunchedEffect` doing game logic; `collectAsState()` without lifecycle; event booleans that must be reset.
+`open(name, true)` with a resolution policy argument and no `isConflict()` branch; merge logic living in `:app`; the resume snapshot in the cloud payload; no size check against `getMaxDataSize()`; no two-device test in the plan.
 
-**Phase to address:** UDF/ViewModel wiring phase (Slice 1).
+**Phase to address:** **Phase E — Cloud save.** Merge function lands in `:domain` *first*, tested, before any Snapshots code is written.
 
 ---
 
-### Pitfall 11: Resume/serialization restores an inexact game state
+### Pitfall 11: SoundPool plays silence — the first tap of every session
 
 **What goes wrong:**
-The player backgrounds mid-game and returns to a subtly wrong state: undo history lost (so undo/hint break), elapsed time reset or ballooned, the board off-by-one, or the wrong level. For Challenge, the board is regenerated from N instead of restored — and if the generator ever changed (Pitfall 2) or the player had deviated from the recorded line, the restored board is wrong.
+`SoundPool.load()` is **asynchronous**. Call `play()` before decoding finishes and it returns `0` and produces no sound. The player's very first peg tap after cold start is silent; every subsequent one works. It reads as "the sound is broken sometimes" and is nearly impossible to reproduce on a warm device.
 
-**Why it happens:**
-Only the board cells are serialized; move history, elapsed time, current-solution index, and `generatorVersion` are dropped. Or resume regenerates rather than restores. Time is stored as wall-clock and recomputed incorrectly.
+Related failures specific to this game:
+- **Loading on the main thread.** Decoding several short WAV/OGG files during `App.onCreate` or the first composition adds jank exactly where the Candy-Clay entry animation runs.
+- **`maxStreams` exhaustion.** Peg solitaire is a tap-spam game. With a low `maxStreams`, SoundPool "will automatically stop a previously playing stream based first on priority and then by age" — so rapid successive jumps clip each other. With too high a value you waste memory.
+- **Leaking across Activity recreation.** A `SoundPool` created in a composable, `remember`ed without disposal, or owned by the Activity, leaks native audio resources on every rotation/theme change. `release()` makes the pool permanently unusable — *"The SoundPool can no longer be used and the reference should be set to null"* — so a shared instance released by one screen breaks every other screen.
+- **No audio focus / no lifecycle pause.** SFX keep firing over an incoming call or the user's music, or play from a backgrounded app. `autoPause()`/`autoResume()` exist precisely for this and are usually never called.
+- **Ignoring the persisted `soundOn` flag at the wrong layer** — checking it in the composable instead of the player, so it's easy to add a new call site that bypasses the setting.
+- **Ad audio collision.** A rewarded video's audio and your SFX overlapping is jarring and reads as a bug.
 
 **How to avoid:**
-- Serialize the **complete** `InProgressGame`: board snapshot **plus** full `moveHistory` (for undo), `elapsedMs`, mode, levelId, and `generatorVersion`. Restore the stored board, don't regenerate it.
-- Treat elapsed time as accumulated duration; pause it on `onStop` and resume on `onStart` — don't derive from wall-clock deltas across process death.
-- Round-trip property test: random game state → serialize → deserialize → assert identical board, history, score, and that undo/hint still behave.
+- One `@Singleton` `SoundPlayer` in the Hilt graph, constructed with `@ApplicationContext`, holding one `SoundPool` built with `AudioAttributes` `USAGE_GAME` / `CONTENT_TYPE_SONIFICATION`. Never in a composable, never Activity-scoped.
+- Load all clips **once, on `Dispatchers.IO`**, into a `Map<SoundId, Int>`; maintain a `Set<Int>` of ready sample IDs populated from `setOnLoadCompleteListener`. `play()` becomes a no-op (not a crash, not a queue) for any sample not yet ready. Pre-warm during the Home screen so the first gameplay tap is always ready.
+- Gate on the persisted `soundOn` flag **inside** `SoundPlayer` (collecting `SettingsRepository`'s Flow), so no call site can bypass it.
+- `maxStreams` sized to the realistic concurrency of the board (a jump + a peg-pop + a star-pop ≈ 4–6); set sensible per-sound `priority`.
+- Request transient audio focus (`AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK`) or, at minimum, call `autoPause()` on `ON_STOP` and `autoResume()` on `ON_START` via a `DefaultLifecycleObserver` on `ProcessLifecycleOwner`.
+- Mute SFX for the duration of a fullscreen ad (`onAdShowedFullScreenContent` → `autoPause()`, `onAdDismissedFullScreenContent` → `autoResume()`).
+- Test it: `SoundPlayer` is Android-dependent, so assert it via Robolectric (`ShadowSoundPool`) or, better, keep the *decision* logic (which sound for which event, mute state) in a pure class that JVM-tests, and keep the `SoundPool` wrapper trivially thin.
 
 **Warning signs:**
-`InProgressGame` lacks `moveHistory` or `generatorVersion`; resume calls `generate(N)`; elapsed time computed from `System.currentTimeMillis()` at save vs load; undo unavailable after resume.
+`SoundPool(...)` inside a `@Composable` or `Activity`; `play()` immediately after `load()`; no `OnLoadCompleteListener`; `release()` called from `onDestroy` of a rotating Activity; SFX audible while a rewarded ad plays; sound continues after backgrounding.
 
-**Phase to address:** Persistence/resume phase (Slice 1).
+**Phase to address:** **Phase B — Sound**, first SDK-free phase of the milestone (lowest risk, highest player-visible payoff, and it exercises the new "platform singleton" pattern before the SDKs arrive).
 
 ---
 
-### Pitfall 12: No persistence versioning/migration — schema change wipes or crashes progress
+### Pitfall 12: The dependency graph silently regresses the compileSdk-36 pinning strategy
 
 **What goes wrong:**
-A later release adds a field to `LevelResult` or changes the serialized board format. Without a Room migration the app crashes on launch (or, if `fallbackToDestructiveMigration` was used, silently wipes all the player's stars and progress). A versionless board blob can't be re-read at all.
+The project survives on `compileSdk 36` only because of two blunt `resolutionStrategy.eachDependency` `useVersion` forces (`androidx.core` → 1.18.0, all of `androidx.lifecycle` → 2.9.4). The Slice-2 SDKs drag in **new, unforced** androidx groups (verified from the POMs): `androidx.browser 1.8.0`, `androidx.webkit 1.12.1`, `androidx.privacysandbox.ads 1.0.0-beta05`, `androidx.datastore 1.0.0`, plus requests for `androidx.core 1.10.1`, `kotlin-stdlib 2.1.0` and `kotlinx-coroutines 1.8.0`.
 
-**Why it happens:**
-Room migrations are tedious; `fallbackToDestructiveMigration()` is the path of least resistance and ships by accident. Hand-rolled blob serialization has no version byte.
+**Good news, verified:** none of these currently requires more than `compileSdk 34`, so **compileSdk 36 holds today**. The pitfall is that (a) nothing *guards* that, and (b) a routine version bump of ads or games can introduce a `browser`/`webkit` line whose `minCompileSdk` is 37, and the failure surfaces as an opaque AAR-metadata error deep in a variant task.
+
+Secondary hazards, all real:
+- `androidx.privacysandbox.ads:1.0.0-beta05` — a **beta** artifact in your release graph, unpinned and invisible in `libs.versions.toml`. That violates the catalog's stated "single source of truth for every pinned version" rule.
+- `androidx.datastore` is requested at **1.0.0** while the project uses `datastore-preferences 1.2.1`. Conflict resolution upgrades, but if the group is treated atomically a mixed graph is possible — worth an explicit force.
+- `play-services-basement 18.9.0` is a shared floor across ads, games-v2 **and** UMP; bumping one artifact without the others can create a basement version skew, the classic gms `NoSuchMethodError` at runtime that never shows at compile time.
+- The `eachDependency` blunt-force approach *downgrades* as well as upgrades. Forcing `androidx.core` to 1.18.0 when a new SDK requires 1.19.0+ would produce a runtime `NoSuchMethodError` with no build warning.
 
 **How to avoid:**
-- Decide Room-vs-DataStore early (spec flags this). For relational per-level results, **Room with explicit `Migration` objects** and `exportSchema = true` + the schema checked into version control + Room's migration test harness.
-- Never ship `fallbackToDestructiveMigration()` in release — it deletes user data.
-- Every serialized blob (resume board) carries a leading **format version**; the reader switches on it.
-- For DataStore (settings/lightweight), use Proto DataStore or include a version key with a migration path.
+- Add every new transitive group to `libs.versions.toml` and add explicit `resolutionStrategy` entries (or, better, `constraints { }` which upgrade-only and won't silently downgrade).
+- Add a **build-gate task** that runs `./gradlew :app:dependencies --configuration releaseRuntimeClasspath` and fails if any resolved artifact's `minCompileSdk` exceeds 36 — or, cheaply, snapshot the resolved dependency list into a committed fixture and diff it in CI. That turns "a bump broke compileSdk" from a surprise into a red build with a readable diff.
+- Enable **Gradle dependency verification / dependency locking** for the release classpath so a beta artifact can't change under you.
+- Bump `play-services-ads`, `play-services-games-v2` and `user-messaging-platform` **together**, and pin `play-services-basement` explicitly.
+- **Resolve the stale pins:** `CLAUDE.md` says ads 23.6.0 / games ~21.x. Current are 25.4.0 and 22.0.0. Note that `play-services-games-v2:22.0.0` has `minSdkVersion 24` — exactly this project's floor, zero headroom.
+- **Decide on GMA Next-Gen explicitly.** The classic `play-services-ads` line is documented as *"in maintenance mode"*. Staying on it for v1.1 is defensible (stable, well-documented, 25.4.0 is 2 months old); drifting onto it without a decision record is not.
 
 **Warning signs:**
-`fallbackToDestructiveMigration()` anywhere; `exportSchema = false`; no migration test; a board blob with no version field; "my stars disappeared after the update."
+`Dependency 'x' requires libraries and applications that depend on it to compile against version 37 or later`; a `-beta`/`-alpha` artifact in the release dependency report; `NoSuchMethodError` in a gms class at runtime; the catalog no longer describing the full graph.
 
-**Phase to address:** Persistence phase (Slice 1); enforced at every schema-touching phase thereafter.
+**Phase to address:** **Phase A — SDK seam & build baseline.** Add the dependency-graph gate in the same commit as the first SDK.
 
 ---
 
-### Pitfall 13: (Slice 2) AdMob policy violations — interstitial frequency & non-opt-in rewarded ads
+### Pitfall 13: New permissions and data collection break the Play Console declarations (and possibly Families policy)
 
 **What goes wrong:**
-Interstitials shown on app launch, on exit, immediately after another interstitial, or after every level with no spacing → accidental clicks, bad UX, and **AdMob policy strikes / ad-serving limits / account suspension**. Rewarded ads that grant the reward without an explicit opt-in tap, or that can't be skipped/dismissed, are *disallowed implementations*.
+The app currently declares **zero permissions** and collects nothing. Adding the ad SDK merges in `INTERNET`, `ACCESS_NETWORK_STATE`, `RECEIVE_BOOT_COMPLETED`, `com.google.android.gms.permission.AD_ID` and three `ACCESS_ADSERVICES_*` permissions (verified in the `play-services-ads-api` manifest). Consequences that are easy to miss:
 
-**Why it happens:**
-Maximizing ad impressions for revenue; treating "between levels" as "after every single level"; auto-playing a rewarded ad when the player taps "hint" instead of presenting a yes/no choice first.
+- The **Data safety** form must now declare collection of the **Advertising ID** and device/app identifiers. An inaccurate Data safety declaration is a Play policy violation and a common cause of release rejection.
+- The **"Contains ads"** declaration in Play Console becomes mandatory. Missing it is a policy violation.
+- If the app's target audience is set to include children, **Families Policy** applies: `AD_ID` cannot be used, ad content must be age-appropriate, and neutral age screening may be required. A casual peg-solitaire game is very likely to be classified as appealing to children — decide the target-audience answer deliberately.
+- `RECEIVE_BOOT_COMPLETED` appearing in the store's permission list on an offline puzzle game generates suspicious-looking reviews. It can be removed via `tools:node="remove"` if you accept the (minor) functionality loss — evaluate rather than accept silently.
+- **`android:allowBackup="true"`** is currently set. With cloud save arriving, auto-backup restoring a stale Room DB onto a device that also syncs Snapshots is a third conflicting source of truth. Decide the interaction explicitly (usually: exclude the Room DB from auto-backup once Snapshots is authoritative, or keep backup and make the merge idempotent).
 
 **How to avoid:**
-- **Interstitials:** only between content (e.g. on level-complete → next), never on app open or exit, never back-to-back. Apply a **frequency cap** (time- and/or level-count-based) so they don't fire every level. Route all of this through the existing `AdGateway` so cadence is centrally controlled and tunable.
-- **Rewarded:** always behind an explicit opt-in dialog ("Watch an ad for a free hint? [Yes]/[No]"), reward granted only on the SDK's completion callback, always skippable/dismissible. This maps cleanly to `AdGateway.requestRewarded(reason): Boolean`.
-- Use AdMob **test ad unit IDs** in development — clicking live ads yourself is an invalid-traffic violation.
-- Keep ad-free core loop intact: the Slice 1 stub auto-grants, so design must not *depend* on ads to be playable.
+- Treat the Play Console declarations as a **checklist item in the release phase**, with the merged manifest (`app/build/outputs/logs/manifest-merger-*-report.txt`) as evidence.
+- Audit the merged manifest **in the same PR** that adds each SDK; diff it against the previous release.
+- Answer the target-audience/Families questions **before** picking ad formats, since it constrains them.
+- Add a `backup_rules.xml` / `data_extraction_rules.xml` decision alongside the cloud-save phase.
 
 **Warning signs:**
-Interstitial in `onCreate`/`onResume`; reward granted before the completion callback; no frequency cap; live ad unit IDs in debug builds; an `AdGateway` that exposes "showAd" without a reason/opt-in concept.
+No manifest-merger diff in the SDK PR; Data safety form untouched since v1.0; "Contains ads" unchecked; target audience never explicitly answered.
 
-**Phase to address:** Slice 2 AdMob phase. The `AdGateway` interface (Slice 1) should already encode opt-in + cadence so Slice 2 only fills in the implementation.
+**Phase to address:** **Phase F — Release readiness**, with the manifest audit happening in Phases C/D/E as each SDK lands.
 
 ---
 
-### Pitfall 14: (Slice 2) Play Games v2 sign-in treated like v1 / cloud-save conflicts mishandled
+### Pitfall 14: SDK integration erodes the quality gates the project depends on
 
 **What goes wrong:**
-Two failure clusters. (a) Sign-in: code written against the deprecated v1 `GoogleSignInClient`/interactive flow, when **PGS v2 signs in automatically at startup** and you query `GamesSignInClient.isAuthenticated()` — leading to double prompts, a broken sign-in button, or assuming a signed-in user when there isn't one. (b) Cloud save: last-write-wins overwrites the more-advanced device; or conflicts (`DataOrConflict.isConflict()`) are ignored, so a player who progressed on two devices loses stars/level progress.
+Four gates that currently pass will start fighting the SDK code, and the fastest fix for each is a suppression:
 
-**Why it happens:**
-Most online tutorials predate PGS v2; the conflict callback is easy to skip because it rarely fires in single-device testing. The reverse-generation design means progress is "highest level + per-level stars/times" — exactly the data players will be furious to lose.
+1. **`DomainPurityTest` has a blind spot.** It forbids `android..` and `androidx..` in `com.app.pegsolitaire.domain` — but **not `com.google.android.gms..` or `com.google.android.ump..`**. Nothing stops a `LeaderboardId` constant carrying a gms import, or an `AdReason`→SDK mapping landing in `:domain`. The gate would stay green while purity is lost. (`:domain` is a separate pure-JVM module so it wouldn't *compile* — but any decision to move the merge/cadence logic into `:app` would silently pass.)
+2. **detekt complexity.** AdMob and PGS are callback-oriented (`RewardedAdLoadCallback`, `FullScreenContentCallback`, `OnCompleteListener`, `DataOrConflict` branching). Naive translation produces deeply-nested object expressions that trip `LongMethod`, `TooManyFunctions`, `NestedBlockDepth` and `ComplexCondition`. The reflex is `@Suppress`.
+3. **No-magic-strings.** Leaderboard IDs, achievement IDs, snapshot names, consent form keys and ad unit IDs are all strings. They must go into scoped constants objects (per `CLAUDE.md`) — **except** ad unit IDs and the AdMob app ID, which must be `buildConfigField`/`manifestPlaceholders` (Pitfall 3). Getting this backwards produces either a lint failure or a shipped test ID.
+4. **No hardcoded dp/sp.** New UI — the rewarded opt-in dialog, the consent-required banner, the privacy-options settings row, the Play Games badge/sign-in affordance — must use the dimens resource file. Easy to forget on "small" additions.
 
 **How to avoid:**
-- Use the **PGS v2 SDK**: rely on automatic sign-in, check `isAuthenticated()`, and present sign-in as optional (the game is fully playable signed-out). Don't gate core play on Play Games.
-- Implement Snapshots **conflict resolution explicitly**: on `isConflict()`, **merge** rather than blind-overwrite — for this game, merge = take the max `highestLevelReached` and, per level, the best (fewest pegs / best time) result. Never silently pick one side.
-- Load latest on app start/resume; save at sensible checkpoints (level complete), not every move.
-- Keep cloud behind `GamesService`/`ProgressRepository` so local play is the source of truth and cloud is a sync layer — local-first, so an offline or signed-out player never blocks.
+- **Extend `DomainPurityTest` in Phase A**, before any SDK arrives: add `"com.google.android.gms..", "com.google.android.ump.."` to the forbidden packages, and add a **second rule** asserting nothing outside `com.app.pegsolitaire.platform..` depends on those packages. That makes the seam architecturally enforced rather than conventional — and it is the cheapest possible guard.
+- Wrap every SDK callback at the boundary with `kotlinx-coroutines-play-services` `.await()` / `suspendCancellableCoroutine`, so the rest of the codebase sees flat suspend functions and detekt sees short methods.
+- Add `LeaderboardIds` / `AchievementIds` / `SnapshotNames` / `AdCadence` constants objects under `platform/`, scoped per feature as the standards require.
+- Run `./gradlew check` on **every** SDK commit, not at phase end. A gate that goes red mid-phase is cheap; a gate suppressed to unblock a merge is permanent debt.
 
 **Warning signs:**
-`GoogleSignInClient`/`GoogleSignIn` imports (v1); no `isConflict()` handling; `commitAndClose` with a single snapshot and no merge; progress lost across two test devices; sign-in required to reach gameplay.
+Any new `@Suppress` in `platform/`; a detekt baseline file appearing; string literals for IDs; `.dp` literals in new dialogs; `DomainPurityTest` unchanged at the end of the milestone.
 
-**Phase to address:** Slice 2 Play Games phase. Conflict-merge strategy must be designed alongside the `ProgressRepository` data model (so "best per level / max level" merge is well-defined).
+**Phase to address:** **Phase A — SDK seam & build baseline** (extend the gates first), enforced continuously thereafter.
+
+---
+
+### Pitfall 15: Ad SDK on the cold-start path — ANRs and a vitals regression on a previously-instant game
+
+**What goes wrong:**
+v1.0 is a fully offline game with no SDKs; cold start is essentially Compose + Room. Adding the ad SDK on the startup path is the single most common cause of ANR regressions in casual games. `MobileAdsInitProvider` runs before `App.onCreate` completes; `MobileAds.initialize()` on the main thread does disk and network work; and the first `RewardedAd.load()` can block if issued during startup. Play Console's Android vitals ANR threshold is a **distribution-affecting** metric, so this is not merely cosmetic.
+
+There is a genuine, easily-missed **tension in Google's own guidance**: `MobileAds.initialize()` should be called on a **background thread**, but the rewarded/interstitial docs say *"Make all calls to the Google Mobile Ads SDK on the main thread."* Both are true — init is the exception; load/show are not.
+
+**How to avoid:**
+- `MobileAds.initialize()` from `App.onCreate` inside `CoroutineScope(Dispatchers.IO).launch { }` — **not** on the main thread, and **not** blocking `onCreate`.
+- Keep `OPTIMIZE_INITIALIZATION` and `OPTIMIZE_AD_LOADING` enabled (default `true` since GMA 24.0.0; verify they weren't disabled by a merged manifest).
+- Do **all** `load()`/`show()`/callback work on the **main** thread.
+- Do not pre-load any ad during startup. Pre-load the rewarded ad when the player enters gameplay; pre-load the interstitial when a level is nearly complete.
+- Remember rewarded ads **expire ~1 hour** after load and can be shown **once** — a long peg-solitaire session will hold a stale ad. Track load time, reload on expiry, and null the reference in `onAdDismissedFullScreenContent`.
+- Consider `play-services-ads-lite` if you don't need the full artifact (smaller, fewer merged components).
+- Measure: take a **macrobenchmark cold-start baseline before** the SDK lands, and compare after. Without the baseline you can't tell a regression from noise.
+- Ship LeakCanary in debug (already recommended in the stack doc) to catch the Activity retention that ad/PGS callbacks cause.
+
+**Warning signs:**
+`MobileAds.initialize(this)` directly in `onCreate`; `runBlocking` anywhere near ad code; ANR cluster in `MobileAdsInitProvider`/`ApplicationInfo`; the same `RewardedAd` object shown twice; "ad failed to show" with a full-hour-old load.
+
+**Phase to address:** **Phase C — UMP + AdMob**; cold-start baseline captured in **Phase A**.
 
 ---
 
@@ -310,128 +431,176 @@ Most online tutorials predate PGS v2; the conflict callback is easy to skip beca
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| Mutable `Board` with in-place flips | Less object churn, feels efficient | Breaks StateFlow recomposition (Pitfall 6); untestable diffs | Never for UI-bound state |
-| Skip `generatorVersion` field | One less column | Can never safely tune the generator post-launch (Pitfall 2) | Never |
-| `fallbackToDestructiveMigration()` | Ship schema changes instantly | Wipes player progress on update (Pitfall 12) | Debug builds only, never release |
-| Hint = `solution[moveIndex]` | Trivial to implement | Illegal/misleading hints after deviation (Pitfall 4) | Never — must be state-relative |
-| Domain in the app module (no separate module) | Simpler Gradle setup | Android deps creep in (Pitfall 9); slower tests | Acceptable *only* with an enforced Konsist/ArchUnit boundary test |
-| Single `UiState` including `elapsedMs` | One state object | Whole-board recomposition per tick (Pitfall 7) | Never on the gameplay screen |
-| Regenerate board on resume instead of storing it | Smaller save file | Resume corruption if generator/deviation changes (Pitfall 11) | Never for in-progress games |
+| Static/`@Singleton`-held `Activity` for SDK calls | Preserves the existing seam signatures unchanged | Guaranteed Activity leak; destroyed-Activity crashes on rotation (Pitfall 1) | **Never.** Use a `WeakReference` lifecycle provider |
+| SDKs added to `:app` with no variant isolation | One-line Gradle change | SDKs on the unit-test classpath forever; CI needs network; Robolectric fragility (Pitfall 2) | Acceptable **only** with `tools:node="remove"` on both providers in `debug` **and** `@TestInstallIn` fakes for every test |
+| Ad unit IDs in a shared constants object | Satisfies no-magic-strings; feels centralised | Real IDs in debug builds → invalid traffic → non-appealable ban (Pitfall 3) | **Never.** `buildConfigField` per build type |
+| Real ads wired before the opt-in dialog exists | Faster to a demo | Ships a policy-violating rewarded implementation (Pitfall 4) | **Never.** Dialog first, against the stub |
+| `RESOLUTION_POLICY_MOST_RECENTLY_MODIFIED` for Snapshots | No conflict code to write | Silent, unrecoverable player progress loss (Pitfall 10) | **Never** for progress data |
+| `SoundPool` owned by a composable/Activity | Simple, local | Native leak per config change; `release()` breaks other screens (Pitfall 11) | Never — use an app-scoped singleton |
+| `@Suppress` on detekt findings in `platform/` | Unblocks the merge | The gate stops meaning anything; suppressions never get removed (Pitfall 14) | Only with an inline TODO + a tracked follow-up in the same milestone |
+| Deferring Play Console/PGS setup to `release/*` | Keeps feature branches moving | Sign-in cannot be validated at all until release; ordering mistakes surface at the worst time (Pitfalls 7, 8) | Never — console setup is a Phase-D **prerequisite** |
+| Keeping `CLAUDE.md`'s ads 23.6.0 / games 21.x pins | No re-verification work | Two majors behind; misses the UMP 4.0.0 pairing and the Next-Gen decision (Pitfall 12) | Only with a written decision record explaining why |
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| AdMob interstitial | Show on launch/exit or after every level | Between-content only, frequency-capped, via `AdGateway` (Pitfall 13) |
-| AdMob rewarded | Auto-grant / non-skippable | Explicit opt-in dialog; reward only on completion callback |
-| AdMob (dev) | Live ad unit IDs in debug | Test ad unit IDs; live IDs only in release |
-| Play Games sign-in | v1 `GoogleSignInClient` flow | PGS v2 auto sign-in + `isAuthenticated()`; optional, non-blocking |
-| Play Games Saved Games | Ignore conflicts / last-write-wins | Handle `isConflict()`, merge max-level + best-per-level, `resolveConflict()` (Pitfall 14) |
-| Room | `exportSchema=false`, no migrations | Export schema to VCS, explicit `Migration`s, migration tests |
+| PGS v2 client access | Passing `applicationContext` / a `Context` | **Every** `PlayGames.get*Client()` takes `android.app.Activity` (verified by `javap`); only `PlayGamesSdk.initialize()` takes `Context` |
+| PGS v2 sign-in | Building a sign-in/sign-out button pair like v1 | Auto sign-in at launch; query `isAuthenticated()`; offer manual `signIn()` only when false; **no sign-out exists** |
+| PGS listeners | Anonymous lambdas for `ImageManager`/callbacks | SDK holds some listeners as **weak references** — hold a strong ref on a persistent object |
+| PGS app ID | Putting the full `…apps.googleusercontent.com` client ID in `@string/game_services_project_id` | **Numeric project ID only** — the full client ID is a documented cause of errors |
+| PGS credentials | One credential with the release SHA-1 | **Two** credentials, same package name: Play **app signing** SHA-1 + `debug.keystore` SHA-1 |
+| PGS publish order | Publish the app, then PGS | Publish OAuth consent screen → publish PGS settings → publish app. Add yourself as a tester. |
+| Snapshots | `MOST_RECENTLY_MODIFIED`, or ignoring `isConflict()` | `RESOLUTION_POLICY_MANUAL` + a pure field-wise merge in `:domain`; check `getMaxDataSize()` |
+| UMP | `canRequestAds()` checked before `requestConsentInfoUpdate()` | It returns `false` until `requestConsentInfoUpdate()` runs — call it **every** launch, first |
+| UMP | No privacy-options entry point | `getPrivacyOptionsRequirementStatus() == REQUIRED` → visible row in the existing `SettingsScreen` → `showPrivacyOptionsForm(activity)` |
+| UMP | Reading TCF strings from prefs to infer consent | Google warns this causes TCF 3.3 errors on expiry — always use the SDK |
+| GMA init | `MobileAds.initialize()` on the main thread | Background thread; keep `OPTIMIZE_*` flags on; **all other** GMA calls on the main thread |
+| GMA manifest | Omitting `com.google.android.gms.ads.APPLICATION_ID` meta-data | Hard crash: *"Missing application ID"*. Use `manifestPlaceholders` per build type |
+| GMA rewarded | Reusing a `RewardedAd` object; showing a >1h-old ad | One show per object; null it in `onAdDismissedFullScreenContent`; reload on expiry |
+| GMA interstitial | Showing on app open, on exit, on restart, or back-to-back | Between *won* levels only; ≤1 per two user actions; frequency-capped in persisted state |
+| `Task<T>` → coroutines | Hand-rolled `suspendCoroutine` wrappers | `kotlinx-coroutines-play-services:1.11.0` `.await()` — version matches the project pin exactly |
+| SoundPool | `play()` right after `load()` | Track ready IDs via `setOnLoadCompleteListener`; `play()` is a no-op until ready |
+| Manifest merge | Not reading the merger report | Diff `manifest-merger-*-report.txt` in every SDK PR — permissions and providers arrive invisibly |
 
 ## Performance Traps
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| Timer recomposes board | Board recomposes ~1×/sec; idle battery drain | Isolated timer state / lambda read (Pitfall 7) | Immediately on gameplay screen, worse at 120 Hz |
-| Allocation in `DrawScope` | GC spikes, jank during jump animation | Hoist geometry with `remember`, reuse Paint/Path (Pitfall 8) | Larger boards (Diamond-41, high levels) |
-| Unbounded Solver on UI thread | ANR / freeze on hint tap | Off-thread, pagoda-pruned, time-budgeted; prefer recorded line (Pitfall 5) | High-level large footprints |
-| Generator reject-loop with weak seeding | Slow level load, or infinite loop | Bounded deterministic re-seed attempts; cap footprint (Pitfalls 1,3) | Small footprints with tight quality gates |
-| Per-frame state through `UiState` for animation | Recomposition storm during animation | `Animatable`/`animate*AsState`, draw-phase reads (Pitfalls 7,8) | Any animated move |
+| `MobileAdsInitProvider` / `PlayGamesInitProvider` on the startup path | Cold-start p50/p90 regression; ANR cluster before `App.onCreate` | Remove providers via `tools:node="remove"`; init explicitly on `Dispatchers.IO` | Immediately on low-end/older devices; visible in Android vitals within days of rollout |
+| `MobileAds.initialize()` on the main thread | ANRs at launch | Background-thread init; keep `OPTIMIZE_INITIALIZATION` on | Under cold start on a slow network |
+| Pre-loading an ad during startup | Startup jank + wasted request | Pre-load on gameplay entry / near level end | First launch on a cold cache |
+| Stale rewarded ad (>1h) | "Ad not ready" on a long session; wasted fill | Track load timestamp, reload on expiry, null after show | Long single-session play — common in puzzle games |
+| SoundPool `maxStreams` too low | Rapid taps clip earlier SFX | Size to real concurrency (~4–6); set per-sound priority | Fast tap sequences / chained jumps |
+| SoundPool loading on main thread | Jank on first gameplay entry | Load on `Dispatchers.IO`, pre-warm on Home | Every cold start |
+| Cloud sync per move | Battery, quota, latency | Sync at level complete + foreground/background only | As soon as a player is signed in |
+| PGS login quota from automatic sign-in | Quota errors at scale | Review PGS quota in Cloud Console; don't force extra interactive sign-ins | Only at meaningful install volume — but the doc explicitly warns about it |
 
-## Security / Integrity Mistakes
+## Security / Policy Mistakes
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Trusting client time/score for leaderboards | Trivially spoofed rankings (Slice 2) | Server-side via PGS leaderboards; keep score formula deterministic and recomputable |
-| Self-clicking live AdMob ads in testing | Invalid traffic → account ban | Test ad unit IDs in all non-release builds |
-| Storing nothing to detect tampered saves | Edited local DB inflates progress | Acceptable for a single-player casual game; if leaderboards matter, validate server-side rather than obfuscate locally |
-| Requiring Play Games sign-in to play | Excludes offline/declining users; privacy friction | Local-first; sign-in strictly optional |
+| Real ad unit IDs in debug/CI builds | **Non-appealable** AdMob account suspension for invalid traffic | `buildConfigField` per build type + a test asserting the debug ID is a Google test ID |
+| Tapping your own live ads to "check it works" | Same as above | Test IDs everywhere; `setTestDeviceIds` for physical devices |
+| Serving ads before `canRequestAds()` | GDPR / EU User Consent Policy breach; ad restriction | `ConsentGateway` state gates `AdGateway`; test with `DEBUG_GEOGRAPHY_EEA` |
+| Data safety form not updated for `AD_ID` | Play policy violation; release rejection | Update the form in the release phase using the manifest-merger report as evidence |
+| "Contains ads" not declared | Play policy violation | Declare in Play Console before the release rollout |
+| Target-audience question answered casually | Families Policy applies retroactively; `AD_ID` becomes prohibited | Decide target audience **before** choosing ad formats |
+| Trusting the client's score for leaderboards | Spoofable rankings | PGS leaderboards are server-side; keep the score formula deterministic and recomputable; accept that a local-first single-player game has limited anti-cheat |
+| Cloud save as the authoritative source | One bad merge wipes progress irrecoverably | Local Room stays SSOT; cloud is a synced second source; merge is `max`-wise and idempotent |
+| Auto-backup + cloud save both restoring | Three-way conflicting state | Decide `allowBackup` / `data_extraction_rules.xml` explicitly alongside Snapshots |
 
 ## UX Pitfalls
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| No "no winning move" state | Player stuck, thinks game is broken | First-class unsolvable state offering undo/restart (Pitfall 4) |
-| Withholding stars for slow-but-perfect solves | Frustration on a fair win | Stars from pegs remaining; time feeds a separate ranking score (per spec §7) |
-| Difficulty spikes / flat early curve | Early churn or boredom | Data-driven curve, playtested; tiny boards only for first few levels (Pitfall 3) |
-| Forced/surprise interstitials | Accidental taps, 1-star reviews, policy strikes | Capped, between-level, opt-in rewarded (Pitfall 13) |
-| Lost progress across devices | Rage, uninstall | Explicit cloud conflict merge (Pitfall 14) |
-| Resume loses undo history | Undo "disappears" mid-game | Serialize full move history (Pitfall 11) |
+| Rewarded ad launches with no opt-in prompt | Ambush; 1-star reviews; **AdMob policy violation** | Explicit yes/no dialog stating action + reward; grant only on the reward callback |
+| Declining an ad blocks the hint entirely | "Pay-to-play" feel; violates "must not impede normal usage" | Keep N free hints per level; ads buy *extra*, not baseline |
+| Interstitial after a failed level or restart | Punishes failure; drives churn | Only after a **won** level, frequency-capped |
+| Interstitial lands on the Results CTA under latency | Accidental clicks → invalid traffic **and** user anger | Pre-load only; skip if not ready; add a tap-quiescence delay |
+| Silent first sound effect of every session | "The sound is broken" | Pre-warm SoundPool on Home; no-op until loaded |
+| SFX playing over a rewarded video | Reads as a bug | `autoPause()` on `onAdShowedFullScreenContent` |
+| A "Sign out of Play Games" row in Settings | Doesn't exist in v2; dead or crashing control | Show sign-in state only; offer manual sign-in when unauthenticated |
+| Gating gameplay behind Play Games sign-in | Excludes offline and privacy-declining players | Fully playable signed-out; PGS is purely additive |
+| Progress lost after installing on a second device | Rage-uninstall, 1-star review | Manual conflict resolution with a `max`-wise merge |
+| No privacy-options entry point in EEA | Users cannot revoke consent; policy exposure | Conditional row in the existing Settings screen |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Challenge generation:** Looks deterministic — verify golden-master test for levels 1/2/10/100/1000 passes in CI, not just locally (Pitfall 1).
-- [ ] **Generator quality:** Produces solvable boards — verify they're also non-trivial, non-degenerate, and de-duplicated across seeds (Pitfall 3).
-- [ ] **Hints:** Work when following them — verify they're legal and win-preserving after the player deviates, and that "no winning move" is handled (Pitfall 4).
-- [ ] **Solver:** Solves test boards — verify it's bounded, off-thread, and pruned on the *largest* generated footprint (Pitfall 5).
-- [ ] **Move → UI:** Board updates — verify it updates on *every* move via immutable state, not just on rotation (Pitfall 6).
-- [ ] **Score timer:** Counts up — verify it doesn't recompose the board each tick (Layout Inspector) (Pitfall 7).
-- [ ] **Resume:** Restores the board — verify move history, elapsed time, and undo all survive process death (Pitfall 11).
-- [ ] **Persistence:** Saves results — verify a schema migration path exists and `fallbackToDestructiveMigration` is absent from release (Pitfall 12).
-- [ ] **Domain purity:** Compiles — verify a boundary test forbids `android.*` imports in domain (Pitfall 9).
-- [ ] **(Slice 2) Ads:** Show ads — verify frequency cap, opt-in rewarded, test IDs in debug, no launch/exit interstitials (Pitfall 13).
-- [ ] **(Slice 2) Cloud save:** Syncs — verify two-device conflict merges max level + best-per-level instead of overwriting (Pitfall 14).
+- [ ] **Rewarded ads:** Ad plays and reward grants — verify there is an **opt-in dialog with a working decline**, the decline path is tested, and the reward fires only from `OnUserEarnedRewardListener` (Pitfall 4).
+- [ ] **Ad unit IDs:** Ads render — verify the **debug** variant uses Google test IDs and the **release** variant does not, enforced by a test (Pitfall 3).
+- [ ] **UMP consent:** Form appears — verify `requestConsentInfoUpdate()` runs on **every** launch, `canRequestAds()` gates every ad request, init is guarded by an `AtomicBoolean`, and the **privacy-options row** exists in Settings (Pitfall 5).
+- [ ] **Interstitials:** They show between levels — verify the frequency cap survives **process death** (persisted), that failed levels/restarts never trigger one, and that an unloaded ad is skipped rather than shown late (Pitfall 6).
+- [ ] **PGS sign-in:** Works on your device — verify it works on a **second Google account** and from an **internal-testing track download** (Play app signing SHA-1), not just `adb install` (Pitfalls 7, 8).
+- [ ] **PGS console:** Configured — verify the OAuth consent screen is **published**, PGS settings are **published before** the app, and you are on the tester list (Pitfall 7).
+- [ ] **Cloud save:** Syncs — verify the **two-device conflict** path with both devices offline-then-online, and that the merge takes max stars / min time / max level rather than one side (Pitfall 10).
+- [ ] **Cloud save:** Payload — verify the in-progress resume snapshot is **excluded** and the blob is under `getMaxDataSize()` (Pitfall 10).
+- [ ] **Sound:** Plays — verify the **first** SFX after cold start, that `soundOn = false` silences **every** call site, and that SFX pause on backgrounding and during ads (Pitfall 11).
+- [ ] **Tests:** 293 green — verify they are green **with the SDKs on the graph**, with **no network** available, and that neither init ContentProvider runs in Robolectric (Pitfall 2).
+- [ ] **Gates:** `check` passes — verify `DomainPurityTest` was **extended** to forbid `com.google.android.gms..`/`com.google.android.ump..` outside `platform/`, and that no new `@Suppress` or detekt baseline was added (Pitfall 14).
+- [ ] **Build:** Compiles — verify `compileSdk` is still **36**, no `-alpha`/`-beta` artifact is in the release runtime classpath unpinned, and the resolved-dependency fixture was reviewed (Pitfall 12).
+- [ ] **Manifest:** Merges — verify the **manifest-merger report** was diffed and every new permission is accounted for in the Play Console **Data safety** form and the **Contains ads** declaration (Pitfall 13).
+- [ ] **Startup:** Feels fine — verify against a **macrobenchmark cold-start baseline captured before the SDKs landed**, not by feel (Pitfall 15).
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Generator changed post-launch (Pitfall 2) | HIGH | Freeze old as v1; ship v2 only for new/higher levels; migrate saved boards by stored snapshot not regeneration |
-| Non-deterministic generation (Pitfall 1) | MEDIUM | Replace unordered collections with sorted lists; add golden-master test; re-pin seed derivation before launch |
-| StateFlow not recomposing (Pitfall 6) | MEDIUM | Convert models to immutable `data class`; replace in-place mutation with `copy()` |
-| Solver ANR (Pitfall 5) | MEDIUM | Move off-thread, add node/time budget + pagoda pruning, cap footprint size |
-| Destructive migration shipped (Pitfall 12) | HIGH | Cannot recover already-wiped data; add proper migrations going forward; consider cloud restore if Slice 2 live |
-| AdMob policy strike (Pitfall 13) | HIGH | Remove offending placements, request review; repeated strikes risk account-level suspension |
-| Cloud conflict data loss (Pitfall 14) | HIGH | Implement merge; for already-lost data, only recoverable if a local copy survives on one device |
+| AdMob invalid-traffic suspension (P3) | **CATASTROPHIC** | Suspensions are non-appealable; earnings are refunded to advertisers; further issues can permanently disable the account. There is no recovery — only prevention. |
+| Rewarded policy violation flagged (P4) | HIGH | Add the opt-in dialog + decline path, request review, expect ad-serving limits meanwhile |
+| Cloud-save data loss in the wild (P10) | HIGH | Only recoverable if a local copy survives on one device; ship the merge fix, then a one-time "restore from this device" prompt |
+| Seam redesign forced mid-phase (P1) | MEDIUM | Introduce `CurrentActivityProvider`, update `PlatformModule` and call sites; contained if caught in Phase A, expensive once three phases depend on the old shape |
+| Robolectric suite broken by SDKs (P2) | LOW–MEDIUM | `tools:node="remove"` on both providers in `src/debug`; add `@TestInstallIn` fakes; escalate to flavor isolation if flakiness persists |
+| compileSdk 37 forced by a transitive (P12) | MEDIUM | Pin the offending artifact down via `constraints`; if impossible, pin the SDK to its last 36-compatible version and record the decision |
+| Cold-start/ANR regression shipped (P15) | MEDIUM | Move init off the main thread, remove init providers, halt rollout and ship a hotfix off `main` per Gitflow |
+| PGS sign-in broken only in production (P8) | LOW | Add the app-signing SHA-1 credential in Play Console; propagates in hours; no app update required |
+| Silent-first-sound (P11) | LOW | Add `OnLoadCompleteListener` gating + Home-screen pre-warm |
 
 ## Pitfall-to-Phase Mapping
 
-| Pitfall | Prevention Phase | Verification |
-|---------|------------------|--------------|
-| 1 Non-deterministic generation | Generator | Golden-master fixtures green in CI across machines |
-| 2 Generator-change breakage | Generator + Persistence | `generatorVersion` present; tuning happens pre-freeze |
-| 3 Trivial/degenerate/duplicate boards | Generator + tuning sub-phase | Quality-gate + dedup tests; playtest sign-off |
-| 4 Hint after deviation | Hint/Undo (needs Solver) | Property test: off-script play → legal, win-preserving hints |
-| 5 Solver blowup | Solver | Stress test largest footprint within time/node budget, off-thread |
-| 6 StateFlow no recompose | Domain model + ViewModel wiring | Move updates UI in instrumented test |
-| 7 Timer recomposition | Gameplay/Compose rendering | Layout Inspector: board recomposition count = 0 on tick |
-| 8 Canvas allocation/over-draw | Compose rendering | Macrobenchmark frame timing; no DrawScope allocations |
-| 9 Android deps in domain | Project scaffolding (first) | Konsist/ArchUnit boundary test fails on `android.*` |
-| 10 Logic in composables / leaked MutableStateFlow | ViewModel/UDF wiring | Code review + public API has only read-only `StateFlow` |
-| 11 Resume inexact | Persistence/resume | Serialize→deserialize round-trip property test |
-| 12 No migration | Persistence | Room migration test; no destructive fallback in release |
-| 13 AdMob policy/UX | Slice 2 AdMob | Cadence config + opt-in flow review against AdMob policy |
-| 14 PGS v2 sign-in / conflict | Slice 2 Play Games | Two-device conflict test; v2 SDK; optional sign-in |
+Suggested phase structure for v1.1, ordered so each phase's prerequisites are prevented by the one before it.
+
+| # | Pitfall | Prevention Phase | Verification |
+|---|---------|------------------|--------------|
+| 1 | Seams have no `Activity` | **A — SDK seam & build baseline** | A `CurrentActivityProvider` (or hoisted-Activity seam) exists and is unit/Robolectric-tested; LeakCanary clean across rotation |
+| 2 | Auto-init providers break tests & startup | **A** | `./gradlew check` green **offline** in the same commit that adds the SDK deps; no gms in Robolectric logs |
+| 12 | Dependency graph / compileSdk 36 ceiling | **A** | Resolved-dependency fixture committed and diffed in CI; `compileSdk` still 36; version-catalog covers every new group |
+| 14 | Quality gates erode | **A** | `DomainPurityTest` extended to `com.google.android.gms..`/`com.google.android.ump..` + a "gms only in `platform/`" rule; zero new suppressions at milestone end |
+| 3 | Wrong ad unit IDs per build type | **A** (plumbing) / **C** (values) | Release-blocking test asserting debug uses Google test IDs |
+| 11 | SoundPool failure modes | **B — Sound** | First-SFX-after-cold-start manual check; `soundOn=false` silences all paths; pause during ads and backgrounding |
+| 4 | No opt-in UI for rewarded | **B/C boundary** (build against the stub) | Opt-in dialog + `false`-grant path tested with the existing Robolectric harness, **before** AdMob lands |
+| 5 | UMP sequencing | **C — UMP + AdMob** (UMP first) | `DEBUG_GEOGRAPHY_EEA` run with `reset()`; privacy row visible; ad request provably blocked pre-consent |
+| 6 | Interstitial cadence / accidental clicks | **C** | Cadence policy unit-tested as pure logic; persisted across process death; never on fail/restart |
+| 15 | Cold start / ANR | **C** (baseline captured in **A**) | Macrobenchmark before/after; no ANR cluster in vitals after staged rollout |
+| 7 | Play Console PGS ordering | **D — Play Games v2** (prerequisite task) | Second Google account signs in; PGS status "Published" before app publish |
+| 8 | SHA-1 upload vs app signing key | **D** + **F** | Sign-in verified from an internal-testing **track download** |
+| 9 | v1-shaped sign-in code | **D** | No `com.google.android.gms.auth.api.signin` imports; no sign-out control; `isAuthenticated()`-driven UI |
+| 10 | Saved Games conflict merge | **E — Cloud save** | Pure merge function in `:domain` with exhaustive JVM tests; two-device offline→online conflict exercised |
+| 13 | Permissions / Data safety / Families | **F — Release readiness** (audited per SDK in C/D/E) | Manifest-merger diff reviewed per PR; Data safety + Contains-ads declarations updated before rollout |
+
+**Ordering rationale:** Phase A is a pure-infrastructure phase that adds **no** user-visible feature — resist the temptation to skip it. Six of the fifteen pitfalls are prevented there, and three of them (seam shape, provider isolation, gate extension) become progressively more expensive with every subsequent phase built on the wrong foundation. Phase B (sound) is deliberately second: it is SDK-free, player-visible, and exercises the new app-scoped-platform-singleton pattern on low stakes before AdMob depends on it.
+
+**Research flags:** Phase C (UMP + AdMob) and Phase E (cloud save) both warrant phase-specific research at execution time — C because ad policy interpretation is nuanced and the Next-Gen SDK decision may have moved, E because the merge semantics need to be specified against the actual Room schema.
 
 ## Sources
 
-Peg solitaire solvability / pagoda functions / NP-completeness:
-- George I. Bell, "A Fresh Look at Peg Solitaire," Mathematics Magazine 2007 — https://www.gibell.net/pegsolitaire/papers/Bell_AFreshLookatPegSolitaire_MathMag2007.pdf
-- "Analysis of Peg Solitaire" (Jaap Scherphuis) — https://www.jaapsch.net/puzzles/pegsolit.htm
-- Peg solitaire — Wikipedia (pagoda functions / resource counts, NP-completeness) — https://en.wikipedia.org/wiki/Peg_solitaire
-- "Integer Programming Based Algorithms for Peg Solitaire Problems" — https://www.kurims.kyoto-u.ac.jp/~kyodo/kokyuroku/contents/pdf/1185-11.pdf
-- jagatsastry/peg-solitaire-solver (pagoda + weight-matrix A* heuristics) — https://github.com/jagatsastry/peg-solitaire-solver
+**Verified by direct artifact inspection (HIGH)** — POMs, AAR manifests and `javap` on `dl.google.com/dl/android/maven2`, 2026-08-27:
+- `play-services-ads` maven-metadata (latest 25.4.0), `play-services-ads/25.4.0/*.pom`
+- `play-services-ads-api/25.4.0` `AndroidManifest.xml` — `MobileAdsInitProvider`, merged permissions, `OPTIMIZE_*` flags
+- `play-services-games-v2` maven-metadata (latest 22.0.0), POM, `AndroidManifest.xml` (`PlayGamesInitProvider`, `minSdkVersion 24`), and `javap` on `PlayGames` / `PlayGamesSdk` / `SnapshotsClient`
+- `user-messaging-platform/4.0.0` POM + manifest
+- `aar-metadata.properties` `minCompileSdk` for `androidx.browser:1.8.0` (34), `androidx.webkit:1.12.1` (34), `androidx.privacysandbox.ads:1.0.0-beta05` (33), all gms AARs (1)
+- `kotlinx-coroutines-play-services` maven-metadata (1.11.0 available)
 
-Jetpack Compose performance / Canvas / recomposition:
-- Jetpack Compose Performance — https://developer.android.com/develop/ui/compose/performance
-- Practical performance problem solving in Jetpack Compose (codelab) — https://developer.android.com/codelabs/jetpack-compose-performance
-- "The Anatomy of a Frame: the 16.6ms Pipeline in Jetpack Compose" — https://proandroiddev.com/the-anatomy-of-a-frame-understanding-the-16-6ms-pipeline-in-jetpack-compose-9a13948aa98b
+**Play Games Services (HIGH):**
+- Migrate to Play Games Services v2 — https://developer.android.com/games/pgs/android/migrate-to-v2
+- Migration overview (v1 / Google Sign-In removal) — https://developer.android.com/games/pgs/migration_overview
+- Set up Play Games Services in Play Console (publish ordering, testers, credentials) — https://developer.android.com/games/pgs/console/setup
+- Troubleshooting PGS (SHA-1, app ID, testers, weak-reference listeners) — https://developer.android.com/games/pgs/android/troubleshooting
+- Saved games / conflict resolution — https://developer.android.com/games/pgs/android/saved-games and https://developers.google.com/android/games_v1/reference/com/google/android/gms/games/snapshot/Snapshots
+- Use Play App Signing / client authentication — https://support.google.com/googleplay/android-developer/answer/9842756 and https://developers.google.com/android/guides/client-auth
 
-Play Games Services v2 / Saved Games conflict resolution:
-- Cloud save (Saved Games) — https://developer.android.com/games/pgs/savedgames
-- Saved games conflict resolution — https://developers.google.com/games/services/android/savedgames
-- Platform authentication (PGS v2 sign-in) — https://developer.android.com/games/pgs/platform-authentication
-
-AdMob policy:
-- AdMob policies and restrictions — https://support.google.com/admob/answer/6128543
+**AdMob / UMP (HIGH):**
+- GMA Android release notes (25.4.0; maintenance mode; Next-Gen) — https://developers.google.com/admob/android/rel-notes
+- GMA quick start (compileSdk ≥35, minSdk ≥23, APPLICATION_ID crash) — https://developers.google.com/admob/android/quick-start
+- Rewarded ads implementation (`show(Activity, …)`, one-show, ~1h expiry, main-thread rule) — https://developers.google.com/admob/android/rewarded
+- Optimize initialization and ad loading (background init, `OPTIMIZE_*`) — https://developers.google.com/ad-manager/mobile-ads-sdk/android/optimize-initialization
+- Set up UMP SDK (sequence, `canRequestAds()`, privacy options, debug geography) — https://developers.google.com/admob/android/privacy
 - Disallowed interstitial implementations — https://support.google.com/admob/answer/6201362
 - Policies for ad units that offer rewards — https://support.google.com/admob/answer/7313578
+- Invalid traffic / suspension (non-appealable) — https://support.google.com/admob/answer/6213019 and https://support.google.com/admob/answer/3342099
 
-Project context:
-- `.planning/PROJECT.md`
-- `docs/superpowers/specs/2026-06-28-peg-solitaire-design.md` (esp. §5 generation, §6 hints, §12 risks)
+**Audio (MEDIUM–HIGH):**
+- `SoundPool` reference semantics (`play()` returns 0 on failure; `release()` finality; stream stealing by priority then age; `autoPause`/`autoResume`) — https://developer.android.com/reference/android/media/SoundPool
+
+**Testing (MEDIUM):**
+- Hilt testing guide / `@TestInstallIn` — https://developer.android.com/training/dependency-injection/hilt-testing and https://dagger.dev/hilt/testing.html
+- Robolectric ContentProvider handling — https://github.com/robolectric/robolectric/issues/8461 (behaviour in 4.16 must be verified empirically, not assumed)
+
+**Project context:**
+- `.planning/PROJECT.md`, `CLAUDE.md`
+- Inspected in-repo: `app/build.gradle.kts`, `gradle/libs.versions.toml`, `build-logic/src/main/kotlin/android-app.gradle.kts`, `app/src/main/AndroidManifest.xml`, `platform/ads/AdGateway.kt`, `platform/games/GamesService.kt`, `di/PlatformModule.kt`, `DomainPurityTest.kt`
 
 ---
-*Pitfalls research for: native Android procedural peg-solitaire game*
-*Researched: 2026-06-28*
+*Pitfalls research for: adding Play Games v2, AdMob/UMP and SFX to a shipped Compose Android game*
+*Researched: 2026-08-27*
