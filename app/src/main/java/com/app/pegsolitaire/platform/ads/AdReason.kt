@@ -1,10 +1,9 @@
 package com.app.pegsolitaire.platform.ads
 
 /**
- * Why a rewarded grant is being requested through [AdGateway.requestRewarded]. Only
- * the two Slice-1 assist affordances exist here; `RETRY` is reserved for Slice-2
- * between-levels interstitials (do not add it now — it flows through
- * [AdGateway.showInterstitial], not `requestRewarded`).
+ * Why a rewarded grant is being requested through [AdGateway.requestRewarded]. The two
+ * assist affordances below are the complete set: retrying a level stays free
+ * permanently, so no `RETRY` member will ever be added (D-03).
  */
 enum class AdReason {
     /** A "reveal the next winning move" hint (ASST-01, plan 04-03). */
