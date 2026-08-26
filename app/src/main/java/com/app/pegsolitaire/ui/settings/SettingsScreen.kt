@@ -20,6 +20,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -30,6 +31,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.ui.theme.clayEntrance
+import com.app.pegsolitaire.ui.theme.clayShadow
+import com.app.pegsolitaire.ui.theme.claySquish
 
 /**
  * The stateless Settings screen (SET-01, SET-02, D-14).
@@ -82,12 +86,14 @@ fun SettingsScreen(
                     label = stringResource(R.string.settings_sound_label),
                     supporting = stringResource(R.string.settings_sound_supporting),
                     checked = state.soundOn,
+                    entranceOrder = SOUND_ROW_ORDER,
                     onCheckedChange = onToggleSound,
                 )
                 SettingsToggleRow(
                     label = stringResource(R.string.settings_haptics_label),
                     supporting = stringResource(R.string.settings_haptics_supporting),
                     checked = state.hapticsOn,
+                    entranceOrder = HAPTICS_ROW_ORDER,
                     onCheckedChange = onToggleHaptics,
                 )
             }
@@ -101,7 +107,7 @@ fun SettingsScreen(
 private fun SettingsTopBar(onBack: () -> Unit) {
     TopAppBar(
         navigationIcon = {
-            IconButton(onClick = onBack) {
+            IconButton(onClick = onBack, modifier = Modifier.claySquish()) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                     contentDescription = stringResource(R.string.navigate_back),
@@ -119,17 +125,20 @@ private fun SettingsTopBar(onBack: () -> Unit) {
 }
 
 /**
- * One setting row: a `surfaceContainerHigh` [Card] holding the [label] + [supporting]
- * copy beside an M3 [Switch]. Fully hoisted — the row holds no state of its own; the
- * switch renders [checked] and reports every flip through [onCheckedChange]. The switch
- * carries [label] as its content description so screen readers announce which setting it
- * controls rather than a bare "switch".
+ * One setting row: a soft-shadowed `surfaceContainerHigh` clay [Card] holding the [label]
+ * + [supporting] copy beside a playful [Switch] (violet track when on, clay-neutral when
+ * off, with the shared squish on the thumb). Fully hoisted — the row holds no state of its
+ * own; the switch renders [checked] and reports every flip through [onCheckedChange]. The
+ * switch carries [label] as its content description so screen readers announce which
+ * setting it controls rather than a bare "switch". Rows enter with the shared clay
+ * stagger ([entranceOrder]).
  */
 @Composable
 private fun SettingsToggleRow(
     label: String,
     supporting: String,
     checked: Boolean,
+    entranceOrder: Int,
     onCheckedChange: (Boolean) -> Unit,
 ) {
     Card(
@@ -137,6 +146,8 @@ private fun SettingsToggleRow(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         modifier =
             Modifier
+                .clayEntrance(entranceOrder)
+                .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.large)
                 .fillMaxWidth()
                 .heightIn(min = dimensionResource(R.dimen.settings_row_min_height)),
     ) {
@@ -166,8 +177,23 @@ private fun SettingsToggleRow(
             Switch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
-                modifier = Modifier.semantics { contentDescription = label },
+                colors =
+                    SwitchDefaults.colors(
+                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary,
+                        uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                        uncheckedBorderColor = MaterialTheme.colorScheme.outline,
+                    ),
+                modifier =
+                    Modifier
+                        .claySquish()
+                        .semantics { contentDescription = label },
             )
         }
     }
 }
+
+/** Entrance stagger order of the two settings rows (Sound above Haptics). */
+private const val SOUND_ROW_ORDER = 0
+private const val HAPTICS_ROW_ORDER = 1

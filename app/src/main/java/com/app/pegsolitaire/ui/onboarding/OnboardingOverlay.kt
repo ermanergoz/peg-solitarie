@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -19,6 +20,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -27,6 +29,9 @@ import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.ui.classic.BoardPreview
+import com.app.pegsolitaire.ui.theme.clayShadow
+import com.app.pegsolitaire.ui.theme.claySquish
+import com.app.pegsolitaire.ui.theme.ctaGradientBrush
 
 /** One onboarding step: a board illustration of the jump plus a teaching caption. */
 private data class OnboardingStep(
@@ -62,9 +67,14 @@ fun OnboardingOverlay(
         contentAlignment = Alignment.Center,
     ) {
         Surface(
-            shape = MaterialTheme.shapes.large,
+            shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            modifier = Modifier.widthIn(max = dimensionResource(R.dimen.content_max_width)),
+            modifier =
+                Modifier
+                    .clayShadow(
+                        dimensionResource(R.dimen.elevation_dialog),
+                        MaterialTheme.shapes.extraLarge,
+                    ).widthIn(max = dimensionResource(R.dimen.content_max_width)),
         ) {
             OnboardingSheet(onDismiss = onDismiss)
         }
@@ -85,9 +95,20 @@ private fun OnboardingSheet(onDismiss: () -> Unit) {
     ) {
         ONBOARDING_STEPS.forEach { step -> OnboardingStepItem(step = step) }
 
+        val actionShape = MaterialTheme.shapes.medium
         Button(
             onClick = onDismiss,
-            modifier = Modifier.fillMaxWidth(),
+            shape = actionShape,
+            colors =
+                ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ),
+            modifier =
+                Modifier
+                    .claySquish()
+                    .background(brush = ctaGradientBrush(), shape = actionShape)
+                    .fillMaxWidth(),
         ) {
             Text(
                 text = stringResource(R.string.onboarding_got_it),
@@ -96,7 +117,11 @@ private fun OnboardingSheet(onDismiss: () -> Unit) {
         }
         TextButton(
             onClick = onDismiss,
-            modifier = Modifier.fillMaxWidth(),
+            shape = actionShape,
+            modifier =
+                Modifier
+                    .claySquish()
+                    .fillMaxWidth(),
         ) {
             Text(
                 text = stringResource(R.string.onboarding_skip),

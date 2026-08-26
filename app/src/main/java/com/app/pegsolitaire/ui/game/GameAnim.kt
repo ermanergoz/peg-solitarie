@@ -32,4 +32,13 @@ object GameAnim {
 
     /** Easing for the selection/destination fade-in. */
     val SELECT_FADE_EASING: Easing = LinearEasing
+
+    /** One half-cycle of the selected peg's breathing pulse (reverse-repeats). */
+    const val PULSE_MS = 900
+
+    /** Legal-destination dots start scale before their spring-overshoot pop-in. */
+    const val DOT_POP_START = 0f
+
+    /** Legal-destination dots settled scale. */
+    const val DOT_POP_END = 1f
 }

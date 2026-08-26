@@ -14,6 +14,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.ui.theme.claySquish
 
 /**
  * The top-bar winning-move Hint action (ASST-01/ASST-03, D-01/D-10).
@@ -50,14 +51,20 @@ fun HintControl(
         IconButton(
             onClick = onHint,
             enabled = false,
-            modifier = modifier.semantics { contentDescription = thinkingDescription },
+            modifier =
+                modifier
+                    .size(dimensionResource(R.dimen.top_bar_touch_target))
+                    .semantics { contentDescription = thinkingDescription },
         ) {
             CircularProgressIndicator(
                 modifier = Modifier.size(dimensionResource(R.dimen.top_bar_icon_size)),
             )
         }
     } else {
-        IconButton(onClick = onHint, modifier = modifier) {
+        IconButton(
+            onClick = onHint,
+            modifier = modifier.claySquish().size(dimensionResource(R.dimen.top_bar_touch_target)),
+        ) {
             Icon(
                 imageVector = Icons.Rounded.Search,
                 contentDescription = stringResource(R.string.hint_action),
