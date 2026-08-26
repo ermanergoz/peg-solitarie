@@ -150,7 +150,47 @@ class SnapshotMapperTest {
         assertThat(SnapshotMapper.fromDto(valid.copy(inPlay = duplicated), RulesEngine)).isNull()
     }
 
+    @Test
+    fun aNegativeFootprintCoordinateYieldsNoResume() {
+        assertThat(restore(forgedFootprint(intArrayOf(FORGED_NEGATIVE_ROW, FORGED_COL)))).isNull()
+    }
+
+    @Test
+    fun anAbsurdlyLargeFootprintCoordinateYieldsNoResume() {
+        assertThat(restore(forgedFootprint(intArrayOf(FORGED_HUGE_ROW, ORIGIN_COL)))).isNull()
+    }
+
+    @Test
+    fun aFootprintCoordinateOnePastTheBoundYieldsNoResume() {
+        assertThat(restore(forgedFootprint(intArrayOf(FIRST_REJECTED_COORDINATE, ORIGIN_COL)))).isNull()
+    }
+
+    @Test
+    fun aFootprintCoordinateAtTheInclusiveBoundStillDecodes() {
+        val valid = snapshotOf(play(MOVES_PLAYED))
+        // (63, 63) sorts after every English-33 hole, so it takes the last bit index and
+        // leaves the stored peg mask (bits 0..32) meaning exactly what it meant before.
+        val extended = valid.copy(inPlay = valid.inPlay + intArrayOf(MAX_VALID_COORDINATE, MAX_VALID_COORDINATE))
+
+        val restored = restore(extended)
+
+        assertThat(restored).isNotNull()
+        assertThat(restored!!.initialBoard.spec.inPlay)
+            .contains(Position(row = MAX_VALID_COORDINATE, col = MAX_VALID_COORDINATE))
+        assertThat(restored.moveHistory).hasSize(MOVES_PLAYED)
+    }
+
     // --- helpers -------------------------------------------------------------
+
+    /**
+     * A valid English-33 snapshot with [extra] appended to its footprint and its move
+     * history dropped, so footprint validation is the only thing that can reject the
+     * blob — an accidentally-illegal replay must not be what makes a WARN-02 case pass.
+     */
+    private fun forgedFootprint(extra: IntArray): ResumeSnapshotDto {
+        val valid = snapshotOf(play(MOVES_PLAYED))
+        return valid.copy(inPlay = valid.inPlay + extra, moves = emptyList())
+    }
 
     private fun snapshotOf(played: PlayedGame): ResumeSnapshotDto =
         SnapshotMapper.toDto(
@@ -207,5 +247,28 @@ class SnapshotMapperTest {
         const val STAMPED_LEVEL = 7
         const val GENERATOR_VERSION = 1
         const val OFF_BOARD_INDEX = 99
+
+        /** WARN-02 forgery: a negative row can never name a bit in the peg mask. */
+        const val FORGED_NEGATIVE_ROW = -5
+
+        /** The in-range column the negative-row forgery is paired with. */
+        const val FORGED_COL = 3
+
+        /** WARN-02 forgery: `2^30`, the advisory's absurd-coordinate example. */
+        const val FORGED_HUGE_ROW = 1_073_741_824
+
+        /** Column 0 — the coordinate under test in a forgery is always the row. */
+        const val ORIGIN_COL = 0
+
+        /**
+         * The largest coordinate any legal footprint can carry: `Long.SIZE_BITS - 1`,
+         * because a 64-cell footprint could in principle be a 1x64 line. Spelled as a
+         * literal rather than derived from `ResumeSnapshotFormat.MAX_BOARD_POSITIONS`
+         * so that moving the bound has to break this test rather than follow it.
+         */
+        const val MAX_VALID_COORDINATE = 63
+
+        /** One past [MAX_VALID_COORDINATE] — the boundary that must be rejected. */
+        const val FIRST_REJECTED_COORDINATE = 64
     }
 }
