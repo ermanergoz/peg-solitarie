@@ -45,6 +45,17 @@ The success bar: after this phase, `hint`, `undo`, and every existing surface be
 
 - **D-13:** WARN-02 (resume-snapshot footprint coordinates unbounded) and WARN-03 (raw route `challengeLevel` reaching Results unclamped on the non-restore path) are both closed by **bounding/validating at the boundary — decode boundary and route boundary respectively — each with a regression test proving a forged or out-of-range value cannot get through**. Fixes without tests were rejected: the v1.0 audit's finding was precisely that these paths lacked proof. This is the same fail-safe pattern the resume codec already applies to stored moves.
 
+### Decisions added after phase research (2026-08-27)
+
+Research (`06-RESEARCH.md`) contradicted several milestone-level assumptions by actually running R8 on this repo and unpacking the published AARs. These follow-up decisions were taken with the user:
+
+- **D-14:** The real SDK artifacts (GMA Next-Gen, PGS v2, UMP) **do go on the dependency graph in this phase**, unreferenced by any code. Without them PLAT-07's provider-removal test passes vacuously and PLAT-04's violating fixture has no real `gms` class to reference. **Ordering constraint:** the size/cold-start baseline must be captured in an *earlier plan* than the one adding the artifacts. Record **three** numbers so D-12's "pre-SDK" figure survives: pre-R8 pre-SDK (**9,890,332 B**, already measured), post-R8 pre-SDK (**1,518,323 B**, already measured), and post-R8 with-SDKs-unreferenced (new).
+- **D-15:** `MIN_CHALLENGE_LEVEL` / `MAX_CHALLENGE_LEVEL` are **consolidated into `:domain`**. The constant is currently duplicated across three files and the WARN-03 fix would add a fourth clamp site — a genuine CLAUDE.md no-magic-numbers violation. This is the one deliberate `:domain` touch in a phase that otherwise stays out of it.
+- **D-16:** Success criterion 4's "a release build still launches and plays" is satisfied by **debug-signing the release APK locally for the smoke test**. Do **not** commit a `signingConfig` — real signing is Phase 14 scope.
+- **D-17 (corrects D-07):** GMA Next-Gen declares **no `MobileAdsInitProvider`** — verified from the AAR manifest. Only `PlayGamesInitProvider` is real, so only it gets removed. D-07's *outcome* stands, but its justification changes: Robolectric 4.16 does **not** instantiate manifest ContentProviders at startup (bytecode-verified), so the JVM test suite was never at risk. The sole reason for the removal is production cold start plus the downstream CONS-02 requirement. Record that reason in the manifest comment.
+- **D-18:** The enforced offline invariant is **`./gradlew check --offline`**. `assembleRelease` is *not* offline-safe until `org.jetbrains.kotlin:compose-group-mapping:2.3.20` is cached — AGP 9.1.0's `produceReleaseComposeMapping` needs it and it is not in the local cache. Document that each machine/CI runner needs one warm online run.
+- **D-19:** The verified "nothing broke" reference is **299 JVM tests green** via `./gradlew check`, confirmed by a real run at phase start (2026-08-27), not read from stale build output.
+
 ### Claude's Discretion
 
 - The exact naming and file placement of the sealed outcome type, the Activity provider, and the build-config plumbing.
