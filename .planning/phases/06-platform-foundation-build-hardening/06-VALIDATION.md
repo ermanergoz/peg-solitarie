@@ -1,10 +1,11 @@
 ---
 phase: 6
 slug: platform-foundation-build-hardening
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: active
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-08-27
+validated: 2026-08-27
 ---
 
 # Phase 6 — Validation Strategy

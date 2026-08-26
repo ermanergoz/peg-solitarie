@@ -1520,32 +1520,34 @@ Constraints and caveats the planner must budget for:
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Does Phase 6 put the SDK artifacts on the dependency graph, or not?** — *the single most consequential planning question in this phase.*
+> **All six questions below were resolved during planning on 2026-08-27** — the first four by explicit user decision (recorded as D-14 through D-18 in `06-CONTEXT.md`), the last two by follow-on decisions in the same session. Each carries an inline **RESOLVED** note. Retained in full because the reasoning that led to each answer is worth preserving.
+
+1. **Does Phase 6 put the SDK artifacts on the dependency graph, or not?** — *the single most consequential planning question in this phase.* — **RESOLVED (D-14):** yes, add them unreferenced; the size/cold-start baselines are captured in earlier plans (06-03, 06-08), enforced structurally by 06-09's `depends_on`. Three APK numbers recorded.
    - What we know: CONTEXT says *"This phase ships no real SDK behavior"*; ROADMAP success criterion 3 says *"`./gradlew check` runs green and offline **with the new SDK artifacts on the graph**"*; STATE says the INTERNET/R8 work must land *"before a ~5.5MB ads SDK and its transitive graph reach a release build"*; D-12 says record the **pre-SDK** APK size here.
    - What's unclear: "ships no SDK behavior" and "with the SDK artifacts on the graph" are compatible (deps present, no code calls them) — but nothing states the intent.
    - Why it matters: without the artifacts, PLAT-07's provider-removal test passes vacuously, PLAT-04's violating fixture has no real gms class to reference, and PLAT-05's keep rules are unverified against the SDKs. With them, R8 strips nearly all of the unreferenced ads SDK, so a post-add size measurement is not the Phase-14 comparand D-12 wants.
    - **Recommendation:** add the artifacts, and split the phase so the size/cold-start baseline is captured in an *earlier plan* than the one adding them. Record **three** numbers: pre-R8 pre-SDK (9,890,332 B — already measured), post-R8 pre-SDK (1,518,323 B — already measured), post-R8 with-SDKs-unreferenced (new). That satisfies D-12's "pre-SDK" literally while making SC-3 and PLAT-07 provable.
 
-2. **Does D-07 survive contact with the finding that `MobileAdsInitProvider` does not exist?**
+2. **Does D-07 survive contact with the finding that `MobileAdsInitProvider` does not exist?** — **RESOLVED (D-17):** yes. Only `PlayGamesInitProvider` is removed; the justification is corrected to cold start + CONS-02 (not test isolation), recorded in the manifest comment.
    - What we know: verified — the Next-Gen AAR declares no ContentProvider; only `PlayGamesInitProvider` is real.
    - Recommendation: keep D-07's *outcome* (no auto-init on the cold-start path), remove `MobileAdsInitProvider` from its wording, and record the reason in the manifest comment. Also correct D-07's stated justification: the JVM test suite was never at risk (Robolectric finding), so the sole reason is production cold-start + CONS-02.
 
-3. **How is the "pre-SDK cold-start baseline" (D-12) actually measured?**
+3. **How is the "pre-SDK cold-start baseline" (D-12) actually measured?** — **RESOLVED:** option (b) — `adb shell am start -W` sampled on a fixed device, committed as a text artifact. Planned as 06-08, marked manual/`autonomous: false`.
    - What we know: there is no `benchmark` module, no `androidTest` source set, and no device/emulator was probed.
    - Options: (a) add a macrobenchmark module — real work, and arguably Phase-14 scope; (b) `adb shell am start -W com.app.pegsolitaire/.MainActivity` sampled N times on a fixed device, recorded as a committed text artifact; (c) defer entirely to Phase 14 and accept there is no before-picture.
    - **Recommendation:** (b). It is a manual/operator task producing a committed number, honest about its precision, and costs nothing. Flag it as manual-only in VALIDATION.
 
-4. **Can "a release build still launches and plays" (success criterion 4) be verified this phase?**
+4. **Can "a release build still launches and plays" (success criterion 4) be verified this phase?** — **RESOLVED (D-16):** yes, by debug-signing the release APK locally for the smoke test. No `signingConfig` is committed; real signing stays Phase 14.
    - Blocker: no signing config, so `assembleRelease` produces an unsigned APK that cannot be installed.
    - Recommendation: debug-sign the release APK locally for the smoke test (do **not** commit a `signingConfig`), or declare the criterion manual-only and satisfied by an operator-run check. Either way, say which in VERIFICATION rather than leaving it implied.
 
-5. **Should `MIN_CHALLENGE_LEVEL` / `MAX_CHALLENGE_LEVEL` be consolidated into a `ChallengeLevelBounds` in `:domain`?**
+5. **Should `MIN_CHALLENGE_LEVEL` / `MAX_CHALLENGE_LEVEL` be consolidated into a `ChallengeLevelBounds` in `:domain`?** — **RESOLVED (D-15):** yes, consolidate. Planned as 06-06. `DifficultyTiers.Curve.MIN_LEVEL` is deliberately NOT absorbed (playtest-tunable curve parameter, semantically distinct) — the new object's KDoc must say so.
    - What we know: `MIN_CHALLENGE_LEVEL` exists as a private const in `data/ChallengeLevelSource.kt:55`, a companion const in `GameViewModel:822`, and as `MIN_LEVEL` in `domain/…/LevelGenerator.kt`. WARN-03's fix adds a fourth clamp site in `ResultsViewModel`.
    - Recommendation: consolidate. It is a genuine CLAUDE.md no-magic-numbers violation, the fix is small, and it makes the WARN-03 clamp a single call rather than a repeated expression. But surface it as an explicit decision — it touches `:domain` in a phase that otherwise does not.
 
-6. **Which `check` invocation is the phase's offline contract?**
+6. **Which `check` invocation is the phase's offline contract?** — **RESOLVED (D-18):** `./gradlew check --offline` is the enforced invariant. `assembleRelease` needs one warm online run per machine/runner for `compose-group-mapping`; stated in VERIFICATION.
    - `./gradlew check` does not build release, so it is genuinely offline-safe. `assembleRelease` is not, until `compose-group-mapping` is cached.
    - Recommendation: state in VERIFICATION that `check --offline` is the enforced invariant and that `assembleRelease` requires one warm online run per machine/runner.
 
