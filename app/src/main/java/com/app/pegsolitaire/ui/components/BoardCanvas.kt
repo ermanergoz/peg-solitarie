@@ -117,7 +117,16 @@ fun BoardCanvas(
     val landingSquash = remember { Animatable(SETTLED_SCALE) }
     var landing by remember { mutableStateOf<Position?>(null) }
 
+    // Which move id [jumpOffset] has actually been snapped to its source hole for.
+    // The draw phase renders the jumper as soon as `animating` is non-null, but the
+    // effect below only resumes AFTER that frame has been drawn — so without this
+    // marker the first drawn frame uses a stale Animatable value (Offset.Zero, the
+    // canvas top-left, on a game's first move). Reset whenever the animation key
+    // changes because the move id (`moveHistory.size`) recycles after an undo.
+    var preparedMoveId by remember { mutableStateOf<Int?>(null) }
+
     LaunchedEffect(transition?.id, geometry, interactive) {
+        preparedMoveId = null
         if (interactive && transition != null && geometry.isReady) {
             runJumpAnimation(
                 transition = transition,
@@ -127,6 +136,7 @@ fun BoardCanvas(
                 removalProgress = removalProgress,
                 landingSquash = landingSquash,
                 setLanding = { landing = it },
+                setPrepared = { preparedMoveId = it },
                 onAnimationFinished = onAnimationFinished,
             )
         }
@@ -145,10 +155,24 @@ fun BoardCanvas(
     }
 
     val pulseScale = rememberSelectionPulse(active = interactive && animationsEnabled && state.selected != null)
+
     val animations =
         BoardAnimationValues(
-            jumpOffset = { jumpOffset.value },
-            removalProgress = { removalProgress.value },
+            jumpOffset = {
+                jumperCenter(
+                    transition = transition,
+                    preparedMoveId = preparedMoveId,
+                    geometry = geometry,
+                    animatedOffset = jumpOffset.value,
+                )
+            },
+            removalProgress = {
+                removalAlpha(
+                    transition = transition,
+                    preparedMoveId = preparedMoveId,
+                    animatedProgress = removalProgress.value,
+                )
+            },
             dotPop = { dotPop.value },
             pulse = { pulseScale?.value ?: SETTLED_SCALE },
             landingScale = { landingSquash.value },
@@ -184,9 +208,68 @@ fun BoardCanvas(
 }
 
 /**
+ * Where the in-flight jumper is drawn this frame.
+ *
+ * The draw phase renders the jumper overlay the moment `GameUiState.animating`
+ * becomes non-null, but the `Animatable` carrying its position is only moved onto
+ * board coordinates by a `LaunchedEffect`, which first resumes AFTER that frame has
+ * already been drawn. So the animated value is authoritative only once the effect has
+ * reported (via [preparedMoveId]) that it snapped the Animatable for this exact move.
+ *
+ * Until then this returns the source hole the peg is about to leave — the cell it
+ * visually occupied a frame earlier — instead of a stale coordinate left over from
+ * whatever the Animatable last held. That stale value is `Offset.Zero` (the canvas
+ * top-left) on a game's first move, which is what produced the first-move flicker.
+ *
+ * [preparedMoveId] is compared against [MoveTransition.id] rather than merely
+ * null-checked because the id is `moveHistory.size` and therefore recycles after an
+ * undo — a replayed move must not be mistaken for an already-prepared one.
+ */
+internal fun jumperCenter(
+    transition: MoveTransition?,
+    preparedMoveId: Int?,
+    geometry: BoardGeometry,
+    animatedOffset: Offset,
+): Offset =
+    if (transition != null && preparedMoveId != transition.id) {
+        geometry.center(transition.from)
+    } else {
+        animatedOffset
+    }
+
+/**
+ * How far through its fade + shrink the jumped-over peg is drawn this frame.
+ *
+ * The mirror of [jumperCenter] on the removal channel, and the same hazard: the peg is
+ * drawn as soon as `GameUiState.animating` is non-null, but its progress `Animatable`
+ * is only reset to [REMOVAL_START] by the `LaunchedEffect` a frame later. Left to the
+ * raw animated value the doomed peg would be drawn at the PREVIOUS move's end progress
+ * — [REMOVAL_END], i.e. fully transparent — so it would blink out and back in for one
+ * frame on every move after the first.
+ *
+ * Until the move is prepared this therefore reports [REMOVAL_START]: the peg is still
+ * whole, which is exactly what it looked like a frame ago.
+ */
+internal fun removalAlpha(
+    transition: MoveTransition?,
+    preparedMoveId: Int?,
+    animatedProgress: Float,
+): Float =
+    if (transition != null && preparedMoveId != transition.id) {
+        REMOVAL_START
+    } else {
+        animatedProgress
+    }
+
+/**
  * Runs the jump slide + removal fade for one committed move, then the landing
  * squash. With animations disabled everything resolves instantly (functional
  * transition, no decorative motion) and [onAnimationFinished] fires right away.
+ *
+ * [setPrepared] is invoked with the move id the instant [jumpOffset] has been
+ * snapped onto this move's board coordinates; until then the draw phase must
+ * position the jumper itself, because this function first resumes a frame after
+ * the draw that already rendered the overlay.
  */
 private suspend fun runJumpAnimation(
     transition: MoveTransition,
@@ -196,16 +279,19 @@ private suspend fun runJumpAnimation(
     removalProgress: Animatable<Float, *>,
     landingSquash: Animatable<Float, *>,
     setLanding: (Position?) -> Unit,
+    setPrepared: (Int) -> Unit,
     onAnimationFinished: () -> Unit,
 ) {
     if (!animationsEnabled) {
         jumpOffset.snapTo(geometry.center(transition.to))
+        setPrepared(transition.id)
         removalProgress.snapTo(REMOVAL_END)
         onAnimationFinished()
         return
     }
     coroutineScope {
         jumpOffset.snapTo(geometry.center(transition.from))
+        setPrepared(transition.id)
         removalProgress.snapTo(REMOVAL_START)
         launch {
             removalProgress.animateTo(

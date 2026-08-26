@@ -5,6 +5,7 @@ import androidx.compose.ui.geometry.Size
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.ui.game.BoardMetrics
+import com.app.pegsolitaire.ui.game.MoveTransition
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
@@ -84,8 +85,125 @@ class BoardCanvasTest {
             .isEqualTo(BoardMetrics.HINT_TARGET_RING_RATIO * geometry.cellSize)
     }
 
+    /**
+     * Regression (first-move flicker): the draw phase renders the in-flight jumper as soon
+     * as `animating` is non-null, but the `Animatable` holding its position is snapped onto
+     * board coordinates by a `LaunchedEffect` that only resumes after that frame is drawn.
+     * On a game's very first move the Animatable still holds its initial [Offset.Zero] — the
+     * canvas top-left — so the jumper must NOT be positioned from it until the effect reports
+     * the move as prepared.
+     */
+    @Test
+    fun jumperRendersAtItsSourceHoleBeforeTheAnimationIsPrepared() {
+        val transition = MoveTransition(from = Position(1, 3), to = Position(3, 3), removed = Position(2, 3), id = 1)
+
+        val center =
+            jumperCenter(
+                transition = transition,
+                preparedMoveId = null,
+                geometry = geometry,
+                animatedOffset = Offset.Zero,
+            )
+
+        assertThat(center).isEqualTo(geometry.center(transition.from))
+        assertThat(center).isNotEqualTo(Offset.Zero)
+    }
+
+    /** Once the effect has snapped the Animatable for this move, the animated value wins. */
+    @Test
+    fun jumperFollowsTheAnimationOncePrepared() {
+        val transition = MoveTransition(from = Position(1, 3), to = Position(3, 3), removed = Position(2, 3), id = 1)
+        val midFlight = Offset(MID_FLIGHT_PX, MID_FLIGHT_PX)
+
+        val center =
+            jumperCenter(
+                transition = transition,
+                preparedMoveId = transition.id,
+                geometry = geometry,
+                animatedOffset = midFlight,
+            )
+
+        assertThat(center).isEqualTo(midFlight)
+    }
+
+    /**
+     * `MoveTransition.id` is `moveHistory.size`, so ids recycle after an undo. A replayed
+     * move id must not be treated as already-prepared just because a prior move happened to
+     * carry the same id — otherwise the jumper would render for a frame at the previous
+     * move's destination.
+     */
+    @Test
+    fun aRecycledMoveIdIsNotTreatedAsPrepared() {
+        val replayed = MoveTransition(from = Position(3, 1), to = Position(3, 3), removed = Position(3, 2), id = 1)
+        val staleDestination = geometry.center(Position(3, 3))
+
+        val center =
+            jumperCenter(
+                transition = replayed,
+                preparedMoveId = null,
+                geometry = geometry,
+                animatedOffset = staleDestination,
+            )
+
+        assertThat(center).isEqualTo(geometry.center(replayed.from))
+    }
+
+    /**
+     * Regression (removal blink): the jumped-over peg's fade is driven by the same
+     * asynchronously-prepared Animatable, which rests at fully-faded once a move ends. On
+     * every move after the first it must not be drawn from that stale value, or the doomed
+     * peg blinks out and back in for a frame before its fade actually starts.
+     */
+    @Test
+    fun doomedPegIsWholeBeforeTheRemovalFadeIsPrepared() {
+        val transition = MoveTransition(from = Position(1, 3), to = Position(3, 3), removed = Position(2, 3), id = 2)
+        val fadedOutByPreviousMove = 0f
+
+        val progress =
+            removalAlpha(
+                transition = transition,
+                preparedMoveId = null,
+                animatedProgress = fadedOutByPreviousMove,
+            )
+
+        assertThat(progress).isEqualTo(1f)
+    }
+
+    /** Once prepared, the removal fade follows its animation. */
+    @Test
+    fun removalFadeFollowsTheAnimationOncePrepared() {
+        val transition = MoveTransition(from = Position(1, 3), to = Position(3, 3), removed = Position(2, 3), id = 2)
+        val midFade = 0.4f
+
+        val progress =
+            removalAlpha(
+                transition = transition,
+                preparedMoveId = transition.id,
+                animatedProgress = midFade,
+            )
+
+        assertThat(progress).isEqualTo(midFade)
+    }
+
+    /** With no move in flight the jumper is not drawn, so the animated value passes through. */
+    @Test
+    fun noTransitionLeavesTheAnimatedValueUntouched() {
+        val resting = Offset(MID_FLIGHT_PX, MID_FLIGHT_PX)
+
+        val center =
+            jumperCenter(
+                transition = null,
+                preparedMoveId = null,
+                geometry = geometry,
+                animatedOffset = resting,
+            )
+
+        assertThat(center).isEqualTo(resting)
+    }
+
     private companion object {
         const val CANVAS_EDGE_PX = 700f
         const val FAR_OUTSIDE_PX = 1400f
+        const val MID_FLIGHT_PX = 123f
     }
 }
