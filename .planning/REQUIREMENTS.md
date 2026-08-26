@@ -148,6 +148,63 @@ Deferred to a future release. Tracked but not in this roadmap.
 
 Which phases cover which requirements. Updated during roadmap creation.
 
+**Coverage:** 56/56 v1.1 requirements mapped to exactly one phase — no orphans, no duplicates.
+
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| _(filled by roadmapper)_ | | |
+| PLAT-01 | Phase 6 | Pending |
+| PLAT-02 | Phase 6 | Pending |
+| PLAT-03 | Phase 6 | Pending |
+| PLAT-04 | Phase 6 | Pending |
+| PLAT-05 | Phase 6 | Pending |
+| PLAT-06 | Phase 6 | Pending |
+| PLAT-07 | Phase 6 | Pending |
+| PLAT-08 | Phase 14 | Pending |
+| SOUND-01 | Phase 7 | Pending |
+| SOUND-02 | Phase 7 | Pending |
+| SOUND-03 | Phase 7 | Pending |
+| SOUND-04 | Phase 7 | Pending |
+| SOUND-05 | Phase 7 | Pending |
+| SOUND-06 | Phase 7 | Pending |
+| CONS-01 | Phase 9 | Pending |
+| CONS-02 | Phase 9 | Pending |
+| CONS-03 | Phase 9 | Pending |
+| CONS-04 | Phase 9 | Pending |
+| ADS-01 | Phase 9 | Pending |
+| ADS-02 | Phase 9 | Pending |
+| ADS-03 | Phase 9 | Pending |
+| ADS-04 | Phase 9 | Pending |
+| ADS-05 | Phase 9 | Pending |
+| ADS-06 | Phase 9 | Pending |
+| INT-01 | Phase 10 | Pending |
+| INT-02 | Phase 10 | Pending |
+| INT-03 | Phase 10 | Pending |
+| INT-04 | Phase 10 | Pending |
+| ADSF-01 | Phase 9 | Pending |
+| PGS-01 | Phase 11 | Pending |
+| PGS-02 | Phase 11 | Pending |
+| PGS-03 | Phase 11 | Pending |
+| PGSL-01 | Phase 12 | Pending |
+| PGSL-02 | Phase 12 | Pending |
+| PGSL-03 | Phase 12 | Pending |
+| PGSL-04 | Phase 12 | Pending |
+| PGSL-05 | Phase 12 | Pending |
+| PGSL-06 | Phase 12 | Pending |
+| PGSA-01 | Phase 12 | Pending |
+| PGSA-02 | Phase 12 | Pending |
+| PGSA-03 | Phase 12 | Pending |
+| PGSA-04 | Phase 12 | Pending |
+| PGSA-05 | Phase 12 | Pending |
+| PGSA-06 | Phase 12 | Pending |
+| CLOUD-01 | Phase 13 | Pending |
+| CLOUD-02 | Phase 13 | Pending |
+| CLOUD-03 | Phase 13 | Pending |
+| CLOUD-04 | Phase 13 | Pending |
+| CLOUD-05 | Phase 13 | Pending |
+| DEBT-01 | Phase 8 | Pending |
+| DEBT-02 | Phase 8 | Pending |
+| DEBT-03 | Phase 8 | Pending |
+| DEBT-04 | Phase 6 | Pending |
+| REL-01 | Phase 14 | Pending |
+| REL-02 | Phase 14 | Pending |
+| REL-03 | Phase 14 | Pending |
