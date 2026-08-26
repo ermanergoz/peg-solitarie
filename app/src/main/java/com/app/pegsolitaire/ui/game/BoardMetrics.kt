@@ -69,4 +69,33 @@ object BoardMetrics {
 
     /** The board is a square. */
     const val BOARD_ASPECT_RATIO = 1f
+
+    // ---- Candy-Clay rendering ratios (DESIGN-SYSTEM.md Gameplay) ----
+
+    /** Radial PegGradient center offset toward the top-left = ratio × pegRadius. */
+    const val PEG_GRADIENT_OFFSET_RATIO = 0.35f
+
+    /** Radial PegGradient extent = ratio × pegRadius (rim color reaches the edge). */
+    const val PEG_GRADIENT_RADIUS_RATIO = 1.7f
+
+    /** Gradient stop where the peg body color sits between highlight (0) and rim (1). */
+    const val PEG_GRADIENT_MID_STOP = 0.55f
+
+    /** Specular highlight dot radius = ratio × pegRadius. */
+    const val SPECULAR_RADIUS_RATIO = 0.28f
+
+    /** Specular highlight dot offset toward the top-left = ratio × pegRadius. */
+    const val SPECULAR_OFFSET_RATIO = 0.42f
+
+    /** Inner dimple-fill radius of the two-tone inset hole = ratio × holeRadius. */
+    const val DIMPLE_INNER_RATIO = 0.78f
+
+    /** Downward offset of the dimple fill = ratio × holeRadius (dark top ring reads inset). */
+    const val DIMPLE_OFFSET_RATIO = 0.22f
+
+    /** Peak scale of the selected peg's breathing pulse (1.0 → 1.06). */
+    const val PULSE_MAX_SCALE = 1.06f
+
+    /** The landed jumper briefly squashes to this scale before springing back. */
+    const val LANDING_SQUASH_SCALE = 0.86f
 }

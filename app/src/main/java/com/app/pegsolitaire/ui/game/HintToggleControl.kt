@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.ui.theme.claySquish
 
 /**
  * The top-bar "Show possible moves" toggle (player control over the legal-destination dots).
@@ -33,7 +34,10 @@ fun HintToggleControl(
     onToggleHints: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    IconButton(onClick = onToggleHints, modifier = modifier) {
+    IconButton(
+        onClick = onToggleHints,
+        modifier = modifier.claySquish().size(dimensionResource(R.dimen.top_bar_touch_target)),
+    ) {
         Icon(
             imageVector = Icons.Rounded.Info,
             contentDescription =
