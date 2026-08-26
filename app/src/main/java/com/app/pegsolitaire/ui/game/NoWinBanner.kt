@@ -15,6 +15,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.ui.theme.clayShadow
+import com.app.pegsolitaire.ui.theme.claySquish
 
 /** Test tag of the inline rescue banner so the screen-level Compose test can locate it. */
 const val NOWIN_BANNER_TEST_TAG = "nowin_banner"
@@ -58,6 +60,7 @@ fun NoWinBanner(
         shape = MaterialTheme.shapes.medium,
         modifier =
             modifier
+                .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.medium)
                 .heightIn(min = dimensionResource(R.dimen.nowin_banner_min_height))
                 .testTag(NOWIN_BANNER_TEST_TAG),
     ) {
@@ -71,19 +74,31 @@ fun NoWinBanner(
                 horizontalArrangement =
                     Arrangement.spacedBy(dimensionResource(R.dimen.spacing_sm)),
             ) {
-                TextButton(onClick = onUndo) {
+                TextButton(
+                    onClick = onUndo,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.claySquish(),
+                ) {
                     Text(
                         text = stringResource(R.string.undo_action),
                         style = MaterialTheme.typography.labelLarge,
                     )
                 }
-                TextButton(onClick = onRestart) {
+                TextButton(
+                    onClick = onRestart,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.claySquish(),
+                ) {
                     Text(
                         text = stringResource(R.string.rescue_restart),
                         style = MaterialTheme.typography.labelLarge,
                     )
                 }
-                TextButton(onClick = onHome) {
+                TextButton(
+                    onClick = onHome,
+                    shape = MaterialTheme.shapes.medium,
+                    modifier = Modifier.claySquish(),
+                ) {
                     Text(
                         text = stringResource(R.string.action_home),
                         style = MaterialTheme.typography.labelLarge,

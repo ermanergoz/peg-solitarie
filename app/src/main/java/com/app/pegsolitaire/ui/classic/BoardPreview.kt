@@ -21,6 +21,7 @@ import com.app.pegsolitaire.R
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.ui.components.BoardCanvas
 import com.app.pegsolitaire.ui.game.GameUiState
+import com.app.pegsolitaire.ui.theme.goldGradientFill
 import androidx.compose.material.icons.outlined.Star as StarBorder
 
 /**
@@ -66,15 +67,15 @@ fun BoardPreview(
     }
 }
 
-/** The recessed square holding the read-only [BoardCanvas] footprint. */
+/** The soft violet-tinted panel holding the read-only [BoardCanvas] footprint. */
 @Composable
 private fun BoardFootprint(
     board: Board,
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.primaryContainer,
         modifier = modifier.size(dimensionResource(R.dimen.catalog_preview_size)),
     ) {
         BoardCanvas(
@@ -89,10 +90,11 @@ private fun BoardFootprint(
 
 /**
  * The earned-star pips (D-10): the first [earned] of [TOTAL_STARS] filled
- * [Icons.Filled.Star] tinted `primary`, the rest outline [StarBorder] tinted
- * `outlineVariant` — the same filled/outline language as the Results star row, at pip
- * scale. The individual icons are decorative, so the row speaks the count once via
- * [clearAndSetSemantics] instead of announcing three anonymous stars.
+ * [Icons.Filled.Star] recolored with the celebration GoldGradient, the rest outline
+ * [StarBorder] tinted `outlineVariant` — the same filled/outline language as the
+ * Results star row, at pip scale. The individual icons are decorative, so the row
+ * speaks the count once via [clearAndSetSemantics] instead of announcing three
+ * anonymous stars.
  */
 @Composable
 private fun EarnedStarPips(earned: Int) {
@@ -108,11 +110,14 @@ private fun EarnedStarPips(earned: Int) {
                 contentDescription = null,
                 tint =
                     if (isEarned) {
-                        MaterialTheme.colorScheme.primary
+                        MaterialTheme.colorScheme.tertiary
                     } else {
                         MaterialTheme.colorScheme.outlineVariant
                     },
-                modifier = Modifier.size(dimensionResource(R.dimen.catalog_star_pip_size)),
+                modifier =
+                    Modifier
+                        .then(if (isEarned) Modifier.goldGradientFill() else Modifier)
+                        .size(dimensionResource(R.dimen.catalog_star_pip_size)),
             )
         }
     }

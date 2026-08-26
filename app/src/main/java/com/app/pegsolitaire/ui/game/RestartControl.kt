@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.ui.theme.claySquish
 
 /**
  * The persistent top-bar restart control (D-06).
@@ -29,7 +30,10 @@ fun RestartControl(
     onRestart: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    IconButton(onClick = onRestart, modifier = modifier) {
+    IconButton(
+        onClick = onRestart,
+        modifier = modifier.claySquish().size(dimensionResource(R.dimen.top_bar_touch_target)),
+    ) {
         Icon(
             imageVector = Icons.Rounded.Refresh,
             contentDescription = stringResource(R.string.restart_board),

@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.ui.theme.claySquish
 
 /**
  * The top-bar Undo control (ASST-02).
@@ -31,7 +32,11 @@ fun UndoControl(
     onUndo: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    IconButton(onClick = onUndo, enabled = canUndo, modifier = modifier) {
+    IconButton(
+        onClick = onUndo,
+        enabled = canUndo,
+        modifier = modifier.claySquish().size(dimensionResource(R.dimen.top_bar_touch_target)),
+    ) {
         Icon(
             imageVector = UndoIcon,
             contentDescription = stringResource(R.string.undo_action),

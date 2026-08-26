@@ -85,6 +85,8 @@ dependencies {
     implementation(libs.bundles.compose)
     // Curated Material Symbols set — only Icons.Rounded.Refresh is used (top-bar restart).
     implementation(libs.androidx.compose.material.icons.core)
+    // Downloadable Fredoka/Nunito (Candy-Clay type scale); async with default-font fallback.
+    implementation(libs.androidx.compose.ui.text.google.fonts)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     // MVVM: ViewModel base for the StateFlow-driven UiState. Non-Compose artifact

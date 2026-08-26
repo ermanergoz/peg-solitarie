@@ -45,6 +45,8 @@
     <dimen name="catalog_star_pip_size">16dp</dimen>
     <!-- Rendered size of each of the 3 result stars (earned + unearned). -->
     <dimen name="results_star_size">48dp</dimen>
+    <!-- Diameter of the soft gold glow disc behind an earned Results star. -->
+    <dimen name="results_star_glow_size">56dp</dimen>
     <!-- Square edge of each onboarding step's jump illustration. -->
     <dimen name="onboarding_illustration_size">160dp</dimen>
 
@@ -73,5 +75,37 @@
       peg geometry. Do not round these up.
     -->
     <dimen name="peg_selected_ring_width">3dp</dimen>
-    <dimen name="hole_outline_width">1dp</dimen>
+
+    <!--
+      Candy-Clay M3 Shapes override (DESIGN-SYSTEM.md §Shape): the five corner
+      radii wired into MaterialTheme.shapes by ui/theme/Theme.kt. The 12dp
+      extraSmall is an intentional off-grid value fixed by the design contract.
+    -->
+    <dimen name="shape_corner_extra_small">12dp</dimen>
+    <dimen name="shape_corner_small">16dp</dimen>
+    <dimen name="shape_corner_medium">20dp</dimen>
+    <dimen name="shape_corner_large">28dp</dimen>
+    <dimen name="shape_corner_extra_large">32dp</dimen>
+
+    <!--
+      Candy-Clay elevation tokens (DESIGN-SYSTEM.md §Elevation): soft
+      violet-tinted shadows applied via Modifier.clayShadow. The 6dp card value
+      is an intentional contract-fixed off-grid value.
+    -->
+    <dimen name="elevation_card">6dp</dimen>
+    <dimen name="elevation_pressed">2dp</dimen>
+    <dimen name="elevation_dialog">12dp</dimen>
+
+    <!-- Slide-up distance of the staggered card/tile entrance (Modifier.clayEntrance). -->
+    <dimen name="entrance_slide_distance">16dp</dimen>
+
+    <!-- Home mode-tile glyphs (local ImageVectors) + resume-chip play accent. -->
+    <dimen name="mode_glyph_size">28dp</dimen>
+
+    <!-- Ambient Home background blobs: diameter + drift amplitude (±16dp, ~8s). -->
+    <dimen name="blob_size">240dp</dimen>
+    <dimen name="blob_drift_range">16dp</dimen>
+
+    <!-- Min tap target of a gameplay top-bar icon control (DESIGN-SYSTEM.md Gameplay). -->
+    <dimen name="top_bar_touch_target">48dp</dimen>
 </resources>
