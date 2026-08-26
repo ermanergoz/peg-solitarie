@@ -14,6 +14,18 @@ Infinite, never-repeating, always-solvable Challenge levels that feel fair and s
 
 **Validated in v1.0:** the reverse-generation Challenge generator ships frozen behind golden-master fixtures — deterministic, gate-checked, always solvable by construction.
 
+## Current Milestone: v1.1 Slice 2 — Play Games, AdMob & Polish
+
+**Goal:** Turn the shipped offline game into a release-ready product by wiring real Play Games and AdMob SDKs behind the existing seams, adding sound, and paying down carried tech debt.
+
+**Target features:**
+- Google Play Games Services v2 behind the existing `GamesService` seam — sign-in, leaderboards, achievements, cloud save
+- AdMob + UMP consent behind the existing `AdGateway` seam — rewarded ads for hint/undo/retry, interstitials between levels
+- Sound playback consuming the already-persisted `soundOn` flag
+- Carried tech debt: solver deadline envelope on hard early positions, Diamond-41 solvability fixture, Nyquist gaps on phases 3/4, security advisories WARN-02/03
+
+**Key context:** The Candy Clay visual redesign (merged to `develop` 2026-08-27, outside GSD planning) already delivers the bulk of the former POLI-01 "visual polish pass" — remaining polish in this milestone is audio/juice, not a visual overhaul. SDK versions are pinned at integration time per the stack doc (play-services-games-v2 ~21.x, play-services-ads 23.6.0, UMP latest).
+
 ## Requirements
 
 ### Validated
@@ -27,11 +39,12 @@ Infinite, never-repeating, always-solvable Challenge levels that feel fair and s
 - ✓ Hint (recorded-line-first, Solver fallback, honest "no winning move" state) and multi-step undo — v1.0
 - ✓ Local persistence: per-level bests, highest Challenge level, full in-progress resume by replay — v1.0
 
-### Active (next milestone candidates)
+### Active (v1.1)
 
-- [ ] (Slice 2) Google Play Games v2: sign-in, leaderboards, achievements, cloud save — behind existing `GamesService` seam
-- [ ] (Slice 2) AdMob monetization: rewarded ads for hint/undo/retry, interstitials between levels — behind existing `AdGateway` seam
-- [ ] (Slice 2) Visual polish pass; sound playback consuming the already-persisted `soundOn` flag
+- [ ] Google Play Games v2: sign-in, leaderboards, achievements, cloud save — behind existing `GamesService` seam
+- [ ] AdMob monetization: rewarded ads for hint/undo/retry, interstitials between levels — behind existing `AdGateway` seam
+- [ ] Sound playback consuming the already-persisted `soundOn` flag (visual polish largely delivered by the Candy Clay redesign, merged 2026-08-27)
+- [ ] Tech debt payoff: solver deadline envelope on hard early positions, Diamond-41 solvability fixture, Nyquist gaps on phases 3/4, security advisories WARN-02/03
 
 ### Out of Scope
 
@@ -98,4 +111,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-26 after v1.0 milestone*
+*Last updated: 2026-08-27 at v1.1 milestone start*
