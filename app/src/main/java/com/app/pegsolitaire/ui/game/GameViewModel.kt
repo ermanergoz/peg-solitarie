@@ -29,6 +29,7 @@ import com.app.pegsolitaire.domain.usecase.GetHintUseCase
 import com.app.pegsolitaire.navigation.Gameplay
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
+import com.app.pegsolitaire.platform.ads.RewardOutcome
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
@@ -659,8 +660,11 @@ class GameViewModel
         }
 
         /**
-         * Undo the last move (ASST-02, D-05): requests the [AdReason.UNDO] grant (Slice-1
-         * stub auto-grants), then rebuilds the board by folding [RulesEngine.applyMove] over
+         * Undo the last move (ASST-02, D-05): requests the [AdReason.UNDO] grant and reads
+         * the three-way [RewardOutcome] — [RewardOutcome.Granted] and
+         * [RewardOutcome.Unavailable] both proceed (ADS-03: an assist that could not be paid
+         * for is still granted), only [RewardOutcome.Declined] aborts. It then rebuilds the
+         * board by folding [RulesEngine.applyMove] over
          * the remaining [moveHistory] from [initialBoard] — never trusting any external or
          * serialized state (T-04-01-U). Repeated calls walk all the way back to the initial
          * board; an empty history is a no-op. The board's [statusFor] status is recomputed
@@ -672,7 +676,14 @@ class GameViewModel
          */
         fun onUndo() {
             viewModelScope.launch {
-                if (!adGateway.requestRewarded(AdReason.UNDO)) return@launch
+                when (adGateway.requestRewarded(AdReason.UNDO)) {
+                    // ADS-03: an assist that could not be paid for is still granted — the
+                    // player is never dead-ended by an ad that failed to arrive. Mapping
+                    // Unavailable to "skip" would silently break undo offline the moment a
+                    // real gateway lands in Phase 9.
+                    RewardOutcome.Granted, RewardOutcome.Unavailable -> Unit
+                    RewardOutcome.Declined -> return@launch
+                }
                 if (moveHistory.isEmpty()) return@launch
                 moveHistory.removeAt(moveHistory.lastIndex)
                 val base = initialBoard ?: return@launch
@@ -712,7 +723,10 @@ class GameViewModel
         /**
          * Reveal the next winning move (ASST-01/ASST-03, D-01/D-10). Cancels any prior
          * search (no overlapping Solver work, threat T-04-SD), raises [GameUiState.solverThinking]
-         * immediately, requests the [AdReason.HINT] grant (Slice-1 stub auto-grants), then
+         * immediately, requests the [AdReason.HINT] grant — [RewardOutcome.Granted] and
+         * [RewardOutcome.Unavailable] both proceed to the search (ADS-03: a hint that could
+         * not be paid for is still given), while [RewardOutcome.Declined] clears
+         * [GameUiState.solverThinking] and returns so the control never spins forever — then
          * resolves the move OFF the main thread via [getHintUseCase] on [defaultDispatcher]:
          *  - on the recorded line (Challenge) the use case returns the recorded move instantly,
          *    with no Solver call;
@@ -736,9 +750,12 @@ class GameViewModel
             }
             hintJob =
                 viewModelScope.launch {
-                    if (!adGateway.requestRewarded(AdReason.HINT)) {
-                        _uiState.update { it.copy(solverThinking = false) }
-                        return@launch
+                    when (adGateway.requestRewarded(AdReason.HINT)) {
+                        RewardOutcome.Granted, RewardOutcome.Unavailable -> Unit
+                        RewardOutcome.Declined -> {
+                            _uiState.update { it.copy(solverThinking = false) }
+                            return@launch
+                        }
                     }
                     val deadline = timeSource.markNow() + SolverBudget.DEFAULT.deadline
                     val move =

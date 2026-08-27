@@ -21,6 +21,7 @@ import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
+import com.app.pegsolitaire.platform.ads.RewardOutcome
 import com.google.common.truth.Truth.assertThat
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
@@ -402,7 +403,7 @@ class GameViewModelTest {
     @Test
     fun undoIsSkippedWhenTheGrantIsDenied() =
         runTest(testDispatcher) {
-            val deniedGateway = FakeAdGateway(grant = false)
+            val deniedGateway = FakeAdGateway(outcome = RewardOutcome.Declined)
             val viewModel = viewModelFor(Boards.english33Initial, adGateway = deniedGateway)
             runCurrent()
 
@@ -416,6 +417,55 @@ class GameViewModelTest {
 
             // Grant denied → the undo does not proceed; the board is unchanged.
             assertThat(viewModel.uiState.value.board).isEqualTo(afterJump)
+            assertThat(viewModel.uiState.value.canUndo).isTrue()
+
+            cancelTickers()
+        }
+
+    @Test
+    fun undoStillProceedsWhenNoAdCouldBeServed() =
+        runTest(testDispatcher) {
+            // ADS-03 fail-open: no ad could be served, so the rescue is granted anyway.
+            // This branch has never executed before — the stub has only ever granted.
+            val unavailableGateway = FakeAdGateway(outcome = RewardOutcome.Unavailable)
+            val viewModel = viewModelFor(Boards.english33Initial, adGateway = unavailableGateway)
+            runCurrent()
+
+            viewModel.onCellTap(pegAboveCenter)
+            viewModel.onCellTap(centerHole)
+            runCurrent()
+            assertThat(viewModel.uiState.value.canUndo).isTrue()
+
+            viewModel.onUndo()
+            runCurrent()
+
+            // The move was popped: the board is back to the initial position.
+            assertThat(viewModel.uiState.value.board).isEqualTo(Boards.english33Initial)
+            assertThat(viewModel.uiState.value.canUndo).isFalse()
+
+            cancelTickers()
+        }
+
+    @Test
+    fun undoDeclinedAbortsOnlyAfterTheGrantWasActuallyRequested() =
+        runTest(testDispatcher) {
+            // Pins that Declined aborts *downstream* of the seam: the gateway is still
+            // asked (lastReason records it) and only then is the move history left intact.
+            val declinedGateway = FakeAdGateway(outcome = RewardOutcome.Declined)
+            val viewModel = viewModelFor(Boards.english33Initial, adGateway = declinedGateway)
+            runCurrent()
+
+            viewModel.onCellTap(pegAboveCenter)
+            viewModel.onCellTap(centerHole)
+            runCurrent()
+            val afterJump = viewModel.uiState.value.board
+
+            viewModel.onUndo()
+            runCurrent()
+
+            assertThat(declinedGateway.lastReason).isEqualTo(AdReason.UNDO)
+            assertThat(viewModel.uiState.value.board).isEqualTo(afterJump)
+            // The move survives the decline, so a later granted undo can still pop it.
             assertThat(viewModel.uiState.value.canUndo).isTrue()
 
             cancelTickers()
@@ -657,7 +707,7 @@ class GameViewModelTest {
     @Test
     fun hintDeniedByTheGatewayDoesNotProceedAndClearsThinking() =
         runTest(testDispatcher) {
-            val denied = FakeAdGateway(grant = false)
+            val denied = FakeAdGateway(outcome = RewardOutcome.Declined)
             val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = denied)
             runCurrent()
 
@@ -669,6 +719,46 @@ class GameViewModelTest {
             assertThat(state.hintTarget).isNull()
             assertThat(state.noWinningMove).isFalse()
             assertThat(state.solverThinking).isFalse()
+        }
+
+    @Test
+    fun hintStillRunsTheSearchWhenNoAdCouldBeServed() =
+        runTest(testDispatcher) {
+            // ADS-03 fail-open at the hint call site: a hint that could not be paid for is
+            // still given, so an offline player is never dead-ended once a real gateway lands.
+            val unavailableGateway = FakeAdGateway(outcome = RewardOutcome.Unavailable)
+            val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = unavailableGateway)
+            runCurrent()
+
+            viewModel.onHintRequested()
+            advanceUntilIdle()
+
+            val hinted = viewModel.uiState.value
+            assertThat(hinted.hintSource).isEqualTo(Position(row = 0, col = 0))
+            assertThat(hinted.hintTarget).isEqualTo(Position(row = 0, col = 2))
+            assertThat(hinted.solverThinking).isFalse()
+            assertThat(hinted.noWinningMove).isFalse()
+        }
+
+    @Test
+    fun hintDeclinedLeavesTheControlIdleOnABoardThatHasAWinningMove() =
+        runTest(testDispatcher) {
+            // T-06-01: the decline path must clear solverThinking, or the hint control
+            // spins forever. The board is solvable, so a missing hint can only mean the
+            // search never ran — proving the abort happened before the Solver call.
+            val declinedGateway = FakeAdGateway(outcome = RewardOutcome.Declined)
+            val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = declinedGateway)
+            runCurrent()
+
+            viewModel.onHintRequested()
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertThat(declinedGateway.lastReason).isEqualTo(AdReason.HINT)
+            assertThat(state.solverThinking).isFalse()
+            assertThat(state.hintSource).isNull()
+            assertThat(state.hintTarget).isNull()
+            assertThat(state.noWinningMove).isFalse()
         }
 
     @Test
@@ -1286,18 +1376,20 @@ private class FakeSettingsRepository(
 
 /**
  * A fake [AdGateway] that records the last requested [AdReason] and returns a
- * configurable [grant] (default `true`, matching the Slice-1 auto-grant stub), so the
- * VM tests assert both that undo requests the grant and that a denial skips the undo.
+ * configurable [outcome] (default [RewardOutcome.Granted], matching the auto-grant
+ * [com.app.pegsolitaire.platform.ads.NoOpAdGateway] stub), so the VM tests assert that an
+ * assist requests the grant, that [RewardOutcome.Declined] skips it, and that
+ * [RewardOutcome.Unavailable] proceeds with it anyway (ADS-03).
  */
 private class FakeAdGateway(
-    private val grant: Boolean = true,
+    private val outcome: RewardOutcome = RewardOutcome.Granted,
 ) : AdGateway {
     var lastReason: AdReason? = null
         private set
 
-    override suspend fun requestRewarded(reason: AdReason): Boolean {
+    override suspend fun requestRewarded(reason: AdReason): RewardOutcome {
         lastReason = reason
-        return grant
+        return outcome
     }
 
     override fun showInterstitial() = Unit
@@ -1323,11 +1415,11 @@ private class GatedAdGateway : AdGateway {
         gate.complete(Unit)
     }
 
-    override suspend fun requestRewarded(reason: AdReason): Boolean {
+    override suspend fun requestRewarded(reason: AdReason): RewardOutcome {
         started++
         gate.await()
         proceeded++
-        return true
+        return RewardOutcome.Granted
     }
 
     override fun showInterstitial() = Unit
