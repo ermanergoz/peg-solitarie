@@ -126,9 +126,15 @@ android {
     namespace = "com.app.pegsolitaire"
 
     defaultConfig {
-        applicationId = "com.app.pegsolitaire"
-        versionCode = 1
-        versionName = "0.1.0"
+        // This build UPDATES the already-published listing (decided 2026-08-27):
+        // https://play.google.com/store/apps/details?id=com.erman.pegsolitarie
+        // The id must match the published app exactly (note the "-arie" spelling) and the
+        // versionCode must exceed the published versionCode 2 (versionName "2.0").
+        // The `namespace` (code packages, BuildConfig) deliberately stays
+        // com.app.pegsolitaire — only the store identity changes.
+        applicationId = "com.erman.pegsolitarie"
+        versionCode = 3
+        versionName = "3.0.0"
     }
 
     // Pitfall 1: `BuildFeatures.buildConfig` defaults to FALSE in AGP 8+/9 (verified in

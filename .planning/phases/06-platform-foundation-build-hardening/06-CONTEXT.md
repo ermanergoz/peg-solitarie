@@ -56,6 +56,16 @@ Research (`06-RESEARCH.md`) contradicted several milestone-level assumptions by 
 - **D-18:** The enforced offline invariant is **`./gradlew check --offline`**. `assembleRelease` is *not* offline-safe until `org.jetbrains.kotlin:compose-group-mapping:2.3.20` is cached — AGP 9.1.0's `produceReleaseComposeMapping` needs it and it is not in the local cache. Document that each machine/CI runner needs one warm online run.
 - **D-19:** The verified "nothing broke" reference is **299 JVM tests green** via `./gradlew check`, confirmed by a real run at phase start (2026-08-27), not read from stale build output.
 
+### Decisions added at the 06-08 checkpoint (2026-08-27) — published-app discovery
+
+During the External Prerequisites checkpoint the user disclosed an **already-published Peg Solitaire listing**: https://play.google.com/store/apps/details?id=com.erman.pegsolitarie (Java/Realm implementation from https://github.com/ermanergoz/peg-solitarie — no ads, no Play Games, versionCode 2, versionName "2.0", minSdk 16). This milestone **updates that listing** rather than creating a new app.
+
+- **D-20:** `applicationId` changed to **`com.erman.pegsolitarie`** (note the `-arie` spelling), `versionCode` **3**, `versionName` **"3.0.0"**. The Gradle `namespace` deliberately stays `com.app.pegsolitaire` — code packages and `BuildConfig` are unaffected; only the store identity changed. Applied in-phase (app/build.gradle.kts) since 06-09/06-10 consume the manifest and release APK.
+- **D-21:** Signing continuity: the user holds the **original release keystore; the app is NOT enrolled in Play App Signing**. Every release upload must be signed with that exact keystore. **Enroll in Play App Signing at the next upload** (Google adopts the existing key). Until enrollment, the PGS credential story is: original-keystore SHA-1 + debug-keystore SHA-1 (no separate "Play App Signing SHA-1" exists yet) — Phase 14's dual-credential check should be read accordingly.
+- **D-22:** External prerequisites are all cheaper than planned: the Play developer account exists (no $25/verification lead time), the AdMob account exists (link the published app: "Yes, it's listed on Google Play"), and a developer website exists under the user's control (app-ads.txt is an upload, not a hosting project). PGS project gets created ON the existing app entry.
+- **D-23 (accepted consequence):** minSdk is 24 in the rewrite vs 16 in the published app — users on API 16–23 simply won't be offered the update and keep the old version. Old users' local Realm scores do not migrate; they start fresh in the Room/DataStore schema. Both accepted by the user with the update decision.
+- **Phase-14 note:** the cold-start baseline was measured with component `com.app.pegsolitaire/.MainActivity` *before* D-20; the re-measure command becomes `am start -W -n com.erman.pegsolitarie/com.app.pegsolitaire.MainActivity`. Same code, same device — the comparison stays valid.
+
 ### Claude's Discretion
 
 - The exact naming and file placement of the sealed outcome type, the Activity provider, and the build-config plumbing.

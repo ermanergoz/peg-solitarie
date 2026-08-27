@@ -159,3 +159,25 @@ This is an honest smoke-level baseline, not a benchmark-grade number.
 **TBD — plan 06-10.** Phase 6 success criterion 4 ("a release build still launches and plays")
 cannot be automated here: `assembleRelease` emits `app-release-unsigned.apk` and no signing
 config is committed (D-16). Plan 06-10 debug-signs the APK locally for the smoke test.
+
+---
+
+## External prerequisites
+
+Recorded 2026-08-27 at the 06-08 Task 3 checkpoint. **Discovery: this milestone updates the
+already-published listing `com.erman.pegsolitarie`** (see CONTEXT D-20..D-23), which removes the
+two worst lead-time items (developer account, website hosting).
+
+| # | Item | Status | Date | Notes |
+|---|------|--------|------|-------|
+| 1 | Play Console PGS project + OAuth consent + credentials + testers | not started — **unblocked** | 2026-08-27 | Developer account EXISTS (app published). Create the PGS project on the existing `com.erman.pegsolitarie` app entry. Credentials needed: original release-keystore SHA-1 + debug SHA-1 (no Play App Signing yet — D-21; enroll at next upload). |
+| 2 | AdMob ad units (rewarded + interstitial) | not started — **unblocked** | 2026-08-27 | AdMob account EXISTS. Add app via "Yes, it's listed on Google Play" → `com.erman.pegsolitarie`, then create the two units. |
+| 3 | `app-ads.txt` on developer website | not started — **unblocked** | 2026-08-27 | **A developer website EXISTS and the user controls it** — the answer to the milestone's most schedule-relevant question. Remaining work: upload the one-line file, confirm the listing's Website field, wait ≤24 h crawl. |
+| 4 | UMP consent message in AdMob UI | not started | 2026-08-27 | Minutes of work once item 2's app link exists. Blocks Phase 9 (CONS-01). |
+| 5 | 10–12 achievement icons (512×512) | not started | 2026-08-27 | Art production; needed before Phase 12 console config. Popups silently fail without them. |
+| 6 | Saved Games enabled on PGS project | blocked on item 1 | 2026-08-27 | One toggle once the PGS project exists. Blocks Phase 13. |
+
+Lead-time reassessment: with the account and website existing, the longest remaining lead is PGS
+tester propagation (hours–days) and the app-ads.txt crawl (≤24 h) — both comfortably absorbed by
+Phases 7–8 as sequenced. The genuinely user-gated items (1–4, 6) total roughly an hour of console
+work; item 5 is the only open-ended one.
