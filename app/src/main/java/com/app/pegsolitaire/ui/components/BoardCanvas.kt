@@ -17,6 +17,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -125,6 +126,13 @@ fun BoardCanvas(
     // changes because the move id (`moveHistory.size`) recycles after an undo.
     var preparedMoveId by remember { mutableStateOf<Int?>(null) }
 
+    // The squash runs on the composition scope, NOT inside the keyed effect below:
+    // onAnimationFinished() clears `animating`, which changes the effect key to null
+    // and cancels the effect's coroutine — a squash launched there dies between its
+    // snapTo and its settle animateTo, stranding the landed peg at
+    // LANDING_SQUASH_SCALE (visibly smaller) with `landing` never cleared.
+    val squashScope = rememberCoroutineScope()
+
     LaunchedEffect(transition?.id, geometry, interactive) {
         preparedMoveId = null
         if (interactive && transition != null && geometry.isReady) {
@@ -134,10 +142,16 @@ fun BoardCanvas(
                 animationsEnabled = animationsEnabled,
                 jumpOffset = jumpOffset,
                 removalProgress = removalProgress,
-                landingSquash = landingSquash,
-                setLanding = { landing = it },
                 setPrepared = { preparedMoveId = it },
                 onAnimationFinished = onAnimationFinished,
+                startLandingSquash = {
+                    squashScope.launch {
+                        landing = transition.to
+                        landingSquash.snapTo(BoardMetrics.LANDING_SQUASH_SCALE)
+                        landingSquash.animateTo(SETTLED_SCALE, ClayAnim.overshootSpring())
+                        landing = null
+                    }
+                },
             )
         }
     }
@@ -277,10 +291,9 @@ private suspend fun runJumpAnimation(
     animationsEnabled: Boolean,
     jumpOffset: Animatable<Offset, *>,
     removalProgress: Animatable<Float, *>,
-    landingSquash: Animatable<Float, *>,
-    setLanding: (Position?) -> Unit,
     setPrepared: (Int) -> Unit,
     onAnimationFinished: () -> Unit,
+    startLandingSquash: () -> Unit,
 ) {
     if (!animationsEnabled) {
         jumpOffset.snapTo(geometry.center(transition.to))
@@ -304,12 +317,12 @@ private suspend fun runJumpAnimation(
             animationSpec = tween(GameAnim.JUMP_SLIDE_MS, easing = GameAnim.JUMP_SLIDE_EASING),
         )
         // The move is committed the moment the slide lands; the squash is pure
-        // decoration on the settled peg, so the screen is notified first.
-        setLanding(transition.to)
+        // decoration on the settled peg, so the screen is notified first. The squash
+        // is launched on a scope that survives this effect — onAnimationFinished()
+        // clears `animating`, restarting the keyed effect and cancelling this
+        // coroutine before an in-place settle animation could finish.
+        startLandingSquash()
         onAnimationFinished()
-        landingSquash.snapTo(BoardMetrics.LANDING_SQUASH_SCALE)
-        landingSquash.animateTo(SETTLED_SCALE, ClayAnim.overshootSpring())
-        setLanding(null)
     }
 }
 
