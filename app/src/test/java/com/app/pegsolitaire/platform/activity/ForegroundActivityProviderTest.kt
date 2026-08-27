@@ -15,8 +15,8 @@ import org.junit.Test
  *
  * The clear is **identity-checked**: pausing or destroying a *different* Activity must
  * not evict a live one, which is what happens on every A→B transition where B resumes
- * before A pauses. Runner-free (no Robolectric): the lifecycle callbacks are ordinary
- * methods, so they are driven directly with MockK Activity doubles.
+ * before A pauses. Runner-free — no JUnit runner and no Android runtime — because the
+ * lifecycle callbacks are ordinary methods, driven directly with MockK Activity doubles.
  */
 class ForegroundActivityProviderTest {
     private val provider = DefaultForegroundActivityProvider()
