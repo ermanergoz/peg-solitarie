@@ -29,5 +29,7 @@ sealed interface GamesSignInState {
     data object SignedOut : GamesSignInState
 
     /** The player is connected to Play Games as [playerId]. */
-    data class SignedIn(val playerId: String) : GamesSignInState
+    data class SignedIn(
+        val playerId: String,
+    ) : GamesSignInState
 }
