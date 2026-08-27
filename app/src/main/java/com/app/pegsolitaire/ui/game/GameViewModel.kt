@@ -12,6 +12,7 @@ import com.app.pegsolitaire.data.SettingsRepository
 import com.app.pegsolitaire.data.resume.ChallengeStamp
 import com.app.pegsolitaire.data.resume.RestoredGame
 import com.app.pegsolitaire.data.resume.SnapshotMapper
+import com.app.pegsolitaire.domain.generator.ChallengeLevelBounds
 import com.app.pegsolitaire.domain.generator.DifficultyTiers
 import com.app.pegsolitaire.domain.generator.GeneratorConstants
 import com.app.pegsolitaire.domain.model.Board
@@ -122,18 +123,29 @@ class GameViewModel
          * Continue tile can navigate with a stale ladder value before the first DataStore
          * emission, and the board actually restored is the stamped level, so the title,
          * the score multiplier and the Results keying must all follow the stamp.
+         *
+         * **WARN-03: this MUST be the clamped value.** It is the one Challenge level that
+         * escapes this ViewModel — `GameRoute` carries it into the `Results` route, from
+         * where it becomes the database level key and the argument to the "Next level"
+         * action (`onNextLevel(challengeLevel + 1)`). It previously returned the RAW route
+         * arg on the non-restore path while the board actually played was the clamped one,
+         * so a forged arg would have recorded a best under a level that was never played
+         * and offered a "next" level past the frozen ceiling. Delegating to
+         * [activeChallengeLevel] — already clamped on both the route and the restore path —
+         * is the whole fix, and it restores that value's documented invariant that
+         * *everything* level-keyed reads THIS. Do not reintroduce a separate clamp here:
+         * a second expression is a second thing that can drift.
          */
-        val challengeLevel: Int? get() = stampedChallengeLevel ?: routeChallengeLevel
+        val challengeLevel: Int? get() = activeChallengeLevel
 
         /**
          * The Challenge level clamped into a valid, bounded range (T-03-09: an untrusted
          * nav arg must never crash — or hang — the load), or `null` for a Classic game.
-         * The upper clamp to [GeneratorConstants.MAX_CHALLENGE_LEVEL] bounds both the
-         * O(level) generation cost and the level-scaled score, matching the board the
-         * generator actually produces (CR-01).
+         * The upper clamp to [ChallengeLevelBounds.MAX] bounds both the O(level)
+         * generation cost and the level-scaled score, matching the board the generator
+         * actually produces (CR-01). The range itself lives once in `:domain` (D-15).
          */
-        private val clampedChallengeLevel: Int? =
-            routeChallengeLevel?.coerceIn(MIN_CHALLENGE_LEVEL, GeneratorConstants.MAX_CHALLENGE_LEVEL)
+        private val clampedChallengeLevel: Int? = routeChallengeLevel?.let(ChallengeLevelBounds::clamp)
 
         /**
          * The Challenge level restored from the snapshot's provenance stamp, clamped into
@@ -391,7 +403,7 @@ class GameViewModel
             // equally untrusted (T-03-09).
             restored.challenge
                 ?.level
-                ?.coerceIn(MIN_CHALLENGE_LEVEL, GeneratorConstants.MAX_CHALLENGE_LEVEL)
+                ?.let(ChallengeLevelBounds::clamp)
                 ?.let { stampedChallengeLevel = it }
             initialBoard = restored.initialBoard
             moveHistory.clear()
@@ -834,8 +846,5 @@ class GameViewModel
 
             /** The timer counts whole seconds; the resume snapshot stores milliseconds. */
             const val MILLIS_IN_SECOND = 1_000L
-
-            /** The lowest valid Challenge level; a `< 1` nav arg clamps up to it (T-03-09). */
-            const val MIN_CHALLENGE_LEVEL = 1
         }
     }

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
+import com.app.pegsolitaire.domain.generator.ChallengeLevelBounds
 import com.app.pegsolitaire.domain.scoring.ScoreParams
 import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.app.pegsolitaire.navigation.Results
@@ -30,13 +31,23 @@ import javax.inject.Inject
  * best independently (D-07) and reports which fields improved, which becomes the
  * "New best!" cue on the screen (D-09).
  *
- * Two guards keep that write honest:
+ * Three guards keep that write honest:
  *  - **Only a solved play is recorded (D-08).** A board that did not fold to a single
  *    peg reaches Results in its stuck/Retry state (D-10) and must not leave a stored
  *    best behind for a level that was never solved.
  *  - **It is recorded at most once (T-05-09).** The guard flag lives in the
  *    [SavedStateHandle], so neither a configuration change (same instance) nor a
  *    process-death restore (new instance, same handle) can double-count the play.
+ *  - **The Challenge level is clamped at this boundary (WARN-03, T-06-20).** `Results`
+ *    is a typed route in `AppNavHost` reachable *independently* of `GameRoute`, so its
+ *    `challengeLevel` arg is untrusted in its own right rather than merely downstream of
+ *    `GameViewModel`'s clamp. It is coerced once into the `:domain`
+ *    [ChallengeLevelBounds] range and every read below — the headline tier, the exposed
+ *    [ResultsUiState.challengeLevel] that drives `onNextLevel(challengeLevel + 1)`, the
+ *    mode branch, and the database level key — uses that one value. A forged or
+ *    out-of-range arg therefore cannot reach the stored key or the "Next level" action.
+ *
+ * @see ChallengeLevelBounds.clamp for why the policy is fail-safe rather than a reject.
  *
  * Replay re-plays the played `levelId`. Classic has no "next board" (a Challenge-mode
  * concept), so no catalog lookup is needed.
@@ -54,6 +65,15 @@ class ResultsViewModel
     ) : ViewModel() {
         private val args = savedStateHandle.toRoute<Results>()
 
+        /**
+         * The one clamped Challenge level for this result, or `null` for Classic — the
+         * WARN-03 boundary. Everything level-keyed below reads THIS and never the raw
+         * route arg again — this line is its only read — mirroring the "one clamped
+         * value" structure `GameViewModel` uses. The null stays null so a Classic play
+         * is never mis-recorded as Challenge level 1.
+         */
+        private val challengeLevel: Int? = args.challengeLevel?.let(ChallengeLevelBounds::clamp)
+
         private val _uiState =
             MutableStateFlow(
                 ResultsUiState(
@@ -65,10 +85,10 @@ class ResultsViewModel
                         tierFor(
                             stars = args.stars,
                             pegsRemaining = args.pegsRemaining,
-                            challengeLevel = args.challengeLevel,
+                            challengeLevel = challengeLevel,
                         ),
                     replayId = args.levelId,
-                    challengeLevel = args.challengeLevel,
+                    challengeLevel = challengeLevel,
                 ),
             )
 
@@ -93,12 +113,12 @@ class ResultsViewModel
             savedStateHandle[RECORDED_KEY] = true
 
             val mode =
-                if (args.challengeLevel != null) {
+                if (challengeLevel != null) {
                     ProgressPersistenceKeys.MODE_CHALLENGE
                 } else {
                     ProgressPersistenceKeys.MODE_CLASSIC
                 }
-            val levelId = args.challengeLevel?.toString() ?: args.levelId
+            val levelId = challengeLevel?.toString() ?: args.levelId
 
             viewModelScope.launch {
                 val newBests =

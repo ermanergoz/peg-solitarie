@@ -10,6 +10,8 @@ import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.SettingsRepository
+import com.app.pegsolitaire.domain.generator.ChallengeLevelBounds
+import com.app.pegsolitaire.domain.generator.GeneratorConstants
 import com.app.pegsolitaire.domain.generator.LevelGenerator
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardSpec
@@ -134,9 +136,67 @@ class GameViewModelTest {
                 viewModelFor(Boards.english33Initial, challengeLevel = BELOW_MIN_CHALLENGE_LEVEL)
             runCurrent()
 
-            assertThat(viewModel.challengeLevel).isEqualTo(BELOW_MIN_CHALLENGE_LEVEL)
+            // WARN-03: the EXPOSED level is the clamped one too. `GameRoute` carries this
+            // value into the Results route, so a raw `0` here would key the result under a
+            // level that was never played and drive "Next level" as `0 + 1`.
+            assertThat(viewModel.challengeLevel).isEqualTo(ChallengeLevelBounds.MIN)
             assertThat(viewModel.uiState.value.board.pegCount).isGreaterThan(1)
             assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Playing)
+
+            cancelTickers()
+        }
+
+    // ---- WARN-03: the exposed Challenge level is always the played one ---------
+
+    @Test
+    fun aNegativeChallengeLevelArgIsExposedAsTheLowestValidLevel() =
+        runTest(testDispatcher) {
+            val viewModel =
+                viewModelFor(Boards.english33Initial, challengeLevel = NEGATIVE_CHALLENGE_LEVEL)
+            runCurrent()
+
+            assertThat(viewModel.challengeLevel).isEqualTo(ChallengeLevelBounds.MIN)
+
+            cancelTickers()
+        }
+
+    @Test
+    fun aForgedHugeChallengeLevelArgIsExposedAsTheFrozenCeiling() =
+        runTest(testDispatcher) {
+            // The load itself is already bounded (CR-01); what WARN-03 is about is the
+            // value that ESCAPES the ViewModel. It must name the level actually loaded.
+            val levelRepository = RecordingChallengeLevelRepository(Boards.english33Initial)
+            val viewModel =
+                viewModelFor(
+                    Boards.english33Initial,
+                    challengeLevel = Int.MAX_VALUE,
+                    levelRepository = levelRepository,
+                )
+            runCurrent()
+
+            assertThat(viewModel.challengeLevel).isEqualTo(GeneratorConstants.MAX_CHALLENGE_LEVEL)
+            // …and it is exactly the level the repository was asked for — the exposed level
+            // and the played board can never name different levels.
+            assertThat(levelRepository.lastChallengeLevel).isEqualTo(viewModel.challengeLevel)
+
+            cancelTickers()
+        }
+
+    @Test
+    fun anInRangeChallengeLevelArgIsExposedUnchanged() =
+        runTest(testDispatcher) {
+            // The non-regression half: clamping must be invisible to every real player.
+            val levelRepository = RecordingChallengeLevelRepository(Boards.english33Initial)
+            val viewModel =
+                viewModelFor(
+                    Boards.english33Initial,
+                    challengeLevel = CHALLENGE_LEVEL_WITH_CHOICES,
+                    levelRepository = levelRepository,
+                )
+            runCurrent()
+
+            assertThat(viewModel.challengeLevel).isEqualTo(CHALLENGE_LEVEL_WITH_CHOICES)
+            assertThat(levelRepository.lastChallengeLevel).isEqualTo(CHALLENGE_LEVEL_WITH_CHOICES)
 
             cancelTickers()
         }
@@ -1167,6 +1227,7 @@ class GameViewModelTest {
         timeSource: TimeSource = TestTimeSource(),
         settings: SettingsRepository = FakeSettingsRepository(),
         adGateway: AdGateway = FakeAdGateway(),
+        levelRepository: LevelRepository = FakeLevelRepository(boardsById = mapOf(levelId to board)),
     ): GameViewModel {
         val args =
             buildMap<String, Any?> {
@@ -1179,7 +1240,7 @@ class GameViewModelTest {
                 override fun <T : ViewModel> create(modelClass: Class<T>): T =
                     GameViewModel(
                         rulesEngine = RulesEngine,
-                        levelRepository = FakeLevelRepository(boardsById = mapOf(levelId to board)),
+                        levelRepository = levelRepository,
                         scoreCalculator = ScoreCalculator,
                         settingsRepository = settings,
                         // This spec is about gameplay, not the Challenge ladder; a relaxed
@@ -1285,6 +1346,9 @@ private const val CHALLENGE_LEVEL_WITH_CHOICES = 10
 /** A forged sub-1 Challenge nav arg that must clamp to level 1 (T-03-09). */
 private const val BELOW_MIN_CHALLENGE_LEVEL = 0
 
+/** A forged negative Challenge nav arg — the other side of the lower bound (WARN-03). */
+private const val NEGATIVE_CHALLENGE_LEVEL = -1
+
 /** One timer tick (1s) of virtual time, plus a margin so the `delay(1000)` fires. */
 private const val ONE_TICK_MILLIS = 1_001L
 
@@ -1335,6 +1399,41 @@ private class FakeLevelRepository(
             generatorVersion = generated.generatorVersion,
         )
     }
+}
+
+/**
+ * A [LevelRepository] that serves one fixed board for ANY Challenge level and records
+ * the level number it was asked for.
+ *
+ * Two jobs. It keeps the forged-arg specs fast — the real generator replays the
+ * deterministic chain from level 1, so asking it for the clamped `MAX_CHALLENGE_LEVEL`
+ * would do ten thousand reverse walks to prove a one-line getter. And by recording the
+ * requested level it lets the spec assert the WARN-03 invariant directly: the level the
+ * ViewModel EXPOSES is the level whose board it actually loaded.
+ */
+private class RecordingChallengeLevelRepository(
+    private val board: Board,
+) : LevelRepository {
+    var lastChallengeLevel: Int? = null
+        private set
+
+    override fun classicCatalog(): List<ClassicLevelDescriptor> = emptyList()
+
+    override fun loadClassic(levelId: String): Level = levelOf(levelId)
+
+    override fun loadChallenge(levelNumber: Int): Level {
+        lastChallengeLevel = levelNumber
+        return levelOf("challenge-$levelNumber")
+    }
+
+    private fun levelOf(id: String): Level =
+        Level(
+            id = id,
+            displayName = id,
+            spec = board.spec,
+            initialBoard = board,
+            holeCount = board.spec.inPlay.size,
+        )
 }
 
 /**
