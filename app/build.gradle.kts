@@ -33,6 +33,61 @@ android {
         versionName = "0.1.0"
     }
 
+    // PLAT-05 / D-11. Placement matters and is load-bearing for the `sourceSets` line
+    // below: declaring `debug { }` here CONFIGURES the always-present debug build type
+    // rather than creating a new one, so `sourceSets.getByName("debug")` and the
+    // `mergeDebugAssets -> copyRoomSchemas` dependency further down keep their meaning.
+    // Keeping `buildTypes` immediately above them is what makes that readable to the
+    // next author. Verified after adding this block with
+    // `./gradlew :app:testDebugUnitTest --tests "*MigrationTest"` — the
+    // "Cannot find the schema file in the assets folder" failure mode did not occur.
+    //
+    // No `gradle.properties` R8 entry is needed: read out of AGP 9.1.0's
+    // BooleanOption.kt, `android.enableR8.fullMode` and
+    // `android.r8.strictFullModeForKeepRules` BOTH already default to `true`. Writing
+    // `android.enableR8.fullMode=false` would be a regression, not documentation.
+    //
+    // `android.proguard.failOnMissingFiles` also defaults to `true`, so the
+    // `file("proguard-rules.pro")` reference below fails the build outright if that
+    // file is missing — it is committed alongside this block for exactly that reason.
+    buildTypes {
+        debug {
+            // Intentionally empty today. It exists so the block is complete and so the
+            // debug-type-is-configured-not-created constraint above is documented at
+            // the point of risk. Plan 06-07 adds the per-type build-config and string
+            // resource entries (Google's test ad units, D-05) here — together with the
+            // build-feature flag that enables BuildConfig generation, which defaults to
+            // FALSE in AGP 9.1.0 and so must land in the same commit as its fields.
+        }
+        release {
+            // R8 (full mode, per the note above) plus the resource shrinker. The
+            // measured effect on this dependency set is 9,890,332 B -> 1,518,323 B
+            // (-84.6%); the ~5.5 MB ads SDK and its transitives land in plan 06-09, so
+            // minification has to exist before they arrive.
+            isMinifyEnabled = true
+            // Safe here despite `font_certs.xml` being an array OF array references
+            // (`@array/..._dev` / `..._prod`) reached only as
+            // `R.array.com_google_android_gms_fonts_certs` from ui/theme/Type.kt: the
+            // shrinker follows resource->resource references, verified against the
+            // shrunk APK with `aapt2 dump resources`. If it had not, downloadable
+            // Fredoka/Nunito would silently fall back to the default font — the one
+            // player-visible thing R8 could plausibly break here.
+            isShrinkResources = true
+            // `proguard-android-optimize.txt`, NOT the plain variant: the optimizing
+            // baseline is AGP's current recommendation and is the maintained rule set,
+            // so nothing in this repo has to re-derive it by hand.
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                file("proguard-rules.pro"),
+            )
+            // No signing is configured here, deliberately (D-16): real release signing
+            // is Phase 14 scope, and a committed debug-keystore shortcut is exactly the
+            // kind of thing that survives to a store upload. `assembleRelease` therefore
+            // emits `app-release-unsigned.apk`; plan 06-10's launch smoke test signs
+            // that locally with the debug key without committing anything.
+        }
+    }
+
     // Put the exported Room schema on the DEBUG variant's assets so Robolectric's
     // MigrationTestHelper can resolve `<db-class>/1.json` JVM-side (this project has
     // no `androidTest` source set, so the migration test runs in `test/`).
