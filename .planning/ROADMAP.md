@@ -24,7 +24,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) · Audit:
 
 **Milestone Goal:** Turn the shipped offline game into a release-ready product by wiring real Play Games and AdMob SDKs behind the existing seams, adding sound, and paying down carried tech debt.
 
-- [ ] **Phase 6: Platform Foundation & Build Hardening** - Activity bridge, extended seams, R8, build-config IDs, purity/dependency gates, security advisories closed — zero player-visible change
+- [x] **Phase 6: Platform Foundation & Build Hardening** - Activity bridge, extended seams, R8, build-config IDs, purity/dependency gates, security advisories closed — zero player-visible change (completed 2026-08-27)
 - [ ] **Phase 7: Sound** - The 11-event SFX set consuming the already-persisted `soundOn` flag
 - [ ] **Phase 8: Assist & Generator Quality Debt** - Hints tell the truth on hard early positions; every Classic board's solvability is proven
 - [ ] **Phase 9: Consent & Rewarded Ads** - UMP consent, opt-in-first rewarded assists, fail-open on no-fill, clock frozen across every ad
@@ -71,7 +71,7 @@ Plans:
 - [x] 06-07-PLAN.md — PLAT-06: build-config ad/PGS IDs, unit-tested release-fail gate, no ID literals (wave 2)
 - [x] 06-08-PLAN.md — PLAT-05/D-12: pre-SDK cold-start baseline + External Prerequisites kickoff (wave 2, manual)
 - [x] 06-09-PLAN.md — PLAT-07/PLAT-04: SDK artifacts on the graph, manifest surface gate, negative boundary gate (wave 3)
-- [ ] 06-10-PLAN.md — PLAT-05/PLAT-07: `check --offline`, debug-signed release smoke test, doc corrections (wave 4, manual)
+- [x] 06-10-PLAN.md — PLAT-05/PLAT-07: `check --offline`, debug-signed release smoke test, doc corrections (wave 4, manual)
 **Notes**: This is the dependency root of the milestone — `ForegroundActivityProvider` is required by ads, consent, *and* Play Games. Also capture the pre-SDK cold-start baseline here; Phase 14 measures against it (PLAT-08). Kick off every External Prerequisite above on day 1 of this phase.
 
 ### Phase 7: Sound
@@ -185,7 +185,7 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 3. Challenge Generation & Difficulty Curve | v1.0 | 5/5 | Complete | 2026-07-01 |
 | 4. Assist — Hint & Undo | v1.0 | 6/6 | Complete | 2026-07-12 |
 | 5. Persistence, Resume & Settings | v1.0 | 7/7 | Complete | 2026-08-25 |
-| 6. Platform Foundation & Build Hardening | v1.1 | 9/10 | In Progress|  |
+| 6. Platform Foundation & Build Hardening | v1.1 | 10/10 | Complete   | 2026-08-27 |
 | 7. Sound | v1.1 | 0/TBD | Not started | - |
 | 8. Assist & Generator Quality Debt | v1.1 | 0/TBD | Not started | - |
 | 9. Consent & Rewarded Ads | v1.1 | 0/TBD | Not started | - |
