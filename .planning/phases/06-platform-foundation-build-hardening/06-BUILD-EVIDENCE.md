@@ -356,3 +356,54 @@ Lead-time reassessment: with the account and website existing, the longest remai
 tester propagation (hours–days) and the app-ads.txt crawl (≤24 h) — both comfortably absorbed by
 Phases 7–8 as sequenced. The genuinely user-gated items (1–4, 6) total roughly an hour of console
 work; item 5 is the only open-ended one.
+
+---
+
+## Offline contract (D-18)
+
+Verified 2026-08-27 (plan 06-10 Task 1):
+
+- `org.jetbrains.kotlin:compose-group-mapping/2.3.20` confirmed present in
+  `~/.gradle/caches/modules-2/files-2.1/` (warmed by 06-03's earlier online `assembleRelease`
+  on this machine — no fresh warming run was needed).
+- `./gradlew check --offline` → **GREEN** (344 app+domain tests + 7 build-logic, 0 failures).
+  This is the enforced PLAT-07/D-18 invariant.
+- `./gradlew :app:assembleRelease` (online-capable) → fails **by design** with the D-09 gate
+  when no IDs are configured (see below); with IDs configured it builds green from cache.
+- **Provisioning instruction:** a new machine or CI runner must run `./gradlew :app:assembleRelease`
+  online once (with IDs configured) before any offline behaviour can be asserted. `check` never
+  needs the network.
+
+**Offline-safe:** `check`, `test`, `assembleDebug`, `installDebug`. **Not offline-safe until
+warmed:** `assembleRelease` / `bundleRelease` (compose-group-mapping resolution).
+
+## D-09 release-ID gate — observed live
+
+During Task 1 the very first `assembleRelease` of this session failed in **332 ms at
+configuration time** naming all four keys (`ADMOB_APP_ID`, `ADMOB_REWARDED_AD_UNIT_ID`,
+`ADMOB_INTERSTITIAL_AD_UNIT_ID`, `PGS_PROJECT_ID`) with both remediation paths and the
+"Debug builds use Google test IDs and need no configuration" footer. This is the gate's first
+real-world firing — proof it bites in practice, not only in `AdIdResolutionTest`.
+
+## Release smoke test (D-16, success criterion 4)
+
+Method: Google's canonical **test** IDs temporarily placed in the untracked `local.properties`
+(zero ban risk — they are the published test units; if this APK escaped it would serve test
+ads), `assembleRelease` → **1,983,331 B, byte-identical to APK ledger row 3** → signed with the
+**debug keystore via apksigner** (no `signingConfig` committed, per D-16) → installed on AVD
+`Pixel_9a` (API 36) as `com.erman.pegsolitarie` v3 (D-20 identity).
+
+Observed on the R8-minified, resource-shrunk release build:
+- `am start -W` → `Status: ok`, TotalTime 890 ms (uninstrumented single launch, not a baseline)
+- First-run onboarding overlay renders fully — Candy Clay peg gradients, copy, both CTAs
+- "Skip tutorial" → Home renders: gradient Fredoka title, both clay mode tiles with glyphs,
+  Continue — Level 1 chip, background blobs → the `onboardingSeen` DataStore write survived
+  minification, and shrinkResources did not strip the downloadable-font certs (fonts render)
+- No crash, no missing-class error in logcat during the observed session
+
+**Cleanup verified:** the test IDs were removed from `local.properties` immediately after the
+smoke build; a follow-up `assembleRelease` fails again naming all four keys. Leaving them in
+place would have let a future real release silently ship test IDs — the one failure mode the
+presence-based gate cannot detect.
+
+Player-verification of actual gameplay on this build: recorded at the 06-10 Task 2 checkpoint.
