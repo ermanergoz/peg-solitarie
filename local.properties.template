@@ -1,0 +1,31 @@
+# Template for the untracked `local.properties` (PLAT-06 / D-08).
+#
+# Copy the keys below into your own `local.properties` (which is gitignored) and replace
+# every REPLACE_ME value, or set the SAME-NAMED environment variables in CI. An
+# environment variable wins over a `local.properties` entry for the same key.
+#
+# These are NOT cryptographic secrets — they ship inside the APK and anyone can read them
+# out of a published build. They are kept out of version control for a different reason:
+# a committed ID lets a forked repo serve ads against this AdMob account, and invalid
+# traffic gets an AdMob account suspended non-appealably.
+#
+# A DEBUG BUILD NEEDS NONE OF THIS. `assembleDebug`, `check`, `test` and Android Studio
+# sync all work on a fresh clone with this file never copied — debug is hard-wired to
+# Google's published test ad units (see build-logic/src/main/kotlin/AdIdDefaults.kt).
+# Only a release invocation (`assembleRelease`, `bundleRelease`, or a bare `assemble` /
+# `build` / `bundle`, which build both variants) requires real values; it fails at
+# configuration time with a message naming the exact key that is missing.
+#
+# A value that is absent, blank, or still prefixed `REPLACE_ME` all count as "not set".
+
+# AdMob application ID — the `ca-app-pub-…~…` form (tilde, not slash).
+ADMOB_APP_ID=REPLACE_ME_ADMOB_APP_ID
+
+# Rewarded ad unit — the hint / undo / retry surface.
+ADMOB_REWARDED_AD_UNIT_ID=REPLACE_ME_ADMOB_REWARDED_AD_UNIT_ID
+
+# Interstitial ad unit — the between-levels surface.
+ADMOB_INTERSTITIAL_AD_UNIT_ID=REPLACE_ME_ADMOB_INTERSTITIAL_AD_UNIT_ID
+
+# Play Games Services project ID from the Play Console (numeric).
+PGS_PROJECT_ID=REPLACE_ME_PGS_PROJECT_ID

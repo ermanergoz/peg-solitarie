@@ -1,3 +1,7 @@
+// Explicit import: inside a Gradle Kotlin DSL script the `java` accessor shadows the
+// `java` package, so a fully-qualified `java.util.Properties` does not resolve here.
+import java.util.Properties
+
 plugins {
     id("android-app")
     id("standards")
@@ -24,6 +28,100 @@ room {
     schemaDirectory(roomSchemaDir)
 }
 
+// ---- PLAT-06 / D-05 / D-08 / D-09: build-time ad + Play Games IDs -------------
+// The resolution itself lives in `build-logic/src/main/kotlin/AdIdResolution.kt` as a
+// Gradle-free pure function so it can be unit-tested (AGP 9.1.0 gives :app no
+// `testReleaseUnitTest`, so the release-failure contract is unprovable from here).
+// This file only supplies its two input maps and acts on the result.
+//
+// `local.properties` is NOT automatically exposed as Gradle properties — AGP reads only
+// `sdk.dir` out of it — so it is parsed by hand. `providers.fileContents` /
+// `providers.environmentVariable` are the configuration-cache-safe accessors; a plain
+// FileInputStream would work today (CC is off) but would be a future migration blocker.
+val adIdEnv: Map<String, String> =
+    AdIdKeys.ALL
+        .mapNotNull { key -> providers.environmentVariable(key).orNull?.let { key to it } }
+        .toMap()
+
+val adIdLocal: Map<String, String> =
+    providers
+        .fileContents(rootProject.layout.projectDirectory.file("local.properties"))
+        .asText.orNull
+        ?.let { text -> Properties().apply { load(text.reader()) } }
+        ?.let { props ->
+            AdIdKeys.ALL.mapNotNull { key -> props.getProperty(key)?.let { key to it } }.toMap()
+        }
+        ?: emptyMap()
+
+// Pitfall 3 / D-08. AGP configures EVERY variant on EVERY invocation, so a naive check
+// inside `release { }` would fire during `assembleDebug` and during IDE sync — breaking
+// "a fresh clone builds successfully". `gradle.startParameter.taskNames` is the one
+// signal that distinguishes what the user actually asked for, and it is EMPTY during
+// IDE sync, which is exactly the behaviour we want.
+//
+// The tradeoff, stated plainly: `./gradlew build`, `assemble` or `bundle` on a fresh
+// clone with no IDs configured fails with an actionable message, while `assembleDebug`,
+// `check`, `test` and IDE sync never do. `assemble`/`build`/`bundle` are named here
+// because they build BOTH variants; `elease` covers `assembleRelease`, `bundleRelease`
+// and their `:app:`-qualified forms.
+val wholeProjectTaskNames = setOf("assemble", "build", "bundle")
+val isReleaseInvocation =
+    gradle.startParameter.taskNames.any { requested ->
+        requested.contains("elease") || requested.substringAfterLast(':') in wholeProjectTaskNames
+    }
+
+// The value the release variant carries when configuration ran outside a release
+// invocation and nothing was configured. Deliberately not a valid ID and deliberately
+// self-describing: if it ever surfaces in a log or an APK, it says what to do about it.
+val unresolvedReleaseId = "UNRESOLVED-see-local.properties.template"
+
+// Debug can never fail: with nothing configured it falls back to Google's test units.
+val debugIds =
+    AdIdResolution.resolve(adIdEnv, adIdLocal, isRelease = false) as AdIdResolutionResult.Resolved
+
+// D-09 is fail-fast, deliberately: a warning in a long Gradle log is what gets missed
+// before a store upload, so this throws — the same register as `standards.gradle.kts`'s
+// gates and `ClassicLevelSource`'s `requireNotNull`.
+val releaseIds =
+    when (val resolved = AdIdResolution.resolve(adIdEnv, adIdLocal, isRelease = true)) {
+        is AdIdResolutionResult.Resolved -> resolved
+        is AdIdResolutionResult.Failure -> {
+            if (isReleaseInvocation) {
+                throw GradleException(resolved.message)
+            }
+            // Not a release invocation, so configuration must still succeed. The release
+            // variant gets a loud unresolved marker rather than the debug test IDs:
+            // silently substituting a test unit is precisely how test IDs reach
+            // production. Any invocation the name gate above misses is still caught by
+            // `verifyReleaseAdIds` below, before the APK/AAB is packaged.
+            AdIdResolutionResult.Resolved(
+                appId = unresolvedReleaseId,
+                rewarded = unresolvedReleaseId,
+                interstitial = unresolvedReleaseId,
+                gamesProjectId = unresolvedReleaseId,
+            )
+        }
+    }
+
+// Execution-time backstop for the same rule. The task-name gate above is a heuristic —
+// it cannot be proven exhaustive over every invocation form — so the packaging tasks
+// carry a hard dependency that re-runs the identical resolution and fails outright.
+val verifyReleaseAdIds =
+    tasks.register("verifyReleaseAdIds") {
+        group = "verification"
+        description = "Fails if a release package would be built without real ad/PGS IDs."
+        doLast {
+            val result = AdIdResolution.resolve(adIdEnv, adIdLocal, isRelease = true)
+            if (result is AdIdResolutionResult.Failure) {
+                throw GradleException(result.message)
+            }
+        }
+    }
+
+tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }.configureEach {
+    dependsOn(verifyReleaseAdIds)
+}
+
 android {
     namespace = "com.app.pegsolitaire"
 
@@ -31,6 +129,22 @@ android {
         applicationId = "com.app.pegsolitaire"
         versionCode = 1
         versionName = "0.1.0"
+    }
+
+    // Pitfall 1: `BuildFeatures.buildConfig` defaults to FALSE in AGP 8+/9 (verified in
+    // gradle-api-9.1.0-sources BuildFeatures.kt:49). Without this flag every build-config
+    // field declared below silently generates nothing and `BuildConfig.REWARDED_AD_UNIT_ID`
+    // fails to resolve with an "unresolved reference" that survives a clean build — so the
+    // flag lands in the same commit as its fields, never after.
+    buildFeatures {
+        buildConfig = true
+        // Same story, second flag — and one RESEARCH's Pitfall 1 missed. AGP 9.1.0 also
+        // gates custom resource values behind a feature flag, but fails LOUDLY rather
+        // than silently: "Build Type debug contains custom resource values, but the
+        // feature is disabled." Verified by hitting it. Note for anyone counting the
+        // custom resource entries below with grep: this flag's name shares their prefix,
+        // so a naive count comes back one high.
+        resValues = true
     }
 
     // PLAT-05 / D-11. Placement matters and is load-bearing for the `sourceSets` line
@@ -52,12 +166,27 @@ android {
     // file is missing — it is committed alongside this block for exactly that reason.
     buildTypes {
         debug {
-            // Intentionally empty today. It exists so the block is complete and so the
-            // debug-type-is-configured-not-created constraint above is documented at
-            // the point of risk. Plan 06-07 adds the per-type build-config and string
-            // resource entries (Google's test ad units, D-05) here — together with the
-            // build-feature flag that enables BuildConfig generation, which defaults to
-            // FALSE in AGP 9.1.0 and so must land in the same commit as its fields.
+            // D-05: Google's published TEST units, always — never a real ad unit in a
+            // build a developer or CI can run. Requesting a real unit from a development
+            // device is what gets an AdMob account suspended for invalid traffic, and
+            // that suspension is non-appealable. These come from `AdIdDefaults` unless
+            // the developer explicitly overrides a key, so a fresh clone with no
+            // configuration at all still builds and still cannot serve a real ad (D-08).
+            //
+            // Pitfall 2: the third argument is a Java/Kotlin SOURCE LITERAL, not a value,
+            // so a String field needs the embedded quotes. Omitting them produces an
+            // unresolved-identifier compile error inside generated `BuildConfig.java`.
+            buildConfigField("String", "ADMOB_APP_ID", "\"${debugIds.appId}\"")
+            buildConfigField("String", "REWARDED_AD_UNIT_ID", "\"${debugIds.rewarded}\"")
+            buildConfigField("String", "INTERSTITIAL_AD_UNIT_ID", "\"${debugIds.interstitial}\"")
+            // Why the same values are ALSO emitted as string resources: manifest
+            // `meta-data` cannot read `BuildConfig`, the AdMob app ID has to appear in the
+            // manifest for UMP, and the Play Games project ID *must* be a `@string`
+            // reference because a bare numeric `android:value` is parsed as an integer.
+            // Nothing consumes these two resources until Phase 9 wires the manifest, so
+            // the resource shrinker may drop them from release until then — expected.
+            resValue("string", "admob_app_id", debugIds.appId)
+            resValue("string", "game_services_project_id", debugIds.gamesProjectId)
         }
         release {
             // R8 (full mode, per the note above) plus the resource shrinker. The
@@ -85,6 +214,16 @@ android {
             // kind of thing that survives to a store upload. `assembleRelease` therefore
             // emits `app-release-unsigned.apk`; plan 06-10's launch smoke test signs
             // that locally with the debug key without committing anything.
+
+            // D-08: the real IDs, resolved from an untracked `local.properties` or a
+            // same-named CI environment variable — never from a committed file. Reaching
+            // this line with anything unresolved on a release invocation is impossible:
+            // the resolver threw above.
+            buildConfigField("String", "ADMOB_APP_ID", "\"${releaseIds.appId}\"")
+            buildConfigField("String", "REWARDED_AD_UNIT_ID", "\"${releaseIds.rewarded}\"")
+            buildConfigField("String", "INTERSTITIAL_AD_UNIT_ID", "\"${releaseIds.interstitial}\"")
+            resValue("string", "admob_app_id", releaseIds.appId)
+            resValue("string", "game_services_project_id", releaseIds.gamesProjectId)
         }
     }
 
