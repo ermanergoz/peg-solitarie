@@ -61,8 +61,8 @@ A polished native Android peg solitaire game with two modes: a **Classic** mode 
 ### Slice 2 (deferred — interfaces now, SDKs later)
 | Technology | Version | Purpose | Notes |
 |------------|---------|---------|-------|
-| Google Play Games Services v2 | `com.google.android.gms:play-services-games-v2` (pin latest at integration, ~21.x) | Sign-in, leaderboards, achievements, cloud (Saved Games) | v2 SDK only — v1 APIs are being removed (deprecated APIs dropped from the SDK starting May 2026). Sits behind the `GamesService` interface. |
-| Google Mobile Ads (AdMob) | **play-services-ads 23.6.0** | Rewarded (hint/undo/retry) + interstitial (between levels) | Use 23.6.0 stable for current privacy/UMP compliance. A "Next-Gen" GMA SDK was announced Jan 2026 — evaluate at Slice 2, but the classic `play-services-ads` line remains the safe default. Sits behind the `AdGateway` interface. |
+| Google Play Games Services v2 | `com.google.android.gms:play-services-games-v2` **22.0.0** (pinned by v1.1 Phase 6, plan 06-09) | Sign-in, leaderboards, achievements, cloud (Saved Games) | v2 SDK only — v1 APIs are being removed (deprecated APIs dropped from the SDK starting May 2026). Sits behind the `GamesService` interface. |
+| Google Mobile Ads (AdMob) | **GMA Next-Gen `com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk` 1.4.0** (v1.1 requirements decision, 2026-08-27 — supersedes the earlier legacy-SDK 23.6.0 pin) | Rewarded (hint/undo) + interstitial (between levels) | The legacy `play-services-ads` line was deprecated 2026-02-17 and sunsets 2027 — do NOT reintroduce it. Next-Gen has been Google's preferred Android ads SDK since 2026-07; its one limitation (AdMob-only mediation) doesn't affect this project. Sits behind the `AdGateway` interface. Retry is deliberately never ad-gated. |
 | User Messaging Platform (UMP) | `com.google.android.ump:user-messaging-platform` (latest) | GDPR/consent for ads | Required before serving ads in consent regions. |
 ### Testing Stack
 | Library | Version | Purpose | When to Use |
@@ -105,14 +105,14 @@ A polished native Android peg solitaire game with two modes: a **Classic** mode 
 | **Material 2** (`androidx.compose.material`) | Legacy design system. | **Material 3** (`androidx.compose.material3`). |
 | **SharedPreferences / EncryptedSharedPreferences** | Synchronous, error-prone; ESP deprecated. | **DataStore Preferences**. |
 | **Play Games Services v1** | v1 APIs being removed from the SDK (starting May 2026). | **Play Games Services v2** (`play-services-games-v2`). |
-| **Google H5 Games Ads** | HTML5-only; incompatible with native build (already in Out of Scope). | **AdMob** (`play-services-ads`). |
+| **Google H5 Games Ads** | HTML5-only; incompatible with native build (already in Out of Scope). | **AdMob** (`ads-mobile-sdk`, GMA Next-Gen). |
 | **LiveData / RxJava for new state** | Coroutines/Flow is the project + ecosystem standard. | `StateFlow`/`SharedFlow`. |
 | **Hand-pinned individual Compose versions** | Drift/incompatibility across Compose modules. | **Compose BOM** governs all Compose artifacts. |
 ## Stack Patterns by Variant
 - Everything above except the Slice 2 SDK block.
 - `AdGateway` and `GamesService` are no-op/auto-grant stubs bound in a Hilt module — production impls are swapped in Slice 2 without touching gameplay code.
 - Domain layer (`RulesEngine`, `LevelGenerator`, `Solver`, `ScoreCalculator`) is a **pure-Kotlin module/package with zero Android deps** → JVM unit tests only, highest coverage target.
-- Add `play-services-ads` + UMP behind `AdGateway`; add `play-services-games-v2` behind `GamesService`.
+- Add `ads-mobile-sdk` (GMA Next-Gen) + UMP behind `AdGateway`; add `play-services-games-v2` behind `GamesService`.
 - Cloud save (Play Games Saved Games) becomes a *second data source* behind the existing `ProgressRepository` — repositories stay the single source of truth.
 - Pin exact SDK versions at this point (they move fast).
 ## Version Compatibility

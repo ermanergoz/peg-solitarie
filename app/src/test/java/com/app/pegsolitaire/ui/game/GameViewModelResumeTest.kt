@@ -14,6 +14,7 @@ import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.data.SettingsRepository
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
+import com.app.pegsolitaire.domain.generator.GeneratorConstants
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Boards
@@ -25,6 +26,7 @@ import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
+import com.app.pegsolitaire.platform.ads.RewardOutcome
 import com.google.common.truth.Truth.assertThat
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -231,6 +233,35 @@ class GameViewModelResumeTest {
             val saved = progressRepository.snapshots[ProgressPersistenceKeys.MODE_CHALLENGE]
             assertThat(saved!!.challengeLevel).isEqualTo(PLAYED_CHALLENGE_LEVEL)
             assertThat(saved.levelId).isEqualTo(PLAYED_CHALLENGE_LEVEL.toString())
+            cancelTickers()
+        }
+
+    @Test
+    fun aForgedSnapshotStampStillWinsTheRouteButIsItselfClamped() =
+        runTest(testDispatcher) {
+            // WARN-03, stored-state side. The stamp beats the route arg (WR-03), so if the
+            // stamp were trusted verbatim the getter would be unclamped again by another
+            // door — this time one that survives a reboot.
+            val time = TestTimeSource()
+            val viewModel =
+                viewModelFor(sixPegStrip(), challengeLevel = PLAYED_CHALLENGE_LEVEL, timeSource = time)
+            runCurrent()
+            jump(viewModel, fromCol = FIRST_JUMP_FROM_COL, toCol = FIRST_JUMP_TO_COL)
+            viewModel.onLeaveScreen()
+            runCurrent()
+            cancelTickers()
+
+            progressRepository.tamperWithChallengeLevel(
+                ProgressPersistenceKeys.MODE_CHALLENGE,
+                forgedLevel = Int.MAX_VALUE,
+            )
+
+            val resumed =
+                viewModelFor(sixPegStrip(), challengeLevel = STALE_ROUTE_LEVEL, resume = true)
+            runCurrent()
+
+            assertThat(resumed.challengeLevel).isEqualTo(GeneratorConstants.MAX_CHALLENGE_LEVEL)
+            assertThat(resumed.challengeLevel).isNotEqualTo(STALE_ROUTE_LEVEL)
             cancelTickers()
         }
 
@@ -557,6 +588,19 @@ private class RecordingProgressRepository : ProgressRepository {
         snapshots[mode] = stored.copy(moves = listOf(FORGED_MOVE_TUPLE.copyOf()))
     }
 
+    /**
+     * Rewrites a stored snapshot's provenance stamp to an out-of-range level — the
+     * WARN-03 forgery on the *stored state* side. A rooted device or a restored backup
+     * can carry any value here, so the stamp is no more trusted than the route arg.
+     */
+    fun tamperWithChallengeLevel(
+        mode: String,
+        forgedLevel: Int,
+    ) {
+        val stored = requireNotNull(snapshots[mode]) { "nothing stored for $mode" }
+        snapshots[mode] = stored.copy(challengeLevel = forgedLevel)
+    }
+
     override suspend fun recordResult(
         mode: String,
         levelId: String,
@@ -639,9 +683,9 @@ private object AllOnSettings : SettingsRepository {
     override suspend fun setHapticsOn(on: Boolean) = Unit
 }
 
-/** The Slice-1 auto-grant stub's behavior: every rewarded request is granted. */
+/** The auto-grant stub's behavior: every rewarded request answers [RewardOutcome.Granted]. */
 private object GrantingAds : AdGateway {
-    override suspend fun requestRewarded(reason: AdReason): Boolean = true
+    override suspend fun requestRewarded(reason: AdReason): RewardOutcome = RewardOutcome.Granted
 
     override fun showInterstitial() = Unit
 }

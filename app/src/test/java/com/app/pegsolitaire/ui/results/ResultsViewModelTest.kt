@@ -7,6 +7,8 @@ import com.app.pegsolitaire.data.NewBests
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
+import com.app.pegsolitaire.domain.generator.ChallengeLevelBounds
+import com.app.pegsolitaire.domain.generator.GeneratorConstants
 import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
@@ -246,6 +248,78 @@ class ResultsViewModelTest {
             assertThat(call.levelId).isEqualTo(SAMPLE_CHALLENGE_LEVEL.toString())
         }
 
+    // ---- WARN-03: `Results` is an independently reachable route -----------------
+
+    @Test
+    fun aForgedHugeChallengeLevelArgIsRecordedUnderTheClampedLevelKey() =
+        runTest(testDispatcher) {
+            // `Results` is a typed route in `AppNavHost`, reachable WITHOUT going through
+            // `GameRoute` — so it is its own trust boundary, not merely downstream of the
+            // GameViewModel fix. A forged arg must not reach the database key.
+            val repository = FakeProgressRepository()
+
+            val viewModel =
+                viewModelFor(
+                    levelId = "",
+                    stars = THREE_STARS,
+                    pegsRemaining = SOLVED_PEGS_REMAINING,
+                    challengeLevel = Int.MAX_VALUE,
+                    repository = repository,
+                )
+            runCurrent()
+
+            val call = repository.recordCalls.single()
+            assertThat(call.mode).isEqualTo(ProgressPersistenceKeys.MODE_CHALLENGE)
+            assertThat(call.levelId).isEqualTo(GeneratorConstants.MAX_CHALLENGE_LEVEL.toString())
+            // `ResultsActions` computes `onNextLevel(challengeLevel + 1)` off this value,
+            // so clamping it is what stops "Next level" from exceeding the ceiling + 1.
+            assertThat(viewModel.uiState.value.challengeLevel)
+                .isEqualTo(GeneratorConstants.MAX_CHALLENGE_LEVEL)
+        }
+
+    @Test
+    fun aChallengeLevelArgBelowOneIsRecordedUnderTheLowestValidLevelKey() =
+        runTest(testDispatcher) {
+            val repository = FakeProgressRepository()
+
+            val viewModel =
+                viewModelFor(
+                    levelId = "",
+                    stars = THREE_STARS,
+                    pegsRemaining = SOLVED_PEGS_REMAINING,
+                    challengeLevel = BELOW_MIN_CHALLENGE_LEVEL,
+                    repository = repository,
+                )
+            runCurrent()
+
+            assertThat(repository.recordCalls.single().levelId)
+                .isEqualTo(ChallengeLevelBounds.MIN.toString())
+            assertThat(viewModel.uiState.value.challengeLevel).isEqualTo(ChallengeLevelBounds.MIN)
+        }
+
+    @Test
+    fun aClassicResultStaysClassicWhenTheChallengeArgIsAbsent() =
+        runTest(testDispatcher) {
+            // The clamp must not manufacture a Challenge level out of `null` — a Classic
+            // play would then be recorded under the Challenge mode key.
+            val repository = FakeProgressRepository()
+
+            val viewModel =
+                viewModelFor(
+                    levelId = ClassicLevelIds.ENGLISH33,
+                    stars = THREE_STARS,
+                    pegsRemaining = SOLVED_PEGS_REMAINING,
+                    challengeLevel = null,
+                    repository = repository,
+                )
+            runCurrent()
+
+            val call = repository.recordCalls.single()
+            assertThat(call.mode).isEqualTo(ProgressPersistenceKeys.MODE_CLASSIC)
+            assertThat(call.levelId).isEqualTo(ClassicLevelIds.ENGLISH33)
+            assertThat(viewModel.uiState.value.challengeLevel).isNull()
+        }
+
     @Test
     fun anUnsolvedPlayRecordsNothing() =
         runTest(testDispatcher) {
@@ -437,6 +511,9 @@ private const val SOLVED_PEGS_REMAINING = 1
 
 /** An arbitrary in-progress Challenge level number. */
 private const val SAMPLE_CHALLENGE_LEVEL = 5
+
+/** A forged sub-1 `Results` Challenge arg that must clamp to the lowest valid level (WARN-03). */
+private const val BELOW_MIN_CHALLENGE_LEVEL = 0
 
 /** A previously stored best that the sample play cannot beat (faster time, higher score). */
 private const val FAST_ELAPSED_SECONDS = 10L
