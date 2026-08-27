@@ -1,3 +1,7 @@
+// Explicit import: inside a Gradle Kotlin DSL script the `java` accessor shadows the
+// `java` package, so a fully-qualified `java.util.Properties` does not resolve here.
+import java.util.Properties
+
 plugins {
     id("android-app")
     id("standards")
@@ -24,13 +28,209 @@ room {
     schemaDirectory(roomSchemaDir)
 }
 
+// ---- PLAT-06 / D-05 / D-08 / D-09: build-time ad + Play Games IDs -------------
+// The resolution itself lives in `build-logic/src/main/kotlin/AdIdResolution.kt` as a
+// Gradle-free pure function so it can be unit-tested (AGP 9.1.0 gives :app no
+// `testReleaseUnitTest`, so the release-failure contract is unprovable from here).
+// This file only supplies its two input maps and acts on the result.
+//
+// `local.properties` is NOT automatically exposed as Gradle properties — AGP reads only
+// `sdk.dir` out of it — so it is parsed by hand. `providers.fileContents` /
+// `providers.environmentVariable` are the configuration-cache-safe accessors; a plain
+// FileInputStream would work today (CC is off) but would be a future migration blocker.
+val adIdEnv: Map<String, String> =
+    AdIdKeys.ALL
+        .mapNotNull { key -> providers.environmentVariable(key).orNull?.let { key to it } }
+        .toMap()
+
+val adIdLocal: Map<String, String> =
+    providers
+        .fileContents(rootProject.layout.projectDirectory.file("local.properties"))
+        .asText.orNull
+        ?.let { text -> Properties().apply { load(text.reader()) } }
+        ?.let { props ->
+            AdIdKeys.ALL.mapNotNull { key -> props.getProperty(key)?.let { key to it } }.toMap()
+        }
+        ?: emptyMap()
+
+// Pitfall 3 / D-08. AGP configures EVERY variant on EVERY invocation, so a naive check
+// inside `release { }` would fire during `assembleDebug` and during IDE sync — breaking
+// "a fresh clone builds successfully". `gradle.startParameter.taskNames` is the one
+// signal that distinguishes what the user actually asked for, and it is EMPTY during
+// IDE sync, which is exactly the behaviour we want.
+//
+// The tradeoff, stated plainly: `./gradlew build`, `assemble` or `bundle` on a fresh
+// clone with no IDs configured fails with an actionable message, while `assembleDebug`,
+// `check`, `test` and IDE sync never do. `assemble`/`build`/`bundle` are named here
+// because they build BOTH variants; `elease` covers `assembleRelease`, `bundleRelease`
+// and their `:app:`-qualified forms.
+val wholeProjectTaskNames = setOf("assemble", "build", "bundle")
+val isReleaseInvocation =
+    gradle.startParameter.taskNames.any { requested ->
+        requested.contains("elease") || requested.substringAfterLast(':') in wholeProjectTaskNames
+    }
+
+// The value the release variant carries when configuration ran outside a release
+// invocation and nothing was configured. Deliberately not a valid ID and deliberately
+// self-describing: if it ever surfaces in a log or an APK, it says what to do about it.
+val unresolvedReleaseId = "UNRESOLVED-see-local.properties.template"
+
+// Debug can never fail: with nothing configured it falls back to Google's test units.
+val debugIds =
+    AdIdResolution.resolve(adIdEnv, adIdLocal, isRelease = false) as AdIdResolutionResult.Resolved
+
+// D-09 is fail-fast, deliberately: a warning in a long Gradle log is what gets missed
+// before a store upload, so this throws — the same register as `standards.gradle.kts`'s
+// gates and `ClassicLevelSource`'s `requireNotNull`.
+val releaseIds =
+    when (val resolved = AdIdResolution.resolve(adIdEnv, adIdLocal, isRelease = true)) {
+        is AdIdResolutionResult.Resolved -> resolved
+        is AdIdResolutionResult.Failure -> {
+            if (isReleaseInvocation) {
+                throw GradleException(resolved.message)
+            }
+            // Not a release invocation, so configuration must still succeed. The release
+            // variant gets a loud unresolved marker rather than the debug test IDs:
+            // silently substituting a test unit is precisely how test IDs reach
+            // production. Any invocation the name gate above misses is still caught by
+            // `verifyReleaseAdIds` below, before the APK/AAB is packaged.
+            AdIdResolutionResult.Resolved(
+                appId = unresolvedReleaseId,
+                rewarded = unresolvedReleaseId,
+                interstitial = unresolvedReleaseId,
+                gamesProjectId = unresolvedReleaseId,
+            )
+        }
+    }
+
+// Execution-time backstop for the same rule. The task-name gate above is a heuristic —
+// it cannot be proven exhaustive over every invocation form — so the packaging tasks
+// carry a hard dependency that re-runs the identical resolution and fails outright.
+val verifyReleaseAdIds =
+    tasks.register("verifyReleaseAdIds") {
+        group = "verification"
+        description = "Fails if a release package would be built without real ad/PGS IDs."
+        doLast {
+            val result = AdIdResolution.resolve(adIdEnv, adIdLocal, isRelease = true)
+            if (result is AdIdResolutionResult.Failure) {
+                throw GradleException(result.message)
+            }
+        }
+    }
+
+tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }.configureEach {
+    dependsOn(verifyReleaseAdIds)
+}
+
 android {
     namespace = "com.app.pegsolitaire"
 
     defaultConfig {
-        applicationId = "com.app.pegsolitaire"
-        versionCode = 1
-        versionName = "0.1.0"
+        // This build UPDATES the already-published listing (decided 2026-08-27):
+        // https://play.google.com/store/apps/details?id=com.erman.pegsolitarie
+        // The id must match the published app exactly (note the "-arie" spelling) and the
+        // versionCode must exceed the published versionCode 2 (versionName "2.0").
+        // The `namespace` (code packages, BuildConfig) deliberately stays
+        // com.app.pegsolitaire — only the store identity changes.
+        applicationId = "com.erman.pegsolitarie"
+        versionCode = 3
+        versionName = "3.0.0"
+    }
+
+    // Pitfall 1: `BuildFeatures.buildConfig` defaults to FALSE in AGP 8+/9 (verified in
+    // gradle-api-9.1.0-sources BuildFeatures.kt:49). Without this flag every build-config
+    // field declared below silently generates nothing and `BuildConfig.REWARDED_AD_UNIT_ID`
+    // fails to resolve with an "unresolved reference" that survives a clean build — so the
+    // flag lands in the same commit as its fields, never after.
+    buildFeatures {
+        buildConfig = true
+        // Same story, second flag — and one RESEARCH's Pitfall 1 missed. AGP 9.1.0 also
+        // gates custom resource values behind a feature flag, but fails LOUDLY rather
+        // than silently: "Build Type debug contains custom resource values, but the
+        // feature is disabled." Verified by hitting it. Note for anyone counting the
+        // custom resource entries below with grep: this flag's name shares their prefix,
+        // so a naive count comes back one high.
+        resValues = true
+    }
+
+    // PLAT-05 / D-11. Placement matters and is load-bearing for the `sourceSets` line
+    // below: declaring `debug { }` here CONFIGURES the always-present debug build type
+    // rather than creating a new one, so `sourceSets.getByName("debug")` and the
+    // `mergeDebugAssets -> copyRoomSchemas` dependency further down keep their meaning.
+    // Keeping `buildTypes` immediately above them is what makes that readable to the
+    // next author. Verified after adding this block with
+    // `./gradlew :app:testDebugUnitTest --tests "*MigrationTest"` — the
+    // "Cannot find the schema file in the assets folder" failure mode did not occur.
+    //
+    // No `gradle.properties` R8 entry is needed: read out of AGP 9.1.0's
+    // BooleanOption.kt, `android.enableR8.fullMode` and
+    // `android.r8.strictFullModeForKeepRules` BOTH already default to `true`. Writing
+    // `android.enableR8.fullMode=false` would be a regression, not documentation.
+    //
+    // `android.proguard.failOnMissingFiles` also defaults to `true`, so the
+    // `file("proguard-rules.pro")` reference below fails the build outright if that
+    // file is missing — it is committed alongside this block for exactly that reason.
+    buildTypes {
+        debug {
+            // D-05: Google's published TEST units, always — never a real ad unit in a
+            // build a developer or CI can run. Requesting a real unit from a development
+            // device is what gets an AdMob account suspended for invalid traffic, and
+            // that suspension is non-appealable. These come from `AdIdDefaults` unless
+            // the developer explicitly overrides a key, so a fresh clone with no
+            // configuration at all still builds and still cannot serve a real ad (D-08).
+            //
+            // Pitfall 2: the third argument is a Java/Kotlin SOURCE LITERAL, not a value,
+            // so a String field needs the embedded quotes. Omitting them produces an
+            // unresolved-identifier compile error inside generated `BuildConfig.java`.
+            buildConfigField("String", "ADMOB_APP_ID", "\"${debugIds.appId}\"")
+            buildConfigField("String", "REWARDED_AD_UNIT_ID", "\"${debugIds.rewarded}\"")
+            buildConfigField("String", "INTERSTITIAL_AD_UNIT_ID", "\"${debugIds.interstitial}\"")
+            // Why the same values are ALSO emitted as string resources: manifest
+            // `meta-data` cannot read `BuildConfig`, the AdMob app ID has to appear in the
+            // manifest for UMP, and the Play Games project ID *must* be a `@string`
+            // reference because a bare numeric `android:value` is parsed as an integer.
+            // Nothing consumes these two resources until Phase 9 wires the manifest, so
+            // the resource shrinker may drop them from release until then — expected.
+            resValue("string", "admob_app_id", debugIds.appId)
+            resValue("string", "game_services_project_id", debugIds.gamesProjectId)
+        }
+        release {
+            // R8 (full mode, per the note above) plus the resource shrinker. The
+            // measured effect on this dependency set is 9,890,332 B -> 1,518,323 B
+            // (-84.6%); the ~5.5 MB ads SDK and its transitives land in plan 06-09, so
+            // minification has to exist before they arrive.
+            isMinifyEnabled = true
+            // Safe here despite `font_certs.xml` being an array OF array references
+            // (`@array/..._dev` / `..._prod`) reached only as
+            // `R.array.com_google_android_gms_fonts_certs` from ui/theme/Type.kt: the
+            // shrinker follows resource->resource references, verified against the
+            // shrunk APK with `aapt2 dump resources`. If it had not, downloadable
+            // Fredoka/Nunito would silently fall back to the default font — the one
+            // player-visible thing R8 could plausibly break here.
+            isShrinkResources = true
+            // `proguard-android-optimize.txt`, NOT the plain variant: the optimizing
+            // baseline is AGP's current recommendation and is the maintained rule set,
+            // so nothing in this repo has to re-derive it by hand.
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                file("proguard-rules.pro"),
+            )
+            // No signing is configured here, deliberately (D-16): real release signing
+            // is Phase 14 scope, and a committed debug-keystore shortcut is exactly the
+            // kind of thing that survives to a store upload. `assembleRelease` therefore
+            // emits `app-release-unsigned.apk`; plan 06-10's launch smoke test signs
+            // that locally with the debug key without committing anything.
+
+            // D-08: the real IDs, resolved from an untracked `local.properties` or a
+            // same-named CI environment variable — never from a committed file. Reaching
+            // this line with anything unresolved on a release invocation is impossible:
+            // the resolver threw above.
+            buildConfigField("String", "ADMOB_APP_ID", "\"${releaseIds.appId}\"")
+            buildConfigField("String", "REWARDED_AD_UNIT_ID", "\"${releaseIds.rewarded}\"")
+            buildConfigField("String", "INTERSTITIAL_AD_UNIT_ID", "\"${releaseIds.interstitial}\"")
+            resValue("string", "admob_app_id", releaseIds.appId)
+            resValue("string", "game_services_project_id", releaseIds.gamesProjectId)
+        }
     }
 
     // Put the exported Room schema on the DEBUG variant's assets so Robolectric's
@@ -98,6 +298,12 @@ dependencies {
     // DI: Hilt runtime + annotation processor under KSP (no KAPT).
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+    // Dagger 2.60 stopped exporting error_prone_annotations transitively, but its
+    // generated members-injectors still emit `@CanIgnoreReturnValue`. The moment any
+    // class gains an `@Inject` field (App, for the ForegroundActivityProvider) the
+    // generated SingletonC stops compiling without it. CLASS-retention annotations,
+    // so compileOnly is enough — nothing is added to the APK.
+    compileOnly(libs.errorprone.annotations)
     // hiltViewModel() for scoping the GameViewModel to the route.
     implementation(libs.hilt.navigation.compose)
 
@@ -114,6 +320,26 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+
+    // ---- Slice-2 SDK artifacts (D-14) ------------------------------------
+    // On the dependency graph in THIS phase, referenced by NO code in it. That
+    // combination is deliberate and each half earns its keep:
+    //  - PLAT-07's provider-removal test is vacuous without play-services-games-v2
+    //    on the graph — there is no PlayGamesInitProvider to fail to remove.
+    //  - PLAT-04's violating fixture needs a REAL com.google.android.gms class to
+    //    name; a locally-declared decoy in a com.google.android.gms.fake package
+    //    would prove only that the rule matches strings we wrote ourselves.
+    //  - PLAT-05's keep-rule surface is only measured once the SDKs that publish
+    //    (or, for PGS, fail to publish) consumer rules are actually shrunk.
+    // `implementation`, not `compileOnly`: compileOnly puts nothing on the runtime
+    // or unit-test classpath and contributes no library manifest, which would
+    // defeat both of the first two points above.
+    // Real usage arrives in phases 9 (ads/UMP) and 11+ (Play Games), behind the
+    // existing AdGateway / GamesService seams and inside ..platform.. — which
+    // PlatformBoundaryTest enforces from the moment these lines land.
+    implementation(libs.ads.mobile.sdk)
+    implementation(libs.user.messaging.platform)
+    implementation(libs.play.services.games.v2)
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)

@@ -10,6 +10,8 @@ import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.SettingsRepository
+import com.app.pegsolitaire.domain.generator.ChallengeLevelBounds
+import com.app.pegsolitaire.domain.generator.GeneratorConstants
 import com.app.pegsolitaire.domain.generator.LevelGenerator
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardSpec
@@ -21,6 +23,7 @@ import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
+import com.app.pegsolitaire.platform.ads.RewardOutcome
 import com.google.common.truth.Truth.assertThat
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
@@ -133,9 +136,67 @@ class GameViewModelTest {
                 viewModelFor(Boards.english33Initial, challengeLevel = BELOW_MIN_CHALLENGE_LEVEL)
             runCurrent()
 
-            assertThat(viewModel.challengeLevel).isEqualTo(BELOW_MIN_CHALLENGE_LEVEL)
+            // WARN-03: the EXPOSED level is the clamped one too. `GameRoute` carries this
+            // value into the Results route, so a raw `0` here would key the result under a
+            // level that was never played and drive "Next level" as `0 + 1`.
+            assertThat(viewModel.challengeLevel).isEqualTo(ChallengeLevelBounds.MIN)
             assertThat(viewModel.uiState.value.board.pegCount).isGreaterThan(1)
             assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Playing)
+
+            cancelTickers()
+        }
+
+    // ---- WARN-03: the exposed Challenge level is always the played one ---------
+
+    @Test
+    fun aNegativeChallengeLevelArgIsExposedAsTheLowestValidLevel() =
+        runTest(testDispatcher) {
+            val viewModel =
+                viewModelFor(Boards.english33Initial, challengeLevel = NEGATIVE_CHALLENGE_LEVEL)
+            runCurrent()
+
+            assertThat(viewModel.challengeLevel).isEqualTo(ChallengeLevelBounds.MIN)
+
+            cancelTickers()
+        }
+
+    @Test
+    fun aForgedHugeChallengeLevelArgIsExposedAsTheFrozenCeiling() =
+        runTest(testDispatcher) {
+            // The load itself is already bounded (CR-01); what WARN-03 is about is the
+            // value that ESCAPES the ViewModel. It must name the level actually loaded.
+            val levelRepository = RecordingChallengeLevelRepository(Boards.english33Initial)
+            val viewModel =
+                viewModelFor(
+                    Boards.english33Initial,
+                    challengeLevel = Int.MAX_VALUE,
+                    levelRepository = levelRepository,
+                )
+            runCurrent()
+
+            assertThat(viewModel.challengeLevel).isEqualTo(GeneratorConstants.MAX_CHALLENGE_LEVEL)
+            // …and it is exactly the level the repository was asked for — the exposed level
+            // and the played board can never name different levels.
+            assertThat(levelRepository.lastChallengeLevel).isEqualTo(viewModel.challengeLevel)
+
+            cancelTickers()
+        }
+
+    @Test
+    fun anInRangeChallengeLevelArgIsExposedUnchanged() =
+        runTest(testDispatcher) {
+            // The non-regression half: clamping must be invisible to every real player.
+            val levelRepository = RecordingChallengeLevelRepository(Boards.english33Initial)
+            val viewModel =
+                viewModelFor(
+                    Boards.english33Initial,
+                    challengeLevel = CHALLENGE_LEVEL_WITH_CHOICES,
+                    levelRepository = levelRepository,
+                )
+            runCurrent()
+
+            assertThat(viewModel.challengeLevel).isEqualTo(CHALLENGE_LEVEL_WITH_CHOICES)
+            assertThat(levelRepository.lastChallengeLevel).isEqualTo(CHALLENGE_LEVEL_WITH_CHOICES)
 
             cancelTickers()
         }
@@ -402,7 +463,7 @@ class GameViewModelTest {
     @Test
     fun undoIsSkippedWhenTheGrantIsDenied() =
         runTest(testDispatcher) {
-            val deniedGateway = FakeAdGateway(grant = false)
+            val deniedGateway = FakeAdGateway(outcome = RewardOutcome.Declined)
             val viewModel = viewModelFor(Boards.english33Initial, adGateway = deniedGateway)
             runCurrent()
 
@@ -416,6 +477,55 @@ class GameViewModelTest {
 
             // Grant denied → the undo does not proceed; the board is unchanged.
             assertThat(viewModel.uiState.value.board).isEqualTo(afterJump)
+            assertThat(viewModel.uiState.value.canUndo).isTrue()
+
+            cancelTickers()
+        }
+
+    @Test
+    fun undoStillProceedsWhenNoAdCouldBeServed() =
+        runTest(testDispatcher) {
+            // ADS-03 fail-open: no ad could be served, so the rescue is granted anyway.
+            // This branch has never executed before — the stub has only ever granted.
+            val unavailableGateway = FakeAdGateway(outcome = RewardOutcome.Unavailable)
+            val viewModel = viewModelFor(Boards.english33Initial, adGateway = unavailableGateway)
+            runCurrent()
+
+            viewModel.onCellTap(pegAboveCenter)
+            viewModel.onCellTap(centerHole)
+            runCurrent()
+            assertThat(viewModel.uiState.value.canUndo).isTrue()
+
+            viewModel.onUndo()
+            runCurrent()
+
+            // The move was popped: the board is back to the initial position.
+            assertThat(viewModel.uiState.value.board).isEqualTo(Boards.english33Initial)
+            assertThat(viewModel.uiState.value.canUndo).isFalse()
+
+            cancelTickers()
+        }
+
+    @Test
+    fun undoDeclinedAbortsOnlyAfterTheGrantWasActuallyRequested() =
+        runTest(testDispatcher) {
+            // Pins that Declined aborts *downstream* of the seam: the gateway is still
+            // asked (lastReason records it) and only then is the move history left intact.
+            val declinedGateway = FakeAdGateway(outcome = RewardOutcome.Declined)
+            val viewModel = viewModelFor(Boards.english33Initial, adGateway = declinedGateway)
+            runCurrent()
+
+            viewModel.onCellTap(pegAboveCenter)
+            viewModel.onCellTap(centerHole)
+            runCurrent()
+            val afterJump = viewModel.uiState.value.board
+
+            viewModel.onUndo()
+            runCurrent()
+
+            assertThat(declinedGateway.lastReason).isEqualTo(AdReason.UNDO)
+            assertThat(viewModel.uiState.value.board).isEqualTo(afterJump)
+            // The move survives the decline, so a later granted undo can still pop it.
             assertThat(viewModel.uiState.value.canUndo).isTrue()
 
             cancelTickers()
@@ -657,7 +767,7 @@ class GameViewModelTest {
     @Test
     fun hintDeniedByTheGatewayDoesNotProceedAndClearsThinking() =
         runTest(testDispatcher) {
-            val denied = FakeAdGateway(grant = false)
+            val denied = FakeAdGateway(outcome = RewardOutcome.Declined)
             val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = denied)
             runCurrent()
 
@@ -669,6 +779,46 @@ class GameViewModelTest {
             assertThat(state.hintTarget).isNull()
             assertThat(state.noWinningMove).isFalse()
             assertThat(state.solverThinking).isFalse()
+        }
+
+    @Test
+    fun hintStillRunsTheSearchWhenNoAdCouldBeServed() =
+        runTest(testDispatcher) {
+            // ADS-03 fail-open at the hint call site: a hint that could not be paid for is
+            // still given, so an offline player is never dead-ended once a real gateway lands.
+            val unavailableGateway = FakeAdGateway(outcome = RewardOutcome.Unavailable)
+            val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = unavailableGateway)
+            runCurrent()
+
+            viewModel.onHintRequested()
+            advanceUntilIdle()
+
+            val hinted = viewModel.uiState.value
+            assertThat(hinted.hintSource).isEqualTo(Position(row = 0, col = 0))
+            assertThat(hinted.hintTarget).isEqualTo(Position(row = 0, col = 2))
+            assertThat(hinted.solverThinking).isFalse()
+            assertThat(hinted.noWinningMove).isFalse()
+        }
+
+    @Test
+    fun hintDeclinedLeavesTheControlIdleOnABoardThatHasAWinningMove() =
+        runTest(testDispatcher) {
+            // T-06-01: the decline path must clear solverThinking, or the hint control
+            // spins forever. The board is solvable, so a missing hint can only mean the
+            // search never ran — proving the abort happened before the Solver call.
+            val declinedGateway = FakeAdGateway(outcome = RewardOutcome.Declined)
+            val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = declinedGateway)
+            runCurrent()
+
+            viewModel.onHintRequested()
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertThat(declinedGateway.lastReason).isEqualTo(AdReason.HINT)
+            assertThat(state.solverThinking).isFalse()
+            assertThat(state.hintSource).isNull()
+            assertThat(state.hintTarget).isNull()
+            assertThat(state.noWinningMove).isFalse()
         }
 
     @Test
@@ -1077,6 +1227,7 @@ class GameViewModelTest {
         timeSource: TimeSource = TestTimeSource(),
         settings: SettingsRepository = FakeSettingsRepository(),
         adGateway: AdGateway = FakeAdGateway(),
+        levelRepository: LevelRepository = FakeLevelRepository(boardsById = mapOf(levelId to board)),
     ): GameViewModel {
         val args =
             buildMap<String, Any?> {
@@ -1089,7 +1240,7 @@ class GameViewModelTest {
                 override fun <T : ViewModel> create(modelClass: Class<T>): T =
                     GameViewModel(
                         rulesEngine = RulesEngine,
-                        levelRepository = FakeLevelRepository(boardsById = mapOf(levelId to board)),
+                        levelRepository = levelRepository,
                         scoreCalculator = ScoreCalculator,
                         settingsRepository = settings,
                         // This spec is about gameplay, not the Challenge ladder; a relaxed
@@ -1195,6 +1346,9 @@ private const val CHALLENGE_LEVEL_WITH_CHOICES = 10
 /** A forged sub-1 Challenge nav arg that must clamp to level 1 (T-03-09). */
 private const val BELOW_MIN_CHALLENGE_LEVEL = 0
 
+/** A forged negative Challenge nav arg — the other side of the lower bound (WARN-03). */
+private const val NEGATIVE_CHALLENGE_LEVEL = -1
+
 /** One timer tick (1s) of virtual time, plus a margin so the `delay(1000)` fires. */
 private const val ONE_TICK_MILLIS = 1_001L
 
@@ -1248,6 +1402,41 @@ private class FakeLevelRepository(
 }
 
 /**
+ * A [LevelRepository] that serves one fixed board for ANY Challenge level and records
+ * the level number it was asked for.
+ *
+ * Two jobs. It keeps the forged-arg specs fast — the real generator replays the
+ * deterministic chain from level 1, so asking it for the clamped `MAX_CHALLENGE_LEVEL`
+ * would do ten thousand reverse walks to prove a one-line getter. And by recording the
+ * requested level it lets the spec assert the WARN-03 invariant directly: the level the
+ * ViewModel EXPOSES is the level whose board it actually loaded.
+ */
+private class RecordingChallengeLevelRepository(
+    private val board: Board,
+) : LevelRepository {
+    var lastChallengeLevel: Int? = null
+        private set
+
+    override fun classicCatalog(): List<ClassicLevelDescriptor> = emptyList()
+
+    override fun loadClassic(levelId: String): Level = levelOf(levelId)
+
+    override fun loadChallenge(levelNumber: Int): Level {
+        lastChallengeLevel = levelNumber
+        return levelOf("challenge-$levelNumber")
+    }
+
+    private fun levelOf(id: String): Level =
+        Level(
+            id = id,
+            displayName = id,
+            spec = board.spec,
+            initialBoard = board,
+            holeCount = board.spec.inPlay.size,
+        )
+}
+
+/**
  * An in-memory [SettingsRepository] backed by a `MutableStateFlow` so a write both
  * records the last-written value ([lastWritten]) and re-emits through [hintsEnabled] —
  * letting the collected flow drive `showHints` exactly as the DataStore-backed impl does.
@@ -1286,18 +1475,20 @@ private class FakeSettingsRepository(
 
 /**
  * A fake [AdGateway] that records the last requested [AdReason] and returns a
- * configurable [grant] (default `true`, matching the Slice-1 auto-grant stub), so the
- * VM tests assert both that undo requests the grant and that a denial skips the undo.
+ * configurable [outcome] (default [RewardOutcome.Granted], matching the auto-grant
+ * [com.app.pegsolitaire.platform.ads.NoOpAdGateway] stub), so the VM tests assert that an
+ * assist requests the grant, that [RewardOutcome.Declined] skips it, and that
+ * [RewardOutcome.Unavailable] proceeds with it anyway (ADS-03).
  */
 private class FakeAdGateway(
-    private val grant: Boolean = true,
+    private val outcome: RewardOutcome = RewardOutcome.Granted,
 ) : AdGateway {
     var lastReason: AdReason? = null
         private set
 
-    override suspend fun requestRewarded(reason: AdReason): Boolean {
+    override suspend fun requestRewarded(reason: AdReason): RewardOutcome {
         lastReason = reason
-        return grant
+        return outcome
     }
 
     override fun showInterstitial() = Unit
@@ -1323,11 +1514,11 @@ private class GatedAdGateway : AdGateway {
         gate.complete(Unit)
     }
 
-    override suspend fun requestRewarded(reason: AdReason): Boolean {
+    override suspend fun requestRewarded(reason: AdReason): RewardOutcome {
         started++
         gate.await()
         proceeded++
-        return true
+        return RewardOutcome.Granted
     }
 
     override fun showInterstitial() = Unit

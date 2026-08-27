@@ -4,12 +4,14 @@ import org.gradle.api.GradleException
 /**
  * Code-standards gate (QUAL-02 / QUAL-03), applied by BOTH `:domain` and `:app`.
  *
- * Wires three checks into the `check` lifecycle so the build FAILS on any
+ * Wires four checks into the `check` lifecycle so the build FAILS on any
  * violation, from commit 0:
  *  - detekt (`dev.detekt` 2.0) with `MagicNumber` enabled — no magic numbers.
  *  - ktlint (`org.jlleitschuh.gradle.ktlint`) — format/lint.
  *  - a custom `dpSpLiteralCheck` — no raw numeric `.dp`/`.sp` literals in UI code
  *    (no built-in detekt/ktlint rule covers this; QUAL-03).
+ *  - a custom `adIdLiteralCheck` — no ad-unit-ID literal anywhere in `src/main`
+ *    (PLAT-06; ad IDs are `buildConfigField`/`resValue` only).
  */
 plugins {
     id("dev.detekt")
@@ -72,6 +74,57 @@ val dpSpLiteralCheck =
         }
     }
 
+// ---- PLAT-06: custom "no ad-unit-ID literal in source" gate ------------------
+// Ad IDs are per-build-type values (Google's test units in debug, real untracked ones
+// in release), so they can only exist as `buildConfigField` / `resValue`. This gate is
+// what makes that a rule rather than a convention: it fails the build on any
+// `ca-app-pub-` substring in shipped source or resources. It scans `src/main` only —
+// `src/test` legitimately asserts on the Google test-publisher prefix.
+val adIdSourceRoots = listOf("src/main/java", "src/main/kotlin", "src/main/res")
+    .map { layout.projectDirectory.dir(it).asFile }
+
+// The AdMob ID publisher prefix, shared by app IDs (`…~…`) and unit IDs (`…/…`).
+val adIdMarker = "ca-app-pub-"
+
+// Comment prefixes across the scanned file types (Kotlin, KDoc continuation, XML,
+// properties/shell). A comment explaining *why* IDs are not in source must not itself
+// trip the gate.
+val commentPrefixes = listOf("//", "*", "<!--", "#")
+
+val adIdLiteralCheck =
+    tasks.register("adIdLiteralCheck") {
+        group = "verification"
+        description =
+            "Fails on ad-unit-ID literals in src/main (use buildConfigField/resValue)."
+        doLast {
+            val offenders = mutableListOf<String>()
+            adIdSourceRoots.filter { it.exists() }.forEach { root ->
+                root.walkTopDown()
+                    .filter { it.isFile }
+                    .forEach { file ->
+                        file.readLines().forEachIndexed { index, line ->
+                            val trimmed = line.trimStart()
+                            if (commentPrefixes.any { trimmed.startsWith(it) }) {
+                                return@forEachIndexed
+                            }
+                            if (line.contains(adIdMarker)) {
+                                val where = file.relativeTo(moduleDir).invariantSeparatorsPath
+                                offenders += "$where:${index + 1}: $trimmed"
+                            }
+                        }
+                    }
+            }
+            if (offenders.isNotEmpty()) {
+                throw GradleException(
+                    "Ad-unit-ID literals are forbidden in src/main (PLAT-06 / D-05). " +
+                        "IDs differ per build type — declare them as buildConfigField/resValue " +
+                        "in app/build.gradle.kts and read them via platform/ads/AdIds.kt:\n  " +
+                        offenders.joinToString("\n  "),
+                )
+            }
+        }
+    }
+
 tasks.named("check").configure {
-    dependsOn("detekt", "ktlintCheck", dpSpLiteralCheck)
+    dependsOn("detekt", "ktlintCheck", dpSpLiteralCheck, adIdLiteralCheck)
 }

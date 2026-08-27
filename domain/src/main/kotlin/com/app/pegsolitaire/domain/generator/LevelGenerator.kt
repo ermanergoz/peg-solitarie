@@ -46,9 +46,10 @@ object LevelGenerator {
      * Generates the deterministic, solvable-by-construction level for [levelNumber].
      *
      * The level number is an untrusted nav arg, so it is clamped into
-     * `[MIN_LEVEL, GeneratorConstants.MAX_CHALLENGE_LEVEL]` (T-03-01/T-03-09):
-     * anything `< 1` clamps up to level 1 and anything above the ceiling clamps down
-     * to it. Because the replay chain is O(level), that upper clamp is what bounds the
+     * `[ChallengeLevelBounds.MIN, ChallengeLevelBounds.MAX]` via
+     * [ChallengeLevelBounds.clamp] (T-03-01/T-03-09, D-15): anything `< 1` clamps up to
+     * level 1 and anything above the ceiling clamps down to it. Because the replay chain
+     * is O(level), that upper clamp is what bounds the
      * worst-case work — a forged huge level can no longer loop for billions of
      * iterations (CR-01). Each level's own reject-and-reseed loop ([generateForLevel])
      * reseeds with a fresh deterministic salt ([stableSeed]) and reverse-walks a
@@ -60,7 +61,7 @@ object LevelGenerator {
      * generation is not just terminating but bounded in cost.
      */
     fun generate(levelNumber: Int): GeneratedLevel {
-        val target = levelNumber.coerceIn(MIN_LEVEL, GeneratorConstants.MAX_CHALLENGE_LEVEL)
+        val target = ChallengeLevelBounds.clamp(levelNumber)
 
         // Exact rolling dedup window: replay the deterministic sequence from level 1,
         // deduping each level against the ACTUAL accepted canonical keys of the
@@ -71,7 +72,7 @@ object LevelGenerator {
         // recursion; membership tests never feed a PRNG index (Pitfall 1).
         val recentKeys = ArrayDeque<Long>()
         var produced: GeneratedLevel? = null
-        for (level in MIN_LEVEL..target) {
+        for (level in ChallengeLevelBounds.MIN..target) {
             val tier = DifficultyTiers.forLevel(level)
             produced = generateForLevel(level, tier, forbiddenKeys = recentKeys.toHashSet())
             recentKeys.addLast(canonicalKeyOf(produced.startingBoard))
@@ -282,9 +283,6 @@ object LevelGenerator {
             .withoutPeg(move.to)
             .withPeg(move.over)
             .withPeg(move.from)
-
-    /** The lowest valid level; anything below clamps up to it (T-03-01). */
-    private const val MIN_LEVEL = 1
 
     /** Sentinel "no candidate scored yet" for the bounded fallback (any real score is >= 0). */
     private const val FALLBACK_UNSET_SCORE = -1
