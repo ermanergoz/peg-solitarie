@@ -153,6 +153,12 @@ dependencies {
     // DI: Hilt runtime + annotation processor under KSP (no KAPT).
     implementation(libs.hilt.android)
     ksp(libs.hilt.compiler)
+    // Dagger 2.60 stopped exporting error_prone_annotations transitively, but its
+    // generated members-injectors still emit `@CanIgnoreReturnValue`. The moment any
+    // class gains an `@Inject` field (App, for the ForegroundActivityProvider) the
+    // generated SingletonC stops compiling without it. CLASS-retention annotations,
+    // so compileOnly is enough — nothing is added to the APK.
+    compileOnly(libs.errorprone.annotations)
     // hiltViewModel() for scoping the GameViewModel to the route.
     implementation(libs.hilt.navigation.compose)
 
