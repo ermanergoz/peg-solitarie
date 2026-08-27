@@ -2,7 +2,7 @@
 
 **Purpose:** the committed home for D-12's baseline numbers and the proof that R8 /
 `shrinkResources` did not break anything player-visible. Later plans in this phase append
-to the `TBD` sections below rather than starting new files.
+to the placeholder sections below rather than starting new files. (All placeholders are now filled.)
 
 **Environment for every measurement here:** AGP 9.1.0, Gradle 9.5.1 wrapper, Kotlin 2.3.20,
 JDK 17, `compileSdk` 36, macOS (Darwin 24.6.0). Release variant, unsigned (D-16 — no signing
