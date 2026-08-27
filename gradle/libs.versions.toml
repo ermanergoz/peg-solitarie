@@ -25,6 +25,10 @@ hilt = "2.60"
 # 1.4.0-rc01 + lifecycle 2.11.0-rc01, both requiring compileSdk 37 (uninstallable
 # here). 1.3.0 is the CLAUDE.md-pinned line that keeps minCompileSdk 36.
 hiltNavigationCompose = "1.3.0"
+# Dagger 2.60 no longer exports error_prone_annotations transitively, but its
+# generated members-injectors still emit `@CanIgnoreReturnValue`. Needed on the
+# javac classpath (compileOnly) from the moment any class gains an `@Inject` field.
+errorproneAnnotations = "2.47.0"
 
 # --- AndroidX (not governed by the Compose BOM) ---
 androidxActivityCompose = "1.13.0"
@@ -125,6 +129,7 @@ androidx-room-testing = { group = "androidx.room", name = "room-testing", versio
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
 hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
+errorprone-annotations = { group = "com.google.errorprone", name = "error_prone_annotations", version.ref = "errorproneAnnotations" }
 
 # --- Domain-purity boundary gate ---
 archunit-junit4 = { group = "com.tngtech.archunit", name = "archunit-junit4", version.ref = "archunit" }
