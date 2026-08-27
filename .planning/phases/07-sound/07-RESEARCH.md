@@ -830,27 +830,29 @@ No `androidTest` source set exists — everything runs JVM-side via Robolectric.
 
 ## Open Questions
 
-1. **D-07 "no pitch cap" vs. `SoundPool`'s hard 2.0 ceiling.**
+> **All five questions RESOLVED at plan-phase (2026-08-28).** Q1 → user decision **D-07a** (cap at 2.0× via `coerceIn`, KDoc-documented; recorded in CONTEXT.md). Q2 → `ClayAnim.STAR_STAGGER_MS` (120) when animations on, `SoundParams.STAR_POP_STAGGER_MS = 150` for reduced-motion (plan 07-02/07-04). Q3 → `SoundParams.CELEBRATION_LEAD_IN_MS` constant, tuned at D-04 audit (plan 07-04). Q4 → removal cue as lower-volume texture layer at named offset (plan 07-02/07-03). Q5 → user decision **D-05a** (deselect reuses the selection cue, never invalid-tap; recorded in CONTEXT.md).
+
+1. **(RESOLVED — D-07a)** **D-07 "no pitch cap" vs. `SoundPool`'s hard 2.0 ceiling.**
    - *What we know:* rate is clamped to `[0.5, 2.0]` — one octave, 12 semitones. The repo's own canonical solutions never exceed a 3-jump same-peg run; a player would need a 13-jump chain to reach the ceiling.
    - *What's unclear:* whether the user reads "no cap" as "must literally never stop rising" (impossible with `SoundPool`) or as "no *design* cap — don't stop it early".
    - *Recommendation:* implement a semitone step with an explicit `coerceIn` at 2.0, document the engine ceiling in the constants KDoc, and surface it to the user at the D-04 verification audit. If literal uncapped rise is later required, it needs a different engine (AudioTrack/Oboe with manual resampling) — a materially larger phase, and out of proportion to a 13+-jump edge case. **Do not silently change D-07 without flagging it.**
 
-2. **Star-pop stagger: 120 ms or 150 ms?**
+2. **(RESOLVED)** **Star-pop stagger: 120 ms or 150 ms?**
    - *What we know:* `ClayAnim.STAR_STAGGER_MS = 120` drives the visual pops; D-13 says "~150 ms apart" for the reduced-motion path.
    - *What's unclear:* whether the 150 ms was a deliberate distinct value or an approximation of the existing 120.
    - *Recommendation:* use `ClayAnim.STAR_STAGGER_MS` when animations are on (SOUND-03 requires being "in step with the animation"), and a named `SoundParams.STAR_POP_STAGGER_MS` for the animations-off path. Set it to 150 as written, and let the D-04 audit adjust by ear.
 
-3. **Does the win sound land cleanly before Results appears (D-14)?**
+3. **(RESOLVED)** **Does the win sound land cleanly before Results appears (D-14)?**
    - *What we know:* `GameViewModel.performJump` emits `finished` synchronously with the winning move, and `GameRoute`'s `LaunchedEffect` navigates immediately. The board's own 200 ms jump animation (`GameAnim.JUMP_SLIDE_MS`) is therefore **not** a gap the win sound can occupy — Results appears essentially at once. `SoundPool` playback is fire-and-forget and survives navigation, so the sound *will* be heard; the question is whether it collides with the first star pop.
    - *What's unclear:* how much lead-in the star sequence needs to read as a distinct second beat.
    - *Recommendation:* add a named `SoundParams.CELEBRATION_LEAD_IN_MS` delay before the first star pop and tune it at the D-04 audit. This is a one-constant decision — do not restructure navigation for it.
 
-4. **Peg-removal cue vs. jump cue are always simultaneous.**
+4. **(RESOLVED)** **Peg-removal cue vs. jump cue are always simultaneous.**
    - *What we know:* every jump removes exactly one peg, so SOUND-01's jump and SOUND-02's removal always co-occur. There is no removal event that is not a jump.
    - *What's unclear:* whether the user expects two audibly distinct layers or a single composite.
    - *Recommendation:* play the removal cue at a short named offset (`GameAnim.REMOVAL_MS` = 180 is the visual reference) and at lower relative volume so it reads as a texture layer under the pitched jump rather than a competing hit. Tune at the D-04 audit.
 
-5. **Does re-tapping the selected peg (deselect) make a sound?**
+5. **(RESOLVED — D-05a)** **Does re-tapping the selected peg (deselect) make a sound?**
    - *What we know:* `onCellTap`'s `state.selected == position` branch is a successful deselect, not a rejection; it must not fire the invalid-tap cue.
    - *Recommendation:* reuse the selection cue at reduced volume, or a pitched-down variant. Claude's discretion per the CONTEXT; call it out at the audit.
 
