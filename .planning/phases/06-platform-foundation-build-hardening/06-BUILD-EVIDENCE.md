@@ -407,3 +407,20 @@ place would have let a future real release silently ship test IDs — the one fa
 presence-based gate cannot detect.
 
 Player-verification of actual gameplay on this build: recorded at the 06-10 Task 2 checkpoint.
+
+### Smoke-test sign-off (06-10 Task 2 checkpoint)
+
+Operator-verified 2026-08-27 on the rebuilt debug-signed release APK (includes `d2555c1`):
+launch ✓ · Fredoka/Nunito typography ✓ · gameplay jumps ✓ (landed peg settles back to full
+size) · Hint free, no dialog ✓ · Undo free, no dialog ✓ · background/resume ✓ · Results with
+stars ✓ · fresh-launch logcat: 0 fatal/NoSuchMethod/Instantiation exceptions ✓.
+
+**Finding at first verification pass:** the landed peg stayed visibly smaller after every jump.
+Root cause was a pre-existing Candy Clay defect (introduced with the candy-board commit
+`a565077`, an ancestor of this phase's base — NOT an R8/minification regression): the landing
+squash ran inside the keyed animation effect after `onAnimationFinished()` cleared `animating`,
+so the effect restart cancelled the settle animation between `snapTo(LANDING_SQUASH_SCALE)` and
+`animateTo(SETTLED_SCALE)`, stranding the peg at squash scale with `landing` never cleared.
+Fixed in `d2555c1` by launching the squash on the composition scope, which survives the effect
+restart. The phase's zero-player-visible-change contract is unaffected; the release build was
+simply where an attentive eye first caught it.
