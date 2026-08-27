@@ -49,3 +49,10 @@ tested by 06-07, so changing it is a decision about that plan's contract, not a 
 **Interim state:** unchanged. `local.properties` in this worktree was restored to `sdk.dir`
 only after row 3 was measured, so `check` is green — but green here means "nobody has
 configured the IDs yet", not "the contract holds".
+
+**RESOLVED 2026-08-27 (user decision at the 06-10 checkpoint):** debug is now HARD-WIRED to
+Google's test units — `AdIdResolution.resolve(isRelease = false)` ignores `env`/`local`
+entirely. The contradiction is gone: `debugIgnoresConfiguredIdsAndAlwaysUsesGoogleTestUnits`
+(build-logic, replaces the old override-asserting test) and `BuildConfigIdsTest` (:app) now
+encode the same rule. Rejected alternatives: an `ALLOW_DEBUG_REAL_IDS` opt-in flag (preserves
+the footgun policy warns against) and document-only (leaves two tests asserting opposites).

@@ -85,11 +85,19 @@ object AdIdResolution {
             )
         }
 
+        // DEF-06-01 (resolved 2026-08-27, user decision): debug is HARD-WIRED to Google's
+        // test units and deliberately ignores `configured`. Honouring a configured ID here
+        // meant that the moment a developer set real IDs in `local.properties` for a
+        // release build, every subsequent debug build on that machine served REAL ads —
+        // the exact invalid-traffic pattern that gets an AdMob account suspended
+        // non-appealably. D-08's governing sentence is "a fresh clone builds with test IDs
+        // and never accidentally serves real ads"; an override makes the second half
+        // conditional on developer discipline, so there is no override.
         return AdIdResolutionResult.Resolved(
-            appId = configured[AdIdKeys.APP_ID] ?: AdIdDefaults.TEST_APP_ID,
-            rewarded = configured[AdIdKeys.REWARDED] ?: AdIdDefaults.TEST_REWARDED,
-            interstitial = configured[AdIdKeys.INTERSTITIAL] ?: AdIdDefaults.TEST_INTERSTITIAL,
-            gamesProjectId = configured[AdIdKeys.PGS_PROJECT_ID] ?: AdIdDefaults.TEST_GAMES_PROJECT_ID,
+            appId = AdIdDefaults.TEST_APP_ID,
+            rewarded = AdIdDefaults.TEST_REWARDED,
+            interstitial = AdIdDefaults.TEST_INTERSTITIAL,
+            gamesProjectId = AdIdDefaults.TEST_GAMES_PROJECT_ID,
         )
     }
 

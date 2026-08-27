@@ -41,17 +41,30 @@ class AdIdResolutionTest {
         assertThat(resolved.gamesProjectId).isEqualTo(AdIdDefaults.TEST_GAMES_PROJECT_ID)
     }
 
+    /**
+     * DEF-06-01 (resolved 2026-08-27): debug IGNORES configured IDs entirely.
+     *
+     * This test previously asserted the opposite — that a `local.properties` value won on
+     * debug too. That override meant configuring real IDs for one release build silently
+     * armed every later debug build on the machine to serve real ads, which is the
+     * invalid-traffic pattern that gets an AdMob account suspended non-appealably. It also
+     * directly contradicted `BuildConfigIdsTest`, which asserts the debug `BuildConfig`
+     * always carries Google's test publisher prefix. Both now encode the same rule.
+     */
     @Test
-    fun debugPrefersAConfiguredValueOverTheTestDefault() {
+    fun debugIgnoresConfiguredIdsAndAlwaysUsesGoogleTestUnits() {
         val result =
             AdIdResolution.resolve(
-                env = emptyMap(),
-                local = mapOf(AdIdKeys.REWARDED to "rewarded$LOCAL_SUFFIX"),
+                env = mapOf(AdIdKeys.APP_ID to "ca-app-pub-9999999999999999~1111111111"),
+                local = releaseIds(suffix = LOCAL_SUFFIX),
                 isRelease = false,
             )
 
-        assertThat((result as AdIdResolutionResult.Resolved).rewarded)
-            .isEqualTo("rewarded$LOCAL_SUFFIX")
+        val resolved = result as AdIdResolutionResult.Resolved
+        assertThat(resolved.appId).isEqualTo(AdIdDefaults.TEST_APP_ID)
+        assertThat(resolved.rewarded).isEqualTo(AdIdDefaults.TEST_REWARDED)
+        assertThat(resolved.interstitial).isEqualTo(AdIdDefaults.TEST_INTERSTITIAL)
+        assertThat(resolved.gamesProjectId).isEqualTo(AdIdDefaults.TEST_GAMES_PROJECT_ID)
     }
 
     @Test
