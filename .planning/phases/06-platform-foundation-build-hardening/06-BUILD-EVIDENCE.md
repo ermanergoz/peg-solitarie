@@ -29,7 +29,7 @@ PGS / UMP artifacts on the dependency graph.
 |---|---------------|--------------------:|----:|-----------|
 | 1 | Pre-R8, pre-SDK — `main`/`develop` as committed, no `buildTypes` block at all | **9,890,332** | 9.43 | baseline |
 | 2 | Post-R8, pre-SDK — `isMinifyEnabled` + `isShrinkResources` + `proguard-android-optimize.txt` + this repo's one keep rule | **1,518,323** | 1.45 | **−8,372,009 B (−84.65 %)** |
-| 3 | Post-R8, with SDK artifacts on the graph but unreferenced by any code | **TBD — plan 06-09** | — | — |
+| 3 | Post-R8, with SDK artifacts on the graph but unreferenced by any code | **1,999,795** | 1.91 | **−7,890,537 B (−79.78 %)** |
 
 **Row 1** was measured on 2026-08-27 during phase research (`06-RESEARCH.md § Measurements`),
 before this plan existed, via an `--init-script` overlay that modified no repository file.
@@ -52,6 +52,63 @@ that the `buildTypes` block landed here matches what was actually probed.
 Row 2, not row 1, is the more useful comparand for Phase 14: Phase 14's build will also be
 minified, so comparing a minified build against an unminified baseline would attribute R8's
 84.65 % win to whatever Phase 14 happened to change.
+
+**Row 3** was measured by plan 06-09 on 2026-08-27, immediately after the three SDK artifacts
+landed on the graph (D-14) and while **no code references any of them**:
+
+```
+$ ./gradlew clean :app:assembleRelease
+BUILD SUCCESSFUL
+$ stat -f %z app/build/outputs/apk/release/app-release-unsigned.apk
+1999795
+```
+
+**Interpretation against row 2 — and a correction to the expectation.** The plan predicted
+row 3 ≈ row 2 on the reasoning that R8 strips code nothing calls. It is **+481,472 B
+(+31.7 %)** instead, and the gap is worth understanding now rather than at Phase 14, because
+it is the part that will *not* shrink further.
+
+R8 did strip the SDK code itself, almost completely. Of 4,469 classes surviving into
+`mapping.txt`, only **9** are `com.google.android.libraries.ads..`, **45** are
+`com.google.android.gms.games..`, and **0** are `com.google.android.ump..` — against roughly
+6.6 MB of input AAR. Nothing calls those SDKs, so nearly all of them are gone. That much
+matched the prediction.
+
+What the prediction missed is that dependencies do not enter an APK only through code
+reachability:
+
+- **Manifest-declared components are roots R8 cannot remove.** The merge brings in
+  `AdActivity`, `GamesResolutionActivity`, `PlayGamesAppShortcutsActivity`,
+  `GoogleApiActivity` and `HsdpShimActivity`, and every class reachable from them is live by
+  definition. That is why 296 `com.google.android.gms..` classes and 93
+  `com.google.android.play..` / `protobuf` / `datatransport` classes survive.
+- **The ads SDK drags in whole androidx libraries that self-register.** `androidx.work`
+  (134 retained classes) declares its own services and an `androidx.startup` initializer;
+  `emoji2`, `browser`, `webkit` and `play-services-cronet` arrive the same way. These are
+  kept alive by their own manifests, not by this app.
+- **Non-code payload is never shrunk at all.** `okhttp3/internal/publicsuffix/publicsuffixes.gz`
+  (41,394 B), the `google/protobuf/*.proto` descriptors, and eight 10,175 B androidx
+  `LICENSE.txt` files are packaged verbatim regardless of what R8 concludes about code.
+
+**Consequence for Phase 14.** Row 2 remains the meaningful comparand for judging *this
+project's* growth, exactly as stated above — but the ~480 KB in row 3 is the fixed entry price
+of having the SDKs on the graph, and it is already paid. Phase 14 should expect the increment
+from real integration to be measured against **row 3**, not row 2: wiring `MobileAds.initialize`
+and the PGS calls will move far less than another 480 KB, because the expensive part
+(manifest roots and transitive androidx libraries) is already resident.
+
+**How row 3 was invoked, stated plainly.** Plan 06-07's D-09 gate now refuses to *configure* a
+release invocation without real ad/PGS IDs, and the real IDs still do not exist (see § External
+prerequisites, items 1–2, "not started"). The gate fired correctly and blocked the first
+attempt. Row 3 was therefore measured with **throwaway, all-zero, non-functional IDs**
+(`ca-app-pub-0000000000000000~0000000000` and friends) placed in the untracked, gitignored
+`local.properties` — never committed, incapable of serving an ad or reaching a PGS project.
+This does not weaken the number: the IDs appear in the APK only as four short strings in
+`BuildConfig` and `resources.arsc`, so their contents cannot move a byte count meaningfully.
+It is recorded here because a reader comparing row 3 to a future Phase-14 measurement taken
+with *real* IDs should know the difference exists and is negligible — and because "the release
+gate fired and was satisfied with placeholders for a local measurement" is exactly the kind of
+step that must not be invisible.
 
 ---
 
