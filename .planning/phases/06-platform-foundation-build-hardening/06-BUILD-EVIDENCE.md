@@ -29,7 +29,7 @@ PGS / UMP artifacts on the dependency graph.
 |---|---------------|--------------------:|----:|-----------|
 | 1 | Pre-R8, pre-SDK — `main`/`develop` as committed, no `buildTypes` block at all | **9,890,332** | 9.43 | baseline |
 | 2 | Post-R8, pre-SDK — `isMinifyEnabled` + `isShrinkResources` + `proguard-android-optimize.txt` + this repo's one keep rule | **1,518,323** | 1.45 | **−8,372,009 B (−84.65 %)** |
-| 3 | Post-R8, with SDK artifacts on the graph but unreferenced by any code | **TBD — plan 06-09** | — | — |
+| 3 | Post-R8, with SDK artifacts on the graph but unreferenced by any code | **1,983,331** | 1.89 | **−7,907,001 B (−79.95 %)** |
 
 **Row 1** was measured on 2026-08-27 during phase research (`06-RESEARCH.md § Measurements`),
 before this plan existed, via an `--init-script` overlay that modified no repository file.
@@ -52,6 +52,71 @@ that the `buildTypes` block landed here matches what was actually probed.
 Row 2, not row 1, is the more useful comparand for Phase 14: Phase 14's build will also be
 minified, so comparing a minified build against an unminified baseline would attribute R8's
 84.65 % win to whatever Phase 14 happened to change.
+
+**Row 3** was measured by plan 06-09 on 2026-08-27, immediately after the three SDK artifacts
+landed on the graph (D-14) and while **no code references any of them**:
+
+```
+$ ./gradlew clean :app:assembleRelease
+BUILD SUCCESSFUL
+$ stat -f %z app/build/outputs/apk/release/app-release-unsigned.apk
+1983331
+```
+
+**The manifest removal is worth 16,464 B on its own.** Row 3 was first measured at
+**1,999,795 B** with the dependencies added but before the `tools:node="remove"` was written,
+then re-measured at 1,983,331 B against the committed state. Stripping `PlayGamesInitProvider`
+also removed a GC root: with the provider gone, `com.google.android.gms.games..` classes
+retained by R8 drop from **45 to 11**, and the total class count from 4,469 to 4,397. The
+directive was written for cold-start and CONS-02 reasons (D-17), not for size — the 16 KB is
+a side effect, but it is a concrete demonstration that a manifest entry keeps code alive.
+
+**Interpretation against row 2 — and a correction to the expectation.** The plan predicted
+row 3 ≈ row 2 on the reasoning that R8 strips code nothing calls. It is **+465,008 B
+(+30.6 %)** instead, and the gap is worth understanding now rather than at Phase 14, because
+it is the part that will *not* shrink further.
+
+R8 did strip the SDK code itself, almost completely. Of 4,397 classes surviving into
+`mapping.txt`, only **9** are `com.google.android.libraries.ads..`, **11** are
+`com.google.android.gms.games..`, and **0** are `com.google.android.ump..` — against roughly
+6.6 MB of input AAR. Nothing calls those SDKs, so nearly all of them are gone. That much
+matched the prediction.
+
+What the prediction missed is that dependencies do not enter an APK only through code
+reachability:
+
+- **Manifest-declared components are roots R8 cannot remove.** The merge brings in
+  `AdActivity`, `GamesResolutionActivity`, `PlayGamesAppShortcutsActivity`,
+  `GoogleApiActivity` and `HsdpShimActivity`, and every class reachable from them is live by
+  definition. That is why 223 `com.google.android.gms..` classes and 93
+  `com.google.android.play..` / `protobuf` / `datatransport` classes survive.
+- **The ads SDK drags in whole androidx libraries that self-register.** `androidx.work`
+  (134 retained classes) declares its own services and an `androidx.startup` initializer;
+  `emoji2`, `browser`, `webkit` and `play-services-cronet` arrive the same way. These are
+  kept alive by their own manifests, not by this app.
+- **Non-code payload is never shrunk at all.** `okhttp3/internal/publicsuffix/publicsuffixes.gz`
+  (41,394 B), the `google/protobuf/*.proto` descriptors, and eight 10,175 B androidx
+  `LICENSE.txt` files are packaged verbatim regardless of what R8 concludes about code.
+
+**Consequence for Phase 14.** Row 2 remains the meaningful comparand for judging *this
+project's* growth, exactly as stated above — but the ~465 KB in row 3 is the fixed entry price
+of having the SDKs on the graph, and it is already paid. Phase 14 should expect the increment
+from real integration to be measured against **row 3**, not row 2: wiring `MobileAds.initialize`
+and the PGS calls will move far less than another 465 KB, because the expensive part
+(manifest roots and transitive androidx libraries) is already resident.
+
+**How row 3 was invoked, stated plainly.** Plan 06-07's D-09 gate now refuses to *configure* a
+release invocation without real ad/PGS IDs, and the real IDs still do not exist (see § External
+prerequisites, items 1–2, "not started"). The gate fired correctly and blocked the first
+attempt. Row 3 was therefore measured with **throwaway, all-zero, non-functional IDs**
+(`ca-app-pub-0000000000000000~0000000000` and friends) placed in the untracked, gitignored
+`local.properties` — never committed, incapable of serving an ad or reaching a PGS project.
+This does not weaken the number: the IDs appear in the APK only as four short strings in
+`BuildConfig` and `resources.arsc`, so their contents cannot move a byte count meaningfully.
+It is recorded here because a reader comparing row 3 to a future Phase-14 measurement taken
+with *real* IDs should know the difference exists and is negligible — and because "the release
+gate fired and was satisfied with placeholders for a local measurement" is exactly the kind of
+step that must not be invisible.
 
 ---
 
@@ -129,6 +194,116 @@ and this app reflects at exactly one site (`PegSolitaireDatabase::class.java` in
   `android.r8.strictFullModeForKeepRules` both already default to `true` in AGP 9.1.0 (read out
   of `BooleanOption.kt`), so D-11's "R8 full mode" needs no opt-in; writing `=false` would be a
   regression.
+
+---
+
+## Merged manifest surface
+
+Captured by plan 06-09 on 2026-08-27, after the three SDK artifacts landed (D-14) and the
+`tools:node="remove"` was written. This is the **release** merged manifest — the thing the
+packager actually consumes, which is not what `app/src/main/AndroidManifest.xml` says on its
+own.
+
+**Path note for the next author:** AGP 9.1.0 writes the merged manifest to a *task-named*
+subdirectory, `app/build/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml`,
+not the `merged_manifest/release/AndroidManifest.xml` path quoted in earlier phase artifacts.
+The merger decision log is at `app/build/outputs/logs/manifest-merger-release-report.txt`.
+
+### `PlayGamesInitProvider` does not survive the merge
+
+```
+$ grep -c playgamesinitprovider .../merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml
+0
+```
+
+The merger report records the removal explicitly, which is stronger evidence than the absence
+above — absence alone would also be produced by the dependency simply not being there:
+
+```
+$ head -4 app/build/outputs/logs/manifest-merger-release-report.txt
+-- Merging decision tree log ---
+provider#com.google.android.gms.games.provider.PlayGamesInitProvider
+INJECTED from .../app/src/main/AndroidManifest.xml:54:9-57:35
+REJECTED from [com.google.android.gms:play-services-games-v2:22.0.0] .../play-services-games-v2-22.0.0/AndroidManifest.xml:13:9-17:38
+```
+
+`REJECTED from [com.google.android.gms:play-services-games-v2:22.0.0]` is the line that
+matters: the library really did offer the provider, and the app's directive really did throw
+it out. `ManifestSurfaceTest` gates this permanently — and it was observed **failing** before
+the directive was written, with
+`ContentProviderInfo{name=com.erman.pegsolitarie.playgamesinitprovider …}`, so it is not a
+test that cannot fail.
+
+### Requested permissions (7)
+
+| Permission | Contributed by |
+|------------|----------------|
+| `android.permission.INTERNET` | **this app** (D-10) — and independently by `ads-mobile-sdk` |
+| `android.permission.ACCESS_NETWORK_STATE` | `ads-mobile-sdk` |
+| `android.permission.READ_BASIC_PHONE_STATE` | `ads-mobile-sdk` |
+| `com.google.android.gms.permission.AD_ID` | `ads-mobile-sdk` — **privacy-relevant; drives a Data-safety answer (REL-01)** |
+| `android.permission.WAKE_LOCK` | `androidx.work`, transitively via `ads-mobile-sdk` |
+| `android.permission.FOREGROUND_SERVICE` | `androidx.work`, transitively via `ads-mobile-sdk` |
+| `com.erman.pegsolitarie.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | AGP, for `androidx.core` runtime receiver registration |
+
+An app that declared **zero** permissions through v1.0 now requests seven, and it wrote
+exactly one of them itself. That is the whole argument for D-10 and for
+`ManifestSurfaceTest` asserting **set equality**: six of these seven arrived because a
+dependency was added, and the next one will arrive the same way, silently, on a version bump.
+Equality makes that a build failure instead of a changed store listing.
+
+`RECEIVE_BOOT_COMPLETED` is **not** present — `ads-mobile-sdk` applies `tools:node="remove"`
+to it itself, so PITFALLS' concern about it reaching the listing is stale for Next-Gen.
+
+### Components, and the exported ones in particular
+
+```
+activity  exported=true   com.app.pegsolitaire.MainActivity
+activity  exported=false  com.google.android.libraries.ads.mobile.sdk.common.AdActivity
+activity  exported=false  com.google.android.gms.games.internal.v2.resolution.GamesResolutionActivity
+activity  exported=true   com.google.android.gms.games.internal.v2.appshortcuts.PlayGamesAppShortcutsActivity
+activity  exported=false  com.google.android.gms.common.api.GoogleApiActivity
+activity  exported=false  com.google.android.play.core.hsdp.service.HsdpShimActivity
+provider  exported=false  androidx.startup.InitializationProvider
+service   exported=false  androidx.work.impl.background.systemalarm.SystemAlarmService
+service   exported=true   androidx.work.impl.background.systemjob.SystemJobService
+service   exported=false  androidx.work.impl.foreground.SystemForegroundService
+service   exported=false  androidx.room.MultiInstanceInvalidationService
+receiver  exported=false  androidx.work.impl.utils.ForceStopRunnable$BroadcastReceiver
+receiver  exported=false  androidx.work.impl.background.systemalarm.ConstraintProxy$BatteryChargingProxy
+receiver  exported=false  androidx.work.impl.background.systemalarm.ConstraintProxy$BatteryNotLowProxy
+receiver  exported=false  androidx.work.impl.background.systemalarm.ConstraintProxy$StorageNotLowProxy
+receiver  exported=false  androidx.work.impl.background.systemalarm.ConstraintProxy$NetworkStateProxy
+receiver  exported=false  androidx.work.impl.background.systemalarm.RescheduleReceiver
+receiver  exported=false  androidx.work.impl.background.systemalarm.ConstraintProxyUpdateReceiver
+receiver  exported=true   androidx.work.impl.diagnostics.DiagnosticsReceiver
+receiver  exported=true   androidx.profileinstaller.ProfileInstallReceiver
+```
+
+**`PlayGamesAppShortcutsActivity` (`android:exported="true"`)** — T-06-34, disposition
+*accept*, recorded here so it is noticed now rather than discovered during the Phase-14
+security review. It arrives from `play-services-games-v2` and is a Google-signed app-shortcuts
+entry point, which is expected for PGS. One detail the threat register did not have: it
+carries **no `android:permission` guard and no `<intent-filter>`**. No filter means it is not
+reachable by implicit intent, but exported-with-no-guard means any app that knows the
+component name can start it. That is Google's design for a shortcuts target and is accepted,
+but "exported and unguarded" is the accurate description, not "exported".
+
+**Three further exported components the threat model did not anticipate**, all arriving via
+`androidx.work` / `androidx.profileinstaller` which `ads-mobile-sdk` pulls in transitively.
+Unlike the PGS activity, each *is* permission-guarded, which is why they are recorded rather
+than escalated:
+
+| Component | Guard |
+|-----------|-------|
+| `androidx.work.impl.background.systemjob.SystemJobService` | `android.permission.BIND_JOB_SERVICE` (signature — only the OS scheduler can bind) |
+| `androidx.work.impl.diagnostics.DiagnosticsReceiver` | `android.permission.DUMP` (privileged/adb only) |
+| `androidx.profileinstaller.ProfileInstallReceiver` | `android.permission.DUMP` (privileged/adb only) |
+
+Worth stating plainly for Phase 14: **adding one unreferenced ads dependency added a
+background job scheduler to this app.** Nothing in this project asked for `androidx.work`, and
+nothing calls it. It is inert, but it is manifest-resident, it is part of why APK row 3 grew,
+and it is now part of this app's attack surface.
 
 ---
 

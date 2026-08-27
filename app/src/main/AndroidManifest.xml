@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- D-10: the app was fully offline through v1.0 and declared no permissions.
+         Inert until an SDK uses it; declared explicitly so the store permission
+         diff is a deliberate commit rather than an implicit manifest-merge result.
+         Note that ads-mobile-sdk merges INTERNET in regardless, so this line changes
+         nothing about the merged output — which is the point. The permission is now
+         something this repository decided to request, visible in its history, rather
+         than something that arrived with a dependency bump. -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:name=".App"
@@ -17,5 +27,33 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- D-07, as corrected by D-17. play-services-games-v2 declares
+             PlayGamesInitProvider (authority ${applicationId}.playgamesinitprovider,
+             initOrder 99), and a ContentProvider at that init order runs before
+             App.onCreate completes, firing automatic Play Games sign-in on a real
+             device before this app has decided anything.
+
+             The reason for removing it is production cold start plus the downstream
+             CONS-02 requirement: initialisation must happen at a moment this app
+             chooses (PlayGamesSdk.initialize, Phase 11), not at process start.
+             It is NOT about test isolation — Robolectric 4.16 does not instantiate
+             manifest ContentProviders at startup (verified from its bytecode:
+             AndroidTestEnvironment has no provider loop, and ShadowContentResolver
+             instantiates lazily on a ContentResolver call naming the authority), so
+             the JVM suite was never at risk and removing this buys it nothing.
+
+             There is deliberately NO MobileAdsInitProvider counterpart. The GMA
+             Next-Gen SDK declares no ContentProvider at all and requires an explicit
+             MobileAds.initialize() — verified against ads-mobile-sdk 1.4.0's AAR
+             manifest, 2026-08-27. Writing a removal for it would be a harmless no-op
+             that documents a belief which is false.
+
+             android:name is what the merger keys on; the authority is carried here
+             because it documents what is being removed. -->
+        <provider
+            android:name="com.google.android.gms.games.provider.PlayGamesInitProvider"
+            android:authorities="${applicationId}.playgamesinitprovider"
+            tools:node="remove" />
     </application>
 </manifest>

@@ -321,6 +321,26 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
 
+    // ---- Slice-2 SDK artifacts (D-14) ------------------------------------
+    // On the dependency graph in THIS phase, referenced by NO code in it. That
+    // combination is deliberate and each half earns its keep:
+    //  - PLAT-07's provider-removal test is vacuous without play-services-games-v2
+    //    on the graph — there is no PlayGamesInitProvider to fail to remove.
+    //  - PLAT-04's violating fixture needs a REAL com.google.android.gms class to
+    //    name; a locally-declared decoy in a com.google.android.gms.fake package
+    //    would prove only that the rule matches strings we wrote ourselves.
+    //  - PLAT-05's keep-rule surface is only measured once the SDKs that publish
+    //    (or, for PGS, fail to publish) consumer rules are actually shrunk.
+    // `implementation`, not `compileOnly`: compileOnly puts nothing on the runtime
+    // or unit-test classpath and contributes no library manifest, which would
+    // defeat both of the first two points above.
+    // Real usage arrives in phases 9 (ads/UMP) and 11+ (Play Games), behind the
+    // existing AdGateway / GamesService seams and inside ..platform.. — which
+    // PlatformBoundaryTest enforces from the moment these lines land.
+    implementation(libs.ads.mobile.sdk)
+    implementation(libs.user.messaging.platform)
+    implementation(libs.play.services.games.v2)
+
     testImplementation(libs.junit)
     testImplementation(libs.truth)
     // StateFlow emission assertions + virtual-time coroutines for the ViewModel tests.
