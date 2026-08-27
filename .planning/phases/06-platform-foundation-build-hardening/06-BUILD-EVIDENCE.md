@@ -134,8 +134,23 @@ and this app reflects at exactly one site (`PegSolitaireDatabase::class.java` in
 
 ## Cold-start baseline
 
-**TBD — plan 06-08.** D-12 requires the pre-SDK cold-start figure to be captured in this phase
-so PLAT-08 in Phase 14 has something to measure against.
+**Pre-SDK figure (D-12).** Captured 2026-08-27, *before* plan 06-09 adds any SDK artifact to the
+dependency graph — this is the before-picture PLAT-08 measures against in Phase 14.
+
+| Field | Value |
+|-------|-------|
+| Device | AVD `Pixel_9a` (`emulator-5554`) |
+| API level | 36 (`ro.build.version.sdk`) |
+| Variant | **debug** (`:app:installDebug`) — release is unsigned until 06-10; a consistent variant matters more than absolute realism for a before/after comparison |
+| Command | `adb shell am force-stop com.app.pegsolitaire`, ~2 s pause, `adb shell am start -W -n com.app.pegsolitaire/.MainActivity`, ×10 |
+| Samples | 10 taken, first discarded as warm-up, **9 recorded** |
+| TotalTime (ms) | min **603** · median **633** · max **649** |
+| Raw samples (ms) | 649, 633, 629, 633, 649, 622, 609, 639, 603 (discarded warm-up: 721) |
+
+**Precision caveat:** `am start -W` displayed-time is coarse. It is affected by host load, emulator
+thermal/background state, and is **not comparable across devices**. Phase 14 must re-measure on the
+**same AVD (`Pixel_9a`, API 36) on the same host** for the PLAT-08 comparison to mean anything.
+This is an honest smoke-level baseline, not a benchmark-grade number.
 
 ---
 
