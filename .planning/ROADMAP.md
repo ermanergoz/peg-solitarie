@@ -83,7 +83,15 @@ Plans:
   2. Player hears the win sound and a rising-pitch star-pop sequence land in step with the existing Results celebration animation. (SOUND-03)
   3. Turning the existing `soundOn` setting off silences the game immediately, including one-shots already queued. (SOUND-05)
   4. Sound plays at system media volume, and a player listening to music or a podcast keeps hearing it — unducked, uninterrupted. (SOUND-06)
-**Plans**: TBD
+**Plans**: 6 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — Curate 11 CC0 candy-clay SFX into `res/raw`, record licence provenance, add the `audioFocusLiteralCheck` build gate
+- [ ] 07-02-PLAN.md — `SoundPlayer` seam, pitch-ladder constants, `@Singleton SoundPoolPlayer` (media volume, no audio focus, in-player mute gate), Hilt binding, `LocalSoundPlayer`, startup preload
+- [ ] 07-03-PLAN.md — Gameplay cues: derived same-peg run index, the three cue ordinals, and six `LaunchedEffect` cue composables on `GameScreen`
+- [ ] 07-04-PLAN.md — Results celebration: play-once latch plus the rising star-pop sequence in step with the existing stagger
+- [ ] 07-05-PLAN.md — Forward/dismiss button cues on navigational CTAs only, and the D-12 sound-enabled confirmation blip
+- [ ] 07-06-PLAN.md — Release-shrink retention proof and the blocking phase audit (podcast test, first-tap, aesthetic, licence sign-off)
 
 ### Phase 8: Assist & Generator Quality Debt
 **Goal**: The hint system tells the truth on every shipped board, and every Classic board's solvability is proven rather than asserted.
