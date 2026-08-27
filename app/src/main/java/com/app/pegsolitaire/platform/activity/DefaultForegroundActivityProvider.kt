@@ -38,7 +38,9 @@ import javax.inject.Singleton
 @Singleton
 class DefaultForegroundActivityProvider
     @Inject
-    constructor() : ForegroundActivityProvider, Application.ActivityLifecycleCallbacks {
+    constructor() :
+    ForegroundActivityProvider,
+        Application.ActivityLifecycleCallbacks {
         private val resumed = MutableStateFlow<WeakReference<Activity>?>(null)
 
         override val current: Activity? get() = resumed.value?.get()
