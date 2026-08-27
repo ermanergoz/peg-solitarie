@@ -26,6 +26,8 @@ This phase is deliberately **SDK-free and Activity-free** — it must not touch 
 - **D-06:** A "run" is **same-peg only**: pitch climbs only while the same peg keeps jumping (the classic multi-capture run). Jumping with a different peg resets the ladder to base. This is the purist reading — chains are rarer and therefore mean more.
 - **D-07:** The ladder has **no pitch cap** — every jump in a run steps up, without ceiling. Epic runs are allowed to get audibly silly; that is the point.
 - **D-08:** **Undo steps the ladder back down one** rather than resetting it. The pitch ladder mirrors board state exactly: undoing a run jump then redoing it replays the same pitch it had before.
+- **D-07a (resolved at plan-phase, 2026-08-28):** D-07's "no cap" meets SoundPool's hard 2.0× rate ceiling (one octave). User confirmed: **cap at 2.0× via `coerceIn`**, ceiling documented in KDoc. Ladder rises a semitone per jump and plateaus at the octave. Longest recorded same-peg run in the golden solutions is 3, so canonical play never approaches the cap. No AudioTrack/Oboe migration.
+- **D-05a (resolved at plan-phase, 2026-08-28):** Re-tapping the selected peg (deselect) **reuses the selection sound** — it is a successful action and must never fire the invalid-tap cue. Symmetric feedback, no extra asset.
 
 ### Button-press coverage (SOUND-04)
 - **D-09:** The button sound covers **navigational CTAs**: Home mode buttons, board selection, Results actions (Continue/Retry/etc.), and dialog confirm buttons. In-game assist controls (Undo, Hint) keep their own distinct event sounds from SOUND-02; toggles and back navigation stay silent.
