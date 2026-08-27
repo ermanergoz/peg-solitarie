@@ -329,14 +329,6 @@ This is an honest smoke-level baseline, not a benchmark-grade number.
 
 ---
 
-## Release smoke test
-
-**TBD — plan 06-10.** Phase 6 success criterion 4 ("a release build still launches and plays")
-cannot be automated here: `assembleRelease` emits `app-release-unsigned.apk` and no signing
-config is committed (D-16). Plan 06-10 debug-signs the APK locally for the smoke test.
-
----
-
 ## External prerequisites
 
 Recorded 2026-08-27 at the 06-08 Task 3 checkpoint. **Discovery: this milestone updates the
