@@ -106,14 +106,31 @@ internal fun Position.toTuple(): IntArray = intArrayOf(row, col)
 /** The six-int tuple form of a move: `[fromRow, fromCol, overRow, overCol, toRow, toCol]`. */
 internal fun Move.toTuple(): IntArray = intArrayOf(from.row, from.col, over.row, over.col, to.row, to.col)
 
-/** The position a `[row, col]` tuple denotes, or `null` if it is not a well-formed pair. */
+/**
+ * The position a `[row, col]` tuple denotes, or `null` if it is not a well-formed pair
+ * **or** carries a coordinate no legal board could hold (WARN-02).
+ *
+ * A stored blob is untrusted input, exactly as [SnapshotMapper.decode] documents. A
+ * footprint can hold at most [ResumeSnapshotFormat.MAX_BOARD_POSITIONS] cells because a
+ * `Board`'s peg mask is a single `Long`, and a 64-cell footprint could in principle be a
+ * 1x64 line — so no legal coordinate can fall outside `0 until MAX_BOARD_POSITIONS`.
+ * Anything else is corrupt or forged (the advisory's examples are `[-5, 3]` and
+ * `[1073741824, 0]`, which would otherwise build a degenerate off-canvas board).
+ *
+ * Rejecting here is fail-safe, never fail-fast: `SnapshotMapper.toBoardSpecOrNull`'s
+ * `positions.size == inPlay.size` check turns one rejected coordinate into a rejection of
+ * the whole snapshot, and the caller surfaces that as "no resume" — a fresh board — rather
+ * than a crash. The bound is deliberately not tightened to the largest *current* board
+ * dimension: that would fail **closed** on a future larger board and silently destroy a
+ * player's in-progress game.
+ */
 internal fun IntArray.toPositionOrNull(): Position? =
     with(ResumeSnapshotFormat) {
-        if (size == POSITION_TUPLE_SIZE) {
-            Position(row = this@toPositionOrNull[POSITION_ROW], col = this@toPositionOrNull[POSITION_COL])
-        } else {
-            null
-        }
+        if (size != POSITION_TUPLE_SIZE) return null
+        val row = this@toPositionOrNull[POSITION_ROW]
+        val col = this@toPositionOrNull[POSITION_COL]
+        if (row !in 0 until MAX_BOARD_POSITIONS || col !in 0 until MAX_BOARD_POSITIONS) return null
+        Position(row = row, col = col)
     }
 
 /**
