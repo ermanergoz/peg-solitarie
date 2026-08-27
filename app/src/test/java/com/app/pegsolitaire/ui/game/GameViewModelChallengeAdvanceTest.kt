@@ -19,6 +19,7 @@ import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
+import com.app.pegsolitaire.platform.ads.RewardOutcome
 import com.google.common.truth.Truth.assertThat
 import io.mockk.mockk
 import io.mockk.verify
@@ -288,9 +289,9 @@ private object AlwaysOnSettingsRepository : SettingsRepository {
     override suspend fun setHapticsOn(on: Boolean) = Unit
 }
 
-/** The Slice-1 auto-grant stub's behavior: every rewarded request is granted. */
+/** The auto-grant stub's behavior: every rewarded request answers [RewardOutcome.Granted]. */
 private object GrantingAdGateway : AdGateway {
-    override suspend fun requestRewarded(reason: AdReason): Boolean = true
+    override suspend fun requestRewarded(reason: AdReason): RewardOutcome = RewardOutcome.Granted
 
     override fun showInterstitial() = Unit
 }

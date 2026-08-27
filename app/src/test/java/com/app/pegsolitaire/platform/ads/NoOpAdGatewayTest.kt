@@ -5,9 +5,11 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
 /**
- * Proves the Slice-1 [NoOpAdGateway] stub auto-grants every rewarded reason (D-11) and
- * that its interstitial hook is a safe no-op. This is the contract 04-03 (Hint) reuses
- * unchanged; Slice 2 swaps the binding, not this behavior.
+ * Proves the [NoOpAdGateway] stub answers [RewardOutcome.Granted] to every rewarded
+ * reason (D-02) — never [RewardOutcome.Declined] and never [RewardOutcome.Unavailable] —
+ * and that its interstitial hook is a safe no-op. Granting unconditionally is what keeps
+ * hint and undo free and byte-identical to v1.0; Phase 9 swaps the binding, not this
+ * behavior.
  */
 class NoOpAdGatewayTest {
     private val gateway = NoOpAdGateway()
@@ -15,13 +17,13 @@ class NoOpAdGatewayTest {
     @Test
     fun requestRewardedGrantsHint() =
         runTest {
-            assertThat(gateway.requestRewarded(AdReason.HINT)).isTrue()
+            assertThat(gateway.requestRewarded(AdReason.HINT)).isEqualTo(RewardOutcome.Granted)
         }
 
     @Test
     fun requestRewardedGrantsUndo() =
         runTest {
-            assertThat(gateway.requestRewarded(AdReason.UNDO)).isTrue()
+            assertThat(gateway.requestRewarded(AdReason.UNDO)).isEqualTo(RewardOutcome.Granted)
         }
 
     @Test
