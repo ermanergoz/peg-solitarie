@@ -29,7 +29,7 @@ PGS / UMP artifacts on the dependency graph.
 |---|---------------|--------------------:|----:|-----------|
 | 1 | Pre-R8, pre-SDK — `main`/`develop` as committed, no `buildTypes` block at all | **9,890,332** | 9.43 | baseline |
 | 2 | Post-R8, pre-SDK — `isMinifyEnabled` + `isShrinkResources` + `proguard-android-optimize.txt` + this repo's one keep rule | **1,518,323** | 1.45 | **−8,372,009 B (−84.65 %)** |
-| 3 | Post-R8, with SDK artifacts on the graph but unreferenced by any code | **1,999,795** | 1.91 | **−7,890,537 B (−79.78 %)** |
+| 3 | Post-R8, with SDK artifacts on the graph but unreferenced by any code | **1,983,331** | 1.89 | **−7,907,001 B (−79.95 %)** |
 
 **Row 1** was measured on 2026-08-27 during phase research (`06-RESEARCH.md § Measurements`),
 before this plan existed, via an `--init-script` overlay that modified no repository file.
@@ -60,16 +60,24 @@ landed on the graph (D-14) and while **no code references any of them**:
 $ ./gradlew clean :app:assembleRelease
 BUILD SUCCESSFUL
 $ stat -f %z app/build/outputs/apk/release/app-release-unsigned.apk
-1999795
+1983331
 ```
 
+**The manifest removal is worth 16,464 B on its own.** Row 3 was first measured at
+**1,999,795 B** with the dependencies added but before the `tools:node="remove"` was written,
+then re-measured at 1,983,331 B against the committed state. Stripping `PlayGamesInitProvider`
+also removed a GC root: with the provider gone, `com.google.android.gms.games..` classes
+retained by R8 drop from **45 to 11**, and the total class count from 4,469 to 4,397. The
+directive was written for cold-start and CONS-02 reasons (D-17), not for size — the 16 KB is
+a side effect, but it is a concrete demonstration that a manifest entry keeps code alive.
+
 **Interpretation against row 2 — and a correction to the expectation.** The plan predicted
-row 3 ≈ row 2 on the reasoning that R8 strips code nothing calls. It is **+481,472 B
-(+31.7 %)** instead, and the gap is worth understanding now rather than at Phase 14, because
+row 3 ≈ row 2 on the reasoning that R8 strips code nothing calls. It is **+465,008 B
+(+30.6 %)** instead, and the gap is worth understanding now rather than at Phase 14, because
 it is the part that will *not* shrink further.
 
-R8 did strip the SDK code itself, almost completely. Of 4,469 classes surviving into
-`mapping.txt`, only **9** are `com.google.android.libraries.ads..`, **45** are
+R8 did strip the SDK code itself, almost completely. Of 4,397 classes surviving into
+`mapping.txt`, only **9** are `com.google.android.libraries.ads..`, **11** are
 `com.google.android.gms.games..`, and **0** are `com.google.android.ump..` — against roughly
 6.6 MB of input AAR. Nothing calls those SDKs, so nearly all of them are gone. That much
 matched the prediction.
@@ -80,7 +88,7 @@ reachability:
 - **Manifest-declared components are roots R8 cannot remove.** The merge brings in
   `AdActivity`, `GamesResolutionActivity`, `PlayGamesAppShortcutsActivity`,
   `GoogleApiActivity` and `HsdpShimActivity`, and every class reachable from them is live by
-  definition. That is why 296 `com.google.android.gms..` classes and 93
+  definition. That is why 223 `com.google.android.gms..` classes and 93
   `com.google.android.play..` / `protobuf` / `datatransport` classes survive.
 - **The ads SDK drags in whole androidx libraries that self-register.** `androidx.work`
   (134 retained classes) declares its own services and an `androidx.startup` initializer;
@@ -91,10 +99,10 @@ reachability:
   `LICENSE.txt` files are packaged verbatim regardless of what R8 concludes about code.
 
 **Consequence for Phase 14.** Row 2 remains the meaningful comparand for judging *this
-project's* growth, exactly as stated above — but the ~480 KB in row 3 is the fixed entry price
+project's* growth, exactly as stated above — but the ~465 KB in row 3 is the fixed entry price
 of having the SDKs on the graph, and it is already paid. Phase 14 should expect the increment
 from real integration to be measured against **row 3**, not row 2: wiring `MobileAds.initialize`
-and the PGS calls will move far less than another 480 KB, because the expensive part
+and the PGS calls will move far less than another 465 KB, because the expensive part
 (manifest roots and transitive androidx libraries) is already resident.
 
 **How row 3 was invoked, stated plainly.** Plan 06-07's D-09 gate now refuses to *configure* a

@@ -34,7 +34,7 @@
              App.onCreate completes, firing automatic Play Games sign-in on a real
              device before this app has decided anything.
 
-             The reason for removing it is PRODUCTION COLD START plus the downstream
+             The reason for removing it is production cold start plus the downstream
              CONS-02 requirement: initialisation must happen at a moment this app
              chooses (PlayGamesSdk.initialize, Phase 11), not at process start.
              It is NOT about test isolation — Robolectric 4.16 does not instantiate
