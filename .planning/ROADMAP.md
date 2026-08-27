@@ -62,9 +62,9 @@ These have no code equivalent and multi-hour-to-multi-day latency. Start them in
 **Plans**: 10 plans in 4 waves
 
 Plans:
-- [ ] 06-01-PLAN.md — PLAT-02: sealed `RewardOutcome` seam, fail-open `Unavailable` call sites (wave 1)
-- [ ] 06-02-PLAN.md — DEBT-04/WARN-02: bound resume-snapshot coordinates at the decode boundary (wave 1)
-- [ ] 06-03-PLAN.md — PLAT-05: R8 full mode + `shrinkResources`, one keep rule, pre-SDK APK ledger (wave 1)
+- [x] 06-01-PLAN.md — PLAT-02: sealed `RewardOutcome` seam, fail-open `Unavailable` call sites (wave 1)
+- [x] 06-02-PLAN.md — DEBT-04/WARN-02: bound resume-snapshot coordinates at the decode boundary (wave 1)
+- [x] 06-03-PLAN.md — PLAT-05: R8 full mode + `shrinkResources`, one keep rule, pre-SDK APK ledger (wave 1)
 - [ ] 06-04-PLAN.md — PLAT-03: `GamesService` session/achievements/UI-intent extension (wave 2)
 - [ ] 06-05-PLAN.md — PLAT-01/PLAT-04: `ForegroundActivityProvider` bridge + `PlatformBoundaryTest` gate (wave 2)
 - [ ] 06-06-PLAN.md — DEBT-04/WARN-03 + D-15: `ChallengeLevelBounds` consolidation and both clamp boundaries (wave 2)
@@ -185,7 +185,7 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 3. Challenge Generation & Difficulty Curve | v1.0 | 5/5 | Complete | 2026-07-01 |
 | 4. Assist — Hint & Undo | v1.0 | 6/6 | Complete | 2026-07-12 |
 | 5. Persistence, Resume & Settings | v1.0 | 7/7 | Complete | 2026-08-25 |
-| 6. Platform Foundation & Build Hardening | v1.1 | 0/10 | Planned | - |
+| 6. Platform Foundation & Build Hardening | v1.1 | 3/10 | In Progress|  |
 | 7. Sound | v1.1 | 0/TBD | Not started | - |
 | 8. Assist & Generator Quality Debt | v1.1 | 0/TBD | Not started | - |
 | 9. Consent & Rewarded Ads | v1.1 | 0/TBD | Not started | - |
