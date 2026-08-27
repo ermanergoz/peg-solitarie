@@ -23,9 +23,12 @@ import org.junit.Test
  *    moves exactly once per move; the `challengeLevel` stamp is provenance only and is
  *    never used to re-run the generator (a spy proves the call count; a deliberately
  *    mismatched stamp proves the footprint on disk wins).
- *  - **Fail-safe deserialization (Security §V5 / T-05-03 / T-05-04).** A corrupt,
- *    structurally malformed, or move-tampered blob yields `null` ("no resume") rather
- *    than throwing or applying a forged move.
+ *  - **Fail-safe deserialization (Security §V5 / T-05-03 / T-05-04 / WARN-02).** A
+ *    corrupt, structurally malformed, move-tampered, or coordinate-forged blob yields
+ *    `null` ("no resume") rather than throwing or applying a forged move. The WARN-02
+ *    cases close the v1.0 advisory that footprint coordinates were bounded only in
+ *    *arity*, never in *value* — and the English-33 case proves the bound did not
+ *    fail closed on legitimate stored data.
  */
 class SnapshotMapperTest {
     @Test
@@ -178,6 +181,31 @@ class SnapshotMapperTest {
         assertThat(restored!!.initialBoard.spec.inPlay)
             .contains(Position(row = MAX_VALID_COORDINATE, col = MAX_VALID_COORDINATE))
         assertThat(restored.moveHistory).hasSize(MOVES_PLAYED)
+    }
+
+    @Test
+    fun anOutOfRangeTargetYieldsNoResume() {
+        val valid = snapshotOf(play(MOVES_PLAYED))
+        // targetRow/targetCol are read raw and never flow through the bounded position
+        // decoder; the pre-existing `target in positions` guard is what rejects them, so
+        // this case verifies that guard rather than adding a second bound (T-06-06).
+        val forged = valid.copy(targetRow = FIRST_REJECTED_COORDINATE, targetCol = ORIGIN_COL)
+
+        assertThat(restore(forged)).isNull()
+    }
+
+    @Test
+    fun aPreviouslyValidEnglish33SnapshotStillDecodesToTheSameBoard() {
+        val played = play(MOVES_PLAYED)
+
+        val restored = restore(snapshotOf(played))
+
+        // The non-regression proof: every English-33 coordinate is inside the bound, so
+        // adding the bound must not have cost a real player their in-progress game.
+        assertThat(restored).isNotNull()
+        assertBoardMatches(actual = restored!!.initialBoard, expected = Boards.english33Initial)
+        assertBoardMatches(actual = restored.currentBoard, expected = played.currentBoard)
+        assertThat(restored.moveHistory).isEqualTo(played.history)
     }
 
     // --- helpers -------------------------------------------------------------
