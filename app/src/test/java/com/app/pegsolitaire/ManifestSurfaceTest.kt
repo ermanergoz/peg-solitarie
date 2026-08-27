@@ -90,9 +90,15 @@ private const val PLAY_GAMES_INIT_PROVIDER_AUTHORITY_SUFFIX = ".playgamesinitpro
  *   `androidx.core`'s runtime receiver registration. Interpolated because D-20 changed
  *   `applicationId` to `com.erman.pegsolitarie` while the namespace stayed
  *   `com.app.pegsolitaire`; hard-coding it would pin the wrong one.
- * - `REORDER_TASKS` — `androidx.compose.ui:ui-test-manifest`, a `debugImplementation`
- *   dependency. It reaches the unit-test manifest this test reads but never a release
- *   build, so its presence here is an artifact of where the assertion runs.
+ *
+ * `REORDER_TASKS` is deliberately **not** here, and the reason is worth knowing before
+ * you edit this set. `androidx.compose.ui:ui-test-manifest` (a `debugImplementation`
+ * dependency) does contribute it, and it is present in
+ * `packaged_manifests/debugUnitTest/…/AndroidManifest.xml`. It is absent from what this
+ * test observes, which establishes empirically that Robolectric reads the merged **main**
+ * manifest rather than the instrumentation one — so this set describes the permissions the
+ * app actually ships, not an artifact of the test harness. Verified by watching the
+ * assertion reject `REORDER_TASKS` on the first run.
  */
 private val EXPECTED_PERMISSIONS: Set<String> =
     setOf(
@@ -102,7 +108,6 @@ private val EXPECTED_PERMISSIONS: Set<String> =
         "com.google.android.gms.permission.AD_ID",
         Manifest.permission.WAKE_LOCK,
         Manifest.permission.FOREGROUND_SERVICE,
-        Manifest.permission.REORDER_TASKS,
         "$APPLICATION_ID.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
     )
 

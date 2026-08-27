@@ -189,6 +189,116 @@ and this app reflects at exactly one site (`PegSolitaireDatabase::class.java` in
 
 ---
 
+## Merged manifest surface
+
+Captured by plan 06-09 on 2026-08-27, after the three SDK artifacts landed (D-14) and the
+`tools:node="remove"` was written. This is the **release** merged manifest — the thing the
+packager actually consumes, which is not what `app/src/main/AndroidManifest.xml` says on its
+own.
+
+**Path note for the next author:** AGP 9.1.0 writes the merged manifest to a *task-named*
+subdirectory, `app/build/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml`,
+not the `merged_manifest/release/AndroidManifest.xml` path quoted in earlier phase artifacts.
+The merger decision log is at `app/build/outputs/logs/manifest-merger-release-report.txt`.
+
+### `PlayGamesInitProvider` does not survive the merge
+
+```
+$ grep -c playgamesinitprovider .../merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml
+0
+```
+
+The merger report records the removal explicitly, which is stronger evidence than the absence
+above — absence alone would also be produced by the dependency simply not being there:
+
+```
+$ head -4 app/build/outputs/logs/manifest-merger-release-report.txt
+-- Merging decision tree log ---
+provider#com.google.android.gms.games.provider.PlayGamesInitProvider
+INJECTED from .../app/src/main/AndroidManifest.xml:54:9-57:35
+REJECTED from [com.google.android.gms:play-services-games-v2:22.0.0] .../play-services-games-v2-22.0.0/AndroidManifest.xml:13:9-17:38
+```
+
+`REJECTED from [com.google.android.gms:play-services-games-v2:22.0.0]` is the line that
+matters: the library really did offer the provider, and the app's directive really did throw
+it out. `ManifestSurfaceTest` gates this permanently — and it was observed **failing** before
+the directive was written, with
+`ContentProviderInfo{name=com.erman.pegsolitarie.playgamesinitprovider …}`, so it is not a
+test that cannot fail.
+
+### Requested permissions (7)
+
+| Permission | Contributed by |
+|------------|----------------|
+| `android.permission.INTERNET` | **this app** (D-10) — and independently by `ads-mobile-sdk` |
+| `android.permission.ACCESS_NETWORK_STATE` | `ads-mobile-sdk` |
+| `android.permission.READ_BASIC_PHONE_STATE` | `ads-mobile-sdk` |
+| `com.google.android.gms.permission.AD_ID` | `ads-mobile-sdk` — **privacy-relevant; drives a Data-safety answer (REL-01)** |
+| `android.permission.WAKE_LOCK` | `androidx.work`, transitively via `ads-mobile-sdk` |
+| `android.permission.FOREGROUND_SERVICE` | `androidx.work`, transitively via `ads-mobile-sdk` |
+| `com.erman.pegsolitarie.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | AGP, for `androidx.core` runtime receiver registration |
+
+An app that declared **zero** permissions through v1.0 now requests seven, and it wrote
+exactly one of them itself. That is the whole argument for D-10 and for
+`ManifestSurfaceTest` asserting **set equality**: six of these seven arrived because a
+dependency was added, and the next one will arrive the same way, silently, on a version bump.
+Equality makes that a build failure instead of a changed store listing.
+
+`RECEIVE_BOOT_COMPLETED` is **not** present — `ads-mobile-sdk` applies `tools:node="remove"`
+to it itself, so PITFALLS' concern about it reaching the listing is stale for Next-Gen.
+
+### Components, and the exported ones in particular
+
+```
+activity  exported=true   com.app.pegsolitaire.MainActivity
+activity  exported=false  com.google.android.libraries.ads.mobile.sdk.common.AdActivity
+activity  exported=false  com.google.android.gms.games.internal.v2.resolution.GamesResolutionActivity
+activity  exported=true   com.google.android.gms.games.internal.v2.appshortcuts.PlayGamesAppShortcutsActivity
+activity  exported=false  com.google.android.gms.common.api.GoogleApiActivity
+activity  exported=false  com.google.android.play.core.hsdp.service.HsdpShimActivity
+provider  exported=false  androidx.startup.InitializationProvider
+service   exported=false  androidx.work.impl.background.systemalarm.SystemAlarmService
+service   exported=true   androidx.work.impl.background.systemjob.SystemJobService
+service   exported=false  androidx.work.impl.foreground.SystemForegroundService
+service   exported=false  androidx.room.MultiInstanceInvalidationService
+receiver  exported=false  androidx.work.impl.utils.ForceStopRunnable$BroadcastReceiver
+receiver  exported=false  androidx.work.impl.background.systemalarm.ConstraintProxy$BatteryChargingProxy
+receiver  exported=false  androidx.work.impl.background.systemalarm.ConstraintProxy$BatteryNotLowProxy
+receiver  exported=false  androidx.work.impl.background.systemalarm.ConstraintProxy$StorageNotLowProxy
+receiver  exported=false  androidx.work.impl.background.systemalarm.ConstraintProxy$NetworkStateProxy
+receiver  exported=false  androidx.work.impl.background.systemalarm.RescheduleReceiver
+receiver  exported=false  androidx.work.impl.background.systemalarm.ConstraintProxyUpdateReceiver
+receiver  exported=true   androidx.work.impl.diagnostics.DiagnosticsReceiver
+receiver  exported=true   androidx.profileinstaller.ProfileInstallReceiver
+```
+
+**`PlayGamesAppShortcutsActivity` (`android:exported="true"`)** — T-06-34, disposition
+*accept*, recorded here so it is noticed now rather than discovered during the Phase-14
+security review. It arrives from `play-services-games-v2` and is a Google-signed app-shortcuts
+entry point, which is expected for PGS. One detail the threat register did not have: it
+carries **no `android:permission` guard and no `<intent-filter>`**. No filter means it is not
+reachable by implicit intent, but exported-with-no-guard means any app that knows the
+component name can start it. That is Google's design for a shortcuts target and is accepted,
+but "exported and unguarded" is the accurate description, not "exported".
+
+**Three further exported components the threat model did not anticipate**, all arriving via
+`androidx.work` / `androidx.profileinstaller` which `ads-mobile-sdk` pulls in transitively.
+Unlike the PGS activity, each *is* permission-guarded, which is why they are recorded rather
+than escalated:
+
+| Component | Guard |
+|-----------|-------|
+| `androidx.work.impl.background.systemjob.SystemJobService` | `android.permission.BIND_JOB_SERVICE` (signature — only the OS scheduler can bind) |
+| `androidx.work.impl.diagnostics.DiagnosticsReceiver` | `android.permission.DUMP` (privileged/adb only) |
+| `androidx.profileinstaller.ProfileInstallReceiver` | `android.permission.DUMP` (privileged/adb only) |
+
+Worth stating plainly for Phase 14: **adding one unreferenced ads dependency added a
+background job scheduler to this app.** Nothing in this project asked for `androidx.work`, and
+nothing calls it. It is inert, but it is manifest-resident, it is part of why APK row 3 grew,
+and it is now part of this app's attack surface.
+
+---
+
 ## Cold-start baseline
 
 **Pre-SDK figure (D-12).** Captured 2026-08-27, *before* plan 06-09 adds any SDK artifact to the
