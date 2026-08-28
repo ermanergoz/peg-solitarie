@@ -374,7 +374,11 @@ class NavFlowTest {
     private fun currentRoute(): String = navController.currentDestination?.route.orEmpty()
 
     /** The route pattern one entry down — where system Back from the current screen lands. */
-    private fun previousRoute(): String = navController.previousBackStackEntry?.destination?.route.orEmpty()
+    private fun previousRoute(): String =
+        navController.previousBackStackEntry
+            ?.destination
+            ?.route
+            .orEmpty()
 
     /** Every live back-stack entry's route pattern, in order. */
     private fun backStackRoutes(): List<String> =
