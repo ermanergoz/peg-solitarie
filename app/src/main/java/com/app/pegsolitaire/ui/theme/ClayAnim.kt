@@ -46,15 +46,23 @@ object ClayAnim {
      * land with them. One token drives both on purpose: the sound is not "near" its star,
      * it is *on* it, and forking the two is how they drift apart.
      *
-     * Raised from 120 ms after the phase 7 audit ("let the stars be slower"), then to 260 ms
-     * on a follow-up pass. At 120 ms each star arrived barely halfway through the previous
-     * pop's [STAR_POP_MS] and the three read as one burst; 200 ms separated them but still
-     * overlapped. Matching [STAR_POP_MS] exactly is the point the overlap reaches zero — each
-     * star now begins as the previous one finishes, so the three are strictly sequential.
-     * Keep the two equal if either is retuned; a stagger below [STAR_POP_MS] reintroduces
-     * overlap, and one above it opens a silent gap mid-celebration.
+     * Raised 120 -> 200 -> 260 across the phase 7 audit ("let the stars be slower") and the
+     * follow-up pass after it: at 120 ms each star arrived barely halfway through the previous
+     * pop's [STAR_POP_MS] and the three read as one burst, 200 ms separated them but still
+     * overlapped, and 260 ms matched [STAR_POP_MS] exactly — the point overlap reaches zero.
+     * Then 260 -> 500 when the star-pop sample was replaced by the 1.65 s freesound blip.
+     *
+     * At 500 ms the stagger sits deliberately *above* [STAR_POP_MS], so each star finishes its
+     * pop and then holds still for **240 ms** before the next one starts. That gap is a chosen
+     * outcome, not drift: the user auditioned 260 ms (the pops overlapping) against 500 ms
+     * (each pop given room) and picked 500 ms. Stretching [STAR_POP_MS] to 500 to keep the two
+     * equal would instead have halved the speed of every star's overshoot, changing a visual
+     * character nobody asked about.
+     *
+     * The gap is visual only. The 1.65 s audio cue rings straight through it and under the
+     * pops that follow, so nothing is actually silent mid-celebration.
      */
-    const val STAR_STAGGER_MS = 260
+    const val STAR_STAGGER_MS = 500
 
     /** Results score count-up duration. */
     const val SCORE_COUNT_UP_MS = 600

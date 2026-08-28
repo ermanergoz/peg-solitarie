@@ -216,7 +216,7 @@ private const val BEFORE_LEAD_IN_MS = 200L
 private const val JUST_PAST_LEAD_IN_MS = 300L
 
 /** Far past the whole three-pop sequence on either stagger. */
-private const val CELEBRATION_SETTLE_MS = 1_500L
+private const val CELEBRATION_SETTLE_MS = 2_500L
 
 /** The OS animator duration scale that means "animations off" (D-13). */
 private const val ANIMATIONS_DISABLED_SCALE = 0f

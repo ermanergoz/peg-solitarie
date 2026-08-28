@@ -79,11 +79,12 @@ object SoundParams {
      *
      * Raised from 150 ms alongside that token's 120 -> 200, then to 325 ms alongside its
      * 200 -> 260 (the phase 7 audit's "let the stars be slower", and the follow-up pass
-     * after it). Each step held this fallback at 1.25x the visual token, so it keeps the
-     * slightly wider gap it always had — with no star landing to pace them, the pops need
-     * a touch more air to read as three events — and the two paths still feel alike.
+     * after it), then to 625 ms alongside its 260 -> 500 (the star-pop sample swap). Each
+     * step held this fallback at 1.25x the visual token, so it keeps the slightly wider
+     * gap it always had — with no star landing to pace them, the pops need a touch more
+     * air to read as three events — and the two paths still feel alike.
      */
-    const val STAR_POP_STAGGER_MS = 325
+    const val STAR_POP_STAGGER_MS = 625
 
     /** Gap between the win stinger and the first star pop, so D-14's two beats read as two. */
     const val CELEBRATION_LEAD_IN_MS = 250
@@ -94,6 +95,16 @@ object SoundParams {
     /**
      * The `SoundPool` voice budget. Worst realistic concurrency is the win stinger plus
      * three star pops; above this `SoundPool` voice-steals by priority, then by age.
+     *
+     * Re-checked when the star pop became a 1.65 s cue at the 500 ms spacing of
+     * [com.app.pegsolitaire.ui.theme.ClayAnim.STAR_STAGGER_MS]. That worst case used to be
+     * hypothetical — a 0.135 s pop every 260 ms could never overlap the previous one — and is
+     * now genuinely reached: the pops fire 250 / 750 / 1250 ms after Results entry and ring
+     * until 1900 / 2400 / 2900 ms, so all three sound together between 1250 and 1900 ms, with
+     * the 0.54 s win stinger still able to be under the first. Four voices against eight, so
+     * the budget keeps 2x headroom and the oldest-first eviction `SoundPoolPlayer` runs at
+     * `activeStreams.size >= MAX_STREAMS` is never reached. Shortening it would start stealing
+     * celebration voices from a real overlap rather than an imagined one.
      */
     const val MAX_STREAMS = 8
 
