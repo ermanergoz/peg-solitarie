@@ -342,7 +342,13 @@ class GameViewModel
             _uiState.update {
                 GameUiState
                     .initial(level.initialBoard)
-                    .copy(showHints = it.showHints, hapticsOn = it.hapticsOn)
+                    .copy(
+                        showHints = it.showHints,
+                        hapticsOn = it.hapticsOn,
+                        selectionTick = it.selectionTick,
+                        undoTick = it.undoTick,
+                        rejectedTapTick = it.rejectedTapTick,
+                    )
             }
         }
 
@@ -382,7 +388,13 @@ class GameViewModel
             _uiState.update {
                 GameUiState
                     .initial(board)
-                    .copy(showHints = it.showHints, hapticsOn = it.hapticsOn)
+                    .copy(
+                        showHints = it.showHints,
+                        hapticsOn = it.hapticsOn,
+                        selectionTick = it.selectionTick,
+                        undoTick = it.undoTick,
+                        rejectedTapTick = it.rejectedTapTick,
+                    )
             }
         }
 
@@ -419,6 +431,9 @@ class GameViewModel
                         status = statusFor(restored.currentBoard),
                         canUndo = moveHistory.isNotEmpty(),
                         elapsedSeconds = elapsedBaseSeconds,
+                        selectionTick = it.selectionTick,
+                        undoTick = it.undoTick,
+                        rejectedTapTick = it.rejectedTapTick,
                     )
             }
         }
@@ -487,13 +502,26 @@ class GameViewModel
             val state = _uiState.value
             when {
                 // Re-tapping the selected peg is the only deselect (D-04); clear inline.
+                // D-05a: a deselect is a SUCCESSFUL action, so it advances the same
+                // selection ordinal a select does and reuses the selection cue; it must
+                // never be counted as a rejected tap.
                 state.selected == position ->
-                    _uiState.update { it.copy(selected = null, legalTargets = emptyList()) }
+                    _uiState.update {
+                        it.copy(
+                            selected = null,
+                            legalTargets = emptyList(),
+                            selectionTick = it.selectionTick + 1,
+                        )
+                    }
                 state.selected != null && position in state.legalTargets ->
                     performJump(from = state.selected, to = position)
                 state.selected == null && state.board.cellAt(position) == Cell.Peg ->
                     select(position)
-                else -> Unit
+                // The genuine rejection: a tap that changed nothing at all (an empty or
+                // out-of-play cell with no selection, an illegal destination with one).
+                // It leaves no other trace on the board, so the ordinal is the only way a
+                // consumer can observe it (SOUND-02's quiet invalid tap).
+                else -> _uiState.update { it.copy(rejectedTapTick = it.rejectedTapTick + 1) }
             }
         }
 
@@ -505,7 +533,47 @@ class GameViewModel
                     .legalMoves(board)
                     .filter { it.from == position }
                     .map { it.to }
-            _uiState.update { it.copy(selected = position, legalTargets = targets) }
+            _uiState.update {
+                it.copy(
+                    selected = position,
+                    legalTargets = targets,
+                    selectionTick = it.selectionTick + 1,
+                )
+            }
+        }
+
+        /**
+         * How many consecutive preceding moves chain into the move at [index] — the
+         * jump-pitch ladder step (D-05): `0` for the first jump of a run, `1` for the
+         * second hop of the same peg, and so on.
+         *
+         * D-06 makes a run **same-peg only**, which is exactly the `from == previous.to`
+         * walk below: a move continues a run only when it starts where the previous move
+         * landed. Jumping with any other peg breaks the chain and the count restarts at 0.
+         *
+         * A pure function of [history] with no state of its own, and that is the whole
+         * point of D-08: [onUndo] shortens `moveHistory`, so replaying an undone move
+         * recomputes the same index and replays the identical pitch. Nothing to reset,
+         * nothing to desynchronise.
+         *
+         * Total for every [index] — an out-of-range one answers 0 rather than throwing,
+         * which pairs with the clamp in the audio layer's rate maths (T-07-02).
+         *
+         * This is a presentation concern and stays in the ViewModel: `:domain` is pure
+         * game rules (`DomainPurityTest` guards it), and a pitch ladder is not a rule.
+         */
+        private fun runIndexAt(
+            history: List<Move>,
+            index: Int,
+        ): Int {
+            if (index !in history.indices) return 0
+            var run = 0
+            var i = index
+            while (i > 0 && history[i].from == history[i - 1].to) {
+                run++
+                i--
+            }
+            return run
         }
 
         /**
@@ -539,6 +607,8 @@ class GameViewModel
                     to = move.to,
                     removed = move.over,
                     id = moveHistory.size,
+                    // Derived AFTER the add, so the just-played move is part of the run.
+                    runIndex = runIndexAt(moveHistory, moveHistory.lastIndex),
                 )
             val status = statusFor(nextBoard)
             _uiState.update {
@@ -724,6 +794,9 @@ class GameViewModel
                         hintTarget = null,
                         noWinningMove = false,
                         stuck = false,
+                        // Both guards above (a declined grant, an empty history) return
+                        // before here, so this ticks once per undo that really happened.
+                        undoTick = it.undoTick + 1,
                     )
                 }
                 // Undoing out of a frozen (Stuck) board back to Playing resumes the timer that
@@ -816,12 +889,24 @@ class GameViewModel
             onRecordedLine = true
             // Preserve the player's hint + haptics choices across a restart; the collected
             // settings flows only re-emit on change, so carry them forward explicitly.
+            //
+            // The three cue ordinals ride along for a different reason: they are keys for
+            // one-shot effects in the screen. A fresh 0 is a *changed* key for an effect
+            // sitting at a higher value, so resetting them here would fire a cue nobody
+            // triggered — a pop on restart, on a Challenge load or on Continue-resume
+            // (RESEARCH Pitfall 2). Guarding on `> 0` in the screen is the second half of
+            // that fix; both halves are required, and both are needed at all four of the
+            // state-rebuild sites (this one, loadChallengeBoardIfNeeded, installClassicBoard
+            // and applyRestored).
             _uiState.value =
                 GameUiState
                     .initial(board)
                     .copy(
                         showHints = _uiState.value.showHints,
                         hapticsOn = _uiState.value.hapticsOn,
+                        selectionTick = _uiState.value.selectionTick,
+                        undoTick = _uiState.value.undoTick,
+                        rejectedTapTick = _uiState.value.rejectedTapTick,
                     )
         }
 
