@@ -4,13 +4,19 @@ import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Position
 
 /**
- * Symmetry canonicalization for a board's `pegs` bitmask — the dedup gate's key.
+ * Symmetry canonicalization for a board's `pegs` bitmask — the **single**
+ * implementation in the repository.
  *
- * Lifted **verbatim** from the test-source `AuthoringSolver.symmetryPermutations`
- * /`canonical` (RESEARCH §Quality Gates — "lift that canonicalization rather than
- * re-deriving it"; §Don't Hand-Roll). The generator's symmetry-normalized dedup
- * gate (Pitfall 3) folds symmetric starting boards onto one key so a board and its
- * dihedral images count as the same puzzle "in the player's sequence".
+ * Every consumer delegates here: the generator's symmetry-normalized dedup gate
+ * (Pitfall 3, which folds a board and its dihedral images onto one key so they count
+ * as the same puzzle "in the player's sequence"), the production `Solver`'s search
+ * memo key, the test-source authoring tools, and the bitboard `SolverTables`. This
+ * logic previously existed as three verbatim private copies; `CanonicalTest` is the
+ * correctness net that keeps the surviving one honest (RESEARCH §Don't Hand-Roll,
+ * Pitfall 4).
+ *
+ * Two equivalent entry points: [canonical] walks the set bits of a mask directly,
+ * while [canonicalFast] uses the precomputed byte-chunk tables from [chunkTables].
  *
  * Pure Kotlin, zero Android deps (QUAL-01): operates only on [BoardSpec]/[Position]
  * and a `Long` mask.
