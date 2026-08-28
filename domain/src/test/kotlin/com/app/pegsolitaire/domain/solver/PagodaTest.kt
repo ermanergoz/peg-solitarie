@@ -2,6 +2,7 @@ package com.app.pegsolitaire.domain.solver
 
 import com.app.pegsolitaire.domain.golden.solutions.RecordedSolutions
 import com.app.pegsolitaire.domain.golden.solutions.SolutionFixtures
+import com.app.pegsolitaire.domain.model.Boards
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
@@ -19,6 +20,16 @@ class PagodaTest {
         // Two pegs on the same mod-3 colour class with no peg between them: the
         // colour-parity necessary condition proves this cannot reach a single peg.
         assertThat(Pagoda.mayBeSolvable(SolverSamples.deadBoard)).isFalse()
+    }
+
+    @Test
+    fun admitsTheDiamondStartNowThatItsTargetIsTwoPegs() {
+        // The DEBT-01 defect this generalisation exists to remove. While the condition
+        // asserted a ONE-peg terminal it returned `false` for EVERY Diamond-41 position,
+        // so `Solver.firstWinningMove` answered `null` in O(cells) with zero search and
+        // the Diamond hint was structurally incapable of saying anything but "no winning
+        // move". Diamond-41's target is its proven floor of two pegs, not one.
+        assertThat(Pagoda.mayBeSolvable(Boards.diamond41Initial)).isTrue()
     }
 
     @Test
