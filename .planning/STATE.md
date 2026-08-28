@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Slice 2 — Play Games, AdMob & Polish
-status: executing
-stopped_at: Completed 07-05-PLAN.md (Button cues & the Settings blip)
-last_updated: "2026-08-28T15:05:33.564Z"
-last_activity: 2026-08-28 -- Phase 07 plan 05 (Button cues & the Settings blip) complete
+status: verifying
+stopped_at: Completed 07-06-PLAN.md (Release shrink proof & phase audit)
+last_updated: "2026-08-28T18:21:07.915Z"
+last_activity: 2026-08-28
 progress:
   total_phases: 9
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 16
-  completed_plans: 15
-  percent: 94
+  completed_plans: 16
+  percent: 22
 ---
 
 # Project State
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-08-27)
 
 Phase: 07 (sound) — EXECUTING
 Plan: 6 of 6
-Status: Ready to execute
-Last activity: 2026-08-28 -- Phase 07 plan 05 (Button cues & the Settings blip) complete
+Status: Phase complete — ready for verification
+Last activity: 2026-08-28
 
-Progress: [█████████░] 94%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -66,6 +66,7 @@ Per-plan durations archived in `.planning/milestones/v1.0-ROADMAP.md`.
 | Phase 07 P05 | ~40 min | 2 tasks | 8 files |
 
 *Updated after each plan completion*
+| Phase 07 P06 | ~15 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -93,6 +94,10 @@ Recent decisions affecting current work:
 - [Phase 07]: Button cues are wrapped at the LEAF composable (ModeTile, PrimaryAction, NeutralAction, BoardCard) but stay per-callsite — never on the shared Modifier.claySquish(), which is also on exactly the back-nav icons, hint toggle and Settings switches D-09 excludes
 - [Phase 07]: D-10 requires no implementation — the pinned Compose stack emits no Android platform click tick, so there is no doubled sound to suppress and no soundEffectsEnabled API to disable; recorded as a // note at ResultsActions.kt and deferred to manual UAT in 07-06
 - [Phase 07]: The D-12 blip fires on the user event and through the documented gate bypass, because the DataStore write has not round-tripped when the pop is due — a collector-side blip would also greet the player on every Settings open, which D-12 forbids
+- [Phase 07]: A surviving resource id is a weaker claim than a surviving sound — the shrink proof follows each R.raw id to its SHORTENED packaged path and byte-compares against source, because isShrinkResources can keep an id while replacing its payload
+- [Phase 07]: The audit's 'star pops too high' was fixed by transposing the whole triad down a rung (STAR_POP_BASE_RATE, derived from STAR_POP_STEP_SEMITONES so the two cannot drift), never by narrowing the semitone step — the step is ladder SHAPE, and narrowing it would flatten the rising climb D-15 exists to protect
+- [Phase 07]: The Results star stagger stays ONE token (ClayAnim.STAR_STAGGER_MS, 120 -> 200) driving both the visual reveal and the audio pop spacing; the animations-off fallback was scaled by the same 5/3 rather than re-guessed, so the pop lands ON its star rather than near it
+- [Phase 07]: Phase 7's manual audit was emulator-only and globally approved rather than itemised — T-07-04 (ducking) and T-07-16 (cold-start latency) have emulator-grade confirmation only, and the shrink-proof APK used placeholder ad IDs so it is a verification artifact, not a shippable build
 
 ### Pending Todos
 
@@ -122,8 +127,8 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-08-28T15:05:33.560Z
-Stopped at: Completed 07-05-PLAN.md (Button cues & the Settings blip)
+Last session: 2026-08-28T18:20:57.096Z
+Stopped at: Completed 07-06-PLAN.md (Release shrink proof & phase audit)
 Resume file: None
 
 ## Operator Next Steps

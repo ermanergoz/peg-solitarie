@@ -25,7 +25,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) · Audit:
 **Milestone Goal:** Turn the shipped offline game into a release-ready product by wiring real Play Games and AdMob SDKs behind the existing seams, adding sound, and paying down carried tech debt.
 
 - [x] **Phase 6: Platform Foundation & Build Hardening** - Activity bridge, extended seams, R8, build-config IDs, purity/dependency gates, security advisories closed — zero player-visible change (completed 2026-08-27)
-- [ ] **Phase 7: Sound** - The 11-event SFX set consuming the already-persisted `soundOn` flag
+- [x] **Phase 7: Sound** - The 11-event SFX set consuming the already-persisted `soundOn` flag (completed 2026-08-28)
 - [ ] **Phase 8: Assist & Generator Quality Debt** - Hints tell the truth on hard early positions; every Classic board's solvability is proven
 - [ ] **Phase 9: Consent & Rewarded Ads** - UMP consent, opt-in-first rewarded assists, fail-open on no-fill, clock frozen across every ad
 - [ ] **Phase 10: Interstitials** - Frequency-capped, win-only interstitials at the Results continue action
@@ -113,7 +113,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
-- [ ] 07-06-PLAN.md — Release-shrink retention proof and the blocking phase audit (podcast test, first-tap, aesthetic, licence sign-off)
+- [x] 07-06-PLAN.md — Release-shrink retention proof and the blocking phase audit (podcast test, first-tap, aesthetic, licence sign-off)
 
 ### Phase 8: Assist & Generator Quality Debt
 
@@ -237,7 +237,7 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 4. Assist — Hint & Undo | v1.0 | 6/6 | Complete | 2026-07-12 |
 | 5. Persistence, Resume & Settings | v1.0 | 7/7 | Complete | 2026-08-25 |
 | 6. Platform Foundation & Build Hardening | v1.1 | 10/10 | Complete   | 2026-08-27 |
-| 7. Sound | v1.1 | 5/6 | In Progress|  |
+| 7. Sound | v1.1 | 6/6 | Complete   | 2026-08-28 |
 | 8. Assist & Generator Quality Debt | v1.1 | 0/TBD | Not started | - |
 | 9. Consent & Rewarded Ads | v1.1 | 0/TBD | Not started | - |
 | 10. Interstitials | v1.1 | 0/TBD | Not started | - |
