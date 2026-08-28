@@ -1,5 +1,6 @@
 package com.app.pegsolitaire.domain.golden.solutions
 
+import com.app.pegsolitaire.domain.generator.BoardCanonical
 import com.app.pegsolitaire.domain.golden.BoardCodec
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardSpec
@@ -21,8 +22,8 @@ import kotlin.random.Random
  * (English-33, European-37, Asymmetric-39 and the 45-hole Wiegleb cross):
  *  - a memory-lean [VisitedSet] transposition memo, keyed on the **symmetry-
  *    canonical** [Board.pegs] (the smallest mask under the footprint's dihedral
- *    group) so symmetric positions collapse onto one key — up to an 8x reduction
- *    that makes the 9x9 Wiegleb board reachable;
+ *    group, via the shared [BoardCanonical]) so symmetric positions collapse onto
+ *    one key — up to an 8x reduction that makes the 9x9 Wiegleb board reachable;
  *  - an **inward** move ordering (collapse pegs toward the footprint centre, the
  *    textbook way to solve cross boards) with per-restart random **jitter**, so a
  *    short solution surfaces early and independent restarts explore different
@@ -78,7 +79,7 @@ object AuthoringSolver {
      * span up to [MAX_DISTINCT_PER_ATTEMPT] canonical positions within the heap.
      */
     fun forwardSolve(start: Board): List<Move>? {
-        val symmetries = symmetryPermutations(start.spec)
+        val canonicalTables = BoardCanonical.chunkTables(start.spec)
         val center = centroidOf(start.spec)
         for (attempt in 0 until MAX_RESTARTS) {
             val random = Random(BASE_SEED + attempt)
@@ -93,7 +94,7 @@ object AuthoringSolver {
                 if (board.pegCount == SOLVED_PEG_COUNT) return path.toList()
                 var solution: List<Move>? = null
                 val withinBudget = seen.size < MAX_DISTINCT_PER_ATTEMPT
-                if (withinBudget && seen.add(canonical(board.pegs, symmetries))) {
+                if (withinBudget && seen.add(BoardCanonical.canonicalFast(board.pegs, canonicalTables))) {
                     val ordered =
                         RulesEngine
                             .legalMoves(board)
@@ -143,65 +144,6 @@ object AuthoringSolver {
         val dr = position.row - center[0]
         val dc = position.col - center[1]
         return dr * dr + dc * dc
-    }
-
-    /**
-     * The bit permutations of the board's symmetry group (the dihedral transforms
-     * of its square bounding box that map the footprint onto itself). Used to fold
-     * symmetric positions onto one [canonical] memo key, shrinking the explored
-     * state space by up to the symmetry order (8x for the fully D4-symmetric 9x9
-     * board) — the difference between intractable and tractable for Wiegleb-45.
-     * Sound for first-solution search: symmetric positions have symmetric solution
-     * sets, so if one is a dead end so are its images.
-     */
-    private fun symmetryPermutations(spec: BoardSpec): List<IntArray> {
-        val dimension = spec.inPlay.maxOf { maxOf(it.row, it.col) } + 1
-        val last = dimension - 1
-        val transforms: List<(Position) -> Position> =
-            listOf(
-                { p -> p },
-                { p -> Position(row = p.col, col = last - p.row) },
-                { p -> Position(row = last - p.row, col = last - p.col) },
-                { p -> Position(row = last - p.col, col = p.row) },
-                { p -> Position(row = p.row, col = last - p.col) },
-                { p -> Position(row = last - p.row, col = p.col) },
-                { p -> Position(row = p.col, col = p.row) },
-                { p -> Position(row = last - p.col, col = last - p.row) },
-            )
-        return transforms.mapNotNull { transform ->
-            val perm = IntArray(spec.size)
-            var preservesFootprint = true
-            for (position in spec.inPlay) {
-                val image = transform(position)
-                val sourceBit = spec.bit(position) ?: error("in-play position must have a bit")
-                val imageBit = spec.bit(image)
-                if (imageBit == null) {
-                    preservesFootprint = false
-                    break
-                }
-                perm[sourceBit] = imageBit
-            }
-            if (preservesFootprint) perm else null
-        }
-    }
-
-    /** The lexicographically smallest of [pegs] under all [symmetries] — a canonical memo key. */
-    private fun canonical(
-        pegs: Long,
-        symmetries: List<IntArray>,
-    ): Long {
-        var minimum = pegs
-        for (perm in symmetries) {
-            var transformed = 0L
-            var remaining = pegs
-            while (remaining != 0L) {
-                val bit = java.lang.Long.numberOfTrailingZeros(remaining)
-                transformed = transformed or (1L shl perm[bit])
-                remaining = remaining and (remaining - 1)
-            }
-            if (transformed < minimum) minimum = transformed
-        }
-        return minimum
     }
 
     /**

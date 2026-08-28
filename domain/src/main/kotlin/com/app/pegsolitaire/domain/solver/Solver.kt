@@ -1,5 +1,6 @@
 package com.app.pegsolitaire.domain.solver
 
+import com.app.pegsolitaire.domain.generator.BoardCanonical
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Move
@@ -102,7 +103,13 @@ object Solver {
  * A single memoised, symmetry-canonical DFS over one board footprint with a jittered
  * inward move ordering — one instance per attempt. Holds the search's mutable state
  * (the visited memo, node counter, cancel/budget latches) and the footprint-derived
- * immutables (symmetry group, centroid) so the recursion stays a small method.
+ * immutables (the [BoardCanonical] symmetry tables, the centroid) so the recursion
+ * stays a small method.
+ *
+ * Memo keys come from [BoardCanonical.canonicalFast]: symmetric positions collapse
+ * onto one key, shrinking the explored space by up to the symmetry order (8x for the
+ * fully D4-symmetric 9x9 Wiegleb board). Sound for first-solution search — symmetric
+ * positions have symmetric solution sets, so if one is a dead end so are its images.
  *
  * @property cancelled set once [shouldCancel] returned `true` — the caller's deadline.
  * @property hitBudget set once the node cap was reached — the attempt was cut short,
@@ -114,7 +121,7 @@ private class WinningLineSearch(
     private val shouldCancel: () -> Boolean,
     seed: Long,
 ) {
-    private val symmetries: List<IntArray> = symmetryPermutations(spec)
+    private val canonicalTables: BoardCanonical.ChunkTables = BoardCanonical.chunkTables(spec)
     private val center: DoubleArray = centroidOf(spec)
     private val seen = VisitedSet()
     private val random = Random(seed)
@@ -146,7 +153,7 @@ private class WinningLineSearch(
         // Pagoda prune: skip positions whose colour-parity already forbids one peg — a
         // sound necessary-condition cut that keeps the exhaustive worst case tractable.
         val explorable = !cancelled && withinBudget && Pagoda.mayBeSolvable(current)
-        if (explorable && seen.add(canonical(current.pegs))) {
+        if (explorable && seen.add(BoardCanonical.canonicalFast(current.pegs, canonicalTables))) {
             val ordered =
                 RulesEngine
                     .legalMoves(current)
@@ -186,60 +193,6 @@ private class WinningLineSearch(
         val dr = position.row - center[0]
         val dc = position.col - center[1]
         return dr * dr + dc * dc
-    }
-
-    /** The lexicographically smallest of [pegs] under all [symmetries] — a canonical memo key. */
-    private fun canonical(pegs: Long): Long {
-        var minimum = pegs
-        for (perm in symmetries) {
-            var transformed = 0L
-            var remaining = pegs
-            while (remaining != 0L) {
-                val bit = java.lang.Long.numberOfTrailingZeros(remaining)
-                transformed = transformed or (1L shl perm[bit])
-                remaining = remaining and (remaining - 1)
-            }
-            if (transformed < minimum) minimum = transformed
-        }
-        return minimum
-    }
-
-    /**
-     * The bit permutations of the board's symmetry group (the dihedral transforms of
-     * its square bounding box that map the footprint onto itself). Folds symmetric
-     * positions onto one [canonical] memo key, shrinking the explored space by up to
-     * the symmetry order (8x for the fully D4-symmetric 9x9 Wiegleb board). Sound for
-     * first-solution search: symmetric positions have symmetric solution sets.
-     */
-    private fun symmetryPermutations(spec: BoardSpec): List<IntArray> {
-        val dimension = spec.inPlay.maxOf { maxOf(it.row, it.col) } + 1
-        val last = dimension - 1
-        val transforms: List<(Position) -> Position> =
-            listOf(
-                { p -> p },
-                { p -> Position(row = p.col, col = last - p.row) },
-                { p -> Position(row = last - p.row, col = last - p.col) },
-                { p -> Position(row = last - p.col, col = p.row) },
-                { p -> Position(row = p.row, col = last - p.col) },
-                { p -> Position(row = last - p.row, col = p.col) },
-                { p -> Position(row = p.col, col = p.row) },
-                { p -> Position(row = last - p.col, col = last - p.row) },
-            )
-        return transforms.mapNotNull { transform ->
-            val perm = IntArray(spec.size)
-            var preservesFootprint = true
-            for (position in spec.inPlay) {
-                val image = transform(position)
-                val sourceBit = spec.bit(position) ?: error("in-play position must have a bit")
-                val imageBit = spec.bit(image)
-                if (imageBit == null) {
-                    preservesFootprint = false
-                    break
-                }
-                perm[sourceBit] = imageBit
-            }
-            if (preservesFootprint) perm else null
-        }
     }
 
     private companion object {
