@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Slice 2 — Play Games, AdMob & Polish
 status: verifying
-stopped_at: Completed 07-06-PLAN.md (Release shrink proof & phase audit)
+stopped_at: Completed quick task 260828-tnw (Results back-navigation popUpTo fix)
 last_updated: "2026-08-28T18:21:07.915Z"
 last_activity: 2026-08-28
 progress:
@@ -117,6 +117,7 @@ None.
 |---|-------------|------|--------|-----------|
 | 260628-n4f | Deselect a peg only when that same peg is re-tapped | 2026-06-28 | 675de73 | [260628-n4f-deselect-only-on-retap](./quick/260628-n4f-deselect-only-on-retap/) |
 | 260701-n9t | Phase 2 UI polish: Results/catalog/hint-toggle | 2026-07-01 | cca6cb3 | [260701-n9t-phase-2-ui-polish-remove-next-board-from](./quick/260701-n9t-phase-2-ui-polish-remove-next-board-from/) |
+| 260828-tnw | Fix Results back-navigation with popUpTo | 2026-08-28 | 4fa6833 | [260828-tnw-fix-results-back-navigation-with-popupto](./quick/260828-tnw-fix-results-back-navigation-with-popupto/) |
 
 ## Deferred Items
 
