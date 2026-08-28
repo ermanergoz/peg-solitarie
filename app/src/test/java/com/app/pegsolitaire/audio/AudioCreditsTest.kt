@@ -47,9 +47,11 @@ class AudioCreditsTest {
             val row = tableRowFor(file.name)
             assertThat(row).isNotNull()
 
-            val cells = requireNotNull(row).split(COLUMN_SEPARATOR)
-                .map { it.trim() }
-                .filter { it.isNotEmpty() }
+            val cells =
+                requireNotNull(row)
+                    .split(COLUMN_SEPARATOR)
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
 
             assertThat(cells.size).isAtLeast(REQUIRED_COLUMN_COUNT)
             assertThat(cells[SOURCE_COLUMN]).contains(HTTPS_PREFIX)
