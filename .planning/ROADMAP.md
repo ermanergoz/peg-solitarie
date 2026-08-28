@@ -100,7 +100,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 07-02-PLAN.md — `SoundPlayer` seam, pitch-ladder constants, `@Singleton SoundPoolPlayer` (media volume, no audio focus, in-player mute gate), Hilt binding, `LocalSoundPlayer`, startup preload
+- [x] 07-02-PLAN.md — `SoundPlayer` seam, pitch-ladder constants, `@Singleton SoundPoolPlayer` (media volume, no audio focus, in-player mute gate), Hilt binding, `LocalSoundPlayer`, startup preload
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -237,7 +237,7 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 4. Assist — Hint & Undo | v1.0 | 6/6 | Complete | 2026-07-12 |
 | 5. Persistence, Resume & Settings | v1.0 | 7/7 | Complete | 2026-08-25 |
 | 6. Platform Foundation & Build Hardening | v1.1 | 10/10 | Complete   | 2026-08-27 |
-| 7. Sound | v1.1 | 1/6 | In Progress|  |
+| 7. Sound | v1.1 | 2/6 | In Progress|  |
 | 8. Assist & Generator Quality Debt | v1.1 | 0/TBD | Not started | - |
 | 9. Consent & Rewarded Ads | v1.1 | 0/TBD | Not started | - |
 | 10. Interstitials | v1.1 | 0/TBD | Not started | - |
