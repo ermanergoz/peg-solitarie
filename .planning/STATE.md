@@ -118,6 +118,7 @@ None.
 | 260628-n4f | Deselect a peg only when that same peg is re-tapped | 2026-06-28 | 675de73 | [260628-n4f-deselect-only-on-retap](./quick/260628-n4f-deselect-only-on-retap/) |
 | 260701-n9t | Phase 2 UI polish: Results/catalog/hint-toggle | 2026-07-01 | cca6cb3 | [260701-n9t-phase-2-ui-polish-remove-next-board-from](./quick/260701-n9t-phase-2-ui-polish-remove-next-board-from/) |
 | 260828-tnw | Fix Results back-navigation with popUpTo | 2026-08-28 | 4fa6833 | [260828-tnw-fix-results-back-navigation-with-popupto](./quick/260828-tnw-fix-results-back-navigation-with-popupto/) |
+| fast | Slow Results star celebration to zero-overlap pacing (stagger 200→260) | 2026-08-28 | 48bf34f | — (inline /gsd:fast, no plan dir) |
 
 ## Deferred Items
 
