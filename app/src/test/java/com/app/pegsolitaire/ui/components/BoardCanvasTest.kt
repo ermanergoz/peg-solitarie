@@ -95,7 +95,8 @@ class BoardCanvasTest {
      */
     @Test
     fun jumperRendersAtItsSourceHoleBeforeTheAnimationIsPrepared() {
-        val transition = MoveTransition(from = Position(1, 3), to = Position(3, 3), removed = Position(2, 3), id = 1)
+        val transition =
+            MoveTransition(from = Position(1, 3), to = Position(3, 3), removed = Position(2, 3), id = 1, runIndex = 0)
 
         val center =
             jumperCenter(
@@ -112,7 +113,8 @@ class BoardCanvasTest {
     /** Once the effect has snapped the Animatable for this move, the animated value wins. */
     @Test
     fun jumperFollowsTheAnimationOncePrepared() {
-        val transition = MoveTransition(from = Position(1, 3), to = Position(3, 3), removed = Position(2, 3), id = 1)
+        val transition =
+            MoveTransition(from = Position(1, 3), to = Position(3, 3), removed = Position(2, 3), id = 1, runIndex = 0)
         val midFlight = Offset(MID_FLIGHT_PX, MID_FLIGHT_PX)
 
         val center =
@@ -134,7 +136,8 @@ class BoardCanvasTest {
      */
     @Test
     fun aRecycledMoveIdIsNotTreatedAsPrepared() {
-        val replayed = MoveTransition(from = Position(3, 1), to = Position(3, 3), removed = Position(3, 2), id = 1)
+        val replayed =
+            MoveTransition(from = Position(3, 1), to = Position(3, 3), removed = Position(3, 2), id = 1, runIndex = 0)
         val staleDestination = geometry.center(Position(3, 3))
 
         val center =
@@ -156,7 +159,8 @@ class BoardCanvasTest {
      */
     @Test
     fun doomedPegIsWholeBeforeTheRemovalFadeIsPrepared() {
-        val transition = MoveTransition(from = Position(1, 3), to = Position(3, 3), removed = Position(2, 3), id = 2)
+        val transition =
+            MoveTransition(from = Position(1, 3), to = Position(3, 3), removed = Position(2, 3), id = 2, runIndex = 0)
         val fadedOutByPreviousMove = 0f
 
         val progress =
@@ -172,7 +176,8 @@ class BoardCanvasTest {
     /** Once prepared, the removal fade follows its animation. */
     @Test
     fun removalFadeFollowsTheAnimationOncePrepared() {
-        val transition = MoveTransition(from = Position(1, 3), to = Position(3, 3), removed = Position(2, 3), id = 2)
+        val transition =
+            MoveTransition(from = Position(1, 3), to = Position(3, 3), removed = Position(2, 3), id = 2, runIndex = 0)
         val midFade = 0.4f
 
         val progress =

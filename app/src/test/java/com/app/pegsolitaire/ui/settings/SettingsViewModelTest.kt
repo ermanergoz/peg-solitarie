@@ -1,6 +1,7 @@
 package com.app.pegsolitaire.ui.settings
 
 import app.cash.turbine.test
+import com.app.pegsolitaire.audio.NoOpSoundPlayer
 import com.app.pegsolitaire.data.SettingsRepository
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
@@ -50,7 +51,7 @@ class SettingsViewModelTest {
     @Test
     fun bothTogglesDefaultOnBeforeTheStoreEmits() =
         runTest(testDispatcher) {
-            val viewModel = SettingsViewModel(NeverEmittingSettingsRepository)
+            val viewModel = SettingsViewModel(NeverEmittingSettingsRepository, NoOpSoundPlayer())
             runCurrent()
 
             assertThat(viewModel.uiState.value.soundOn).isTrue()
@@ -61,7 +62,7 @@ class SettingsViewModelTest {
     fun persistedFlagsAreMirroredIntoTheUiState() =
         runTest(testDispatcher) {
             val repository = FakeSettingsRepository(soundOn = false, hapticsOn = true)
-            val viewModel = SettingsViewModel(repository)
+            val viewModel = SettingsViewModel(repository, NoOpSoundPlayer())
             runCurrent()
 
             assertThat(viewModel.uiState.value.soundOn).isFalse()
@@ -72,7 +73,7 @@ class SettingsViewModelTest {
     fun aLaterStoreEmissionUpdatesTheUiState() =
         runTest(testDispatcher) {
             val repository = FakeSettingsRepository()
-            val viewModel = SettingsViewModel(repository)
+            val viewModel = SettingsViewModel(repository, NoOpSoundPlayer())
 
             viewModel.uiState.test {
                 assertThat(awaitItem().soundOn).isTrue()
@@ -88,7 +89,7 @@ class SettingsViewModelTest {
     fun onToggleSoundPersistsTheNewValueAndTheStateFollows() =
         runTest(testDispatcher) {
             val repository = FakeSettingsRepository(soundOn = true)
-            val viewModel = SettingsViewModel(repository)
+            val viewModel = SettingsViewModel(repository, NoOpSoundPlayer())
             runCurrent()
 
             viewModel.onToggleSound(false)
@@ -102,7 +103,7 @@ class SettingsViewModelTest {
     fun onToggleHapticsPersistsTheNewValueAndTheStateFollows() =
         runTest(testDispatcher) {
             val repository = FakeSettingsRepository(hapticsOn = true)
-            val viewModel = SettingsViewModel(repository)
+            val viewModel = SettingsViewModel(repository, NoOpSoundPlayer())
             runCurrent()
 
             viewModel.onToggleHaptics(false)
@@ -116,7 +117,7 @@ class SettingsViewModelTest {
     fun togglingSoundLeavesHapticsUntouched() =
         runTest(testDispatcher) {
             val repository = FakeSettingsRepository(soundOn = true, hapticsOn = true)
-            val viewModel = SettingsViewModel(repository)
+            val viewModel = SettingsViewModel(repository, NoOpSoundPlayer())
             runCurrent()
 
             viewModel.onToggleSound(false)
