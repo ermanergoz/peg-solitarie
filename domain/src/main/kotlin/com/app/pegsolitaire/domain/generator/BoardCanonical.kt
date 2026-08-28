@@ -115,7 +115,7 @@ object BoardCanonical {
      * per footprint and cached.
      */
     @Synchronized
-    fun chunkTables(spec: BoardSpec): ChunkTables = cache.getOrPut(footprintKey(spec)) { buildChunkTables(spec) }
+    fun chunkTables(spec: BoardSpec): ChunkTables = cache.getOrPut(spec.footprint) { buildChunkTables(spec) }
 
     /**
      * The lexicographically smallest image of [pegs] under [tables]' symmetry group —
@@ -143,15 +143,6 @@ object BoardCanonical {
         }
         return minimum
     }
-
-    /**
-     * The footprint's STRUCTURAL cache key: its in-play positions in the same stable
-     * `(row, col)` order [BoardSpec] assigns bit indices in. Keying on this rather than
-     * on referential identity means a spec rebuilt from a resume blob hits the same
-     * cache entry as the shipped catalog spec it was rebuilt from.
-     */
-    private fun footprintKey(spec: BoardSpec): List<Position> =
-        spec.inPlay.sortedWith(compareBy({ it.row }, { it.col }))
 
     private fun buildChunkTables(spec: BoardSpec): ChunkTables {
         val symmetries = symmetryPermutations(spec)

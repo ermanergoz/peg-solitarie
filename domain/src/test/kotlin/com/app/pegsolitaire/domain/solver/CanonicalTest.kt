@@ -167,10 +167,9 @@ class CanonicalTest {
         const val HEX_RADIX = 16
 
         /**
-         * The five shipped Classic footprints, named for diagnosable assertions.
-         *
-         * Declared locally rather than read from a shared catalog because the catalog
-         * (`Boards.CLASSIC_SPECS`) lands in the sibling plan 08-01 of this same wave.
+         * The five shipped Classic footprints in `Boards.CLASSIC_SPECS` order, paired
+         * with names because the catalog is unnamed and assertions here must say which
+         * footprint failed.
          */
         val classicSpecs: List<Pair<String, BoardSpec>> =
             listOf(
