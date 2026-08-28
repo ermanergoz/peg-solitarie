@@ -119,6 +119,9 @@ None.
 | 260701-n9t | Phase 2 UI polish: Results/catalog/hint-toggle | 2026-07-01 | cca6cb3 | [260701-n9t-phase-2-ui-polish-remove-next-board-from](./quick/260701-n9t-phase-2-ui-polish-remove-next-board-from/) |
 | 260828-tnw | Fix Results back-navigation with popUpTo | 2026-08-28 | 4fa6833 | [260828-tnw-fix-results-back-navigation-with-popupto](./quick/260828-tnw-fix-results-back-navigation-with-popupto/) |
 | fast | Slow Results star celebration to zero-overlap pacing (stagger 200→260) | 2026-08-28 | 48bf34f | — (inline /gsd:fast, no plan dir) |
+| fast | Drop the star triad below the sample's own pitch (base pow(-4)→pow(-8)) | 2026-08-28 | 724b7ae | — (inline /gsd:fast, no plan dir) |
+| 260828-vb3 | Swap star pop for the CC0 freesound blip; stagger 260→500, pop 260→600 | 2026-08-28 | 86b68db | [260828-vb3-swap-star-pop-sound-for-cc0-blip-and-wid](./quick/260828-vb3-swap-star-pop-sound-for-cc0-blip-and-wid/) |
+| 260828-vrr | Distinct peg pick-up / put-down cues (twelfth cue `sfx_deselect`) | 2026-08-28 | c25883e | [260828-vrr-distinct-peg-pick-up-and-put-down-sounds](./quick/260828-vrr-distinct-peg-pick-up-and-put-down-sounds/) |
 
 ## Deferred Items
 

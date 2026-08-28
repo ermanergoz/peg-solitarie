@@ -25,7 +25,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) · Audit:
 **Milestone Goal:** Turn the shipped offline game into a release-ready product by wiring real Play Games and AdMob SDKs behind the existing seams, adding sound, and paying down carried tech debt.
 
 - [x] **Phase 6: Platform Foundation & Build Hardening** - Activity bridge, extended seams, R8, build-config IDs, purity/dependency gates, security advisories closed — zero player-visible change (completed 2026-08-27)
-- [x] **Phase 7: Sound** - The 11-event SFX set consuming the already-persisted `soundOn` flag (completed 2026-08-28)
+- [x] **Phase 7: Sound** - The 12-event SFX set consuming the already-persisted `soundOn` flag (completed 2026-08-28; planned as 11 events, grown to 12 by post-phase quick task 260828-vrr, which split peg pick-up and put-down into separate cues)
 - [ ] **Phase 8: Assist & Generator Quality Debt** - Hints tell the truth on hard early positions; every Classic board's solvability is proven
 - [ ] **Phase 9: Consent & Rewarded Ads** - UMP consent, opt-in-first rewarded assists, fail-open on no-fill, clock frozen across every ad
 - [ ] **Phase 10: Interstitials** - Frequency-capped, win-only interstitials at the Results continue action
