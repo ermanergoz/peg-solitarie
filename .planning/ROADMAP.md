@@ -128,8 +128,46 @@ Plans:
   2. Diamond-41's shipped starting position is proven solvable by a committed recorded-solution fixture that replays clean through the unchanged `RulesEngine` in CI. (DEBT-02)
   3. The Nyquist validation coverage gaps carried from v1.0 phases 3 and 4 are backfilled and green in `check`. (DEBT-03)
 
-**Plans**: TBD
-**Notes**: DEBT-01 and DEBT-02 are one unit of work — the stronger pruning that fixes the deadline envelope is what makes the Diamond-41 proof reachable. Deliberately sequenced early so it absorbs the Play Console / AdMob propagation wait rather than being squeezed at release.
+**Plans**: 11 plans in 7 waves
+
+Plans:
+**Wave 1**
+
+- [ ] 08-01-PLAN.md — `BoardSpec.minimumPegs` + structural `footprint` key, `Boards.CLASSIC_SPECS`, Diamond-41 target 2 (DEBT-01/02)
+- [ ] 08-02-PLAN.md — Consolidate the three `symmetryPermutations` copies into `BoardCanonical`, add the chunked fast path + `CanonicalTest` property net (DEBT-01, Pitfall 4)
+- [ ] 08-03-PLAN.md — DEBT-03: audit and sign off the phase 3/4 validation contracts, cover duplicate-board rejection, update the milestone audit
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 08-04-PLAN.md — `SolverTables` precomputed bitboard tables + target-aware `Pagoda` (DEBT-01/02, Pitfall 1)
+- [ ] 08-06-PLAN.md — **A1 gate:** beam-search authoring, committed Diamond-41 floor line replayed to 2 pegs, exhaustive GF(4) optimality proof (DEBT-02, D-05)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 08-05-PLAN.md — `Solver` bitboard rewrite, per-attempt node cap so restarts happen, re-anchored budget contracts (DEBT-01, D-07)
+- [ ] 08-07-PLAN.md — Per-board star bands derived from the board target + resume-path target preservation (DEBT-02, D-03/D-04, Pitfall 3)
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 08-08-PLAN.md — Opening-book format, depth-4 authoring run, five committed book resources + blocking generation review (DEBT-01, D-08)
+
+**Wave 5** *(blocked on Wave 4)*
+
+- [ ] 08-09-PLAN.md — `OpeningBook` classpath lookup with miss / authoritative / hit separation, fail-closed parse, integrity gate (DEBT-01/02)
+
+**Wave 6** *(blocked on Wave 5)*
+
+- [ ] 08-10-PLAN.md — Book-first hint pipeline behind one legality guard + gated `DepthSweepTest` asserting the D-08 universal claim (DEBT-01/02)
+
+**Wave 7** *(blocked on Wave 6)*
+
+- [ ] 08-11-PLAN.md — Release-APK book retention proof, D-06 documentation trail, blocking on-device phase audit (DEBT-01/02/03)
+
+**Notes**: DEBT-01 and DEBT-02 are one unit of work — the per-board target that makes the Diamond proof reachable is the same field the solver's goal test reads. Deliberately sequenced early so it absorbs the Play Console / AdMob propagation wait rather than being squeezed at release.
+
+**Escalation resolved at planning time (2026-08-29).** Research measured that a strengthened solver alone cannot meet D-08 for Wiegleb-45: 0 of 76 depth-≤4 positions resolve inside the fixed 1.5s deadline even at ~15M nodes/s, a ~4-order-of-magnitude gap. The developer chose **"opening book + stronger solver"** — a committed depth-4 opening book (~621 canonical positions, ~100 KB) alongside the bitboard solver rewrite — rather than narrowing DEBT-01 to two boards. D-07's intent ("never make the player wait longer") is satisfied by book and solver together.
+
+**Also settled by research:** Diamond-41's fewest-pegs floor is **F = 2**, not the "~5" carried in three in-code KDocs — and because F−1 = 1 is exactly what the GF(4) colour invariant excludes, D-05's optimality half needs no new search. Plan 08-06 is a hard gate: nothing anchors on F = 2 until a line regenerated through this project's own unchanged `RulesEngine` is observed to terminate at 2 pegs.
 
 ### Phase 9: Consent & Rewarded Ads
 
@@ -242,7 +280,7 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 5. Persistence, Resume & Settings | v1.0 | 7/7 | Complete | 2026-08-25 |
 | 6. Platform Foundation & Build Hardening | v1.1 | 10/10 | Complete   | 2026-08-27 |
 | 7. Sound | v1.1 | 6/6 | Complete   | 2026-08-28 |
-| 8. Assist & Generator Quality Debt | v1.1 | 0/TBD | Not started | - |
+| 8. Assist & Generator Quality Debt | v1.1 | 0/11 | Planned | - |
 | 9. Consent & Rewarded Ads | v1.1 | 0/TBD | Not started | - |
 | 10. Interstitials | v1.1 | 0/TBD | Not started | - |
 | 11. Play Games Session | v1.1 | 0/TBD | Not started | - |
