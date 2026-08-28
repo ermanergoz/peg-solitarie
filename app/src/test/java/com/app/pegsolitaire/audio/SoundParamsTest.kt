@@ -19,6 +19,14 @@ private const val EXPECTED_CUE_COUNT = 11
 private const val UNPITCHED_RATE = 1.0f
 
 /**
+ * The highest star count a level can award, so the highest ladder step a celebration can
+ * reach. Declared locally rather than imported: the UI's own `TOTAL_STARS` is private to
+ * the Results/catalog composables, and the audio maths should not take a UI dependency to
+ * express its own ceiling.
+ */
+private const val MAX_EARNED_STARS = 3
+
+/**
  * Specification for the pure audio maths: the jump pitch ladder (D-05/D-06/D-07a), the
  * star-pop triad (D-15) and the relative cue mix.
  *
@@ -78,16 +86,27 @@ class SoundParamsTest {
     }
 
     @Test
-    fun theStarTriadIsCentredOnTheSamplesOwnPitch() {
-        // The phase 7 audit called the pops shrill, so the ladder was transposed down a
-        // rung: the SECOND star now lands on the sample's recorded pitch, with the first
-        // below it and the third above. Pins the transposition against a later "tidy-up"
-        // that quietly resets the base to 1.0 and makes the set bright again.
-        val second = SoundParams.starPopRate(1)
+    fun theStarTriadTopsOutOnTheSamplesOwnPitch() {
+        // Two rounds of "too high pitched" moved the ladder down two rungs. It no longer
+        // straddles the sample: the THIRD star lands on the recorded pitch and the first
+        // two sit below it, so nothing in the celebration ever plays back faster than it
+        // was recorded. Pins that ceiling against a later "tidy-up" that quietly raises
+        // the base and makes the last beep bright again.
+        val third = SoundParams.starPopRate(2)
 
-        assertThat(second).isWithin(RATE_TOLERANCE).of(UNPITCHED_RATE)
+        assertThat(third).isWithin(RATE_TOLERANCE).of(UNPITCHED_RATE)
         assertThat(SoundParams.starPopRate(0)).isLessThan(UNPITCHED_RATE)
-        assertThat(SoundParams.starPopRate(2)).isGreaterThan(UNPITCHED_RATE)
+        assertThat(SoundParams.starPopRate(1)).isLessThan(UNPITCHED_RATE)
+    }
+
+    @Test
+    fun noStarPopEverPlaysAboveTheSamplesOwnPitch() {
+        // The generalisation of the test above: the complaint was never about one specific
+        // star, it was that the ladder reached above the sample at all. Guards every step
+        // a real celebration can reach, not just the three-star case.
+        val everyReachableStep = (0 until MAX_EARNED_STARS).map { SoundParams.starPopRate(it) }
+
+        assertThat(everyReachableStep.max()).isAtMost(UNPITCHED_RATE)
     }
 
     @Test

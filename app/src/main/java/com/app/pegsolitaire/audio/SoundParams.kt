@@ -42,22 +42,32 @@ object SoundParams {
     const val STAR_POP_STEP_SEMITONES = 4
 
     /**
-     * Where the star ladder starts: one full rung **below** the sample's own recorded pitch.
+     * Where the star ladder starts: two full rungs **below** the sample's own recorded pitch.
      *
      * Derived from [STAR_POP_STEP_SEMITONES] rather than written as a bare float, so the
-     * two cannot drift. It centres the triad on the sample: a three-star finish plays a
-     * major third below the recorded pitch, the recorded pitch itself, then a major third
-     * above it. Two stars stop on the sample's own pitch, one star on the note below.
+     * two cannot drift. It hangs the triad *under* the sample rather than centring it on
+     * it: a three-star finish plays a major sixth below the recorded pitch, a major third
+     * below it, then the recorded pitch itself. Two stars stop a major third below, one
+     * star two rungs below.
      *
-     * Lowered from 1.0 after the phase 7 audit ("the star sound is too high pitched"). At
-     * base 1.0 the third star sat a minor sixth above the already-bright `glass_005`
-     * sample and read as shrill; it now tops out a major third above it. Transposing the
-     * whole triad down leaves its shape — a rising major third per star — untouched, so 3
-     * stars still resolve strictly higher than 2 (D-15). Narrowing
+     * Lowered twice, both times after the same complaint about pitch height. The phase 7
+     * audit ("the star sound is too high pitched") moved the base off 1.0 to one rung down,
+     * which centred the triad and left the third star a major third *above* the already
+     * bright `glass_005` sample; the follow-up ("last beep on results screen is too high
+     * pitched") moved it one rung further, so the top of the ladder is now the sample's own
+     * unpitched sound.
+     *
+     * That ceiling is the point of the `2 *`: [starPopRate] can no longer return a rate
+     * above 1.0 for any reachable star count, so the loudest, latest, most exposed cue in
+     * the game can never play back faster than it was recorded and can never re-acquire the
+     * sped-up edge both complaints were about. Raising the base again reintroduces it.
+     *
+     * Both moves transposed the whole triad and left its shape — a rising major third per
+     * star — untouched, so 3 stars still resolve strictly higher than 2 (D-15). Narrowing
      * [STAR_POP_STEP_SEMITONES] would have flattened that climb instead, which is the
      * property D-15 is actually about, so the height was fixed and the shape left alone.
      */
-    val STAR_POP_BASE_RATE: Float = SEMITONE_STEP.pow(-STAR_POP_STEP_SEMITONES)
+    val STAR_POP_BASE_RATE: Float = SEMITONE_STEP.pow(-2 * STAR_POP_STEP_SEMITONES)
 
     /**
      * Gap between consecutive star pops **when animations are disabled** (D-13).
