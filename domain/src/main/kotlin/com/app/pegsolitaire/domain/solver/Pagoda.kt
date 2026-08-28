@@ -26,8 +26,13 @@ import com.app.pegsolitaire.domain.model.Cell
  * and the search runs.
  */
 object Pagoda {
-    /** Number of colour classes in each colouring (the invariant is taken mod 3). */
-    private const val COLORING_MODULUS = 3
+    /**
+     * Number of colour classes in each colouring (the invariant is taken mod 3).
+     *
+     * `internal` so [SolverTables] builds exactly this many colour-class masks rather
+     * than declaring a second `3` of its own (CLAUDE.md: no magic numbers).
+     */
+    internal const val COLORING_MODULUS = 3
 
     /** A reachable single-peg terminal has exactly one odd colour class per colouring. */
     private const val SINGLE_PEG_ODD_CLASSES = 1
