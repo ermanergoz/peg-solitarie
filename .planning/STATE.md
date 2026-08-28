@@ -101,7 +101,7 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None.
+- **Confirm audio cues on physical hardware** (2026-08-28) — every Phase 7 audio checkpoint was emulator-only. SOUND-06 (no ducking) is structurally enforced by the `audioFocusLiteralCheck` build gate, so a device run is confirmation. SOUND-01 (first tap after cold start) is the real risk: `SoundPoolPlayer.play()` silently drops cues whose decode has not completed. See `.planning/todos/pending/2026-08-28-confirm-audio-cues-on-physical-hardware.md`.
 
 ### Blockers/Concerns
 
