@@ -34,6 +34,10 @@ import org.robolectric.annotation.Config
  * `currentDestination.hasRoute<...>()` and that the selected-board `levelId`
  * round-trips through `Gameplay`/`Results` args.
  *
+ * It also pins the post-finish back stack: finishing a board pops the completed `Gameplay`
+ * entry, so system Back from `Results` leaves for the destination the player launched from
+ * (the catalog, or Home) instead of re-showing the board they just finished.
+ *
  * The destination bodies are lightweight stand-ins (each a tappable [Box] that fires the
  * nav callback `AppNavHost` supplies), so the test exercises `AppNavHost`'s real
  * navigation lambdas without a Hilt host for the production `hiltViewModel()` routes. The
@@ -259,6 +263,95 @@ class NavFlowTest {
     }
 
     @Test
+    fun classicWinPopsTheCompletedBoardAndBacksOutToCatalog() {
+        composeRule.setContent {
+            navController = rememberNavController()
+            AppNavHost(
+                navController = navController,
+                homeContent = { onPlayClassic, _, _, _, _ -> StubDestination(HOME_TAG, onPlayClassic) },
+                catalogContent = { onSelect, _ -> StubDestination(CATALOG_TAG) { onSelect(SELECTED_LEVEL_ID) } },
+                gameplayContent = { onFinished, _ -> StubDestination(GAMEPLAY_TAG) { onFinished(sampleResults()) } },
+                resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
+            )
+        }
+
+        // Home → ClassicCatalog → Gameplay(levelId) → finish.
+        composeRule.onNodeWithTag(HOME_TAG).performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(CATALOG_TAG).performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(GAMEPLAY_TAG).performClick()
+        composeRule.waitForIdle()
+
+        // Results is showing, and Back from it lands on the catalog the board was launched from.
+        assertThat(currentRoute()).contains(RESULTS_ROUTE)
+        assertThat(previousRoute()).contains(CATALOG_ROUTE)
+        assertCompletedBoardIsOffTheBackStack()
+    }
+
+    @Test
+    fun challengeWinPopsTheCompletedBoardAndBacksOutToHome() {
+        composeRule.setContent {
+            navController = rememberNavController()
+            AppNavHost(
+                navController = navController,
+                homeContent = { _, onPlayChallenge, _, _, _ ->
+                    StubDestination(HOME_TAG) { onPlayChallenge(PERSISTED_CHALLENGE_LEVEL) }
+                },
+                catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
+                gameplayContent = { onFinished, _ ->
+                    StubDestination(GAMEPLAY_TAG) { onFinished(stuckChallengeResults()) }
+                },
+                resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
+            )
+        }
+
+        // Home Challenge tile → Gameplay(level) → finish. The ladder has no catalog above Home.
+        composeRule.onNodeWithTag(HOME_TAG).performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(GAMEPLAY_TAG).performClick()
+        composeRule.waitForIdle()
+
+        assertThat(currentRoute()).contains(RESULTS_ROUTE)
+        assertThat(previousRoute()).contains(HOME_ROUTE)
+        assertCompletedBoardIsOffTheBackStack()
+    }
+
+    @Test
+    fun resumedClassicWinBacksOutToHomeWhenNoCatalogWasVisited() {
+        // The Continue affordance (PERS-03) enters a CLASSIC board straight from Home, so
+        // no ClassicCatalog entry exists beneath it. popUpTo against an absent route is a
+        // documented no-op, so this path must fall back to Home — otherwise the finished
+        // board survives on the stack and Back re-shows it.
+        composeRule.setContent {
+            navController = rememberNavController()
+            AppNavHost(
+                navController = navController,
+                homeContent = { _, _, onResumeClassic, _, _ ->
+                    StubDestination(HOME_TAG) { onResumeClassic(SELECTED_LEVEL_ID) }
+                },
+                catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
+                gameplayContent = { onFinished, _ -> StubDestination(GAMEPLAY_TAG) { onFinished(sampleResults()) } },
+                resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
+            )
+        }
+
+        composeRule.onNodeWithTag(HOME_TAG).performClick()
+        composeRule.waitForIdle()
+        // Guard against a tautology: prove the catalog really is absent from this stack,
+        // so the assertions below exercise the fallback and not a lucky popUpTo<Catalog>.
+        assertThat(backStackRoutes().filter { it.contains(CATALOG_ROUTE) }).isEmpty()
+        composeRule.onNodeWithTag(GAMEPLAY_TAG).performClick()
+        composeRule.waitForIdle()
+
+        // The finish is a Classic one (sampleResults has no challengeLevel), yet Home is
+        // the only destination beneath it.
+        assertThat(currentRoute()).contains(RESULTS_ROUTE)
+        assertThat(previousRoute()).contains(HOME_ROUTE)
+        assertCompletedBoardIsOffTheBackStack()
+    }
+
+    @Test
     fun stuckChallengeResultsSurfacesRetryNotNextLevel() {
         composeRule.setContent {
             ResultsScreen(
@@ -279,6 +372,22 @@ class NavFlowTest {
 
     /** The current destination's serialized route pattern (its `@Serializable` qualified name). */
     private fun currentRoute(): String = navController.currentDestination?.route.orEmpty()
+
+    /** The route pattern one entry down — where system Back from the current screen lands. */
+    private fun previousRoute(): String =
+        navController.previousBackStackEntry
+            ?.destination
+            ?.route
+            .orEmpty()
+
+    /** Every live back-stack entry's route pattern, in order. */
+    private fun backStackRoutes(): List<String> =
+        navController.currentBackStack.value.map { it.destination.route.orEmpty() }
+
+    /** Proves the finished board cannot be reached by Back: no `Gameplay` entry survives the hop to Results. */
+    private fun assertCompletedBoardIsOffTheBackStack() {
+        assertThat(backStackRoutes().filter { it.contains(GAMEPLAY_ROUTE) }).isEmpty()
+    }
 
     private fun stuckChallengeResults(): Results =
         Results(

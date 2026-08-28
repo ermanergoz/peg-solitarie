@@ -2,6 +2,7 @@ package com.app.pegsolitaire.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.app.pegsolitaire.audio.SoundPlayer
 import com.app.pegsolitaire.data.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,13 +23,20 @@ import javax.inject.Inject
  * state holds the fail-open ON defaults (D-17), so a corrupt store degrades to
  * "everything on" and can never leave the screen blank or crashing (T-05-02).
  *
+ * [soundPlayer] does not weaken that: it is a feedback sink, never a state source. Nothing read
+ * from it reaches [SettingsUiState], and the switches still render exclusively from the collected
+ * repository flows. Its single use is D-12's confirmation pop on the sound *enable* event — see
+ * [onToggleSound].
+ *
  * @param settingsRepository the DataStore-backed settings source of truth.
+ * @param soundPlayer the audio seam, used only to answer a sound-enable with one pop (D-12).
  */
 @HiltViewModel
 class SettingsViewModel
     @Inject
     constructor(
         private val settingsRepository: SettingsRepository,
+        private val soundPlayer: SoundPlayer,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(SettingsUiState())
 
@@ -48,8 +56,28 @@ class SettingsViewModel
             }
         }
 
-        /** Persists the player's sound choice (SET-01); the collected flow re-renders the switch. */
+        /**
+         * Persists the player's sound choice (SET-01); the collected flow re-renders the switch.
+         *
+         * Switching sound ON also answers with a single confirmation pop (D-12) — instant audible
+         * proof that audio works, which is the one Settings change the player cannot otherwise
+         * perceive. Switching it OFF stays silent: the silence is the confirmation.
+         *
+         * Two things about this one line are load-bearing.
+         *
+         * **It belongs here, not in the `init` block's `soundOn` collector.** That collector fires
+         * on its initial emission every time the Settings screen is opened, which is exactly what
+         * D-12 forbids. Hanging the pop off the user event makes "only on a user-initiated enable"
+         * true by construction rather than by a flag that has to be reset correctly.
+         *
+         * **It calls [SoundPlayer.playSoundEnabledConfirmation], not `play(...)`.** The write below
+         * is asynchronous, so at the instant the pop is due the value has not round-tripped through
+         * DataStore and back out of the collected flow, the player's own gate is still closed, and
+         * an ordinary gated call would be dropped without a sound. That method is the single
+         * documented bypass and exists for precisely this.
+         */
         fun onToggleSound(on: Boolean) {
+            if (on) soundPlayer.playSoundEnabledConfirmation()
             viewModelScope.launch { settingsRepository.setSoundOn(on) }
         }
 

@@ -123,7 +123,7 @@ fun ResultsScreen(
                 verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_lg)),
             ) {
                 Headline(tier = state.headlineTier)
-                StarRow(earned = state.stars)
+                StarRow(earned = state.stars, playCelebration = state.playCelebration)
                 if (state.newBests.any) {
                     NewBestBadge()
                 }
@@ -188,9 +188,22 @@ private fun Headline(tier: ResultsHeadlineTier) {
  * outline [StarBorder] tinted `outlineVariant`. Each icon is decorative; the row
  * exposes [EarnedStarCountKey] so the test can assert the filled count without
  * per-icon semantics.
+ *
+ * The row is also where the celebration gets its voice: [StarPopSounds] fires one rising
+ * pop per earned star on the same stagger (SOUND-03), gated by [playCelebration] so it
+ * sounds once per win (D-16). That latch is hoisted from [ResultsUiState] and never
+ * remembered here — a `remember` survives neither the configuration change nor the
+ * process-death restore the latch exists to cover, so this row stays stateless.
+ *
+ * @param earned how many of the three stars this result filled.
+ * @param playCelebration whether THIS entry into Results should sound the pops (D-16).
  */
 @Composable
-private fun StarRow(earned: Int) {
+private fun StarRow(
+    earned: Int,
+    playCelebration: Boolean,
+) {
+    StarPopSounds(earned = earned, play = playCelebration)
     Row(
         horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_xs)),
         verticalAlignment = Alignment.CenterVertically,
@@ -215,10 +228,20 @@ private fun StarRow(earned: Int) {
     }
 }
 
-/** One earned star: a soft gold glow behind a GoldGradient star, popping in at [order]. */
+/**
+ * One earned star: a soft gold glow behind a GoldGradient star, popping in at [order].
+ *
+ * The pop runs for [ClayAnim.STAR_POP_MS] rather than the shared default, so the star is
+ * still resolving well into the 1.65 s cue that fires with it; see that token's KDoc for why
+ * it deliberately exceeds [ClayAnim.STAR_STAGGER_MS] and lets consecutive stars overlap.
+ */
 @Composable
 private fun EarnedStar(order: Int) {
-    val scale = rememberPopIn(delayMillis = order * ClayAnim.STAR_STAGGER_MS)
+    val scale =
+        rememberPopIn(
+            delayMillis = order * ClayAnim.STAR_STAGGER_MS,
+            durationMillis = ClayAnim.STAR_POP_MS,
+        )
     Box(
         contentAlignment = Alignment.Center,
         modifier =

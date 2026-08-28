@@ -1,3 +1,11 @@
+// The screen and its private, single-purpose parts: the top bar, its four labels/indicators,
+// the confirm dialog, and the eight one-shot feedback effects (one haptic + seven sound cues).
+// Each is a handful of lines and each exists only for this screen; splitting them across files
+// to satisfy a per-file count would scatter the screen's own composition for no reader's
+// benefit. The cue effects in particular are deliberately adjacent to JumpHaptic — they are
+// clones of its idiom and are read against it.
+@file:Suppress("TooManyFunctions")
+
 package com.app.pegsolitaire.ui.game
 
 import androidx.compose.foundation.background
@@ -35,6 +43,10 @@ import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.audio.LocalSoundPlayer
+import com.app.pegsolitaire.audio.SoundCue
+import com.app.pegsolitaire.audio.SoundParams
+import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.ui.components.BoardCanvas
@@ -42,6 +54,7 @@ import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.ctaGradientBrush
 import com.app.pegsolitaire.ui.theme.withTabularFigures
+import kotlinx.coroutines.delay
 
 /** Test tag of the board-state node carrying the [PegCountKey]/[GameStatusKey]/[LegalTargetCountKey] semantics. */
 const val GAME_STATE_TEST_TAG = "game_state"
@@ -116,6 +129,13 @@ fun GameScreen(
     challengeLevel: Int? = null,
 ) {
     JumpHaptic(animatingMoveId = state.animating?.id, hapticsOn = state.hapticsOn)
+    JumpSound(transition = state.animating)
+    SelectionSound(selectionTick = state.selectionTick)
+    DeselectionSound(deselectionTick = state.deselectionTick)
+    UndoSound(undoTick = state.undoTick)
+    InvalidTapSound(rejectedTapTick = state.rejectedTapTick)
+    HintSound(hintSource = state.hintSource)
+    WinSound(status = state.status)
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -227,6 +247,141 @@ private fun JumpHaptic(
         if (animatingMoveId != null && hapticsOn) {
             haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
         }
+    }
+}
+
+/**
+ * Plays the pitched jump cue as each jump lands, then layers the peg-removal cue under it
+ * (SOUND-01/SOUND-02).
+ *
+ * Keyed on [MoveTransition.id] — the same move ordinal [JumpHaptic] uses — so it fires
+ * exactly once per jump rather than once per recomposition. The pitch comes from
+ * [MoveTransition.runIndex], the same-peg ladder step (D-05/D-06); because that index is
+ * derived from the move history rather than stored, undoing and replaying a jump replays
+ * its original pitch (D-08) with nothing to keep in sync here.
+ *
+ * Every jump removes exactly one peg, so the two cues always co-occur; the removal trails
+ * by [SoundParams.REMOVAL_LAYER_DELAY_MS] so it reads as a texture layer beneath the pitched
+ * pop instead of a second competing hit.
+ *
+ * **The seven sound cues take no enable/disable gate parameter, and that asymmetry with
+ * [JumpHaptic] is deliberate.** `hapticsOn` is carried in [GameUiState] because a haptic can
+ * only ever be blocked *before* it fires. Audio cannot: SOUND-05 requires silencing one-shots
+ * that are already in flight, which only the object holding the live stream ids can do. The
+ * audio gate therefore lives inside the player implementation, which subscribes to the
+ * persisted setting itself. Do not "fix" this by copying the `hapticsOn` plumbing — a UI-state
+ * flag can block future calls and nothing else, and adding one would give the mute two
+ * disagreeing sources of truth.
+ */
+@Composable
+private fun JumpSound(transition: MoveTransition?) {
+    val sound = LocalSoundPlayer.current
+    LaunchedEffect(transition?.id) {
+        if (transition != null) {
+            sound.playJump(runIndex = transition.runIndex)
+            delay(SoundParams.REMOVAL_LAYER_DELAY_MS.toLong())
+            sound.play(SoundCue.PegRemove)
+        }
+    }
+}
+
+/**
+ * Plays the pick-up cue whenever a peg is selected (SOUND-02).
+ *
+ * Selection only — putting a peg back down takes [DeselectionSound]. D-05a originally had
+ * both halves of the gesture share this cue; that half was reversed on 2026-08-28 because the
+ * two events sounded the same. What survives is that a deselect is a *successful* action, not
+ * a rejection, and must never fire the invalid-tap cue.
+ *
+ * The `> 0` guard is required, not defensive: it is the second half of the phantom-cue fix
+ * whose first half is the ordinal carry-forward in `GameViewModel`. The carry-forward stops a
+ * state rebuild from changing the key; this guard stops a genuinely fresh state at 0 from
+ * firing on first composition.
+ */
+@Composable
+private fun SelectionSound(selectionTick: Int) {
+    val sound = LocalSoundPlayer.current
+    LaunchedEffect(selectionTick) {
+        if (selectionTick > 0) sound.play(SoundCue.Select)
+    }
+}
+
+/**
+ * Plays the put-down cue once per re-tap deselect (SOUND-02, D-05a as amended).
+ *
+ * [SoundCue.Deselect] is the [SoundCue.Select] pop reversed and pitched down a whole tone, so
+ * the put-down reads as the same sound family as the pick-up without reading as the same
+ * event. It is a successful action, so this is deliberately *not* the invalid-tap cue.
+ * `> 0` guard as in [SelectionSound].
+ */
+@Composable
+private fun DeselectionSound(deselectionTick: Int) {
+    val sound = LocalSoundPlayer.current
+    LaunchedEffect(deselectionTick) {
+        if (deselectionTick > 0) sound.play(SoundCue.Deselect)
+    }
+}
+
+/**
+ * Plays the undo cue once per undo that actually stepped the board back (SOUND-02).
+ *
+ * D-09 reads Undo as an in-game *assist* control, not a navigational CTA, so it keeps its own
+ * distinct event cue rather than the button click. The ordinal only advances past both of
+ * `onUndo`'s guards, so a declined grant or an empty history stays silent. `> 0` guard as in
+ * [SelectionSound].
+ */
+@Composable
+private fun UndoSound(undoTick: Int) {
+    val sound = LocalSoundPlayer.current
+    LaunchedEffect(undoTick) {
+        if (undoTick > 0) sound.play(SoundCue.Undo)
+    }
+}
+
+/**
+ * Plays the quiet invalid-tap cue on a tap that genuinely changed nothing (SOUND-02).
+ *
+ * Reserved for real rejections: an empty or out-of-play cell with no selection, or an illegal
+ * destination while a peg is selected. A deselect is not one of those (D-05a) — it takes
+ * [DeselectionSound]. `> 0` guard as in [SelectionSound].
+ */
+@Composable
+private fun InvalidTapSound(rejectedTapTick: Int) {
+    val sound = LocalSoundPlayer.current
+    LaunchedEffect(rejectedTapTick) {
+        if (rejectedTapTick > 0) sound.play(SoundCue.InvalidTap)
+    }
+}
+
+/**
+ * Plays the hint cue as a revealed move appears on the board (SOUND-02).
+ *
+ * Keyed on [GameUiState.hintSource], which is set only when the search resolves to a move and
+ * is cleared by any jump or undo — so a new reveal is always a new key. Like Undo, Hint is an
+ * assist control under D-09 and keeps its own event cue rather than the navigational click.
+ */
+@Composable
+private fun HintSound(hintSource: Position?) {
+    val sound = LocalSoundPlayer.current
+    LaunchedEffect(hintSource) {
+        if (hintSource != null) sound.play(SoundCue.Hint)
+    }
+}
+
+/**
+ * Plays the win stinger the moment the winning move lands on the board (SOUND-03, D-14).
+ *
+ * The first beat of D-14's two-beat celebration is deliberately here and not on Results: the
+ * payoff belongs to the jump that earned it. Firing it from the game screen means it starts
+ * while this composition is still alive, a frame or two before the navigation to Results —
+ * and `SoundPool` playback is fire-and-forget, so the stinger survives that navigation and
+ * rings out over the Results entrance, where the star pops become the second beat.
+ */
+@Composable
+private fun WinSound(status: GameStatus) {
+    val sound = LocalSoundPlayer.current
+    LaunchedEffect(status) {
+        if (status == GameStatus.Won) sound.play(SoundCue.Win)
     }
 }
 
@@ -344,6 +499,10 @@ private fun LoadingIndicator() {
  * playing. A chunky extraLarge clay dialog whose confirm action rides the CtaGradient
  * (the one accent) over a quiet "Keep Playing" clay chip. The action labels are the
  * unchanged `restart_board` / `keep_playing` copy the flow test drives.
+ *
+ * It is also the only control pair in the app that voices both button cues (D-11): confirm is a
+ * forward/commit action, dismiss backs out, and the two must be audibly different so the player
+ * can hear which way they went without reading the label.
  */
 @Composable
 private fun RestartConfirmDialog(
@@ -370,8 +529,14 @@ private fun RestartConfirmDialog(
         },
         confirmButton = {
             val buttonShape = MaterialTheme.shapes.medium
+            // SOUND-04 / D-09 / D-11: the dialog is the one place both button cues meet — confirm
+            // commits (bright forward click), dismiss backs out (the softer, darker one). The cues
+            // are attached per callsite and NEVER to Modifier.claySquish(), which is also on this
+            // screen's back nav, hint toggle and Restart control — all of which D-09 keeps silent,
+            // and Undo/Hint already carry their own SOUND-02 event cues. Exclusion list: the
+            // withClickSound KDoc.
             TextButton(
-                onClick = onConfirm,
+                onClick = withClickSound(SoundCue.ButtonForward, onConfirm),
                 shape = buttonShape,
                 modifier =
                     Modifier
@@ -387,7 +552,7 @@ private fun RestartConfirmDialog(
         },
         dismissButton = {
             TextButton(
-                onClick = onDismiss,
+                onClick = withClickSound(SoundCue.ButtonDismiss, onDismiss),
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.claySquish(),
             ) {

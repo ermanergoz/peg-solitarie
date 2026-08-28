@@ -972,8 +972,12 @@ class GameViewModelTest {
                 // A DIFFERENT peg while one is already selected must not switch selection.
                 viewModel.onCellTap(pegLeftOfCenter)
 
-                expectNoEvents()
-                assertThat(viewModel.uiState.value).isEqualTo(selected)
+                // The tap IS observable now — it advances the rejected-tap cue ordinal
+                // (07-03) — but it remains a gameplay no-op: nothing about the board or
+                // the selection moves.
+                val rejected = awaitItem()
+                assertThat(rejected.rejectedTapTick).isEqualTo(selected.rejectedTapTick + 1)
+                assertThat(rejected).isEqualTo(selected.copy(rejectedTapTick = rejected.rejectedTapTick))
                 cancelAndIgnoreRemainingEvents()
             }
         }
@@ -1038,8 +1042,10 @@ class GameViewModelTest {
                 // A 2x2 corner coordinate is outside the English-33 footprint.
                 viewModel.onCellTap(Position(row = 0, col = 0))
 
-                expectNoEvents()
-                assertThat(viewModel.uiState.value).isEqualTo(selected)
+                // Observable as a rejected tap (07-03), but still a gameplay no-op.
+                val rejected = awaitItem()
+                assertThat(rejected.rejectedTapTick).isEqualTo(selected.rejectedTapTick + 1)
+                assertThat(rejected).isEqualTo(selected.copy(rejectedTapTick = rejected.rejectedTapTick))
                 cancelAndIgnoreRemainingEvents()
             }
         }
@@ -1066,8 +1072,11 @@ class GameViewModelTest {
                 // Forge: an empty hole that is NOT a legal destination.
                 viewModel.onCellTap(Position(row = 0, col = 4))
 
-                expectNoEvents()
-                assertThat(viewModel.uiState.value).isEqualTo(selected)
+                // The forged destination is now audible as a rejected tap (07-03) and is
+                // still never applied: the board and the selection are untouched.
+                val rejected = awaitItem()
+                assertThat(rejected.rejectedTapTick).isEqualTo(selected.rejectedTapTick + 1)
+                assertThat(rejected).isEqualTo(selected.copy(rejectedTapTick = rejected.rejectedTapTick))
                 assertThat(viewModel.uiState.value.board.pegCount).isEqualTo(2)
                 cancelAndIgnoreRemainingEvents()
             }

@@ -1,6 +1,7 @@
 package com.app.pegsolitaire.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -45,7 +46,10 @@ private typealias ResultsContent =
  * Results→Catalog, Settings→Home); the Results Replay action navigates →
  * `Gameplay(id)` (popping up to `ClassicCatalog` so board-hops don't grow the back
  * stack unboundedly — T-02-08-NAV) and Catalog/Home pop back to those destinations.
- * This replaces the Phase-1 direct `GameRoute()` host in `MainActivity`.
+ * Finishing a board reaches Results *through* [toResults], which pops the completed
+ * `Gameplay` entry, so Back from Results cannot return to the board just finished — it
+ * lands on the catalog (Classic launched from it) or Home (Challenge, and Classic resumed
+ * via Continue). This replaces the Phase-1 direct `GameRoute()` host in `MainActivity`.
  *
  * Each destination's body is a default-valued slot wired to the real `*Route` composable;
  * the slots exist so `NavFlowTest` can drive the graph with lightweight stand-ins (the
@@ -123,7 +127,7 @@ fun AppNavHost(
         composable<Gameplay> {
             // gameplayContent slot: onFinished, onNavigateBack
             gameplayContent(
-                { results -> navController.navigate(results) },
+                { results -> navController.toResults(results) },
                 { navController.popBackStack() },
             )
         }
@@ -168,4 +172,38 @@ private fun NavHostController.toChallengeBoard(
     resume: Boolean = false,
 ) {
     navigate(Gameplay(challengeLevel = level, resume = resume)) { popUpTo<Home>() }
+}
+
+/**
+ * Navigates to [Results] while popping the board that was just finished, so system Back
+ * from Results returns the player to where they launched the level from instead of
+ * re-showing the completed game (NAV-02). Not named `toResultsFromWin`: `GameViewModel`
+ * also emits `finished` for a stuck, unsolvable board (the Challenge Retry path), so this
+ * hop is not win-only.
+ *
+ * Each mode mirrors the pop target of the helper that entered the board: a Classic game
+ * pops up to [ClassicCatalog] exactly as [toBoardFromCatalog] does, a Challenge level pops
+ * up to [Home] exactly as [toChallengeBoard] does. Both pops are non-inclusive, so the
+ * landing destination survives and only the finished `Gameplay` entry above it is removed.
+ *
+ * A Classic game resumed through the Home Continue affordance (PERS-03) is entered
+ * straight from Home and so never visited the catalog; `popUpTo<ClassicCatalog>` against a
+ * route absent from the back stack is a documented no-op, which would silently leave the
+ * finished board reachable by Back. Those finishes therefore fall back to [Home] — the
+ * start destination, and the only thing actually beneath them.
+ *
+ * The catalog test reads [NavHostController.previousBackStackEntry] — the entry directly
+ * beneath the finished board, i.e. the destination it was launched from. That is the exact
+ * question being asked, and unlike `currentBackStack` it is public API rather than an
+ * androidx `@RestrictTo(LIBRARY_GROUP)` one (which Android Lint rejects in app code).
+ */
+private fun NavHostController.toResults(results: Results) {
+    val launchedFromCatalog =
+        results.challengeLevel == null &&
+            previousBackStackEntry?.destination?.hasRoute<ClassicCatalog>() == true
+    if (launchedFromCatalog) {
+        navigate(results) { popUpTo<ClassicCatalog>() }
+    } else {
+        navigate(results) { popUpTo<Home>() }
+    }
 }
