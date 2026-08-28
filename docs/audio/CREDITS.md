@@ -80,3 +80,50 @@ trust boundary):
   licence-confirmation step that a freesound borrow would require does not apply.
 - **Completeness is enforced.** `AudioCreditsTest` fails the build if any file in
   `app/src/main/res/raw/` lacks a row here, or if a row omits an HTTPS source or a licence.
+
+## Release shrink verification
+
+Performed 2026-08-28, mitigating T-07-15. The release build runs with `isMinifyEnabled = true`
+and `isShrinkResources = true`, so what ships is not what debug testing exercised: a `res/raw`
+entry the shrinker cannot trace is dropped, and the failure mode is a game that is silent **in
+release only**. Every cue is referenced as a compile-time `R.raw.*` constant from `SoundCue`, so
+retention is expected — but expected is not verified. This repeats, for audio, the technique
+`app/build.gradle.kts` already documents for `font_certs.xml`.
+
+```
+./gradlew :app:assembleRelease --offline
+AAPT2=$(find ~/.gradle/caches -maxdepth 6 -type d -name 'aapt2-9.1.0*' | head -1)/aapt2
+$AAPT2 dump resources app/build/outputs/apk/release/app-release-unsigned.apk | grep 'raw/sfx_'
+```
+
+Release invocations require the four real ad / Play Games IDs (D-09), which are untracked. This
+verification supplied them as deliberately non-real environment variables for the single
+invocation (`ADMOB_APP_ID` / `ADMOB_REWARDED_AD_UNIT_ID` / `ADMOB_INTERSTITIAL_AD_UNIT_ID` /
+`PGS_PROJECT_ID`) — the documented CI path, nothing written to disk or committed. The IDs do not
+affect resource shrinking; they only gate whether the build starts.
+
+**Artifact:** `app/build/outputs/apk/release/app-release-unsigned.apk` (2,038,611 B; unsigned by
+design, D-16).
+
+**Result: 11 of 11 `raw/sfx_` entries present.** `sfx_btn_dismiss`, `sfx_btn_forward`, `sfx_hint`,
+`sfx_invalid`, `sfx_jump`, `sfx_peg_remove`, `sfx_select`, `sfx_sound_enabled`, `sfx_star_pop`,
+`sfx_undo`, `sfx_win` — each named individually in the dump. Nothing was stripped, and no
+`resources.getIdentifier()` workaround exists anywhere in `app/src/main/` (which would have
+defeated the shrinker rather than satisfied it).
+
+A surviving table entry is a weaker claim than a surviving sound, because the shrinker can keep a
+resource id while replacing its payload. Each entry was therefore followed to its packaged file
+and compared byte-for-byte with its source. Resource **paths** are shortened in the shrunk APK
+(`raw/sfx_jump` → `res/NK.ogg`), which is expected and harmless — the resource table carries the
+mapping, and `SoundCue` resolves by id, never by path:
+
+```
+$AAPT2 dump resources <apk> | grep -A2 'raw/sfx_'      # id -> shortened res/<xx>.ogg
+unzip -l <apk> res/<xx>.ogg                            # packaged size per entry
+```
+
+All eleven packaged entries are byte-identical to the committed sources (4,087–7,011 B) and are
+**Stored**, not deflated — confirming aapt2 9.1.0's built-in `.ogg` handling and that no
+`noCompress` configuration is needed (`grep noCompress app/build.gradle.kts` returns nothing).
+
+`./gradlew :app:check --offline` remains green after this verification; no source changed.
