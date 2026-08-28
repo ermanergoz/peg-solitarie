@@ -113,6 +113,8 @@
 - [ ] **REL-01**: The app declares ads, data safety, and target-audience information correctly in Play Console
 - [ ] **REL-02**: Play Games and AdMob are verified working from a real signed track build, not just a debug build
 - [ ] **REL-03**: `app-ads.txt` is published and verified for the AdMob account
+- [ ] **REL-04**: A privacy policy is published at a stable HTTPS URL, disclosing advertising-ID collection and every third-party SDK that receives player data, and is linked from the Play Console store listing
+- [ ] **REL-05**: Player can open the privacy policy from inside the app, from a Settings entry that is always present (independent of CONS-03's consent-region-gated entry)
 
 ## v1.2 Requirements
 
@@ -208,3 +210,5 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REL-01 | Phase 14 | Pending |
 | REL-02 | Phase 14 | Pending |
 | REL-03 | Phase 14 | Pending |
+| REL-04 | Phase 14 | Pending |
+| REL-05 | Phase 9 | Pending |

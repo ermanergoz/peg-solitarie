@@ -42,7 +42,9 @@ These have no code equivalent and multi-hour-to-multi-day latency. Start them in
 |------|--------|-----------|
 | Play Console PGS project + published OAuth consent screen + credentials for **both** debug-keystore SHA-1 and Play App Signing SHA-1 + tester list | Phases 11, 12, 13, 14 | Hours to days (tester propagation) |
 | AdMob account + rewarded/interstitial ad units created | Phases 9, 10, 14 | Hours |
-| `app-ads.txt` published on a **developer website** and linked in the store listing | Phase 14 (REL-03) | Up to 24h crawl — **longest lead item if no website exists yet** |
+| A **developer website** exists and is reachable over HTTPS | Phases 9 (REL-05), 14 (REL-03, REL-04) | **Longest lead item — nothing else here can start until it does.** Two separate release requirements now hang off it: `app-ads.txt` and the privacy policy. Does not exist yet. |
+| `app-ads.txt` published on that website and linked in the store listing | Phase 14 (REL-03) | Up to 24h crawl after the site is live |
+| Privacy policy authored and published on that website, disclosing advertising-ID collection and every third-party SDK receiving player data | Phases 9 (REL-05), 14 (REL-01, REL-04) | Hours to author; Play Console requires the URL for **every** app, and the Data-safety form (REL-01) must agree with what it says |
 | UMP consent message configured in the AdMob UI | Phase 9 (CONS-01) | Minutes, but UMP renders nothing without it |
 | 10–12 unique 512×512 achievement icons | Phase 12 (PGSA-01/04) | Art turnaround; popups silently fail to render without them |
 | Play Console: Saved Games enabled on the PGS project | Phase 13 | Minutes |
@@ -133,10 +135,11 @@ Plans:
 
 **Goal**: Player can consent to ads and *choose* to watch one for extra assists — never surprised, never dead-ended, never charged time.
 **Depends on**: Phase 6
-**Requirements**: CONS-01, CONS-02, CONS-03, CONS-04, ADS-01, ADS-02, ADS-03, ADS-04, ADS-05, ADS-06, ADSF-01
+**Requirements**: CONS-01, CONS-02, CONS-03, CONS-04, ADS-01, ADS-02, ADS-03, ADS-04, ADS-05, ADS-06, ADSF-01, REL-05
 **Success Criteria** (what must be TRUE):
 
   1. On a fresh install in a consent region, player sees the consent form before any ad is ever requested, the ads SDK initializes only after consent resolves, and player can reopen their privacy choices from Settings whenever consent rules require it. (CONS-01, CONS-02, CONS-03)
+  1a. Player can open the privacy policy from Settings on **every** install, not only in consent regions — a separate, always-present entry from CONS-03's region-gated one, since Play requires the policy to be reachable regardless of where the player is. (REL-05)
   2. Player gets a free allowance of hints and undos per level; only once it is spent does an explicit opt-in dialog naming the reward appear, and declining leaves the game exactly as it was — an ad never plays on its own. (ADS-01, ADS-02)
   3. Player can accept a rewarded offer straight from the "no winning move" rescue banner, and the reward lands only when the ad reports it earned. (ADS-04, ADS-05)
   4. When an ad cannot load or fill, or the consent flow fails, player still gets the assist with a brief explanation and keeps playing — no error wall, no dead end. (ADS-03, CONS-04)
@@ -144,7 +147,7 @@ Plans:
 
 **Plans**: TBD
 **UI hint**: yes
-**Notes**: Internal ordering is non-negotiable — build and test the opt-in dialog against the still-in-place `NoOpAdGateway` stub **before** the real ad SDK is wired in. The stub's silent `true` auto-grant is exactly what currently hides the missing opt-in UI, and swapping in a real implementation as-is ships an AdMob policy violation. ADSF-01 (clock pause) is owned here and re-asserted as an acceptance criterion in Phase 10.
+**Notes**: Internal ordering is non-negotiable — build and test the opt-in dialog against the still-in-place `NoOpAdGateway` stub **before** the real ad SDK is wired in. The stub's silent `true` auto-grant is exactly what currently hides the missing opt-in UI, and swapping in a real implementation as-is ships an AdMob policy violation. ADSF-01 (clock pause) is owned here and re-asserted as an acceptance criterion in Phase 10. REL-05 (the always-present privacy-policy entry) is placed here rather than in Phase 14 because it shares the Settings surface CONS-03 builds; it needs the policy URL to exist, so the developer website is a hard prerequisite for this phase, not just for release.
 
 ### Phase 10: Interstitials
 
@@ -211,16 +214,17 @@ Plans:
 
 **Goal**: The build a tester downloads from Play behaves exactly like the one on the developer's machine.
 **Depends on**: Phases 6, 9, 10, 11, 12, 13
-**Requirements**: PLAT-08, REL-01, REL-02, REL-03
+**Requirements**: PLAT-08, REL-01, REL-02, REL-03, REL-04
 **Success Criteria** (what must be TRUE):
 
   1. Play Games sign-in, leaderboards, achievements, cloud save, and both ad formats are all verified working from a signed internal-testing-track **download** — not an `adb install` debug build. (REL-02)
   2. `app-ads.txt` is published on the developer website, linked from the store listing, and shows verified in AdMob. (REL-03)
   3. Play Console declares ads, data safety, and target-audience information that matches what the app actually does. (REL-01)
+  3a. A privacy policy is live at a stable HTTPS URL and linked in the store listing, it names advertising-ID collection and every third-party SDK that receives player data, and its claims agree with the Data-safety answers given for REL-01 — the two are checked against each other, not written independently. (REL-04, REL-01)
   4. Cold-start time on the SDK-integrated build is measured against the pre-SDK baseline captured in Phase 6 and is within the agreed budget. (PLAT-08)
 
 **Plans**: TBD
-**Notes**: Two PGS OAuth credentials must both be verified — the debug/upload keystore SHA-1 **and** the Play App Signing SHA-1. They are different certificates, and only the second one is exercised by a real track download; this is the classic "works on my machine, fails from Play" failure.
+**Notes**: Two PGS OAuth credentials must both be verified — the debug/upload keystore SHA-1 **and** the Play App Signing SHA-1. They are different certificates, and only the second one is exercised by a real track download; this is the classic "works on my machine, fails from Play" failure. REL-04's policy text and REL-01's Data-safety answers are a single source of truth split across two systems: the ads SDK pulls in the `com.google.android.gms.permission.AD_ID` permission (recorded in Phase 6's build evidence), so advertising-ID collection must be declared in both and worded consistently. Write the Data-safety answers *from* the policy, not alongside it.
 
 ## Progress
 
