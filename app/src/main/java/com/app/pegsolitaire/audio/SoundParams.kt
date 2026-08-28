@@ -67,12 +67,13 @@ object SoundParams {
      * [com.app.pegsolitaire.ui.theme.ClayAnim], so the audio lands with the visual pop;
      * that value is deliberately read from there and never duplicated here.
      *
-     * Raised from 150 ms alongside that token's 120 -> 200 (the phase 7 audit's "let the
-     * stars be slower"). Both were scaled by the same 5/3, so this fallback keeps the
+     * Raised from 150 ms alongside that token's 120 -> 200, then to 325 ms alongside its
+     * 200 -> 260 (the phase 7 audit's "let the stars be slower", and the follow-up pass
+     * after it). Each step held this fallback at 1.25x the visual token, so it keeps the
      * slightly wider gap it always had — with no star landing to pace them, the pops need
      * a touch more air to read as three events — and the two paths still feel alike.
      */
-    const val STAR_POP_STAGGER_MS = 250
+    const val STAR_POP_STAGGER_MS = 325
 
     /** Gap between the win stinger and the first star pop, so D-14's two beats read as two. */
     const val CELEBRATION_LEAD_IN_MS = 250
