@@ -16,6 +16,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.audio.SoundCue
+import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.ctaGradientBrush
@@ -74,8 +76,18 @@ private fun ClassicActions(
     onCatalog: () -> Unit,
 ) {
     PrimaryAction(textRes = R.string.action_replay, onClick = { onReplay(replayId) })
+    // SOUND-04 / D-09 / D-11: every Results action is a navigational CTA, so all three leaves
+    // in this file carry the bright forward click. The cue is attached per callsite and NEVER
+    // to Modifier.claySquish() — that modifier is also on the top-bar back buttons, the hint
+    // toggle and the Settings switches, which D-09 requires to stay silent. The full exclusion
+    // list lives in the withClickSound KDoc.
+    //
+    // D-10 needs no code here. The pinned Compose stack emits no Android platform click tick
+    // (it references neither the View-level click-sound constants nor performClick), so our cue
+    // cannot double with the OS touch sound and there is no platform toggle to switch off.
+    // Nothing to suppress — the perceptual check stays a manual UAT item in plan 07-06.
     OutlinedButton(
-        onClick = onCatalog,
+        onClick = withClickSound(SoundCue.ButtonForward, onCatalog),
         shape = MaterialTheme.shapes.medium,
         modifier =
             Modifier
@@ -102,7 +114,7 @@ private fun PrimaryAction(
 ) {
     val shape = MaterialTheme.shapes.medium
     Button(
-        onClick = onClick,
+        onClick = withClickSound(SoundCue.ButtonForward, onClick),
         shape = shape,
         colors =
             ButtonDefaults.buttonColors(
@@ -131,7 +143,7 @@ private fun NeutralAction(
     onClick: () -> Unit,
 ) {
     TextButton(
-        onClick = onClick,
+        onClick = withClickSound(SoundCue.ButtonForward, onClick),
         shape = MaterialTheme.shapes.medium,
         modifier =
             Modifier

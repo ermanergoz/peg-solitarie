@@ -46,6 +46,7 @@ import com.app.pegsolitaire.R
 import com.app.pegsolitaire.audio.LocalSoundPlayer
 import com.app.pegsolitaire.audio.SoundCue
 import com.app.pegsolitaire.audio.SoundParams
+import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.ui.components.BoardCanvas
@@ -480,6 +481,10 @@ private fun LoadingIndicator() {
  * playing. A chunky extraLarge clay dialog whose confirm action rides the CtaGradient
  * (the one accent) over a quiet "Keep Playing" clay chip. The action labels are the
  * unchanged `restart_board` / `keep_playing` copy the flow test drives.
+ *
+ * It is also the only control pair in the app that voices both button cues (D-11): confirm is a
+ * forward/commit action, dismiss backs out, and the two must be audibly different so the player
+ * can hear which way they went without reading the label.
  */
 @Composable
 private fun RestartConfirmDialog(
@@ -506,8 +511,14 @@ private fun RestartConfirmDialog(
         },
         confirmButton = {
             val buttonShape = MaterialTheme.shapes.medium
+            // SOUND-04 / D-09 / D-11: the dialog is the one place both button cues meet — confirm
+            // commits (bright forward click), dismiss backs out (the softer, darker one). The cues
+            // are attached per callsite and NEVER to Modifier.claySquish(), which is also on this
+            // screen's back nav, hint toggle and Restart control — all of which D-09 keeps silent,
+            // and Undo/Hint already carry their own SOUND-02 event cues. Exclusion list: the
+            // withClickSound KDoc.
             TextButton(
-                onClick = onConfirm,
+                onClick = withClickSound(SoundCue.ButtonForward, onConfirm),
                 shape = buttonShape,
                 modifier =
                     Modifier
@@ -523,7 +534,7 @@ private fun RestartConfirmDialog(
         },
         dismissButton = {
             TextButton(
-                onClick = onDismiss,
+                onClick = withClickSound(SoundCue.ButtonDismiss, onDismiss),
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.claySquish(),
             ) {
