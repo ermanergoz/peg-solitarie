@@ -228,10 +228,20 @@ private fun StarRow(
     }
 }
 
-/** One earned star: a soft gold glow behind a GoldGradient star, popping in at [order]. */
+/**
+ * One earned star: a soft gold glow behind a GoldGradient star, popping in at [order].
+ *
+ * The pop runs for [ClayAnim.STAR_POP_MS] rather than the shared default, so the star is
+ * still resolving well into the 1.65 s cue that fires with it; see that token's KDoc for why
+ * it deliberately exceeds [ClayAnim.STAR_STAGGER_MS] and lets consecutive stars overlap.
+ */
 @Composable
 private fun EarnedStar(order: Int) {
-    val scale = rememberPopIn(delayMillis = order * ClayAnim.STAR_STAGGER_MS)
+    val scale =
+        rememberPopIn(
+            delayMillis = order * ClayAnim.STAR_STAGGER_MS,
+            durationMillis = ClayAnim.STAR_POP_MS,
+        )
     Box(
         contentAlignment = Alignment.Center,
         modifier =

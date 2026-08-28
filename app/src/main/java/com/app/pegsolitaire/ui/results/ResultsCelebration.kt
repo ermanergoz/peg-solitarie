@@ -18,12 +18,20 @@ import kotlinx.coroutines.delay
 // deliberate exception to that gate (D-13) — see its KDoc for why the symmetry breaks.
 
 /**
- * A one-shot overshoot pop-in scale, delayed by [delayMillis] for sequencing. Returns
- * the value as a lambda so only the layer that reads it re-runs. When OS animations are
- * off the scale is settled from the first frame.
+ * A one-shot overshoot pop-in scale, delayed by [delayMillis] for sequencing and running for
+ * [durationMillis]. Returns the value as a lambda so only the layer that reads it re-runs.
+ * When OS animations are off the scale is settled from the first frame.
+ *
+ * [durationMillis] defaults to the shared [ClayAnim.POP_IN_MS] entrance pop, which is what
+ * the headline and the "New best!" pill use. `EarnedStar` overrides it with the much longer
+ * [ClayAnim.STAR_POP_MS] so a star goes on resolving while its own 1.65 s cue rings — before
+ * that override existed the stars ran on the default and [ClayAnim.STAR_POP_MS] drove nothing.
  */
 @Composable
-internal fun rememberPopIn(delayMillis: Int): () -> Float {
+internal fun rememberPopIn(
+    delayMillis: Int,
+    durationMillis: Int = ClayAnim.POP_IN_MS,
+): () -> Float {
     val animationsEnabled = rememberAnimationsEnabled()
     val scale = remember { Animatable(if (animationsEnabled) POP_START_SCALE else SETTLED_SCALE) }
     LaunchedEffect(Unit) {
@@ -31,7 +39,7 @@ internal fun rememberPopIn(delayMillis: Int): () -> Float {
             targetValue = SETTLED_SCALE,
             animationSpec =
                 tween(
-                    durationMillis = ClayAnim.POP_IN_MS,
+                    durationMillis = durationMillis,
                     delayMillis = delayMillis,
                     easing = ClayAnim.OVERSHOOT_EASING,
                 ),

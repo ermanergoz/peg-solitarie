@@ -37,8 +37,29 @@ object ClayAnim {
     /** Low alpha of the two ambient home background blobs. */
     const val BLOB_ALPHA = 0.10f
 
-    /** Sequential star pop duration on Results. */
-    const val STAR_POP_MS = 260
+    /**
+     * How long one Results star takes to resolve: the duration `EarnedStar` hands to
+     * `rememberPopIn`, overriding the shared [POP_IN_MS] default.
+     *
+     * Raised 260 -> 600 after a device check on the 1.65 s star-pop cue reported that the
+     * animation speed no longer matched the sound. It did not: the stars had all settled
+     * within about 1.5 s of entering Results while the last cue rang on to roughly 2.9 s, so
+     * the celebration looked finished while it was still plainly sounding.
+     *
+     * **600 ms does not close that gap, and is not trying to.** Star 3 starts at
+     * 2 x [STAR_STAGGER_MS] and its cue rings for 1.65 s beyond that, so ending together
+     * would need a pop of roughly 1.9 s — which reads as sluggish rather than stately. The
+     * aim is only to remove the *impression* that the picture has finished while the sound
+     * continues, by keeping each star visibly resolving well into its own tail. Picture and
+     * sound still do not end on the same frame, and no value here should be read as claiming
+     * they do.
+     *
+     * Until this change the constant was declared but connected to nothing — every pop,
+     * stars included, ran on [POP_IN_MS], so the stars' real duration was 220 ms and raising
+     * this number alone would have changed nothing on screen. The value and its use site were
+     * therefore fixed together.
+     */
+    const val STAR_POP_MS = 600
 
     /**
      * Stagger between the Results stars popping in — and, read through
@@ -47,20 +68,22 @@ object ClayAnim {
      * it is *on* it, and forking the two is how they drift apart.
      *
      * Raised 120 -> 200 -> 260 across the phase 7 audit ("let the stars be slower") and the
-     * follow-up pass after it: at 120 ms each star arrived barely halfway through the previous
-     * pop's [STAR_POP_MS] and the three read as one burst, 200 ms separated them but still
-     * overlapped, and 260 ms matched [STAR_POP_MS] exactly — the point overlap reaches zero.
-     * Then 260 -> 500 when the star-pop sample was replaced by the 1.65 s freesound blip.
+     * follow-up pass after it, then 260 -> 500 when the star-pop sample was replaced by the
+     * 1.65 s freesound blip and the user picked that spacing by ear over the tighter 260 ms.
+     * 500 ms is settled and has not moved since; the retune that followed was to
+     * [STAR_POP_MS], not to this token.
      *
-     * At 500 ms the stagger sits deliberately *above* [STAR_POP_MS], so each star finishes its
-     * pop and then holds still for **240 ms** before the next one starts. That gap is a chosen
-     * outcome, not drift: the user auditioned 260 ms (the pops overlapping) against 500 ms
-     * (each pop given room) and picked 500 ms. Stretching [STAR_POP_MS] to 500 to keep the two
-     * equal would instead have halved the speed of every star's overshoot, changing a visual
-     * character nobody asked about.
+     * **Consecutive stars now overlap in motion, deliberately.** [STAR_POP_MS] is 600, so a
+     * star is still resolving for its last 100 ms after the next one has begun. A device
+     * check found the celebration looked finished while its 1.65 s cue was still ringing, and
+     * lengthening each star past this stagger is how that was addressed.
      *
-     * The gap is visual only. The 1.65 s audio cue rings straight through it and under the
-     * pops that follow, so nothing is actually silent mid-celebration.
+     * An earlier revision of this KDoc asserted the reverse — a deliberate 240 ms of
+     * stillness between one star finishing and the next starting. That is void twice over:
+     * [STAR_POP_MS] has since been raised past this token, and when the claim was written the
+     * stars were not running on [STAR_POP_MS] at all but on the shared [POP_IN_MS], so its
+     * arithmetic described no code that existed. Do not infer a gap from this token alone —
+     * it is only half of the relationship, and [STAR_POP_MS] is the other half.
      */
     const val STAR_STAGGER_MS = 500
 
