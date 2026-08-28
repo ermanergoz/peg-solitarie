@@ -133,9 +133,9 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 08-01-PLAN.md — `BoardSpec.minimumPegs` + structural `footprint` key, `Boards.CLASSIC_SPECS`, Diamond-41 target 2 (DEBT-01/02)
-- [ ] 08-02-PLAN.md — Consolidate the three `symmetryPermutations` copies into `BoardCanonical`, add the chunked fast path + `CanonicalTest` property net (DEBT-01, Pitfall 4)
-- [ ] 08-03-PLAN.md — DEBT-03: audit and sign off the phase 3/4 validation contracts, cover duplicate-board rejection, update the milestone audit
+- [x] 08-01-PLAN.md — `BoardSpec.minimumPegs` + structural `footprint` key, `Boards.CLASSIC_SPECS`, Diamond-41 target 2 (DEBT-01/02)
+- [x] 08-02-PLAN.md — Consolidate the three `symmetryPermutations` copies into `BoardCanonical`, add the chunked fast path + `CanonicalTest` property net (DEBT-01, Pitfall 4)
+- [x] 08-03-PLAN.md — DEBT-03: audit and sign off the phase 3/4 validation contracts, cover duplicate-board rejection, update the milestone audit
 
 **Wave 2** *(blocked on Wave 1)*
 
@@ -280,7 +280,7 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 5. Persistence, Resume & Settings | v1.0 | 7/7 | Complete | 2026-08-25 |
 | 6. Platform Foundation & Build Hardening | v1.1 | 10/10 | Complete   | 2026-08-27 |
 | 7. Sound | v1.1 | 6/6 | Complete   | 2026-08-28 |
-| 8. Assist & Generator Quality Debt | v1.1 | 0/11 | Planned | - |
+| 8. Assist & Generator Quality Debt | v1.1 | 3/11 | In Progress|  |
 | 9. Consent & Rewarded Ads | v1.1 | 0/TBD | Not started | - |
 | 10. Interstitials | v1.1 | 0/TBD | Not started | - |
 | 11. Play Games Session | v1.1 | 0/TBD | Not started | - |
