@@ -23,7 +23,10 @@ class PagodaTest {
 
     @Test
     fun neverRejectsASolvablePosition() {
-        SolutionFixtures.ALL.forEach { fixture ->
+        // ONE_PEG, not ALL: `mayBeSolvable` asks "can this still reach a SINGLE peg",
+        // and Diamond-41 correctly answers no from every position (its floor is two).
+        // Widening this to per-board targets is plan 08-04's job.
+        SolutionFixtures.ONE_PEG.forEach { fixture ->
             val line = RecordedSolutions.load(fixture.name)
             val start = SolverSamples.startBoard(fixture)
             // Every prefix of a real winning line is, by construction, still solvable —

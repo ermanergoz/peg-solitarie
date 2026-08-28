@@ -103,7 +103,9 @@ class CanonicalTest {
 
     @Test
     fun everyGoldenSolutionPrefixCanonicalisesWithAPreservedPegCount() {
-        SolutionFixtures.ALL.forEach { fixture ->
+        // ONE_PEG for now: the diamond41 fixture this would also cover is committed in
+        // the next task of this plan, at which point this widens back to ALL.
+        SolutionFixtures.ONE_PEG.forEach { fixture ->
             val line = RecordedSolutions.load(fixture.name)
             val start = SolverSamples.startBoard(fixture)
             val tables = BoardCanonical.chunkTables(fixture.spec)

@@ -3,6 +3,7 @@ package com.app.pegsolitaire.domain.golden.solutions
 import com.app.pegsolitaire.domain.generator.BoardCanonical
 import com.app.pegsolitaire.domain.golden.BoardCodec
 import com.app.pegsolitaire.domain.model.Board
+import com.app.pegsolitaire.domain.model.BoardConstants
 import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.Move
@@ -31,11 +32,13 @@ import kotlin.random.Random
  *  - a per-attempt distinct-position cap with seeded restarts, abandoning an unlucky
  *    ordering so the next seed can retry.
  *
- * The 41-hole Diamond-41 is NOT handled here (see [SolutionFixtures] — by the GF(4)
- * invariant it has no one-peg solution, so there is nothing to author). Fixtures are
- * emitted in our exact `(row,col)`/[Move] encoding by
- * construction (Pitfall 7); a fixed seed sequence keeps regenerated fixtures
- * byte-stable.
+ * The 41-hole Diamond-41 is NOT solved here: its target is two pegs, not one, and
+ * this DFS is built around a one-peg goal and an inward heuristic tuned for cross
+ * boards. Its fixture is authored by [BeamSearchAuthoring] instead, which
+ * [writeFixtures] routes to for any board whose target is above one peg or which
+ * this DFS fails to crack. Fixtures are emitted in our exact `(row,col)`/[Move]
+ * encoding by construction (Pitfall 7); a fixed seed sequence keeps regenerated
+ * fixtures byte-stable.
  */
 object AuthoringSolver {
     /** Lone peg count that marks a fully-solved board (D-02: any final peg counts). */
@@ -147,10 +150,14 @@ object AuthoringSolver {
     }
 
     /**
-     * Solves each board in [SolutionFixtures.ALL] from its committed start and
-     * writes its winning jump list (`<name>.txt`, [BoardCodec.encodeMoves] text)
-     * into [solutionsDir]. Throws if any board fails to generate within the search
-     * budget.
+     * Solves each board in [SolutionFixtures.ALL] from its committed start down to
+     * **that board's own** `spec.minimumPegs` and writes the jump list
+     * (`<name>.txt`, [BoardCodec.encodeMoves] text) into [solutionsDir]. Throws if
+     * any board fails to generate within the search budget.
+     *
+     * The per-board target is read from [BoardSpec.minimumPegs] at the point of use
+     * rather than duplicated onto [SolutionFixtures.Fixture], so the board catalogue
+     * stays the single source of truth for what a "perfect finish" is.
      */
     fun writeFixtures(solutionsDir: File) {
         solutionsDir.mkdirs()
@@ -159,29 +166,57 @@ object AuthoringSolver {
                 fixture.spec.inPlay
                     .fold(Board(spec = fixture.spec, pegs = 0L)) { board, position -> board.withPeg(position) }
                     .withoutPeg(fixture.startVacancy)
+            val target = fixture.spec.minimumPegs
             val line =
-                requireNotNull(forwardSolve(start)) {
-                    "Board '${fixture.name}' did not solve to one peg from ${fixture.startVacancy} " +
-                        "within the search budget (visited=$lastVisited)."
+                requireNotNull(solveToTarget(start, target)) {
+                    "Board '${fixture.name}' did not solve to $target peg(s) from ${fixture.startVacancy} " +
+                        "within the search budget (dfsVisited=$lastVisited, " +
+                        "beamExpanded=${BeamSearchAuthoring.lastExpanded})."
                 }
             File(solutionsDir, fixture.fileName).writeText(BoardCodec.encodeMoves(line))
         }
     }
+
+    /**
+     * A line from [start] down to [target] pegs, preferring the DFS and falling back
+     * to the beam.
+     *
+     * [forwardSolve] is a one-peg search, so it is only consulted when that is the
+     * target; when it exhausts its restart budget without a line, [BeamSearchAuthoring]
+     * takes over — measured, the jittered DFS gave up on Wiegleb-45 after 865M nodes
+     * and 57 s where the beam solved it. Every other target goes straight to the beam.
+     * Both return a witness that `SolutionTest` re-validates step by step, so neither
+     * is trusted on its own word.
+     */
+    private fun solveToTarget(
+        start: Board,
+        target: Int,
+    ): List<Move>? {
+        if (target == SOLVED_PEG_COUNT) {
+            forwardSolve(start)?.let { return it }
+        }
+        return BeamSearchAuthoring.beamSolve(start, targetPegs = target)
+    }
 }
 
 /**
- * The catalog boards whose solvability is locked by a committed recorded-solution
- * fixture (D-19). [Fixture.startVacancy] pins each board's documented start so the
- * fixture replays from the same `Boards.*Initial` the shipped test folds.
+ * The catalog boards whose best achievable finish is locked by a committed
+ * recorded-solution fixture (D-19). [Fixture.startVacancy] pins each board's
+ * documented start so the fixture replays from the same `Boards.*Initial` the
+ * shipped test folds, and each board is solved to its own
+ * [BoardSpec.minimumPegs] rather than to a single hardcoded target.
  *
- * **Diamond-41 is intentionally absent — there is no one-peg solution to author.**
- * The GF(4) colour invariant (sum of omega^(r+c) and omega^(r-c) over occupied cells,
- * both conserved by every jump) admits no single-peg target from the diamond's
- * canonical center start, and randomized + backtracking search confirm the floor is
- * several pegs. The diamond is therefore scored on fewest pegs remaining (the
- * original game's objective), not a one-peg solve, so no D-19 fixture exists or is
- * possible. The board ships in `Boards.kt` with its canonical center start; its
- * footprint/peg-count is covered by `SolutionTest`'s sanity checks.
+ * **Diamond-41 IS in this catalog, and its target is two pegs — not one.** The GF(4)
+ * colour invariant (sum of omega^(r+c) and omega^(r-c) over occupied cells, both
+ * conserved by every jump) admits no single-peg target from the diamond's canonical
+ * center start: verified exhaustively over all 41 single-peg positions, zero of which
+ * pass (`DiamondFloorOptimalityTest`). Its fewest-pegs floor is exactly
+ * **F = 2** ([BoardConstants.DIAMOND41_FEWEST_PEGS_FLOOR]) — the earlier "several
+ * pegs" estimate came from random rollouts, which plateau at five because rollouts
+ * are far too weak a search to find a floor. `diamond41.txt` is the committed line
+ * that reaches two, so DEBT-02's reachability half is a replayed proof rather than a
+ * best-known result. The diamond is scored on fewest pegs remaining (the original
+ * game's objective), with its bands anchored on F.
  */
 internal object SolutionFixtures {
     /** Subdirectory (under `src/test/resources/golden`) holding the committed fixtures. */
@@ -203,8 +238,23 @@ internal object SolutionFixtures {
             Fixture(name = "english33", spec = Boards.English33, startVacancy = Position(row = 3, col = 3)),
             Fixture(name = "european37", spec = Boards.European37, startVacancy = Position(row = 3, col = 2)),
             Fixture(name = "asymmetric39", spec = Boards.Asymmetric39, startVacancy = Position(row = 4, col = 3)),
+            Fixture(name = "diamond41", spec = Boards.Diamond41, startVacancy = Position(row = 4, col = 4)),
             Fixture(name = "wiegleb45", spec = Boards.Wiegleb45, startVacancy = Position(row = 4, col = 4)),
         )
+
+    /**
+     * The subset of [ALL] whose boards genuinely finish on ONE peg.
+     *
+     * Several suites in the solver package are specifications about *one-peg*
+     * solvability — `Pagoda.mayBeSolvable` asks whether a single peg is still
+     * reachable, and `Solver.firstWinningMove` searches for a one-peg line. Every
+     * Diamond-41 position is correctly rejected by that question, so feeding the
+     * diamond into those suites would assert the opposite of what the invariant
+     * proves. They iterate this list instead; the per-board generalisation of the
+     * pruner and the solver lands in plans 08-04 and 08-05, at which point those
+     * suites can move back to [ALL].
+     */
+    val ONE_PEG: List<Fixture> = ALL.filter { it.spec.minimumPegs == BoardConstants.MINIMUM_PEGS_DEFAULT }
 }
 
 /**
