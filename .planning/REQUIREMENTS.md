@@ -35,8 +35,8 @@
 
 ### Sound
 
-- [ ] **SOUND-01**: Player hears a jump sound on every peg jump, pitch-varied so repeated jumps do not fatigue
-- [ ] **SOUND-02**: Player hears distinct feedback for peg removal, invalid tap (quiet, non-punishing), selection, and undo
+- [x] **SOUND-01**: Player hears a jump sound on every peg jump, pitch-varied so repeated jumps do not fatigue
+- [x] **SOUND-02**: Player hears distinct feedback for peg removal, invalid tap (quiet, non-punishing), selection, and undo
 - [ ] **SOUND-03**: Player hears a win sound and star-pop sounds sequenced in rising pitch to the existing Results celebration animation
 - [ ] **SOUND-04**: Player hears button-press feedback on primary UI actions
 - [x] **SOUND-05**: Turning off the existing `soundOn` setting silences all sound immediately, including already-queued one-shots
@@ -160,8 +160,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PLAT-06 | Phase 6 | Pending |
 | PLAT-07 | Phase 6 | Pending |
 | PLAT-08 | Phase 14 | Pending |
-| SOUND-01 | Phase 7 | Pending |
-| SOUND-02 | Phase 7 | Pending |
+| SOUND-01 | Phase 7 | Complete |
+| SOUND-02 | Phase 7 | Complete |
 | SOUND-03 | Phase 7 | Pending |
 | SOUND-04 | Phase 7 | Pending |
 | SOUND-05 | Phase 7 | Complete |

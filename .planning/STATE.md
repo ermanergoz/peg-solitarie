@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Slice 2 — Play Games, AdMob & Polish
 status: executing
-stopped_at: Completed 07-02-PLAN.md (audio engine)
-last_updated: "2026-08-28T14:22:36.740Z"
-last_activity: 2026-08-28 -- Phase 07 plan 02 (audio engine) complete
+stopped_at: Completed 07-03-PLAN.md (in-game cues)
+last_updated: "2026-08-28T14:41:27.649Z"
+last_activity: 2026-08-28 -- Phase 07 plan 03 (in-game cues) complete
 progress:
   total_phases: 9
   completed_phases: 1
   total_plans: 16
-  completed_plans: 11
-  percent: 69
+  completed_plans: 13
+  percent: 81
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-27)
 ## Current Position
 
 Phase: 07 (sound) — EXECUTING
-Plan: 3 of 6
+Plan: 4 of 6
 Status: Ready to execute
-Last activity: 2026-08-28 -- Phase 07 plan 02 (audio engine) complete
+Last activity: 2026-08-28 -- Phase 07 plan 03 (in-game cues) complete
 
-Progress: [███████░░░] 69%
+Progress: [████████░░] 81%
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Per-plan durations archived in `.planning/milestones/v1.0-ROADMAP.md`.
 |------|----------|-------|-------|
 | Phase 07 P01 | ~35 min | 3 tasks | 13 files |
 | Phase 07 P02 | ~50 min | 3 tasks | 9 files |
+| Phase 07 P03 | ~45 min | 2 tasks | 8 files |
 
 *Updated after each plan completion*
 
@@ -81,6 +82,10 @@ Recent decisions affecting current work:
 - [Phase 07]: The soundOn mute gate lives inside SoundPoolPlayer, not in any UiState — SOUND-05 requires stopping one-shots already in flight, which only the holder of the live stream ids can do
 - [Phase 07]: D-07a: the jump pitch ladder is explicitly clamped to SoundPool's 0.5–2.0 range rather than left uncapped, so the one-octave ceiling is a tested contract instead of a silent engine surprise
 - [Phase 07]: Audio is bound in its own AudioModule, never in PlatformModule — ..platform.. is defined as the Play/AdMob SDK + foreground-Activity seam and three ArchUnit rules depend on that definition
+- [Phase 07]: The jump-pitch ladder step is **derived** from `moveHistory` on every jump and never stored — which makes D-08 (undo steps the ladder back down; replaying reproduces the pitch) true by construction rather than a second invariant to keep in sync
+- [Phase 07]: D-05a is implemented by advancing the **same** selection ordinal on deselect, so the invalid-tap cue is structurally unreachable from the deselect branch rather than merely unused there
+- [Phase 07]: No audio gate flag enters `GameUiState`/`GameScreen` — silencing stays inside the player (SOUND-05 must stop one-shots already in flight); a UI flag would give the mute two disagreeing sources of truth
+- [Phase 07]: An invalid tap is now **observable state** (`rejectedTapTick`), so three `GameViewModelTest` "no-op tap" assertions were tightened from "no emission" to "no *gameplay* change" — the two are no longer the same claim
 
 ### Pending Todos
 
@@ -110,9 +115,9 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-08-28T14:22:24.209Z
+Last session: 2026-08-28T14:41:27.641Z
 Stopped at: Completed 07-02-PLAN.md (audio engine)
-Resume file: .planning/phases/07-sound/07-03-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
