@@ -661,7 +661,14 @@ Both contracts declare the per-commit gate as `./gradlew :domain:test` (seconds)
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> All five questions were resolved during planning (2026-08-29):
+> OQ1 — user explicitly approved **opening book + stronger solver** (full D-08 guarantee on all three boards; plans 08-08/09/10).
+> OQ2 — answered by plan 08-08's authoring run + blocking checkpoint (non-zero undecided count escalates).
+> OQ3 — resolved as `BoardSpec.minimumPegs` field with resume-path preservation (plans 08-01 + 08-07).
+> OQ4 — **K = 4 with raw masks**, locked into plan 08-08.
+> OQ5 — yes; consolidation into `BoardCanonical` with property test is plan 08-02.
 
 1. **Does D-08's exhaustive guarantee survive contact with Wiegleb-45?**
    - What we know: 0 of 76 depth-≤4 Wiegleb-45 positions resolve in 1.5 s at ~15M nodes/s; the gap is ~4 orders of magnitude.
