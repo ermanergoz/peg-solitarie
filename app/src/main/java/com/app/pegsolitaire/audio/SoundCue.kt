@@ -4,7 +4,7 @@ import androidx.annotation.RawRes
 import com.app.pegsolitaire.R
 
 /**
- * The eleven sound effects the game can play, each bound to the `res/raw` asset committed
+ * The twelve sound effects the game can play, each bound to the `res/raw` asset committed
  * in plan 07-01 together with its mix level and voice-stealing priority.
  *
  * The resource ids are **compile-time constants** (`R.raw.…`), never resolved from a name
@@ -32,13 +32,30 @@ enum class SoundCue(
     /** The jumped peg being removed — layered under [Jump], never played alone. */
     PegRemove(R.raw.sfx_peg_remove, SoundParams.VOLUME_REMOVAL, SoundParams.PRIORITY_DEFAULT),
 
-    /** A peg being selected. */
+    /** A peg being picked up (selected). */
     Select(R.raw.sfx_select, SoundParams.VOLUME_SELECT, SoundParams.PRIORITY_DEFAULT),
+
+    /**
+     * A peg being put back down — re-tapping the selected peg to deselect it (D-05a as
+     * amended 2026-08-28).
+     *
+     * The asset is the [Select] pop time-reversed and pitched down one whole tone, so the
+     * two halves of the selection gesture read as related but distinct events. Both the
+     * reversal and the pitch shift are baked into `sfx_deselect.ogg`; only the 10 dB level
+     * drop lives in code, as [SoundParams.VOLUME_DESELECT]. That keeps the put-down an
+     * ordinary `play()` call with no rate argument and leaves the audio engine untouched.
+     */
+    Deselect(R.raw.sfx_deselect, SoundParams.VOLUME_DESELECT, SoundParams.PRIORITY_DEFAULT),
 
     /** A move being taken back. */
     Undo(R.raw.sfx_undo, SoundParams.VOLUME_UNDO, SoundParams.PRIORITY_DEFAULT),
 
-    /** A rejected tap: deliberately the quietest cue (SOUND-02 — quiet, non-punishing). */
+    /**
+     * A rejected tap: the quietest **rejection** cue (SOUND-02 — quiet, non-punishing).
+     *
+     * Not the softest cue the game plays — [Deselect] is. See
+     * [SoundParams.VOLUME_INVALID] for why that leaves SOUND-02 intact.
+     */
     InvalidTap(R.raw.sfx_invalid, SoundParams.VOLUME_INVALID, SoundParams.PRIORITY_DEFAULT),
 
     /** A hint being revealed. */

@@ -56,13 +56,20 @@ import com.app.pegsolitaire.domain.model.Position
  *   showing the "no moves left — undo or restart" banner. Set the moment a jump strands the
  *   board; cleared when an undo returns it to a Playing position (or on restart). A Won game
  *   never sets this (Won still proceeds to Results).
- * @property selectionTick a monotonic cue ordinal, incremented on every peg selection AND on
- *   every re-tap deselection (D-05a — a deselect is a successful action that reuses the
- *   selection cue, never the invalid-tap one). It exists because selecting and deselecting
- *   otherwise leave no *distinguishable* state trace for a one-shot consumer: `selected` goes
- *   back to `null`, which is where it started. Same idiom as [MoveTransition.id] — a consumer
- *   keys a one-shot effect on it. A consumer MUST also guard on `> 0`, because a fresh state
- *   starts at 0 and would otherwise fire on first composition.
+ * @property selectionTick a monotonic cue ordinal, incremented once per peg **pick-up** —
+ *   every selection, and nothing else. A re-tap deselect advances [deselectionTick] instead
+ *   (D-05a as amended 2026-08-28: the two halves of the gesture have distinct cues). It exists
+ *   because selecting otherwise leaves no *distinguishable* state trace for a one-shot
+ *   consumer once the selection is cleared again. Same idiom as [MoveTransition.id] — a
+ *   consumer keys a one-shot effect on it. A consumer MUST also guard on `> 0`, because a
+ *   fresh state starts at 0 and would otherwise fire on first composition.
+ * @property deselectionTick a monotonic cue ordinal, incremented once per re-tap deselect —
+ *   putting a picked-up peg back down. It exists because a deselect returns `selected` to
+ *   `null`, which is exactly where it started, so the event leaves no distinguishable state
+ *   trace for a one-shot consumer at all. Separate from [selectionTick] so the pick-up and the
+ *   put-down can play different cues; a deselect remains a SUCCESSFUL action and never
+ *   advances [rejectedTapTick] (D-05a's surviving half). Guard on `> 0` at the consumer, as
+ *   with [selectionTick].
  * @property undoTick a monotonic cue ordinal, incremented once per undo that actually shortened
  *   the move history — never on a declined grant and never on an empty history. An undo's board
  *   update is otherwise indistinguishable from any other, so this is the only trace of it.
@@ -96,6 +103,7 @@ data class GameUiState(
     val noWinningMove: Boolean = false,
     val stuck: Boolean = false,
     val selectionTick: Int = 0,
+    val deselectionTick: Int = 0,
     val undoTick: Int = 0,
     val rejectedTapTick: Int = 0,
 ) {
@@ -129,6 +137,7 @@ data class GameUiState(
                 noWinningMove = false,
                 stuck = false,
                 selectionTick = 0,
+                deselectionTick = 0,
                 undoTick = 0,
                 rejectedTapTick = 0,
             )
@@ -158,6 +167,7 @@ data class GameUiState(
                 noWinningMove = false,
                 stuck = false,
                 selectionTick = 0,
+                deselectionTick = 0,
                 undoTick = 0,
                 rejectedTapTick = 0,
             )

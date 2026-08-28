@@ -123,10 +123,51 @@ object SoundParams {
     /** Peg selection: a light tick that must not compete with the jump. */
     const val VOLUME_SELECT = 0.6f
 
+    /**
+     * Ten decibels down, as a linear multiplier: `10^(-10/20)` = 0.3162.
+     *
+     * Named rather than folded into [VOLUME_DESELECT]'s literal so the mix decision — "the
+     * put-down sits 10 dB under the pick-up" — is legible at the point of use instead of
+     * being recoverable only by taking a logarithm of a bare float.
+     */
+    const val DESELECT_ATTENUATION = 0.3162f
+
+    /**
+     * Putting a peg back down: the [VOLUME_SELECT] pop, reversed and a whole tone down
+     * (`sfx_deselect.ogg`), mixed 10 dB below its forward twin.
+     *
+     * **Derived from [VOLUME_SELECT] rather than written as a bare float**, the same
+     * reasoning [STAR_POP_BASE_RATE] uses: the two cannot drift apart, and re-levelling the
+     * pick-up automatically carries the put-down with it. It evaluates to `0.18972f`, which
+     * is 10.0007 dB below the pick-up — closer to the intent than the rounded literal
+     * `0.19f` (−9.988 dB) would be.
+     *
+     * **Why the put-down sits below its forward twin rather than level with it.** The two
+     * assets are peak-matched **on disk on purpose** (both at −5.48 dBFS; see
+     * `docs/audio/CREDITS.md`), but equal peak is not equal loudness here: a reversed
+     * transient is a slow swell rather than a sharp attack, and a swell carries more energy
+     * relative to its peak. Measured on the shipped files, the put-down's RMS is **1.92 dB
+     * higher** than the pick-up's (−24.536 dB against −26.459 dB) at that matched peak, so
+     * played at the same level it reads as the *more* prominent of the two — the opposite of
+     * what a put-down should be.
+     *
+     * **The whole level difference lives here, and must not also be baked into the asset.**
+     * Attenuating `sfx_deselect.ogg` on disk *and* keeping this constant applies −10 dB
+     * twice. The file is deliberately not a quiet outlier; do not "fix" it to look like one.
+     */
+    const val VOLUME_DESELECT = VOLUME_SELECT * DESELECT_ATTENUATION
+
     /** Undo: audible as a deliberate action, below the jump. */
     const val VOLUME_UNDO = 0.7f
 
-    /** Rejected tap: the quietest cue in the set — SOUND-02's "quiet, non-punishing". */
+    /**
+     * Rejected tap: the quietest **rejection** cue — SOUND-02's "quiet, non-punishing".
+     *
+     * It is no longer the softest cue the game plays — [VOLUME_DESELECT] is, at `0.18972f`.
+     * That is deliberate and does not weaken SOUND-02, whose point is that a
+     * rejection must not punish the player *relative to the jump it denies* (0.3 against
+     * [VOLUME_JUMP]'s 0.9) — a relationship this constant still carries unchanged.
+     */
     const val VOLUME_INVALID = 0.3f
 
     /** Hint reveal: a chime at conversational level. */

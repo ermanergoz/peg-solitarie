@@ -346,6 +346,7 @@ class GameViewModel
                         showHints = it.showHints,
                         hapticsOn = it.hapticsOn,
                         selectionTick = it.selectionTick,
+                        deselectionTick = it.deselectionTick,
                         undoTick = it.undoTick,
                         rejectedTapTick = it.rejectedTapTick,
                     )
@@ -392,6 +393,7 @@ class GameViewModel
                         showHints = it.showHints,
                         hapticsOn = it.hapticsOn,
                         selectionTick = it.selectionTick,
+                        deselectionTick = it.deselectionTick,
                         undoTick = it.undoTick,
                         rejectedTapTick = it.rejectedTapTick,
                     )
@@ -432,6 +434,7 @@ class GameViewModel
                         canUndo = moveHistory.isNotEmpty(),
                         elapsedSeconds = elapsedBaseSeconds,
                         selectionTick = it.selectionTick,
+                        deselectionTick = it.deselectionTick,
                         undoTick = it.undoTick,
                         rejectedTapTick = it.rejectedTapTick,
                     )
@@ -502,15 +505,18 @@ class GameViewModel
             val state = _uiState.value
             when {
                 // Re-tapping the selected peg is the only deselect (D-04); clear inline.
-                // D-05a: a deselect is a SUCCESSFUL action, so it advances the same
-                // selection ordinal a select does and reuses the selection cue; it must
-                // never be counted as a rejected tap.
+                // D-05a (amended 2026-08-28): a deselect is a SUCCESSFUL action, and it now
+                // has a cue of its own, so it advances the deselection ordinal rather than
+                // the selection one. What is unchanged is the half that matters: it must
+                // never be counted as a rejected tap. Keeping this branch ABOVE the
+                // rejected-tap `else` is what makes the invalid-tap cue structurally
+                // unreachable from a deselect rather than merely unused here.
                 state.selected == position ->
                     _uiState.update {
                         it.copy(
                             selected = null,
                             legalTargets = emptyList(),
-                            selectionTick = it.selectionTick + 1,
+                            deselectionTick = it.deselectionTick + 1,
                         )
                     }
                 state.selected != null && position in state.legalTargets ->
@@ -890,14 +896,15 @@ class GameViewModel
             // Preserve the player's hint + haptics choices across a restart; the collected
             // settings flows only re-emit on change, so carry them forward explicitly.
             //
-            // The three cue ordinals ride along for a different reason: they are keys for
+            // The four cue ordinals ride along for a different reason: they are keys for
             // one-shot effects in the screen. A fresh 0 is a *changed* key for an effect
             // sitting at a higher value, so resetting them here would fire a cue nobody
             // triggered — a pop on restart, on a Challenge load or on Continue-resume
             // (RESEARCH Pitfall 2). Guarding on `> 0` in the screen is the second half of
             // that fix; both halves are required, and both are needed at all four of the
             // state-rebuild sites (this one, loadChallengeBoardIfNeeded, installClassicBoard
-            // and applyRestored).
+            // and applyRestored). The `= 0` defaults on the ordinals cannot be relied on to
+            // cover a site that forgets one — a default is exactly what would hide it.
             _uiState.value =
                 GameUiState
                     .initial(board)
@@ -905,6 +912,7 @@ class GameViewModel
                         showHints = _uiState.value.showHints,
                         hapticsOn = _uiState.value.hapticsOn,
                         selectionTick = _uiState.value.selectionTick,
+                        deselectionTick = _uiState.value.deselectionTick,
                         undoTick = _uiState.value.undoTick,
                         rejectedTapTick = _uiState.value.rejectedTapTick,
                     )

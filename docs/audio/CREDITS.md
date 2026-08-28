@@ -332,16 +332,17 @@ trust boundary):
 
 ## Release shrink verification
 
-**Scope note: this section records a run performed on 2026-08-28 *before* the star-pop swap, and
-has not been re-run since.** The `sfx_star_pop.ogg` payload was replaced afterwards, which makes
-two of the figures below stale — the packaged-size range 4,087–7,011 B was measured across the
-pre-swap asset set and excludes the current star pop (17,726 B), and the recorded APK size is
-correspondingly out of date. The *retention* conclusion is unaffected and was not re-run on
-purpose: the resource id and its compile-time `R.raw.sfx_star_pop` reference from `SoundCue` are
-unchanged, only the payload bytes behind that id differ, and no `resources.getIdentifier()` path
-exists — so there is nothing in this change that could alter whether the shrinker keeps the
-resource. Re-running the documented command below is the way to re-confirm packaged bytes if that
-is ever wanted.
+**Scope note: this section records a run performed on 2026-08-28 *after* the pick-up/put-down
+swap, and covers the current twelve-file asset set.** It supersedes an earlier run that predated
+both the star-pop swap and this one.
+
+**Why it was re-run this time, when the star-pop swap deliberately skipped it.** That swap
+replaced only the *payload bytes* behind an unchanged resource id, so nothing about it could
+alter whether the shrinker keeps the resource, and the retention conclusion carried over. The
+pick-up/put-down swap is different in kind: `sfx_deselect.ogg` is the first genuinely **new**
+`res/raw` id added since this section was written. A new id the shrinker cannot trace is exactly
+the failure this section exists to catch — a put-down that is silent in release builds only — so
+the earlier exemption does not apply and the verification was performed again in full.
 
 Performed 2026-08-28, mitigating T-07-15. The release build runs with `isMinifyEnabled = true`
 and `isShrinkResources = true`, so what ships is not what debug testing exercised: a `res/raw`
@@ -362,12 +363,13 @@ invocation (`ADMOB_APP_ID` / `ADMOB_REWARDED_AD_UNIT_ID` / `ADMOB_INTERSTITIAL_A
 `PGS_PROJECT_ID`) — the documented CI path, nothing written to disk or committed. The IDs do not
 affect resource shrinking; they only gate whether the build starts.
 
-**Artifact:** `app/build/outputs/apk/release/app-release-unsigned.apk` (2,038,611 B at the time of
+**Artifact:** `app/build/outputs/apk/release/app-release-unsigned.apk` (2,057,007 B at the time of
 the run; unsigned by design, D-16).
 
-**Result: 11 of 11 `raw/sfx_` entries present.** `sfx_btn_dismiss`, `sfx_btn_forward`, `sfx_hint`,
-`sfx_invalid`, `sfx_jump`, `sfx_peg_remove`, `sfx_select`, `sfx_sound_enabled`, `sfx_star_pop`,
-`sfx_undo`, `sfx_win` — each named individually in the dump. Nothing was stripped, and no
+**Result: 12 of 12 `raw/sfx_` entries present.** `sfx_btn_dismiss`, `sfx_btn_forward`,
+**`sfx_deselect`**, `sfx_hint`, `sfx_invalid`, `sfx_jump`, `sfx_peg_remove`, `sfx_select`,
+`sfx_sound_enabled`, `sfx_star_pop`, `sfx_undo`, `sfx_win` — each named individually in the dump,
+including the newly added `sfx_deselect` this run existed to check. Nothing was stripped, and no
 `resources.getIdentifier()` workaround exists anywhere in `app/src/main/` (which would have
 defeated the shrinker rather than satisfied it).
 
@@ -382,9 +384,10 @@ $AAPT2 dump resources <apk> | grep -A2 'raw/sfx_'      # id -> shortened res/<xx
 unzip -l <apk> res/<xx>.ogg                            # packaged size per entry
 ```
 
-All eleven packaged entries were byte-identical to the committed sources (4,087–7,011 B across the
-pre-swap set) and **Stored**, not deflated — confirming aapt2 9.1.0's built-in `.ogg` handling and
-that no `noCompress` configuration is needed (`grep noCompress app/build.gradle.kts` returns
-nothing).
+All twelve packaged entries were byte-identical to the committed sources and **Stored**, not
+deflated — confirming aapt2 9.1.0's built-in `.ogg` handling and that no `noCompress`
+configuration is needed (`grep noCompress app/build.gradle.kts` returns nothing). Packaged sizes
+span **4,087 B** (`sfx_invalid`) to **17,726 B** (`sfx_star_pop`, the 1.65 s outlier); the two
+newest entries are `sfx_select` at 4,595 B and `sfx_deselect` at 4,643 B.
 
 `./gradlew :app:check --offline` remains green after this verification; no source changed.

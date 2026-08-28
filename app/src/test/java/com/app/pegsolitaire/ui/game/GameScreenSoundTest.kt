@@ -108,16 +108,18 @@ class GameScreenSoundTest {
     // ---- Selection vs. rejection (SOUND-02, D-05a) --------------------------
 
     @Test
-    fun selectingAPegThenReTappingItPlaysTheSelectionCueTwiceAndNeverTheInvalidOne() {
+    fun selectingAPegThenReTappingItPlaysThePickUpThenThePutDownAndNeverTheInvalidOne() {
         startGame(chainBoard())
 
         tapCell(row = CHAIN_ROW, col = 0)
         assertThat(sounds.cues).containsExactly(SoundCue.Select)
 
-        // D-05a: the deselect is a successful action; it reuses the selection cue.
+        // D-05a as amended (2026-08-28): the deselect is still a successful action, but it
+        // now has its own cue rather than replaying the pick-up's.
         tapCell(row = CHAIN_ROW, col = 0)
 
-        assertThat(sounds.cues).containsExactly(SoundCue.Select, SoundCue.Select).inOrder()
+        assertThat(sounds.cues).containsExactly(SoundCue.Select, SoundCue.Deselect).inOrder()
+        // D-05a's surviving half, and the reason this assertion outlives the amendment.
         assertThat(sounds.cues).doesNotContain(SoundCue.InvalidTap)
     }
 
@@ -129,6 +131,7 @@ class GameScreenSoundTest {
 
         assertThat(sounds.cues).containsExactly(SoundCue.InvalidTap)
         assertThat(sounds.cues).doesNotContain(SoundCue.Select)
+        assertThat(sounds.cues).doesNotContain(SoundCue.Deselect)
     }
 
     // ---- Assist controls keep their own cues (SOUND-02, D-09) ---------------

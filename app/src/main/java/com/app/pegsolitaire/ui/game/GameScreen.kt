@@ -1,5 +1,5 @@
 // The screen and its private, single-purpose parts: the top bar, its four labels/indicators,
-// the confirm dialog, and the seven one-shot feedback effects (one haptic + six sound cues).
+// the confirm dialog, and the eight one-shot feedback effects (one haptic + seven sound cues).
 // Each is a handful of lines and each exists only for this screen; splitting them across files
 // to satisfy a per-file count would scatter the screen's own composition for no reader's
 // benefit. The cue effects in particular are deliberately adjacent to JumpHaptic — they are
@@ -131,6 +131,7 @@ fun GameScreen(
     JumpHaptic(animatingMoveId = state.animating?.id, hapticsOn = state.hapticsOn)
     JumpSound(transition = state.animating)
     SelectionSound(selectionTick = state.selectionTick)
+    DeselectionSound(deselectionTick = state.deselectionTick)
     UndoSound(undoTick = state.undoTick)
     InvalidTapSound(rejectedTapTick = state.rejectedTapTick)
     HintSound(hintSource = state.hintSource)
@@ -263,7 +264,7 @@ private fun JumpHaptic(
  * by [SoundParams.REMOVAL_LAYER_DELAY_MS] so it reads as a texture layer beneath the pitched
  * pop instead of a second competing hit.
  *
- * **The six sound cues take no enable/disable gate parameter, and that asymmetry with
+ * **The seven sound cues take no enable/disable gate parameter, and that asymmetry with
  * [JumpHaptic] is deliberate.** `hapticsOn` is carried in [GameUiState] because a haptic can
  * only ever be blocked *before* it fires. Audio cannot: SOUND-05 requires silencing one-shots
  * that are already in flight, which only the object holding the live stream ids can do. The
@@ -285,11 +286,12 @@ private fun JumpSound(transition: MoveTransition?) {
 }
 
 /**
- * Plays the selection cue whenever a peg is selected — or deselected (SOUND-02).
+ * Plays the pick-up cue whenever a peg is selected (SOUND-02).
  *
- * D-05a: [GameUiState.selectionTick] advances on BOTH, because a re-tap deselect is a
- * *successful* action, not a rejection. It reuses this cue and must never fire the
- * invalid-tap one; symmetric feedback for a symmetric gesture, and no extra asset.
+ * Selection only — putting a peg back down takes [DeselectionSound]. D-05a originally had
+ * both halves of the gesture share this cue; that half was reversed on 2026-08-28 because the
+ * two events sounded the same. What survives is that a deselect is a *successful* action, not
+ * a rejection, and must never fire the invalid-tap cue.
  *
  * The `> 0` guard is required, not defensive: it is the second half of the phantom-cue fix
  * whose first half is the ordinal carry-forward in `GameViewModel`. The carry-forward stops a
@@ -301,6 +303,22 @@ private fun SelectionSound(selectionTick: Int) {
     val sound = LocalSoundPlayer.current
     LaunchedEffect(selectionTick) {
         if (selectionTick > 0) sound.play(SoundCue.Select)
+    }
+}
+
+/**
+ * Plays the put-down cue once per re-tap deselect (SOUND-02, D-05a as amended).
+ *
+ * [SoundCue.Deselect] is the [SoundCue.Select] pop reversed and pitched down a whole tone, so
+ * the put-down reads as the same sound family as the pick-up without reading as the same
+ * event. It is a successful action, so this is deliberately *not* the invalid-tap cue.
+ * `> 0` guard as in [SelectionSound].
+ */
+@Composable
+private fun DeselectionSound(deselectionTick: Int) {
+    val sound = LocalSoundPlayer.current
+    LaunchedEffect(deselectionTick) {
+        if (deselectionTick > 0) sound.play(SoundCue.Deselect)
     }
 }
 
@@ -325,7 +343,7 @@ private fun UndoSound(undoTick: Int) {
  *
  * Reserved for real rejections: an empty or out-of-play cell with no selection, or an illegal
  * destination while a peg is selected. A deselect is not one of those (D-05a) — it takes
- * [SelectionSound]. `> 0` guard as in [SelectionSound].
+ * [DeselectionSound]. `> 0` guard as in [SelectionSound].
  */
 @Composable
 private fun InvalidTapSound(rejectedTapTick: Int) {

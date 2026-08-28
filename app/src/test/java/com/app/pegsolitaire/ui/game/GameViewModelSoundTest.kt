@@ -56,9 +56,9 @@ import kotlin.time.TestTimeSource
  *    identical ladder step, because a shorter history recomputes the same index. The
  *    assertions are on the recomputed value, never on a stored counter — a counter is
  *    precisely what this design does not have.
- *  - **The three cue ordinals tick exactly once per real event** — including D-05a, where
- *    a re-tap deselect is a *successful* action that advances the selection ordinal and
- *    must never be counted as a rejected tap.
+ *  - **The four cue ordinals tick exactly once per real event** — including D-05a as amended
+ *    (2026-08-28), where a re-tap deselect is a *successful* action that advances its OWN
+ *    ordinal, leaves the selection ordinal alone, and must never be counted as a rejected tap.
  *  - **No state rebuild resets an ordinal** (RESEARCH Pitfall 2): a restart, a Challenge
  *    board load and a resume-restore all carry them forward, because a fresh `0` is a
  *    *changed* key for a one-shot effect sitting at a higher value and would fire a cue
@@ -185,6 +185,7 @@ class GameViewModelSoundTest {
 
             assertThat(viewModel.uiState.value.rejectedTapTick).isEqualTo(1)
             assertThat(viewModel.uiState.value.selectionTick).isEqualTo(0)
+            assertThat(viewModel.uiState.value.deselectionTick).isEqualTo(0)
         }
 
     @Test
@@ -209,22 +210,26 @@ class GameViewModelSoundTest {
         }
 
     @Test
-    fun reTappingTheSelectedPegIsASelectionNotARejection() =
+    fun reTappingTheSelectedPegIsItsOwnDeselectionNotARejection() =
         runTest(testDispatcher) {
-            // D-05a: a deselect is a successful action; it reuses the selection cue and
-            // must never fire the invalid-tap one.
+            // D-05a as amended (2026-08-28): a deselect is a successful action with a cue of
+            // its own, so it advances the deselection ordinal, leaves the selection ordinal
+            // exactly where the pick-up left it, and must never fire the invalid-tap cue.
             val viewModel = viewModelFor(chainStrip())
             runCurrent()
 
             viewModel.onCellTap(Position(row = 0, col = 0))
             runCurrent()
             assertThat(viewModel.uiState.value.selectionTick).isEqualTo(1)
+            assertThat(viewModel.uiState.value.deselectionTick).isEqualTo(0)
 
             viewModel.onCellTap(Position(row = 0, col = 0))
             runCurrent()
 
             assertThat(viewModel.uiState.value.selected).isNull()
-            assertThat(viewModel.uiState.value.selectionTick).isEqualTo(2)
+            // The pick-up ordinal must NOT move — that is the whole point of the split.
+            assertThat(viewModel.uiState.value.selectionTick).isEqualTo(1)
+            assertThat(viewModel.uiState.value.deselectionTick).isEqualTo(1)
             assertThat(viewModel.uiState.value.rejectedTapTick).isEqualTo(0)
         }
 
@@ -239,6 +244,7 @@ class GameViewModelSoundTest {
             runCurrent()
 
             assertThat(viewModel.uiState.value.selectionTick).isEqualTo(1)
+            assertThat(viewModel.uiState.value.deselectionTick).isEqualTo(0)
             assertThat(viewModel.uiState.value.animating).isNotNull()
 
             cancelTickers()
@@ -309,12 +315,18 @@ class GameViewModelSoundTest {
             runCurrent()
 
             viewModel.onCellTap(Position(row = 0, col = 2)) // rejected tap → 1
-            jump(viewModel, fromCol = 0, toCol = 2) // select → 1
+            viewModel.onCellTap(Position(row = 0, col = 0)) // select → 1
+            viewModel.onCellTap(Position(row = 0, col = 0)) // deselect → 1
+            runCurrent()
+            jump(viewModel, fromCol = 0, toCol = 2) // select → 2
             runCurrent()
             viewModel.onUndo() // undo → 1
             runCurrent()
             val before = viewModel.uiState.value
             assertThat(before.selectionTick).isGreaterThan(0)
+            // This spec is the ONLY automated proof the resetToInitial carry-forward covers
+            // the fourth ordinal, so the setup must actually reach a non-zero value for it.
+            assertThat(before.deselectionTick).isGreaterThan(0)
             assertThat(before.undoTick).isGreaterThan(0)
             assertThat(before.rejectedTapTick).isGreaterThan(0)
 
@@ -325,6 +337,7 @@ class GameViewModelSoundTest {
             val after = viewModel.uiState.value
             assertThat(after.board.pegs).isEqualTo(chainStrip().pegs)
             assertThat(after.selectionTick).isEqualTo(before.selectionTick)
+            assertThat(after.deselectionTick).isEqualTo(before.deselectionTick)
             assertThat(after.undoTick).isEqualTo(before.undoTick)
             assertThat(after.rejectedTapTick).isEqualTo(before.rejectedTapTick)
         }
@@ -385,6 +398,7 @@ class GameViewModelSoundTest {
 
             val state = viewModel.uiState.value
             assertThat(state.selectionTick).isEqualTo(0)
+            assertThat(state.deselectionTick).isEqualTo(0)
             assertThat(state.undoTick).isEqualTo(0)
             assertThat(state.rejectedTapTick).isEqualTo(0)
             assertThat(state.animating).isNull()

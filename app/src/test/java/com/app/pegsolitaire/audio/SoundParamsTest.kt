@@ -2,6 +2,7 @@ package com.app.pegsolitaire.audio
 
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
+import kotlin.math.log10
 
 /** Float comparison tolerance: the ladder is tuned by ear, not to the last ULP. */
 private const val RATE_TOLERANCE = 1e-4f
@@ -12,8 +13,19 @@ private const val OCTAVE_RUNGS = 12
 /** A run index far past any reachable gameplay state, used to prove the clamp holds. */
 private const val ABSURD_RUN_INDEX = 50
 
-/** The eleven cues the phase committed assets for. */
-private const val EXPECTED_CUE_COUNT = 11
+/** The twelve cues the phase committed assets for. */
+private const val EXPECTED_CUE_COUNT = 12
+
+/** The approved put-down/pick-up mix offset in decibels (D-VRR-05). */
+private const val DESELECT_OFFSET_DB = -10.0
+
+/**
+ * Decibel comparison tolerance. Generous by design: the offset is expressed as a rounded
+ * linear multiplier (`0.3162f`), so it lands 0.0007 dB off the nominal −10 and would fail an
+ * exact match while being audibly identical. Wide enough to absorb that, far too narrow to
+ * absorb anyone re-levelling either cue.
+ */
+private const val DECIBEL_TOLERANCE = 0.05
 
 /** `SoundPool` rate 1.0 — a sample played back at its own recorded pitch. */
 private const val UNPITCHED_RATE = 1.0f
@@ -153,6 +165,30 @@ class SoundParamsTest {
         val loudest = SoundCue.entries.maxOf { it.volume }
 
         assertThat(SoundCue.Win.volume).isEqualTo(loudest)
+    }
+
+    @Test
+    fun thePutDownSitsExactlyTenDecibelsUnderThePickUp() {
+        // The mix decision the user approved by ear, pinned in the unit it was made in.
+        // Asserting the floats (0.6f / 0.18972f) would pass just as well but would not say
+        // what the relationship IS, so a later edit to either volume could preserve the
+        // numbers and destroy the intent. Both assets are peak-matched on disk, so this
+        // constant is the ONLY thing making the put-down subordinate.
+        val offsetDb = 20.0 * log10(SoundCue.Deselect.volume.toDouble() / SoundCue.Select.volume.toDouble())
+
+        assertThat(offsetDb).isWithin(DECIBEL_TOLERANCE).of(DESELECT_OFFSET_DB)
+    }
+
+    @Test
+    fun thePutDownIsTheQuietestCueInTheSet() {
+        // Records that "the invalid tap is the quietest cue" — asserted in KDoc across
+        // SoundCue and SoundParams until 2026-08-28 — was knowingly superseded rather than
+        // forgotten. SOUND-02 is untouched: it is about the rejection not punishing the
+        // player relative to the jump, which theRejectedTapIsQuieterThanTheJump still pins.
+        val quietest = SoundCue.entries.minOf { it.volume }
+
+        assertThat(SoundCue.Deselect.volume).isEqualTo(quietest)
+        assertThat(SoundCue.Deselect.volume).isLessThan(SoundCue.InvalidTap.volume)
     }
 
     @Test
