@@ -15,6 +15,9 @@ private const val ABSURD_RUN_INDEX = 50
 /** The eleven cues the phase committed assets for. */
 private const val EXPECTED_CUE_COUNT = 11
 
+/** `SoundPool` rate 1.0 — a sample played back at its own recorded pitch. */
+private const val UNPITCHED_RATE = 1.0f
+
 /**
  * Specification for the pure audio maths: the jump pitch ladder (D-05/D-06/D-07a), the
  * star-pop triad (D-15) and the relative cue mix.
@@ -68,10 +71,34 @@ class SoundParamsTest {
     }
 
     @Test
-    fun starPopRateOfTheFirstStarIsTheSamplesOwnPitch() {
+    fun starPopRateOfTheFirstStarIsTheLadderBase() {
         val rate = SoundParams.starPopRate(0)
 
         assertThat(rate).isEqualTo(SoundParams.STAR_POP_BASE_RATE)
+    }
+
+    @Test
+    fun theStarTriadIsCentredOnTheSamplesOwnPitch() {
+        // The phase 7 audit called the pops shrill, so the ladder was transposed down a
+        // rung: the SECOND star now lands on the sample's recorded pitch, with the first
+        // below it and the third above. Pins the transposition against a later "tidy-up"
+        // that quietly resets the base to 1.0 and makes the set bright again.
+        val second = SoundParams.starPopRate(1)
+
+        assertThat(second).isWithin(RATE_TOLERANCE).of(UNPITCHED_RATE)
+        assertThat(SoundParams.starPopRate(0)).isLessThan(UNPITCHED_RATE)
+        assertThat(SoundParams.starPopRate(2)).isGreaterThan(UNPITCHED_RATE)
+    }
+
+    @Test
+    fun theStarLadderTopsOutWellBelowTheJumpLadders() {
+        // The complaint was pitch HEIGHT, not ladder shape (D-15's rising triad is intact
+        // above). The top star must stay far off the D-07a ceiling the jump ladder can
+        // reach, or "lower the stars" silently becomes "lower them until they clip".
+        val topStar = SoundParams.starPopRate(2)
+
+        assertThat(topStar).isLessThan(SoundParams.MAX_RATE)
+        assertThat(topStar).isGreaterThan(SoundParams.MIN_RATE)
     }
 
     @Test

@@ -38,11 +38,26 @@ object SoundParams {
      */
     const val MAX_RATE = 2.0f
 
-    /** The first star pops at the sample's own pitch; later stars climb from here (D-15). */
-    const val STAR_POP_BASE_RATE = 1.0f
-
     /** A major third per star, so three stars outline a rising triad (D-15). */
     const val STAR_POP_STEP_SEMITONES = 4
+
+    /**
+     * Where the star ladder starts: one full rung **below** the sample's own recorded pitch.
+     *
+     * Derived from [STAR_POP_STEP_SEMITONES] rather than written as a bare float, so the
+     * two cannot drift. It centres the triad on the sample: a three-star finish plays a
+     * major third below the recorded pitch, the recorded pitch itself, then a major third
+     * above it. Two stars stop on the sample's own pitch, one star on the note below.
+     *
+     * Lowered from 1.0 after the phase 7 audit ("the star sound is too high pitched"). At
+     * base 1.0 the third star sat a minor sixth above the already-bright `glass_005`
+     * sample and read as shrill; it now tops out a major third above it. Transposing the
+     * whole triad down leaves its shape — a rising major third per star — untouched, so 3
+     * stars still resolve strictly higher than 2 (D-15). Narrowing
+     * [STAR_POP_STEP_SEMITONES] would have flattened that climb instead, which is the
+     * property D-15 is actually about, so the height was fixed and the shape left alone.
+     */
+    val STAR_POP_BASE_RATE: Float = SEMITONE_STEP.pow(-STAR_POP_STEP_SEMITONES)
 
     /**
      * Gap between consecutive star pops **when animations are disabled** (D-13).
@@ -51,8 +66,13 @@ object SoundParams {
      * sequence takes its spacing from the Results star-stagger token in
      * [com.app.pegsolitaire.ui.theme.ClayAnim], so the audio lands with the visual pop;
      * that value is deliberately read from there and never duplicated here.
+     *
+     * Raised from 150 ms alongside that token's 120 -> 200 (the phase 7 audit's "let the
+     * stars be slower"). Both were scaled by the same 5/3, so this fallback keeps the
+     * slightly wider gap it always had — with no star landing to pace them, the pops need
+     * a touch more air to read as three events — and the two paths still feel alike.
      */
-    const val STAR_POP_STAGGER_MS = 150
+    const val STAR_POP_STAGGER_MS = 250
 
     /** Gap between the win stinger and the first star pop, so D-14's two beats read as two. */
     const val CELEBRATION_LEAD_IN_MS = 250

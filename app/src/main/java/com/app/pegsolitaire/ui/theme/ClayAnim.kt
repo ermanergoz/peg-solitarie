@@ -40,8 +40,18 @@ object ClayAnim {
     /** Sequential star pop duration on Results. */
     const val STAR_POP_MS = 260
 
-    /** Stagger between the Results stars popping in. */
-    const val STAR_STAGGER_MS = 120
+    /**
+     * Stagger between the Results stars popping in — and, read through
+     * [com.app.pegsolitaire.ui.results.StarPopSounds], the spacing of the star pops that
+     * land with them. One token drives both on purpose: the sound is not "near" its star,
+     * it is *on* it, and forking the two is how they drift apart.
+     *
+     * Raised from 120 ms after the phase 7 audit ("let the stars be slower"). At 120 ms
+     * each star arrived barely halfway through the previous pop's [STAR_POP_MS] and the
+     * three read as one burst; at 200 ms the reveal is sequential and the celebration has
+     * time to be counted.
+     */
+    const val STAR_STAGGER_MS = 200
 
     /** Results score count-up duration. */
     const val SCORE_COUNT_UP_MS = 600
