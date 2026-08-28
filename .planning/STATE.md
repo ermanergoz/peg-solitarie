@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Slice 2 — Play Games, AdMob & Polish
-status: executing
-stopped_at: Phase 7 context gathered
-last_updated: "2026-08-27T23:34:43.739Z"
-last_activity: 2026-08-27 -- Phase 7 planning complete
+status: verifying
+stopped_at: Completed quick task 260828-tnw (Results back-navigation popUpTo fix)
+last_updated: "2026-08-28T18:21:07.915Z"
+last_activity: 2026-08-28
 progress:
   total_phases: 9
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 16
-  completed_plans: 10
-  percent: 11
+  completed_plans: 16
+  percent: 22
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-27)
 
 **Core value:** Infinite, never-repeating, always-solvable Challenge levels that feel fair and satisfying.
-**Current focus:** Phase 06 — Platform Foundation & Build Hardening
+**Current focus:** Phase 07 — sound
 
 ## Current Position
 
-Phase: 06 (Platform Foundation & Build Hardening) — EXECUTING
-Plan: 1 of 10
-Status: Ready to execute
-Last activity: 2026-08-27 -- Phase 7 planning complete
+Phase: 07 (sound) — EXECUTING
+Plan: 6 of 6
+Status: Phase complete — ready for verification
+Last activity: 2026-08-28
 
-Progress: [░░░░░░░░░░] 0% (v1.1)
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -55,7 +55,18 @@ Per-plan durations archived in `.planning/milestones/v1.0-ROADMAP.md`.
 
 - v1.1 not yet started — no trend data.
 
+**By Plan (v1.1):**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 07 P01 | ~35 min | 3 tasks | 13 files |
+| Phase 07 P02 | ~50 min | 3 tasks | 9 files |
+| Phase 07 P03 | ~45 min | 2 tasks | 8 files |
+| Phase 07 P04 | ~35 min | 2 tasks | 6 files |
+| Phase 07 P05 | ~40 min | 2 tasks | 8 files |
+
 *Updated after each plan completion*
+| Phase 07 P06 | ~15 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -71,6 +82,22 @@ Recent decisions affecting current work:
 - [v1.1 roadmap]: `ForegroundActivityProvider` (Phase 6) is the dependency root for ads, consent, **and** Play Games — nothing SDK-real lands before it.
 - [v1.1 roadmap]: The rewarded opt-in dialog is built and tested against the `NoOpAdGateway` stub **before** the real ad SDK lands — the stub's silent auto-grant is what currently hides the missing opt-in UI, and shipping it as-is is an AdMob policy violation.
 - [v1.1 roadmap]: Phases 7 (Sound) and 8 (Assist/Generator debt) are SDK-free and sequenced early to absorb Play Console / AdMob propagation lead time.
+- [Phase 07]: The soundOn mute gate lives inside SoundPoolPlayer, not in any UiState — SOUND-05 requires stopping one-shots already in flight, which only the holder of the live stream ids can do
+- [Phase 07]: D-07a: the jump pitch ladder is explicitly clamped to SoundPool's 0.5–2.0 range rather than left uncapped, so the one-octave ceiling is a tested contract instead of a silent engine surprise
+- [Phase 07]: Audio is bound in its own AudioModule, never in PlatformModule — ..platform.. is defined as the Play/AdMob SDK + foreground-Activity seam and three ArchUnit rules depend on that definition
+- [Phase 07]: The jump-pitch ladder step is **derived** from `moveHistory` on every jump and never stored — which makes D-08 (undo steps the ladder back down; replaying reproduces the pitch) true by construction rather than a second invariant to keep in sync
+- [Phase 07]: D-05a is implemented by advancing the **same** selection ordinal on deselect, so the invalid-tap cue is structurally unreachable from the deselect branch rather than merely unused there
+- [Phase 07]: No audio gate flag enters `GameUiState`/`GameScreen` — silencing stays inside the player (SOUND-05 must stop one-shots already in flight); a UI flag would give the mute two disagreeing sources of truth
+- [Phase 07]: An invalid tap is now **observable state** (`rejectedTapTick`), so three `GameViewModelTest` "no-op tap" assertions were tightened from "no emission" to "no *gameplay* change" — the two are no longer the same claim
+- [Phase 07]: The Results celebration latch is a SECOND SavedStateHandle key (CELEBRATED_KEY), not a reuse of the bests-record guard — the record guard is set only for a solved play, so sharing it would re-celebrate a stuck one-star finish on every entry
+- [Phase 07]: StarPopSounds deliberately breaks ResultsCelebration.kt's animator-duration-scale symmetry (D-13) — audio that collapses its stagger to zero is one muddy chord, not a reduced-motion accommodation; the file header names the exception
+- [Phase 07]: Button cues are wrapped at the LEAF composable (ModeTile, PrimaryAction, NeutralAction, BoardCard) but stay per-callsite — never on the shared Modifier.claySquish(), which is also on exactly the back-nav icons, hint toggle and Settings switches D-09 excludes
+- [Phase 07]: D-10 requires no implementation — the pinned Compose stack emits no Android platform click tick, so there is no doubled sound to suppress and no soundEffectsEnabled API to disable; recorded as a // note at ResultsActions.kt and deferred to manual UAT in 07-06
+- [Phase 07]: The D-12 blip fires on the user event and through the documented gate bypass, because the DataStore write has not round-tripped when the pop is due — a collector-side blip would also greet the player on every Settings open, which D-12 forbids
+- [Phase 07]: A surviving resource id is a weaker claim than a surviving sound — the shrink proof follows each R.raw id to its SHORTENED packaged path and byte-compares against source, because isShrinkResources can keep an id while replacing its payload
+- [Phase 07]: The audit's 'star pops too high' was fixed by transposing the whole triad down a rung (STAR_POP_BASE_RATE, derived from STAR_POP_STEP_SEMITONES so the two cannot drift), never by narrowing the semitone step — the step is ladder SHAPE, and narrowing it would flatten the rising climb D-15 exists to protect
+- [Phase 07]: The Results star stagger stays ONE token (ClayAnim.STAR_STAGGER_MS, 120 -> 200) driving both the visual reveal and the audio pop spacing; the animations-off fallback was scaled by the same 5/3 rather than re-guessed, so the pop lands ON its star rather than near it
+- [Phase 07]: Phase 7's manual audit was emulator-only and globally approved rather than itemised — T-07-04 (ducking) and T-07-16 (cold-start latency) have emulator-grade confirmation only, and the shrink-proof APK used placeholder ad IDs so it is a verification artifact, not a shippable build
 
 ### Pending Todos
 
@@ -90,6 +117,11 @@ None.
 |---|-------------|------|--------|-----------|
 | 260628-n4f | Deselect a peg only when that same peg is re-tapped | 2026-06-28 | 675de73 | [260628-n4f-deselect-only-on-retap](./quick/260628-n4f-deselect-only-on-retap/) |
 | 260701-n9t | Phase 2 UI polish: Results/catalog/hint-toggle | 2026-07-01 | cca6cb3 | [260701-n9t-phase-2-ui-polish-remove-next-board-from](./quick/260701-n9t-phase-2-ui-polish-remove-next-board-from/) |
+| 260828-tnw | Fix Results back-navigation with popUpTo | 2026-08-28 | 4fa6833 | [260828-tnw-fix-results-back-navigation-with-popupto](./quick/260828-tnw-fix-results-back-navigation-with-popupto/) |
+| fast | Slow Results star celebration to zero-overlap pacing (stagger 200→260) | 2026-08-28 | 48bf34f | — (inline /gsd:fast, no plan dir) |
+| fast | Drop the star triad below the sample's own pitch (base pow(-4)→pow(-8)) | 2026-08-28 | 724b7ae | — (inline /gsd:fast, no plan dir) |
+| 260828-vb3 | Swap star pop for the CC0 freesound blip; stagger 260→500, pop 260→600 | 2026-08-28 | 86b68db | [260828-vb3-swap-star-pop-sound-for-cc0-blip-and-wid](./quick/260828-vb3-swap-star-pop-sound-for-cc0-blip-and-wid/) |
+| 260828-vrr | Distinct peg pick-up / put-down cues (twelfth cue `sfx_deselect`) | 2026-08-28 | c25883e | [260828-vrr-distinct-peg-pick-up-and-put-down-sounds](./quick/260828-vrr-distinct-peg-pick-up-and-put-down-sounds/) |
 
 ## Deferred Items
 
@@ -100,9 +132,9 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-08-27T21:15:08.322Z
-Stopped at: Phase 7 context gathered
-Resume file: .planning/phases/07-sound/07-CONTEXT.md
+Last session: 2026-08-28T18:20:57.096Z
+Stopped at: Completed 07-06-PLAN.md (Release shrink proof & phase audit)
+Resume file: None
 
 ## Operator Next Steps
 

@@ -43,6 +43,8 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.audio.SoundCue
+import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.ui.onboarding.OnboardingOverlay
 import com.app.pegsolitaire.ui.theme.ClayAnim
 import com.app.pegsolitaire.ui.theme.clayEntrance
@@ -303,8 +305,13 @@ private fun ResumeTile(
     entranceOrder: Int,
     onResume: () -> Unit,
 ) {
+    // SOUND-04 / D-09 / D-11: Continue is a navigational CTA, so it clicks. The cue is attached
+    // per callsite and NEVER to Modifier.claySquish() below it — that modifier is also on the
+    // top-bar How-to-play and Settings icons, which D-09 requires to stay silent (the full
+    // exclusion list is in the withClickSound KDoc). Resume does not route through ModeTile,
+    // so it carries its own wrap.
     Card(
-        onClick = onResume,
+        onClick = withClickSound(SoundCue.ButtonForward, onResume),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
         modifier =
@@ -436,8 +443,9 @@ private fun ModeTile(
     onClick: () -> Unit,
     supporting: @Composable () -> Unit,
 ) {
+    // Wrapped at the shared leaf, so Classic and Challenge each inherit the forward click once.
     Card(
-        onClick = onClick,
+        onClick = withClickSound(SoundCue.ButtonForward, onClick),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = container),
         modifier =

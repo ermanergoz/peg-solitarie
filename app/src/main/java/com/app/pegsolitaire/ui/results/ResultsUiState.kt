@@ -29,6 +29,13 @@ import com.app.pegsolitaire.data.NewBests
  *   reported by `ProgressRepository.recordResult`. All three are `false` until the record
  *   completes — and stay `false` for a play that beat nothing (or was never recorded at
  *   all, D-08) — so the "New best!" cue only ever appears on a genuine improvement.
+ * @property playCelebration whether THIS entry into Results should sound the star-pop
+ *   celebration (D-16). Like [newBests] it is a one-shot cue a recomposition cannot
+ *   re-fire, but its scope is wider than one composition: it is `true` only on the first
+ *   construction for a given `SavedStateHandle`, so a configuration change (same instance)
+ *   and a process-death restore or back navigation (new instance, same handle) alike yield
+ *   `false` and re-entering the same Results shows the stars silently. Unlike the recorded
+ *   best it does not depend on a solve — a stuck one-star finish still earns its one pop.
  */
 @Immutable
 data class ResultsUiState(
@@ -40,6 +47,7 @@ data class ResultsUiState(
     val replayId: String,
     val challengeLevel: Int? = null,
     val newBests: NewBests = NO_NEW_BESTS,
+    val playCelebration: Boolean = false,
 ) {
     /**
      * Whether the "Next level" action is offered (D-01): only a solved Challenge level

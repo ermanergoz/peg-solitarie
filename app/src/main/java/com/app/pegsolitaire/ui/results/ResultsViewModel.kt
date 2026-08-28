@@ -38,6 +38,13 @@ import javax.inject.Inject
  *  - **It is recorded at most once (T-05-09).** The guard flag lives in the
  *    [SavedStateHandle], so neither a configuration change (same instance) nor a
  *    process-death restore (new instance, same handle) can double-count the play.
+ *  - **The celebration sounds at most once (D-16).** The star-pop ceremony on the
+ *    Results screen gets its own latch in the same [SavedStateHandle], for the same
+ *    reason and with the same reach: neither a configuration change (same instance) nor
+ *    a process-death restore / back navigation (new instance, same handle) can sound it
+ *    twice. It is a deliberately *separate* key from the record guard above — that one
+ *    is set only for a solved play, whereas every result celebrates its stars, including
+ *    a stuck one-star finish that is never recorded.
  *  - **The Challenge level is clamped at this boundary (WARN-03, T-06-20).** `Results`
  *    is a typed route in `AppNavHost` reachable *independently* of `GameRoute`, so its
  *    `challengeLevel` arg is untrusted in its own right rather than merely downstream of
@@ -97,6 +104,7 @@ class ResultsViewModel
 
         init {
             recordSolvedPlayOnce()
+            claimCelebrationPlayOnce()
         }
 
         /**
@@ -133,6 +141,26 @@ class ResultsViewModel
         }
 
         /**
+         * Claims this entry's right to sound the star-pop celebration, so it plays exactly
+         * once per result (D-16).
+         *
+         * Mirrors [recordSolvedPlayOnce]'s shape, ordering discipline included: the guard is
+         * set *before* [ResultsUiState.playCelebration] is raised, which is what makes a
+         * second ViewModel built over the same handle unable to race a second celebration
+         * in. Both re-entry paths D-16 names — a process-death restore and a back navigation
+         * onto the same Results entry — arrive as exactly that second construction, observe
+         * the claim, and leave the flag at its `false` default.
+         *
+         * Unlike the bests merge this is deliberately not conditioned on a solve: the stars
+         * are shown for every result, so they are sounded for every result.
+         */
+        private fun claimCelebrationPlayOnce() {
+            if (savedStateHandle.get<Boolean>(CELEBRATED_KEY) == true) return
+            savedStateHandle[CELEBRATED_KEY] = true
+            _uiState.update { it.copy(playCelebration = true) }
+        }
+
+        /**
          * Rebuilds the domain [ScoreResult] from the route args so the repository merges
          * the same numbers the screen displays. `pegsCleared` is not carried by the route
          * (the Results screen never shows it) and is not part of any stored best, so it is
@@ -153,6 +181,9 @@ class ResultsViewModel
 
             /** SavedStateHandle flag marking this play as already merged into the stored bests. */
             const val RECORDED_KEY = "results_recorded"
+
+            /** SavedStateHandle flag marking this result's celebration as already claimed (D-16). */
+            const val CELEBRATED_KEY = "results_celebrated"
 
             /** The `Results` route does not carry pegsCleared, and no stored best uses it. */
             const val PEGS_CLEARED_NOT_CARRIED = 0

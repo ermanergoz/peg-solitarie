@@ -4,7 +4,7 @@ import org.gradle.api.GradleException
 /**
  * Code-standards gate (QUAL-02 / QUAL-03), applied by BOTH `:domain` and `:app`.
  *
- * Wires four checks into the `check` lifecycle so the build FAILS on any
+ * Wires five checks into the `check` lifecycle so the build FAILS on any
  * violation, from commit 0:
  *  - detekt (`dev.detekt` 2.0) with `MagicNumber` enabled — no magic numbers.
  *  - ktlint (`org.jlleitschuh.gradle.ktlint`) — format/lint.
@@ -12,6 +12,8 @@ import org.gradle.api.GradleException
  *    (no built-in detekt/ktlint rule covers this; QUAL-03).
  *  - a custom `adIdLiteralCheck` — no ad-unit-ID literal anywhere in `src/main`
  *    (PLAT-06; ad IDs are `buildConfigField`/`resValue` only).
+ *  - a custom `audioFocusLiteralCheck` — no audio-focus request anywhere in `src/main`
+ *    (SOUND-06; holding no focus is what stops the game ducking the user's music).
  */
 plugins {
     id("dev.detekt")
@@ -86,6 +88,10 @@ val adIdSourceRoots = listOf("src/main/java", "src/main/kotlin", "src/main/res")
 // The AdMob ID publisher prefix, shared by app IDs (`…~…`) and unit IDs (`…/…`).
 val adIdMarker = "ca-app-pub-"
 
+// The audio-focus APIs SOUND-06 forbids. Requesting focus is what *initiates* ducking,
+// so the abandon call is listed too: its presence can only mean a request exists.
+val audioFocusMarkers = listOf("requestAudioFocus", "abandonAudioFocusRequest")
+
 // Comment prefixes across the scanned file types (Kotlin, KDoc continuation, XML,
 // properties/shell). A comment explaining *why* IDs are not in source must not itself
 // trip the gate.
@@ -125,6 +131,48 @@ val adIdLiteralCheck =
         }
     }
 
+// ---- SOUND-06: custom "never request audio focus" gate -----------------------
+// SOUND-06's entire implementation is an omission: ducking is *initiated* by a focus
+// request, so an app that holds no focus can neither duck nor be ducked. An omission
+// with no gate rots the first time someone adds a focus request "to be polite". This
+// makes "the player's podcast never dips" a fact CI re-proves on every commit rather
+// than a one-off UAT observation. It reuses `adIdSourceRoots`, so it scans `src/main`
+// only — `src/test` may still name the API in an assertion.
+val audioFocusLiteralCheck =
+    tasks.register("audioFocusLiteralCheck") {
+        group = "verification"
+        description =
+            "Fails on audio-focus requests in src/main (SOUND-06: the app holds no focus)."
+        doLast {
+            val offenders = mutableListOf<String>()
+            adIdSourceRoots.filter { it.exists() }.forEach { root ->
+                root.walkTopDown()
+                    .filter { it.isFile }
+                    .forEach { file ->
+                        file.readLines().forEachIndexed { index, line ->
+                            val trimmed = line.trimStart()
+                            if (commentPrefixes.any { trimmed.startsWith(it) }) {
+                                return@forEachIndexed
+                            }
+                            if (audioFocusMarkers.any { line.contains(it) }) {
+                                val where = file.relativeTo(moduleDir).invariantSeparatorsPath
+                                offenders += "$where:${index + 1}: $trimmed"
+                            }
+                        }
+                    }
+            }
+            if (offenders.isNotEmpty()) {
+                throw GradleException(
+                    "Audio focus must never be requested (SOUND-06). Ducking is initiated by a " +
+                        "focus request — an app that holds no focus cannot duck the player's " +
+                        "music or podcast, so the omission IS the implementation. Play through " +
+                        "SoundPool with USAGE_GAME attributes and leave AudioManager alone:\n  " +
+                        offenders.joinToString("\n  "),
+                )
+            }
+        }
+    }
+
 tasks.named("check").configure {
-    dependsOn("detekt", "ktlintCheck", dpSpLiteralCheck, adIdLiteralCheck)
+    dependsOn("detekt", "ktlintCheck", dpSpLiteralCheck, adIdLiteralCheck, audioFocusLiteralCheck)
 }

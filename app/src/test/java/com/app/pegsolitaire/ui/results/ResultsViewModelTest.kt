@@ -362,6 +362,110 @@ class ResultsViewModelTest {
             assertThat(repository.recordCalls).hasSize(1)
         }
 
+    // ---- D-16: the celebration sounds once per result ---------------------------
+
+    @Test
+    fun aFirstEntryIntoResultsClaimsTheCelebration() {
+        val viewModel =
+            viewModelFor(
+                levelId = ClassicLevelIds.ENGLISH33,
+                stars = THREE_STARS,
+                pegsRemaining = SOLVED_PEGS_REMAINING,
+            )
+
+        assertThat(viewModel.uiState.value.playCelebration).isTrue()
+    }
+
+    @Test
+    fun recreatingTheViewModelOverTheSameSavedStateCelebratesOnlyOnce() {
+        // The two D-16 re-entry paths — process-death restore and back navigation — both
+        // rebuild the ViewModel over the SAME SavedStateHandle. Deliberately no
+        // `runCurrent()` between the two constructions: the latch is written synchronously
+        // in `init`, so the second instance cannot race past an unclaimed flag.
+        val repository = FakeProgressRepository()
+        val handle =
+            savedStateHandleFor(
+                levelId = ClassicLevelIds.ENGLISH33,
+                stars = THREE_STARS,
+                pegsRemaining = SOLVED_PEGS_REMAINING,
+            )
+
+        val first = ResultsViewModel(handle, repository)
+        val second = ResultsViewModel(handle, repository)
+
+        assertThat(first.uiState.value.playCelebration).isTrue()
+        assertThat(second.uiState.value.playCelebration).isFalse()
+    }
+
+    @Test
+    fun aStuckOneStarResultStillCelebratesOnFirstEntry() =
+        runTest(testDispatcher) {
+            // The latch is about re-entry, not about star count: a stuck board records no
+            // best (D-08) and still earns its single rising pop.
+            val repository = FakeProgressRepository()
+
+            val viewModel =
+                viewModelFor(
+                    levelId = "",
+                    stars = ONE_STAR,
+                    pegsRemaining = SAMPLE_PEGS_REMAINING,
+                    challengeLevel = SAMPLE_CHALLENGE_LEVEL,
+                    repository = repository,
+                )
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.playCelebration).isTrue()
+            assertThat(viewModel.uiState.value.stars).isEqualTo(ONE_STAR)
+            assertThat(repository.recordCalls).isEmpty()
+        }
+
+    @Test
+    fun theCelebrationLatchIsIndependentOfTheRecordLatch() =
+        runTest(testDispatcher) {
+            // An unsolved play never sets the record guard, so the two keys cannot be the
+            // same one: the second entry must still be silent even though nothing was
+            // recorded on the first.
+            val repository = FakeProgressRepository()
+            val handle =
+                savedStateHandleFor(
+                    levelId = "",
+                    stars = ONE_STAR,
+                    pegsRemaining = SAMPLE_PEGS_REMAINING,
+                    challengeLevel = SAMPLE_CHALLENGE_LEVEL,
+                )
+
+            val first = ResultsViewModel(handle, repository)
+            runCurrent()
+            val second = ResultsViewModel(handle, repository)
+            runCurrent()
+
+            assertThat(first.uiState.value.playCelebration).isTrue()
+            assertThat(second.uiState.value.playCelebration).isFalse()
+            assertThat(repository.recordCalls).isEmpty()
+        }
+
+    @Test
+    fun aSolvedReEntryIsSilentAndStillRecordsExactlyOnce() =
+        runTest(testDispatcher) {
+            // Both latches ride in the same handle without disturbing each other.
+            val repository = FakeProgressRepository()
+            val handle =
+                savedStateHandleFor(
+                    levelId = ClassicLevelIds.ENGLISH33,
+                    stars = THREE_STARS,
+                    pegsRemaining = SOLVED_PEGS_REMAINING,
+                )
+
+            val first = ResultsViewModel(handle, repository)
+            runCurrent()
+            val second = ResultsViewModel(handle, repository)
+            runCurrent()
+
+            assertThat(first.uiState.value.playCelebration).isTrue()
+            assertThat(second.uiState.value.playCelebration).isFalse()
+            assertThat(repository.recordCalls).hasSize(1)
+        }
+
     private fun viewModelFor(
         levelId: String,
         stars: Int,

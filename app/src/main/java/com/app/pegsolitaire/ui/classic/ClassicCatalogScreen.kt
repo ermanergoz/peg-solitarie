@@ -33,6 +33,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.audio.SoundCue
+import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.ui.theme.clayEntrance
 import com.app.pegsolitaire.ui.theme.clayShadow
@@ -134,8 +136,11 @@ private fun BoardCard(
     onSelect: (String) -> Unit,
 ) {
     val descriptor: ClassicLevelDescriptor = board.descriptor
+    // SOUND-04 / D-09 / D-11: picking a board is a navigational CTA, so the card clicks — while
+    // CatalogTopBar's back icon above stays silent. The cue is attached per callsite and NEVER to
+    // Modifier.claySquish(), which both controls share (exclusion list in the withClickSound KDoc).
     Card(
-        onClick = { onSelect(descriptor.id) },
+        onClick = withClickSound(SoundCue.ButtonForward) { onSelect(descriptor.id) },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         modifier =
