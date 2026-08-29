@@ -2,7 +2,14 @@
 
 Out-of-scope discoveries logged during execution. Not fixed in the plan that found them.
 
-## Pitfall 7 stale-floor surfaces #2 and #3 (found during 08-01, Task 2)
+## Pitfall 7 stale-floor surfaces #2 and #3 (found during 08-01, Task 2) — RESOLVED in 08-06
+
+**Status: closed.** Both surfaces were corrected in plan 08-06 as predicted — `AuthoringSolver.kt`
+in commit `a0eb7f0` and `SolutionTest.kt` in commit `b3d7832`. `grep -rn 'several pegs' domain/src
+app/src` now returns nothing. Original entry retained below for provenance.
+
+---
+
 
 Two test-source KDocs still claim Diamond-41's fewest-pegs floor is "several pegs":
 
