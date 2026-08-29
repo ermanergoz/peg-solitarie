@@ -251,6 +251,23 @@ The APK is `app-release-unsigned.apk`, as expected. `app/build/` is gitignored, 
 throwaway ad IDs live only in the gitignored `local.properties`. Real signing and a signed
 track download remain Phase 14 (REL-02).
 
+**Cleanup verified**, as Phase 6 did: the throwaway IDs were removed from `local.properties`
+immediately after the packaging check, and a follow-up `:app:assembleRelease` fails again in 1 s
+naming all four keys —
+
+```
+Release build requires real ad/Play Games IDs.
+Missing: ADMOB_APP_ID
+Missing: ADMOB_REWARDED_AD_UNIT_ID
+Missing: ADMOB_INTERSTITIAL_AD_UNIT_ID
+Missing: PGS_PROJECT_ID
+BUILD FAILED in 1s
+```
+
+so the D-09 gate is re-armed and cannot be satisfied by leftovers from this measurement. The
+main checkout's `local.properties` was never modified (this work ran in a worktree; its copy
+holds `sdk.dir` only).
+
 ---
 
 *Phase: 08-assist-generator-quality-debt · Plan 08-11 Task 1 · 2026-08-30*
