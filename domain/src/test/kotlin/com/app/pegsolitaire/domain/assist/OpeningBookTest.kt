@@ -319,6 +319,96 @@ class OpeningBookTest {
             .isEqualTo(WIEGLEB_CANONICAL_AT_DEPTH_3)
     }
 
+    /**
+     * Threat T-08-30. ONE malformed line makes the whole board's book unavailable, so every
+     * lookup against it misses and falls through to the solver; no entry from the
+     * well-formed lines is served. The control payload — the same lines without the bad one
+     * — parses and holds its entries, which is what makes this "the bad line poisoned the
+     * book" rather than "the parser could not read anything".
+     *
+     * Driven through the `internal` parse seam rather than by corrupting a committed
+     * resource, so the shipped artifacts are never touched. The fail-closed behaviour is
+     * only trustworthy because it is tested here directly.
+     */
+    @Test
+    fun oneMalformedLineMakesTheWholeBoardsBookUnavailable() {
+        val payload = wellFormedPayload()
+        val control = OpeningBook.parseBook(payload.asSequence())
+
+        assertWithMessage("the control payload must parse").that(control).isNotNull()
+        assertWithMessage("the control payload must hold its entries").that(control).hasSize(PAYLOAD_ENTRIES)
+        MALFORMED_LINES.forEach { (reason, line) ->
+            assertWithMessage("a payload holding a line that is %s must be unavailable", reason)
+                .that(OpeningBook.parseBook((payload + line).asSequence()))
+                .isNull()
+        }
+        assertWithMessage("a payload of nothing but a header is an AVAILABLE but empty book")
+            .that(OpeningBook.parseBook(sequenceOf(payload.first(), "")))
+            .isEmpty()
+    }
+
+    /**
+     * A resource cut mid-token — the shape a truncated write or a partial read produces —
+     * is the same unavailable outcome, not a book missing its last entry.
+     */
+    @Test
+    fun aTruncatedBookPayloadIsUnavailableEntirely() {
+        val payload = wellFormedPayload()
+        val truncated = payload.dropLast(1) + payload.last().dropLast(1)
+
+        assertWithMessage("a payload ending in '%s' must be unavailable", truncated.last())
+            .that(OpeningBook.parseBook(truncated.asSequence()))
+            .isNull()
+    }
+
+    /**
+     * An absent resource — the shape R8 resource shrinking would produce (assumption A5) —
+     * reads as no book at all. It must not throw: this runs on the hint path inside a
+     * shipped APK, where the correct degradation is a miss that falls through to the solver.
+     */
+    @Test
+    fun aMissingResourceReadsAsNoBookRatherThanThrowing() {
+        val read = runCatching { OpeningBook.readBook(ABSENT_RESOURCE_PATH) }
+
+        assertWithMessage("reading '%s' must return rather than throw", ABSENT_RESOURCE_PATH)
+            .that(read.isSuccess)
+            .isTrue()
+        assertWithMessage("an absent resource is no book").that(read.getOrNull()).isNull()
+    }
+
+    /**
+     * The runtime restatement of plan 08-08's `grep -c ' -$'` criterion, and what makes the
+     * DEBT-01 guarantee observable from PRODUCTION code rather than from a text file.
+     *
+     * Across the whole covered frontier of all five shipped boards, every position answers
+     * with the proven move the book holds, EXCEPT: English-33's four proven-dead masks,
+     * which answer authoritatively, and the masks inside a gap board's declared gap, which
+     * MISS. The three outcomes are therefore exercised by construction here rather than
+     * assumed — including the one that must never be inferred, [BookAnswer.NoWinningMove].
+     */
+    @Test
+    fun everyCoveredFrontierPositionAnswersExactlyAsItsBookEntryDoes() {
+        SolutionFixtures.ALL.forEach { fixture ->
+            val book = bookOf(fixture)
+            var authoritative = 0
+            frontierOf(fixture, committedOf(fixture).depth).forEach { mask ->
+                val answer = OpeningBook.lookup(Board(spec = fixture.spec, pegs = mask))
+                val entry = book[mask]
+                val expected =
+                    when {
+                        mask !in book -> null
+                        entry == null -> BookAnswer.NoWinningMove
+                        else -> BookAnswer.Hit(entry)
+                    }
+                if (expected == BookAnswer.NoWinningMove) authoritative++
+                assertWithMessage("'%s' position %s", fixture.name, hexOf(mask)).that(answer).isEqualTo(expected)
+            }
+            assertWithMessage("'%s' authoritative answers must match its header", fixture.name)
+                .that(authoritative)
+                .isEqualTo(declaredOf(fixture).provenDead)
+        }
+    }
+
     private fun fixtureNamed(name: String): SolutionFixtures.Fixture =
         SolutionFixtures.ALL.first { fixture -> fixture.name == name }
 
@@ -432,6 +522,16 @@ class OpeningBookTest {
         key: String,
     ): Int = requireNotNull(Regex(Regex.escape(key) + KEYED_VALUE_TAIL).find(line)).groupValues[1].toInt()
 
+    /**
+     * A short, genuinely well-formed payload lifted from the committed English-33 book: its
+     * header comment plus [PAYLOAD_ENTRIES] real entry lines. Real lines rather than
+     * hand-written ones, so a payload the parser rejects can only mean the parser is wrong.
+     */
+    private fun wellFormedPayload(): List<String> {
+        val lines = resourceTextOf(fixtureNamed(ENGLISH_33)).lines().filter { it.isNotBlank() }
+        return listOf(lines.first()) + lines.filterNot { it.startsWith(COMMENT_PREFIX) }.take(PAYLOAD_ENTRIES)
+    }
+
     private fun hexOf(mask: Long): String = mask.toHex()
 
     /** Masks in hex for a failure message, truncated so a 440-mask gap stays readable. */
@@ -477,6 +577,28 @@ class OpeningBookTest {
 
         /** Plan 08-08's committed-size bound. The five books measure 47 619 bytes. */
         const val MAX_BOOK_BYTES = 250_000
+
+        /** Entry lines lifted into the synthetic payloads — enough to prove the good ones parse. */
+        const val PAYLOAD_ENTRIES = 8
+
+        const val COMMENT_PREFIX = "#"
+
+        /** A slug no board carries, so the resource provably does not exist. */
+        const val ABSENT_RESOURCE_PATH = "/golden/book/no-such-board-k9.txt"
+
+        /**
+         * Lines the shared decoder must reject, each structurally incapable of being a
+         * legal entry — a doubled separator, a non-hex mask, a missing coordinate group,
+         * and a coordinate that is not a number.
+         */
+        val MALFORMED_LINES =
+            listOf(
+                "a doubled separator" to "7040229  0,2-1,2-2,2",
+                "a non-hex mask" to "70402zz 0,2-1,2-2,2",
+                "two coordinate groups" to "7040229 0,2-1,2",
+                "a non-numeric coordinate" to "7040229 0,x-1,2-2,2",
+                "an empty line's worth of tokens" to "7040229",
+            )
 
         const val ENTRIES_KEY = "entries"
         const val PROVEN_DEAD_KEY = "proven-dead"
