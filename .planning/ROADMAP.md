@@ -139,8 +139,8 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 08-04-PLAN.md — `SolverTables` precomputed bitboard tables + target-aware `Pagoda` (DEBT-01/02, Pitfall 1)
-- [ ] 08-06-PLAN.md — **A1 gate:** beam-search authoring, committed Diamond-41 floor line replayed to 2 pegs, exhaustive GF(4) optimality proof (DEBT-02, D-05)
+- [x] 08-04-PLAN.md — `SolverTables` precomputed bitboard tables + target-aware `Pagoda` (DEBT-01/02, Pitfall 1)
+- [x] 08-06-PLAN.md — **A1 gate:** beam-search authoring, committed Diamond-41 floor line replayed to 2 pegs, exhaustive GF(4) optimality proof (DEBT-02, D-05)
 
 **Wave 3** *(blocked on Wave 2)*
 
@@ -280,7 +280,7 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 5. Persistence, Resume & Settings | v1.0 | 7/7 | Complete | 2026-08-25 |
 | 6. Platform Foundation & Build Hardening | v1.1 | 10/10 | Complete   | 2026-08-27 |
 | 7. Sound | v1.1 | 6/6 | Complete   | 2026-08-28 |
-| 8. Assist & Generator Quality Debt | v1.1 | 3/11 | In Progress|  |
+| 8. Assist & Generator Quality Debt | v1.1 | 5/11 | In Progress|  |
 | 9. Consent & Rewarded Ads | v1.1 | 0/TBD | Not started | - |
 | 10. Interstitials | v1.1 | 0/TBD | Not started | - |
 | 11. Play Games Session | v1.1 | 0/TBD | Not started | - |
