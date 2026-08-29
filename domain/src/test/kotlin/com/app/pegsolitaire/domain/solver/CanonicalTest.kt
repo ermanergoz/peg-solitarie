@@ -103,6 +103,8 @@ class CanonicalTest {
 
     @Test
     fun everyGoldenSolutionPrefixCanonicalisesWithAPreservedPegCount() {
+        // ALL, deliberately: diamond41's 41-hole footprint is the Pitfall 4 case, where
+        // a hardcoded five-chunk canonicaliser drops bit 40 and quietly loses a peg.
         SolutionFixtures.ALL.forEach { fixture ->
             val line = RecordedSolutions.load(fixture.name)
             val start = SolverSamples.startBoard(fixture)

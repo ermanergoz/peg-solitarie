@@ -54,7 +54,10 @@ class SolverBudgetTest {
             maxObservedNodes = maxOf(maxObservedNodes, Solver.lastVisited)
         }
 
-        SolutionFixtures.ALL.forEach { fixture ->
+        // ONE_PEG, not ALL: this asserts a solvable position returns a MOVE, and the
+        // Solver's goal is still a single peg — Diamond-41 has none to return until
+        // plan 08-05 generalises the goal test.
+        SolutionFixtures.ONE_PEG.forEach { fixture ->
             val line = RecordedSolutions.load(fixture.name)
             val start = SolverSamples.startBoard(fixture)
             // Every board's cheap endgame tail must decide fast — that is where a finishing

@@ -22,7 +22,10 @@ import org.junit.Test
 class SolverTest {
     @Test
     fun returnsALegalWinPreservingMoveFromASolvableMidGameState() {
-        SolutionFixtures.ALL.forEach { fixture ->
+        // ONE_PEG, not ALL: `firstWinningMove` searches for a ONE-peg line, so
+        // Diamond-41 (floor two) has no winning move to find. Plan 08-05 generalises
+        // the goal test to `spec.minimumPegs`, at which point the diamond joins in.
+        SolutionFixtures.ONE_PEG.forEach { fixture ->
             val line = RecordedSolutions.load(fixture.name)
             val start = SolverSamples.startBoard(fixture)
             // Replay a mid-length prefix to reach a genuinely solvable mid-game board.
