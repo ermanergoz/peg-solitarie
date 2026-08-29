@@ -668,6 +668,13 @@ class GameViewModel
                             pegsCleared = startingPegCount - pegsRemaining,
                             elapsedSeconds = _uiState.value.elapsedSeconds,
                             levelMultiplier = levelMultiplier,
+                            // D-03/D-04: stars are banded on the FINISHING BOARD's own
+                            // perfect finish, taken from the spec that produced this
+                            // result — not from the level id. A level-id lookup would be
+                            // silently wrong for a resumed game, whose spec is rebuilt
+                            // structurally from a persisted blob rather than fetched from
+                            // the catalog. Diamond-41's target is a proven 2.
+                            minimumPegs = nextBoard.spec.minimumPegs,
                         ),
                     )
                 }
@@ -920,20 +927,31 @@ class GameViewModel
 
         /**
          * The lifecycle status of [board]: [GameStatus.Playing] while a legal move
-         * remains, else [GameStatus.Won] when a single peg is left, otherwise
-         * [GameStatus.Stuck] (GAME-02).
+         * remains, else [GameStatus.Won] when the board has reached its own perfect
+         * finish, otherwise [GameStatus.Stuck] (GAME-02).
+         *
+         * The win test is the board's `BoardSpec.minimumPegs`, not a hardcoded one peg
+         * (D-03/D-04, DEBT-02). For the four Classic cross boards and every generated
+         * Challenge footprint that target IS one, so this is byte-identical to the
+         * previous behaviour. Diamond-41 is the board it exists for: one peg is proven
+         * UNREACHABLE there (the GF(4) colour invariant excludes all 41 single-peg
+         * positions), and two is proven reachable, so a two-peg dead end is the best
+         * result the board admits — a win, not a failure. Scoring it as Stuck would
+         * hide the perfect finish behind the rescue banner and never award the 3 stars
+         * the re-anchored bands compute.
+         *
+         * The comparison is `<=` rather than `==` so the status can never disagree with
+         * [com.app.pegsolitaire.domain.scoring.ScoreCalculator.stars], whose 3-star band
+         * is also `<= minimumPegs`.
          */
         private fun statusFor(board: Board): GameStatus =
             when {
                 !rulesEngine.isGameOver(board) -> GameStatus.Playing
-                board.pegCount == SOLVED_PEG_COUNT -> GameStatus.Won
+                board.pegCount <= board.spec.minimumPegs -> GameStatus.Won
                 else -> GameStatus.Stuck
             }
 
         private companion object {
-            /** A board solved to a single remaining peg is a Won game (D-05 "Perfect"). */
-            const val SOLVED_PEG_COUNT = 1
-
             /** The visible timer ticks once per second (D-04). */
             const val TIMER_TICK_MILLIS = 1_000L
 
