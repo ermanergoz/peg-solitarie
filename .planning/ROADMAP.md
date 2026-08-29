@@ -153,7 +153,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4)*
 
-- [ ] 08-09-PLAN.md — `OpeningBook` classpath lookup with miss / authoritative / hit separation, fail-closed parse, integrity gate (DEBT-01/02)
+- [x] 08-09-PLAN.md — `OpeningBook` classpath lookup with miss / authoritative / hit separation, fail-closed parse, integrity gate (DEBT-01/02)
 
 **Wave 6** *(blocked on Wave 5)*
 
@@ -280,7 +280,7 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 5. Persistence, Resume & Settings | v1.0 | 7/7 | Complete | 2026-08-25 |
 | 6. Platform Foundation & Build Hardening | v1.1 | 10/10 | Complete   | 2026-08-27 |
 | 7. Sound | v1.1 | 6/6 | Complete   | 2026-08-28 |
-| 8. Assist & Generator Quality Debt | v1.1 | 8/11 | In Progress|  |
+| 8. Assist & Generator Quality Debt | v1.1 | 9/11 | In Progress|  |
 | 9. Consent & Rewarded Ads | v1.1 | 0/TBD | Not started | - |
 | 10. Interstitials | v1.1 | 0/TBD | Not started | - |
 | 11. Play Games Session | v1.1 | 0/TBD | Not started | - |
