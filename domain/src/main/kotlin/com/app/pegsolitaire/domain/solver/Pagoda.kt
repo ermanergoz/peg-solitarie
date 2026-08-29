@@ -73,14 +73,36 @@ object Pagoda {
      * Evaluated with six popcounts over the per-footprint colour-class masks
      * precomputed in [SolverTables] — never by iterating the in-play cells.
      */
-    fun mayBeSolvable(board: Board): Boolean {
-        val tables = SolverTables.forSpec(board.spec)
-        val target = board.spec.minimumPegs
+    fun mayBeSolvable(board: Board): Boolean =
+        mayBeSolvable(
+            pegs = board.pegs,
+            pegCount = board.pegCount,
+            target = board.spec.minimumPegs,
+            tables = SolverTables.forSpec(board.spec),
+        )
+
+    /**
+     * The same condition evaluated against a `pegs` mask and ALREADY-RESOLVED [tables] —
+     * the form the bitboard search calls at every node.
+     *
+     * The search holds its footprint's [SolverTables] for the whole attempt, so routing
+     * through the [Board] overload would pay a `List<Position>`-keyed cache lookup and its
+     * lock per node, which is exactly the per-node cost the tables exist to remove. This
+     * is an entry point, not a second implementation: both overloads run the identical
+     * [terminalParityFitsTarget] pair, so a change to the invariant cannot apply to one
+     * caller and not the other.
+     */
+    internal fun mayBeSolvable(
+        pegs: Long,
+        pegCount: Int,
+        target: Int,
+        tables: SolverTables,
+    ): Boolean {
         // Each move flips all three colour parities; reaching the target takes
         // pegCount - target moves, so an odd number of moves inverts the whole vector.
-        val movesFlipParity = ((board.pegCount - target) and 1) == 1
-        return terminalParityFitsTarget(board.pegs, tables.classPlus, target, movesFlipParity) &&
-            terminalParityFitsTarget(board.pegs, tables.classMinus, target, movesFlipParity)
+        val movesFlipParity = ((pegCount - target) and 1) == 1
+        return terminalParityFitsTarget(pegs, tables.classPlus, target, movesFlipParity) &&
+            terminalParityFitsTarget(pegs, tables.classMinus, target, movesFlipParity)
     }
 
     /**

@@ -4,58 +4,95 @@ import com.app.pegsolitaire.domain.generator.BoardCanonical
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Move
-import com.app.pegsolitaire.domain.model.Position
-import com.app.pegsolitaire.domain.rules.RulesEngine
 import kotlin.random.Random
-
-/** Lone peg count that marks a fully-solved board (D-02: any final peg counts). */
-private const val SOLVED_PEG_COUNT = 1
 
 /**
  * The production, pure-`:domain` winning-move engine (ASST-01 / ASST-03).
  *
  * [firstWinningMove] returns a legal move that begins a line reducing an arbitrary
- * mid-game [Board] to a single peg, or `null` when the position is genuinely
- * unsolvable (or the search is budget-missed / cancelled — folded to the same `null`
- * per D-04). It powers the Challenge deviation hint and every Classic hint, and
- * answers the "no winning move" state.
+ * mid-game [Board] to its board's [BoardSpec.minimumPegs] target, or `null` when the
+ * position is genuinely unsolvable (or the search is budget-missed / cancelled — folded
+ * to the same `null` per D-04). It powers the Challenge deviation hint and every Classic
+ * hint, and answers the "no winning move" state.
  *
- * It is a hardened port of the test-only authoring solver: a memoised, symmetry-
- * canonical depth-first search over [RulesEngine.legalMoves]/[RulesEngine.applyMove]
- * (the same move authority as gameplay, so a hint is always a legal, reachable move —
- * threat T-04-CT), guarded by a [Pagoda] O(cells) fast-reject, a per-attempt node
- * budget ([SolverBudget.maxNodes]) that bounds worst-case time AND memory, and a
- * cooperative `shouldCancel` poll (no coroutine dependency crosses into `:domain`).
+ * The search is a memoised, symmetry-canonical depth-first search whose move authority
+ * is [SolverTables] — precomputed FROM
+ * [RulesEngine][com.app.pegsolitaire.domain.rules.RulesEngine] and proven set-equal to
+ * it by `SolverTablesTest`, so a hint is still always a legal, reachable move
+ * (threat T-04-CT). It is guarded by a [Pagoda] colour-parity fast-reject, a per-attempt
+ * node cap ([SolverBudget.perAttemptMaxNodes]), a cumulative ceiling
+ * ([SolverBudget.maxNodes]) that bounds worst-case time AND memory, and a cooperative
+ * `shouldCancel` poll (no coroutine dependency crosses into `:domain`).
  *
- * **Deterministic restarts (D-04 completeness).** A SINGLE fixed move ordering can be
- * "unlucky" on the largest footprint (Wiegleb-45) — it dives into a huge live-but-
- * fruitless subtree and blows the budget before surfacing a solution (measured: a
- * solvable Wiegleb prefix exceeded 40M nodes under a single deterministic order). So,
- * like the proven authoring solver, the search adds a small jitter to the inward move
- * ordering and RESTARTS with a fresh [Random] seed (up to [MAX_ATTEMPTS]) until a
- * solution surfaces — but the seeds are FIXED, so the whole engine stays deterministic
- * (same board ⇒ same move) and pure (`kotlin.random.Random` is Android-free). A single
- * lucky ordering surfaces a solution in far fewer nodes than the pathological order.
+ * **The goal is per-board, not a hardcoded one peg.** `pegCount <= spec.minimumPegs`
+ * is what lets Diamond-41 (proven floor two, DEBT-02) get a truthful hint at all. The
+ * `<=` form makes a forged sub-target dangerous — a `minimumPegs <= 0` would make the
+ * goal test trivially true and every hint permanently `null` — so two guards are
+ * load-bearing here and must not be removed: [BoardSpec] validates
+ * `minimumPegs in 1..size` at construction, and `SnapshotMapper` fail-closes a forged
+ * resume blob before a spec is ever constructed from it (threat T-08-13).
+ *
+ * **Allocation-free hot loop.** A node is three mask operations and no allocation:
+ * `pegs and needMask[m] == needMask[m] && pegs and toMask[m] == 0L`, then
+ * `pegs xor xorMask[m]`. The previous loop allocated a `List<Move>` of data-class
+ * objects, a `sortedByDescending` with a fresh `Random.nextDouble()` per move, and a
+ * `Board` copy per move — measured at ~0.27M nodes/s against ~15M for the tuned
+ * reference, a ~55x gap that was pure allocation rather than algorithm.
+ *
+ * **Deterministic restarts (D-04 completeness), and the policy defect this fixes.** A
+ * SINGLE move ordering can be "unlucky": it dives into a huge live-but-fruitless subtree
+ * and burns the whole deadline before surfacing a solution. Peg-solitaire DFS runtime is
+ * heavy-tailed, and the textbook response is many short restarts. The previous code
+ * handed EVERY attempt the full [SolverBudget.maxNodes], so in production the 1.5s
+ * deadline always fired inside attempt 0 and [MAX_ATTEMPTS] was unreachable dead code —
+ * exactly one unlucky dive, then "no winning move". Each attempt now carries
+ * [SolverBudget.perAttemptMaxNodes] instead, so restarts genuinely happen inside the
+ * unchanged deadline (measured: European-37's start 172ms as one unbounded attempt
+ * versus 33ms across two capped ones). The seeds are FIXED, so the whole engine stays
+ * deterministic (same board ⇒ same move) and pure (`kotlin.random.Random` is
+ * Android-free).
  *
  * **Proving `null` is preserved.** An attempt that fully exhausts the reachable forward
- * subtree WITHOUT hitting the node cap proves no solution exists (jitter reorders but
- * never changes reachability), so the search stops and returns `null` immediately —
- * restarts are only spent when an attempt is CUT SHORT by the budget cap.
+ * subtree WITHOUT hitting its cap proves no solution exists (reordering moves changes
+ * the visit order but never reachability), so the search stops and returns `null`
+ * immediately — restarts are only spent when an attempt is CUT SHORT by its cap.
+ *
+ * **What this rewrite does NOT fix.** Wiegleb-45's early positions remain outside the
+ * 1.5s deadline by roughly four orders of magnitude: RESEARCH measured 0 of 76 of its
+ * depth-≤4 positions resolving in 1.5s even at 15M nodes/s. No amount of solver
+ * strengthening closes that. The committed opening book (plans 08-08 through 08-10) is
+ * what makes those hints truthful, and it is load-bearing rather than an optimisation.
  */
 object Solver {
-    /** Fixed base seed for the per-attempt jitter — keeps the deterministic restarts reproducible. */
+    /** Fixed base seed for the per-attempt move ordering — keeps the restarts reproducible. */
     private const val ATTEMPT_SEED_BASE = 0x5150_2602L
 
-    /** Deterministic restart budget: distinct jitter seeds tried before giving up (→ `null`, D-04). */
+    /** Deterministic restart budget: distinct orderings tried before giving up (→ `null`, D-04). */
     private const val MAX_ATTEMPTS = 40
+
+    /**
+     * Factor by which each restart's node cap grows over the previous attempt's.
+     *
+     * A FLAT cap is not a usable restart schedule, and this is measured rather than
+     * theoretical: Wiegleb-45's mid-line position needs a single 830k-position dive,
+     * which it completes in ~269ms — but under a flat 200k cap none of the 40 orderings
+     * can reach it, so the solver burns ~2.1s and answers "no winning move" for a
+     * position it can actually decide well inside the deadline. That is the classic
+     * heavy-tail result (Luby/Sinclair/Zuckerman): a restart strategy whose run lengths
+     * are bounded can never solve instances whose solution lies past the bound. Doubling
+     * keeps the cheap early restarts that fix European-37 and Asymmetric-39 while still
+     * reaching the deep dives, and [SolverBudget.maxNodes] remains the cumulative
+     * ceiling that terminates the escalation.
+     */
+    private const val ATTEMPT_CAP_GROWTH = 2L
 
     /** Distinct (symmetry-canonical) positions explored by the deciding search attempt (diagnostics). */
     var lastVisited: Long = 0
         private set
 
     /**
-     * The first move of a winning line from [board], or `null` if [board] is already
-     * solved, provably unsolvable (pagoda / fully exhausted), or every attempt is
+     * The first move of a winning line from [board], or `null` if [board] is already at
+     * its target, provably unsolvable (pagoda / fully exhausted), or every attempt is
      * budget-missed / cancelled.
      *
      * @param shouldCancel polled cooperatively (~every 4096 nodes); returning `true`
@@ -67,7 +104,7 @@ object Solver {
         budget: SolverBudget,
         shouldCancel: () -> Boolean = { false },
     ): Move? {
-        if (board.pegCount == SOLVED_PEG_COUNT || !Pagoda.mayBeSolvable(board)) {
+        if (board.pegCount <= board.spec.minimumPegs || !Pagoda.mayBeSolvable(board)) {
             lastVisited = 0
             return null
         }
@@ -75,57 +112,91 @@ object Solver {
     }
 
     /**
-     * Runs up to [MAX_ATTEMPTS] jittered, deterministically-seeded searches, returning
-     * the first winning move found. Stops early when an attempt is cancelled (caller
-     * deadline) or fully exhausts its subtree within budget (provably unsolvable).
+     * Runs up to [MAX_ATTEMPTS] deterministically-seeded searches, the first capped at
+     * [SolverBudget.perAttemptMaxNodes] and each subsequent one at
+     * [ATTEMPT_CAP_GROWTH] times its predecessor, returning the first winning move found.
+     *
+     * Stops when a move is found, the caller cancelled, unsolvability is proven (an
+     * attempt exhausted its subtree without hitting its cap), [MAX_ATTEMPTS] is spent,
+     * or the CUMULATIVE node total reaches [SolverBudget.maxNodes] — the safety ceiling
+     * that keeps the worst case bounded no matter how far the schedule escalates.
      */
     private fun searchWithRestarts(
         board: Board,
         budget: SolverBudget,
         shouldCancel: () -> Boolean,
     ): Move? {
+        val tables = SolverTables.forSpec(board.spec)
         var result: Move? = null
         var attempt = 0
-        while (attempt < MAX_ATTEMPTS) {
-            val search = WinningLineSearch(board.spec, budget, shouldCancel, ATTEMPT_SEED_BASE + attempt)
+        var totalVisited = 0L
+        var attemptCap = budget.perAttemptMaxNodes
+        while (attempt < MAX_ATTEMPTS && totalVisited < budget.maxNodes) {
+            val cap = minOf(attemptCap, budget.maxNodes - totalVisited)
+            val search = WinningLineSearch(board.spec, tables, cap, shouldCancel, ATTEMPT_SEED_BASE + attempt)
             val line = search.solveFrom(board)
             lastVisited = search.visited
+            totalVisited += search.visited
             result = line?.firstOrNull()
             val provenUnsolvable = line == null && !search.cancelled && !search.hitBudget
             if (result != null || search.cancelled || provenUnsolvable) break
+            attemptCap = escalate(attemptCap, budget.maxNodes)
             attempt++
         }
         return result
     }
+
+    /** The next attempt's cap: [current] grown by [ATTEMPT_CAP_GROWTH], never past [ceiling]. */
+    private fun escalate(
+        current: Long,
+        ceiling: Long,
+    ): Long = if (current >= ceiling / ATTEMPT_CAP_GROWTH) ceiling else current * ATTEMPT_CAP_GROWTH
 }
 
 /**
- * A single memoised, symmetry-canonical DFS over one board footprint with a jittered
- * inward move ordering — one instance per attempt. Holds the search's mutable state
- * (the visited memo, node counter, cancel/budget latches) and the footprint-derived
- * immutables (the [BoardCanonical] symmetry tables, the centroid) so the recursion
- * stays a small method.
+ * A single memoised, symmetry-canonical DFS over one board footprint's [SolverTables] —
+ * one instance per restart attempt. Holds the search's mutable state (the visited memo,
+ * node counter, cancel/budget latches, the played-move path buffer) and this attempt's
+ * move ordering, so the recursion itself stays a small allocation-free method.
+ *
+ * The recursion carries a `Long` peg mask and its peg count rather than a [Board]: a
+ * child position is `pegs xor tables.xorMask[m]`, which allocates nothing, where
+ * `RulesEngine.applyMove` copied a data class per move. The winning path is held as move
+ * INDICES in a single [IntArray] allocated once per attempt, and is converted back to
+ * `List<Move>` only when a solution is actually found — never inside the loop.
  *
  * Memo keys come from [BoardCanonical.canonicalFast]: symmetric positions collapse
  * onto one key, shrinking the explored space by up to the symmetry order (8x for the
- * fully D4-symmetric 9x9 Wiegleb board). Sound for first-solution search — symmetric
- * positions have symmetric solution sets, so if one is a dead end so are its images.
+ * fully D4-symmetric 9x9 Wiegleb board, 2x for Asymmetric-39). Sound for first-solution
+ * search — symmetric positions have symmetric solution sets, so if one is a dead end so
+ * are its images.
  *
  * @property cancelled set once [shouldCancel] returned `true` — the caller's deadline.
- * @property hitBudget set once the node cap was reached — the attempt was cut short,
- *   so a `null` result is inconclusive (retry a different seed) rather than a proof.
+ * @property hitBudget set once [nodeCap] was reached — the attempt was cut short, so a
+ *   `null` result is inconclusive (retry a different seed at a larger cap) rather than
+ *   a proof.
  */
 private class WinningLineSearch(
     spec: BoardSpec,
-    private val budget: SolverBudget,
+    private val tables: SolverTables,
+    private val nodeCap: Long,
     private val shouldCancel: () -> Boolean,
     seed: Long,
 ) {
-    private val canonicalTables: BoardCanonical.ChunkTables = BoardCanonical.chunkTables(spec)
-    private val center: DoubleArray = centroidOf(spec)
+    /** The board's own perfect-finish peg count — the per-board goal, never a hardcoded 1. */
+    private val target: Int = spec.minimumPegs
+
+    /**
+     * The played-move indices, one slot per ply. A forward move removes exactly one peg,
+     * so no line from a `spec.size`-cell footprint can be longer than `spec.size`.
+     * Allocated once per ATTEMPT, not per node.
+     */
+    private val path = IntArray(spec.size)
+
+    private val order: IntArray = reorderedForThisAttempt(Random(seed))
     private val seen = VisitedSet()
-    private val random = Random(seed)
     private var nodeCounter = 0L
+    private var solutionDepth = 0
 
     var cancelled = false
         private set
@@ -136,73 +207,125 @@ private class WinningLineSearch(
     val visited: Long get() = seen.size.toLong()
 
     /**
-     * The winning line from [board] (its first move begins a solve to one peg), or
-     * `null` if the forward subtree is exhausted within budget, or the attempt is
-     * budget-missed / cancelled. Goal check runs BEFORE the memo insert.
+     * The winning line from [board] (its first move begins a solve to the board's
+     * target), or `null` if the forward subtree is exhausted within the attempt's cap,
+     * or the attempt is budget-missed / cancelled. Goal check runs BEFORE the memo
+     * insert.
      */
-    fun solveFrom(board: Board): List<Move>? = search(board, ArrayDeque())
-
-    private fun search(
-        current: Board,
-        path: ArrayDeque<Move>,
-    ): List<Move>? {
-        if (current.pegCount == SOLVED_PEG_COUNT) return path.toList()
-        var solution: List<Move>? = null
-        val withinBudget = seen.size < budget.maxNodes
-        if (!withinBudget) hitBudget = true
-        // Pagoda prune: skip positions whose colour-parity already forbids one peg — a
-        // sound necessary-condition cut that keeps the exhaustive worst case tractable.
-        val explorable = !cancelled && withinBudget && Pagoda.mayBeSolvable(current)
-        if (explorable && seen.add(BoardCanonical.canonicalFast(current.pegs, canonicalTables))) {
-            val ordered =
-                RulesEngine
-                    .legalMoves(current)
-                    .sortedByDescending { inwardness(it) + random.nextDouble() * INWARD_JITTER }
-            for (move in ordered) {
-                if ((nodeCounter++ and SolverBudget.CANCEL_MASK) == 0L && shouldCancel()) {
-                    cancelled = true
-                }
-                if (!cancelled) {
-                    path.addLast(move)
-                    solution = search(RulesEngine.applyMove(current, move), path)
-                    path.removeLast()
-                }
-                if (cancelled || solution != null) break
-            }
-        }
-        return solution
+    fun solveFrom(board: Board): List<Move>? {
+        val solved = search(board.pegs, board.pegCount, depth = 0)
+        return if (solved) List(solutionDepth) { ply -> tables.moveAt(path[ply]) } else null
     }
 
-    /** The mean `(row, col)` of the footprint — the attractor the inward heuristic collapses toward. */
-    private fun centroidOf(spec: BoardSpec): DoubleArray =
-        doubleArrayOf(
-            spec.inPlay.sumOf { it.row }.toDouble() / spec.size,
-            spec.inPlay.sumOf { it.col }.toDouble() / spec.size,
-        )
+    private fun search(
+        pegs: Long,
+        pegCount: Int,
+        depth: Int,
+    ): Boolean {
+        if (pegCount <= target) {
+            solutionDepth = depth
+            return true
+        }
+        var solved = false
+        val withinBudget = seen.size < nodeCap
+        if (!withinBudget) hitBudget = true
+        // Pagoda prune: skip positions whose colour parity already forbids the board's
+        // target — a sound necessary-condition cut, evaluated here against the tables
+        // this attempt already holds so no per-node cache lookup or lock is paid.
+        val explorable = !cancelled && withinBudget && Pagoda.mayBeSolvable(pegs, pegCount, target, tables)
+        if (explorable && seen.add(BoardCanonical.canonicalFast(pegs, tables.chunkTables))) {
+            solved = expand(pegs, pegCount, depth)
+        }
+        return solved
+    }
 
     /**
-     * Inwardness of a [move]: how much closer to the centroid the peg lands than it
-     * started. Preferring inward jumps collapses the arms toward the centre — the
-     * textbook way to solve cross boards — so a solution surfaces early. A small
-     * seeded jitter ([INWARD_JITTER]) reshuffles roughly-equal moves so each restart
-     * explores a genuinely different near-inward ordering.
+     * Tries every legal move of [pegs] in this attempt's ordering. A move is legal when
+     * its two source cells hold pegs and its destination is empty — three mask tests and
+     * one xor, with no [Board] or `List<Move>` allocated anywhere in the loop.
      */
-    private fun inwardness(move: Move): Double = distanceSquared(move.from) - distanceSquared(move.to)
+    private fun expand(
+        pegs: Long,
+        pegCount: Int,
+        depth: Int,
+    ): Boolean {
+        var solved = false
+        var index = 0
+        while (index < order.size && !solved && !cancelled) {
+            val move = order[index]
+            index++
+            if (isLegal(pegs, move)) {
+                pollCancellation()
+                if (!cancelled) {
+                    path[depth] = move
+                    solved = search(pegs xor tables.xorMask[move], pegCount - 1, depth + 1)
+                }
+            }
+        }
+        return solved
+    }
 
-    private fun distanceSquared(position: Position): Double {
-        val dr = position.row - center[0]
-        val dc = position.col - center[1]
-        return dr * dr + dc * dc
+    /** Whether move [move] applies to [pegs]: both source cells hold pegs, the destination is empty. */
+    private fun isLegal(
+        pegs: Long,
+        move: Int,
+    ): Boolean {
+        val need = tables.needMask[move]
+        return pegs and need == need && pegs and tables.toMask[move] == 0L
+    }
+
+    /**
+     * Polls the caller's cancel lambda once every `CANCEL_MASK + 1` expansions — frequent
+     * enough to stay responsive to the deadline, rare enough to cost nothing against the
+     * search itself.
+     */
+    private fun pollCancellation() {
+        if ((nodeCounter++ and SolverBudget.CANCEL_MASK) == 0L && shouldCancel()) {
+            cancelled = true
+        }
+    }
+
+    /**
+     * This attempt's move ordering: [SolverTables.moveOrder] (the inwardness-sorted base
+     * order, computed once per footprint) put through a seeded bounded-displacement
+     * shuffle.
+     *
+     * The property being preserved from the previous per-node
+     * `inwardness + random * INWARD_JITTER` sort is that **each restart explores a
+     * genuinely different near-inward ordering** — not merely a tie-break reshuffle —
+     * while keeping the strong inward bias that collapses a cross board's arms toward
+     * its centre and surfaces a solution early. Because the base order is already sorted
+     * by inwardness, a swap bounded to [ORDER_JITTER_WINDOW] positions can only exchange
+     * moves of near-equal inwardness, which is exactly what the jittered sort did. It is
+     * computed ONCE per attempt rather than once per node, which is where the old sort's
+     * allocation went.
+     *
+     * The [Random] is seeded from a FIXED per-attempt seed, so the whole engine stays
+     * deterministic: the same board under the same budget always yields the same move.
+     */
+    private fun reorderedForThisAttempt(random: Random): IntArray {
+        val reordered = tables.moveOrder.copyOf()
+        for (index in reordered.indices) {
+            val window = minOf(ORDER_JITTER_WINDOW, reordered.size - index)
+            val swapWith = index + random.nextInt(window)
+            val held = reordered[index]
+            reordered[index] = reordered[swapWith]
+            reordered[swapWith] = held
+        }
+        return reordered
     }
 
     private companion object {
         /**
-         * Jitter added to the inward score so each restart explores a genuinely
-         * different near-inward ordering (not just a tie-break shuffle). Sized to the
-         * inward score's scale — it reshuffles roughly-equal moves while keeping the
-         * strong inward bias that surfaces a cross-board solution early.
+         * How far a move may be displaced from its inwardness-sorted position by the
+         * per-attempt shuffle. Sized to reshuffle roughly-equal moves — the role
+         * `INWARD_JITTER = 4.0` played in the old per-node sort — while keeping the
+         * strong inward bias intact. This is a restart-DIVERSITY knob: widening it makes
+         * attempts differ more but weakens the heuristic; narrowing it makes every
+         * attempt look like the base order, which is the single-dive behaviour the
+         * restart loop exists to avoid.
          */
-        const val INWARD_JITTER = 4.0
+        const val ORDER_JITTER_WINDOW = 8
     }
 }
 
@@ -212,8 +335,10 @@ private class WinningLineSearch(
  * `HashSet<Long>` boxes every key (~72 bytes/entry), exhausting the heap after a few
  * million positions. This `long[]` with linear probing stores ~16 bytes/entry (incl.
  * the 0.5 load factor), so the search can memoise tens of millions of distinct
- * positions. A board's `pegs` mask is never 0 during a search (a solved board has one
- * peg and is returned before insertion), so 0 is a safe empty-slot sentinel.
+ * positions. An inserted key is never 0: the goal test returns before the insert
+ * whenever `pegCount <= target`, and `BoardSpec` requires `minimumPegs >= 1`, so every
+ * memoised position holds at least two pegs and its canonical mask is non-zero. 0 is
+ * therefore a safe empty-slot sentinel.
  */
 private class VisitedSet {
     private var slots = LongArray(INITIAL_CAPACITY)
