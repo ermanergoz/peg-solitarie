@@ -26,7 +26,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) · Audit:
 
 - [x] **Phase 6: Platform Foundation & Build Hardening** - Activity bridge, extended seams, R8, build-config IDs, purity/dependency gates, security advisories closed — zero player-visible change (completed 2026-08-27)
 - [x] **Phase 7: Sound** - The 12-event SFX set consuming the already-persisted `soundOn` flag (completed 2026-08-28; planned as 11 events, grown to 12 by post-phase quick task 260828-vrr, which split peg pick-up and put-down into separate cues)
-- [ ] **Phase 8: Assist & Generator Quality Debt** - Hints tell the truth on hard early positions; every Classic board's solvability is proven
+- [x] **Phase 8: Assist & Generator Quality Debt** - Hints tell the truth on hard early positions; every Classic board's solvability is proven (completed 2026-08-29)
 - [ ] **Phase 9: Consent & Rewarded Ads** - UMP consent, opt-in-first rewarded assists, fail-open on no-fill, clock frozen across every ad
 - [ ] **Phase 10: Interstitials** - Frequency-capped, win-only interstitials at the Results continue action
 - [ ] **Phase 11: Play Games Session** - Silent auto sign-in, full signed-out play, manual sign-in fallback
@@ -161,7 +161,7 @@ Plans:
 
 **Wave 7** *(blocked on Wave 6)*
 
-- [ ] 08-11-PLAN.md — Release-APK book retention proof, D-06 documentation trail, blocking on-device phase audit (DEBT-01/02/03)
+- [x] 08-11-PLAN.md — Release-APK book retention proof, D-06 documentation trail, blocking on-device phase audit (DEBT-01/02/03)
 
 **Notes**: DEBT-01 and DEBT-02 are one unit of work — the per-board target that makes the Diamond proof reachable is the same field the solver's goal test reads. Deliberately sequenced early so it absorbs the Play Console / AdMob propagation wait rather than being squeezed at release.
 
@@ -280,7 +280,7 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 5. Persistence, Resume & Settings | v1.0 | 7/7 | Complete | 2026-08-25 |
 | 6. Platform Foundation & Build Hardening | v1.1 | 10/10 | Complete   | 2026-08-27 |
 | 7. Sound | v1.1 | 6/6 | Complete   | 2026-08-28 |
-| 8. Assist & Generator Quality Debt | v1.1 | 10/11 | In Progress|  |
+| 8. Assist & Generator Quality Debt | v1.1 | 11/11 | Complete   | 2026-08-29 |
 | 9. Consent & Rewarded Ads | v1.1 | 0/TBD | Not started | - |
 | 10. Interstitials | v1.1 | 0/TBD | Not started | - |
 | 11. Play Games Session | v1.1 | 0/TBD | Not started | - |
