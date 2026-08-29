@@ -1,5 +1,6 @@
 package com.app.pegsolitaire.domain.golden.solutions
 
+import com.app.pegsolitaire.domain.TestFlags
 import org.junit.Test
 import java.io.File
 
@@ -26,13 +27,9 @@ class OpeningBookAuthoringTest {
         println(report.render())
     }
 
-    private fun isUpdateEnabled(): Boolean =
-        isFlagTrue(System.getenv(UPDATE_GOLDEN_FLAG)) ||
-            isFlagTrue(System.getProperty(UPDATE_GOLDEN_FLAG))
-
-    private fun isFlagTrue(value: String?): Boolean = value?.equals("true", ignoreCase = true) == true
+    private fun isUpdateEnabled(): Boolean = TestFlags.isEnabled(UPDATE_GOLDEN_FLAG)
 
     private companion object {
-        const val UPDATE_GOLDEN_FLAG = "UPDATE_GOLDEN"
+        const val UPDATE_GOLDEN_FLAG = TestFlags.UPDATE_GOLDEN
     }
 }
