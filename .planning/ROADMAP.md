@@ -124,8 +124,8 @@ Plans:
 **Requirements**: DEBT-01, DEBT-02, DEBT-03
 **Success Criteria** (what must be TRUE):
 
-  1. Player asking for a hint from a hard early position on European-37, Asymmetric-39, or Wiegleb-45 gets a real winning move within the solver deadline instead of folding to the "no winning move" rescue banner. (DEBT-01)
-  2. Diamond-41's shipped starting position is proven solvable by a committed recorded-solution fixture that replays clean through the unchanged `RulesEngine` in CI. (DEBT-02)
+  1. Player asking for a hint from a hard early position on European-37, Asymmetric-39, or Wiegleb-45 gets a real winning move within the unchanged 1.5s deadline instead of folding to the "no winning move" rescue banner — delivered by **a committed depth-4 opening book plus a bitboard solver with a working restart policy**, so the guarantee is a lookup over the first four moves and a budgeted search beyond it. The book's authoritative "no winning move" is a proof; a book miss falls through to the solver. (DEBT-01)
+  2. Diamond-41's shipped **centre** start is proven to reach its fewest-pegs floor of **2** — by a committed 38-move line replayed through the unchanged `RulesEngine` in CI — **and** proven unable to reach 1, by the GF(4) colour invariant checked exhaustively over all 41 single-peg positions. "Solvable to one peg" was never achievable for this board; the earlier wording of this criterion predated the centre-start reality and is corrected here per D-06. (DEBT-02)
   3. The Nyquist validation coverage gaps carried from v1.0 phases 3 and 4 are backfilled and green in `check`. (DEBT-03)
 
 **Plans**: 11 plans in 7 waves
