@@ -2,6 +2,8 @@ package com.app.pegsolitaire.data.resume
 
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.domain.model.Board
+import com.app.pegsolitaire.domain.model.BoardConstants
+import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.Move
 import com.app.pegsolitaire.domain.model.Position
@@ -208,7 +210,127 @@ class SnapshotMapperTest {
         assertThat(restored.moveHistory).isEqualTo(played.history)
     }
 
+    // --- Per-board target across resume (DEBT-02, Pitfall 3) -----------------
+
+    @Test
+    fun aDiamondSnapshotWritesItsProvenTargetIntoTheBlob() {
+        assertThat(snapshotOf(Boards.diamond41Initial).minimumPegs)
+            .isEqualTo(BoardConstants.DIAMOND41_FEWEST_PEGS_FLOOR)
+    }
+
+    @Test
+    fun aResumedDiamondGameKeepsItsTwoPegTarget() {
+        // Pitfall 3: `toBoardSpecOrNull` rebuilds the spec STRUCTURALLY rather than
+        // re-resolving it from the catalog, so without an explicit carry a resumed
+        // Diamond-41 game would silently revert to a one-peg target — the hint would
+        // instantly report "no winning move" and stars would band on the wrong anchor.
+        val restored = restore(snapshotOf(Boards.diamond41Initial))
+
+        assertThat(restored).isNotNull()
+        assertThat(restored!!.initialBoard.spec.minimumPegs)
+            .isEqualTo(BoardConstants.DIAMOND41_FEWEST_PEGS_FLOOR)
+    }
+
+    @Test
+    fun aResumedEnglishGameKeepsItsOnePegTarget() {
+        val restored = restore(snapshotOf(Boards.english33Initial))
+
+        assertThat(restored).isNotNull()
+        assertThat(restored!!.initialBoard.spec.minimumPegs)
+            .isEqualTo(BoardConstants.MINIMUM_PEGS_DEFAULT)
+    }
+
+    @Test
+    fun aLegacyDiamondBlobResolvesItsTargetFromTheBoardCatalog() {
+        // A blob written BEFORE per-board targets existed carries no `minimumPegs` key
+        // at all. Defaulting it to 1 would be the Pitfall 3 defect; the footprint is
+        // matched against `Boards.CLASSIC_SPECS` instead.
+        val restored =
+            SnapshotMapper
+                .decode(legacyBlobFor(Boards.diamond41Initial))
+                ?.let { SnapshotMapper.fromDto(it, RulesEngine) }
+
+        assertThat(restored).isNotNull()
+        assertThat(restored!!.initialBoard.spec.minimumPegs)
+            .isEqualTo(BoardConstants.DIAMOND41_FEWEST_PEGS_FLOOR)
+    }
+
+    @Test
+    fun aLegacyFreeformBlobFallsBackToTheDefaultTarget() {
+        // A generated Challenge footprint matches no catalog entry. It is built by a
+        // reverse walk from a single peg, so one peg is the correct fallback.
+        val restored =
+            SnapshotMapper
+                .decode(legacyBlobFor(freeformBoard()))
+                ?.let { SnapshotMapper.fromDto(it, RulesEngine) }
+
+        assertThat(restored).isNotNull()
+        assertThat(restored!!.initialBoard.spec.minimumPegs)
+            .isEqualTo(BoardConstants.MINIMUM_PEGS_DEFAULT)
+    }
+
+    @Test
+    fun aForgedNonPositiveTargetYieldsNoResume() {
+        // T-08-21: a `<= 0` target would make the solver's `pegCount <= minimumPegs`
+        // goal test trivially true, so every hint would return `null` forever. The
+        // whole snapshot is refused rather than clamped — a value outside the legal
+        // range is evidence of tampering, not something to repair.
+        val valid = snapshotOf(Boards.english33Initial)
+
+        assertThat(restore(valid.copy(minimumPegs = FORGED_ZERO_TARGET))).isNull()
+        assertThat(restore(valid.copy(minimumPegs = FORGED_NEGATIVE_TARGET))).isNull()
+    }
+
+    @Test
+    fun aForgedTargetLargerThanTheFootprintYieldsNoResume() {
+        val valid = snapshotOf(Boards.english33Initial)
+        val oversized = Boards.English33.size + 1
+
+        assertThat(restore(valid.copy(minimumPegs = oversized))).isNull()
+    }
+
+    @Test
+    fun aTargetAtEitherEndOfTheLegalRangeStillDecodes() {
+        // The boundary is inclusive on both sides: 1 and `size` are legal targets, so
+        // the rejection above is a genuine range check rather than an off-by-one.
+        val valid = snapshotOf(Boards.english33Initial)
+
+        assertThat(restore(valid.copy(minimumPegs = 1))).isNotNull()
+        assertThat(restore(valid.copy(minimumPegs = Boards.English33.size))).isNotNull()
+    }
+
     // --- helpers -------------------------------------------------------------
+
+    /**
+     * The on-disk blob a PRE-DEBT-02 build would have written for [board]: the exact
+     * envelope `ResumeSnapshotDto` serialized then, with **no `minimumPegs` key at
+     * all**, so the legacy-resolution path is genuinely exercised rather than being
+     * handed a re-serialised modern payload.
+     *
+     * The footprint is derived from the real board rather than transcribed, because
+     * these tests turn on the footprint matching `Boards.CLASSIC_SPECS` exactly — a
+     * typo would silently convert a catalog-resolution test into a fallback test.
+     */
+    private fun legacyBlobFor(board: Board): String {
+        val footprint = board.spec.inPlay.joinToString(",") { "[${it.row},${it.col}]" }
+        val target = board.spec.target
+        return """
+            {"mode":"${ProgressPersistenceKeys.MODE_CLASSIC}","levelId":"$CLASSIC_LEVEL_ID",
+            "inPlay":[$footprint],"targetRow":${target?.row},"targetCol":${target?.col},
+            "initialPegs":${board.pegs},"moves":[],"elapsedMs":$ELAPSED_MS}
+        """.trimIndent().replace("\n", "")
+    }
+
+    /** A footprint no Classic catalog entry carries — the Challenge freeform case. */
+    private fun freeformBoard(): Board =
+        Board(
+            spec =
+                BoardSpec(
+                    inPlay = (0 until FREEFORM_LENGTH).map { Position(row = 0, col = it) },
+                    target = null,
+                ),
+            pegs = 0L,
+        ).withPeg(Position(row = 0, col = 0))
 
     /**
      * A valid English-33 snapshot with [extra] appended to its footprint and its move
@@ -226,6 +348,16 @@ class SnapshotMapperTest {
             levelId = CLASSIC_LEVEL_ID,
             initialBoard = Boards.english33Initial,
             moveHistory = played.history,
+            elapsedMs = ELAPSED_MS,
+        )
+
+    /** An untouched snapshot of [initialBoard] — the per-board-target cases play no moves. */
+    private fun snapshotOf(initialBoard: Board): ResumeSnapshotDto =
+        SnapshotMapper.toDto(
+            mode = ProgressPersistenceKeys.MODE_CLASSIC,
+            levelId = CLASSIC_LEVEL_ID,
+            initialBoard = initialBoard,
+            moveHistory = emptyList(),
             elapsedMs = ELAPSED_MS,
         )
 
@@ -298,5 +430,18 @@ class SnapshotMapperTest {
 
         /** One past [MAX_VALID_COORDINATE] — the boundary that must be rejected. */
         const val FIRST_REJECTED_COORDINATE = 64
+
+        /**
+         * T-08-21 forgery: a zero target. This is the dangerous one — the solver's goal
+         * test is `pegCount <= minimumPegs`, which a zero can never satisfy, so every
+         * search would run to its deadline and every hint would come back `null`.
+         */
+        const val FORGED_ZERO_TARGET = 0
+
+        /** T-08-21 forgery: a negative target, which no footprint can ever admit. */
+        const val FORGED_NEGATIVE_TARGET = -1
+
+        /** Cell count of the freeform stand-in footprint (a short 1xN line). */
+        const val FREEFORM_LENGTH = 3
     }
 }
