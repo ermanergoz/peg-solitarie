@@ -1,5 +1,6 @@
 package com.app.pegsolitaire.domain.golden.solutions
 
+import com.app.pegsolitaire.domain.TestFlags
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardConstants
 import com.app.pegsolitaire.domain.model.Boards
@@ -157,14 +158,10 @@ class SolutionTest {
             RulesEngine.applyMove(board, move)
         }
 
-    private fun isUpdateEnabled(): Boolean =
-        isFlagTrue(System.getenv(UPDATE_GOLDEN_FLAG)) ||
-            isFlagTrue(System.getProperty(UPDATE_GOLDEN_FLAG))
-
-    private fun isFlagTrue(value: String?): Boolean = value?.equals("true", ignoreCase = true) == true
+    private fun isUpdateEnabled(): Boolean = TestFlags.isEnabled(UPDATE_GOLDEN_FLAG)
 
     private companion object {
-        const val UPDATE_GOLDEN_FLAG = "UPDATE_GOLDEN"
+        const val UPDATE_GOLDEN_FLAG = TestFlags.UPDATE_GOLDEN
         const val DIAMOND_FIXTURE = "diamond41"
 
         /** The literal value of Diamond-41's frozen floor, asserted alongside the constant. */
