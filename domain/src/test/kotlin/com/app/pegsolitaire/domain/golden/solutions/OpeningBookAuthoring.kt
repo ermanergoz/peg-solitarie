@@ -3,9 +3,10 @@ package com.app.pegsolitaire.domain.golden.solutions
 import com.app.pegsolitaire.domain.assist.OpeningBookFormat
 import com.app.pegsolitaire.domain.generator.BoardCanonical
 import com.app.pegsolitaire.domain.model.Board
-import com.app.pegsolitaire.domain.model.BoardConstants
+import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Move
 import com.app.pegsolitaire.domain.rules.RulesEngine
+import com.app.pegsolitaire.domain.solver.Pagoda
 import java.io.File
 
 /**
@@ -82,6 +83,7 @@ internal data class BoardReport(
     val canonicalFrontierSize: Int,
     val prefixEntries: Int,
     val totalEntries: Int,
+    val provenDead: Int,
     val bytes: Int,
     val undecided: List<Long>,
     val wallClockMs: Long,
@@ -94,22 +96,24 @@ internal data class BookReport(
     val totalEntries: Int get() = boards.sumOf { it.totalEntries }
     val totalBytes: Int get() = boards.sumOf { it.bytes }
     val totalUndecided: Int get() = boards.sumOf { it.undecided.size }
+    val totalProvenDead: Int get() = boards.sumOf { it.provenDead }
     val totalWallClockMs: Long get() = boards.sumOf { it.wallClockMs }
 
     /** A readable per-board table, printed by the generator and copied into the SUMMARY. */
     fun render(): String {
         val header =
             "| board | target | frontier (raw) | frontier (canonical) | prefix entries | " +
-                "total entries | bytes | undecided | wall clock |"
-        val rule = "|---|---|---|---|---|---|---|---|---|"
+                "total entries | proven dead | bytes | undecided | wall clock |"
+        val rule = "|---|---|---|---|---|---|---|---|---|---|"
         val rows =
             boards.map { row ->
                 "| ${row.board} | ${row.target} | ${row.frontierSize} | ${row.canonicalFrontierSize} | " +
-                    "${row.prefixEntries} | ${row.totalEntries} | ${row.bytes} | ${row.undecided.size} | " +
-                    "${row.wallClockMs} ms |"
+                    "${row.prefixEntries} | ${row.totalEntries} | ${row.provenDead} | ${row.bytes} | " +
+                    "${row.undecided.size} | ${row.wallClockMs} ms |"
             }
         val totals =
-            "| **total** | — | — | — | — | $totalEntries | $totalBytes | $totalUndecided | $totalWallClockMs ms |"
+            "| **total** | — | — | — | — | $totalEntries | $totalProvenDead | $totalBytes | " +
+                "$totalUndecided | $totalWallClockMs ms |"
         return (listOf("", "BOOK REPORT (k=${OpeningBookAuthoring.BOOK_DEPTH})", header, rule) + rows + totals)
             .joinToString("\n")
     }
@@ -167,6 +171,18 @@ private class BoardAuthor(
 
     private val undecided = ArrayList<Long>()
 
+    /**
+     * Masks PROVEN to have no line to [target] — [ExhaustiveSearch] exhausted the whole
+     * subtree below them without a cutoff. These get an authoritative `-` entry, which is
+     * truthful; a position the beam merely failed on goes to [undecided] instead.
+     */
+    private val provenDead = HashSet<Long>()
+
+    /** How each position was decided, keyed by stage name — printed as run progress. */
+    private val decidedBy = LinkedHashMap<String, Int>()
+
+    private var positionsDone = 0
+
     fun author(bookDir: File): BoardReport {
         val started = System.nanoTime()
         val layers = enumerateLayers()
@@ -174,9 +190,10 @@ private class BoardAuthor(
         val canonicalSize = canonicalSizeOf(frontier)
         verifyFrontier(canonicalSize)
         val prefixes = seedFromCommittedLine()
+        println("BOOK ${fixture.name}: frontier=${frontier.size} canonical=$canonicalSize target=$target")
         // Deepest first: every shallower layer's positions then have a decided successor
         // and cost no search at all.
-        layers.reversed().forEach { layer -> layer.forEach(::decide) }
+        layers.reversed().forEach { layer -> layer.forEach { mask -> decide(mask, frontier.size, started) } }
         val entries = collectEntries(frontier + prefixes)
         val bytes = if (undecided.isEmpty()) emit(bookDir, entries) else 0
         return BoardReport(
@@ -186,6 +203,7 @@ private class BoardAuthor(
             canonicalFrontierSize = canonicalSize,
             prefixEntries = prefixes.count { it !in frontier.toSet() },
             totalEntries = entries.size,
+            provenDead = provenDead.size,
             bytes = bytes,
             undecided = undecided.toList(),
             wallClockMs = (System.nanoTime() - started) / NANOS_PER_MILLI,
@@ -257,19 +275,71 @@ private class BoardAuthor(
     }
 
     /** Records a proven answer for [mask], or files it as undecided. */
-    private fun decide(mask: Long) {
-        if (mask !in winningMove) {
-            findPath(Board(spec = spec, pegs = mask))?.let { path -> record(mask, path) }
+    private fun decide(
+        mask: Long,
+        total: Int,
+        started: Long,
+    ) {
+        if (mask in winningMove || mask in provenDead) {
+            tally(STAGE_CACHED)
+        } else {
+            resolve(Board(spec = spec, pegs = mask), mask)
         }
-        if (validatedFirstMove(mask) == null) undecided.add(mask)
+        if (mask !in provenDead && validatedFirstMove(mask) == null) undecided.add(mask)
+        positionsDone++
+        if (positionsDone % PROGRESS_EVERY == 0) {
+            val elapsed = (System.nanoTime() - started) / NANOS_PER_MILLI
+            println(
+                "BOOK ${fixture.name}: $positionsDone/$total decided, " +
+                    "undecided=${undecided.size}, ${elapsed}ms, by=$decidedBy",
+            )
+        }
+    }
+
+    private fun tally(stage: String) {
+        decidedBy[stage] = (decidedBy[stage] ?: 0) + 1
     }
 
     /**
-     * A path from [board] that ends either at [target] or at a position already in
-     * [winningMove] — the cheap stitch first, then a real solve.
+     * Decides one position, cheapest stage first.
+     *
+     * The ordering is measured, not assumed. [stitch] and the narrow beams settle the
+     * large majority in milliseconds. What is left is either genuinely hard or genuinely
+     * DEAD, and those two look identical to a beam — which is exactly why
+     * [ExhaustiveSearch] runs before the wide beams rather than after: on a board whose
+     * subtree it can exhaust it converts "the beam gave up" into a *proof*, at a fraction
+     * of the cost of the wide beams that would have failed anyway.
      */
-    private fun findPath(board: Board): List<Move>? =
-        stitch(board) ?: beamAt(board, BEAM_WIDTHS) ?: forwardSolveIfOnePeg(board)
+    private fun resolve(
+        board: Board,
+        mask: Long,
+    ) {
+        val quick = stitch(board) ?: beamAt(board, FAST_WIDTHS)
+        if (quick != null) {
+            record(mask, quick)
+        } else {
+            resolveHardPosition(board, mask)
+        }
+    }
+
+    private fun resolveHardPosition(
+        board: Board,
+        mask: Long,
+    ) {
+        when (val outcome = ExhaustiveSearch(spec, target, EXHAUSTIVE_CAP).run(board)) {
+            is Exhaustive.Solved -> {
+                tally(STAGE_EXHAUSTIVE)
+                record(mask, outcome.line)
+            }
+
+            Exhaustive.ProvenDead -> {
+                tally(STAGE_PROVEN_DEAD)
+                provenDead.add(mask)
+            }
+
+            Exhaustive.Unknown -> beamAt(board, DEEP_WIDTHS)?.let { line -> record(mask, line) }
+        }
+    }
 
     /**
      * A short breadth-first probe for a position already known to reach [target].
@@ -290,6 +360,7 @@ private class BoardAuthor(
             frontier = if (next.size > STITCH_WIDTH) next.subList(0, STITCH_WIDTH) else next
             ply++
         }
+        if (hit != null) tally(STAGE_STITCH)
         return hit?.pathFromRoot()
     }
 
@@ -324,23 +395,11 @@ private class BoardAuthor(
         var index = 0
         while (line == null && index < widths.size) {
             line = BeamSearchAuthoring.beamSolve(board, targetPegs = target, width = widths[index])
+            if (line != null) tally("$STAGE_BEAM${widths[index]}")
             index++
         }
         return line
     }
-
-    /**
-     * The jittered DFS, which is only defined for a one-peg target and is the LAST
-     * resort rather than the first.
-     *
-     * Measured on a single board's depth-4 layer it is wildly heavy-tailed — 53 ms,
-     * 61 ms, 14 s, 90 s on four European-37 positions, and it does not return at all
-     * within minutes on Wiegleb-45, the one board the book exists for. The beam is
-     * slower at its median and far better behaved at its tail, so it goes first; the DFS
-     * is kept because it does crack positions the beam abandons.
-     */
-    private fun forwardSolveIfOnePeg(board: Board): List<Move>? =
-        if (target == BoardConstants.MINIMUM_PEGS_DEFAULT) AuthoringSolver.forwardSolve(board) else null
 
     /** Adds every position along [path] from [mask], never overwriting a proven answer. */
     private fun record(
@@ -377,24 +436,37 @@ private class BoardAuthor(
         return if (valid && board.pegCount == target) winningMove[mask] else null
     }
 
-    /** The validated entries for [masks], in a deterministic ascending-mask order. */
-    private fun collectEntries(masks: List<Long>): Map<Long, Move> {
-        val entries = LinkedHashMap<Long, Move>()
+    /**
+     * The validated entries for [masks], ascending by unsigned mask so regeneration is
+     * byte-stable.
+     *
+     * A `null` value is the AUTHORITATIVE no-winning-move marker, and it is only ever
+     * written for a mask [ExhaustiveSearch] proved dead by exhausting its subtree — never
+     * for one a beam merely failed on.
+     */
+    private fun collectEntries(masks: List<Long>): Map<Long, Move?> {
+        val entries = LinkedHashMap<Long, Move?>()
         masks
             .distinct()
             .sortedWith { left, right -> java.lang.Long.compareUnsigned(left, right) }
-            .forEach { mask -> validatedFirstMove(mask)?.let { move -> entries[mask] = move } }
+            .forEach { mask ->
+                if (mask in provenDead) {
+                    entries[mask] = null
+                } else {
+                    validatedFirstMove(mask)?.let { move -> entries[mask] = move }
+                }
+            }
         return entries
     }
 
     /** Writes `{name}-k{K}.txt` and returns its size in bytes. */
     private fun emit(
         bookDir: File,
-        entries: Map<Long, Move>,
+        entries: Map<Long, Move?>,
     ): Int {
         val header =
             "$COMMENT_PREFIX ${fixture.name} k=${OpeningBookAuthoring.BOOK_DEPTH} " +
-                "target=$target entries=${entries.size}"
+                "target=$target entries=${entries.size} proven-dead=${provenDead.size}"
         val text =
             (listOf(header) + entries.map { (mask, move) -> OpeningBookFormat.encodeEntry(mask, move) })
                 .joinToString(separator = LINE_SEPARATOR, postfix = LINE_SEPARATOR)
@@ -446,14 +518,127 @@ private class BoardAuthor(
          * outright, while Wiegleb-45 needs 32 000 or more. Paying the widest beam for
          * every position would multiply the run by two orders of magnitude.
          */
-        val BEAM_WIDTHS = listOf(500, 4_000, 32_000, 256_000)
+        val FAST_WIDTHS = listOf(500, 4_000)
 
-        const val STITCH_PLIES = 7
-        const val STITCH_WIDTH = 20_000
+        /** Tried only after [ExhaustiveSearch] came back Unknown — the genuinely hard tail. */
+        val DEEP_WIDTHS = listOf(32_000, 200_000)
+
+        /**
+         * Canonical positions [ExhaustiveSearch] may memoise before it gives up and
+         * answers Unknown.
+         *
+         * Sized from the published figure for the English central game: ~23.5M reachable
+         * positions, ~3.3M up to its order-8 symmetry. A depth-4 English-33 subtree is a
+         * strict subset of that, so 4M is enough to EXHAUST it and turn a beam failure
+         * into a proof. Diamond-41 and Wiegleb-45 are ~10^11 positions and will always cut
+         * off here — deliberately: the cap is what stops an unprovable board from eating
+         * the run, and Unknown is an honest answer where a guess would not be.
+         */
+        const val EXHAUSTIVE_CAP = 4_000_000
+
+        /**
+         * The stitch probe's shape. Deliberately small: a stitch that is going to succeed
+         * almost always succeeds within a ply or two, so extra plies and extra width buy
+         * nothing on a hit and are pure waste on a miss — and a miss is what every
+         * position pays before the beam even starts. Measured: at 7 plies x 20 000 the
+         * failed probe alone dominated the run (English-33 had not finished its 373
+         * positions in 11 minutes); at 4 x 1 500 it is a few milliseconds.
+         */
+        const val STITCH_PLIES = 4
+        const val STITCH_WIDTH = 1_500
         const val COMMENT_PREFIX = "#"
         const val LINE_SEPARATOR = "\n"
         const val FILE_INFIX = "-k"
         const val FILE_SUFFIX = ".txt"
         const val NANOS_PER_MILLI = 1_000_000L
+
+        /** Positions between progress lines — the run is long enough to need a heartbeat. */
+        const val PROGRESS_EVERY = 25
+
+        const val STAGE_CACHED = "cached"
+        const val STAGE_STITCH = "stitch"
+        const val STAGE_BEAM = "beam"
+        const val STAGE_EXHAUSTIVE = "exhaustive"
+        const val STAGE_PROVEN_DEAD = "provenDead"
+    }
+}
+
+/**
+ * What a bounded exhaustive search can conclude about one position.
+ *
+ * The three-way answer is the whole point. [BeamSearchAuthoring] and
+ * [AuthoringSolver] both collapse "no line exists" and "I did not find one" into a single
+ * `null`, which is precisely the conflation DEBT-01 exists to remove — so neither may
+ * ever produce a "no winning move" entry. Separating [ProvenDead] from [Unknown] is what
+ * makes an authoritative marker sayable at all.
+ */
+private sealed interface Exhaustive {
+    /** A witness. Still replayed through [RulesEngine] before it is believed. */
+    data class Solved(
+        val line: List<Move>,
+    ) : Exhaustive
+
+    /** The subtree was fully enumerated and holds no line to the target. A proof. */
+    data object ProvenDead : Exhaustive
+
+    /** The search hit its cap. Says nothing either way. */
+    data object Unknown : Exhaustive
+}
+
+/**
+ * A complete memoised DFS over symmetry-canonical positions, bounded by a cap on distinct
+ * positions, that reports WHETHER IT FINISHED.
+ *
+ * Two sound devices, and nothing else — an unsound prune here would turn a false
+ * [Exhaustive.ProvenDead] into a shipped lie:
+ *  - the [Pagoda] colour-parity test, a necessary condition for reaching [target], so a
+ *    rejected subtree provably contains no solution;
+ *  - a transposition memo keyed on [BoardCanonical.canonicalFast], sound because
+ *    symmetric positions have symmetric solution sets — if one is a dead end so are its
+ *    images.
+ *
+ * [exhausted] is the load-bearing bit: it is cleared the first time the cap stops an
+ * expansion, anywhere in the tree. Only a search that never once cut off may answer
+ * [Exhaustive.ProvenDead].
+ */
+private class ExhaustiveSearch(
+    private val spec: BoardSpec,
+    private val target: Int,
+    private val cap: Int,
+) {
+    private val tables = BoardCanonical.chunkTables(spec)
+    private val seen = HashSet<Long>()
+    private var exhausted = true
+
+    fun run(start: Board): Exhaustive {
+        val line = search(start, ArrayDeque())
+        return when {
+            line != null -> Exhaustive.Solved(line)
+            exhausted -> Exhaustive.ProvenDead
+            else -> Exhaustive.Unknown
+        }
+    }
+
+    private fun search(
+        board: Board,
+        path: ArrayDeque<Move>,
+    ): List<Move>? {
+        var solution: List<Move>? = null
+        if (board.pegCount <= target) {
+            solution = path.toList()
+        } else if (seen.size >= cap) {
+            exhausted = false
+        } else if (Pagoda.mayBeSolvable(board) && seen.add(BoardCanonical.canonicalFast(board.pegs, tables))) {
+            val moves = RulesEngine.legalMoves(board)
+            var index = 0
+            while (solution == null && index < moves.size) {
+                val move = moves[index]
+                path.addLast(move)
+                solution = search(RulesEngine.applyMove(board, move), path)
+                path.removeLast()
+                index++
+            }
+        }
+        return solution
     }
 }
