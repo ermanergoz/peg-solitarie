@@ -63,6 +63,28 @@ internal object OpeningBookAuthoring {
      */
     const val BOOK_DEPTH = 4
 
+    /**
+     * Wiegleb-45's reduced depth — **a deliberate, developer-approved rescope**, not a
+     * tuning constant (checkpoint decision, 2026-08-29).
+     *
+     * DEBT-01's must-have asks for depth-4 coverage "including Wiegleb-45". At K = 4 that
+     * is not deliverable with the searches available: measured, 2 of the first 25 depth-4
+     * positions were undecided after the entire cascade (beam widths 500 through 200 000),
+     * and Wiegleb's ~10^11-position space puts [ExhaustiveSearch] out of reach, so those
+     * could never become *proven* dead — only a silent gap on the one board the book
+     * exists for. The board also ran at ~37 s/position, i.e. ~5.7 hours.
+     *
+     * K = 3 is 16 canonical positions (RESEARCH's 1 + 1 + 3 + 11 depth rows) instead of
+     * 76, and it is chosen because a book that is COMPLETE to the depth it advertises is
+     * worth more than one that is 92 % complete at a depth it claims in full. Beyond ply 3
+     * the position falls through to the runtime solver, which plan 08-05 measured at
+     * 724–927 ms on Wiegleb mid-line positions — inside the 1.5 s deadline.
+     *
+     * The K = 4 upgrade is deferred to a post-phase follow-up. The emitted file is named
+     * `wiegleb45-k3.txt`, not `-k4`, so the artifact cannot misrepresent its own coverage.
+     */
+    const val WIEGLEB_DEPTH = 3
+
     /** Where the committed books live — `:domain` MAIN resources, because the decoder ships. */
     const val DIRECTORY = "src/main/resources/golden/book"
 
@@ -99,6 +121,7 @@ internal object OpeningBookAuthoring {
      */
     private val CROSS =
         Policy(
+            depth = BOOK_DEPTH,
             fastWidths = listOf(500, 4_000),
             deepWidths = listOf(32_000, 200_000),
             exhaustiveCap = 4_000_000,
@@ -126,6 +149,7 @@ internal object OpeningBookAuthoring {
      */
     private val DIAMOND_GAP =
         Policy(
+            depth = BOOK_DEPTH,
             fastWidths = listOf(500, 4_000),
             deepWidths = emptyList(),
             exhaustiveCap = 0,
@@ -145,6 +169,7 @@ internal object OpeningBookAuthoring {
      */
     private val WIEGLEB =
         Policy(
+            depth = WIEGLEB_DEPTH,
             fastWidths = listOf(500, 4_000),
             deepWidths = listOf(32_000, 200_000),
             exhaustiveCap = 0,
@@ -180,6 +205,7 @@ internal object OpeningBookAuthoring {
  *   "no winning move" claim.
  */
 private data class Policy(
+    val depth: Int,
     val fastWidths: List<Int>,
     val deepWidths: List<Int>,
     val exhaustiveCap: Int,
@@ -328,7 +354,7 @@ private class BoardAuthor(
     }
 
     /**
-     * The raw masks reachable in exactly 0, 1, ... [OpeningBookAuthoring.BOOK_DEPTH]
+     * The raw masks reachable in exactly 0, 1, ... [policy.depth]
      * moves, expanded through [RulesEngine] rather than a private re-derivation of the
      * jump rule. Masks are kept RAW and deduplicated per layer.
      */
@@ -337,7 +363,7 @@ private class BoardAuthor(
         val seen = linkedSetOf(start.pegs)
         var layer = listOf(start.pegs)
         layers.add(layer)
-        repeat(OpeningBookAuthoring.BOOK_DEPTH) {
+        repeat(policy.depth) {
             val next = LinkedHashSet<Long>()
             layer.forEach { pegs ->
                 val board = Board(spec = spec, pegs = pegs)
@@ -366,7 +392,7 @@ private class BoardAuthor(
     private fun verifyFrontier(canonicalSize: Int) {
         val expected = CANONICAL_FRONTIER_SIZE.getValue(fixture.name)
         check(canonicalSize == expected) {
-            "Frontier enumeration for '${fixture.name}' at k=${OpeningBookAuthoring.BOOK_DEPTH} produced " +
+            "Frontier enumeration for '${fixture.name}' at k=${policy.depth} produced " +
                 "$canonicalSize canonical positions, but RESEARCH measured $expected."
         }
     }
@@ -596,7 +622,7 @@ private class BoardAuthor(
         entries: Map<Long, Move?>,
     ): Int {
         val header =
-            "$COMMENT_PREFIX ${fixture.name} k=${OpeningBookAuthoring.BOOK_DEPTH} " +
+            "$COMMENT_PREFIX ${fixture.name} k=${policy.depth} " +
                 "target=$target entries=${entries.size} proven-dead=${provenDead.size}"
         // A gap board's absent positions are a documented, deliberate incompleteness, so
         // the file says so in its own header rather than only in a plan document.
@@ -606,7 +632,7 @@ private class BoardAuthor(
             } else {
                 listOf(
                     "$COMMENT_PREFIX DOCUMENTED GAP: ${undecided.size} of ${undecided.size + entries.size} " +
-                        "depth-<=${OpeningBookAuthoring.BOOK_DEPTH} positions are ABSENT from this book.",
+                        "depth-<=${policy.depth} positions are ABSENT from this book.",
                     "$COMMENT_PREFIX An absent position is a book MISS and falls through to the runtime " +
                         "solver. It is NOT a 'no winning move' claim.",
                 )
@@ -614,7 +640,7 @@ private class BoardAuthor(
         val text =
             (listOf(header) + gapNote + entries.map { (mask, move) -> OpeningBookFormat.encodeEntry(mask, move) })
                 .joinToString(separator = LINE_SEPARATOR, postfix = LINE_SEPARATOR)
-        val file = File(bookDir, "${fixture.name}$FILE_INFIX${OpeningBookAuthoring.BOOK_DEPTH}$FILE_SUFFIX")
+        val file = File(bookDir, "${fixture.name}$FILE_INFIX${policy.depth}$FILE_SUFFIX")
         file.writeText(text)
         return text.toByteArray().size
     }
@@ -650,7 +676,9 @@ private class BoardAuthor(
                 "european37" to 312,
                 "asymmetric39" to 233,
                 "diamond41" to 107,
-                "wiegleb45" to 76,
+                // Wiegleb-45 is authored at K=3, so its expectation is RESEARCH's
+                // 1 + 1 + 3 + 11 depth rows, NOT the 76 of the K=4 row.
+                "wiegleb45" to 16,
             )
 
         /**
