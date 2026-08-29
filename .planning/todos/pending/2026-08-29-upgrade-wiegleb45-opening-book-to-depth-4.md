@@ -34,3 +34,20 @@ untruthful "no winning move" banner.
 4. Re-run `:domain:test` plus the DepthSweep proof from 08-10, commit the
    regenerated book file, and update the 08-08 SUMMARY / BOOK-EVIDENCE trail
    if 08-11 referenced the K=3 scope.
+5. While in `OpeningBookAuthoring`, make `BookReport.render()` report depth
+   PER BOARD. Its heading currently prints the single global `BOOK_DEPTH`
+   ("BOOK REPORT (k=4)") even though Wiegleb-45 is authored at K=3, so the
+   printed table understates nothing but overstates Wiegleb's depth. Only the
+   console/JUnit-XML report is affected — each emitted file's own header
+   already carries its true `k`, so no shipped artifact misrepresents itself.
+   Fixing it with this run avoids a second 70-minute regeneration purely to
+   refresh a quoted table.
+
+## Status note (2026-08-29)
+
+K=3 shipped as `wiegleb45-k3.txt` under a DOCUMENTED GAP rather than the
+complete book this todo originally assumed: 4 raw masks (one canonical
+position, 15/16 covered) resisted the full cascade including beam 200 000.
+So the K=4 upgrade also inherits that unresolved canonical position — raising
+the beam beyond 200 000 or finding a different search is the open question,
+not merely the depth.

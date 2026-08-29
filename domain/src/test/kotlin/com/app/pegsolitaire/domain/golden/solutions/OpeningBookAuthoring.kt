@@ -75,10 +75,12 @@ internal object OpeningBookAuthoring {
      * exists for. The board also ran at ~37 s/position, i.e. ~5.7 hours.
      *
      * K = 3 is 16 canonical positions (RESEARCH's 1 + 1 + 3 + 11 depth rows) instead of
-     * 76, and it is chosen because a book that is COMPLETE to the depth it advertises is
-     * worth more than one that is 92 % complete at a depth it claims in full. Beyond ply 3
-     * the position falls through to the runtime solver, which plan 08-05 measured at
-     * 724–927 ms on Wiegleb mid-line positions — inside the 1.5 s deadline.
+     * 76, which brings the board inside a ~18-minute authoring run instead of ~5.7 hours.
+     * It does NOT make the board complete: the K = 3 run covered 15 of those 16 canonical
+     * positions, and the sixteenth is absent under [WIEGLEB]'s documented gap. Beyond ply 3
+     * — and on that one position — the board falls through to the runtime solver, which
+     * plan 08-05 measured at 724–927 ms on Wiegleb mid-line positions, inside the 1.5 s
+     * deadline.
      *
      * The K = 4 upgrade is deferred to a post-phase follow-up. The emitted file is named
      * `wiegleb45-k3.txt`, not `-k4`, so the artifact cannot misrepresent its own coverage.
@@ -93,9 +95,11 @@ internal object OpeningBookAuthoring {
      * report Task 3's blocking checkpoint reviews.
      *
      * Fails — loudly, and without emitting that board's file — if a board whose policy
-     * does NOT allow a gap left any position undecided. RESEARCH assumption A2 ("every
-     * Wiegleb-45 position at depth ≤ K is actually winnable") is unverified, and this is
-     * where it gets verified.
+     * does NOT allow a gap left any position undecided. That is how RESEARCH assumption A2
+     * ("every Wiegleb-45 position at depth ≤ K is actually winnable") got measured rather
+     * than assumed: the K = 3 run failed here on 4 raw masks, which is why [WIEGLEB] and
+     * [DIAMOND_GAP] now carry an explicit, developer-approved documented gap and the three
+     * cross boards do not.
      */
     fun writeBook(bookDir: File): BookReport {
         bookDir.mkdirs()
@@ -159,13 +163,27 @@ internal object OpeningBookAuthoring {
         )
 
     /**
-     * Wiegleb-45 — the board DEBT-01 actually exists for, so **no gap is permitted**: if
-     * this policy leaves anything undecided the run fails and the phase escalates.
+     * Wiegleb-45 at [WIEGLEB_DEPTH], under the same **documented-gap** policy as
+     * [DIAMOND_GAP] — a developer-approved extension of the Diamond-41 and K = 3 rescope
+     * decisions (2026-08-29).
      *
-     * No exhaustive pass (its space is ~10^11, so the stage could only ever burn its cap
-     * and answer Unknown), and a deeper, wider stitch than the cross boards get: measured,
-     * Wiegleb's full solves are the most expensive of any board, so shifting work from the
-     * beam onto the stitch is where the leverage is.
+     * Measured basis, from the K = 3 run that this policy replaces: of the 101 raw
+     * (16 canonical) depth-≤3 positions, 4 raw masks collapsing to a SINGLE canonical
+     * position — `1edfffbfff7f`, `1ffffcafffff`, `1ffffea7ffff`, `1fdfffbfff6f` — survived
+     * the entire cascade, beam width 200 000 included. 15 of 16 canonical positions are
+     * covered. Those 4 cannot become *proven* dead either: Wiegleb's ~10^11-position space
+     * puts [ExhaustiveSearch] permanently out of reach, so the only two honest outcomes are
+     * to fail the whole board or to omit them. Omitting is strictly better — an absent
+     * position is a book MISS that falls through to the runtime solver, which plan 08-05
+     * measured inside the 1.5 s deadline on Wiegleb positions, whereas failing the board
+     * would discard the 15 canonical positions the run *did* prove.
+     *
+     * The deep beams stay, unlike [DIAMOND_GAP]'s: beam width 32 000 decided 7 of these
+     * 101 positions, so dropping that stage would widen the gap from 4 raw masks to 11.
+     * There is still no exhaustive pass (~10^11 positions, so the stage could only burn its
+     * cap and answer Unknown) and the stitch is deeper and wider than the cross boards get,
+     * because Wiegleb's full solves are the most expensive of any board and shifting work
+     * from the beam onto the stitch is where the leverage is.
      */
     private val WIEGLEB =
         Policy(
@@ -175,7 +193,7 @@ internal object OpeningBookAuthoring {
             exhaustiveCap = 0,
             stitchPlies = 10,
             stitchWidth = 3_000,
-            allowGap = false,
+            allowGap = true,
         )
 
     private val POLICIES =
