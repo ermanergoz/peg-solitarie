@@ -14,6 +14,7 @@ import com.app.pegsolitaire.domain.generator.ChallengeLevelBounds
 import com.app.pegsolitaire.domain.generator.GeneratorConstants
 import com.app.pegsolitaire.domain.generator.LevelGenerator
 import com.app.pegsolitaire.domain.model.Board
+import com.app.pegsolitaire.domain.model.BoardConstants
 import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.GameStatus
@@ -263,7 +264,8 @@ class GameViewModelTest {
     @Test
     fun emitsExactlyOneFinishedEventWithScoreCalculatorConsistentResult() =
         runTest(testDispatcher) {
-            val viewModel = viewModelFor(wonInOneJumpBoard())
+            val board = wonInOneJumpBoard()
+            val viewModel = viewModelFor(board)
             viewModel.finished.test {
                 expectNoEvents()
 
@@ -274,7 +276,16 @@ class GameViewModelTest {
                 val result = awaitItem()
                 assertThat(result.pegsRemaining).isEqualTo(1)
                 assertThat(result.pegsCleared).isEqualTo(1)
-                assertThat(result.stars).isEqualTo(ScoreCalculator.stars(pegsRemaining = 1))
+                // D-03/D-04: the assertion's value is that the VM and the calculator agree
+                // on the SAME per-board target, so it passes the board's own minimumPegs
+                // rather than dropping the argument (which would make it tautological).
+                assertThat(result.stars)
+                    .isEqualTo(
+                        ScoreCalculator.stars(
+                            pegsRemaining = 1,
+                            minimumPegs = board.spec.minimumPegs,
+                        ),
+                    )
                 assertThat(result.score)
                     .isEqualTo(
                         ScoreCalculator.score(
@@ -289,6 +300,69 @@ class GameViewModelTest {
                 expectNoEvents()
                 cancelAndIgnoreRemainingEvents()
             }
+        }
+
+    // ---- Per-board star bands on Diamond-41 (D-03/D-04, DEBT-02) -------------
+
+    @Test
+    fun reachingTheDiamondFloorIsAWinWorthThreeStars() =
+        runTest(testDispatcher) {
+            // Diamond-41's perfect finish is a PROVEN two pegs, not one: `SolutionTest`
+            // replays a committed line to a two-peg dead end and
+            // `DiamondFloorOptimalityTest` shows the GF(4) invariant excludes all 41
+            // single-peg positions. A player who lands there has done the best the board
+            // admits, so it is a Won game scored 3 stars — end to end through the VM,
+            // with the real ScoreCalculator receiving the real Diamond target.
+            val board = diamondOneJumpFromItsFloor()
+            val viewModel = viewModelFor(board, levelId = ClassicLevelIds.DIAMOND41)
+            viewModel.finished.test {
+                expectNoEvents()
+
+                viewModel.onCellTap(Position(row = 4, col = 0))
+                viewModel.onCellTap(Position(row = 4, col = 2))
+                runCurrent()
+
+                assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Won)
+
+                val result = awaitItem()
+                assertThat(result.pegsRemaining).isEqualTo(BoardConstants.DIAMOND41_FEWEST_PEGS_FLOOR)
+                assertThat(result.stars).isEqualTo(3)
+                // The same finish banded on the OLD global target would have been 2 stars —
+                // this is exactly the untruthfulness DEBT-02 exists to remove.
+                assertThat(ScoreCalculator.stars(pegsRemaining = 2)).isEqualTo(2)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun aDiamondFinishAtFivePegsIsOnlyOneStarAndNeverReachesResults() =
+        runTest(testDispatcher) {
+            // Re-anchoring must not inflate a mediocre finish: five pegs is three above
+            // Diamond's floor, past the two-peg-wide 2-star band, so it bands at the
+            // MIN_STARS floor. It is also NOT a win — D-06 keeps a dead end above the
+            // board's target rescuable in-board, so no finished event fires at all and
+            // the player never sees a Results screen for it.
+            val board = diamondOneJumpFromAFivePegDeadEnd()
+            val viewModel = viewModelFor(board, levelId = ClassicLevelIds.DIAMOND41)
+            viewModel.finished.test {
+                viewModel.onCellTap(Position(row = 4, col = 0))
+                viewModel.onCellTap(Position(row = 4, col = 2))
+                runCurrent()
+
+                val terminal = viewModel.uiState.value
+                assertThat(terminal.board.pegCount).isEqualTo(5)
+                assertThat(terminal.status).isEqualTo(GameStatus.Stuck)
+                expectNoEvents()
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            // Had it been scored, the target the VM threads for THIS board bands it at 1.
+            assertThat(
+                ScoreCalculator.stars(
+                    pegsRemaining = 5,
+                    minimumPegs = board.spec.minimumPegs,
+                ),
+            ).isEqualTo(1)
         }
 
     // ---- Persisted hint toggle ----------------------------------------------
@@ -1277,6 +1351,32 @@ class GameViewModelTest {
      * tests call this before returning so the scheduler can go idle.
      */
     private fun cancelTickers() = viewModelStore.clear()
+
+    /**
+     * A REAL Diamond-41 board one jump from its proven two-peg floor: two adjacent
+     * pegs on the wide middle row plus one isolated peg at the top vertex. The jump
+     * (4,0)→(4,2) removes (4,1) and strands {(4,2), (0,4)} — two pegs, no legal move,
+     * exactly [BoardConstants.DIAMOND41_FEWEST_PEGS_FLOOR].
+     *
+     * The spec is `Boards.Diamond41` itself, so the target the VM threads is the real
+     * one rather than a hand-set fixture value, and no `ScoreCalculator` is mocked.
+     */
+    private fun diamondOneJumpFromItsFloor(): Board =
+        Board(spec = Boards.Diamond41, pegs = 0L)
+            .withPeg(Position(row = 4, col = 0))
+            .withPeg(Position(row = 4, col = 1))
+            .withPeg(Position(row = 0, col = 4))
+
+    /**
+     * The same Diamond-41 jump with four extra mutually-unreachable pegs at the
+     * diamond's other extremities, so the dead end holds five pegs instead of two —
+     * three above the floor, past the 2-star band.
+     */
+    private fun diamondOneJumpFromAFivePegDeadEnd(): Board =
+        diamondOneJumpFromItsFloor()
+            .withPeg(Position(row = 8, col = 4))
+            .withPeg(Position(row = 2, col = 2))
+            .withPeg(Position(row = 2, col = 6))
 
     /** A 1x3 strip (pegs at cols 0,1; hole at col 2): one jump leaves a lone peg → Won. */
     private fun wonInOneJumpBoard(): Board =
