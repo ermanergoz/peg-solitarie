@@ -128,7 +128,7 @@ Plans:
   2. Diamond-41's shipped **centre** start is proven to reach its fewest-pegs floor of **2** — by a committed 38-move line replayed through the unchanged `RulesEngine` in CI — **and** proven unable to reach 1, by the GF(4) colour invariant checked exhaustively over all 41 single-peg positions. "Solvable to one peg" was never achievable for this board; the earlier wording of this criterion predated the centre-start reality and is corrected here per D-06. (DEBT-02)
   3. The Nyquist validation coverage gaps carried from v1.0 phases 3 and 4 are backfilled and green in `check`. (DEBT-03)
 
-**Plans**: 11 plans in 7 waves
+**Plans**: 12 plans in 8 waves
 
 Plans:
 **Wave 1**
@@ -162,6 +162,10 @@ Plans:
 **Wave 7** *(blocked on Wave 6)*
 
 - [x] 08-11-PLAN.md — Release-APK book retention proof, D-06 documentation trail, blocking on-device phase audit (DEBT-01/02/03)
+
+**Wave 8** *(gap closure — blocked on Wave 7)*
+
+- [ ] 08-12-PLAN.md — Close CR-01: cancel the in-flight hint search on jump/undo, capture search inputs on the main thread, discard a result computed for a superseded board (DEBT-01)
 
 **Notes**: DEBT-01 and DEBT-02 are one unit of work — the per-board target that makes the Diamond proof reachable is the same field the solver's goal test reads. Deliberately sequenced early so it absorbs the Play Console / AdMob propagation wait rather than being squeezed at release.
 
