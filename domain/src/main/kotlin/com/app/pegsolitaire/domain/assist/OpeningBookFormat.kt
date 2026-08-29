@@ -46,8 +46,8 @@ import com.app.pegsolitaire.domain.model.Position
  *
  * ## Why this file is in `:domain` main
  *
- * The decoder must run in a shipped APK; the generator
- * (`golden/solutions/OpeningBookAuthoring`) must not. Putting the ENCODER here too — and
+ * The decoder must run in a shipped APK; the generator (the authoring tool under
+ * `domain/src/test/.../golden/solutions/`) must not. Putting the ENCODER here too — and
  * having the test-source authoring tool call it — is deliberate: a decoder in main with
  * an encoder in test is exactly how a wire format drifts, and the round-trip test in
  * `OpeningBookFormatTest` is only meaningful if both sides are the same code.

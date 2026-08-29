@@ -28,14 +28,22 @@ import java.io.File
  * through the unchanged [RulesEngine] is correct by construction. Precompute the answers
  * the runtime cannot reach.
  *
- * **What is proven, and what is not.** Every emitted entry is a *witness*: a first move
- * that begins a line this tool replayed, step by step, through
+ * **Three outcomes, never two.** Every emitted move entry is a *witness*: a first move
+ * beginning a line this tool replayed, step by step, through
  * [RulesEngine.legalMoves]/[RulesEngine.applyMove] down to the board's own
- * `spec.minimumPegs`. A position this tool could NOT decide is reported and fails the
- * run — it is never written as an authoritative "no winning move". Both searches used
- * here ([BeamSearchAuthoring] and [AuthoringSolver]) are incomplete at the budgets they
- * are given, so neither can prove unsolvability, and recording an unproven `-` would
- * reintroduce precisely the untruthful banner DEBT-01 exists to remove.
+ * `spec.minimumPegs`. Beyond that, a position is one of:
+ *
+ *  - **proven dead** — [ExhaustiveSearch] enumerated its entire subtree and found no line.
+ *    This earns the authoritative `-` marker, and saying so is truthful. A beam giving up
+ *    never earns it: [BeamSearchAuthoring] and [AuthoringSolver] both collapse "no line
+ *    exists" into the same `null` they use for "I did not find one", and recording an
+ *    unproven `-` would reintroduce precisely the untruthful banner DEBT-01 exists to
+ *    remove;
+ *  - **undecided, on a board whose [Policy] forbids a gap** — the run FAILS, loudly,
+ *    naming the board and masks;
+ *  - **undecided, on a board whose [Policy] allows a documented gap** — the position is
+ *    simply ABSENT. An absent entry is a book miss, and a miss falls through to the
+ *    runtime solver, so incompleteness costs latency and never truthfulness.
  */
 internal object OpeningBookAuthoring {
     /**
@@ -62,18 +70,123 @@ internal object OpeningBookAuthoring {
      * Generates and writes one book per fixture in [SolutionFixtures.ALL], returning the
      * report Task 3's blocking checkpoint reviews.
      *
-     * Fails — loudly, and without emitting that board's file — if any position could not
-     * be decided. RESEARCH assumption A2 ("every Wiegleb-45 position at depth ≤ K is
-     * actually winnable") is unverified, and this is where it gets verified.
+     * Fails — loudly, and without emitting that board's file — if a board whose policy
+     * does NOT allow a gap left any position undecided. RESEARCH assumption A2 ("every
+     * Wiegleb-45 position at depth ≤ K is actually winnable") is unverified, and this is
+     * where it gets verified.
      */
     fun writeBook(bookDir: File): BookReport {
         bookDir.mkdirs()
-        val report = BookReport(SolutionFixtures.ALL.map { fixture -> BoardAuthor(fixture).author(bookDir) })
+        val report =
+            BookReport(
+                SolutionFixtures.ALL.map { fixture ->
+                    BoardAuthor(fixture, POLICIES.getValue(fixture.name)).author(bookDir)
+                },
+            )
         println(report.render())
-        check(report.totalUndecided == 0) { report.undecidedFailure() }
+        val mustBeComplete = report.boards.filter { !POLICIES.getValue(it.board).allowGap }
+        check(mustBeComplete.all { it.undecided.isEmpty() }) {
+            BookReport(mustBeComplete).undecidedFailure()
+        }
         return report
     }
+
+    /**
+     * The cross boards. [ExhaustiveSearch] can finish here, so a beam failure becomes a
+     * proof rather than a gap. **Frozen** — English-33, European-37 and Asymmetric-39 are
+     * already committed against exactly these settings, and changing any of them would
+     * change their emitted files.
+     */
+    private val CROSS =
+        Policy(
+            fastWidths = listOf(500, 4_000),
+            deepWidths = listOf(32_000, 200_000),
+            exhaustiveCap = 4_000_000,
+            stitchPlies = 4,
+            stitchWidth = 1_500,
+            allowGap = false,
+        )
+
+    /**
+     * Diamond-41, under the **documented-gap** policy the developer chose at Task 3's
+     * checkpoint.
+     *
+     * Measured basis for giving up rather than grinding: 10 of the first 25 depth-4
+     * positions were undecided after the full CROSS cascade — beam widths 500 through
+     * 200 000 all failed and the exhaustive search cannot exhaust a ~10^11-position space
+     * — at ~48 s per position, which extrapolates to ~10.5 hours and roughly 300 undecided
+     * positions. So the expensive stages that were measured NOT to help are dropped: no
+     * exhaustive pass (it can never finish here) and no deep beams (200 000 already
+     * failed on these positions). What remains decides the large majority cheaply, and
+     * what it cannot decide is simply absent from the book — a miss, which falls through
+     * to the runtime solver, never a false "no winning move".
+     *
+     * Diamond-41 was itself a discretionary addition beyond DEBT-01's three named boards,
+     * so this gap does not narrow DEBT-01's scope.
+     */
+    private val DIAMOND_GAP =
+        Policy(
+            fastWidths = listOf(500, 4_000),
+            deepWidths = emptyList(),
+            exhaustiveCap = 0,
+            stitchPlies = 6,
+            stitchWidth = 2_000,
+            allowGap = true,
+        )
+
+    /**
+     * Wiegleb-45 — the board DEBT-01 actually exists for, so **no gap is permitted**: if
+     * this policy leaves anything undecided the run fails and the phase escalates.
+     *
+     * No exhaustive pass (its space is ~10^11, so the stage could only ever burn its cap
+     * and answer Unknown), and a deeper, wider stitch than the cross boards get: measured,
+     * Wiegleb's full solves are the most expensive of any board, so shifting work from the
+     * beam onto the stitch is where the leverage is.
+     */
+    private val WIEGLEB =
+        Policy(
+            fastWidths = listOf(500, 4_000),
+            deepWidths = listOf(32_000, 200_000),
+            exhaustiveCap = 0,
+            stitchPlies = 10,
+            stitchWidth = 3_000,
+            allowGap = false,
+        )
+
+    private val POLICIES =
+        mapOf(
+            "english33" to CROSS,
+            "european37" to CROSS,
+            "asymmetric39" to CROSS,
+            "diamond41" to DIAMOND_GAP,
+            "wiegleb45" to WIEGLEB,
+        )
 }
+
+/**
+ * Per-board authoring settings.
+ *
+ * These are NOT one global tuning knob, because the five boards are not one problem. The
+ * cross boards' spaces are small enough for [ExhaustiveSearch] to finish and prove a dead
+ * position; Diamond-41's and Wiegleb-45's (~10^11) never are, so running it there is pure
+ * waste. And the settings are frozen PER BOARD rather than shared for a hard reason: the
+ * emitted line depends on the cascade that found it, so changing a board's policy changes
+ * its file. Freezing them separately is what keeps an already-committed book
+ * byte-reproducible while a later board's policy is still being tuned.
+ *
+ * @property allowGap when `true`, positions this budget could not decide are OMITTED from
+ *   the book rather than failing the run. A missing entry is a book MISS, which falls
+ *   through to the runtime solver — the one safe way to be incomplete. It is never a
+ *   "no winning move" claim.
+ */
+private data class Policy(
+    val fastWidths: List<Int>,
+    val deepWidths: List<Int>,
+    val exhaustiveCap: Int,
+    val stitchPlies: Int,
+    val stitchWidth: Int,
+    val allowGap: Boolean,
+)
 
 /** One board's generation outcome — the row Task 3's checkpoint reads. */
 internal data class BoardReport(
@@ -83,6 +196,7 @@ internal data class BoardReport(
     val canonicalFrontierSize: Int,
     val prefixEntries: Int,
     val totalEntries: Int,
+    val canonicalCovered: Int,
     val provenDead: Int,
     val bytes: Int,
     val undecided: List<Long>,
@@ -103,16 +217,17 @@ internal data class BookReport(
     fun render(): String {
         val header =
             "| board | target | frontier (raw) | frontier (canonical) | prefix entries | " +
-                "total entries | proven dead | bytes | undecided | wall clock |"
-        val rule = "|---|---|---|---|---|---|---|---|---|---|"
+                "total entries | canonical covered | proven dead | bytes | undecided | wall clock |"
+        val rule = "|---|---|---|---|---|---|---|---|---|---|---|"
         val rows =
             boards.map { row ->
                 "| ${row.board} | ${row.target} | ${row.frontierSize} | ${row.canonicalFrontierSize} | " +
-                    "${row.prefixEntries} | ${row.totalEntries} | ${row.provenDead} | ${row.bytes} | " +
+                    "${row.prefixEntries} | ${row.totalEntries} | " +
+                    "${row.canonicalCovered}/${row.canonicalFrontierSize} | ${row.provenDead} | ${row.bytes} | " +
                     "${row.undecided.size} | ${row.wallClockMs} ms |"
             }
         val totals =
-            "| **total** | — | — | — | — | $totalEntries | $totalProvenDead | $totalBytes | " +
+            "| **total** | — | — | — | — | $totalEntries | — | $totalProvenDead | $totalBytes | " +
                 "$totalUndecided | $totalWallClockMs ms |"
         return (listOf("", "BOOK REPORT (k=${OpeningBookAuthoring.BOOK_DEPTH})", header, rule) + rows + totals)
             .joinToString("\n")
@@ -158,6 +273,7 @@ internal data class BookReport(
  */
 private class BoardAuthor(
     private val fixture: SolutionFixtures.Fixture,
+    private val policy: Policy,
 ) {
     private val spec = fixture.spec
     private val target = spec.minimumPegs
@@ -195,7 +311,7 @@ private class BoardAuthor(
         // and cost no search at all.
         layers.reversed().forEach { layer -> layer.forEach { mask -> decide(mask, frontier.size, started) } }
         val entries = collectEntries(frontier + prefixes)
-        val bytes = if (undecided.isEmpty()) emit(bookDir, entries) else 0
+        val bytes = if (policy.allowGap || undecided.isEmpty()) emit(bookDir, entries) else 0
         return BoardReport(
             board = fixture.name,
             target = target,
@@ -203,6 +319,7 @@ private class BoardAuthor(
             canonicalFrontierSize = canonicalSize,
             prefixEntries = prefixes.count { it !in frontier.toSet() },
             totalEntries = entries.size,
+            canonicalCovered = canonicalSizeOf(frontier.filter { it in entries }),
             provenDead = provenDead.size,
             bytes = bytes,
             undecided = undecided.toList(),
@@ -314,7 +431,7 @@ private class BoardAuthor(
         board: Board,
         mask: Long,
     ) {
-        val quick = stitch(board) ?: beamAt(board, FAST_WIDTHS)
+        val quick = stitch(board) ?: beamAt(board, policy.fastWidths)
         if (quick != null) {
             record(mask, quick)
         } else {
@@ -326,7 +443,7 @@ private class BoardAuthor(
         board: Board,
         mask: Long,
     ) {
-        when (val outcome = ExhaustiveSearch(spec, target, EXHAUSTIVE_CAP).run(board)) {
+        when (val outcome = runExhaustiveIfWorthwhile(board)) {
             is Exhaustive.Solved -> {
                 tally(STAGE_EXHAUSTIVE)
                 record(mask, outcome.line)
@@ -337,7 +454,7 @@ private class BoardAuthor(
                 provenDead.add(mask)
             }
 
-            Exhaustive.Unknown -> beamAt(board, DEEP_WIDTHS)?.let { line -> record(mask, line) }
+            Exhaustive.Unknown -> beamAt(board, policy.deepWidths)?.let { line -> record(mask, line) }
         }
     }
 
@@ -354,10 +471,10 @@ private class BoardAuthor(
         var frontier = listOf(PathNode(pegs = board.pegs, move = null, parent = null))
         var hit: PathNode? = null
         var ply = 0
-        while (hit == null && ply < STITCH_PLIES && frontier.isNotEmpty()) {
+        while (hit == null && ply < policy.stitchPlies && frontier.isNotEmpty()) {
             val next = ArrayList<PathNode>()
             frontier.forEach { node -> if (hit == null) hit = expandForStitch(node, seen, next) }
-            frontier = if (next.size > STITCH_WIDTH) next.subList(0, STITCH_WIDTH) else next
+            frontier = if (next.size > policy.stitchWidth) next.subList(0, policy.stitchWidth) else next
             ply++
         }
         if (hit != null) tally(STAGE_STITCH)
@@ -385,6 +502,20 @@ private class BoardAuthor(
         }
         return hit
     }
+
+    /**
+     * The exhaustive proof attempt, or [Exhaustive.Unknown] without running when this
+     * board's space makes exhaustion impossible ([Policy.exhaustiveCap] of 0). Skipping is
+     * not a shortcut: on Diamond-41 and Wiegleb-45 the search could only ever burn its cap
+     * and answer Unknown anyway, so running it would cost tens of seconds per position to
+     * learn nothing.
+     */
+    private fun runExhaustiveIfWorthwhile(board: Board): Exhaustive =
+        if (policy.exhaustiveCap <= 0) {
+            Exhaustive.Unknown
+        } else {
+            ExhaustiveSearch(spec, target, policy.exhaustiveCap).run(board)
+        }
 
     /** The first of [widths] that yields a full line to [target], or `null`. */
     private fun beamAt(
@@ -467,8 +598,21 @@ private class BoardAuthor(
         val header =
             "$COMMENT_PREFIX ${fixture.name} k=${OpeningBookAuthoring.BOOK_DEPTH} " +
                 "target=$target entries=${entries.size} proven-dead=${provenDead.size}"
+        // A gap board's absent positions are a documented, deliberate incompleteness, so
+        // the file says so in its own header rather than only in a plan document.
+        val gapNote =
+            if (undecided.isEmpty()) {
+                emptyList()
+            } else {
+                listOf(
+                    "$COMMENT_PREFIX DOCUMENTED GAP: ${undecided.size} of ${undecided.size + entries.size} " +
+                        "depth-<=${OpeningBookAuthoring.BOOK_DEPTH} positions are ABSENT from this book.",
+                    "$COMMENT_PREFIX An absent position is a book MISS and falls through to the runtime " +
+                        "solver. It is NOT a 'no winning move' claim.",
+                )
+            }
         val text =
-            (listOf(header) + entries.map { (mask, move) -> OpeningBookFormat.encodeEntry(mask, move) })
+            (listOf(header) + gapNote + entries.map { (mask, move) -> OpeningBookFormat.encodeEntry(mask, move) })
                 .joinToString(separator = LINE_SEPARATOR, postfix = LINE_SEPARATOR)
         val file = File(bookDir, "${fixture.name}$FILE_INFIX${OpeningBookAuthoring.BOOK_DEPTH}$FILE_SUFFIX")
         file.writeText(text)
@@ -518,34 +662,6 @@ private class BoardAuthor(
          * outright, while Wiegleb-45 needs 32 000 or more. Paying the widest beam for
          * every position would multiply the run by two orders of magnitude.
          */
-        val FAST_WIDTHS = listOf(500, 4_000)
-
-        /** Tried only after [ExhaustiveSearch] came back Unknown — the genuinely hard tail. */
-        val DEEP_WIDTHS = listOf(32_000, 200_000)
-
-        /**
-         * Canonical positions [ExhaustiveSearch] may memoise before it gives up and
-         * answers Unknown.
-         *
-         * Sized from the published figure for the English central game: ~23.5M reachable
-         * positions, ~3.3M up to its order-8 symmetry. A depth-4 English-33 subtree is a
-         * strict subset of that, so 4M is enough to EXHAUST it and turn a beam failure
-         * into a proof. Diamond-41 and Wiegleb-45 are ~10^11 positions and will always cut
-         * off here — deliberately: the cap is what stops an unprovable board from eating
-         * the run, and Unknown is an honest answer where a guess would not be.
-         */
-        const val EXHAUSTIVE_CAP = 4_000_000
-
-        /**
-         * The stitch probe's shape. Deliberately small: a stitch that is going to succeed
-         * almost always succeeds within a ply or two, so extra plies and extra width buy
-         * nothing on a hit and are pure waste on a miss — and a miss is what every
-         * position pays before the beam even starts. Measured: at 7 plies x 20 000 the
-         * failed probe alone dominated the run (English-33 had not finished its 373
-         * positions in 11 minutes); at 4 x 1 500 it is a few milliseconds.
-         */
-        const val STITCH_PLIES = 4
-        const val STITCH_WIDTH = 1_500
         const val COMMENT_PREFIX = "#"
         const val LINE_SEPARATOR = "\n"
         const val FILE_INFIX = "-k"
