@@ -3,6 +3,7 @@ package com.app.pegsolitaire.domain.usecase
 import com.app.pegsolitaire.domain.generator.LevelGenerator
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardSpec
+import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.Move
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
@@ -107,6 +108,39 @@ class GetHintUseCaseTest {
 
         assertThat(move).isNotEqualTo(bogus)
         assertThat(move).isNotNull()
+        assertThat(RulesEngine.legalMoves(board)).contains(move)
+    }
+
+    /**
+     * **The DEBT-01 headline case.** Wiegleb-45's start is the shipped board whose one-peg
+     * line is a committed fixture — it is provably winnable — yet RESEARCH measured
+     * **0 of 76** of its depth-≤4 positions resolving inside the 1.5s deadline even at
+     * ~15M nodes/s, the start included. Before the book was wired in, asking for a hint
+     * here produced the "no winning move" rescue banner on a position that has a proven
+     * winning move: a flat lie, and the defect this requirement exists to remove.
+     *
+     * The spy is the load-bearing part. `shouldCancel` returning `true` would force the
+     * Solver to `null`, so a NON-NULL result with ZERO polls is a *proof* that the Solver
+     * branch was never entered — not an inference from timing.
+     */
+    @Test
+    fun theWiegleb45StartIsAnsweredFromTheBookWithoutTheSolverEverRunning() {
+        val board = Boards.wiegleb45Initial
+        var solverPolled = 0
+
+        val move =
+            useCase(
+                board = board,
+                solution = null,
+                movesPlayed = 0,
+                shouldCancel = {
+                    solverPolled++
+                    true
+                },
+            )
+
+        assertThat(move).isNotNull()
+        assertThat(solverPolled).isEqualTo(0)
         assertThat(RulesEngine.legalMoves(board)).contains(move)
     }
 
