@@ -11,7 +11,9 @@ import kotlin.time.Duration.Companion.milliseconds
  *   the search may memoise CUMULATIVELY, across every restart attempt, before it stops
  *   expanding and reports "no move found" (folded to `null` per D-04). The forward peg
  *   count is strictly monotone-decreasing, so the search space is finite; this cap makes
- *   the WORST case bounded in memory as well as time.
+ *   the WORST case bounded in TIME. Memory is bounded separately, by
+ *   [perAttemptMaxNodes]: the search memo is per attempt and is discarded between
+ *   restarts, so peak heap tracks the largest single attempt rather than this total.
  * @property deadline the wall-clock ceiling the CALLER enforces via the
  *   `shouldCancel` lambda it passes to the Solver. The domain stays coroutine-free —
  *   [Duration] is pure-JVM ([kotlin.time]) and carried here only as data; the
@@ -68,10 +70,14 @@ data class SolverBudget(
          * Asymmetric-39's in ~59 ms across 2 attempts at a 200k cap versus ~235 ms
          * unbounded.
          *
+         * **This is also the memory knob.** The search memo is per attempt and discarded
+         * between restarts, so peak heap tracks the largest single attempt — this value
+         * grown by `Solver.MAX_CAP_ESCALATIONS` doublings — not [DEFAULT_MAX_NODES].
+         *
          * **Standing instruction.** This is a RESTART-FREQUENCY knob, not a safety ceiling.
          * Lowering it makes restarts more frequent and each attempt shallower; raising it
-         * approaches the old single-dive behaviour. Tune it against measured full-start
-         * latency, and leave [DEFAULT_MAX_NODES] alone when you do.
+         * approaches the old single-dive behaviour AND raises peak memory. Tune it against
+         * measured full-start latency, and leave [DEFAULT_MAX_NODES] alone when you do.
          */
         const val DEFAULT_PER_ATTEMPT_MAX_NODES = 200_000L
 

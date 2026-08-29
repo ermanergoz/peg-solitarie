@@ -86,6 +86,25 @@ object Solver {
      */
     private const val ATTEMPT_CAP_GROWTH = 2L
 
+    /**
+     * How many times the attempt cap may double before it stops growing.
+     *
+     * **This bound is what actually bounds MEMORY.** The memo ([VisitedSet]) is per
+     * ATTEMPT and is discarded between restarts, so peak memory tracks the largest single
+     * attempt, never [SolverBudget.maxNodes]. Letting the escalation run all the way to
+     * that cumulative ceiling means a 40M-entry memo — a 1 GB `long[]`, and ~1.5 GB while
+     * it doubles — which is a heap exhaustion on a phone rather than a bounded worst case.
+     * Observed: a Diamond-41 search with no caller deadline and an unbounded escalation
+     * dies in `VisitedSet.grow` with `OutOfMemoryError`.
+     *
+     * Four doublings puts the largest attempt at 16x [SolverBudget.perAttemptMaxNodes]
+     * (3.2M positions, a ~67 MB memo) — comfortably above the deepest dive the corpus
+     * needs (Wiegleb-45's mid-line position at ~830k) and above what the 1.5s deadline can
+     * afford at the measured node rate anyway, so the bound costs nothing in production
+     * while restoring the memory guarantee (threat T-08-14).
+     */
+    private const val MAX_CAP_ESCALATIONS = 4
+
     /** Distinct (symmetry-canonical) positions explored by the deciding search attempt (diagnostics). */
     var lastVisited: Long = 0
         private set
@@ -130,7 +149,7 @@ object Solver {
         var result: Move? = null
         var attempt = 0
         var totalVisited = 0L
-        var attemptCap = budget.perAttemptMaxNodes
+        var attemptCap = minOf(budget.perAttemptMaxNodes, budget.maxNodes)
         while (attempt < MAX_ATTEMPTS && totalVisited < budget.maxNodes) {
             val cap = minOf(attemptCap, budget.maxNodes - totalVisited)
             val search = WinningLineSearch(board.spec, tables, cap, shouldCancel, ATTEMPT_SEED_BASE + attempt)
@@ -140,7 +159,7 @@ object Solver {
             result = line?.firstOrNull()
             val provenUnsolvable = line == null && !search.cancelled && !search.hitBudget
             if (result != null || search.cancelled || provenUnsolvable) break
-            attemptCap = escalate(attemptCap, budget.maxNodes)
+            if (attempt < MAX_CAP_ESCALATIONS) attemptCap = escalate(attemptCap, budget.maxNodes)
             attempt++
         }
         return result
