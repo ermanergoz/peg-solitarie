@@ -19,19 +19,38 @@ import org.junit.Test
  * [SolverBudget.DEFAULT_MAX_NODES] keeps [HEADROOM_FACTOR]x node headroom over the
  * largest deciding search it performs.
  *
- * **Why not every prefix of every board?** Measured node/time facts (see
- * `04-02-SUMMARY.md`): node cost is high-variance even on the smallest board — english33
- * decides most positions in <1s but one mid-line prefix needs ~2.2M nodes (~8.9s), and
- * the *early* positions of the larger footprints are worse (european37's 36-peg start
- * ~2.2M nodes / ~7.7s; the 38/44-peg asymmetric39 / wiegleb45 starts do not resolve
- * inside 8s). Jittered restarts do NOT reliably shortcut these. In PRODUCTION such
- * positions are governed by [SolverBudget.DEFAULT_DEADLINE] (1.5s), not the node cap, and
- * D-04 folds a deadline miss to the "no winning move" state — a documented capability
- * envelope, not a solver bug. So CI measures what the Solver is reliably relied on to
- * decide fast: the reference board [REFERENCE_BOARD]'s full-footprint start plus every
- * board's cheap [ENDGAME_DEPTH]-move endgame tail. Each solve carries a hard
+ * **Why not every prefix of every board?** Node cost is high-variance, and the *early*
+ * positions of the larger footprints are the expensive ones — Wiegleb-45's start does not
+ * resolve at this deadline at all, by four orders of magnitude (RESEARCH), and
+ * Diamond-41's sits right on it because [Pagoda]'s prune is provably vacuous at a two-peg
+ * target. In PRODUCTION such positions are governed by [SolverBudget.DEFAULT_DEADLINE]
+ * (1.5s), not the node cap, and D-04 folds a deadline miss to the "no winning move"
+ * state — a documented capability envelope, not a solver bug, and the one the committed
+ * opening book (plans 08-08..08-10) closes. So CI measures what the Solver is reliably
+ * relied on to decide fast: the reference board [REFERENCE_BOARD]'s full-footprint start
+ * plus every board's cheap [ENDGAME_DEPTH]-move endgame tail. Each solve carries a hard
  * [PER_CALL_CAP_MS] wall-clock guard, so the whole suite is bounded regardless of
  * machine; a tripped guard is a real regression, not flake.
+ *
+ * **What `lastVisited` counts after the 08-05 bitboard rewrite (RESEARCH Pitfall 2).**
+ * Unchanged in meaning: the distinct SYMMETRY-CANONICAL positions memoised by the
+ * attempt that decided the position. The rewrite changed what a node costs — three mask
+ * operations and no allocation, instead of a `List<Move>` sort plus a `Board` copy — and
+ * added a per-attempt cap, but neither changes the unit being counted. What it DOES move
+ * is the number itself, because the deciding attempt is now typically a later, cheaper
+ * restart rather than one long dive. Re-measured over this corpus the maximum is ~48k
+ * (english33's full start), leaving ~836x headroom against the unchanged 40M ceiling, so
+ * [SolverBudget.DEFAULT_MAX_NODES] was neither raised nor lowered. Pitfall 2's standing
+ * instruction still binds the next reader: if the measurement ever exceeds the
+ * [HEADROOM_FACTOR]x band, RAISE the ceiling and record the new measurement in its KDoc —
+ * never lower [HEADROOM_FACTOR] and never weaken the assertion.
+ *
+ * **The corpus is [SolutionFixtures.ALL] again.** Plan 08-06 narrowed it to the four
+ * one-peg boards while the solver still searched for a hardcoded one-peg terminal, which
+ * Diamond-41 (proven floor two) can never reach. The goal test now reads
+ * [com.app.pegsolitaire.domain.model.BoardSpec.minimumPegs], so the diamond's endgame
+ * tail is a legitimate "must decide fast" case and is measured here like every other
+ * board's.
  */
 class SolverBudgetTest {
     @Test
@@ -54,18 +73,16 @@ class SolverBudgetTest {
             maxObservedNodes = maxOf(maxObservedNodes, Solver.lastVisited)
         }
 
-        // ONE_PEG, not ALL: this asserts a solvable position returns a MOVE, and the
-        // Solver's goal is still a single peg — Diamond-41 has none to return until
-        // plan 08-05 generalises the goal test.
-        SolutionFixtures.ONE_PEG.forEach { fixture ->
+        SolutionFixtures.ALL.forEach { fixture ->
             val line = RecordedSolutions.load(fixture.name)
             val start = SolverSamples.startBoard(fixture)
             // Every board's cheap endgame tail must decide fast — that is where a finishing
             // hint matters most and where the Solver fallback is reliably inside the
             // deadline. The small reference board additionally decides its full-footprint
             // START fast; the larger boards' early positions are deadline-governed in
-            // production (see class KDoc) and are exercised by 04-03's ViewModel
-            // integration and the 04-05 playtest, not by this fast CI gate.
+            // production (see class KDoc) and are exercised by SolverTest's full-start
+            // cases, 04-03's ViewModel integration and the 04-05 playtest, not by this
+            // fast CI gate.
             if (fixture.name == REFERENCE_BOARD) decide(start, "${fixture.name}@start")
             for (prefixLength in maxOf(0, line.size - ENDGAME_DEPTH) until line.size) {
                 val board = SolverSamples.replay(start, line.take(prefixLength))
