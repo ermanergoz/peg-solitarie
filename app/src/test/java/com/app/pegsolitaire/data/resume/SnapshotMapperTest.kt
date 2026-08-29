@@ -318,7 +318,7 @@ class SnapshotMapperTest {
             {"mode":"${ProgressPersistenceKeys.MODE_CLASSIC}","levelId":"$CLASSIC_LEVEL_ID",
             "inPlay":[$footprint],"targetRow":${target?.row},"targetCol":${target?.col},
             "initialPegs":${board.pegs},"moves":[],"elapsedMs":$ELAPSED_MS}
-        """.trimIndent().replace("\n", "")
+            """.trimIndent().replace("\n", "")
     }
 
     /** A footprint no Classic catalog entry carries — the Challenge freeform case. */
