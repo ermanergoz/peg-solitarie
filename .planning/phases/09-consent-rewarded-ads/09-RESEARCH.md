@@ -924,7 +924,7 @@ Decode through `AssistAllowance.fromStoredOrFull(...)`, which also rejects out-o
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED — see CONTEXT.md D-17/D-18/D-19 and Claude's-Discretion decisions adopted by the plans)
 
 1. **Where do the allowance counters actually live?**
    - *What we know:* D-04 says "carried in the resume snapshot" and "retrying does NOT refill". `resetToInitial()` calls `clearSnapshot()`.
