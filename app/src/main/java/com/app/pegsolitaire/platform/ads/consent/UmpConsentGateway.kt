@@ -62,9 +62,31 @@ class UmpConsentGateway
     constructor(
         @param:ApplicationContext private val appContext: Context,
         private val activityProvider: ForegroundActivityProvider,
-        private val consentInformation: ConsentInformation,
         @param:ApplicationScope private val scope: CoroutineScope,
     ) : ConsentGateway {
+        /**
+         * The process-wide consent-information handle, obtained here rather than injected.
+         *
+         * **This is deliberately not a Hilt binding, and the reason is a build gate.**
+         * `PlatformBoundaryRules.onlyPlatformDependsOnPlaySdks` reads bytecode, and Hilt's
+         * generated `DaggerApp_HiltComponents_SingletonC` lives in the *root* package —
+         * outside `..platform..`. A `@Provides` returning this type therefore plants a
+         * `Provider<ConsentInformation>` field in that generated class and fails the rule,
+         * no matter which module declares the provider. Verified empirically: the module
+         * was written inside `..platform..` first and the gate still went red. Moving the
+         * module is not the fix; keeping the type out of the graph entirely is.
+         *
+         * Any future ads-SDK type — a rewarded-ad loader, an initialization config — hits
+         * exactly the same wall. Construct it behind a platform-owned seam like this one,
+         * never `@Provides` it.
+         *
+         * `by lazy` rather than an initializer so the consent SDK is not touched merely by
+         * Hilt constructing this singleton; nothing loads until [bootstrap] runs.
+         */
+        private val consentInformation: ConsentInformation by lazy {
+            UserMessagingPlatform.getConsentInformation(appContext)
+        }
+
         private val _readiness = MutableStateFlow(AdsReadiness.Unknown)
         private val _privacyOptionsRequired = MutableStateFlow(false)
 
