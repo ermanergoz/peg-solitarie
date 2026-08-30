@@ -10,29 +10,56 @@ package com.app.pegsolitaire.domain.scoring
  */
 object ScoreParams {
     /**
-     * Max pegs remaining for a 3-star result (D-01). At or below this count the
-     * board scores 3 stars; the boundary is 1 peg (a textbook perfect solve),
-     * so `stars(0)` and `stars(1)` both yield 3.
+     * The DEFAULT "perfect finish" peg target (D-01), used by [ScoreCalculator.stars]
+     * and [ScoreCalculator.evaluate] when the caller has no board in hand. At or below
+     * this count the board scores 3 stars; the boundary is 1 peg (a textbook perfect
+     * solve), so `stars(0)` and `stars(1)` both yield 3.
+     *
+     * Since DEBT-02 the 3-star boundary is no longer globally fixed: it is the
+     * FINISHING BOARD's own `BoardSpec.minimumPegs`, and this constant is only the
+     * fallback for boards that reduce to a single peg. It is equal by construction to
+     * `BoardConstants.MINIMUM_PEGS_DEFAULT` — the same number viewed from the scoring
+     * side rather than the model side. (`:domain`'s scoring package deliberately does
+     * not import the model package for this: the two are independently-motivated
+     * constants that happen to coincide, and a test asserts they still do.)
      */
     const val THREE_STAR_MAX_PEGS = 1
 
     /**
-     * Max pegs remaining for a 2-star result (D-01). Pegs remaining in the 2-3
-     * band score 2 stars.
+     * How many pegs WIDE the 2-star band is, measured above the board's perfect
+     * finish (D-04).
+     *
+     * This is the band SHAPE, and it is global: re-anchoring a board changes where
+     * the 2-star band SITS, never how wide it is. English-33's perfect finish is 1 peg
+     * so its 2-star band is 2-3; Diamond-41's proven floor is 2 pegs
+     * (`BoardConstants.DIAMOND41_FEWEST_PEGS_FLOOR`) so its band is 3-4. Same width,
+     * different anchor.
      */
-    const val TWO_STAR_MAX_PEGS = 3
+    const val TWO_STAR_BAND_WIDTH = 2
 
     /**
-     * The star floor (D-01). More than [TWO_STAR_MAX_PEGS] pegs remaining still
-     * earns this many stars — never 0 (D-01 overrides spec §7 to avoid punishing
-     * an honest finish with a blank result).
+     * Max pegs remaining for a 2-star result on a board whose perfect finish is the
+     * default one peg (D-01).
+     *
+     * DERIVED from [THREE_STAR_MAX_PEGS] + [TWO_STAR_BAND_WIDTH] rather than written
+     * as a standalone `3`, so the boundary and its anchor cannot drift apart: moving
+     * either the anchor or the width now moves this value with it. [ScoreCalculator]
+     * computes the same sum against the board's own target instead of reading this,
+     * so this constant exists for callers reasoning about the legacy global bands.
+     */
+    const val TWO_STAR_MAX_PEGS = THREE_STAR_MAX_PEGS + TWO_STAR_BAND_WIDTH
+
+    /**
+     * The star floor (D-01). More than [TWO_STAR_BAND_WIDTH] pegs above the board's
+     * perfect finish still earns this many stars — never 0 (D-01 overrides spec §7 to
+     * avoid punishing an honest finish with a blank result).
      */
     const val MIN_STARS = 1
 
-    /** Stars awarded in the top band (`<= `[THREE_STAR_MAX_PEGS] pegs, D-01). */
+    /** Stars awarded in the top band (at or below the board's perfect finish, D-01/D-04). */
     const val THREE_STARS = 3
 
-    /** Stars awarded in the middle band (2-3 pegs, D-01). */
+    /** Stars awarded in the middle band (the [TWO_STAR_BAND_WIDTH] pegs above it, D-01/D-04). */
     const val TWO_STARS = 2
 
     /** Points awarded per peg cleared (D-03 — the peg-base term of the score). */

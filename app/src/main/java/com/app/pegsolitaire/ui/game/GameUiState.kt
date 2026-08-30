@@ -144,13 +144,13 @@ data class GameUiState(
 
         /**
          * The transient loading state shown while a Challenge board is generated off
-         * the main thread (CR-01). It carries an empty placeholder board (the screen
-         * renders a progress indicator, not the board, while [isLoading]) so the state
-         * stays a total, non-null value — no board logic runs against it.
+         * the main thread (CR-01). It carries a degenerate placeholder board (the
+         * screen renders a progress indicator, not the board, while [isLoading]) so
+         * the state stays a total, non-null value — no board logic runs against it.
          */
         fun loading(): GameUiState =
             GameUiState(
-                board = Board(spec = EMPTY_SPEC, pegs = 0L),
+                board = Board(spec = PLACEHOLDER_SPEC, pegs = 0L),
                 selected = null,
                 legalTargets = emptyList(),
                 status = GameStatus.Playing,
@@ -172,7 +172,16 @@ data class GameUiState(
                 rejectedTapTick = 0,
             )
 
-        /** An empty footprint backing the [loading] placeholder board (no in-play cells). */
-        private val EMPTY_SPEC = BoardSpec(inPlay = emptyList(), target = null)
+        /**
+         * The smallest well-formed footprint, backing the [loading] placeholder board.
+         *
+         * Deliberately one cell rather than zero: `BoardSpec` requires every footprint
+         * to admit an achievable finish (`minimumPegs in 1..size`, threat T-08-01), and
+         * a zero-cell spec has none. The placeholder is never rendered and never played
+         * — `GameScreen` shows a progress indicator while `isLoading` — and it carries
+         * `pegs = 0L`, so the board still reports a peg count of 0.
+         */
+        private val PLACEHOLDER_SPEC =
+            BoardSpec(inPlay = listOf(Position(row = 0, col = 0)), target = null)
     }
 }

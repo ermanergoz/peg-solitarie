@@ -39,6 +39,18 @@ import kotlinx.serialization.Serializable
  * @property initialPegs The peg bitmask of the **initial** board (pre-history).
  * @property moves The complete move history, oldest first.
  * @property elapsedMs Wall-clock milliseconds already spent on this game.
+ * @property minimumPegs The board's "perfect finish" peg target (`BoardSpec.minimumPegs`,
+ *   DEBT-02) — 1 for the cross boards and every generated footprint, 2 for Diamond-41.
+ *
+ *   **On-disk contract:** `null` means "written before per-board targets existed", NOT
+ *   "the target is 1". The distinction is Pitfall 3: [SnapshotMapper] rebuilds a spec
+ *   *structurally* from this blob rather than re-resolving it from the catalog, so
+ *   defaulting an absent value would silently demote every already-stored Diamond-41
+ *   game to a one-peg target — permanently `null` hints and mis-banded stars.
+ *   [SnapshotMapper] resolves absence from `Boards.CLASSIC_SPECS` by footprint instead.
+ *   Nullable-with-a-default is also what keeps today's saved games decodable at all:
+ *   the writer's `ignoreUnknownKeys` covers the forward direction, this covers the
+ *   backward one.
  */
 @Serializable
 data class ResumeSnapshotDto(
@@ -52,6 +64,7 @@ data class ResumeSnapshotDto(
     val initialPegs: Long,
     val moves: List<IntArray>,
     val elapsedMs: Long,
+    val minimumPegs: Int? = null,
 )
 
 /**
