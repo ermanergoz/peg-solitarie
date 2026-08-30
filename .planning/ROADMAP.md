@@ -165,7 +165,7 @@ Plans:
 
 **Wave 8** *(gap closure — blocked on Wave 7)*
 
-- [ ] 08-12-PLAN.md — Close CR-01: cancel the in-flight hint search on jump/undo, capture search inputs on the main thread, discard a result computed for a superseded board (DEBT-01)
+- [x] 08-12-PLAN.md — Close CR-01: cancel the in-flight hint search on jump/undo, capture search inputs on the main thread, discard a result computed for a superseded board (DEBT-01)
 
 **Notes**: DEBT-01 and DEBT-02 are one unit of work — the per-board target that makes the Diamond proof reachable is the same field the solver's goal test reads. Deliberately sequenced early so it absorbs the Play Console / AdMob propagation wait rather than being squeezed at release.
 
@@ -284,7 +284,7 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 5. Persistence, Resume & Settings | v1.0 | 7/7 | Complete | 2026-08-25 |
 | 6. Platform Foundation & Build Hardening | v1.1 | 10/10 | Complete   | 2026-08-27 |
 | 7. Sound | v1.1 | 6/6 | Complete   | 2026-08-28 |
-| 8. Assist & Generator Quality Debt | v1.1 | 11/11 | Complete   | 2026-08-29 |
+| 8. Assist & Generator Quality Debt | v1.1 | 12/12 | Complete   | 2026-08-30 |
 | 9. Consent & Rewarded Ads | v1.1 | 0/TBD | Not started | - |
 | 10. Interstitials | v1.1 | 0/TBD | Not started | - |
 | 11. Play Games Session | v1.1 | 0/TBD | Not started | - |
