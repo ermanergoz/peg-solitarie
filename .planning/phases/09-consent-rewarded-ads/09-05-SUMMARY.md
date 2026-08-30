@@ -179,6 +179,10 @@ None in this plan. **But note for plan 09-11:** device verification of CONS-01/0
 
 **Concern for the phase verifier:** nothing in this plan is covered by an automated behavioural test — `UmpConsentGateway` is device-only, and the plan deliberately assigns CONS-01/02/03 device verification to plan 09-11. The gates proved here are structural (boundary containment, manifest surface, offline invariant, lint), not behavioural.
 
+## Self-Check: PASSED
+
+All claimed artifacts verified present on disk (`UmpConsentGateway.kt`, `AdsModule.kt`, this file) and all four claimed commits verified in `git log` (`75d3d8b`, `9bd3975`, `a28b80b`, `44ebf74`). Working tree clean. No modifications made to `STATE.md` or `ROADMAP.md` — the orchestrator owns those.
+
 ---
 *Phase: 09-consent-rewarded-ads*
 *Completed: 2026-08-31*
