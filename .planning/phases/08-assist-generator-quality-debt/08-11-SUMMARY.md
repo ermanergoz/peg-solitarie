@@ -248,5 +248,34 @@ None — no external service configuration required. (Real ad/PGS IDs remain an 
 - Task 3 recorded as NOT performed, with no claim of device verification anywhere in this document.
 
 ---
+
+## Device Audit Outcome (added 2026-08-30, closing the deferred Task 3)
+
+The deferred on-device audit was performed on **physical Android hardware** on 2026-08-30
+(debug build including the post-review WR-01 fix). Itemised results, per the todo's
+"per item, never globally" rule:
+
+| Item | Result | Note |
+|------|--------|------|
+| 1a | approved | Wiegleb-45 immediate hint answered, no banner |
+| 1b | approved | four consecutive on-line hints answered |
+| 1c | approved | repeated on European-37 and Asymmetric-39 |
+| 1d | approved | deliberate blunder → banner (correct), rescue undo → hint answers again |
+| 2a | approved | Diamond-41 opening hint effectively instant |
+| 2b | approved | on-line hints stay instant |
+| 2c | approved | off-line deviation → banner at move 6 on Diamond-41 and Wiegleb-45 — matches the documented 444-gap/budgeted-search boundary; no device warming, no full-1.5s burns in normal play |
+| 3a | approved | followed hints to the floor: 2 pegs, no moves — Results appeared immediately |
+| 3b | approved (3★ band); discrepancy recorded | 2 pegs → 3 stars confirmed. The 2★/1★ rows are untestable: Stuck routes to the rescue banner, never Results — see todo `2026-08-30-decide-whether-stuck-finishes-reach-results-1-2-stars.md` |
+| 3c | approved | cross-board finish at 1 peg shows Results as before |
+| 4a | approved | force-stop mid-Diamond game |
+| 4b | approved | Continue → hint still answers (per-board target survived resume) |
+| 5a | approved | book byte-intact in release APK (cmp exit 0, all 5 entries) |
+| 5b | approved | ~11.6 KB packaged cost (~0.56% of APK) |
+| 5c | approved | `check` + `:domain:depthSweep` green on post-WR-01 tree, 11m07s |
+
+Full record: `08-HUMAN-UAT.md` (status: passed). The device todo is closed to
+`.planning/todos/completed/`.
+
+---
 *Phase: 08-assist-generator-quality-debt*
 *Completed: 2026-08-30*
