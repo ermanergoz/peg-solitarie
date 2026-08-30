@@ -267,6 +267,29 @@ class GameViewModel
         private var hintJob: Job? = null
 
         /**
+         * Cancels the in-flight hint search, if any. THE single cancellation idiom — every
+         * site that would otherwise leave a search running against a board the player has
+         * left calls this, so there are not two idioms that can drift apart.
+         *
+         * **Every site that mutates the board MUST call it (CR-01).** A hint search can
+         * legitimately run the full [SolverBudget.deadline], and the board stays tappable
+         * throughout — `GameScreen` disables only the Hint control — so a jump or an undo
+         * made mid-search would otherwise land its result on a board it was never computed
+         * for: a glow over a cell the player has already vacated, or a "no winning move"
+         * banner raised on a position that was never searched.
+         *
+         * **The caller owes the flag.** Cancelling the job also kills the
+         * `solverThinking = false` write inside it, and `HintControl` renders
+         * `enabled = false` while that flag is true — so the cancelling site MUST clear
+         * [GameUiState.solverThinking] in the same state update. An uncleared flag disables
+         * Hint for the rest of the game, which is a worse regression than the race.
+         */
+        private fun cancelHintSearch() {
+            hintJob?.cancel()
+            hintJob = null
+        }
+
+        /**
          * The Challenge recorded winning line (D-03), captured by the async [init] load;
          * `null` for Classic (which has no recorded line and always uses the Solver).
          */
@@ -339,6 +362,11 @@ class GameViewModel
             // Capture the recorded winning line so the hint can serve it instantly
             // while the player stays on it (D-03); Classic leaves solution null.
             solution = level.solution
+            // Installing a board mutates it, so the CR-01 contract applies here too
+            // (WR-01): kill any search launched against the loading placeholder. The
+            // "caller owes the flag" obligation is met by the rebuild itself —
+            // GameUiState.initial() carries solverThinking = false.
+            cancelHintSearch()
             _uiState.update {
                 GameUiState
                     .initial(level.initialBoard)
@@ -386,6 +414,9 @@ class GameViewModel
                     Boards.english33Initial
                 }
             initialBoard = board
+            // Board-install = board mutation, so the CR-01 idiom applies (WR-01); the
+            // GameUiState.initial() rebuild below clears solverThinking for us.
+            cancelHintSearch()
             _uiState.update {
                 GameUiState
                     .initial(board)
@@ -424,6 +455,9 @@ class GameViewModel
             moveHistory.addAll(restored.moveHistory)
             onRecordedLine = false
             elapsedBaseSeconds = (restored.elapsedMs / MILLIS_IN_SECOND).toInt()
+            // Board-install = board mutation, so the CR-01 idiom applies (WR-01); the
+            // GameUiState.initial() rebuild below clears solverThinking for us.
+            cancelHintSearch()
             _uiState.update {
                 GameUiState
                     .initial(restored.currentBoard)
@@ -598,6 +632,10 @@ class GameViewModel
                 rulesEngine
                     .legalMoves(board)
                     .firstOrNull { it.from == from && it.to == to } ?: return
+            // CR-01: the board is about to change under any running hint search, so cancel
+            // it here — AFTER the legal-move guard above, deliberately. A tap that turns
+            // out not to be a legal jump changes no board and must not kill a live search.
+            cancelHintSearch()
             val nextBoard = rulesEngine.applyMove(board, move)
             moveHistory.add(move)
             // Deviation is permanent (D-03): once a played move differs from the recorded
@@ -625,53 +663,75 @@ class GameViewModel
                     status = status,
                     animating = transition,
                     canUndo = moveHistory.isNotEmpty(),
-                    // A new move invalidates any shown hint / no-win state.
+                    // A new move invalidates any shown hint / no-win state, and the
+                    // cancelHintSearch() above killed the in-flight search's own
+                    // solverThinking write — so this update owes the control its idle
+                    // state back, or Hint stays disabled for the rest of the game (CR-01).
                     hintSource = null,
                     hintTarget = null,
                     noWinningMove = false,
+                    solverThinking = false,
                     // A dead-end board becomes a rescuable in-board state (D-06): flag it for
                     // the banner instead of auto-navigating. Won never sets this (it routes
                     // to Results); any non-terminal board clears it.
                     stuck = status == GameStatus.Stuck,
                 )
             }
-            // A terminal status FREEZES the timer for BOTH Won and Stuck (D-04). Only Won
-            // emits the one-shot finish (Pitfall 4) → Results; Stuck is now rescuable via
-            // Undo (D-06) and deliberately emits nothing / never sets finishedEmitted.
-            if (status != GameStatus.Playing) {
-                tickerJob?.cancel()
-                tickerJob = null
-                if (status == GameStatus.Won && !finishedEmitted) {
-                    finishedEmitted = true
-                    // A solved game is not resumable: drop this mode's snapshot so the Home
-                    // Continue affordance can never point at a board that is already over
-                    // (D-05). Both modes clear — the latch keeps it to once per solve.
-                    clearSnapshot()
-                    // Only a SOLVE unlocks the next Challenge level (D-02: no skipping) —
-                    // Classic (activeChallengeLevel == null) and Stuck never advance. The
-                    // advance is keyed to the SOLVED level — the restored stamp when there
-                    // is one (WR-03) — and idempotent at the store (max(current, N+1)), so
-                    // a re-solve of the same board — back from Results, undo (which resets
-                    // finishedEmitted), re-jump — can never skip a level (CR-02); the
-                    // write is transactional inside ChallengeProgress.
-                    val solvedChallengeLevel = activeChallengeLevel
-                    if (solvedChallengeLevel != null) {
-                        challengeProgress.advancePast(solvedChallengeLevel)
-                    }
-                    val pegsRemaining = nextBoard.pegCount
-                    // A jump can only fire once the board is loaded, so initialBoard is
-                    // non-null here; fall back to the current count defensively.
-                    val startingPegCount = initialBoard?.pegCount ?: pegsRemaining
-                    _finished.trySend(
-                        scoreCalculator.evaluate(
-                            pegsRemaining = pegsRemaining,
-                            pegsCleared = startingPegCount - pegsRemaining,
-                            elapsedSeconds = _uiState.value.elapsedSeconds,
-                            levelMultiplier = levelMultiplier,
-                        ),
-                    )
-                }
+            freezeAndFinishIfTerminal(status, nextBoard)
+        }
+
+        /**
+         * The post-jump terminal handling, split out of [performJump] so committing the move
+         * and reacting to the resulting status are two readable steps rather than one long
+         * one. Behaviour is unchanged from when this was inline.
+         *
+         * A terminal status FREEZES the timer for BOTH Won and Stuck (D-04). Only Won emits
+         * the one-shot finish (Pitfall 4) → Results; Stuck is rescuable via Undo (D-06) and
+         * deliberately emits nothing / never sets [finishedEmitted].
+         */
+        private fun freezeAndFinishIfTerminal(
+            status: GameStatus,
+            nextBoard: Board,
+        ) {
+            if (status == GameStatus.Playing) return
+            tickerJob?.cancel()
+            tickerJob = null
+            if (status != GameStatus.Won || finishedEmitted) return
+            finishedEmitted = true
+            // A solved game is not resumable: drop this mode's snapshot so the Home
+            // Continue affordance can never point at a board that is already over
+            // (D-05). Both modes clear — the latch keeps it to once per solve.
+            clearSnapshot()
+            // Only a SOLVE unlocks the next Challenge level (D-02: no skipping) —
+            // Classic (activeChallengeLevel == null) and Stuck never advance. The
+            // advance is keyed to the SOLVED level — the restored stamp when there
+            // is one (WR-03) — and idempotent at the store (max(current, N+1)), so
+            // a re-solve of the same board — back from Results, undo (which resets
+            // finishedEmitted), re-jump — can never skip a level (CR-02); the
+            // write is transactional inside ChallengeProgress.
+            val solvedChallengeLevel = activeChallengeLevel
+            if (solvedChallengeLevel != null) {
+                challengeProgress.advancePast(solvedChallengeLevel)
             }
+            val pegsRemaining = nextBoard.pegCount
+            // A jump can only fire once the board is loaded, so initialBoard is
+            // non-null here; fall back to the current count defensively.
+            val startingPegCount = initialBoard?.pegCount ?: pegsRemaining
+            _finished.trySend(
+                scoreCalculator.evaluate(
+                    pegsRemaining = pegsRemaining,
+                    pegsCleared = startingPegCount - pegsRemaining,
+                    elapsedSeconds = _uiState.value.elapsedSeconds,
+                    levelMultiplier = levelMultiplier,
+                    // D-03/D-04: stars are banded on the FINISHING BOARD's own
+                    // perfect finish, taken from the spec that produced this
+                    // result — not from the level id. A level-id lookup would be
+                    // silently wrong for a resumed game, whose spec is rebuilt
+                    // structurally from a persisted blob rather than fetched from
+                    // the catalog. Diamond-41's target is a proven 2.
+                    minimumPegs = nextBoard.spec.minimumPegs,
+                ),
+            )
         }
 
         /**
@@ -773,6 +833,10 @@ class GameViewModel
                     RewardOutcome.Declined -> return@launch
                 }
                 if (moveHistory.isEmpty()) return@launch
+                // CR-01, placed after BOTH guards above: only an undo that really rewinds
+                // the board invalidates a running search. A declined grant and an empty
+                // history change nothing and must leave a live search alone.
+                cancelHintSearch()
                 moveHistory.removeAt(moveHistory.lastIndex)
                 val base = initialBoard ?: return@launch
                 val board = moveHistory.fold(base) { b, m -> rulesEngine.applyMove(b, m) }
@@ -795,10 +859,14 @@ class GameViewModel
                         animating = null,
                         status = status,
                         canUndo = moveHistory.isNotEmpty(),
-                        // Undo invalidates any shown hint and clears the rescue banner.
+                        // Undo invalidates any shown hint and clears the rescue banner. It
+                        // also cancelled the in-flight search above, killing that job's own
+                        // solverThinking write — so the flag is cleared here, returning the
+                        // Hint control to idle rather than leaving it spinning (CR-01).
                         hintSource = null,
                         hintTarget = null,
                         noWinningMove = false,
+                        solverThinking = false,
                         stuck = false,
                         // Both guards above (a declined grant, an empty history) return
                         // before here, so this ticks once per undo that really happened.
@@ -828,9 +896,36 @@ class GameViewModel
          * A found move sets [GameUiState.hintSource]/[GameUiState.hintTarget]; a `null`
          * result sets [GameUiState.noWinningMove] (D-04; its banner ships in 04-04). Either
          * way [GameUiState.solverThinking] clears.
+         *
+         * **Two guarantees close CR-01**, and both are needed because the board stays fully
+         * tappable while the search runs (`GameScreen` disables only the Hint control):
+         *  1. Any board mutation CANCELS this search — see [cancelHintSearch], called by
+         *     [performJump], [onUndo] and [resetToInitial], by the three async board-install
+         *     sites ([loadChallengeBoardIfNeeded], [installClassicBoard], [applyRestored])
+         *     and by a repeat request.
+         *  2. Even so, a result that still arrives is APPLIED ONLY IF the board it was
+         *     computed for is the board still on screen; otherwise nothing but
+         *     [GameUiState.solverThinking] is written. The two together mean a hint can
+         *     never point at a board the player has moved past, and a `null` can never
+         *     raise the rescue banner over a position that was never searched.
+         *
+         * The three search inputs (board, recorded line, move count) are read ON THE MAIN
+         * THREAD before the dispatcher hop. Reading them inside the [withContext] block —
+         * as this did before CR-01 — is an unsynchronised cross-thread read of mutable
+         * ViewModel state, and could even hand the use case a board from before a jump with
+         * a `movesPlayed` from after it.
+         *
+         * While [GameUiState.isLoading] the request is refused outright (WR-01): the only
+         * board on screen is the loading placeholder (`pegs = 0`), which the Solver answers
+         * with an instant `null` — and because the placeholder is still the board when the
+         * result lands, the stale-result guard below would PASS and raise the "no winning
+         * move" rescue banner over the loading indicator, on a position that was never
+         * played. `GameScreen` renders the Hint control unconditionally in the top bar, so
+         * the guard has to live here, not in the screen.
          */
         fun onHintRequested() {
-            hintJob?.cancel()
+            if (_uiState.value.isLoading) return
+            cancelHintSearch()
             _uiState.update {
                 it.copy(
                     solverThinking = true,
@@ -849,20 +944,31 @@ class GameViewModel
                         }
                     }
                     val deadline = timeSource.markNow() + SolverBudget.DEFAULT.deadline
+                    // CR-01: capture every mutable input HERE, on the main thread, so the
+                    // three are consistent with each other and with one another's instant.
+                    // Nothing inside the withContext below may read _uiState, moveHistory
+                    // or onRecordedLine.
+                    val boardForHint = _uiState.value.board
+                    val solutionForHint = solution.takeIf { onRecordedLine }
+                    val movesPlayedForHint = moveHistory.size
                     val move =
                         withContext(defaultDispatcher) {
                             getHintUseCase(
-                                board = _uiState.value.board,
-                                solution = solution.takeIf { onRecordedLine },
-                                movesPlayed = moveHistory.size,
+                                board = boardForHint,
+                                solution = solutionForHint,
+                                movesPlayed = movesPlayedForHint,
                                 shouldCancel = { !isActive || deadline.hasPassedNow() },
                             )
                         }
                     _uiState.update {
-                        if (move != null) {
-                            it.copy(hintSource = move.from, hintTarget = move.to, solverThinking = false)
-                        } else {
-                            it.copy(noWinningMove = true, solverThinking = false)
+                        when {
+                            // The player moved on while this ran: the answer belongs to a
+                            // board that is no longer on screen, so it is discarded rather
+                            // than displayed. Only the spinner is cleared (CR-01).
+                            it.board != boardForHint -> it.copy(solverThinking = false)
+                            move != null ->
+                                it.copy(hintSource = move.from, hintTarget = move.to, solverThinking = false)
+                            else -> it.copy(noWinningMove = true, solverThinking = false)
                         }
                     }
                 }
@@ -881,8 +987,7 @@ class GameViewModel
             moveHistory.clear()
             tickerJob?.cancel()
             tickerJob = null
-            hintJob?.cancel()
-            hintJob = null
+            cancelHintSearch()
             startMark = null
             elapsedBaseSeconds = 0
             finishedEmitted = false
@@ -920,20 +1025,31 @@ class GameViewModel
 
         /**
          * The lifecycle status of [board]: [GameStatus.Playing] while a legal move
-         * remains, else [GameStatus.Won] when a single peg is left, otherwise
-         * [GameStatus.Stuck] (GAME-02).
+         * remains, else [GameStatus.Won] when the board has reached its own perfect
+         * finish, otherwise [GameStatus.Stuck] (GAME-02).
+         *
+         * The win test is the board's `BoardSpec.minimumPegs`, not a hardcoded one peg
+         * (D-03/D-04, DEBT-02). For the four Classic cross boards and every generated
+         * Challenge footprint that target IS one, so this is byte-identical to the
+         * previous behaviour. Diamond-41 is the board it exists for: one peg is proven
+         * UNREACHABLE there (the GF(4) colour invariant excludes all 41 single-peg
+         * positions), and two is proven reachable, so a two-peg dead end is the best
+         * result the board admits — a win, not a failure. Scoring it as Stuck would
+         * hide the perfect finish behind the rescue banner and never award the 3 stars
+         * the re-anchored bands compute.
+         *
+         * The comparison is `<=` rather than `==` so the status can never disagree with
+         * [com.app.pegsolitaire.domain.scoring.ScoreCalculator.stars], whose 3-star band
+         * is also `<= minimumPegs`.
          */
         private fun statusFor(board: Board): GameStatus =
             when {
                 !rulesEngine.isGameOver(board) -> GameStatus.Playing
-                board.pegCount == SOLVED_PEG_COUNT -> GameStatus.Won
+                board.pegCount <= board.spec.minimumPegs -> GameStatus.Won
                 else -> GameStatus.Stuck
             }
 
         private companion object {
-            /** A board solved to a single remaining peg is a Won game (D-05 "Perfect"). */
-            const val SOLVED_PEG_COUNT = 1
-
             /** The visible timer ticks once per second (D-04). */
             const val TIMER_TICK_MILLIS = 1_000L
 
