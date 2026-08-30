@@ -1,6 +1,8 @@
 package com.app.pegsolitaire.data.resume
 
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
+import com.app.pegsolitaire.domain.assist.AssistAllowance
+import com.app.pegsolitaire.domain.assist.AssistAllowanceLimits
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardConstants
 import com.app.pegsolitaire.domain.model.BoardSpec
@@ -299,6 +301,65 @@ class SnapshotMapperTest {
         assertThat(restore(valid.copy(minimumPegs = Boards.English33.size))).isNotNull()
     }
 
+    @Test
+    fun anAbsentFreeAllowanceRestoresAFullOne() {
+        // D-04/D-17: `null` means "written before the allowance existed", not "none
+        // left". A saved game from an older build must resume with a fresh allowance.
+        val restored = restore(snapshotOf(Boards.english33Initial))
+
+        assertThat(restored).isNotNull()
+        assertThat(restored!!.allowance).isEqualTo(AssistAllowance())
+    }
+
+    @Test
+    fun aStoredFreeAllowanceRoundTripsThroughTheBlob() {
+        // Both counters survive encode → decode → rebuild, including a genuine zero:
+        // an exhausted allowance must not be refilled by backgrounding the app.
+        val dto =
+            SnapshotMapper.toDto(
+                mode = ProgressPersistenceKeys.MODE_CLASSIC,
+                levelId = CLASSIC_LEVEL_ID,
+                initialBoard = Boards.english33Initial,
+                moveHistory = emptyList(),
+                elapsedMs = ELAPSED_MS,
+                freeHintsRemaining = STORED_HINTS,
+                freeUndosRemaining = STORED_UNDOS,
+            )
+
+        val restored = restore(dto)
+
+        assertThat(restored).isNotNull()
+        assertThat(restored!!.allowance.hintsRemaining).isEqualTo(STORED_HINTS)
+        assertThat(restored.allowance.undosRemaining).isEqualTo(STORED_UNDOS)
+    }
+
+    @Test
+    fun aForgedAllowanceFallsOpenToTheFullLimitWithoutRefusingTheResume() {
+        // T-09-01/T-09-02, and the deliberate asymmetry with `minimumPegs`: a forged
+        // target kills the whole snapshot, a forged counter must NOT. Rejecting here
+        // would turn a tamper attempt — or an unrelated corruption bug — into progress
+        // loss for an honest player, which is a worse posture, not a better one. Both
+        // halves are asserted together because either alone would pass a wrong impl.
+        val valid = snapshotOf(Boards.english33Initial)
+
+        val restored = restore(valid.copy(freeHintsRemaining = FORGED_HINT_COUNTER))
+
+        assertThat(restored).isNotNull()
+        assertThat(restored!!.allowance.hintsRemaining).isEqualTo(AssistAllowanceLimits.FREE_HINTS)
+    }
+
+    @Test
+    fun aLegacyBlobWithNoAllowanceKeysStillDecodesToAFullAllowance() {
+        // The backward-compatibility direction `ignoreUnknownKeys` does NOT cover: a
+        // blob written before these fields existed carries neither key at all.
+        val blob = legacyBlobFor(Boards.english33Initial)
+        val restored = SnapshotMapper.decode(blob)?.let { SnapshotMapper.fromDto(it, RulesEngine) }
+
+        assertThat(blob).doesNotContain("freeHintsRemaining")
+        assertThat(restored).isNotNull()
+        assertThat(restored!!.allowance).isEqualTo(AssistAllowance())
+    }
+
     // --- helpers -------------------------------------------------------------
 
     /**
@@ -443,5 +504,18 @@ class SnapshotMapperTest {
 
         /** Cell count of the freeform stand-in footprint (a short 1xN line). */
         const val FREEFORM_LENGTH = 3
+
+        /**
+         * T-09-01 forgery: an allowance counter far outside `0..FREE_HINTS`. Unlike the
+         * forged target above it must NOT refuse the resume — it degrades to the full
+         * default allowance and the game still restores (T-09-02).
+         */
+        const val FORGED_HINT_COUNTER = 9_999
+
+        /** A partly-spent hint counter, stored to prove the round trip preserves it. */
+        const val STORED_HINTS = 1
+
+        /** A genuinely exhausted undo counter: `0` is in range, so it must survive. */
+        const val STORED_UNDOS = 0
     }
 }
