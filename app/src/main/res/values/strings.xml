@@ -154,4 +154,54 @@
     <string name="onboarding_step_1">Tap a peg, then tap an empty hole two cells away.</string>
     <string name="onboarding_step_2">The peg jumps straight over its neighbor — only up, down, left, or right.</string>
     <string name="onboarding_step_3">The jumped peg is removed. Clear the board down to one peg.</string>
+
+    <!--
+      ============================ Phase-9 copy ============================
+      Consent & rewarded ads. Verbatim from the Phase-9 UI-SPEC Copywriting Contract.
+      Declared here up front so the downstream plans (dialog 09-03, Settings 09-07,
+      GameScreen funnel 09-08) read them via stringResource(...) and no plan but this
+      one touches a resource file.
+    -->
+
+    <!--
+      ADS-01 — rewarded opt-in dialog (D-06/D-07/D-10). The dialog is the ONLY signal the
+      free-allowance system exists, so the body carries count, scope and reward in one
+      breath: the title states the fact, the body proposes the trade.
+
+      The allowance counts are format placeholders ONLY — never type a literal count into
+      these strings. They are supplied at the callsite from AssistAllowanceLimits.FREE_HINTS
+      / FREE_UNDOS, which is why D-02's numbers are named exactly once in the whole codebase
+      and the copy cannot drift from the policy that grants it.
+    -->
+    <string name="ad_offer_watch">Watch ad</string>
+    <string name="ad_offer_decline">No thanks</string>
+    <string name="ad_offer_hint_title">Out of free hints</string>
+    <string name="ad_offer_undo_title">Out of free undos</string>
+    <string name="ad_offer_hint_body">You\'ve used your %1$d free hints for this level. Watch a short ad for %1$d more?</string>
+    <string name="ad_offer_undo_body">You\'ve used your %1$d free undos for this level. Watch a short ad for %1$d more?</string>
+    <!-- Spinner content description during the bounded wait; no visible label (D-10). -->
+    <string name="ad_offer_loading">Loading ad</string>
+
+    <!--
+      ADS-03 — ad-unavailable snackbar (D-11). The assist lands FIRST, then the message
+      states the problem and its already-applied resolution; no action is offered because
+      none is needed. The em dash follows the shipped nowin_message
+      ("No winning move — undo or restart") "problem — resolution" shape.
+    -->
+    <string name="ad_unavailable_hints">Ad unavailable — hints refilled for free</string>
+    <string name="ad_unavailable_undos">Ad unavailable — undos refilled for free</string>
+
+    <!--
+      CONS-03 / REL-05 — Settings Privacy section (D-14/D-15). Both section headers are
+      declared: a label over one group and not the other is exactly the inconsistency the
+      UI contract exists to prevent. The policy-row failure copy follows the shipped
+      challenge_load_error shape — a tap that does nothing would be a dead end.
+    -->
+    <string name="settings_section_general">General</string>
+    <string name="settings_section_privacy">Privacy</string>
+    <string name="settings_privacy_policy_label">Privacy policy</string>
+    <string name="settings_privacy_policy_supporting">Opens in your browser</string>
+    <string name="settings_privacy_policy_error">Couldn\'t open the privacy policy — no browser app found.</string>
+    <string name="settings_privacy_choices_label">Manage privacy choices</string>
+    <string name="settings_privacy_choices_supporting">Change your ad consent choices</string>
 </resources>
