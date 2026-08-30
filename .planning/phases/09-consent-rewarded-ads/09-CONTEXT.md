@@ -43,6 +43,11 @@ The phase turns the auto-grant `NoOpAdGateway` behavior into a real economy: a `
 - **D-15:** The privacy policy opens via **plain external browser intent (`ACTION_VIEW`)** — no Custom Tab dependency, no in-app WebView.
 - **D-16:** The UMP consent form shows **at app launch** — gather + show on the first Activity at cold start, before Home. SDK initialization proceeds immediately after consent resolves, off the main thread (CONS-02). Every later surface may assume consent state is resolved.
 
+### Post-research resolutions (2026-08-31, user-confirmed)
+- **D-17 (resolves RESEARCH.md open question 1):** Allowance persistence uses **Option A** — counters live in-memory across level restarts (so `resetToInitial()`'s `clearSnapshot()` cannot refill them) and ride the resume snapshot for process death. The one documented hole (kill-app-then-restart refills counters) is accepted. This refines D-04; DataStore (Option B) is rejected.
+- **D-18 (resolves RESEARCH.md open question 3):** The UMP consent message is **not yet configured** in the AdMob console. The plan must include a `checkpoint:human` before any on-device consent verification (CONS-01) — UMP renders nothing without the published message, and its absence is invisible from a non-EEA test location. The user will configure it in AdMob → Privacy & messaging in parallel.
+- **D-19 (partially resolves RESEARCH.md open question 2):** The user will supply the exact live HTTPS privacy-policy URL before/at execution; it is wired as a build-config value or scoped constant per D-13. If the URL is not yet recorded here when the Settings row task runs, execution pauses at a `checkpoint:human` to collect it. <!-- URL pending: replace this comment with the URL when provided -->
+
 ### Claude's Discretion
 - Exact dialog/snackbar/Settings-row wording and the dialog's visual composition (within the Candy Clay theme).
 - Clock-freeze mechanics for ADSF-01 (how the ticker pauses across ad presentation; the rescue-undo ticker resume pattern in `GameViewModel` is prior art).
