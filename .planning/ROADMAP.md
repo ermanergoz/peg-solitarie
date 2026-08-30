@@ -187,8 +187,41 @@ Plans:
   4. When an ad cannot load or fill, or the consent flow fails, player still gets the assist with a brief explanation and keeps playing — no error wall, no dead end. (ADS-03, CONS-04)
   5. The elapsed game clock is frozen for the full duration of every ad presentation and resumes on dismiss, so watching an ad can never cost score; and a hint that honestly reports "no winning move" costs neither an allowance nor an ad. (ADSF-01, ADS-06)
 
-**Plans**: TBD
+**Plans**: 11 plans in 7 waves
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 09-01-PLAN.md — `AssistAllowance` pure `:domain` policy (3 hints / 5 undos, refill-to-full) + resume-snapshot counters with fail-open decode (ADS-02, D-01/02/03/04/17)
+- [ ] 09-02-PLAN.md — Interface-first seam contracts: `AdGateway.rewardedOfferable`/`preloadRewarded`, `NoOpAdGateway` flipped to offerable (Pitfall 6), `AdConstants`, `ConsentGateway` + `AdsReadiness`
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 09-03-PLAN.md — `AdOfferDialog` themed opt-in dialog, `ClaySnackbarHost` (the app's first), and every Phase-9 string + the three new dimen tokens (ADS-01, ADS-03)
+- [ ] 09-04-PLAN.md — ADSF-01 clock freeze by ticker rebase, `resumeTickerIfNeeded` guard, virtual-time test class
+- [ ] 09-05-PLAN.md — `UmpConsentGateway` (every-launch consent info, one off-main `MobileAds.initialize`), `AdsModule` inside `..platform..`, `MainActivity` bootstrap, AdMob `APPLICATION_ID` manifest tag (CONS-01/02/03/04)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 09-06-PLAN.md — ADS-06 inversion: hints search first and charge second, undo's empty-history guard hoisted, `GameUiState` offer/snackbar fields carried at all four install sites
+- [ ] 09-07-PLAN.md — Settings Privacy section: always-present policy row (REL-05) + consent-gated manage-choices row (CONS-03), `PrivacyLinks` constant. **Blocking human gate: the live policy URL (D-19)**
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 09-08-PLAN.md — The single assist funnel: free allowance, preload at exhaustion, opt-in offer, refill-then-spend on Granted/Unavailable, silent free grant when unservable, retry-proof persistence (ADS-01/02/03/04/05, CONS-04)
+
+**Wave 5** *(blocked on Wave 4)*
+
+- [ ] 09-09-PLAN.md — `GameScreen`/`GameRoute` wiring: dialog gating, tick-driven clay snackbar, and the "no second offer surface" negative-contract test
+
+**Wave 6** *(blocked on Wave 5 — the stub-first ordering gate)*
+
+- [ ] 09-10-PLAN.md — `RewardedAdSlot` + `AdMobAdGateway` (GMA Next-Gen suspend load, `earned` only from `OnUserEarnedRewardListener`) and the `PlatformModule` binding swap (ADS-01/03/05, CONS-02/04)
+
+**Wave 7** *(blocked on Wave 6)*
+
+- [ ] 09-11-PLAN.md — Blocking AdMob-console gate (D-18) + itemised on-device verification of consent, both privacy rows, a real test rewarded ad and the clock freeze, committed as `09-DEVICE-EVIDENCE.md`
 **Notes**: Internal ordering is non-negotiable — build and test the opt-in dialog against the still-in-place `NoOpAdGateway` stub **before** the real ad SDK is wired in. The stub's silent `true` auto-grant is exactly what currently hides the missing opt-in UI, and swapping in a real implementation as-is ships an AdMob policy violation. ADSF-01 (clock pause) is owned here and re-asserted as an acceptance criterion in Phase 10. REL-05 (the always-present privacy-policy entry) is placed here rather than in Phase 14 because it shares the Settings surface CONS-03 builds; it needs the policy URL to exist, so the developer website is a hard prerequisite for this phase, not just for release.
 
 ### Phase 10: Interstitials
@@ -285,7 +318,7 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 6. Platform Foundation & Build Hardening | v1.1 | 10/10 | Complete   | 2026-08-27 |
 | 7. Sound | v1.1 | 6/6 | Complete   | 2026-08-28 |
 | 8. Assist & Generator Quality Debt | v1.1 | 12/12 | Complete   | 2026-08-30 |
-| 9. Consent & Rewarded Ads | v1.1 | 0/TBD | Not started | - |
+| 9. Consent & Rewarded Ads | v1.1 | 0/11 | Planned | - |
 | 10. Interstitials | v1.1 | 0/TBD | Not started | - |
 | 11. Play Games Session | v1.1 | 0/TBD | Not started | - |
 | 12. Leaderboards & Achievements | v1.1 | 0/TBD | Not started | - |
