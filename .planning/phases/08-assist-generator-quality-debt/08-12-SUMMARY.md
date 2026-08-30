@@ -233,6 +233,12 @@ None. No hardcoded empty value, placeholder string or unwired data source was in
 - **`GatedDispatcher` is reusable.** Phase 9 (AdMob) will introduce genuinely slow, genuinely cancellable ad loads behind `AdGateway`; the same harness parks them deterministically without a real SDK.
 - **Note for the orchestrator:** `STATE.md`, `ROADMAP.md` and `REQUIREMENTS.md` were deliberately NOT modified — this ran as a worktree agent. `REQUIREMENTS.md` still lists DEBT-01/02/03 as `Pending`, the bookkeeping gap `08-VERIFICATION.md` flagged as a WARNING; this plan completes DEBT-01's last open item.
 
+## Self-Check: PASSED
+
+- Files claimed created/modified all exist on disk: `GameViewModelHintStalenessTest.kt` (21351 B), `GameViewModel.kt` (55307 B), `08-12-SUMMARY.md` (20917 B).
+- Commits claimed all exist in `git log`: `5c299eb` (RED), `b6e6704` (GREEN), `61d2c26` (this SUMMARY).
+- Shared orchestrator artifacts untouched: `STATE.md`, `ROADMAP.md` and `REQUIREMENTS.md` appear in no commit of this plan.
+
 ---
 *Phase: 08-assist-generator-quality-debt*
 *Completed: 2026-08-30*
