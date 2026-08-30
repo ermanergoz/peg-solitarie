@@ -193,8 +193,8 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 09-01-PLAN.md — `AssistAllowance` pure `:domain` policy (3 hints / 5 undos, refill-to-full) + resume-snapshot counters with fail-open decode (ADS-02, D-01/02/03/04/17)
-- [ ] 09-02-PLAN.md — Interface-first seam contracts: `AdGateway.rewardedOfferable`/`preloadRewarded`, `NoOpAdGateway` flipped to offerable (Pitfall 6), `AdConstants`, `ConsentGateway` + `AdsReadiness`
+- [x] 09-01-PLAN.md — `AssistAllowance` pure `:domain` policy (3 hints / 5 undos, refill-to-full) + resume-snapshot counters with fail-open decode (ADS-02, D-01/02/03/04/17)
+- [x] 09-02-PLAN.md — Interface-first seam contracts: `AdGateway.rewardedOfferable`/`preloadRewarded`, `NoOpAdGateway` flipped to offerable (Pitfall 6), `AdConstants`, `ConsentGateway` + `AdsReadiness`
 
 **Wave 2** *(blocked on Wave 1)*
 
@@ -318,7 +318,7 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 6. Platform Foundation & Build Hardening | v1.1 | 10/10 | Complete   | 2026-08-27 |
 | 7. Sound | v1.1 | 6/6 | Complete   | 2026-08-28 |
 | 8. Assist & Generator Quality Debt | v1.1 | 12/12 | Complete   | 2026-08-30 |
-| 9. Consent & Rewarded Ads | v1.1 | 0/11 | Planned | - |
+| 9. Consent & Rewarded Ads | v1.1 | 2/11 | In Progress|  |
 | 10. Interstitials | v1.1 | 0/TBD | Not started | - |
 | 11. Play Games Session | v1.1 | 0/TBD | Not started | - |
 | 12. Leaderboards & Achievements | v1.1 | 0/TBD | Not started | - |
