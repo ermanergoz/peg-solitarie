@@ -2,7 +2,7 @@
 phase: 08-assist-generator-quality-debt
 reviewed: 2026-08-30T00:00:00Z
 depth: standard
-files_reviewed: 43
+files_reviewed: 48
 files_reviewed_list:
   - app/src/main/java/com/app/pegsolitaire/data/resume/ResumeSnapshotDto.kt
   - app/src/main/java/com/app/pegsolitaire/data/resume/SnapshotMapper.kt
@@ -10,6 +10,7 @@ files_reviewed_list:
   - app/src/main/java/com/app/pegsolitaire/ui/game/GameViewModel.kt
   - app/src/test/java/com/app/pegsolitaire/data/resume/SnapshotMapperTest.kt
   - app/src/test/java/com/app/pegsolitaire/ui/game/GameFlowTest.kt
+  - app/src/test/java/com/app/pegsolitaire/ui/game/GameViewModelHintStalenessTest.kt
   - app/src/test/java/com/app/pegsolitaire/ui/game/GameViewModelTest.kt
   - domain/build.gradle.kts
   - domain/src/main/kotlin/com/app/pegsolitaire/domain/assist/OpeningBook.kt
@@ -25,6 +26,11 @@ files_reviewed_list:
   - domain/src/main/kotlin/com/app/pegsolitaire/domain/solver/SolverBudget.kt
   - domain/src/main/kotlin/com/app/pegsolitaire/domain/solver/SolverTables.kt
   - domain/src/main/kotlin/com/app/pegsolitaire/domain/usecase/GetHintUseCase.kt
+  - domain/src/main/resources/golden/book/asymmetric39-k4.txt
+  - domain/src/main/resources/golden/book/diamond41-k4.txt
+  - domain/src/main/resources/golden/book/english33-k4.txt
+  - domain/src/main/resources/golden/book/european37-k4.txt
+  - domain/src/main/resources/golden/book/wiegleb45-k3.txt
   - domain/src/test/kotlin/com/app/pegsolitaire/domain/TestFlags.kt
   - domain/src/test/kotlin/com/app/pegsolitaire/domain/assist/OpeningBookFormatTest.kt
   - domain/src/test/kotlin/com/app/pegsolitaire/domain/assist/OpeningBookTest.kt
@@ -45,251 +51,102 @@ files_reviewed_list:
   - domain/src/test/kotlin/com/app/pegsolitaire/domain/solver/SolverTablesTest.kt
   - domain/src/test/kotlin/com/app/pegsolitaire/domain/solver/SolverTest.kt
   - domain/src/test/kotlin/com/app/pegsolitaire/domain/usecase/GetHintUseCaseTest.kt
+  - domain/src/test/resources/golden/solutions/diamond41.txt
 findings:
-  critical: 1
-  warning: 2
+  critical: 0
+  warning: 1
   info: 5
-  total: 8
+  total: 6
 status: issues_found
 ---
 
-# Phase 8: Code Review Report
+# Phase 08: Code Review Report
 
 **Reviewed:** 2026-08-30
 **Depth:** standard
-**Files Reviewed:** 43
+**Files Reviewed:** 48
 **Status:** issues_found
 
 ## Summary
 
-Reviewed the assist/generator quality-debt slice: the per-board `minimumPegs` target
-(BoardSpec/Boards/ScoreCalculator/SnapshotMapper), the generalized Pagoda prune, the
-bitboard Solver with deterministic restarts, the opening book (format, loader, authoring),
-the hint use case, the GameViewModel hint/undo/resume wiring, and the accompanying test
-suites and Gradle wiring.
+This re-review focused first on verifying the CR-01 gap-closure (plan 08-12, commits 5c299eb / b6e6704) and then reviewed the full phase file set fresh.
 
-The domain layer is in strong shape. The fail-closed contracts I attacked hold under
-scrutiny: `SnapshotMapper` rejects forged coordinates, out-of-footprint peg masks,
-duplicate footprints, half-specified targets, and non-positive `minimumPegs` (refusing
-rather than clamping, which correctly protects the solver's `pegCount <= minimumPegs`
-goal test); the `size == 64` edge of `holdsOnly` correctly special-cases Kotlin's
-mod-64 shift semantics; `OpeningBookFormat.decodeEntry` is genuinely throw-free and
-canonical; `OpeningBook` fails closed on one malformed line and memoises failures so a
-missing resource costs one read; the three-outcome Hit/NoWinningMove/miss distinction is
-enforced at the type level and re-verified end-to-end by `OpeningBookTest` and
-`DepthSweepTest`; `Solver`'s restart schedule, per-attempt memory bound, and
-proven-unsolvable early exit are all internally consistent (`hitBudget`/`cancelled`
-latching makes the `provenUnsolvable` inference sound); `BoardCanonical`'s chunked path
-handles the bit-40+ Pitfall-4 cases, and both canonical paths use the same (signed)
-ordering so keys agree.
+**CR-01 verdict: the stale-hint race fix is sound for gameplay mutations.** All three player-driven board-mutation sites — `performJump` (after the legal-move guard, correctly), `onUndo` (after both the declined-grant and empty-history guards, correctly), and `resetToInitial` — call the single `cancelHintSearch()` idiom, and each clears `solverThinking` in the same state update so the Hint control cannot be left disabled. The three search inputs (board, recorded line, move count) are captured on the main thread before the `withContext` hop, closing the cross-thread inconsistency. The stale-result guard (`it.board != boardForHint`) is correct given `Board`'s equality semantics (data class over `pegs` + a referentially-compared `BoardSpec`): within a game the spec instance is stable, so equality means "identical position", and the jump-then-undo-back-to-the-same-position hole is closed by cancellation at both mutation sites, not by the guard. `withContext` rethrows on a cancelled job, so the post-hop `_uiState.update` cannot run after cancellation. `GameViewModelHintStalenessTest` genuinely parks the search at the dispatcher hop (asserting `gate.pending == 1` first) and covers the stale-move, stale-null, control-usability, and captured-inputs cases.
 
-The defects found are concentrated at the `:app` concurrency seams: an in-flight hint
-search whose result is applied to a board that changed underneath it (a user-visible
-violation of the "a shown hint is legal on the shown board" contract this very phase
-exists to establish), and lifecycle-cancellable persistence writes for the resume
-snapshot. Known, user-approved decisions (Wiegleb K=3, Diamond-41's 440-position gap,
-english33's four proven-dead markers, the gated depth sweep, the `<= minimumPegs` win
-test) were treated as ground truth and are not flagged.
+**One gap remains at the edges of the same contract:** the three *async board-install* sites (`loadChallengeBoardIfNeeded`, `installClassicBoard`, `applyRestored`) neither cancel an in-flight search nor is `onHintRequested` gated on `isLoading`, and `GameScreen` renders the Hint control unconditionally in the top bar while the board area shows the loading indicator. That leaves a reachable (transient) untruthful "no winning move" banner during the load window — WR-01 below.
 
-## Critical Issues
-
-### CR-01: In-flight hint result is applied to a board that changed underneath it (stale/illegal hint highlight)
-
-**File:** `app/src/main/java/com/app/pegsolitaire/ui/game/GameViewModel.kt:839-876` (with `performJump` at 592-637 and `onUndo` at 772-819)
-**Issue:** `onHintRequested` launches a search that can legitimately run for the full
-1.5 s deadline (an off-book Diamond-41 position, whose Pagoda prune is provably vacuous,
-is the documented worst case). While `solverThinking` is raised, the board remains fully
-tappable (`GameScreen` disables only the Hint control). If the player performs a jump or
-undo during the search:
-
-1. `performJump`/`onUndo` clear `hintSource`/`hintTarget`/`noWinningMove` but do **not**
-   cancel `hintJob` — only a *new* hint request or `resetToInitial` cancels it.
-2. When the stale search resolves, its unconditional
-   `_uiState.update { it.copy(hintSource = move.from, hintTarget = move.to, ...) }`
-   writes a move computed for the *old* board onto the *new* board. The glow can point at
-   an empty cell or an illegal move — exactly the "highlighted move gameplay then
-   rejects" failure that `GetHintUseCase`'s KDoc names as a visible correctness failure,
-   and that every book/solver test asserts can never happen. A stale `null` result
-   equally raises the `noWinningMove` rescue banner on a position that was never
-   searched. Once ads are real (Slice 2), this is a paid hint that is wrong.
-
-   Additionally, the `withContext(defaultDispatcher)` block reads
-   `_uiState.value.board`, `moveHistory.size`, and `onRecordedLine` **on the background
-   thread** while the main thread may concurrently mutate `moveHistory` (a plain
-   `ArrayList`) and `onRecordedLine` — an unsynchronized cross-thread read with no
-   happens-before edge after dispatch, so the three inputs can be mutually inconsistent
-   (board from before a jump, `movesPlayed` from after it).
-
-The RulesEngine tap path still rejects any illegal move the player then taps, so this
-cannot corrupt game state — but it is deterministic, user-visible incorrect assist
-output on the exact contract (T-04-CT / D-01) this phase hardens everywhere else.
-
-**Fix:**
-```kotlin
-// 1. Capture inputs on the main thread, before crossing dispatchers:
-val boardForHint = _uiState.value.board
-val movesPlayedForHint = moveHistory.size
-val solutionForHint = solution.takeIf { onRecordedLine }
-val move = withContext(defaultDispatcher) {
-    getHintUseCase(
-        board = boardForHint,
-        solution = solutionForHint,
-        movesPlayed = movesPlayedForHint,
-        shouldCancel = { !isActive || deadline.hasPassedNow() },
-    )
-}
-// 2. Discard a result the board has outgrown:
-_uiState.update {
-    if (it.board != boardForHint) it.copy(solverThinking = false)
-    else if (move != null) it.copy(hintSource = move.from, hintTarget = move.to, solverThinking = false)
-    else it.copy(noWinningMove = true, solverThinking = false)
-}
-```
-And cancel the pending search at the two mutation sites (`performJump`, `onUndo`):
-```kotlin
-hintJob?.cancel()
-hintJob = null
-```
-(`Board` is a data class over `spec`+`pegs`, but `BoardSpec` has identity equality — the
-spec instance does not change between a hint request and a jump on the same game, so the
-`it.board != boardForHint` guard is sound; the `hintJob?.cancel()` at both mutation
-sites is the primary fix and makes the guard a belt-and-braces check.)
+The `:domain` work is of unusually high quality: the opening-book format decoder is genuinely total (cannot throw), the loader fails closed on one malformed line, the miss/authoritative-dead distinction is enforced at the type level and exhaustively tested, the Solver's memoised DFS is sound (no unsound prunes; budget/cancel latches correctly downgrade "no line found" to inconclusive), the `VisitedSet` zero-sentinel argument holds because the goal test precedes the memo insert and `minimumPegs >= 1`, and the resume codec fail-closes on every forgery class including the T-08-21 non-positive `minimumPegs`. Golden book headers were spot-checked against file contents and are consistent (entries + comments = line counts on all five files).
 
 ## Warnings
 
-### WR-01: Resume-snapshot writes ride `viewModelScope` and race ViewModel clearance — save and clear can both be silently cancelled
+### WR-01: Hint lifecycle does not cover the async board-install window — a transient untruthful "no winning move" banner is reachable during a Challenge load or Continue restore
 
-**File:** `app/src/main/java/com/app/pegsolitaire/ui/game/GameViewModel.kt:476, 480-482`
-**Issue:** `onLeaveScreen` persists the resume snapshot with
-`viewModelScope.launch { progressRepository.saveSnapshot(dto) }`, and `clearSnapshot()`
-does the same for the delete. `GameRoute` invokes `onLeaveScreen` on `ON_STOP`
-(GameRoute.kt:54). On back-navigation the NavBackStackEntry is destroyed immediately
-after `ON_STOP`, clearing the ViewModel and cancelling `viewModelScope` — the launched
-coroutine starts on `Main.immediate` but suspends at the repository's first suspension
-point, and the cancellation can abort the write. Consequences:
+**File:** `app/src/main/java/com/app/pegsolitaire/ui/game/GameViewModel.kt:287-290, 355-377, 404-424, 436-465, 905-953`
+**Issue:** `cancelHintSearch()`'s own KDoc (lines 274-285) states "Every site that mutates the board MUST call it (CR-01)", but the three sites that *install* a board asynchronously — `loadChallengeBoardIfNeeded` (line 365), `installClassicBoard` (line 412), and `applyRestored` (line 450) — do not call it, and `onHintRequested` has no `isLoading` guard. `GameScreen.kt` renders the top bar (including the Hint control, enabled while `solverThinking` is false) unconditionally; only the board area swaps to `LoadingIndicator()` while `isLoading`. The reachable sequence:
 
-- Leaving mid-game via back/Home can silently fail to save, so Continue resumes an
-  older position (from a previous `ON_STOP`) or does not appear at all — PERS-03 fails
-  on precisely the navigate-away case it names.
-- The Won-path `clearSnapshot()` (line 649) can be cancelled if the Gameplay entry is
-  popped promptly after the finish event, leaving a stale Continue pointing at a
-  finished game — the exact Pitfall-4 resurrection the surrounding comment says this
-  call prevents.
+1. Player enters a Challenge level (or Continue). State is `GameUiState.loading()` with the 1-cell placeholder board (`pegs = 0L`).
+2. Player taps Hint. The search runs against the placeholder: `pegCount 0 <= minimumPegs 1` makes `Solver.firstWinningMove` return `null` instantly; the book misses (footprint not in catalog).
+3. The result lands while the load is still in flight. The stale-result guard *passes* — the placeholder board is unchanged, so `it.board == boardForHint` — and `noWinningMove = true` is written. `showRescueBanner` renders the "no winning move — undo or restart" banner over the loading indicator (the banner branch is outside the `isLoading` conditional).
+4. The banner self-clears when the install rebuilds state via `GameUiState.initial(...)`.
 
-**Fix:** Move persistence off the ViewModel's lifetime. Either inject an
-application-scoped `CoroutineScope` for these two writes
-(`externalScope.launch { progressRepository.saveSnapshot(dto) }`), or wrap them in
-`withContext(NonCancellable)` inside the existing launch:
+This is transient and self-healing, but it is exactly the untruthful banner DEBT-01 exists to remove — raised on a position that was never played — and it violates the documented "every mutating site" invariant, which is the drift the fix's own contract warns against. The symmetric case (hint result landing *after* install) is already safe: the installed board carries a fresh `BoardSpec` instance, so the equality guard discards it.
+**Fix:** Two small changes, either of which closes the visible defect; both together restore the documented invariant:
 ```kotlin
-viewModelScope.launch {
-    withContext(NonCancellable) { progressRepository.saveSnapshot(dto) }
+// 1. Guard the request while no real board is installed:
+fun onHintRequested() {
+    if (_uiState.value.isLoading) return
+    cancelHintSearch()
+    ...
+}
+
+// 2. Cancel at the three install sites (each already rebuilds state via
+// GameUiState.initial(), which carries solverThinking = false, so the
+// "caller owes the flag" obligation is met by the rebuild itself):
+private suspend fun loadChallengeBoardIfNeeded() {
+    ...
+    initialBoard = level.initialBoard
+    cancelHintSearch()   // and likewise in installClassicBoard / applyRestored
+    _uiState.update { ... }
 }
 ```
-(An injected application scope is the cleaner fix; `NonCancellable` still fails if the
-process dies, but survives ViewModel clearance.)
-
-### WR-02: Six-field cue/settings carry-forward is copy-pasted at four state-rebuild sites — a forgotten field fails silently
-
-**File:** `app/src/main/java/com/app/pegsolitaire/ui/game/GameViewModel.kt:342-353, 389-400, 427-441, 915-925`
-**Issue:** `loadChallengeBoardIfNeeded`, `installClassicBoard`, `applyRestored`, and
-`resetToInitial` each hand-copy the same six fields (`showHints`, `hapticsOn`,
-`selectionTick`, `deselectionTick`, `undoTick`, `rejectedTapTick`) onto a fresh
-`GameUiState.initial(board)`. The `resetToInitial` comment itself documents the failure
-mode: any site (or any future fifth site — a seventh cue ordinal is plausible given the
-sound work) that forgets one ordinal resets it to 0, silently firing a phantom cue or
-losing a persisted setting until the next flow emission, and the `= 0` defaults are
-exactly what hides the omission. Four divergent copies of a correctness-bearing list is
-the drift this codebase's own conventions (single source of truth, no duplicated
-contracts) forbid elsewhere.
-**Fix:** Extract one helper and route all four sites through it:
-```kotlin
-private fun rebuiltState(board: Board): GameUiState {
-    val current = _uiState.value
-    return GameUiState.initial(board).copy(
-        showHints = current.showHints,
-        hapticsOn = current.hapticsOn,
-        selectionTick = current.selectionTick,
-        deselectionTick = current.deselectionTick,
-        undoTick = current.undoTick,
-        rejectedTapTick = current.rejectedTapTick,
-    )
-}
-```
-`applyRestored` then layers its extras (`status`, `canUndo`, `elapsedSeconds`) on the
-helper's result with one further `.copy`.
 
 ## Info
 
-### IN-01: GoldenMasterAssert re-declares the UPDATE_GOLDEN flag literal that TestFlags exists to centralise
+### IN-01: `Solver.lastVisited` is unsynchronized mutable singleton state written by potentially concurrent searches
 
-**File:** `domain/src/test/kotlin/com/app/pegsolitaire/domain/golden/GoldenMasterAssert.kt:19`
-**Issue:** `private const val UPDATE_GOLDEN_FLAG = "UPDATE_GOLDEN"` duplicates the
-string that `TestFlags.UPDATE_GOLDEN` was introduced (this phase) to be the single home
-of — `SolutionTest` and `OpeningBookAuthoringTest` both reference
-`TestFlags.UPDATE_GOLDEN`; this file only reuses `TestFlags.isEnabled`. A rename on
-either side drifts silently.
-**Fix:** `private const val UPDATE_GOLDEN_FLAG = TestFlags.UPDATE_GOLDEN` (or call
-`TestFlags.isEnabled(TestFlags.UPDATE_GOLDEN)` directly and drop the local constant).
+**File:** `domain/src/main/kotlin/com/app/pegsolitaire/domain/solver/Solver.kt:109-110, 128, 157`
+**Issue:** Cancellation is cooperative (polled every 4096 expansions), so a cancelled hint search winding down on `Dispatchers.Default` can overlap a freshly launched one; both write the plain `var lastVisited` (a `Long`, which the JMM does not guarantee atomic without `@Volatile`). Production impact is nil — the field is diagnostic and read only by tests (`SolverBudgetTest`, `SolverTest`), which run single-threaded — but it is shared mutable state on a global object with no synchronization. `OpeningBook.resourceReads` has the same shape but is incremented under the `@Synchronized bookFor` in production.
+**Fix:** Mark `lastVisited` `@Volatile`, or better, return visited counts as part of the search result and keep the object stateless.
 
-### IN-02: OpeningBook.parseBook silently accepts duplicate-mask entries (last wins)
+### IN-02: Verbatim duplicate `VisitedSet` and duplicated centroid/inwardness helpers between main and test sources
 
-**File:** `domain/src/main/kotlin/com/app/pegsolitaire/domain/assist/OpeningBook.kt:238-246`
-**Issue:** The loader's stance is "one malformed line makes the whole book
-unavailable", but a corrupt or tampered book containing the same mask twice — possibly
-with conflicting moves, or a move on one line and the authoritative `-` marker on
-another — parses successfully with the later line silently overwriting the earlier one.
-That is a structurally invalid book being repaired rather than refused, which is the
-behaviour the class KDoc rules out for every other corruption shape. (The committed
-artifacts have no duplicates; this is a defensive gap, not a live defect.)
-**Fix:** Treat a duplicate key as malformed:
-```kotlin
-if (entries.put(pegs, move) != null && pegs in entries) return null
-// or explicitly: if (pegs in entries) return null before the put
-```
+**File:** `domain/src/main/kotlin/com/app/pegsolitaire/domain/solver/Solver.kt:362-419` and `domain/src/test/kotlin/com/app/pegsolitaire/domain/golden/solutions/AuthoringSolver.kt:270-327`
+**Issue:** The open-addressing `VisitedSet` (58 lines) exists twice, byte-for-byte identical apart from KDoc; the centroid/inwardness/distanceSquared trio in `SolverTables.kt:193-212` is likewise mirrored in `AuthoringSolver.kt:124-150`. Unlike the deliberately independent BFS re-derivations in the book tests (which exist to cross-check the authoring enumeration), `VisitedSet` is pure mechanism, not an independent check — a fix to one copy (e.g., a probing bug) will not reach the other.
+**Fix:** Move `VisitedSet` to an `internal` main-source utility (test sources already depend on main), or add a comment explaining why the test copy must stay independent if that is intentional.
 
-### IN-03: Mutable unsynchronized diagnostics globals (`Solver.lastVisited`, `OpeningBook.resourceReads`)
+### IN-03: `diamondOneJumpFromAFivePegDeadEnd` KDoc says "four extra" pegs; the code adds three
 
-**File:** `domain/src/main/kotlin/com/app/pegsolitaire/domain/solver/Solver.kt:109-110`; `domain/src/main/kotlin/com/app/pegsolitaire/domain/assist/OpeningBook.kt:169`
-**Issue:** `Solver.lastVisited` is a non-volatile `Long` written from whatever worker
-thread runs a search. Because hint cancellation is cooperative (up to 4096 nodes of
-lag), a cancelled search and its replacement can briefly run concurrently and interleave
-writes; a non-volatile `long` write is also not guaranteed atomic on the JVM.
-Diagnostic-only in production, but `SolverBudgetTest` reads it as "the deciding
-attempt's count", which assumes single-threaded use. `resourceReads` is only mutated
-under `bookFor`'s lock in production but is unguarded when tests call `readBook`
-directly.
-**Fix:** Mark both `@Volatile` (or return the visited count from the search result
-instead of parking it in object state) and note the single-threaded assumption in the
-KDoc.
+**File:** `app/src/test/java/com/app/pegsolitaire/ui/game/GameViewModelTest.kt:1370-1379`
+**Issue:** The doc reads "the same Diamond-41 jump with four extra mutually-unreachable pegs", but the builder adds exactly three (`(8,4)`, `(2,2)`, `(2,6)`) on top of the three-peg floor fixture — 6 pegs, minus one jumped, = the asserted 5. The arithmetic in the test is correct; the comment is not.
+**Fix:** Change "four extra" to "three extra".
 
-### IN-04: DepthSweepTest infers "authoritative dead" from `polls == 0`, conflating it with a solver fast-reject
+### IN-04: `toPositionOrNull`'s bound justification is unsound in general, though safe for every current board
+
+**File:** `app/src/main/java/com/app/pegsolitaire/data/resume/ResumeSnapshotDto.kt:122-147`
+**Issue:** The comment argues the `0 until 64` coordinate bound cannot fail closed on a legitimate future board because "a 64-cell footprint could in principle be a 1x64 line". That conflates footprint *size* (bounded by the `Long` mask) with coordinate *values* (unbounded by it): a legal 10-cell footprint anchored at row 100 would be rejected by this bound despite fitting the mask. Every current board is origin-anchored on a ≤9-cell grid and generated Challenge footprints are small, so behavior is safe today — but the comment claims a property the code does not have, and a future board authored with offset coordinates would silently destroy stored games exactly as the comment says it cannot.
+**Fix:** Correct the comment to state the real invariant ("all shipped and generated boards are origin-anchored, so no legal coordinate exceeds 63; a board that breaks this must also revise this bound"), or bound coordinates independently of the mask-size argument.
+
+### IN-05: `DepthSweepTest`'s bucket classification relies on an incidental property of the solver
 
 **File:** `domain/src/test/kotlin/com/app/pegsolitaire/domain/solver/DepthSweepTest.kt:207-220`
-**Issue:** The classification `polls > 0 → deferred; move != null → served; else →
-authoritative` assumes every solver entry polls `shouldCancel` at least once. A
-book-missed position that `Solver.firstWinningMove` rejects *before* any expansion
-(`pegCount <= minimumPegs`, Pagoda reject, or a moveless root) returns `null` with zero
-polls and would be counted as a book-proven death. Today the equality assertions against
-each header's `proven-dead` count would fail loudly if this ever happened (no shipped
-gap position hits the early return), so this cannot pass silently — but the heuristic's
-soundness rests on that indirect equality rather than on the classification itself.
-**Fix:** Classify from ground truth instead of the poll count — e.g., consult
-`OpeningBook.lookup(board)` directly (`Hit`/`NoWinningMove`/`null`) to bucket the
-position, and keep the poll spy solely as the "book paths never enter the solver"
-assertion.
+**Issue:** The sweep classifies a position as "reached the solver" via `polls > 0` and as "authoritative dead" via zero polls plus a null answer. But `Solver.firstWinningMove` can return `null` with *zero* polls when a position is pagoda-rejected or already at target — so a gap-board book MISS that the pagoda rejects instantly would be miscounted as an authoritative book answer. The pinned counts (`deferred == DOCUMENTED_GAP`, `authoritative == PROVEN_DEAD`) currently hold because Diamond-41's pagoda is vacuous (all misses launch real searches) and Wiegleb's 4 gap masks all search — but the classification is correct by measurement, not by construction, and a future gap position that happens to be pagoda-rejected would fail the sweep with a misleading "authoritative count mismatch" rather than the real story.
+**Fix:** Classify via `OpeningBook.lookup(board)` directly (Hit / NoWinningMove / null-miss) instead of inferring the path from poll counts; keep the poll spy only for the "book-served positions never enter the solver" assertions.
 
-### IN-05: `GameUiState.loading()` duplicates the `initial()` constructor field-for-field
+### IN-06: `GameViewModelHintStalenessTest` class KDoc describes the fixed defect in the present tense
 
-**File:** `app/src/main/java/com/app/pegsolitaire/ui/game/GameUiState.kt:151-173`
-**Issue:** `loading()` restates all 19 defaults of `initial()` and differs only in the
-placeholder board and `isLoading = true`. A future field added to `initial()` must be
-mirrored by hand here, and a divergence would surface only as a subtle loading-state
-inconsistency.
-**Fix:**
-```kotlin
-fun loading(): GameUiState =
-    initial(Board(spec = PLACEHOLDER_SPEC, pegs = 0L)).copy(isLoading = true)
-```
+**File:** `app/src/test/java/com/app/pegsolitaire/ui/game/GameViewModelHintStalenessTest.kt:52-59`
+**Issue:** The doc states "neither `performJump` nor `onUndo` cancels the search, and the result is applied unconditionally. Worse, the `withContext(defaultDispatcher)` block reads `_uiState.value.board` ... on the BACKGROUND thread" — all of which is now false (both cancel, inputs are captured on the main thread, results are guarded). A reader auditing the ViewModel from this spec would conclude the race still exists.
+**Fix:** Rephrase to past tense / "the pre-fix mechanism was:" so the doc describes what the test guards against rather than asserting it about current code.
 
 ---
 
