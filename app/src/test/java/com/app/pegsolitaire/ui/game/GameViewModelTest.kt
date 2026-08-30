@@ -32,6 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
@@ -1588,12 +1589,28 @@ private class FakeSettingsRepository(
  * [com.app.pegsolitaire.platform.ads.NoOpAdGateway] stub), so the VM tests assert that an
  * assist requests the grant, that [RewardOutcome.Declined] skips it, and that
  * [RewardOutcome.Unavailable] proceeds with it anyway (ADS-03).
+ *
+ * [offerable] backs [rewardedOfferable] and defaults to `true` like the stub; passing
+ * `false` drives the D-12 path where the opt-in dialog is skipped and the assist is
+ * granted silently free. [preloadedReasons] records every [preloadRewarded] call so a test
+ * can prove D-09's "preload only at the moment a counter reaches 0".
  */
 private class FakeAdGateway(
     private val outcome: RewardOutcome = RewardOutcome.Granted,
+    offerable: Boolean = true,
 ) : AdGateway {
     var lastReason: AdReason? = null
         private set
+
+    private val preloaded = mutableListOf<AdReason>()
+
+    val preloadedReasons: List<AdReason> get() = preloaded.toList()
+
+    override val rewardedOfferable: StateFlow<Boolean> = MutableStateFlow(offerable).asStateFlow()
+
+    override fun preloadRewarded(reason: AdReason) {
+        preloaded += reason
+    }
 
     override suspend fun requestRewarded(reason: AdReason): RewardOutcome {
         lastReason = reason
@@ -1609,8 +1626,13 @@ private class FakeAdGateway(
  * it. A cancelled hint job's suspended `await` throws before [proceeded] increments, so
  * `proceeded == 1` after two rapid requests proves the first search was cancelled (no
  * overlapping Solver work — the logic half of D-10).
+ *
+ * Carries the same [offerable] / [preloadedReasons] hooks as [FakeAdGateway] so the gate
+ * can be combined with a D-12 or D-09 assertion without a third fake.
  */
-private class GatedAdGateway : AdGateway {
+private class GatedAdGateway(
+    offerable: Boolean = true,
+) : AdGateway {
     private val gate = CompletableDeferred<Unit>()
 
     var started = 0
@@ -1618,6 +1640,16 @@ private class GatedAdGateway : AdGateway {
 
     var proceeded = 0
         private set
+
+    private val preloaded = mutableListOf<AdReason>()
+
+    val preloadedReasons: List<AdReason> get() = preloaded.toList()
+
+    override val rewardedOfferable: StateFlow<Boolean> = MutableStateFlow(offerable).asStateFlow()
+
+    override fun preloadRewarded(reason: AdReason) {
+        preloaded += reason
+    }
 
     fun release() {
         gate.complete(Unit)

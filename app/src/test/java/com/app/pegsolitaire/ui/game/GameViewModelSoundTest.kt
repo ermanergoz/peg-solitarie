@@ -31,6 +31,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -613,6 +615,10 @@ private object SoundSettings : SettingsRepository {
 private class FixedAdGateway(
     private val outcome: RewardOutcome,
 ) : AdGateway {
+    override val rewardedOfferable: StateFlow<Boolean> = MutableStateFlow(true).asStateFlow()
+
+    override fun preloadRewarded(reason: AdReason) = Unit
+
     override suspend fun requestRewarded(reason: AdReason): RewardOutcome = outcome
 
     override fun showInterstitial() = Unit
