@@ -115,7 +115,16 @@ class GameFlowTest {
         // into a Results navigation; no in-screen overlay appears.
         val result = runBlocking { viewModel.finished.first() }
         assertThat(result.pegsRemaining).isEqualTo(1)
-        assertThat(result.stars).isEqualTo(ScoreCalculator.stars(pegsRemaining = 1))
+        // D-03/D-04: the calculator is asked with the SAME per-board target the VM
+        // threads (English-33's default one peg), so the agreement being asserted is
+        // real rather than tautological.
+        assertThat(result.stars)
+            .isEqualTo(
+                ScoreCalculator.stars(
+                    pegsRemaining = 1,
+                    minimumPegs = nearWin.spec.minimumPegs,
+                ),
+            )
         composeRule
             .onNodeWithContentDescription(context.getString(R.string.elapsed_time))
             .assertIsDisplayed()

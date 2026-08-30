@@ -1,5 +1,6 @@
 package com.app.pegsolitaire.domain.golden
 
+import com.app.pegsolitaire.domain.TestFlags
 import com.google.common.truth.Truth.assertWithMessage
 import java.io.File
 
@@ -60,9 +61,5 @@ object GoldenMasterAssert {
         ).that(actual).isEqualTo(expected)
     }
 
-    private fun isUpdateEnabled(): Boolean =
-        isFlagTrue(System.getenv(UPDATE_GOLDEN_FLAG)) ||
-            isFlagTrue(System.getProperty(UPDATE_GOLDEN_FLAG))
-
-    private fun isFlagTrue(value: String?): Boolean = value?.equals("true", ignoreCase = true) == true
+    private fun isUpdateEnabled(): Boolean = TestFlags.isEnabled(UPDATE_GOLDEN_FLAG)
 }

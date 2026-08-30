@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Slice 2 — Play Games, AdMob & Polish
 status: executing
-stopped_at: Phase 8 context gathered
-last_updated: "2026-08-28T23:04:48.114Z"
-last_activity: 2026-08-28 -- Phase 08 planning complete
+stopped_at: Phase 9 UI-SPEC approved
+last_updated: "2026-08-30T22:20:52.837Z"
+last_activity: 2026-08-30 -- Phase 09 planning complete
 progress:
   total_phases: 9
-  completed_phases: 2
-  total_plans: 27
-  completed_plans: 16
-  percent: 22
+  completed_phases: 3
+  total_plans: 39
+  completed_plans: 28
+  percent: 33
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-27)
 
 **Core value:** Infinite, never-repeating, always-solvable Challenge levels that feel fair and satisfying.
-**Current focus:** Phase 8 — assist & generator quality debt
+**Current focus:** Phase 9 — consent & rewarded ads
 
 ## Current Position
 
-Phase: 8
+Phase: 9
 Plan: Not started
 Status: Ready to execute
-Last activity: 2026-08-28 -- Phase 08 planning complete
+Last activity: 2026-08-30 -- Phase 09 planning complete
 
 Progress: [██████████] 100%
 
@@ -36,7 +36,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 37 (all v1.0)
+- Total plans completed: 49 (all v1.0)
 - v1.0 shipped: 5 phases, 31 plans, 68 tasks
 
 **By Phase (v1.0):**
@@ -98,16 +98,30 @@ Recent decisions affecting current work:
 - [Phase 07]: The audit's 'star pops too high' was fixed by transposing the whole triad down a rung (STAR_POP_BASE_RATE, derived from STAR_POP_STEP_SEMITONES so the two cannot drift), never by narrowing the semitone step — the step is ladder SHAPE, and narrowing it would flatten the rising climb D-15 exists to protect
 - [Phase 07]: The Results star stagger stays ONE token (ClayAnim.STAR_STAGGER_MS, 120 -> 200) driving both the visual reveal and the audio pop spacing; the animations-off fallback was scaled by the same 5/3 rather than re-guessed, so the pop lands ON its star rather than near it
 - [Phase 07]: Phase 7's manual audit was emulator-only and globally approved rather than itemised — T-07-04 (ducking) and T-07-16 (cold-start latency) have emulator-grade confirmation only, and the shrink-proof APK used placeholder ad IDs so it is a verification artifact, not a shippable build
+- [Phase 08]: Diamond-41's fewest-pegs floor is **exactly 2**, proven both ways — a committed 38-move line replays through the unchanged `RulesEngine` to a dead end at (2,2)/(5,5), and all 41 single-peg positions are excluded by the GF(4) colour invariant; F is a fact, not a best-known, which is what lets star bands anchor on it
+- [Phase 08]: The per-board target lives on `BoardSpec.minimumPegs`, never on a level id — the solver's goal test and the star bands read the same field, so they cannot drift
+- [Phase 08]: The opening book is keyed structurally on `BoardSpec.footprint`, not on a board name or level id, so a resumed game still hits it — the resume boundary was the exact defect 08-07 exists to prevent
+- [Phase 08]: A book **miss** falls through to the solver, but a book "no winning move" is **authoritative** and short-circuits it — the two outcomes are different objects, and conflating them is how a timeout gets dressed up as a proof
+- [Phase 08]: The `Pagoda` prune is deliberately **weaker** for targets above one peg (provably vacuous at Diamond's two-peg target), and the committed book is the accepted mitigation rather than a stronger prune — Diamond's full start sat right on the 1.5s deadline without it
+- [Phase 08]: DEBT-01's literal "every position within four moves" claim was **not** asserted, because it is false of the shipped artifacts (Wiegleb ships K=3, Diamond and Wiegleb carry approved gaps, English-33 ships four correctly-dead entries); what is machine-checked is the truthfulness property — the hint never claims a move, or a dead position, it did not prove
+- [Phase 08]: Wiegleb-45's book ships at **K=3** with the file named `wiegleb45-k3.txt` so the artifact cannot misrepresent its own coverage — any check assuming a uniform `-k4` suffix will find four files, not five, and that is the artifacts being honest
+- [Phase 08]: The book resources are plain **JAR** resources, not Android `res/` entries — `aapt2` cannot see them, which is precisely why `isShrinkResources` has no remit over them and they survive R8 byte-intact (proven in `08-BOOK-EVIDENCE.md`)
+- [Phase 08]: `OpeningBook` fails **closed** — absent resources produce a MISS and a silent degradation to pre-book behaviour with no error at all, which is why release-APK retention is proven rather than assumed
 
-### Pending Todos
+### Resolved
+
+- **[resolved by Phase 8 — was carried from v1.0 / 02-02] Diamond-41 D-19 proof** — the board ships the **canonical centre start**, and its solvability claim is now fixture-verified rather than literature-asserted. `domain/src/test/kotlin/com/app/pegsolitaire/domain/golden/solutions/fixtures/diamond41.txt` replays 38 moves through the unchanged `RulesEngine` to a two-peg dead end at (2,2)/(5,5); `DiamondFloorOptimalityTest` excludes all 41 single-peg positions by the GF(4) colour invariant, with positive and negative controls. Closed by plans 08-01 and 08-06. The earlier "off-center start, literature-asserted, one-peg solvable" wording was stale on every count and is corrected per D-06.
+- **[resolved by Phase 8 — was carried from v1.0 / 04-02] Solver deadline envelope** — resolved, but **not uniformly**, and the distinction matters:
+  - **European-37 and Asymmetric-39 are fixed by the strengthened solver alone.** Both folded to "no winning move" at their full starts before Phase 8; the bitboard rewrite with a geometrically-escalating per-attempt node cap returns a real winning move in **~82–123 ms** and **<1 ms** respectively, against the untouched 1500 ms ceiling (08-05).
+  - **Wiegleb-45's early positions remain outside the deadline for any runtime search.** Research measured **0 of 76** depth-≤4 positions resolvable inside 1.5s even at ~15M nodes/s — a ~4-order-of-magnitude gap. The **committed opening book** is what makes those hints truthful, not a faster solver (08-08/08-09/08-10).
+  - Post-book, the depth sweep records **zero solver fallbacks** on English-33, European-37 and Asymmetric-39 across their entire depth-4 frontiers, at ≤12 ms per call (08-10).
 
 - **Confirm audio cues on physical hardware** (2026-08-28) — every Phase 7 audio checkpoint was emulator-only. SOUND-06 (no ducking) is structurally enforced by the `audioFocusLiteralCheck` build gate, so a device run is confirmation. SOUND-01 (first tap after cold start) is the real risk: `SoundPoolPlayer.play()` silently drops cues whose decode has not completed. See `.planning/todos/pending/2026-08-28-confirm-audio-cues-on-physical-hardware.md`.
 
 ### Blockers/Concerns
 
 - **External lead-time items must start on Phase 6 day 1** — Play Console PGS project + dual-SHA-1 OAuth credentials + tester propagation, AdMob account, and especially `app-ads.txt` (needs a **developer website**; up to 24h crawl). No developer website yet = longest-lead item in the milestone. Achievement icons (10–12 × 512×512) and the UMP consent message also block silently.
-- **[carried from v1.0 / 04-02] Solver deadline envelope** — hard early positions on European-37 / Asymmetric-39 / Wiegleb-45 exceed the 1.5s deadline and fold to "no winning move". Now owned as DEBT-01 in **Phase 8**.
-- **[carried from v1.0 / 02-02] Diamond-41 D-19 proof deferred** — ships with an off-center (4,2) start whose solvability is literature-asserted, not fixture-verified. Now owned as DEBT-02 in **Phase 8** (needs the same stronger pruning as DEBT-01).
+- **Residual from DEBT-01 (stated plainly, not a regression)** — 444 positions across Diamond-41 (440 of 785 canonical-covered) and Wiegleb-45 (4 of 101) are outside their committed books, and on every one of them the solver returns `null` after the full 1.5s. Those positions are **player-visible**: a 1.5s spinner ending in the rescue banner. The gaps are header-declared in the artifacts and pinned by equality in `DepthSweepTest`, so any change to them is a visible diff. Closing Diamond's gap is the honest lever (it also removes `check`'s 11-minute cost); a K=4 Wiegleb upgrade is tracked in `.planning/todos/pending/2026-08-29-upgrade-wiegleb45-opening-book-to-depth-4.md`.
 - **Saved Games per-snapshot size cap is unverified** (LOW confidence in research) — must be confirmed at runtime before the Phase 13 payload schema is finalized; design the payload capped/lossy-by-default.
 - **App declares no `INTERNET` permission and has no R8/minification at all** — both must land in Phase 6 before a ~5.5MB ads SDK and its transitive graph reach a release build.
 
@@ -132,9 +146,9 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-28T21:15:00.410Z
-Stopped at: Phase 8 context gathered
-Resume file: .planning/phases/08-assist-generator-quality-debt/08-CONTEXT.md
+Last session: 2026-08-30T21:32:39.074Z
+Stopped at: Phase 9 UI-SPEC approved
+Resume file: .planning/phases/09-consent-rewarded-ads/09-UI-SPEC.md
 
 ## Operator Next Steps
 

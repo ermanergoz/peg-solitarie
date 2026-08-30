@@ -26,7 +26,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) · Audit:
 
 - [x] **Phase 6: Platform Foundation & Build Hardening** - Activity bridge, extended seams, R8, build-config IDs, purity/dependency gates, security advisories closed — zero player-visible change (completed 2026-08-27)
 - [x] **Phase 7: Sound** - The 12-event SFX set consuming the already-persisted `soundOn` flag (completed 2026-08-28; planned as 11 events, grown to 12 by post-phase quick task 260828-vrr, which split peg pick-up and put-down into separate cues)
-- [ ] **Phase 8: Assist & Generator Quality Debt** - Hints tell the truth on hard early positions; every Classic board's solvability is proven
+- [x] **Phase 8: Assist & Generator Quality Debt** - Hints tell the truth on hard early positions; every Classic board's solvability is proven (completed 2026-08-29)
 - [ ] **Phase 9: Consent & Rewarded Ads** - UMP consent, opt-in-first rewarded assists, fail-open on no-fill, clock frozen across every ad
 - [ ] **Phase 10: Interstitials** - Frequency-capped, win-only interstitials at the Results continue action
 - [ ] **Phase 11: Play Games Session** - Silent auto sign-in, full signed-out play, manual sign-in fallback
@@ -124,44 +124,48 @@ Plans:
 **Requirements**: DEBT-01, DEBT-02, DEBT-03
 **Success Criteria** (what must be TRUE):
 
-  1. Player asking for a hint from a hard early position on European-37, Asymmetric-39, or Wiegleb-45 gets a real winning move within the solver deadline instead of folding to the "no winning move" rescue banner. (DEBT-01)
-  2. Diamond-41's shipped starting position is proven solvable by a committed recorded-solution fixture that replays clean through the unchanged `RulesEngine` in CI. (DEBT-02)
+  1. Player asking for a hint from a hard early position on European-37, Asymmetric-39, or Wiegleb-45 gets a real winning move within the unchanged 1.5s deadline instead of folding to the "no winning move" rescue banner — delivered by **a committed depth-4 opening book plus a bitboard solver with a working restart policy**, so the guarantee is a lookup over the first four moves and a budgeted search beyond it. The book's authoritative "no winning move" is a proof; a book miss falls through to the solver. (DEBT-01)
+  2. Diamond-41's shipped **centre** start is proven to reach its fewest-pegs floor of **2** — by a committed 38-move line replayed through the unchanged `RulesEngine` in CI — **and** proven unable to reach 1, by the GF(4) colour invariant checked exhaustively over all 41 single-peg positions. "Solvable to one peg" was never achievable for this board; the earlier wording of this criterion predated the centre-start reality and is corrected here per D-06. (DEBT-02)
   3. The Nyquist validation coverage gaps carried from v1.0 phases 3 and 4 are backfilled and green in `check`. (DEBT-03)
 
-**Plans**: 11 plans in 7 waves
+**Plans**: 12 plans in 8 waves
 
 Plans:
 **Wave 1**
 
-- [ ] 08-01-PLAN.md — `BoardSpec.minimumPegs` + structural `footprint` key, `Boards.CLASSIC_SPECS`, Diamond-41 target 2 (DEBT-01/02)
-- [ ] 08-02-PLAN.md — Consolidate the three `symmetryPermutations` copies into `BoardCanonical`, add the chunked fast path + `CanonicalTest` property net (DEBT-01, Pitfall 4)
-- [ ] 08-03-PLAN.md — DEBT-03: audit and sign off the phase 3/4 validation contracts, cover duplicate-board rejection, update the milestone audit
+- [x] 08-01-PLAN.md — `BoardSpec.minimumPegs` + structural `footprint` key, `Boards.CLASSIC_SPECS`, Diamond-41 target 2 (DEBT-01/02)
+- [x] 08-02-PLAN.md — Consolidate the three `symmetryPermutations` copies into `BoardCanonical`, add the chunked fast path + `CanonicalTest` property net (DEBT-01, Pitfall 4)
+- [x] 08-03-PLAN.md — DEBT-03: audit and sign off the phase 3/4 validation contracts, cover duplicate-board rejection, update the milestone audit
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 08-04-PLAN.md — `SolverTables` precomputed bitboard tables + target-aware `Pagoda` (DEBT-01/02, Pitfall 1)
-- [ ] 08-06-PLAN.md — **A1 gate:** beam-search authoring, committed Diamond-41 floor line replayed to 2 pegs, exhaustive GF(4) optimality proof (DEBT-02, D-05)
+- [x] 08-04-PLAN.md — `SolverTables` precomputed bitboard tables + target-aware `Pagoda` (DEBT-01/02, Pitfall 1)
+- [x] 08-06-PLAN.md — **A1 gate:** beam-search authoring, committed Diamond-41 floor line replayed to 2 pegs, exhaustive GF(4) optimality proof (DEBT-02, D-05)
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 08-05-PLAN.md — `Solver` bitboard rewrite, per-attempt node cap so restarts happen, re-anchored budget contracts (DEBT-01, D-07)
-- [ ] 08-07-PLAN.md — Per-board star bands derived from the board target + resume-path target preservation (DEBT-02, D-03/D-04, Pitfall 3)
+- [x] 08-05-PLAN.md — `Solver` bitboard rewrite, per-attempt node cap so restarts happen, re-anchored budget contracts (DEBT-01, D-07)
+- [x] 08-07-PLAN.md — Per-board star bands derived from the board target + resume-path target preservation (DEBT-02, D-03/D-04, Pitfall 3)
 
 **Wave 4** *(blocked on Wave 3)*
 
-- [ ] 08-08-PLAN.md — Opening-book format, depth-4 authoring run, five committed book resources + blocking generation review (DEBT-01, D-08)
+- [x] 08-08-PLAN.md — Opening-book format, depth-4 authoring run, five committed book resources + blocking generation review (DEBT-01, D-08)
 
 **Wave 5** *(blocked on Wave 4)*
 
-- [ ] 08-09-PLAN.md — `OpeningBook` classpath lookup with miss / authoritative / hit separation, fail-closed parse, integrity gate (DEBT-01/02)
+- [x] 08-09-PLAN.md — `OpeningBook` classpath lookup with miss / authoritative / hit separation, fail-closed parse, integrity gate (DEBT-01/02)
 
 **Wave 6** *(blocked on Wave 5)*
 
-- [ ] 08-10-PLAN.md — Book-first hint pipeline behind one legality guard + gated `DepthSweepTest` asserting the D-08 universal claim (DEBT-01/02)
+- [x] 08-10-PLAN.md — Book-first hint pipeline behind one legality guard + gated `DepthSweepTest` asserting the D-08 universal claim (DEBT-01/02)
 
 **Wave 7** *(blocked on Wave 6)*
 
-- [ ] 08-11-PLAN.md — Release-APK book retention proof, D-06 documentation trail, blocking on-device phase audit (DEBT-01/02/03)
+- [x] 08-11-PLAN.md — Release-APK book retention proof, D-06 documentation trail, blocking on-device phase audit (DEBT-01/02/03)
+
+**Wave 8** *(gap closure — blocked on Wave 7)*
+
+- [x] 08-12-PLAN.md — Close CR-01: cancel the in-flight hint search on jump/undo, capture search inputs on the main thread, discard a result computed for a superseded board (DEBT-01)
 
 **Notes**: DEBT-01 and DEBT-02 are one unit of work — the per-board target that makes the Diamond proof reachable is the same field the solver's goal test reads. Deliberately sequenced early so it absorbs the Play Console / AdMob propagation wait rather than being squeezed at release.
 
@@ -183,8 +187,41 @@ Plans:
   4. When an ad cannot load or fill, or the consent flow fails, player still gets the assist with a brief explanation and keeps playing — no error wall, no dead end. (ADS-03, CONS-04)
   5. The elapsed game clock is frozen for the full duration of every ad presentation and resumes on dismiss, so watching an ad can never cost score; and a hint that honestly reports "no winning move" costs neither an allowance nor an ad. (ADSF-01, ADS-06)
 
-**Plans**: TBD
+**Plans**: 11 plans in 7 waves
 **UI hint**: yes
+
+Plans:
+**Wave 1**
+
+- [ ] 09-01-PLAN.md — `AssistAllowance` pure `:domain` policy (3 hints / 5 undos, refill-to-full) + resume-snapshot counters with fail-open decode (ADS-02, D-01/02/03/04/17)
+- [ ] 09-02-PLAN.md — Interface-first seam contracts: `AdGateway.rewardedOfferable`/`preloadRewarded`, `NoOpAdGateway` flipped to offerable (Pitfall 6), `AdConstants`, `ConsentGateway` + `AdsReadiness`
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 09-03-PLAN.md — `AdOfferDialog` themed opt-in dialog, `ClaySnackbarHost` (the app's first), and every Phase-9 string + the three new dimen tokens (ADS-01, ADS-03)
+- [ ] 09-04-PLAN.md — ADSF-01 clock freeze by ticker rebase, `resumeTickerIfNeeded` guard, virtual-time test class
+- [ ] 09-05-PLAN.md — `UmpConsentGateway` (every-launch consent info, one off-main `MobileAds.initialize`), `AdsModule` inside `..platform..`, `MainActivity` bootstrap, AdMob `APPLICATION_ID` manifest tag (CONS-01/02/03/04)
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 09-06-PLAN.md — ADS-06 inversion: hints search first and charge second, undo's empty-history guard hoisted, `GameUiState` offer/snackbar fields carried at all four install sites
+- [ ] 09-07-PLAN.md — Settings Privacy section: always-present policy row (REL-05) + consent-gated manage-choices row (CONS-03), `PrivacyLinks` constant. **Blocking human gate: the live policy URL (D-19)**
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 09-08-PLAN.md — The single assist funnel: free allowance, preload at exhaustion, opt-in offer, refill-then-spend on Granted/Unavailable, silent free grant when unservable, retry-proof persistence (ADS-01/02/03/04/05, CONS-04)
+
+**Wave 5** *(blocked on Wave 4)*
+
+- [ ] 09-09-PLAN.md — `GameScreen`/`GameRoute` wiring: dialog gating, tick-driven clay snackbar, and the "no second offer surface" negative-contract test
+
+**Wave 6** *(blocked on Wave 5 — the stub-first ordering gate)*
+
+- [ ] 09-10-PLAN.md — `RewardedAdSlot` + `AdMobAdGateway` (GMA Next-Gen suspend load, `earned` only from `OnUserEarnedRewardListener`) and the `PlatformModule` binding swap (ADS-01/03/05, CONS-02/04)
+
+**Wave 7** *(blocked on Wave 6)*
+
+- [ ] 09-11-PLAN.md — Blocking AdMob-console gate (D-18) + itemised on-device verification of consent, both privacy rows, a real test rewarded ad and the clock freeze, committed as `09-DEVICE-EVIDENCE.md`
 **Notes**: Internal ordering is non-negotiable — build and test the opt-in dialog against the still-in-place `NoOpAdGateway` stub **before** the real ad SDK is wired in. The stub's silent `true` auto-grant is exactly what currently hides the missing opt-in UI, and swapping in a real implementation as-is ships an AdMob policy violation. ADSF-01 (clock pause) is owned here and re-asserted as an acceptance criterion in Phase 10. REL-05 (the always-present privacy-policy entry) is placed here rather than in Phase 14 because it shares the Settings surface CONS-03 builds; it needs the policy URL to exist, so the developer website is a hard prerequisite for this phase, not just for release.
 
 ### Phase 10: Interstitials
@@ -280,8 +317,8 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 5. Persistence, Resume & Settings | v1.0 | 7/7 | Complete | 2026-08-25 |
 | 6. Platform Foundation & Build Hardening | v1.1 | 10/10 | Complete   | 2026-08-27 |
 | 7. Sound | v1.1 | 6/6 | Complete   | 2026-08-28 |
-| 8. Assist & Generator Quality Debt | v1.1 | 0/11 | Planned | - |
-| 9. Consent & Rewarded Ads | v1.1 | 0/TBD | Not started | - |
+| 8. Assist & Generator Quality Debt | v1.1 | 12/12 | Complete   | 2026-08-30 |
+| 9. Consent & Rewarded Ads | v1.1 | 0/11 | Planned | - |
 | 10. Interstitials | v1.1 | 0/TBD | Not started | - |
 | 11. Play Games Session | v1.1 | 0/TBD | Not started | - |
 | 12. Leaderboards & Achievements | v1.1 | 0/TBD | Not started | - |
