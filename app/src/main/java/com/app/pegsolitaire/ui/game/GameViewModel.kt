@@ -362,6 +362,11 @@ class GameViewModel
             // Capture the recorded winning line so the hint can serve it instantly
             // while the player stays on it (D-03); Classic leaves solution null.
             solution = level.solution
+            // Installing a board mutates it, so the CR-01 contract applies here too
+            // (WR-01): kill any search launched against the loading placeholder. The
+            // "caller owes the flag" obligation is met by the rebuild itself —
+            // GameUiState.initial() carries solverThinking = false.
+            cancelHintSearch()
             _uiState.update {
                 GameUiState
                     .initial(level.initialBoard)
@@ -409,6 +414,9 @@ class GameViewModel
                     Boards.english33Initial
                 }
             initialBoard = board
+            // Board-install = board mutation, so the CR-01 idiom applies (WR-01); the
+            // GameUiState.initial() rebuild below clears solverThinking for us.
+            cancelHintSearch()
             _uiState.update {
                 GameUiState
                     .initial(board)
@@ -447,6 +455,9 @@ class GameViewModel
             moveHistory.addAll(restored.moveHistory)
             onRecordedLine = false
             elapsedBaseSeconds = (restored.elapsedMs / MILLIS_IN_SECOND).toInt()
+            // Board-install = board mutation, so the CR-01 idiom applies (WR-01); the
+            // GameUiState.initial() rebuild below clears solverThinking for us.
+            cancelHintSearch()
             _uiState.update {
                 GameUiState
                     .initial(restored.currentBoard)
@@ -889,7 +900,9 @@ class GameViewModel
          * **Two guarantees close CR-01**, and both are needed because the board stays fully
          * tappable while the search runs (`GameScreen` disables only the Hint control):
          *  1. Any board mutation CANCELS this search — see [cancelHintSearch], called by
-         *     [performJump], [onUndo] and [resetToInitial] as well as by a repeat request.
+         *     [performJump], [onUndo] and [resetToInitial], by the three async board-install
+         *     sites ([loadChallengeBoardIfNeeded], [installClassicBoard], [applyRestored])
+         *     and by a repeat request.
          *  2. Even so, a result that still arrives is APPLIED ONLY IF the board it was
          *     computed for is the board still on screen; otherwise nothing but
          *     [GameUiState.solverThinking] is written. The two together mean a hint can
@@ -901,8 +914,17 @@ class GameViewModel
          * as this did before CR-01 — is an unsynchronised cross-thread read of mutable
          * ViewModel state, and could even hand the use case a board from before a jump with
          * a `movesPlayed` from after it.
+         *
+         * While [GameUiState.isLoading] the request is refused outright (WR-01): the only
+         * board on screen is the loading placeholder (`pegs = 0`), which the Solver answers
+         * with an instant `null` — and because the placeholder is still the board when the
+         * result lands, the stale-result guard below would PASS and raise the "no winning
+         * move" rescue banner over the loading indicator, on a position that was never
+         * played. `GameScreen` renders the Hint control unconditionally in the top bar, so
+         * the guard has to live here, not in the screen.
          */
         fun onHintRequested() {
+            if (_uiState.value.isLoading) return
             cancelHintSearch()
             _uiState.update {
                 it.copy(

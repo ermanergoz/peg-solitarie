@@ -293,6 +293,58 @@ class GameViewModelHintStalenessTest {
             assertThat(searchedBoards).doesNotContain(afterJump)
         }
 
+    // ---- The async board-install window (WR-01) ------------------------------
+
+    @Test
+    fun aHintDuringTheChallengeLoadWindowIsRefusedNotAnsweredWithTheRescueBanner() =
+        hintTest {
+            // The only board on screen during a Challenge load is the loading placeholder
+            // (`pegs = 0`), which the Solver answers with an instant honest `null` — and
+            // the placeholder is still the board when that result lands, so without the
+            // isLoading guard the stale-result guard PASSES and the "no winning move"
+            // rescue banner is raised over the loading indicator (WR-01).
+            val board = playableStrip()
+            val viewModel = challengeViewModelFor(board)
+            runCurrent()
+            // The generation is genuinely in flight: parked at the dispatcher hop.
+            assertThat(viewModel.uiState.value.isLoading).isTrue()
+            assertThat(gate.pending).isEqualTo(1)
+
+            viewModel.onHintRequested()
+            runCurrent()
+
+            // Refused outright: no spinner raised, and no second runnable was parked —
+            // the one in the gate is still the level load, not a hint search.
+            assertThat(viewModel.uiState.value.solverThinking).isFalse()
+            assertThat(gate.pending).isEqualTo(1)
+
+            gate.releaseAll()
+            runCurrent()
+
+            // The install lands on a clean state: no banner over a position never played.
+            val installed = viewModel.uiState.value
+            assertThat(installed.isLoading).isFalse()
+            assertThat(installed.noWinningMove).isFalse()
+            assertThat(installed.showRescueBanner).isFalse()
+            assertThat(installed.board).isEqualTo(board)
+
+            // And the control is genuinely usable once a real board exists: a fresh
+            // request resolves to a legal move on the installed board.
+            viewModel.onHintRequested()
+            runCurrent()
+            assertThat(gate.pending).isEqualTo(1)
+            gate.releaseAll()
+            runCurrent()
+
+            val state = viewModel.uiState.value
+            assertThat(state.solverThinking).isFalse()
+            val hinted =
+                RulesEngine
+                    .legalMoves(state.board)
+                    .firstOrNull { it.from == state.hintSource && it.to == state.hintTarget }
+            assertThat(hinted).isNotNull()
+        }
+
     // ---- Helpers -------------------------------------------------------------
 
     /**
@@ -331,17 +383,41 @@ class GameViewModelHintStalenessTest {
         board: Board,
         getHintUseCase: GetHintUseCase = GetHintUseCase(),
     ): GameViewModel {
-        // Classic only, with no `challengeLevel` arg: the Challenge generation path also
-        // hops through `defaultDispatcher`, so keeping it unreachable means the gate holds
-        // exactly one runnable and it is always the hint search.
+        // Classic, with no `challengeLevel` arg: the Challenge generation path also hops
+        // through `defaultDispatcher`, so keeping it unreachable means the gate holds
+        // exactly one runnable and it is always the hint search. The WR-01 spec that
+        // needs the OPPOSITE — the gate holding the level load — uses
+        // [challengeViewModelFor] instead.
         val args = mapOf<String, Any?>(HINT_LEVEL_ID_ARG to ClassicLevelIds.ENGLISH33)
+        return viewModelWith(HintLevelRepository(board), getHintUseCase, args)
+    }
+
+    /**
+     * A Challenge ViewModel whose level load is parked at the [gate] — the WR-01 window:
+     * `isLoading` is true, the board on screen is the loading placeholder, and the one
+     * runnable the gate holds is the generation, not a hint search.
+     */
+    private fun challengeViewModelFor(board: Board): GameViewModel {
+        val args =
+            mapOf<String, Any?>(
+                HINT_LEVEL_ID_ARG to "",
+                HINT_CHALLENGE_LEVEL_ARG to HINT_CHALLENGE_LEVEL,
+            )
+        return viewModelWith(ChallengeHintLevelRepository(board), GetHintUseCase(), args)
+    }
+
+    private fun viewModelWith(
+        levelRepository: LevelRepository,
+        getHintUseCase: GetHintUseCase,
+        args: Map<String, Any?>,
+    ): GameViewModel {
         val factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T =
                     GameViewModel(
                         rulesEngine = RulesEngine,
-                        levelRepository = HintLevelRepository(board),
+                        levelRepository = levelRepository,
                         scoreCalculator = ScoreCalculator,
                         settingsRepository = HintSettings,
                         challengeProgress = mockk(relaxed = true),
@@ -433,6 +509,12 @@ private const val HINT_ROBOLECTRIC_SDK = 34
 /** The `Gameplay` route arg key (the route's property name). */
 private const val HINT_LEVEL_ID_ARG = "levelId"
 
+/** The `Gameplay` route Challenge arg key (the route's property name). */
+private const val HINT_CHALLENGE_LEVEL_ARG = "challengeLevel"
+
+/** The (in-bounds) Challenge level the WR-01 loading-window spec plays. */
+private const val HINT_CHALLENGE_LEVEL = 1
+
 /** The single row every fixture is laid out on. */
 private const val FIXTURE_ROW = 0
 
@@ -481,6 +563,31 @@ private class HintLevelRepository(
 
     override fun loadChallenge(levelNumber: Int): Level =
         error("This spec is Classic-only — the Challenge load would occupy the hint gate")
+}
+
+/**
+ * A [LevelRepository] serving one fixed board through *Challenge*, for the WR-01
+ * loading-window spec — where the gate deliberately holds the level load, so the test can
+ * tap Hint while `isLoading` is true and the placeholder board is on screen. `solution` is
+ * left `null` on purpose: the post-install control assertion must exercise the Solver path,
+ * not the recorded line.
+ */
+private class ChallengeHintLevelRepository(
+    private val board: Board,
+) : LevelRepository {
+    override fun classicCatalog(): List<ClassicLevelDescriptor> = emptyList()
+
+    override fun loadClassic(levelId: String): Level =
+        error("This spec is Challenge-only — Classic would install a board synchronously")
+
+    override fun loadChallenge(levelNumber: Int): Level =
+        Level(
+            id = "challenge-$levelNumber",
+            displayName = "challenge-$levelNumber",
+            spec = board.spec,
+            initialBoard = board,
+            holeCount = board.spec.inPlay.size,
+        )
 }
 
 /** Hints/haptics/sound all on; this spec is about the search, not the gates. */
