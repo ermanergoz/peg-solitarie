@@ -1,7 +1,8 @@
 ---
 phase: 08-assist-generator-quality-debt
 verified: 2026-08-30T00:35:00Z
-status: human_needed
+status: passed
+human_verification_discharged: 2026-08-30 — on-device audit performed on physical hardware, all items approved per-item; record in 08-HUMAN-UAT.md (status passed) and 08-11-SUMMARY.md § Device Audit Outcome
 score: 8/8 must-haves verified
 overrides_applied: 3
 overrides:

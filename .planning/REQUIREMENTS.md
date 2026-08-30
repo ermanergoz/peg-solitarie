@@ -103,9 +103,9 @@
 
 ### Tech Debt
 
-- [ ] **DEBT-01**: The hint solver returns a winning move within its deadline for hard early positions on the large Classic boards, instead of folding to "no winning move"
-- [ ] **DEBT-02**: Diamond-41's shipped starting position is proven solvable by a committed recorded-solution fixture replayed through the rules engine
-- [ ] **DEBT-03**: The validation coverage gaps carried from phases 3 and 4 are backfilled
+- [x] **DEBT-01**: The hint solver returns a winning move within its deadline for hard early positions on the large Classic boards, instead of folding to "no winning move"
+- [x] **DEBT-02**: Diamond-41's shipped starting position is proven solvable by a committed recorded-solution fixture replayed through the rules engine
+- [x] **DEBT-03**: The validation coverage gaps carried from phases 3 and 4 are backfilled
 - [ ] **DEBT-04**: Security advisories WARN-02 and WARN-03 from the v1.0 audit are closed
 
 ### Release Readiness
@@ -203,9 +203,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CLOUD-03 | Phase 13 | Pending |
 | CLOUD-04 | Phase 13 | Pending |
 | CLOUD-05 | Phase 13 | Pending |
-| DEBT-01 | Phase 8 | Pending |
-| DEBT-02 | Phase 8 | Pending |
-| DEBT-03 | Phase 8 | Pending |
+| DEBT-01 | Phase 8 | Complete (2026-08-30) |
+| DEBT-02 | Phase 8 | Complete (2026-08-30) |
+| DEBT-03 | Phase 8 | Complete (2026-08-30) |
 | DEBT-04 | Phase 6 | Pending |
 | REL-01 | Phase 14 | Pending |
 | REL-02 | Phase 14 | Pending |

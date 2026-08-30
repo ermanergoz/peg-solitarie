@@ -8,6 +8,8 @@ A polished native Android peg solitaire game with two modes: a **Classic** mode 
 
 **v1.0 "Slice 1 — Playable Core" shipped 2026-08-26.** All 30 v1 requirements validated; milestone audit passed (5/5 E2E flows, integration 9.5/10, zero leftover stubs). ~17.6k lines of Kotlin across a pure-JVM `:domain` module and a Compose `:app`, 293 JVM tests green, phase 5 additionally code-reviewed (all Critical/Warning findings fixed) and security-audited (14/14 threats closed). No external SDKs — `AdGateway` and `GamesService` are no-op stubs awaiting Slice 2.
 
+**Phase 8 complete (2026-08-30)** — DEBT-01/02/03 validated: truthful hints via committed depth-4/3 opening books + bitboard solver (stale-hint race CR-01 and load-window WR-01 fixed and regression-pinned), Diamond-41's 2-peg floor proven both ways (38-move line replayed in CI + exhaustive GF(4) impossibility), phase 3/4 validation contracts reconciled. Confirmed per-item on physical hardware; verification 8/8, code review clean of Critical/Warning.
+
 ## Core Value
 
 Infinite, never-repeating, always-solvable Challenge levels that feel fair and satisfying — if nothing else works, the procedurally-generated puzzles must be solvable and fun.
@@ -111,4 +113,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-27 at v1.1 milestone start*
+*Last updated: 2026-08-30 after Phase 8 completion*
