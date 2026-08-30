@@ -162,6 +162,10 @@ Ready for the wave-3 consumers:
 
 No blockers. One note for the wave-3 planner: `AdOfferDialog` takes `loading` as a plain `Boolean` and has no timeout of its own — the `AdConstants.ACCEPT_WAIT_MS` bound that makes the lock safe must be enforced by the caller (`GameViewModel`), and the dialog's KDoc says so. If 09-08 hoists `loading` without that bound, the lock becomes the dead end T-09-11 exists to prevent.
 
+## Self-Check: PASSED
+
+All four created files exist on disk and all four commits (`61a775c`, `70bdc7d`, `5a2b98d`, `831c9e2`) are present in the branch history. Working tree clean apart from the untracked, gitignored `local.properties` copied in for the Android SDK path.
+
 ---
 *Phase: 09-consent-rewarded-ads*
 *Completed: 2026-08-31*
