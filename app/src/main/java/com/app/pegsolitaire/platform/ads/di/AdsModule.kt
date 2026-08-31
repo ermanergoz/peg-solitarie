@@ -38,10 +38,20 @@ import javax.inject.Singleton
  * SDK types out of the graph: a platform class constructs its own SDK handle behind its
  * own seam, and only the seam interface is bound. See
  * [com.app.pegsolitaire.platform.ads.consent.UmpConsentGateway]'s `consentInformation`
- * property for the shape. A future rewarded-ad loader will hit the identical wall and
- * wants the identical treatment.
+ * property for the shape.
  *
- * What is left is therefore a single `@Binds` of an interface that names no SDK type —
+ * **That prediction was then tested.** The paragraph above warned that a future
+ * rewarded-ad loader would hit the identical wall; plan 09-10 built one and, following
+ * this advice, it never touched the wall at all.
+ * [com.app.pegsolitaire.platform.ads.RewardedAdSlot] constructs and owns its `RewardedAd`
+ * internally and takes only an application `CoroutineScope`, and
+ * [com.app.pegsolitaire.platform.ads.AdMobAdGateway] exposes no ads type in any
+ * constructor parameter or member signature. So the real ad gateway needed **no** addition
+ * to this module: its `@Binds` sits in `PlatformModule` beside the other seam bindings,
+ * naming only SDK-free types. The pattern's cost is one lazily-constructed handle per
+ * platform class; its payoff is that the boundary gate stays at full strength.
+ *
+ * What is left here is therefore a single `@Binds` of an interface that names no SDK type —
  * which is exactly what the boundary rules are designed to allow.
  */
 @Module
