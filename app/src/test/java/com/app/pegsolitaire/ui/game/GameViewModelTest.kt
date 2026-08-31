@@ -879,8 +879,10 @@ class GameViewModelTest {
     fun hintDeclinedLeavesTheControlIdleOnABoardThatHasAWinningMove() =
         runTest(testDispatcher) {
             // T-06-01: the decline path must clear solverThinking, or the hint control
-            // spins forever. The board is solvable, so a missing hint can only mean the
-            // search never ran — proving the abort happened before the Solver call.
+            // spins forever. The board is solvable, so the search DID find a move — and a
+            // missing hint therefore proves the decline suppressed the reveal. (Plan 09-06
+            // inverted the order for ADS-06: the search now runs before the gateway, and the
+            // found move waits in `pendingHint` for a grant that never comes.)
             val declinedGateway = FakeAdGateway(outcome = RewardOutcome.Declined)
             val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = declinedGateway)
             runCurrent()
