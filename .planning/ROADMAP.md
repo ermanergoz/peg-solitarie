@@ -204,8 +204,8 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 09-06-PLAN.md — ADS-06 inversion: hints search first and charge second, undo's empty-history guard hoisted, `GameUiState` offer/snackbar fields carried at all four install sites
-- [ ] 09-07-PLAN.md — Settings Privacy section: always-present policy row (REL-05) + consent-gated manage-choices row (CONS-03), `PrivacyLinks` constant. **Blocking human gate: the live policy URL (D-19)**
+- [x] 09-06-PLAN.md — ADS-06 inversion: hints search first and charge second, undo's empty-history guard hoisted, `GameUiState` offer/snackbar fields carried at all four install sites
+- [x] 09-07-PLAN.md — Settings Privacy section: always-present policy row (REL-05) + consent-gated manage-choices row (CONS-03), `PrivacyLinks` constant. **Blocking human gate: the live policy URL (D-19)**
 
 **Wave 4** *(blocked on Wave 3)*
 
@@ -318,7 +318,7 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 6. Platform Foundation & Build Hardening | v1.1 | 10/10 | Complete   | 2026-08-27 |
 | 7. Sound | v1.1 | 6/6 | Complete   | 2026-08-28 |
 | 8. Assist & Generator Quality Debt | v1.1 | 12/12 | Complete   | 2026-08-30 |
-| 9. Consent & Rewarded Ads | v1.1 | 5/11 | In Progress|  |
+| 9. Consent & Rewarded Ads | v1.1 | 7/11 | In Progress|  |
 | 10. Interstitials | v1.1 | 0/TBD | Not started | - |
 | 11. Play Games Session | v1.1 | 0/TBD | Not started | - |
 | 12. Leaderboards & Achievements | v1.1 | 0/TBD | Not started | - |
