@@ -38,7 +38,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
@@ -450,6 +449,13 @@ private fun WinSound(status: GameStatus) {
  * [SnackbarDuration.Short] and no action label: by the time this shows, D-11 has already
  * refilled the assist, so there is nothing left for the player to do.
  *
+ * The id is resolved with [stringResource] **in composition** rather than through
+ * `LocalContext.current.getString(...)` inside the effect. `LocalContext` reads are not
+ * invalidated by a `Configuration` change, so the latter can hand a stale-locale string to the
+ * snackbar — the pinned Compose BOM fails the build on it (`LocalContextGetResourceValueCall`).
+ * The effect still keys on the ordinal alone, so a locale change re-resolves the text without
+ * re-showing a message the player has already been shown.
+ *
  * @param adMessage the `@StringRes` id of the message to show, or `null` when none was raised.
  * @param adMessageTick the monotonic ordinal that makes each emission a distinct key.
  * @param hostState the snackbar queue hoisted by the screen's `Scaffold`.
@@ -460,11 +466,11 @@ private fun AdMessageSnackbarEffect(
     adMessageTick: Int,
     hostState: SnackbarHostState,
 ) {
-    val context = LocalContext.current
+    val message = adMessage?.let { stringResource(it) }
     LaunchedEffect(adMessageTick) {
-        if (adMessageTick > 0 && adMessage != null) {
+        if (adMessageTick > 0 && message != null) {
             hostState.showSnackbar(
-                message = context.getString(adMessage),
+                message = message,
                 duration = SnackbarDuration.Short,
             )
         }
