@@ -209,7 +209,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3)*
 
-- [ ] 09-08-PLAN.md — The single assist funnel: free allowance, preload at exhaustion, opt-in offer, refill-then-spend on Granted/Unavailable, silent free grant when unservable, retry-proof persistence (ADS-01/02/03/04/05, CONS-04)
+- [x] 09-08-PLAN.md — The single assist funnel: free allowance, preload at exhaustion, opt-in offer, refill-then-spend on Granted/Unavailable, silent free grant when unservable, retry-proof persistence (ADS-01/02/03/04/05, CONS-04)
 
 **Wave 5** *(blocked on Wave 4)*
 
@@ -318,7 +318,7 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 6. Platform Foundation & Build Hardening | v1.1 | 10/10 | Complete   | 2026-08-27 |
 | 7. Sound | v1.1 | 6/6 | Complete   | 2026-08-28 |
 | 8. Assist & Generator Quality Debt | v1.1 | 12/12 | Complete   | 2026-08-30 |
-| 9. Consent & Rewarded Ads | v1.1 | 7/11 | In Progress|  |
+| 9. Consent & Rewarded Ads | v1.1 | 8/11 | In Progress|  |
 | 10. Interstitials | v1.1 | 0/TBD | Not started | - |
 | 11. Play Games Session | v1.1 | 0/TBD | Not started | - |
 | 12. Leaderboards & Achievements | v1.1 | 0/TBD | Not started | - |
