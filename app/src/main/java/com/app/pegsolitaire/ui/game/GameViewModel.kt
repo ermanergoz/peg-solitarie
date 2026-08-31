@@ -1,9 +1,11 @@
 package com.app.pegsolitaire.ui.game
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import com.app.pegsolitaire.R
 import com.app.pegsolitaire.data.ChallengeProgress
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
@@ -12,6 +14,8 @@ import com.app.pegsolitaire.data.SettingsRepository
 import com.app.pegsolitaire.data.resume.ChallengeStamp
 import com.app.pegsolitaire.data.resume.RestoredGame
 import com.app.pegsolitaire.data.resume.SnapshotMapper
+import com.app.pegsolitaire.domain.assist.AssistAllowance
+import com.app.pegsolitaire.domain.assist.AssistKind
 import com.app.pegsolitaire.domain.generator.ChallengeLevelBounds
 import com.app.pegsolitaire.domain.generator.DifficultyTiers
 import com.app.pegsolitaire.domain.generator.GeneratorConstants
@@ -83,13 +87,25 @@ import kotlin.time.TimeSource
  * @param timeSource the monotonic clock the timer marks against (test-swappable).
  * @param defaultDispatcher the background dispatcher the O(level) Challenge generation
  *   runs on, off the main thread (CR-01); tests swap in the test dispatcher.
- * @param adGateway the Slice-1 auto-grant gateway hint/undo request grants through (D-11);
- *   the no-op stub always grants, so undo is free — Slice 2 swaps only the binding.
+ * @param adGateway the seam the assist funnel consults: it answers whether a rewarded offer
+ *   is worth showing at all ([AdGateway.rewardedOfferable], D-12), warms an ad at the moment
+ *   a free counter empties ([AdGateway.preloadRewarded], D-09), and serves the rewarded
+ *   request that only [onAcceptAdOffer] ever makes. The Slice-1 stub is offerable and
+ *   auto-grants, so the whole funnel is exercised before any real SDK exists.
  * @param getHintUseCase the pure-domain hint decision (ASST-01/ASST-03): recorded-line-first
  *   then the budgeted Solver, run off the main thread by [onHintRequested].
  * @param savedStateHandle carries the typed `Gameplay(levelId)` route arg.
+ *
+ * ## Size suppressions
+ *
+ * `TooManyFunctions` / `LongParameterList` / `LargeClass` are suppressed together for one
+ * reason: this is the screen's single state owner, and every gesture on it is one small
+ * handler. `LargeClass` joined the list with the assist funnel (plan 09-08). The only way to
+ * drop under the threshold would be a second state owner holding the allowance and the offer
+ * — and separating the counters from the board they are spent on, and from the clock the ad
+ * freezes, is precisely how the three would drift out of step.
  */
-@Suppress("TooManyFunctions", "LongParameterList") // UI event hub: each gesture is one small handler
+@Suppress("TooManyFunctions", "LongParameterList", "LargeClass") // see "Size suppressions" above
 @HiltViewModel
 class GameViewModel
     @Inject
@@ -282,15 +298,28 @@ class GameViewModel
          * neither an allowance unit nor an ad — and the found move therefore has to survive
          * the ad round trip somewhere. This is that somewhere.
          *
-         * Written only on the non-null branch of [onHintRequested]. Its only reader is plan
-         * 09-08's accept path, which reveals it once the offer resolves; until then
-         * [onHintRequested] reveals it inline.
+         * Written only on the non-null branch of [onHintRequested]. Its readers are
+         * [onAcceptAdOffer], which reveals it once the offer resolves, and [onHintRequested]
+         * itself, which reveals it inline whenever the assist never needed an offer at all.
          *
          * Cleared by [cancelHintSearch], which is the single idiom every board mutation
          * already calls (the four board-install sites, [performJump] and [onUndo]) — so a
          * move computed for a superseded board can never be revealed after an ad returns.
          */
         private var pendingHint: Move? = null
+
+        /**
+         * The board [pendingHint] was computed for, stashed with it so [revealPendingHint]
+         * can re-check staleness on the far side of an ad the caller no longer has a local
+         * for (CR-01).
+         *
+         * It travels with the move rather than being passed as a parameter because the
+         * reveal now has two callers whose distance from the search differs by an entire ad
+         * presentation, and a board captured in one of them would simply not be in scope in
+         * the other. Written and cleared only together with [pendingHint] — see
+         * [clearPendingHint], which is the one place either is dropped.
+         */
+        private var pendingHintBoard: Board? = null
 
         /**
          * Cancels the in-flight hint search, if any. THE single cancellation idiom — every
@@ -317,8 +346,103 @@ class GameViewModel
             // site that cancels a search is a site where that board is going away. Dropping
             // it here rather than at each caller keeps the "one cancellation idiom" property
             // that the KDoc above depends on (T-09-25).
-            pendingHint = null
+            clearPendingHint()
         }
+
+        /**
+         * Drops the stashed hint and the board it was computed for, together and always.
+         *
+         * The pair is meaningless apart — a move with no board to check it against cannot be
+         * revealed safely, and a board with no move is dead weight — so there is exactly one
+         * place either is cleared. Called by [cancelHintSearch] (every board mutation), by
+         * [onDismissAdOffer] and by the declined arm of [onAcceptAdOffer]: an offer the
+         * player refused leaves no hint waiting to be revealed by the next grant.
+         */
+        private fun clearPendingHint() {
+            pendingHint = null
+            pendingHintBoard = null
+        }
+
+        /**
+         * The free hints and undos this level still owes the player (ADS-02, D-01/D-02).
+         *
+         * Deliberately **private**, and deliberately absent from [GameUiState] (D-05): the
+         * Hint and Undo controls must never change appearance with the counters — no badge,
+         * no "×3" chip, no allowance-driven disabled state — so the opt-in dialog stays the
+         * only signal the allowance system exists at all.
+         *
+         * **A genuinely new level gets a fresh allowance for free, with no reset call.**
+         * `GameViewModel` is scoped to one Gameplay destination, so playing a different level
+         * is a different instance and this field's initializer *is* the reset. Adding an
+         * explicit reset would necessarily also fire on retry, which is precisely what D-04
+         * forbids — see [resetToInitial].
+         *
+         * Restored by [applyRestored] and written back by [onLeaveScreen], so an exhausted
+         * allowance survives process death as exhausted (D-04/D-17): backgrounding the app is
+         * not a free refill.
+         */
+        private var allowance: AssistAllowance = AssistAllowance()
+
+        /**
+         * This ad reason as the `:domain` policy names it.
+         *
+         * The two enums duplicate each other **by design, not by oversight**: [AdReason]
+         * lives in `platform/ads/`, and `DomainPurityTest` forbids `:domain` from depending
+         * on app code at all, so the free-allowance policy has to own its own [AssistKind]
+         * and this ViewModel is the single place that knows both. Do not "tidy" the
+         * duplication away — collapsing it would invert the module graph and take the
+         * allowance policy out of pure-JVM test reach.
+         */
+        private fun AdReason.toAssistKind(): AssistKind =
+            when (this) {
+                AdReason.HINT -> AssistKind.HINT
+                AdReason.UNDO -> AssistKind.UNDO
+            }
+
+        /**
+         * The one gate every assist passes through, answering whether it may proceed **right
+         * now** — `true` to go ahead, `false` because an opt-in offer is now on screen and
+         * [onAcceptAdOffer] / [onDismissAdOffer] will resolve it.
+         *
+         * Three outcomes, in this order, and the order is the whole design:
+         *  1. **Free while the allowance lasts (ADS-02).** The counter is spent and the
+         *     assist proceeds with no dialog and no ad. If that spend is what emptied the
+         *     counter — and only then — the gateway is asked to warm an ad (D-09): the
+         *     earliest moment an offer can possibly occur, which is why most levels issue no
+         *     ad request at all.
+         *  2. **Silently free when ads are knowably unservable (CONS-04/D-12).** Consent was
+         *     refused, the SDK never initialized, or readiness has not resolved yet
+         *     (Pitfall 16 — `Unknown` is NOT offerable). The assist is granted for free with
+         *     **no dialog and no snackbar**, byte-identical to v1.0. Prompting "watch an ad?"
+         *     and then granting instantly because nothing could be served is exactly the
+         *     absurdity D-12 rules out, and telling a puzzle player about a consent failure
+         *     is noise about a system they were never told existed.
+         *  3. **Otherwise, an explicit opt-in offer (ADS-01).** No ad is requested here; the
+         *     dialog is raised and the player decides. This is what makes AdMob's
+         *     "affirmatively and unambiguously opts in" requirement structural rather than
+         *     a convention — the only `requestRewarded` call site in this file is behind an
+         *     accept tap (T-09-32).
+         *
+         * The `rewardedOfferable` read sits **after** the allowance check on purpose: a
+         * player who still has free assists must not have their behaviour depend on consent
+         * state at all.
+         */
+        private fun enterAssistFunnel(
+            kind: AssistKind,
+            reason: AdReason,
+        ): Boolean =
+            when {
+                allowance.hasFree(kind) -> {
+                    allowance = allowance.spend(kind)
+                    if (!allowance.hasFree(kind)) adGateway.preloadRewarded(reason)
+                    true
+                }
+                !adGateway.rewardedOfferable.value -> true
+                else -> {
+                    _uiState.update { it.copy(pendingAdOffer = reason) }
+                    false
+                }
+            }
 
         /**
          * The Challenge recorded winning line (D-03), captured by the async [init] load;
@@ -495,6 +619,12 @@ class GameViewModel
             moveHistory.addAll(restored.moveHistory)
             onRecordedLine = false
             elapsedBaseSeconds = (restored.elapsedMs / MILLIS_IN_SECOND).toInt()
+            // D-04/D-17. `RestoredGame.allowance` is non-null by construction: SnapshotMapper
+            // resolved it through AssistAllowance.fromStoredOrFull, which already rejected an
+            // out-of-range stored counter in favour of the full default (T-09-35). The raw
+            // DTO ints are never read here — the forged-counter decision belongs to the codec,
+            // in one place, not to every consumer of a restore.
+            allowance = restored.allowance
             // Board-install = board mutation, so the CR-01 idiom applies (WR-01); the
             // GameUiState.initial() rebuild below clears solverThinking — and, equally, the
             // pendingAdOffer / adOfferLoading pair — for us.
@@ -549,6 +679,12 @@ class GameViewModel
                                 generatorVersion = GeneratorConstants.GENERATOR_VERSION,
                             )
                         },
+                    // D-04/D-17: the counters ride the snapshot so process death is not a
+                    // free refill. A stored 0 is in range and is preserved as 0 — an
+                    // exhausted allowance must come back exhausted, or backgrounding the
+                    // app would be the loophole the persistence exists to close.
+                    freeHintsRemaining = allowance.hintsRemaining,
+                    freeUndosRemaining = allowance.undosRemaining,
                 )
             viewModelScope.launch { progressRepository.saveSnapshot(dto) }
         }
@@ -919,18 +1055,20 @@ class GameViewModel
         }
 
         /**
-         * Undo the last move (ASST-02, D-05): checks there is anything to undo, then requests
-         * the [AdReason.UNDO] grant and reads
-         * the three-way [RewardOutcome] — [RewardOutcome.Granted] and
-         * [RewardOutcome.Unavailable] both proceed (ADS-03: an assist that could not be paid
-         * for is still granted), only [RewardOutcome.Declined] aborts. It then rebuilds the
-         * board by folding [RulesEngine.applyMove] over
-         * the remaining [moveHistory] from [initialBoard] — never trusting any external or
-         * serialized state (T-04-01-U). Repeated calls walk all the way back to the initial
-         * board; an empty history is a no-op **that never reaches the gateway** (T-09-24).
-         * The board's [statusFor] status is recomputed
-         * and [finishedEmitted] is cleared when the undone board is Playing again, so a
-         * previously Stuck game becomes playable and can re-emit a later terminal result.
+         * Undo the last move (ASST-02, D-05): checks there is anything to undo, then puts the
+         * request through the shared [enterAssistFunnel] — free while the per-level allowance
+         * lasts (ADS-02), silently free when ads are unservable (D-12), and otherwise an
+         * explicit opt-in offer that [onAcceptAdOffer] resolves (ADS-01). Nothing here
+         * touches the gateway directly any more.
+         *
+         * The rewind itself lives in [performUndo], which this and the accept path both call.
+         * An empty history is a no-op **that never reaches the funnel at all** (T-09-24): no
+         * counter is spent and no ad is requested to do nothing.
+         *
+         * **This is also the ADS-04 rescue-banner path, with no banner-specific code.**
+         * `NoWinBanner`'s undo action routes straight into this function, so it spends a
+         * normal undo while any remain and raises the very same dialog at zero (D-08) — one
+         * allowance, one dialog, no second offer surface.
          *
          * The timer is deliberately untouched (D-07): [startMark], [tickerJob], and
          * [GameUiState.elapsedSeconds] all keep counting real time across an undo.
@@ -939,74 +1077,82 @@ class GameViewModel
             viewModelScope.launch {
                 // T-09-24, and the reason this guard is FIRST: an undo on a board with no
                 // history is a pure no-op, so there is no assist to charge for. Below the
-                // gateway — where this used to sit — tapping Undo on a fresh board would
-                // burn an allowance unit or play a thirty-second ad to do nothing at all.
-                // A unit could be refunded; an ad already watched cannot.
+                // funnel — where the gateway call used to sit — tapping Undo on a fresh board
+                // would burn an allowance unit or play a thirty-second ad to do nothing at
+                // all. A unit could be refunded; an ad already watched cannot.
                 if (moveHistory.isEmpty()) return@launch
-                // ADSF-01: the elapsed clock is stopped for the whole rewarded request and
-                // resumed on a fresh mark, so watching an ad can never cost the player
-                // score. The `finally` guarantees the unfreeze on EVERY exit — including a
-                // cancellation — because a freeze left set would disable
-                // [resumeTickerIfNeeded] and kill the clock for the rest of the game.
-                freezeClockForAd()
-                val outcome =
-                    try {
-                        adGateway.requestRewarded(AdReason.UNDO)
-                    } finally {
-                        unfreezeClockAfterAd()
-                    }
-                when (outcome) {
-                    // ADS-03: an assist that could not be paid for is still granted — the
-                    // player is never dead-ended by an ad that failed to arrive. Mapping
-                    // Unavailable to "skip" would silently break undo offline the moment a
-                    // real gateway lands in Phase 9.
-                    RewardOutcome.Granted, RewardOutcome.Unavailable -> Unit
-                    RewardOutcome.Declined -> return@launch
-                }
-                // CR-01, placed after BOTH guards above: only an undo that really rewinds
-                // the board invalidates a running search. A declined grant and an empty
-                // history change nothing and must leave a live search alone.
-                cancelHintSearch()
-                moveHistory.removeAt(moveHistory.lastIndex)
-                val base = initialBoard ?: return@launch
-                val board = moveHistory.fold(base) { b, m -> rulesEngine.applyMove(b, m) }
-                val status = statusFor(board)
-                if (status == GameStatus.Playing) finishedEmitted = false
-                // Undo can walk back onto the recorded line (D-03): recompute by comparing
-                // the remaining moveHistory prefix against the recorded solution. Classic
-                // (null solution) has no line, so it stays off. Never blind-indexed.
-                onRecordedLine =
-                    solution?.let { line -> moveHistory.indices.all { i -> moveHistory[i] == line.getOrNull(i) } }
-                        ?: false
-                // D-07: startMark / elapsedSeconds are intentionally NOT reset here — undo
-                // rescues the board but the real elapsed time keeps running; the ticker
-                // itself is resumed below when the board returns to Playing.
-                _uiState.update {
-                    it.copy(
-                        board = board,
-                        selected = null,
-                        legalTargets = emptyList(),
-                        animating = null,
-                        status = status,
-                        canUndo = moveHistory.isNotEmpty(),
-                        // Undo invalidates any shown hint and clears the rescue banner. It
-                        // also cancelled the in-flight search above, killing that job's own
-                        // solverThinking write — so the flag is cleared here, returning the
-                        // Hint control to idle rather than leaving it spinning (CR-01).
-                        hintSource = null,
-                        hintTarget = null,
-                        noWinningMove = false,
-                        solverThinking = false,
-                        stuck = false,
-                        // Both guards above (a declined grant, an empty history) return
-                        // before here, so this ticks once per undo that really happened.
-                        undoTick = it.undoTick + 1,
-                    )
-                }
-                // Undoing out of a frozen (Stuck) board back to Playing resumes the timer that
-                // the terminal freeze stopped, reusing the never-reset startMark (D-06/D-07).
-                if (status == GameStatus.Playing) resumeTickerIfNeeded()
+                // false ⇒ the opt-in dialog is now up and this undo is suspended, not
+                // refused: the board, the history and the ticker are all left exactly as
+                // they were until the player answers.
+                if (!enterAssistFunnel(AssistKind.UNDO, AdReason.UNDO)) return@launch
+                performUndo()
             }
+        }
+
+        /**
+         * Rewinds the board by one move — **the single place the move history is ever
+         * shortened**, called both by [onUndo] (free or unservable-free) and by
+         * [onAcceptAdOffer] (paid for). Keeping it in one place is what stops the two paths
+         * from drifting into subtly different undos.
+         *
+         * It rebuilds the board by folding [RulesEngine.applyMove] over the remaining
+         * [moveHistory] from [initialBoard] — never trusting any external or serialized state
+         * (T-04-01-U). Repeated calls walk all the way back to the initial board. The board's
+         * [statusFor] status is recomputed and [finishedEmitted] is cleared when the undone
+         * board is Playing again, so a previously Stuck game becomes playable and can re-emit
+         * a later terminal result.
+         *
+         * The empty-history guard is repeated here rather than assumed: the accept path
+         * reaches this on the far side of an SDK-timed ad callback, and a restart taken while
+         * the ad was up clears [moveHistory] underneath it. Without the guard that lands as
+         * an index-out-of-bounds crash on the return from an ad.
+         */
+        private fun performUndo() {
+            if (moveHistory.isEmpty()) return
+            // CR-01: only an undo that really rewinds the board invalidates a running search,
+            // which is why this sits here rather than in [onUndo] — a declined offer and an
+            // empty history change nothing and must leave a live search alone.
+            cancelHintSearch()
+            moveHistory.removeAt(moveHistory.lastIndex)
+            val base = initialBoard ?: return
+            val board = moveHistory.fold(base) { b, m -> rulesEngine.applyMove(b, m) }
+            val status = statusFor(board)
+            if (status == GameStatus.Playing) finishedEmitted = false
+            // Undo can walk back onto the recorded line (D-03): recompute by comparing
+            // the remaining moveHistory prefix against the recorded solution. Classic
+            // (null solution) has no line, so it stays off. Never blind-indexed.
+            onRecordedLine =
+                solution?.let { line -> moveHistory.indices.all { i -> moveHistory[i] == line.getOrNull(i) } }
+                    ?: false
+            // D-07: startMark / elapsedSeconds are intentionally NOT reset here — undo
+            // rescues the board but the real elapsed time keeps running; the ticker
+            // itself is resumed below when the board returns to Playing.
+            _uiState.update {
+                it.copy(
+                    board = board,
+                    selected = null,
+                    legalTargets = emptyList(),
+                    animating = null,
+                    status = status,
+                    canUndo = moveHistory.isNotEmpty(),
+                    // Undo invalidates any shown hint and clears the rescue banner. It
+                    // also cancelled the in-flight search above, killing that job's own
+                    // solverThinking write — so the flag is cleared here, returning the
+                    // Hint control to idle rather than leaving it spinning (CR-01).
+                    hintSource = null,
+                    hintTarget = null,
+                    noWinningMove = false,
+                    solverThinking = false,
+                    stuck = false,
+                    // Every guard and every refusal returns before here — an empty history,
+                    // a raised offer, a declined grant — so this ticks once per undo that
+                    // really happened.
+                    undoTick = it.undoTick + 1,
+                )
+            }
+            // Undoing out of a frozen (Stuck) board back to Playing resumes the timer that
+            // the terminal freeze stopped, reusing the never-reset startMark (D-06/D-07).
+            if (status == GameStatus.Playing) resumeTickerIfNeeded()
         }
 
         /**
@@ -1021,15 +1167,14 @@ class GameViewModel
          *    cancelled — the deadline crosses into pure `:domain` only as a plain lambda.
          *
          * **It searches first and charges second (ADS-06).** Only once a move has actually
-         * been found is the [AdReason.HINT] grant requested — [RewardOutcome.Granted] and
-         * [RewardOutcome.Unavailable] both reveal the stashed move (ADS-03: a hint that could
-         * not be paid for is still given), while [RewardOutcome.Declined] reveals nothing.
-         * A `null` result sets [GameUiState.noWinningMove] (D-04; its banner ships in 04-04)
-         * and consults the gateway **not at all**: an allowance unit could be refunded, but a
-         * thirty-second ad already watched to be told "no winning move" cannot, so the order
-         * — not a refund — is the mechanism. Every path clears
-         * [GameUiState.solverThinking], and it is cleared before the gateway is consulted, so
-         * the control is never left spinning behind an ad.
+         * been found does the request enter [enterAssistFunnel] — free while the allowance
+         * lasts (ADS-02), silently free when ads are unservable (D-12), otherwise an opt-in
+         * offer that [onAcceptAdOffer] resolves. A `null` result sets
+         * [GameUiState.noWinningMove] (D-04; its banner ships in 04-04) and enters the funnel
+         * **not at all**: an allowance unit could be refunded, but a thirty-second ad already
+         * watched to be told "no winning move" cannot, so the order — not a refund — is the
+         * mechanism. Every path clears [GameUiState.solverThinking], and it is cleared before
+         * the funnel is entered, so the control is never left spinning behind a dialog.
          *
          * **Two guarantees close CR-01**, and both are needed because the board stays fully
          * tappable while the search runs (`GameScreen` disables only the Hint control):
@@ -1104,47 +1249,166 @@ class GameViewModel
                         _uiState.update { it.copy(noWinningMove = true, solverThinking = false) }
                         return@launch
                     }
-                    // A real assist was found, so this one IS chargeable. Stash it before
-                    // charging: the reveal happens on the far side of an ad the player may
-                    // spend thirty seconds watching, and plan 09-08 moves that reveal out to
-                    // the dialog's accept path, where this local would not be in scope.
+                    // A real assist was found, so this one IS chargeable. Stash it — with the
+                    // board it was computed for — before charging: the reveal may happen on
+                    // the far side of an ad the player spends thirty seconds watching, from
+                    // [onAcceptAdOffer], where neither of these locals is in scope.
                     pendingHint = move
+                    pendingHintBoard = boardForHint
+                    // Cleared BEFORE the funnel, so the Hint control is never left spinning
+                    // behind an offer dialog or an ad.
                     _uiState.update { it.copy(solverThinking = false) }
-                    // ADSF-01, same shape as [onUndo]: freeze from the request, unfreeze on
-                    // every exit. The `finally` matters more here than there — this job is
-                    // [hintJob], which [cancelHintSearch] cancels from every board mutation,
-                    // so a plain sequential unfreeze would be skipped outright whenever the
-                    // player moves while the ad is up, leaving the clock frozen forever.
-                    freezeClockForAd()
-                    val outcome =
-                        try {
-                            adGateway.requestRewarded(AdReason.HINT)
-                        } finally {
-                            unfreezeClockAfterAd()
-                        }
-                    when (outcome) {
-                        RewardOutcome.Granted, RewardOutcome.Unavailable ->
-                            revealPendingHint(boardForHint)
-                        // solverThinking was cleared above, before the gateway was consulted
-                        // at all, so the decline has nothing left to undo but its own return.
-                        RewardOutcome.Declined -> return@launch
-                    }
+                    // false ⇒ the offer is on screen and the stashed hint waits for the
+                    // player's answer; [onAcceptAdOffer] reveals it, [onDismissAdOffer]
+                    // drops it.
+                    if (!enterAssistFunnel(AssistKind.HINT, AdReason.HINT)) return@launch
+                    revealPendingHint()
                 }
+        }
+
+        /**
+         * The player agreed to watch an ad for more of the offered assist (ADS-01).
+         *
+         * The only place in this file that requests a rewarded ad, and it is reachable only
+         * from an explicit tap on a dialog that already named the reward — which is what
+         * makes AdMob's "must only be served after a user affirmatively and unambiguously
+         * opts in" a structural property here rather than a convention (T-09-32).
+         *
+         * The order of the body is load-bearing:
+         *  - [GameUiState.adOfferLoading] goes up **first**, so the dialog swaps its actions
+         *    for a spinner and locks itself (D-10) rather than letting a scrim tap race a
+         *    returning `Granted` into a torn-down dialog (T-09-11). The bound that keeps that
+         *    lock from dead-ending is `AdConstants.ACCEPT_WAIT_MS`, applied inside the
+         *    gateway around its ad *load* — deliberately not wrapped around this whole call,
+         *    which also spans the ad the player is actually watching.
+         *  - [freezeClockForAd] runs **here, at accept — never where [pendingAdOffer] was
+         *    set** (ADSF-01, Pitfall 9). Scoring decays with elapsed time, so a clock that
+         *    stopped while an offer dialog sat open would let a player park the dialog to
+         *    halt the decay indefinitely. Accept-to-return is bounded by the gateway's own
+         *    accept wait plus the ad's duration, which is exactly what ADSF-01 covers. The
+         *    `finally` guarantees the unfreeze on every exit including cancellation: a freeze
+         *    left set disables [resumeTickerIfNeeded] and kills the clock for the whole game.
+         *  - The assist itself is performed last, and only for the two outcomes that earned
+         *    it — see [grantReward].
+         */
+        fun onAcceptAdOffer() {
+            val reason = _uiState.value.pendingAdOffer ?: return
+            val kind = reason.toAssistKind()
+            viewModelScope.launch {
+                _uiState.update { it.copy(adOfferLoading = true) }
+                freezeClockForAd()
+                val outcome =
+                    try {
+                        adGateway.requestRewarded(reason)
+                    } finally {
+                        unfreezeClockAfterAd()
+                    }
+                _uiState.update { it.copy(pendingAdOffer = null, adOfferLoading = false) }
+                if (!grantReward(outcome, kind)) return@launch
+                when (kind) {
+                    AssistKind.HINT -> revealPendingHint()
+                    AssistKind.UNDO -> performUndo()
+                }
+            }
+        }
+
+        /**
+         * "No thanks", a scrim tap, or system back on the opt-in dialog (D-06).
+         *
+         * It drops the stashed hint and takes the dialog down, and it changes **nothing
+         * else**: not a counter, not the board, not the move history, not the ticker. D-06's
+         * "declining leaves the game exactly as it was" has to be literally true, and AdMob's
+         * requirement that declining "must not impede or interfere with the normal usage of
+         * the app" rests on the same line (T-09-33). There is deliberately no reference to
+         * [allowance] anywhere in this function.
+         */
+        fun onDismissAdOffer() {
+            clearPendingHint()
+            _uiState.update { it.copy(pendingAdOffer = null, adOfferLoading = false) }
+        }
+
+        /**
+         * Applies the three-way [RewardOutcome] to the allowance, answering whether the
+         * assist that triggered the offer should now be performed.
+         *
+         * [RewardOutcome.Granted] and [RewardOutcome.Unavailable] both **refill then spend**,
+         * in that order (D-03/D-07): one ad buys a whole new allowance of that assist, and
+         * the assist being paid for is the first use of it — so under the dialog's own copy
+         * ("watch a short ad for 3 more?") the player really does receive three further uses,
+         * this one plus two held. Reversing the two would silently make the copy a lie.
+         *
+         * [RewardOutcome.Unavailable] additionally raises the D-11 snackbar (ADS-03). The
+         * assist lands **first** and the message states both the problem and its
+         * already-applied resolution, so there is no action label — there is nothing left for
+         * the player to do. The player is never dead-ended by an ad that failed to arrive
+         * (T-09-37).
+         *
+         * [RewardOutcome.Declined] touches neither counter. An unearned early dismiss arrives
+         * here as `Declined` — the gateway sets `Granted` only from the SDK's earned-reward
+         * callback — so a player who closes the ad early gets nothing, and the advertiser is
+         * not billed for a reward that was not earned (ADS-05, T-09-34).
+         */
+        private fun grantReward(
+            outcome: RewardOutcome,
+            kind: AssistKind,
+        ): Boolean =
+            when (outcome) {
+                RewardOutcome.Granted -> {
+                    allowance = allowance.refill(kind).spend(kind)
+                    true
+                }
+                RewardOutcome.Unavailable -> {
+                    allowance = allowance.refill(kind).spend(kind)
+                    emitAdMessage(adUnavailableMessageFor(kind))
+                    true
+                }
+                RewardOutcome.Declined -> {
+                    clearPendingHint()
+                    false
+                }
+            }
+
+        /** The D-11 "ad unavailable, here it is anyway" copy for [kind] (ADS-03). */
+        @StringRes
+        private fun adUnavailableMessageFor(kind: AssistKind): Int =
+            when (kind) {
+                AssistKind.HINT -> R.string.ad_unavailable_hints
+                AssistKind.UNDO -> R.string.ad_unavailable_undos
+            }
+
+        /**
+         * Raises the one-shot ad snackbar carrying [res] (D-11).
+         *
+         * The monotonic ordinal is the event, the string id is only its text — the same idiom
+         * this file already uses four times over ([GameUiState.undoTick],
+         * [GameUiState.selectionTick], [GameUiState.deselectionTick],
+         * [GameUiState.rejectedTapTick]), and for the same reason: the same message shown
+         * twice in a row leaves no distinguishable state trace for a one-shot consumer.
+         *
+         * A tick rather than a second eventing mechanism (a one-shot `SharedFlow`) because it
+         * survives configuration change with no replay bug, is trivially assertable, and does
+         * not introduce a second way of doing events into a ViewModel that has exactly one.
+         */
+        private fun emitAdMessage(
+            @StringRes res: Int,
+        ) {
+            _uiState.update { it.copy(adMessage = res, adMessageTick = it.adMessageTick + 1) }
         }
 
         /**
          * Reveals the move [onHintRequested] stashed in [pendingHint], once the assist it
          * represents has actually been paid for (ADS-06).
          *
-         * The board is re-checked against [boardAtRequest] even though the offer is modal:
+         * The board is re-checked against [pendingHintBoard] even though the offer is modal:
          * the ad's return is an SDK callback whose timing the app does not control, and the
          * CR-01 discipline — a hint is never shown for a board the player has moved past — is
          * not relaxed merely because a dialog was in the way. The stash is cleared either
          * way, so a superseded move can never be revealed by a later grant (T-09-25).
          */
-        private fun revealPendingHint(boardAtRequest: Board) {
+        private fun revealPendingHint() {
             val move = pendingHint ?: return
-            pendingHint = null
+            val boardAtRequest = pendingHintBoard
+            clearPendingHint()
             if (_uiState.value.board != boardAtRequest) return
             _uiState.update { it.copy(hintSource = move.from, hintTarget = move.to) }
         }
@@ -1171,6 +1435,23 @@ class GameViewModel
             // The in-flight [unfreezeClockAfterAd] then no-ops, leaving this reset intact.
             frozenForAd = false
             finishedEmitted = false
+            // [allowance] is DELIBERATELY not reset here, and the omission is the D-04
+            // mechanism rather than a forgotten line: retrying a level must not refill the
+            // free assists, or "restart to farm three more hints" is a one-tap loophole.
+            // Every sibling piece of per-game state above is cleared, so a reader will
+            // otherwise read this absence as a bug — hence this comment.
+            //
+            // It has to live in the ViewModel instance to work at all, because the line
+            // below calls clearSnapshot(): the stored row is deleted by a restart, so
+            // counters that lived only on disk would be refilled by one. The ViewModel is
+            // scoped to this Gameplay destination and survives the restart, so the counters
+            // do too.
+            //
+            // The one accepted hole (D-17, Option A): restart and then force-kill the app
+            // before leaving the screen, and the counters come back full. The snapshot is
+            // only written on ON_STOP, so an ordinary background-and-return preserves them
+            // correctly; closing this last gap would mean a second persistence mechanism
+            // (DataStore) that D-17 explicitly rejected.
             // Starting this board over abandons the game the snapshot describes, so the
             // stored resume point goes with it (D-05) — otherwise Continue would drop the
             // player back into the position they just chose to leave.
