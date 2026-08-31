@@ -30,6 +30,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestResult
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
@@ -63,8 +65,10 @@ import kotlin.time.TestTimeSource
  * computed from — never on a private field, and no test-only accessor was added to
  * `GameViewModel` for this spec.
  *
- * Every test ends in [cancelTickers]. These fixtures deliberately finish `Playing`, so the
- * eager per-second ticker would otherwise keep rescheduling and hang `runTest` cleanup.
+ * Every test runs through [adClockTest], which cancels the ViewModel store in a `finally`.
+ * Most of these fixtures finish `Playing`, so the eager per-second ticker would otherwise
+ * keep rescheduling and `runTest`'s end-of-test drain would spin forever — and a spec that
+ * hangs instead of going red on a regression is worse than no spec at all.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [AD_CLOCK_ROBOLECTRIC_SDK])
@@ -89,7 +93,7 @@ class GameViewModelAdClockTest {
 
     @Test
     fun theClockDoesNotAdvanceWhileARewardedAdIsBeingPresented() =
-        runTest(testDispatcher) {
+        adClockTest {
             val timeSource = TestTimeSource()
             val gateway = AdClockGatedAdGateway()
             val viewModel = viewModelFor(twoMoveStuckLine(), timeSource, gateway)
@@ -118,15 +122,13 @@ class GameViewModelAdClockTest {
             runCurrent()
             assertThat(gateway.proceeded).isEqualTo(ONE_REQUEST)
             assertThat(viewModel.uiState.value.elapsedSeconds).isEqualTo(beforeAd)
-
-            cancelTickers()
         }
 
     // ---- 2. ...and it resumes afterwards -------------------------------------
 
     @Test
     fun theClockResumesFromWhereItStoppedOnceTheAdIsDismissed() =
-        runTest(testDispatcher) {
+        adClockTest {
             // A clock that never restarts would satisfy test 1 perfectly and hand the player
             // a permanently free game, so "it stopped" is only half of ADSF-01.
             val timeSource = TestTimeSource()
@@ -155,8 +157,6 @@ class GameViewModelAdClockTest {
             runCurrent()
             assertThat(viewModel.uiState.value.elapsedSeconds)
                 .isEqualTo(beforeAd + POST_AD_SECONDS)
-
-            cancelTickers()
         }
 
     // ---- 3. The rescue-banner path (RESEARCH Pitfall 10) ---------------------
@@ -179,7 +179,7 @@ class GameViewModelAdClockTest {
      */
     @Test
     fun aRescueUndoTakenAfterAnAdDoesNotReAddTheAdsDuration() =
-        runTest(testDispatcher) {
+        adClockTest {
             val timeSource = TestTimeSource()
             val gateway = AdClockGatedAdGateway()
             val viewModel = viewModelFor(twoMoveStuckLine(), timeSource, gateway)
@@ -220,15 +220,13 @@ class GameViewModelAdClockTest {
             runCurrent()
             assertThat(viewModel.uiState.value.elapsedSeconds)
                 .isEqualTo(realPlayTime + POST_AD_SECONDS)
-
-            cancelTickers()
         }
 
     // ---- 4. Freezing a clock that never started ------------------------------
 
     @Test
     fun freezingAClockThatNeverStartedIsInertAndTheTimerStillStartsOnTheFirstJump() =
-        runTest(testDispatcher) {
+        adClockTest {
             // The timer starts on the FIRST move (D-04), so a hint taken before any jump
             // freezes a clock with no mark. Rebasing there would invent elapsed time out of
             // an uninitialised mark, so the freeze must decline outright.
@@ -258,15 +256,13 @@ class GameViewModelAdClockTest {
             advanceTimeBy(AD_CLOCK_TICK_MILLIS)
             runCurrent()
             assertThat(viewModel.uiState.value.elapsedSeconds).isEqualTo(POST_AD_SECONDS)
-
-            cancelTickers()
         }
 
     // ---- 5. A finished game must not resume its ticker -----------------------
 
     @Test
     fun anAdThatReturnsAfterTheGameIsOverDoesNotResurrectTheClock() =
-        runTest(testDispatcher) {
+        adClockTest {
             // The ad's return is an SDK callback whose timing the app does not control, so
             // the unfreeze must be correct for a board that finished while the ad was up.
             val timeSource = TestTimeSource()
@@ -296,11 +292,26 @@ class GameViewModelAdClockTest {
             advanceTimeBy(AD_CLOCK_LONG_ADVANCE_MILLIS)
             runCurrent()
             assertThat(viewModel.uiState.value.elapsedSeconds).isEqualTo(beforeAd)
-
-            cancelTickers()
         }
 
     // ---- Helpers -------------------------------------------------------------
+
+    /**
+     * Runs [body] on the test dispatcher and ALWAYS cancels the ViewModel store afterwards.
+     *
+     * The `finally` is load-bearing rather than tidy, and this spec learned it the hard way:
+     * a failing clock assertion that skipped the cancel left the resumed ticker live, and
+     * `runTest`'s own end-of-test drain then spun on virtual time forever instead of
+     * reporting the failure. Same idiom as `GameViewModelHintStalenessTest.hintTest`.
+     */
+    private fun adClockTest(body: suspend TestScope.() -> Unit): TestResult =
+        runTest(testDispatcher) {
+            try {
+                body()
+            } finally {
+                cancelTickers()
+            }
+        }
 
     /** Jump col 2 over col 3 into the hole at col 4 — the board stays `Playing`. */
     private fun playOpeningMove(viewModel: GameViewModel) {
