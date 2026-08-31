@@ -919,14 +919,16 @@ class GameViewModel
         }
 
         /**
-         * Undo the last move (ASST-02, D-05): requests the [AdReason.UNDO] grant and reads
+         * Undo the last move (ASST-02, D-05): checks there is anything to undo, then requests
+         * the [AdReason.UNDO] grant and reads
          * the three-way [RewardOutcome] — [RewardOutcome.Granted] and
          * [RewardOutcome.Unavailable] both proceed (ADS-03: an assist that could not be paid
          * for is still granted), only [RewardOutcome.Declined] aborts. It then rebuilds the
          * board by folding [RulesEngine.applyMove] over
          * the remaining [moveHistory] from [initialBoard] — never trusting any external or
          * serialized state (T-04-01-U). Repeated calls walk all the way back to the initial
-         * board; an empty history is a no-op. The board's [statusFor] status is recomputed
+         * board; an empty history is a no-op **that never reaches the gateway** (T-09-24).
+         * The board's [statusFor] status is recomputed
          * and [finishedEmitted] is cleared when the undone board is Playing again, so a
          * previously Stuck game becomes playable and can re-emit a later terminal result.
          *
@@ -935,6 +937,12 @@ class GameViewModel
          */
         fun onUndo() {
             viewModelScope.launch {
+                // T-09-24, and the reason this guard is FIRST: an undo on a board with no
+                // history is a pure no-op, so there is no assist to charge for. Below the
+                // gateway — where this used to sit — tapping Undo on a fresh board would
+                // burn an allowance unit or play a thirty-second ad to do nothing at all.
+                // A unit could be refunded; an ad already watched cannot.
+                if (moveHistory.isEmpty()) return@launch
                 // ADSF-01: the elapsed clock is stopped for the whole rewarded request and
                 // resumed on a fresh mark, so watching an ad can never cost the player
                 // score. The `finally` guarantees the unfreeze on EVERY exit — including a
@@ -955,7 +963,6 @@ class GameViewModel
                     RewardOutcome.Granted, RewardOutcome.Unavailable -> Unit
                     RewardOutcome.Declined -> return@launch
                 }
-                if (moveHistory.isEmpty()) return@launch
                 // CR-01, placed after BOTH guards above: only an undo that really rewinds
                 // the board invalidates a running search. A declined grant and an empty
                 // history change nothing and must leave a live search alone.
@@ -1005,20 +1012,24 @@ class GameViewModel
         /**
          * Reveal the next winning move (ASST-01/ASST-03, D-01/D-10). Cancels any prior
          * search (no overlapping Solver work, threat T-04-SD), raises [GameUiState.solverThinking]
-         * immediately, requests the [AdReason.HINT] grant — [RewardOutcome.Granted] and
-         * [RewardOutcome.Unavailable] both proceed to the search (ADS-03: a hint that could
-         * not be paid for is still given), while [RewardOutcome.Declined] clears
-         * [GameUiState.solverThinking] and returns so the control never spins forever — then
-         * resolves the move OFF the main thread via [getHintUseCase] on [defaultDispatcher]:
+         * immediately, and resolves the move OFF the main thread via [getHintUseCase] on
+         * [defaultDispatcher]:
          *  - on the recorded line (Challenge) the use case returns the recorded move instantly,
          *    with no Solver call;
          *  - otherwise (Classic, or after a deviation) it runs the budgeted Solver, cancelled
          *    cooperatively once the wall-clock [SolverBudget.deadline] passes or the job is
          *    cancelled — the deadline crosses into pure `:domain` only as a plain lambda.
          *
-         * A found move sets [GameUiState.hintSource]/[GameUiState.hintTarget]; a `null`
-         * result sets [GameUiState.noWinningMove] (D-04; its banner ships in 04-04). Either
-         * way [GameUiState.solverThinking] clears.
+         * **It searches first and charges second (ADS-06).** Only once a move has actually
+         * been found is the [AdReason.HINT] grant requested — [RewardOutcome.Granted] and
+         * [RewardOutcome.Unavailable] both reveal the stashed move (ADS-03: a hint that could
+         * not be paid for is still given), while [RewardOutcome.Declined] reveals nothing.
+         * A `null` result sets [GameUiState.noWinningMove] (D-04; its banner ships in 04-04)
+         * and consults the gateway **not at all**: an allowance unit could be refunded, but a
+         * thirty-second ad already watched to be told "no winning move" cannot, so the order
+         * — not a refund — is the mechanism. Every path clears
+         * [GameUiState.solverThinking], and it is cleared before the gateway is consulted, so
+         * the control is never left spinning behind an ad.
          *
          * **Two guarantees close CR-01**, and both are needed because the board stays fully
          * tappable while the search runs (`GameScreen` disables only the Hint control):
@@ -1059,25 +1070,6 @@ class GameViewModel
             }
             hintJob =
                 viewModelScope.launch {
-                    // ADSF-01, same shape as [onUndo]: freeze from the request, unfreeze on
-                    // every exit. The `finally` matters more here than there — this job is
-                    // [hintJob], which [cancelHintSearch] cancels from every board mutation,
-                    // so a plain sequential unfreeze would be skipped outright whenever the
-                    // player moves while the ad is up, leaving the clock frozen forever.
-                    freezeClockForAd()
-                    val outcome =
-                        try {
-                            adGateway.requestRewarded(AdReason.HINT)
-                        } finally {
-                            unfreezeClockAfterAd()
-                        }
-                    when (outcome) {
-                        RewardOutcome.Granted, RewardOutcome.Unavailable -> Unit
-                        RewardOutcome.Declined -> {
-                            _uiState.update { it.copy(solverThinking = false) }
-                            return@launch
-                        }
-                    }
                     val deadline = timeSource.markNow() + SolverBudget.DEFAULT.deadline
                     // CR-01: capture every mutable input HERE, on the main thread, so the
                     // three are consistent with each other and with one another's instant.
@@ -1095,18 +1087,66 @@ class GameViewModel
                                 shouldCancel = { !isActive || deadline.hasPassedNow() },
                             )
                         }
-                    _uiState.update {
-                        when {
-                            // The player moved on while this ran: the answer belongs to a
-                            // board that is no longer on screen, so it is discarded rather
-                            // than displayed. Only the spinner is cleared (CR-01).
-                            it.board != boardForHint -> it.copy(solverThinking = false)
-                            move != null ->
-                                it.copy(hintSource = move.from, hintTarget = move.to, solverThinking = false)
-                            else -> it.copy(noWinningMove = true, solverThinking = false)
+                    // The player moved on while this ran: the answer belongs to a board that
+                    // is no longer on screen, so it is discarded rather than displayed. Only
+                    // the spinner is cleared (CR-01) — and because this now sits AHEAD of the
+                    // gateway, a discarded answer is not charged for either.
+                    if (_uiState.value.board != boardForHint) {
+                        _uiState.update { it.copy(solverThinking = false) }
+                        return@launch
+                    }
+                    // ADS-06, and the whole point of searching first: the answer is already
+                    // known, so a position with no winning move is answered for FREE — no
+                    // allowance unit, no ad, no gateway call at all. A solver budget miss
+                    // also returns null and is likewise free: the player was told "no winning
+                    // move" and must not be charged for it, whatever the reason.
+                    if (move == null) {
+                        _uiState.update { it.copy(noWinningMove = true, solverThinking = false) }
+                        return@launch
+                    }
+                    // A real assist was found, so this one IS chargeable. Stash it before
+                    // charging: the reveal happens on the far side of an ad the player may
+                    // spend thirty seconds watching, and plan 09-08 moves that reveal out to
+                    // the dialog's accept path, where this local would not be in scope.
+                    pendingHint = move
+                    _uiState.update { it.copy(solverThinking = false) }
+                    // ADSF-01, same shape as [onUndo]: freeze from the request, unfreeze on
+                    // every exit. The `finally` matters more here than there — this job is
+                    // [hintJob], which [cancelHintSearch] cancels from every board mutation,
+                    // so a plain sequential unfreeze would be skipped outright whenever the
+                    // player moves while the ad is up, leaving the clock frozen forever.
+                    freezeClockForAd()
+                    val outcome =
+                        try {
+                            adGateway.requestRewarded(AdReason.HINT)
+                        } finally {
+                            unfreezeClockAfterAd()
                         }
+                    when (outcome) {
+                        RewardOutcome.Granted, RewardOutcome.Unavailable ->
+                            revealPendingHint(boardForHint)
+                        // solverThinking was cleared above, before the gateway was consulted
+                        // at all, so the decline has nothing left to undo but its own return.
+                        RewardOutcome.Declined -> return@launch
                     }
                 }
+        }
+
+        /**
+         * Reveals the move [onHintRequested] stashed in [pendingHint], once the assist it
+         * represents has actually been paid for (ADS-06).
+         *
+         * The board is re-checked against [boardAtRequest] even though the offer is modal:
+         * the ad's return is an SDK callback whose timing the app does not control, and the
+         * CR-01 discipline — a hint is never shown for a board the player has moved past — is
+         * not relaxed merely because a dialog was in the way. The stash is cleared either
+         * way, so a superseded move can never be revealed by a later grant (T-09-25).
+         */
+        private fun revealPendingHint(boardAtRequest: Board) {
+            val move = pendingHint ?: return
+            pendingHint = null
+            if (_uiState.value.board != boardAtRequest) return
+            _uiState.update { it.copy(hintSource = move.from, hintTarget = move.to) }
         }
 
         /**

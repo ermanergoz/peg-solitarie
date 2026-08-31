@@ -20,6 +20,7 @@ import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
 import com.app.pegsolitaire.platform.ads.RewardOutcome
 import com.google.common.truth.Truth.assertThat
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -232,7 +233,8 @@ class GameViewModelAdClockTest {
             // an uninitialised mark, so the freeze must decline outright.
             val timeSource = TestTimeSource()
             val gateway = AdClockGatedAdGateway()
-            val viewModel = viewModelFor(twoMoveStuckLine(), timeSource, gateway)
+            val viewModel =
+                viewModelFor(twoMoveStuckLine(), timeSource, gateway, alwaysFindsAMove())
             runCurrent()
             assertThat(viewModel.uiState.value.elapsedSeconds).isEqualTo(NO_TIME_ELAPSED)
 
@@ -267,7 +269,8 @@ class GameViewModelAdClockTest {
             // the unfreeze must be correct for a board that finished while the ad was up.
             val timeSource = TestTimeSource()
             val gateway = AdClockGatedAdGateway()
-            val viewModel = viewModelFor(twoMoveStuckLine(), timeSource, gateway)
+            val viewModel =
+                viewModelFor(twoMoveStuckLine(), timeSource, gateway, alwaysFindsAMove())
             runCurrent()
 
             playOpeningMove(viewModel)
@@ -328,10 +331,30 @@ class GameViewModelAdClockTest {
     /** Cancels every live `viewModelScope` so a running ticker cannot hang `runTest`. */
     private fun cancelTickers() = viewModelStore.clear()
 
+    /**
+     * A hint use case that always answers with a legal move on the board it is handed.
+     *
+     * Needed because plan 09-06 made `onHintRequested` **search first and charge second**
+     * (ADS-06): the gateway is now only consulted once a winning move has actually been
+     * found, and [twoMoveStuckLine] — chosen for its dead end, not for its solvability —
+     * has no one-peg line, so the real Solver correctly returns `null` and no ad would ever
+     * be presented. This spec's subject is the clock across an ad presentation, not the
+     * Solver, so the stub supplies the "a move was found" precondition and leaves every
+     * ADSF-01 assertion measuring exactly what it did before.
+     */
+    private fun alwaysFindsAMove(): GetHintUseCase {
+        val useCase = mockk<GetHintUseCase>()
+        every { useCase.invoke(any(), any(), any(), any(), any()) } answers {
+            RulesEngine.legalMoves(firstArg()).firstOrNull()
+        }
+        return useCase
+    }
+
     private fun viewModelFor(
         board: Board,
         timeSource: TestTimeSource,
         adGateway: AdGateway,
+        getHintUseCase: GetHintUseCase = GetHintUseCase(),
     ): GameViewModel {
         val args = mapOf<String, Any?>(AD_CLOCK_LEVEL_ID_ARG to ClassicLevelIds.ENGLISH33)
         val factory =
@@ -350,7 +373,7 @@ class GameViewModelAdClockTest {
                         timeSource = timeSource,
                         defaultDispatcher = testDispatcher,
                         adGateway = adGateway,
-                        getHintUseCase = GetHintUseCase(),
+                        getHintUseCase = getHintUseCase,
                         savedStateHandle = SavedStateHandle(args),
                     ) as T
             }
