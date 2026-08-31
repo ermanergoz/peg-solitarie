@@ -198,9 +198,9 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 09-03-PLAN.md — `AdOfferDialog` themed opt-in dialog, `ClaySnackbarHost` (the app's first), and every Phase-9 string + the three new dimen tokens (ADS-01, ADS-03)
-- [ ] 09-04-PLAN.md — ADSF-01 clock freeze by ticker rebase, `resumeTickerIfNeeded` guard, virtual-time test class
-- [ ] 09-05-PLAN.md — `UmpConsentGateway` (every-launch consent info, one off-main `MobileAds.initialize`), `AdsModule` inside `..platform..`, `MainActivity` bootstrap, AdMob `APPLICATION_ID` manifest tag (CONS-01/02/03/04)
+- [x] 09-03-PLAN.md — `AdOfferDialog` themed opt-in dialog, `ClaySnackbarHost` (the app's first), and every Phase-9 string + the three new dimen tokens (ADS-01, ADS-03)
+- [x] 09-04-PLAN.md — ADSF-01 clock freeze by ticker rebase, `resumeTickerIfNeeded` guard, virtual-time test class
+- [x] 09-05-PLAN.md — `UmpConsentGateway` (every-launch consent info, one off-main `MobileAds.initialize`), `AdsModule` inside `..platform..`, `MainActivity` bootstrap, AdMob `APPLICATION_ID` manifest tag (CONS-01/02/03/04)
 
 **Wave 3** *(blocked on Wave 2)*
 
@@ -318,7 +318,7 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 6. Platform Foundation & Build Hardening | v1.1 | 10/10 | Complete   | 2026-08-27 |
 | 7. Sound | v1.1 | 6/6 | Complete   | 2026-08-28 |
 | 8. Assist & Generator Quality Debt | v1.1 | 12/12 | Complete   | 2026-08-30 |
-| 9. Consent & Rewarded Ads | v1.1 | 2/11 | In Progress|  |
+| 9. Consent & Rewarded Ads | v1.1 | 5/11 | In Progress|  |
 | 10. Interstitials | v1.1 | 0/TBD | Not started | - |
 | 11. Play Games Session | v1.1 | 0/TBD | Not started | - |
 | 12. Leaderboards & Achievements | v1.1 | 0/TBD | Not started | - |
