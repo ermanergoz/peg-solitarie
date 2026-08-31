@@ -276,6 +276,23 @@ class GameViewModel
         private var hintJob: Job? = null
 
         /**
+         * The winning move the solver has already found, held back until the assist is paid
+         * for (ADS-06). It exists because plan 09-06 inverted the hint order: the search now
+         * runs BEFORE the gateway is consulted, so that a position with no winning move costs
+         * neither an allowance unit nor an ad — and the found move therefore has to survive
+         * the ad round trip somewhere. This is that somewhere.
+         *
+         * Written only on the non-null branch of [onHintRequested]. Its only reader is plan
+         * 09-08's accept path, which reveals it once the offer resolves; until then
+         * [onHintRequested] reveals it inline.
+         *
+         * Cleared by [cancelHintSearch], which is the single idiom every board mutation
+         * already calls (the four board-install sites, [performJump] and [onUndo]) — so a
+         * move computed for a superseded board can never be revealed after an ad returns.
+         */
+        private var pendingHint: Move? = null
+
+        /**
          * Cancels the in-flight hint search, if any. THE single cancellation idiom — every
          * site that would otherwise leave a search running against a board the player has
          * left calls this, so there are not two idioms that can drift apart.
@@ -296,6 +313,11 @@ class GameViewModel
         private fun cancelHintSearch() {
             hintJob?.cancel()
             hintJob = null
+            // A stashed move is only ever valid for the board it was computed on, and every
+            // site that cancels a search is a site where that board is going away. Dropping
+            // it here rather than at each caller keeps the "one cancellation idiom" property
+            // that the KDoc above depends on (T-09-25).
+            pendingHint = null
         }
 
         /**
@@ -386,6 +408,12 @@ class GameViewModel
                         deselectionTick = it.deselectionTick,
                         undoTick = it.undoTick,
                         rejectedTapTick = it.rejectedTapTick,
+                        // Carried, never reset — a fresh 0 is a *changed* key for an effect
+                        // sitting higher, which fires a snackbar nobody triggered. The offer
+                        // fields are the opposite case and are deliberately absent here: the
+                        // GameUiState.initial() rebuild CLEARS pendingAdOffer/adOfferLoading,
+                        // because a dialog for a board that no longer exists must not survive.
+                        adMessageTick = it.adMessageTick,
                     )
             }
         }
@@ -424,7 +452,8 @@ class GameViewModel
                 }
             initialBoard = board
             // Board-install = board mutation, so the CR-01 idiom applies (WR-01); the
-            // GameUiState.initial() rebuild below clears solverThinking for us.
+            // GameUiState.initial() rebuild below clears solverThinking — and, equally, the
+            // pendingAdOffer / adOfferLoading pair — for us.
             cancelHintSearch()
             _uiState.update {
                 GameUiState
@@ -436,6 +465,8 @@ class GameViewModel
                         deselectionTick = it.deselectionTick,
                         undoTick = it.undoTick,
                         rejectedTapTick = it.rejectedTapTick,
+                        // Carried like the other four ordinals; see loadChallengeBoardIfNeeded.
+                        adMessageTick = it.adMessageTick,
                     )
             }
         }
@@ -465,7 +496,8 @@ class GameViewModel
             onRecordedLine = false
             elapsedBaseSeconds = (restored.elapsedMs / MILLIS_IN_SECOND).toInt()
             // Board-install = board mutation, so the CR-01 idiom applies (WR-01); the
-            // GameUiState.initial() rebuild below clears solverThinking for us.
+            // GameUiState.initial() rebuild below clears solverThinking — and, equally, the
+            // pendingAdOffer / adOfferLoading pair — for us.
             cancelHintSearch()
             _uiState.update {
                 GameUiState
@@ -480,6 +512,8 @@ class GameViewModel
                         deselectionTick = it.deselectionTick,
                         undoTick = it.undoTick,
                         rejectedTapTick = it.rejectedTapTick,
+                        // Carried like the other four ordinals; see loadChallengeBoardIfNeeded.
+                        adMessageTick = it.adMessageTick,
                     )
             }
         }
@@ -1107,7 +1141,7 @@ class GameViewModel
             // Preserve the player's hint + haptics choices across a restart; the collected
             // settings flows only re-emit on change, so carry them forward explicitly.
             //
-            // The four cue ordinals ride along for a different reason: they are keys for
+            // The five cue ordinals ride along for a different reason: they are keys for
             // one-shot effects in the screen. A fresh 0 is a *changed* key for an effect
             // sitting at a higher value, so resetting them here would fire a cue nobody
             // triggered — a pop on restart, on a Challenge load or on Continue-resume
@@ -1116,6 +1150,12 @@ class GameViewModel
             // state-rebuild sites (this one, loadChallengeBoardIfNeeded, installClassicBoard
             // and applyRestored). The `= 0` defaults on the ordinals cannot be relied on to
             // cover a site that forgets one — a default is exactly what would hide it.
+            //
+            // pendingAdOffer / adOfferLoading are the deliberate opposite: they are NOT
+            // carried, so the GameUiState.initial(board) rebuild clears them. An offer
+            // dialog belongs to the position it was raised on, and a restart destroys that
+            // position — accepting an ad for an assist on a board that no longer exists is
+            // exactly the charge-for-nothing this plan exists to prevent.
             _uiState.value =
                 GameUiState
                     .initial(board)
@@ -1126,6 +1166,7 @@ class GameViewModel
                         deselectionTick = _uiState.value.deselectionTick,
                         undoTick = _uiState.value.undoTick,
                         rejectedTapTick = _uiState.value.rejectedTapTick,
+                        adMessageTick = _uiState.value.adMessageTick,
                     )
         }
 
