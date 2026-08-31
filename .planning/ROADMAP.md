@@ -213,7 +213,7 @@ Plans:
 
 **Wave 5** *(blocked on Wave 4)*
 
-- [ ] 09-09-PLAN.md — `GameScreen`/`GameRoute` wiring: dialog gating, tick-driven clay snackbar, and the "no second offer surface" negative-contract test
+- [x] 09-09-PLAN.md — `GameScreen`/`GameRoute` wiring: dialog gating, tick-driven clay snackbar, and the "no second offer surface" negative-contract test
 
 **Wave 6** *(blocked on Wave 5 — the stub-first ordering gate)*
 
@@ -318,7 +318,7 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 6. Platform Foundation & Build Hardening | v1.1 | 10/10 | Complete   | 2026-08-27 |
 | 7. Sound | v1.1 | 6/6 | Complete   | 2026-08-28 |
 | 8. Assist & Generator Quality Debt | v1.1 | 12/12 | Complete   | 2026-08-30 |
-| 9. Consent & Rewarded Ads | v1.1 | 8/11 | In Progress|  |
+| 9. Consent & Rewarded Ads | v1.1 | 9/11 | In Progress|  |
 | 10. Interstitials | v1.1 | 0/TBD | Not started | - |
 | 11. Play Games Session | v1.1 | 0/TBD | Not started | - |
 | 12. Leaderboards & Achievements | v1.1 | 0/TBD | Not started | - |
