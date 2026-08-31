@@ -9,6 +9,7 @@ import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.SettingsRepository
+import com.app.pegsolitaire.domain.assist.AssistAllowanceLimits
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.GameStatus
@@ -99,6 +100,7 @@ class GameViewModelAdClockTest {
             val gateway = AdClockGatedAdGateway()
             val viewModel = viewModelFor(twoMoveStuckLine(), timeSource, gateway)
             runCurrent()
+            exhaustFreeUndos(viewModel)
 
             playOpeningMove(viewModel)
             timeSource += PLAY_SECONDS.seconds
@@ -107,9 +109,15 @@ class GameViewModelAdClockTest {
             val beforeAd = viewModel.uiState.value.elapsedSeconds
             assertThat(beforeAd).isEqualTo(PLAY_SECONDS)
 
-            // The undo's rewarded request is now in flight and held at the gate — this is
-            // the ad being on screen.
+            // The undo raises the offer; the clock is deliberately still running, because
+            // freezing while a dialog sits open would be the parking exploit (Pitfall 9).
             viewModel.onUndo()
+            runCurrent()
+            assertThat(gateway.started).isEqualTo(NO_REQUESTS)
+
+            // Accepting is what requests the ad — now in flight and held at the gate, which
+            // is the ad being on screen.
+            viewModel.onAcceptAdOffer()
             runCurrent()
             assertThat(gateway.started).isEqualTo(ONE_REQUEST)
 
@@ -136,6 +144,7 @@ class GameViewModelAdClockTest {
             val gateway = AdClockGatedAdGateway()
             val viewModel = viewModelFor(twoMoveStuckLine(), timeSource, gateway)
             runCurrent()
+            exhaustFreeUndos(viewModel)
 
             playOpeningMove(viewModel)
             timeSource += PLAY_SECONDS.seconds
@@ -144,6 +153,8 @@ class GameViewModelAdClockTest {
             val beforeAd = viewModel.uiState.value.elapsedSeconds
 
             viewModel.onUndo()
+            runCurrent()
+            viewModel.onAcceptAdOffer()
             runCurrent()
             timeSource += AD_SECONDS.seconds
             advanceTimeBy(AD_CLOCK_LONG_ADVANCE_MILLIS)
@@ -185,6 +196,7 @@ class GameViewModelAdClockTest {
             val gateway = AdClockGatedAdGateway()
             val viewModel = viewModelFor(twoMoveStuckLine(), timeSource, gateway)
             runCurrent()
+            exhaustFreeUndos(viewModel)
 
             playOpeningMove(viewModel)
             timeSource += PLAY_SECONDS.seconds
@@ -200,8 +212,12 @@ class GameViewModelAdClockTest {
             assertThat(stuckState.showRescueBanner).isTrue()
             assertThat(stuckState.elapsedSeconds).isEqualTo(realPlayTime)
 
-            // The banner's Undo — the same funnel, with an ad in front of it.
+            // The banner's Undo — the same funnel, with the offer and then an ad in front of
+            // it (D-08: the banner has no offer surface of its own).
             viewModel.onUndo()
+            runCurrent()
+            assertThat(viewModel.uiState.value.pendingAdOffer).isEqualTo(AdReason.UNDO)
+            viewModel.onAcceptAdOffer()
             runCurrent()
             assertThat(gateway.started).isEqualTo(ONE_REQUEST)
             timeSource += AD_SECONDS.seconds
@@ -236,9 +252,14 @@ class GameViewModelAdClockTest {
             val viewModel =
                 viewModelFor(twoMoveStuckLine(), timeSource, gateway, alwaysFindsAMove())
             runCurrent()
+            // Hints, not undos, so the allowance is spent without playing a single jump —
+            // which is exactly the precondition this spec needs: the clock never started.
+            exhaustFreeHints(viewModel)
             assertThat(viewModel.uiState.value.elapsedSeconds).isEqualTo(NO_TIME_ELAPSED)
 
             viewModel.onHintRequested()
+            runCurrent()
+            viewModel.onAcceptAdOffer()
             runCurrent()
             assertThat(gateway.started).isEqualTo(ONE_REQUEST)
 
@@ -272,6 +293,7 @@ class GameViewModelAdClockTest {
             val viewModel =
                 viewModelFor(twoMoveStuckLine(), timeSource, gateway, alwaysFindsAMove())
             runCurrent()
+            exhaustFreeHints(viewModel)
 
             playOpeningMove(viewModel)
             timeSource += PLAY_SECONDS.seconds
@@ -280,6 +302,8 @@ class GameViewModelAdClockTest {
             val beforeAd = viewModel.uiState.value.elapsedSeconds
 
             viewModel.onHintRequested()
+            runCurrent()
+            viewModel.onAcceptAdOffer()
             runCurrent()
             assertThat(gateway.started).isEqualTo(ONE_REQUEST)
 
@@ -315,6 +339,34 @@ class GameViewModelAdClockTest {
                 cancelTickers()
             }
         }
+
+    /**
+     * Spends every free undo (ADS-02) so the next one reaches the opt-in offer, leaving the
+     * board exactly where it started.
+     *
+     * Plan 09-08 put that allowance in front of the gateway, so without this the specs below
+     * would never reach an ad at all — the undo would simply be free. Each cycle plays the
+     * opening jump and takes it straight back; the time source is untouched throughout, so
+     * every clock reading afterwards means what it always did.
+     */
+    private fun TestScope.exhaustFreeUndos(viewModel: GameViewModel) {
+        repeat(AssistAllowanceLimits.FREE_UNDOS) {
+            playOpeningMove(viewModel)
+            runCurrent()
+            viewModel.onUndo()
+            runCurrent()
+        }
+        check(!viewModel.uiState.value.canUndo) { "the fixture must be back at its initial board" }
+    }
+
+    /** Spends every free hint (ADS-02) — no jump, so the clock is left unstarted. */
+    private fun TestScope.exhaustFreeHints(viewModel: GameViewModel) {
+        repeat(AssistAllowanceLimits.FREE_HINTS) {
+            viewModel.onHintRequested()
+            runCurrent()
+        }
+        check(viewModel.uiState.value.pendingAdOffer == null) { "a free hint must raise no offer" }
+    }
 
     /** Jump col 2 over col 3 into the hole at col 4 — the board stays `Playing`. */
     private fun playOpeningMove(viewModel: GameViewModel) {
@@ -514,6 +566,9 @@ private const val NO_TIME_ELAPSED = 0
 
 /** Exactly one rewarded request reached (and passed) the gate. */
 private const val ONE_REQUEST = 1
+
+/** No rewarded request has been made yet — an offer on screen is not an ad in flight. */
+private const val NO_REQUESTS = 0
 
 /** Just past one ticker period (1_000 ms), so a pending tick is guaranteed to have run. */
 private const val AD_CLOCK_TICK_MILLIS = 1_001L

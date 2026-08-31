@@ -9,6 +9,7 @@ import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.SettingsRepository
+import com.app.pegsolitaire.domain.assist.AssistAllowanceLimits
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Position
@@ -108,6 +109,9 @@ class GameViewModelAssistOrderingTest {
 
             assertThat(gateway.lastReason).isNull()
             assertThat(gateway.requests).isEqualTo(NO_REQUESTS)
+            // Not charged means not charged in EITHER currency: no ad, and no allowance unit
+            // spent behind an opt-in dialog either (plan 09-08).
+            assertThat(viewModel.uiState.value.pendingAdOffer).isNull()
             // The player still got their answer — free, not withheld.
             val state = viewModel.uiState.value
             assertThat(state.noWinningMove).isTrue()
@@ -119,19 +123,40 @@ class GameViewModelAssistOrderingTest {
         orderingTest {
             // The control: inverting the order must not make hints free. A found move is a
             // real assist, so it is still paid for — and still shown.
+            //
+            // Since plan 09-08 "charged for" means an allowance unit first (ADS-02) and only
+            // then an ad, so the proof is in two halves: the first FREE_HINTS searches each
+            // reveal and each spend a unit, and the one after that raises the opt-in offer —
+            // which can only happen if every preceding found hint really was charged for.
             val gateway = RecordingAdGateway()
             val viewModel = viewModelFor(winnableStrip(), gateway)
             runCurrent()
 
+            repeat(AssistAllowanceLimits.FREE_HINTS) {
+                viewModel.onHintRequested()
+                runCurrent()
+                val free = viewModel.uiState.value
+                assertThat(free.hintSource).isEqualTo(at(LEFT_PEG_COL))
+                assertThat(free.hintTarget).isEqualTo(at(JUMP_TARGET_COL))
+                assertThat(free.pendingAdOffer).isNull()
+                assertThat(gateway.lastReason).isNull()
+            }
+
             viewModel.onHintRequested()
             runCurrent()
 
-            assertThat(gateway.lastReason).isEqualTo(AdReason.HINT)
             val state = viewModel.uiState.value
-            assertThat(state.hintSource).isEqualTo(at(LEFT_PEG_COL))
-            assertThat(state.hintTarget).isEqualTo(at(JUMP_TARGET_COL))
+            assertThat(state.pendingAdOffer).isEqualTo(AdReason.HINT)
             assertThat(state.solverThinking).isFalse()
             assertThat(state.noWinningMove).isFalse()
+
+            // ...and accepting the offer is what finally reaches the gateway, still for the
+            // move the search already found.
+            viewModel.onAcceptAdOffer()
+            runCurrent()
+            assertThat(gateway.lastReason).isEqualTo(AdReason.HINT)
+            assertThat(viewModel.uiState.value.hintSource).isEqualTo(at(LEFT_PEG_COL))
+            assertThat(viewModel.uiState.value.hintTarget).isEqualTo(at(JUMP_TARGET_COL))
         }
 
     @Test
@@ -152,6 +177,7 @@ class GameViewModelAssistOrderingTest {
 
             assertThat(gateway.lastReason).isNull()
             assertThat(gateway.requests).isEqualTo(NO_REQUESTS)
+            assertThat(viewModel.uiState.value.pendingAdOffer).isNull()
             assertThat(viewModel.uiState.value.noWinningMove).isTrue()
             assertThat(viewModel.uiState.value.solverThinking).isFalse()
         }
@@ -161,12 +187,17 @@ class GameViewModelAssistOrderingTest {
         orderingTest {
             // The decline path survives the reorder: the move was found and stashed, but the
             // player refused the ad, so nothing is revealed. `solverThinking` must still be
-            // cleared or `HintControl` spins for the rest of the game.
+            // cleared or `HintControl` spins for the rest of the game. Since plan 09-08 the
+            // decline arrives from an accepted offer rather than from the tap, so the free
+            // allowance is spent first.
             val declined = RecordingAdGateway(outcome = RewardOutcome.Declined)
             val viewModel = viewModelFor(winnableStrip(), declined)
             runCurrent()
+            exhaustFreeHints(viewModel)
 
             viewModel.onHintRequested()
+            runCurrent()
+            viewModel.onAcceptAdOffer()
             runCurrent()
 
             assertThat(declined.lastReason).isEqualTo(AdReason.HINT)
@@ -175,6 +206,7 @@ class GameViewModelAssistOrderingTest {
             assertThat(state.hintSource).isNull()
             assertThat(state.hintTarget).isNull()
             assertThat(state.noWinningMove).isFalse()
+            assertThat(state.pendingAdOffer).isNull()
         }
 
     // ---- Undo: guard first, charge second (T-09-24) --------------------------
@@ -195,6 +227,7 @@ class GameViewModelAssistOrderingTest {
 
             assertThat(gateway.lastReason).isNull()
             assertThat(gateway.requests).isEqualTo(NO_REQUESTS)
+            assertThat(viewModel.uiState.value.pendingAdOffer).isNull()
             assertThat(viewModel.uiState.value.board).isEqualTo(fresh)
             assertThat(viewModel.uiState.value.canUndo).isFalse()
         }
@@ -203,16 +236,39 @@ class GameViewModelAssistOrderingTest {
     fun anUndoWithHistoryIsChargedForAndUndoesTheMove() =
         orderingTest {
             // The control: moving the guard above the gateway must not make undo free.
+            // "Charged for" is the allowance first and an ad only past it (plan 09-08), so
+            // the proof is that FREE_UNDOS undos each really undo, and the one after them
+            // raises the offer — which is only reachable if each of them spent a unit.
             val gateway = RecordingAdGateway()
             val viewModel = viewModelFor(winnableStrip(), gateway)
             runCurrent()
             val fresh = viewModel.uiState.value.board
 
+            repeat(AssistAllowanceLimits.FREE_UNDOS) {
+                jump(viewModel, fromCol = LEFT_PEG_COL, toCol = JUMP_TARGET_COL)
+                runCurrent()
+                assertThat(viewModel.uiState.value.canUndo).isTrue()
+
+                viewModel.onUndo()
+                runCurrent()
+
+                assertThat(viewModel.uiState.value.board).isEqualTo(fresh)
+                assertThat(viewModel.uiState.value.canUndo).isFalse()
+                assertThat(viewModel.uiState.value.pendingAdOffer).isNull()
+                assertThat(gateway.lastReason).isNull()
+            }
+
             jump(viewModel, fromCol = LEFT_PEG_COL, toCol = JUMP_TARGET_COL)
             runCurrent()
-            assertThat(viewModel.uiState.value.canUndo).isTrue()
+            val afterJump = viewModel.uiState.value.board
 
             viewModel.onUndo()
+            runCurrent()
+            // Past the allowance the undo is offered, not silently taken.
+            assertThat(viewModel.uiState.value.pendingAdOffer).isEqualTo(AdReason.UNDO)
+            assertThat(viewModel.uiState.value.board).isEqualTo(afterJump)
+
+            viewModel.onAcceptAdOffer()
             runCurrent()
 
             assertThat(gateway.lastReason).isEqualTo(AdReason.UNDO)
@@ -253,9 +309,25 @@ class GameViewModelAssistOrderingTest {
             assertThat(state.solverThinking).isFalse()
             assertThat(state.board).isEqualTo(afterJump)
             assertThat(gateway.lastReason).isNull()
+            assertThat(state.pendingAdOffer).isNull()
         }
 
     // ---- Helpers -------------------------------------------------------------
+
+    /**
+     * Spends every free hint (ADS-02) so the next found move reaches the opt-in offer.
+     *
+     * Each of these hints is genuinely delivered and genuinely charged — an allowance unit
+     * rather than an ad — so the gateway stays untouched throughout, which the callers rely
+     * on when they later assert `lastReason`.
+     */
+    private fun TestScope.exhaustFreeHints(viewModel: GameViewModel) {
+        repeat(AssistAllowanceLimits.FREE_HINTS) {
+            viewModel.onHintRequested()
+            runCurrent()
+        }
+        check(viewModel.uiState.value.pendingAdOffer == null) { "a free hint must raise no offer" }
+    }
 
     /**
      * Runs [body] on the test dispatcher and ALWAYS cancels the ViewModel store afterwards.
