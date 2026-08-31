@@ -257,6 +257,15 @@ class GameViewModel
         /** The running per-second ticker, held so a restart/terminal can cancel it. */
         private var tickerJob: Job? = null
 
+        /**
+         * Whether the elapsed clock is currently stopped for a rewarded ad presentation
+         * (ADSF-01). Set by [freezeClockForAd], cleared by [unfreezeClockAfterAd], and read
+         * by [resumeTickerIfNeeded], which MUST refuse to run while it is set — that resume
+         * reuses the pre-ad [startMark], which is exactly how the ad's own duration gets
+         * silently charged back to the player.
+         */
+        private var frozenForAd = false
+
         /** Guards the one-shot [finished] emission so it never re-fires (Pitfall 4). */
         private var finishedEmitted = false
 
@@ -754,8 +763,76 @@ class GameViewModel
          * ticker only relaunches when it is not already running (a mid-game undo is a no-op).
          */
         private fun resumeTickerIfNeeded() {
+            // ADSF-01 / RESEARCH Pitfall 10. This is not defensive padding: [onUndo] ends
+            // by calling this, and that is precisely the D-08 rescue-banner path where a
+            // rewarded ad may have just played. Resuming here reuses the pre-ad [startMark]
+            // and only checks `tickerJob != null`, so without this line the ad's whole
+            // duration is silently re-added to the elapsed time the score decays against —
+            // charging the player for the ad they were promised was free.
+            if (frozenForAd) return
+            // The two pre-existing guards are folded into one condition purely to keep this
+            // function inside detekt's ReturnCount limit now that the freeze guard above is
+            // the first of them; neither condition changed.
+            val mark = startMark
+            if (mark == null || tickerJob != null) return
+            tickerJob = launchTicker(mark)
+        }
+
+        /**
+         * Stops charging wall-clock time for the duration of a rewarded ad presentation
+         * (ADSF-01): cancels the ticker and folds the seconds already earned into
+         * [elapsedBaseSeconds], so the clock is stopped rather than merely hidden. This is
+         * the same rebase [applyRestored] uses to resume a snapshot, not a new mechanism.
+         *
+         * A no-op when [startMark] is `null` — the timer never started, so there is nothing
+         * to freeze and rebasing would invent elapsed time out of an uninitialised mark.
+         *
+         * The fold is measured from [startMark] with **exactly [launchTicker]'s expression**,
+         * never from [GameUiState.elapsedSeconds]. The displayed value is only current while
+         * the ticker is running: at a terminal status the ticker stops but the game's real
+         * wall-clock keeps running (D-07 — a rescue-undo out of a frozen board is charged
+         * for the time spent stuck), so rebasing onto the displayed number would silently
+         * refund every second the board sat at that dead end.
+         *
+         * **Freeze from the REQUEST, never from a dialog being on screen (RESEARCH Pitfall
+         * 9).** Scoring is time-decay based, so a clock that stops while an offer dialog
+         * sits open is a real scoring exploit: a player could park the dialog indefinitely
+         * and stop the score decaying. Request-to-return is bounded by the gateway's own
+         * accept-wait cap plus the ad's duration, which is exactly what ADSF-01 means by
+         * "the duration of any ad presentation".
+         *
+         * [GameUiState.elapsedSeconds] is whole seconds, so each freeze discards up to one
+         * sub-second remainder — always in the player's favour, and accepted (Assumption A8).
+         */
+        private fun freezeClockForAd() {
             val mark = startMark ?: return
-            if (tickerJob != null) return
+            frozenForAd = true
+            tickerJob?.cancel()
+            tickerJob = null
+            elapsedBaseSeconds += mark.elapsedNow().inWholeSeconds.toInt()
+        }
+
+        /**
+         * Resumes the clock [freezeClockForAd] stopped, on a **fresh** [timeSource] mark
+         * (ADSF-01). A no-op unless a freeze is actually in effect.
+         *
+         * The fresh mark is the whole mechanism: reusing the pre-ad mark is exactly how the
+         * ad's duration gets silently re-added. It is taken **unconditionally**, before the
+         * status check — a terminal or rescued board that later resumes through
+         * [resumeTickerIfNeeded] must find a mark that never saw the ad, or the very
+         * D-08 rescue path this exists for re-adds the ad's duration one statement later.
+         *
+         * The ticker itself only relaunches while the game is still [GameStatus.Playing]:
+         * the ad's callback timing is the SDK's, not ours, and it can land after the game
+         * has finished or the player has left the board — a late callback must not
+         * resurrect a finished game's clock.
+         */
+        private fun unfreezeClockAfterAd() {
+            if (!frozenForAd) return
+            frozenForAd = false
+            val mark = timeSource.markNow()
+            startMark = mark
+            if (_uiState.value.status != GameStatus.Playing) return
             tickerJob = launchTicker(mark)
         }
 
@@ -824,7 +901,19 @@ class GameViewModel
          */
         fun onUndo() {
             viewModelScope.launch {
-                when (adGateway.requestRewarded(AdReason.UNDO)) {
+                // ADSF-01: the elapsed clock is stopped for the whole rewarded request and
+                // resumed on a fresh mark, so watching an ad can never cost the player
+                // score. The `finally` guarantees the unfreeze on EVERY exit — including a
+                // cancellation — because a freeze left set would disable
+                // [resumeTickerIfNeeded] and kill the clock for the rest of the game.
+                freezeClockForAd()
+                val outcome =
+                    try {
+                        adGateway.requestRewarded(AdReason.UNDO)
+                    } finally {
+                        unfreezeClockAfterAd()
+                    }
+                when (outcome) {
                     // ADS-03: an assist that could not be paid for is still granted — the
                     // player is never dead-ended by an ad that failed to arrive. Mapping
                     // Unavailable to "skip" would silently break undo offline the moment a
@@ -936,7 +1025,19 @@ class GameViewModel
             }
             hintJob =
                 viewModelScope.launch {
-                    when (adGateway.requestRewarded(AdReason.HINT)) {
+                    // ADSF-01, same shape as [onUndo]: freeze from the request, unfreeze on
+                    // every exit. The `finally` matters more here than there — this job is
+                    // [hintJob], which [cancelHintSearch] cancels from every board mutation,
+                    // so a plain sequential unfreeze would be skipped outright whenever the
+                    // player moves while the ad is up, leaving the clock frozen forever.
+                    freezeClockForAd()
+                    val outcome =
+                        try {
+                            adGateway.requestRewarded(AdReason.HINT)
+                        } finally {
+                            unfreezeClockAfterAd()
+                        }
+                    when (outcome) {
                         RewardOutcome.Granted, RewardOutcome.Unavailable -> Unit
                         RewardOutcome.Declined -> {
                             _uiState.update { it.copy(solverThinking = false) }
@@ -990,6 +1091,11 @@ class GameViewModel
             cancelHintSearch()
             startMark = null
             elapsedBaseSeconds = 0
+            // A restart taken while a rewarded request is still in flight must not leave the
+            // freeze set over the fresh game: the reset clock has no mark to rebase, and a
+            // stale flag would make [resumeTickerIfNeeded] refuse for the rest of the game.
+            // The in-flight [unfreezeClockAfterAd] then no-ops, leaving this reset intact.
+            frozenForAd = false
             finishedEmitted = false
             // Starting this board over abandons the game the snapshot describes, so the
             // stored resume point goes with it (D-05) — otherwise Continue would drop the
