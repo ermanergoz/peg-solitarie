@@ -3,7 +3,7 @@ phase: 09-consent-rewarded-ads
 plan: 07
 subsystem: ui
 tags: [settings, privacy, ump, consent, rel-05, cons-03, compliance]
-status: blocked-at-checkpoint
+status: complete
 
 # Dependency graph
 requires:
@@ -11,192 +11,175 @@ requires:
     provides: "ConsentGateway.privacyOptionsRequired + showPrivacyOptions() seam"
   - phase: 09-03
     provides: "ClaySnackbarHost, settings_* string resources, settings_row_icon_size dimen"
-provides: []
+provides:
+  - "PrivacyLinks.POLICY_URL — the compiled-in live privacy-policy URL"
+  - "SettingsUiState.privacyOptionsRequired — the CONS-03 visibility flag"
+  - "SettingsViewModel.onManagePrivacyChoices() — the UMP privacy-options entry point"
+  - "SettingsLinkRow / SettingsSectionHeader — the tappable-row and section-label leaves"
+  - "FakeConsentGateway — the shared test double for the consent seam"
 affects: [09-11, 14-release-readiness]
 
 # Tech tracking
 tech-stack:
   added: []
-  patterns: []
+  patterns:
+    - "Scoped compile-time constant for an ACTION_VIEW URI (intent-redirection defence)"
+    - "Robolectric shadowOf(app).nextStartedActivity for launched-intent assertions"
+    - "Robolectric shadowOf(app).checkActivities(true) to force ActivityNotFoundException"
 
 key-files:
-  created: []
-  modified: []
+  created:
+    - app/src/main/java/com/app/pegsolitaire/ui/settings/PrivacyLinks.kt
+    - app/src/test/java/com/app/pegsolitaire/ui/settings/SettingsPrivacyTest.kt
+    - app/src/test/java/com/app/pegsolitaire/ui/settings/FakeConsentGateway.kt
+  modified:
+    - app/src/main/java/com/app/pegsolitaire/ui/settings/SettingsScreen.kt
+    - app/src/main/java/com/app/pegsolitaire/ui/settings/SettingsUiState.kt
+    - app/src/main/java/com/app/pegsolitaire/ui/settings/SettingsViewModel.kt
+    - app/src/main/java/com/app/pegsolitaire/ui/settings/SettingsRoute.kt
+    - app/src/test/java/com/app/pegsolitaire/ui/settings/SettingsViewModelTest.kt
+    - app/src/test/java/com/app/pegsolitaire/ui/settings/SettingsViewModelSoundTest.kt
+    - .planning/phases/09-consent-rewarded-ads/09-CONTEXT.md
 
 key-decisions:
-  - "Task 1 human gate NOT satisfied: the live policy URL was located, but its CONTENT fails the gate's third criterion"
-  - "Canonical policy URL is https://ermanergoz.com/policies/peg-solitarie-privacy-policy.html (the Play-registered github.io URL 301-redirects to it)"
-  - "No source file under app/ was written — Tasks 2 and 3 both depend on a URL whose policy text must first be updated"
+  - "The T-09-31 gate was cleared by a policy revision published 2026-09-02, not by relaxing the gate"
+  - "PrivacyLinks.POLICY_URL is a plain const val, not a buildConfigField — RESEARCH Assumption A6 confirmed"
+  - "The Settings column became verticalScroll: six elements pushed the CONS-03 row below the fold"
+  - "privacyOptionsRequired is fail-closed while the file's toggle defaults are fail-open, for the same 'player keeps playing' reason"
 
-patterns-established: []
+patterns-established:
+  - "SettingsLinkRow is the exact peer of SettingsToggleRow, differing only in a trailing icon slot"
+  - "Section headers join the clayEntrance cascade so the stagger stays strictly top-to-bottom"
 
-requirements-completed: []
+requirements-completed: [CONS-03, REL-05]
 
 # Metrics
-duration: 8min
-completed: 2026-08-31
+duration: 42min
+completed: 2026-09-02
 ---
 
 # Phase 9 Plan 07: Settings Privacy Section Summary
 
-**Halted at the Task 1 blocking human gate: the live privacy policy was found and verified reachable, but it declares "I do not collect or log any personal data" and names no advertising SDK — it cannot legally cover the ads this phase is adding.**
+**Settings now has two named sections: an always-present "Privacy policy" row that opens the live policy in the system browser (REL-05), and a "Manage privacy choices" row that appears only when UMP reports a required consent form (CONS-03).**
 
 ## Performance
 
-- **Duration:** ~8 min
-- **Started:** 2026-08-31T18:52:00Z
-- **Completed (halted):** 2026-08-31T19:00:39Z
-- **Tasks:** 0 of 3 complete (halted at Task 1, `checkpoint:human-action`, `gate="blocking"`)
-- **Files modified:** 0 source files; 1 planning file (this SUMMARY)
+- **Duration:** ~42 min
+- **Tasks:** 3 of 3 complete
+- **Files:** 3 created, 7 modified
+- **Verification:** `./gradlew check --offline` green (11m 9s) — detekt, ktlint, `dpSpLiteralCheck`, `PlatformBoundaryTest` and the full unit suite
 
-## Status: BLOCKED AT CHECKPOINT
+## Checkpoint History
 
-Task 1 is a `checkpoint:human-action` with `gate="blocking"`. It is the plan's **first** task, so no
-implementation work precedes it. Tasks 2 and 3 both consume the value Task 1 collects
-(`PrivacyLinks.POLICY_URL`), so neither could be started.
+Task 1 is a `checkpoint:human-action` with `gate="blocking"`. A prior executor ran it on 2026-08-31 and **halted**: the live policy was reachable but was the v1.0 text (last updated April 2023), which declared "I do not collect or log any personal data" and named no advertising SDK. That is threat **T-09-31**, and the gate is exactly where the plan says it must surface.
 
-Per the plan's own instruction — *"a policy that omits the ads SDK will fail there, not here"* and
-*"shipping a row that opens nothing is worse than shipping no row"* — execution stopped rather than
-compiling in a URL that points at a policy contradicting the app's behaviour.
-
-## What Was Established (research, not code)
-
-The gate asks for a URL that "is not written down anywhere in `.planning/`". Rather than pause with an
-empty prompt, the URL was recovered from the developer's own prior art (per the project's
-"check existing work first" convention) and then checked against all four of the gate's criteria.
-
-### The URL
-
-The live Play listing for `com.erman.pegsolitarie` — the listing this rewrite **updates**, not a new
-app — declares this privacy-policy URL:
-
-```
-https://ermanergoz.github.io/policies/peg-solitarie-privacy-policy.html
-```
-
-That URL returns **HTTP 301** to the developer website, which serves the policy directly:
-
-```
-https://ermanergoz.com/policies/peg-solitarie-privacy-policy.html   → HTTP 200, no redirects
-```
-
-`https://ermanergoz.com/...` is therefore the canonical value and the one that should become
-`PrivacyLinks.POLICY_URL` — it matches D-13's "live on the developer website" wording and avoids
-spending a redirect hop on every tap.
-
-### Gate criteria, checked
+**The gate was resolved by fixing the policy, not by lowering the bar.** The developer published a revision on **2026-09-02**, and this run re-verified all four criteria against the served page before writing anything:
 
 | # | Task 1 criterion | Result |
 |---|------------------|--------|
-| 1 | Full URL obtained | **Pass** — see above |
-| 2 | HTTPS, stable, reachable without login | **Pass** — HTTP 200, 4.5 KB static HTML, no auth |
-| 3 | Names advertising-ID collection and every third-party SDK receiving player data | **FAIL** — see below |
-| 4 | Single static URL, invariant per build type | **Pass** — confirms RESEARCH Assumption A6; a plain `const val` is correct, no `buildConfigField` needed |
+| 1 | Full URL obtained | **Pass** — `https://ermanergoz.com/policies/peg-solitarie-privacy-policy.html` |
+| 2 | HTTPS, stable, reachable without login | **Pass** — HTTP 200, no redirect hop, no auth |
+| 3 | Names advertising-ID collection and every third-party SDK receiving player data | **Pass** — see below |
+| 4 | Single static URL, build-type invariant | **Pass** — confirms RESEARCH Assumption A6 |
 
-### Criterion 3 — the blocker
+Criterion 3, re-checked directly against the rendered text rather than taken on report:
 
-The served policy is the **v1.0 (no-ads) policy, last updated April 28, 2023**. Full-text scan of the
-rendered page:
+- **Google Mobile Ads SDK / AdMob** named as a third-party recipient
+- **Advertising ID (AAID)** collection disclosed
+- The **UMP consent form** and the in-app "Settings → Privacy → Manage ad consent" path described — which is precisely the row this plan builds
+- Google's privacy policy linked (`policies.google.com/privacy` and `.../technologies/partner-sites`)
+- **Play Games Services** covered, so the revision holds through Phases 11–13 rather than needing redoing
+- The old blanket "do not collect or log any personal data" claim is **gone**, narrowed to a truthful statement about the developer's own servers
 
-| Term | Occurrences |
-|------|-------------|
-| `advertis*` | **0** |
-| `admob` | **0** |
-| `google` | **0** |
-| `SDK` | **0** |
-| `analytics` / `tracking` / `cookie` | **0** |
-| `GDPR` / `personali*` | **0** |
-
-And it makes two affirmative claims that the Phase 9 app will contradict the moment the real gateway
-is bound in:
-
-> "Personal Data — I do not collect or log any personal data."
-> "Usage Data — I do not collect or log any usage data."
-
-This is exactly threat **T-09-31** (Information disclosure — policy content vs. app behaviour,
-disposition `transfer`), which the plan assigns to *"the Task 1 human gate"*. The gate has now been
-run, and it did not pass.
-
-The consequence is not confined to Phase 14. Shipping a UMP consent flow and a rewarded-ad SDK behind
-a policy that states no data is collected is a live Play-policy and GDPR exposure at the moment of
-release, and Phase 14's Data-safety form (REL-01/REL-04) must be written *from* this text — it will
-fail there too.
+This clears T-09-31 and removes the inherited blocker from Phase 14's Data-safety form (REL-01/REL-04), which must be written from this text.
 
 ## Task Commits
 
-None — no task reached completion.
+| Task | Name | Commit |
+|------|------|--------|
+| 1 | Record the live privacy-policy URL in D-19 | `b9f8ea1` |
+| 2 | PrivacyLinks, the UiState flag and the ViewModel collector | `d5c427b` |
+| 3 | The Privacy section on SettingsScreen, plus its test | `c022a3f` |
 
-**Plan metadata:** this SUMMARY only.
+## What Was Built
 
-## Files Created/Modified
+**`PrivacyLinks.POLICY_URL`** — a scoped `const val`. Its KDoc records the security reason it must *stay* one: the URI handed to an implicit `ACTION_VIEW` is the entire attack surface of that hand-off (T-09-27, ASVS V12), so a value sourced from storage, a route argument or remote config would turn a trusted Settings row into an intent-redirection vector. A `buildConfigField` was rejected because criterion 4 confirmed the URL is build-type-invariant and public.
 
-- `.planning/phases/09-consent-rewarded-ads/09-07-SUMMARY.md` — this partial-progress record
+**`SettingsUiState.privacyOptionsRequired`** — defaults `false`. The file's existing KDoc justifies its `true` defaults as fail-open, so the opposite default needed its own reasoning or the file would contradict itself: both directions pick the one where a wrong guess still leaves the player playing. A hidden row costs a player who does not need one nothing; a shown row that opens nothing is a dead end on a compliance surface.
 
-`09-CONTEXT.md` D-19 was deliberately **left untouched**, with its
-`<!-- URL pending -->` marker intact. Writing the URL in now would flip the gate's automated check
-(`! grep -q 'URL pending'`) to green while criterion 3 is still unresolved — closing the gate on
-paper without closing it in fact. The resuming agent should perform that edit as Task 1's action once
-the policy text is fixed.
+**`SettingsViewModel`** — a third `init` collector over `ConsentGateway.privacyOptionsRequired`, plus `onManagePrivacyChoices()`. The **interface** is injected; the ViewModel names no SDK type and never holds an `Activity` (both are bytecode build gates).
 
-## Decisions Made
-
-- **The canonical URL is the `ermanergoz.com` one, not the `github.io` one.** Both work through a
-  browser (`ACTION_VIEW` follows redirects), but the direct-200 URL is the honest constant.
-- **Stopped rather than proceeded with a content-invalid policy.** Tasks 2 and 3 are mechanically
-  unblocked by the URL alone — the row would render and open a live page. The halt is on the
-  compliance criterion the gate exists to enforce, not on a missing string.
-- **No `buildConfigField`.** Criterion 4 confirmed the URL is build-type-invariant, so the plan's
-  scoped `const val` shape in `PrivacyLinks` stands and Task 2 does not change shape.
+**`SettingsScreen`** — `SettingsSectionHeader` and `SettingsLinkRow` (the exact peer of `SettingsToggleRow`, differing only in a trailing icon slot), the "General"/"Privacy" headers, and the 0–5 entrance cascade. The policy row carries the `ExitToApp` glyph as functional signposting; the manage-choices row deliberately carries none, since the UMP form opens in-app — the glyph's absence is what makes the two rows distinguishable at a glance.
 
 ## Deviations from Plan
 
-None — the plan's blocking gate was honoured exactly as written. The URL research performed within the
-gate is the gate's own step 1, not a deviation.
+### Auto-fixed Issues
+
+**1. [Rule 2 — Missing critical functionality] The Settings column could not scroll**
+
+- **Found during:** Task 3, caught by two failing tests rather than by inspection
+- **Issue:** The column went from 2 elements to 6, but was never scrollable. The last element is the CONS-03 "Manage privacy choices" row, so on a short screen, in landscape, or at a large font scale the privacy entry point rendered **below the fold with no way to reach it**. The tests failed in exactly the way that matters: the node existed in the semantics tree, `assertIsDisplayed` failed, and a click on it did not invoke the handler — a row that is present and untappable.
+- **Why not deferred:** a compliance affordance the player cannot scroll to is the same dead end as one that opens nothing, which is the sentence governing this phase. This is a correctness requirement, not polish.
+- **Fix:** `.verticalScroll(rememberScrollState())` on the column, with the reasoning recorded inline.
+- **Files modified:** `SettingsScreen.kt`
+- **Commit:** `c022a3f`
+
+**2. [Rule 3 — Blocking issue] `SettingsViewModel`'s new constructor parameter broke 13 existing test callsites**
+
+- **Found during:** Task 2
+- **Fix:** Added `FakeConsentGateway` as a **shared** test double (the three `Settings*Test` classes need an identical surface from it, unlike the `SettingsRepository` fakes which stay file-private because each class observes something different) and threaded it through `SettingsViewModelTest` and `SettingsViewModelSoundTest`.
+- **Commit:** `d5c427b`
+
+**3. [Rule 3 — Blocking issue] `detekt` LongMethod on `SettingsScreen`**
+
+- **Found during:** Task 3 `check` run — 88 lines against a 60-line limit
+- **Fix:** Extracted `GeneralSection` and `PrivacySection`. Both emit their children straight into the caller's `Column`, so `Arrangement.spacedBy` and the `clayEntrance` cascade are unaffected — this changes how the file reads, not how the screen lays out. `ktlintFormat` then fixed import ordering.
+- **Commit:** `c022a3f`
+
+### Documented, not deviated
+
+The KDoc in `SettingsViewModel` originally spelled out `UmpConsentGateway` while explaining why that type must *not* be named. That tripped the plan's own `grep -c "UmpConsentGateway\|android.app.Activity"` acceptance criterion, which is an automated gate and does not read intent. Reworded to "the concrete UMP implementation"; the criterion now returns 0.
+
+## Verification Results
+
+| Criterion | Result |
+|-----------|--------|
+| `check --offline` (detekt, ktlint, dpSpLiteralCheck, PlatformBoundaryTest, full suite) | **green** |
+| `SettingsPrivacyTest` + `SettingsPrivacyViewModelTest` | **14 tests green** |
+| `grep -c "LocalActivity\|as Activity\|android.app.Activity"` on `SettingsScreen.kt` | **0** |
+| `grep -c "UmpConsentGateway\|android.app.Activity"` on `SettingsViewModel.kt` | **0** |
+| `grep -c "ctaGradientBrush\|goldGradientFill"` on `SettingsScreen.kt` | **0** — neither accent appears |
+| `grep -nE "[0-9]+\.(dp\|sp)"` on `SettingsScreen.kt` | **no matches** |
+| `ClaySnackbarHost` used, no inline `Snackbar(` styling | **confirmed** |
+
+The intent test asserts **both** the action (`ACTION_VIEW`) and the data URI (equal to `PrivacyLinks.POLICY_URL`), read back off Robolectric's shared instrumentation via `shadowOf(app).nextStartedActivity` — not merely "nothing threw". The missing-browser test forces a real `ActivityNotFoundException` with `checkActivities(true)` and asserts the snackbar message reaches the player.
+
+## Known Stubs
+
+None. Every row is wired to a live source: the policy URL is the real published policy, and the manage-choices row's visibility and action both go through the real `ConsentGateway` seam.
+
+## Threat Flags
+
+None. No new network endpoint, auth path, file access or schema change was introduced; the one trust boundary touched (the `ACTION_VIEW` hand-off) is the one the plan's threat model already covers, and its mitigation (a compile-time-constant URI) is implemented and documented in `PrivacyLinks`' KDoc.
 
 ## Issues Encountered
 
-**The live privacy policy predates the entire monetization milestone.** It was written for a v1.0 app
-with no ads, no Play Games, and no network use. Phase 9 adds Google Mobile Ads (Next-Gen), UMP, and
-advertising-ID collection; Phases 11–13 add Play Games Services. The policy must be revised to name:
-
-1. Collection/use of the **advertising ID (AAID)**
-2. **Google AdMob / Google Mobile Ads SDK** as a third party receiving data, with a link to Google's
-   own privacy policy
-3. The **UMP consent mechanism** and how a player changes their choices (this is what the CONS-03
-   "Manage privacy choices" row exists to reach)
-4. Anything Phases 11–13 add (Play Games Services sign-in / Saved Games), if the revision is to hold
-   through the milestone rather than be redone
-
-Revising the policy is outside this repository and outside this plan's scope — it is developer-website
-work, which is why the gate is `human-action`.
-
-## User Setup Required
-
-**Blocking.** Two items, in order:
-
-1. **Update the privacy policy** at `https://ermanergoz.com/policies/peg-solitarie-privacy-policy.html`
-   to cover the four points above, and republish it.
-2. **Confirm the URL** to compile into `PrivacyLinks.POLICY_URL` — presumably the same
-   `ermanergoz.com` URL, unless the revision moves it.
-
-Then re-run this plan. Tasks 2 and 3 are fully specified and need no further human input; they should
-execute autonomously once D-19 carries a confirmed URL.
+The snackbar assertion needed `waitUntil` on node presence rather than a bare `waitForIdle`: `showSnackbar` suspends for its `Short` duration, and the Compose test clock auto-advances, so a plain idle wait races the message. Rows below the fold likewise need `performScrollTo()` before assertion now that the column scrolls — worth knowing for anyone adding a seventh Settings element.
 
 ## Next Phase Readiness
 
-- **09-07 is not complete.** REL-05 and CONS-03 remain unimplemented; `SettingsScreen` still has no
-  Privacy section, no section headers, and no `ClaySnackbarHost`.
-- **Upstream dependencies are in place and were verified present** in this worktree:
-  `ConsentGateway.privacyOptionsRequired` / `showPrivacyOptions()` (09-02, implemented 09-05),
-  `ClaySnackbarHost` (09-03), all seven `settings_*` string resources (09-03), and the
-  `settings_row_icon_size` dimen (09-03). Nothing upstream needs rework.
-- **Plan 09-11** (on-device UMP verification) is separately gated on D-18, the unconfigured AdMob
-  consent message. Both that gate and this one are developer-console/website work and can be cleared
-  in parallel.
-- **Phase 14** (REL-01/REL-04 Data-safety form) inherits the policy-content problem directly. Fixing
-  the policy now removes a blocker there as well.
+- **CONS-03 and REL-05 are implemented and tested**, but CONS-03's *real* form has still never been rendered: `showPrivacyOptions()` is asserted through a fake here. On-device verification stays with **plan 09-11**, which remains gated on **D-18** (the UMP consent message is not yet configured in the AdMob console — UMP renders nothing without it, and its absence is invisible from a non-EEA test location). This plan does not clear that gate.
+- **Phase 14** inherits a policy that now matches the app's behaviour. The Data-safety form (REL-01/REL-04) must be written from the revised text, which names AAID collection, AdMob, UMP and Play Games.
+- **Upstream dependencies were all present and needed no rework:** the consent seam (09-02/09-05), `ClaySnackbarHost` and the seven `settings_*` strings (09-03), and the `settings_row_icon_size` dimen.
+
+## Self-Check: PASSED
+
+- All three created files verified present on disk
+- All three task commits verified in `git log`
+- `git diff --diff-filter=D` against the plan's base commit reports **no deletions**
+- Working tree clean
 
 ---
 *Phase: 09-consent-rewarded-ads*
-*Plan: 07 — halted at Task 1 checkpoint*
-*Date: 2026-08-31*
+*Plan: 07 — complete (Task 1 paused at the T-09-31 gate on 2026-08-31; resolved by a policy revision published 2026-09-02)*
+*Date: 2026-09-02*
