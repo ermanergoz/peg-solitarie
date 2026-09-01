@@ -1,13 +1,14 @@
 // The screen and its private, single-purpose parts: the top bar, its four labels/indicators,
-// the confirm dialog, and the eight one-shot feedback effects (one haptic + seven sound cues).
-// Each is a handful of lines and each exists only for this screen; splitting them across files
-// to satisfy a per-file count would scatter the screen's own composition for no reader's
-// benefit. The cue effects in particular are deliberately adjacent to JumpHaptic — they are
-// clones of its idiom and are read against it.
+// the confirm dialog, and the nine one-shot feedback effects (one haptic + seven sound cues +
+// the ad-message snackbar). Each is a handful of lines and each exists only for this screen;
+// splitting them across files to satisfy a per-file count would scatter the screen's own
+// composition for no reader's benefit. The cue effects in particular are deliberately adjacent
+// to JumpHaptic — they are clones of its idiom and are read against it.
 @file:Suppress("TooManyFunctions")
 
 package com.app.pegsolitaire.ui.game
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
@@ -25,12 +26,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -50,6 +54,7 @@ import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.ui.components.BoardCanvas
+import com.app.pegsolitaire.ui.components.ClaySnackbarHost
 import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.ctaGradientBrush
@@ -88,6 +93,14 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  * still-interactive board (Undo · Restart · Home, D-09) — a Stuck board is rescued via Undo
  * rather than auto-navigating; only a Won game routes to Results.
  *
+ * The assist funnel reaches the player through exactly two surfaces here, both driven purely
+ * from hoisted state: the modal [AdOfferDialog] whenever [GameUiState.pendingAdOffer] is set
+ * (ADS-01) — modal is what makes "declining leaves the game exactly as it was" literally
+ * true, because the board is inert behind the scrim — and the [ClaySnackbarHost] carrying the
+ * D-11 "ad unavailable, refilled for free" message (ADS-03). The rescue banner deliberately
+ * carries **no** ad affordance: its Undo routes into the same [onUndo] funnel that raises the
+ * dialog at zero, which is UI-SPEC §4's "one allowance, one dialog, no second offer surface".
+ *
  * Minimal test semantics ([PegCountKey]/[GameStatusKey]/[LegalTargetCountKey]) are
  * attached to the [GAME_STATE_TEST_TAG] node so the end-to-end flow test asserts on
  * state deterministically rather than on pixels.
@@ -102,6 +115,10 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  * @param onUndo undoes the last move (ASST-02); the control disables when nothing to undo.
  * @param onHint requests a winning-move hint (ASST-01); the control shows a thinking
  *   spinner + disables while [GameUiState.solverThinking] (D-10).
+ * @param onAcceptAdOffer the player agreed to watch a rewarded ad for more of the offered
+ *   assist (ADS-01); the dialog stays up, locked, while [GameUiState.adOfferLoading].
+ * @param onDismissAdOffer the player declined the offer, tapped the scrim or pressed back —
+ *   all three are the same event, and none of them charges or changes anything (D-06).
  * @param onHome leaves to the Home root from the rescue banner (D-09); wired to the same
  *   destination as the top-bar back nav ([onNavigateBack]).
  * @param onNavigateBack leaves the gameplay screen (top-bar back nav).
@@ -109,8 +126,13 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  * @param challengeLevel the Challenge level number when this is a Challenge game (drives
  *   the "Level N" top-bar title, S2/D-03), or `null` for Classic (app-name title). This
  *   is a pure presentation flag — it reaches only the title slot, never the board logic.
+ *
+ * The `LongMethod` suppression below carries an inline list of every surface this composable
+ * hosts, and that list is the point of it: the screen must not silently absorb another surface
+ * without the reader of that line finding out. Amend the list rather than growing under it,
+ * and never add a second suppression or a detekt baseline entry in its place.
  */
-@Suppress("LongMethod") // Scaffold + top-bar + board panel + confirm dialog; the Hint action is one line over.
+@Suppress("LongMethod") // Scaffold + top bar + snackbar host + board panel + confirm and ad-offer dialogs.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameScreen(
@@ -123,11 +145,15 @@ fun GameScreen(
     onToggleHints: () -> Unit,
     onUndo: () -> Unit,
     onHint: () -> Unit,
+    onAcceptAdOffer: () -> Unit,
+    onDismissAdOffer: () -> Unit,
     onHome: () -> Unit,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
     challengeLevel: Int? = null,
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+
     JumpHaptic(animatingMoveId = state.animating?.id, hapticsOn = state.hapticsOn)
     JumpSound(transition = state.animating)
     SelectionSound(selectionTick = state.selectionTick)
@@ -136,9 +162,15 @@ fun GameScreen(
     InvalidTapSound(rejectedTapTick = state.rejectedTapTick)
     HintSound(hintSource = state.hintSource)
     WinSound(status = state.status)
+    AdMessageSnackbarEffect(
+        adMessage = state.adMessage,
+        adMessageTick = state.adMessageTick,
+        hostState = snackbarHostState,
+    )
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        snackbarHost = { ClaySnackbarHost(snackbarHostState) },
         topBar = {
             GameTopBar(
                 elapsedSeconds = state.elapsedSeconds,
@@ -216,6 +248,18 @@ fun GameScreen(
         RestartConfirmDialog(
             onConfirm = onConfirmRestart,
             onDismiss = onDismissRestart,
+        )
+    }
+
+    // ADS-01: the one and only offer surface, gated exactly like the confirm dialog above.
+    // It is modal, so the board behind it is inert — that is what makes declining leave the
+    // game literally untouched rather than merely intending to (T-09-39).
+    state.pendingAdOffer?.let { reason ->
+        AdOfferDialog(
+            reason = reason,
+            loading = state.adOfferLoading,
+            onAccept = onAcceptAdOffer,
+            onDismiss = onDismissAdOffer,
         )
     }
 }
@@ -382,6 +426,54 @@ private fun WinSound(status: GameStatus) {
     val sound = LocalSoundPlayer.current
     LaunchedEffect(status) {
         if (status == GameStatus.Won) sound.play(SoundCue.Win)
+    }
+}
+
+/**
+ * Shows the one-shot "ad unavailable — refilled for free" message once per emission (ADS-03,
+ * D-11), in the [ClaySnackbarHost] the screen's `Scaffold` hosts.
+ *
+ * It is the fifth instance of this file's `Int`-tick idiom and reads against
+ * [SelectionSound]/[UndoSound] for exactly that reason. A tick rather than a one-shot
+ * `SharedFlow` because it survives configuration change without replay bugs and does not add
+ * a second eventing mechanism to a ViewModel that has none; and a tick rather than a bare
+ * nullable id because the same message shown twice in a row leaves no distinguishable state
+ * trace at all.
+ *
+ * The `> 0` guard is required, not defensive: it is the second half of the phantom-cue fix
+ * whose first half is the ordinal carry-forward in `GameViewModel`. The carry-forward stops a
+ * board install from changing the key; this guard stops a genuinely fresh state at 0 from
+ * firing on first composition. Drop it and the player is told an ad was unavailable on the
+ * screen-entry frame, for an ad they never asked for (T-09-40).
+ *
+ * [SnackbarDuration.Short] and no action label: by the time this shows, D-11 has already
+ * refilled the assist, so there is nothing left for the player to do.
+ *
+ * The id is resolved with [stringResource] **in composition** rather than through
+ * `LocalContext.current.getString(...)` inside the effect. `LocalContext` reads are not
+ * invalidated by a `Configuration` change, so the latter can hand a stale-locale string to the
+ * snackbar — the pinned Compose BOM fails the build on it (`LocalContextGetResourceValueCall`).
+ * The effect still keys on the ordinal alone, so a locale change re-resolves the text without
+ * re-showing a message the player has already been shown.
+ *
+ * @param adMessage the `@StringRes` id of the message to show, or `null` when none was raised.
+ * @param adMessageTick the monotonic ordinal that makes each emission a distinct key.
+ * @param hostState the snackbar queue hoisted by the screen's `Scaffold`.
+ */
+@Composable
+private fun AdMessageSnackbarEffect(
+    @StringRes adMessage: Int?,
+    adMessageTick: Int,
+    hostState: SnackbarHostState,
+) {
+    val message = adMessage?.let { stringResource(it) }
+    LaunchedEffect(adMessageTick) {
+        if (adMessageTick > 0 && message != null) {
+            hostState.showSnackbar(
+                message = message,
+                duration = SnackbarDuration.Short,
+            )
+        }
     }
 }
 

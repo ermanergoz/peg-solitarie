@@ -265,6 +265,8 @@ class GameFlowTest {
                         onToggleHints = viewModel::onToggleHints,
                         onUndo = viewModel::onUndo,
                         onHint = viewModel::onHintRequested,
+                        onAcceptAdOffer = viewModel::onAcceptAdOffer,
+                        onDismissAdOffer = viewModel::onDismissAdOffer,
                         onHome = {},
                         onNavigateBack = {},
                     )

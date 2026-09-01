@@ -5,11 +5,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import app.cash.turbine.test
+import com.app.pegsolitaire.R
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.SettingsRepository
+import com.app.pegsolitaire.domain.assist.AssistAllowanceLimits
 import com.app.pegsolitaire.domain.generator.ChallengeLevelBounds
 import com.app.pegsolitaire.domain.generator.GeneratorConstants
 import com.app.pegsolitaire.domain.generator.LevelGenerator
@@ -26,14 +28,17 @@ import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
 import com.app.pegsolitaire.platform.ads.RewardOutcome
 import com.google.common.truth.Truth.assertThat
+import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -46,6 +51,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlin.coroutines.CoroutineContext
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TestTimeSource
 import kotlin.time.TimeSource
@@ -516,17 +522,28 @@ class GameViewModelTest {
         }
 
     @Test
-    fun undoRequestsTheUndoGrantThroughTheAdGateway() =
+    fun undoRequestsTheUndoGrantThroughTheAdGatewayOnceTheAllowanceIsSpent() =
         runTest(testDispatcher) {
+            // Plan 09-08 put a free per-level allowance in front of the gateway (ADS-02), so
+            // the grant is requested only past exhaustion — and only from an accepted offer
+            // (ADS-01), never on the undo tap itself. Both halves are asserted here.
             val gateway = FakeAdGateway()
             val viewModel = viewModelFor(Boards.english33Initial, adGateway = gateway)
             runCurrent()
+            exhaustFreeUndos(viewModel)
+            assertThat(gateway.lastReason).isNull()
 
             viewModel.onCellTap(pegAboveCenter)
             viewModel.onCellTap(centerHole)
             runCurrent()
 
             viewModel.onUndo()
+            runCurrent()
+            // The tap raised the offer; still no ad has been requested.
+            assertThat(viewModel.uiState.value.pendingAdOffer).isEqualTo(AdReason.UNDO)
+            assertThat(gateway.lastReason).isNull()
+
+            viewModel.onAcceptAdOffer()
             runCurrent()
 
             assertThat(gateway.lastReason).isEqualTo(AdReason.UNDO)
@@ -540,6 +557,7 @@ class GameViewModelTest {
             val deniedGateway = FakeAdGateway(outcome = RewardOutcome.Declined)
             val viewModel = viewModelFor(Boards.english33Initial, adGateway = deniedGateway)
             runCurrent()
+            exhaustFreeUndos(viewModel)
 
             viewModel.onCellTap(pegAboveCenter)
             viewModel.onCellTap(centerHole)
@@ -547,6 +565,8 @@ class GameViewModelTest {
             val afterJump = viewModel.uiState.value.board
 
             viewModel.onUndo()
+            runCurrent()
+            viewModel.onAcceptAdOffer()
             runCurrent()
 
             // Grant denied → the undo does not proceed; the board is unchanged.
@@ -559,11 +579,12 @@ class GameViewModelTest {
     @Test
     fun undoStillProceedsWhenNoAdCouldBeServed() =
         runTest(testDispatcher) {
-            // ADS-03 fail-open: no ad could be served, so the rescue is granted anyway.
-            // This branch has never executed before — the stub has only ever granted.
+            // ADS-03 fail-open: no ad could be served, so the rescue is granted anyway —
+            // asserted past the allowance, which is the only place the outcome is reachable.
             val unavailableGateway = FakeAdGateway(outcome = RewardOutcome.Unavailable)
             val viewModel = viewModelFor(Boards.english33Initial, adGateway = unavailableGateway)
             runCurrent()
+            exhaustFreeUndos(viewModel)
 
             viewModel.onCellTap(pegAboveCenter)
             viewModel.onCellTap(centerHole)
@@ -572,10 +593,14 @@ class GameViewModelTest {
 
             viewModel.onUndo()
             runCurrent()
+            viewModel.onAcceptAdOffer()
+            runCurrent()
 
             // The move was popped: the board is back to the initial position.
             assertThat(viewModel.uiState.value.board).isEqualTo(Boards.english33Initial)
             assertThat(viewModel.uiState.value.canUndo).isFalse()
+            // D-11: the player is told why the assist arrived without an ad.
+            assertThat(viewModel.uiState.value.adMessage).isEqualTo(R.string.ad_unavailable_undos)
 
             cancelTickers()
         }
@@ -588,6 +613,7 @@ class GameViewModelTest {
             val declinedGateway = FakeAdGateway(outcome = RewardOutcome.Declined)
             val viewModel = viewModelFor(Boards.english33Initial, adGateway = declinedGateway)
             runCurrent()
+            exhaustFreeUndos(viewModel)
 
             viewModel.onCellTap(pegAboveCenter)
             viewModel.onCellTap(centerHole)
@@ -595,6 +621,8 @@ class GameViewModelTest {
             val afterJump = viewModel.uiState.value.board
 
             viewModel.onUndo()
+            runCurrent()
+            viewModel.onAcceptAdOffer()
             runCurrent()
 
             assertThat(declinedGateway.lastReason).isEqualTo(AdReason.UNDO)
@@ -826,13 +854,23 @@ class GameViewModelTest {
         }
 
     @Test
-    fun hintRequestsTheHintGrantThroughTheAdGateway() =
+    fun hintRequestsTheHintGrantThroughTheAdGatewayOnceTheAllowanceIsSpent() =
         runTest(testDispatcher) {
+            // As with undo, plan 09-08 put the free allowance (ADS-02) and then the opt-in
+            // dialog (ADS-01) in front of the gateway: an ad is requested only from an
+            // accepted offer, never from the Hint tap itself.
             val gateway = FakeAdGateway()
             val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = gateway)
             runCurrent()
+            exhaustFreeHints(viewModel)
+            assertThat(gateway.lastReason).isNull()
 
             viewModel.onHintRequested()
+            advanceUntilIdle()
+            assertThat(viewModel.uiState.value.pendingAdOffer).isEqualTo(AdReason.HINT)
+            assertThat(gateway.lastReason).isNull()
+
+            viewModel.onAcceptAdOffer()
             advanceUntilIdle()
 
             assertThat(gateway.lastReason).isEqualTo(AdReason.HINT)
@@ -844,8 +882,11 @@ class GameViewModelTest {
             val denied = FakeAdGateway(outcome = RewardOutcome.Declined)
             val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = denied)
             runCurrent()
+            exhaustFreeHints(viewModel)
 
             viewModel.onHintRequested()
+            advanceUntilIdle()
+            viewModel.onAcceptAdOffer()
             advanceUntilIdle()
 
             val state = viewModel.uiState.value
@@ -863,8 +904,11 @@ class GameViewModelTest {
             val unavailableGateway = FakeAdGateway(outcome = RewardOutcome.Unavailable)
             val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = unavailableGateway)
             runCurrent()
+            exhaustFreeHints(viewModel)
 
             viewModel.onHintRequested()
+            advanceUntilIdle()
+            viewModel.onAcceptAdOffer()
             advanceUntilIdle()
 
             val hinted = viewModel.uiState.value
@@ -872,19 +916,28 @@ class GameViewModelTest {
             assertThat(hinted.hintTarget).isEqualTo(Position(row = 0, col = 2))
             assertThat(hinted.solverThinking).isFalse()
             assertThat(hinted.noWinningMove).isFalse()
+            // D-11: the assist landed AND the player was told why no ad played.
+            assertThat(hinted.adMessage).isEqualTo(R.string.ad_unavailable_hints)
         }
 
     @Test
     fun hintDeclinedLeavesTheControlIdleOnABoardThatHasAWinningMove() =
         runTest(testDispatcher) {
             // T-06-01: the decline path must clear solverThinking, or the hint control
-            // spins forever. The board is solvable, so a missing hint can only mean the
-            // search never ran — proving the abort happened before the Solver call.
+            // spins forever. The board is solvable, so the search DID find a move — and a
+            // missing hint therefore proves the decline suppressed the reveal. (Plan 09-06
+            // inverted the order for ADS-06: the search runs before the gateway, and the
+            // found move waits in `pendingHint` for a grant that never comes. Plan 09-08 put
+            // the allowance and the opt-in dialog in between, so the decline now arrives
+            // from the accepted offer rather than from the tap.)
             val declinedGateway = FakeAdGateway(outcome = RewardOutcome.Declined)
             val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = declinedGateway)
             runCurrent()
+            exhaustFreeHints(viewModel)
 
             viewModel.onHintRequested()
+            advanceUntilIdle()
+            viewModel.onAcceptAdOffer()
             advanceUntilIdle()
 
             val state = viewModel.uiState.value
@@ -919,26 +972,42 @@ class GameViewModelTest {
     @Test
     fun aSecondHintRequestCancelsThePriorSearchSoOnlyOneProceeds() =
         runTest(testDispatcher) {
-            // The gateway gates every grant until released, so both hint jobs launch and
-            // suspend; only the SECOND (uncancelled) job may proceed past the gate.
-            val gateway = GatedAdGateway()
-            val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = gateway)
+            // D-10 / T-04-SD: no overlapping Solver work. The park is the background
+            // dispatcher the search hops to, which is where `hintJob` genuinely suspends —
+            // the ad gateway used to serve as the park, but plan 09-08 moved the rewarded
+            // request out of `hintJob` and behind an accepted offer, so gating the gateway
+            // would no longer hold a search at all.
+            val gate = ParkingDispatcher()
+            val searchedBoards = mutableListOf<Board>()
+            val countingHint = mockk<GetHintUseCase>()
+            every { countingHint.invoke(any(), any(), any(), any(), any()) } answers {
+                val searched = firstArg<Board>()
+                searchedBoards += searched
+                RulesEngine.legalMoves(searched).firstOrNull()
+            }
+            val viewModel =
+                viewModelFor(
+                    wonInOneJumpBoard(),
+                    defaultDispatcher = gate,
+                    getHintUseCase = countingHint,
+                )
             runCurrent()
 
             viewModel.onHintRequested()
             runCurrent()
-            assertThat(gateway.started).isEqualTo(1)
+            assertThat(gate.pending).isEqualTo(1)
 
-            // Second request cancels the first in-flight job before releasing the gate.
+            // Second request cancels the first in-flight job before the gate is released.
             viewModel.onHintRequested()
             runCurrent()
-            assertThat(gateway.started).isEqualTo(2)
+            assertThat(gate.pending).isEqualTo(2)
 
-            gateway.release()
+            gate.releaseAll()
             advanceUntilIdle()
 
-            // Exactly one job proceeded past the grant — the prior search was cancelled.
-            assertThat(gateway.proceeded).isEqualTo(1)
+            // Exactly one search ran: the first job was cancelled, so its parked block
+            // unwound instead of invoking the use case.
+            assertThat(searchedBoards).hasSize(1)
             assertThat(viewModel.uiState.value.hintSource).isEqualTo(Position(row = 0, col = 0))
             assertThat(viewModel.uiState.value.solverThinking).isFalse()
 
@@ -1303,6 +1372,36 @@ class GameViewModelTest {
 
     private fun englishViewModel(): GameViewModel = viewModelFor(Boards.english33Initial)
 
+    /**
+     * Spends every free undo (ADS-02) so the next one reaches the opt-in offer, leaving the
+     * board exactly where it started.
+     *
+     * Each cycle plays one jump and immediately takes it back, so the fixture needs only one
+     * legal move and the board is identical afterwards — but [AssistAllowanceLimits.FREE_UNDOS]
+     * counters have been spent. Every one of those undos is free, so the gateway is never
+     * consulted here; the specs that call this assert exactly that before continuing.
+     */
+    private fun TestScope.exhaustFreeUndos(viewModel: GameViewModel) {
+        repeat(AssistAllowanceLimits.FREE_UNDOS) {
+            viewModel.onCellTap(pegAboveCenter)
+            viewModel.onCellTap(centerHole)
+            runCurrent()
+            viewModel.onUndo()
+            runCurrent()
+        }
+        check(!viewModel.uiState.value.canUndo) { "the fixture must be back at its initial board" }
+        check(viewModel.uiState.value.pendingAdOffer == null) { "a free undo must raise no offer" }
+    }
+
+    /** Spends every free hint (ADS-02) so the next one reaches the opt-in offer. */
+    private fun TestScope.exhaustFreeHints(viewModel: GameViewModel) {
+        repeat(AssistAllowanceLimits.FREE_HINTS) {
+            viewModel.onHintRequested()
+            advanceUntilIdle()
+        }
+        check(viewModel.uiState.value.pendingAdOffer == null) { "a free hint must raise no offer" }
+    }
+
     private fun viewModelFor(
         board: Board,
         levelId: String = ClassicLevelIds.ENGLISH33,
@@ -1311,6 +1410,8 @@ class GameViewModelTest {
         settings: SettingsRepository = FakeSettingsRepository(),
         adGateway: AdGateway = FakeAdGateway(),
         levelRepository: LevelRepository = FakeLevelRepository(boardsById = mapOf(levelId to board)),
+        defaultDispatcher: CoroutineDispatcher = testDispatcher,
+        getHintUseCase: GetHintUseCase = GetHintUseCase(),
     ): GameViewModel {
         val args =
             buildMap<String, Any?> {
@@ -1335,9 +1436,9 @@ class GameViewModelTest {
                         // save-on-leave / clear-on-solve calls.
                         progressRepository = mockk(relaxed = true),
                         timeSource = timeSource,
-                        defaultDispatcher = testDispatcher,
+                        defaultDispatcher = defaultDispatcher,
                         adGateway = adGateway,
-                        getHintUseCase = GetHintUseCase(),
+                        getHintUseCase = getHintUseCase,
                         savedStateHandle = SavedStateHandle(args),
                     ) as T
             }
@@ -1588,12 +1689,28 @@ private class FakeSettingsRepository(
  * [com.app.pegsolitaire.platform.ads.NoOpAdGateway] stub), so the VM tests assert that an
  * assist requests the grant, that [RewardOutcome.Declined] skips it, and that
  * [RewardOutcome.Unavailable] proceeds with it anyway (ADS-03).
+ *
+ * [offerable] backs [rewardedOfferable] and defaults to `true` like the stub; passing
+ * `false` drives the D-12 path where the opt-in dialog is skipped and the assist is
+ * granted silently free. [preloadedReasons] records every [preloadRewarded] call so a test
+ * can prove D-09's "preload only at the moment a counter reaches 0".
  */
 private class FakeAdGateway(
     private val outcome: RewardOutcome = RewardOutcome.Granted,
+    offerable: Boolean = true,
 ) : AdGateway {
     var lastReason: AdReason? = null
         private set
+
+    private val preloaded = mutableListOf<AdReason>()
+
+    val preloadedReasons: List<AdReason> get() = preloaded.toList()
+
+    override val rewardedOfferable: StateFlow<Boolean> = MutableStateFlow(offerable).asStateFlow()
+
+    override fun preloadRewarded(reason: AdReason) {
+        preloaded += reason
+    }
 
     override suspend fun requestRewarded(reason: AdReason): RewardOutcome {
         lastReason = reason
@@ -1604,31 +1721,32 @@ private class FakeAdGateway(
 }
 
 /**
- * An [AdGateway] whose [requestRewarded] suspends on a shared gate until [release],
- * counting how many grants [started] (entered the gate) and how many [proceeded] past
- * it. A cancelled hint job's suspended `await` throws before [proceeded] increments, so
- * `proceeded == 1` after two rapid requests proves the first search was cancelled (no
- * overlapping Solver work — the logic half of D-10).
+ * A background dispatcher that PARKS what it is handed instead of running it, so a spec can
+ * hold a hint search at the `withContext(defaultDispatcher)` boundary and act while it is
+ * genuinely in flight. Single-threaded by construction: [releaseAll] runs the queued blocks
+ * inline on the caller's (test) thread, and a block whose job was cancelled meanwhile unwinds
+ * instead of running.
+ *
+ * This replaced a gated `AdGateway` as the D-10 park when plan 09-08 moved the rewarded
+ * request out of `hintJob` and behind an accepted offer: the gateway is no longer on the
+ * search's own coroutine, so gating it would hold nothing.
  */
-private class GatedAdGateway : AdGateway {
-    private val gate = CompletableDeferred<Unit>()
+private class ParkingDispatcher : CoroutineDispatcher() {
+    private val parked = ArrayDeque<Runnable>()
 
-    var started = 0
-        private set
+    /** How many blocks are currently held — a search in flight is `1`, not an assumption. */
+    val pending: Int get() = parked.size
 
-    var proceeded = 0
-        private set
-
-    fun release() {
-        gate.complete(Unit)
+    override fun dispatch(
+        context: CoroutineContext,
+        block: Runnable,
+    ) {
+        parked.addLast(block)
     }
 
-    override suspend fun requestRewarded(reason: AdReason): RewardOutcome {
-        started++
-        gate.await()
-        proceeded++
-        return RewardOutcome.Granted
+    fun releaseAll() {
+        while (parked.isNotEmpty()) {
+            parked.removeFirst().run()
+        }
     }
-
-    override fun showInterstitial() = Unit
 }

@@ -26,6 +26,9 @@ import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -291,6 +294,10 @@ private object AlwaysOnSettingsRepository : SettingsRepository {
 
 /** The auto-grant stub's behavior: every rewarded request answers [RewardOutcome.Granted]. */
 private object GrantingAdGateway : AdGateway {
+    override val rewardedOfferable: StateFlow<Boolean> = MutableStateFlow(true).asStateFlow()
+
+    override fun preloadRewarded(reason: AdReason) = Unit
+
     override suspend fun requestRewarded(reason: AdReason): RewardOutcome = RewardOutcome.Granted
 
     override fun showInterstitial() = Unit
