@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.app.pegsolitaire.audio.SoundPlayer
 import com.app.pegsolitaire.data.SettingsRepository
+import com.app.pegsolitaire.platform.ads.consent.ConsentGateway
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,8 +29,18 @@ import javax.inject.Inject
  * repository flows. Its single use is D-12's confirmation pop on the sound *enable* event — see
  * [onToggleSound].
  *
+ * [consentGateway] is the third source, and the only authority on whether the CONS-03
+ * "Manage privacy choices" row exists (D-14). It is injected as the **interface**: this
+ * class lives outside `..platform..`, so naming the concrete UMP implementation — or
+ * accepting a framework Activity to hand the form — would fail `PlatformBoundaryRules`'
+ * bytecode gates (`onlyPlatformDependsOnPlaySdks` / `uiAndDomainNeverTouchAnActivity`).
+ * The Activity the UMP form needs is resolved inside the platform layer, which is why
+ * [ConsentGateway.showPrivacyOptions] takes no parameters.
+ *
  * @param settingsRepository the DataStore-backed settings source of truth.
  * @param soundPlayer the audio seam, used only to answer a sound-enable with one pop (D-12).
+ * @param consentGateway the consent seam: publishes whether the privacy-options entry point
+ *   is required (CONS-03) and opens the form on request.
  */
 @HiltViewModel
 class SettingsViewModel
@@ -37,6 +48,7 @@ class SettingsViewModel
     constructor(
         private val settingsRepository: SettingsRepository,
         private val soundPlayer: SoundPlayer,
+        private val consentGateway: ConsentGateway,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(SettingsUiState())
 
@@ -52,6 +64,11 @@ class SettingsViewModel
             viewModelScope.launch {
                 settingsRepository.hapticsOn.collect { on ->
                     _uiState.update { it.copy(hapticsOn = on) }
+                }
+            }
+            viewModelScope.launch {
+                consentGateway.privacyOptionsRequired.collect { required ->
+                    _uiState.update { it.copy(privacyOptionsRequired = required) }
                 }
             }
         }
@@ -84,5 +101,20 @@ class SettingsViewModel
         /** Persists the player's haptics choice (SET-02); the collected flow re-renders the switch. */
         fun onToggleHaptics(on: Boolean) {
             viewModelScope.launch { settingsRepository.setHapticsOn(on) }
+        }
+
+        /**
+         * Opens the UMP privacy-options form so the player can change their ad-consent
+         * choices (CONS-03).
+         *
+         * Nothing is read back and no state is set: the form is UMP-rendered and owns its own
+         * result, and any consequence of a changed choice arrives through the collected
+         * [ConsentGateway.privacyOptionsRequired] flow like every other state change here. The
+         * call is `suspend` because awaiting the foreground Activity and the form's dismissal
+         * are both genuinely asynchronous — that Activity is resolved inside the platform
+         * layer, never held by this ViewModel.
+         */
+        fun onManagePrivacyChoices() {
+            viewModelScope.launch { consentGateway.showPrivacyOptions() }
         }
     }
