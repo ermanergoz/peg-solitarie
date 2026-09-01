@@ -53,7 +53,7 @@ class SettingsViewModelSoundTest {
     @Test
     fun switchingSoundOnPlaysExactlyOneConfirmationPop() =
         runTest(testDispatcher) {
-            val viewModel = SettingsViewModel(SettableSettingsRepository(soundOn = false), sounds)
+            val viewModel = SettingsViewModel(SettableSettingsRepository(soundOn = false), sounds, FakeConsentGateway())
             runCurrent()
 
             viewModel.onToggleSound(true)
@@ -68,7 +68,7 @@ class SettingsViewModelSoundTest {
             // The DataStore write is asynchronous, so at the instant the pop is due the
             // player's own gate is still closed. A gated play() would be silently dropped —
             // this is the single documented bypass, and the fake records it as such.
-            val viewModel = SettingsViewModel(SettableSettingsRepository(soundOn = false), sounds)
+            val viewModel = SettingsViewModel(SettableSettingsRepository(soundOn = false), sounds, FakeConsentGateway())
             runCurrent()
 
             viewModel.onToggleSound(true)
@@ -80,7 +80,7 @@ class SettingsViewModelSoundTest {
     @Test
     fun switchingSoundOffPlaysNothingAtAll() =
         runTest(testDispatcher) {
-            val viewModel = SettingsViewModel(SettableSettingsRepository(soundOn = true), sounds)
+            val viewModel = SettingsViewModel(SettableSettingsRepository(soundOn = true), sounds, FakeConsentGateway())
             runCurrent()
 
             viewModel.onToggleSound(false)
@@ -93,7 +93,7 @@ class SettingsViewModelSoundTest {
     fun openingSettingsPlaysNothingWhateverTheStoredValueIs() =
         runTest(testDispatcher) {
             // The case D-12 explicitly forbids: the blip must never fire on the state load.
-            SettingsViewModel(SettableSettingsRepository(soundOn = false), sounds)
+            SettingsViewModel(SettableSettingsRepository(soundOn = false), sounds, FakeConsentGateway())
             runCurrent()
 
             assertThat(sounds.events).isEmpty()
@@ -104,7 +104,7 @@ class SettingsViewModelSoundTest {
         runTest(testDispatcher) {
             // The trap the collector placement would fall into: the initial emission is
             // `true`, which is indistinguishable from an enable if you watch the flow.
-            val viewModel = SettingsViewModel(SettableSettingsRepository(soundOn = true), sounds)
+            val viewModel = SettingsViewModel(SettableSettingsRepository(soundOn = true), sounds, FakeConsentGateway())
             runCurrent()
             assertThat(sounds.events).isEmpty()
 
@@ -119,7 +119,7 @@ class SettingsViewModelSoundTest {
         runTest(testDispatcher) {
             // The pop is feedback, never a state source: the persisted write is unchanged.
             val repository = SettableSettingsRepository(soundOn = false)
-            val viewModel = SettingsViewModel(repository, sounds)
+            val viewModel = SettingsViewModel(repository, sounds, FakeConsentGateway())
             runCurrent()
 
             viewModel.onToggleSound(true)
@@ -132,7 +132,7 @@ class SettingsViewModelSoundTest {
     @Test
     fun togglingHapticsPlaysNothingInEitherDirection() =
         runTest(testDispatcher) {
-            val viewModel = SettingsViewModel(SettableSettingsRepository(), sounds)
+            val viewModel = SettingsViewModel(SettableSettingsRepository(), sounds, FakeConsentGateway())
             runCurrent()
 
             viewModel.onToggleHaptics(true)
@@ -147,7 +147,7 @@ class SettingsViewModelSoundTest {
         runTest(testDispatcher) {
             // Belt-and-braces on the D-17 fail-open defaults: the state comes up with sound
             // ON before any emission, and that default must not be heard as an enable either.
-            SettingsViewModel(SilentSettingsRepository, sounds)
+            SettingsViewModel(SilentSettingsRepository, sounds, FakeConsentGateway())
             runCurrent()
 
             assertThat(sounds.events).isEmpty()
