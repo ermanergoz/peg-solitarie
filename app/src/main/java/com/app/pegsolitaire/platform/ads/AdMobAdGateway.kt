@@ -1,6 +1,7 @@
 package com.app.pegsolitaire.platform.ads
 
 import android.app.Activity
+import com.app.pegsolitaire.data.InterstitialCadenceStore
 import com.app.pegsolitaire.di.ApplicationScope
 import com.app.pegsolitaire.platform.activity.ForegroundActivityProvider
 import com.app.pegsolitaire.platform.ads.consent.AdsReadiness
@@ -73,6 +74,7 @@ class AdMobAdGateway
         private val slot: RewardedAdSlot,
         private val interstitialSlot: InterstitialAdSlot,
         private val activityProvider: ForegroundActivityProvider,
+        private val cadenceStore: InterstitialCadenceStore,
         @param:ApplicationScope private val scope: CoroutineScope,
     ) : AdGateway {
         /**
@@ -237,6 +239,44 @@ class AdMobAdGateway
          * once (Pitfall 11). Both resumes are guarded on `isActive`, because a cancelled
          * caller must not be resumed twice, and the callback is detached on cancellation so
          * a dead continuation cannot be reached through a retained SDK object.
+         *
+         * **The third callback here is not about the reward at all — it opens the shared
+         * fullscreen cooldown (D-15).**
+         * [com.app.pegsolitaire.domain.ads.InterstitialCadenceParams.MIN_GAP_MS]'s 90
+         * seconds are measured since the last **fullscreen** ad, not the last *interstitial*,
+         * so a rewarded ad stamps the same clock and an interstitial can never immediately
+         * follow one. That closes the rewarded-then-interstitial adjacency AdMob policy
+         * prohibits and `ARCHITECTURE.md`'s anti-pattern 6 names — reachable in this app by
+         * an entirely ordinary sequence: rewarded hint on the last move, win, tap "Next".
+         * D-02's locked 90-second value is unchanged; only the meaning of the timestamp
+         * widened.
+         *
+         * **The stamp sits on `onAdShowedFullScreenContent`, and nowhere else, because that
+         * callback is the one place that means an ad ACTUALLY appeared.**
+         * `onAdFailedToShowFullScreenContent` means it did not, and stamping there would
+         * open a 90-second cooldown for an ad the player never saw — the cadence would
+         * silently suppress an interstitial it had every right to show, which is exactly
+         * D-11's "an ad that never presented must not consume the quota" seen from the
+         * rewarded side. `onAdDismissedFullScreenContent` would also be wrong, though less
+         * dangerously: it is a later instant and it is not reached when a presentation
+         * fails.
+         *
+         * **There is exactly ONE writer per path, and that is the invariant a future editor
+         * is most likely to break.** The REWARDED stamp is written here, by the only
+         * component that can observe a real presentation. The INTERSTITIAL stamp is written
+         * by `ResultsViewModel` when [showInterstitial] answers `true`, because that
+         * transition must *also* zero the win counter and raise the session count — one
+         * indivisible `recordInterstitialShown` on the domain state, which this class has no
+         * business splitting. Adding a second stamp on the interstitial path here would
+         * double-write the same field and leave neither writer authoritative.
+         *
+         * The layering is deliberate: this is a `..platform..` class writing to a `..data..`
+         * store, the same direction
+         * [com.app.pegsolitaire.platform.lifecycle.AppForegroundTracker] already takes, and
+         * for the same reason — the gateway is the only component positioned to observe an
+         * actual presentation. Nothing here logs, and the store's own writes are
+         * `storageFailSafe`-guarded, so a failed stamp degrades to a missing cooldown rather
+         * than to a crash inside an SDK callback.
          */
         private suspend fun showForOutcome(
             ad: RewardedAd,
@@ -248,6 +288,10 @@ class AdMobAdGateway
 
                 ad.adEventCallback =
                     object : RewardedAdEventCallback {
+                        override fun onAdShowedFullScreenContent() {
+                            cadenceStore.recordRewardedShown(System.currentTimeMillis())
+                        }
+
                         override fun onAdDismissedFullScreenContent() {
                             recycleSlot(reason)
                             if (continuation.isActive) {

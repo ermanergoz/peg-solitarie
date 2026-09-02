@@ -1,28 +1,44 @@
 package com.app.pegsolitaire.ui.results
 
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.SavedStateHandle
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.data.InterstitialCadenceStore
 import com.app.pegsolitaire.data.LevelResult
 import com.app.pegsolitaire.data.NewBests
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
+import com.app.pegsolitaire.domain.ads.InterstitialCadenceParams
+import com.app.pegsolitaire.domain.ads.InterstitialCadenceState
 import com.app.pegsolitaire.domain.generator.ChallengeLevelBounds
 import com.app.pegsolitaire.domain.generator.GeneratorConstants
 import com.app.pegsolitaire.domain.scoring.ScoreResult
+import com.app.pegsolitaire.platform.ads.AdConstants
+import com.app.pegsolitaire.platform.ads.AdGateway
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -41,12 +57,38 @@ import org.robolectric.annotation.Config
  * Robolectric backs `SavedStateHandle.toRoute<Results>()` (the same harness
  * `GameViewModelTest` uses for `toRoute<Gameplay>()`); `Dispatchers.setMain` with a
  * `StandardTestDispatcher` makes the `viewModelScope` record deterministic.
+ *
+ * Since Phase 10 the ViewModel also owns the interstitial trigger (D-06..D-15), so the
+ * lower half of this file pins that: eligibility, the D-12 preload, the D-10 fast paths,
+ * the D-08 quiescence boundary, D-09's ad-then-navigate ordering and D-11's record-only-on-
+ * a-real-presentation rule. Those cases run against a **real** `InterstitialCadenceStore`
+ * over a temp-file Preferences store (the `ChallengeProgressTest` harness) and a gated
+ * [FakeAdGateway], so no cadence arithmetic is ever restated here.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [ROBOLECTRIC_SDK])
-@OptIn(ExperimentalCoroutinesApi::class) // runCurrent virtual-time control
+// The single behavior spec for ResultsViewModel (args + tier + record + celebration +
+// interstitial trigger); kept together so one file exhaustively documents the VM's
+// contract, following GameViewModelTest's identical exemption and its reasoning.
+@Suppress("LargeClass")
+@OptIn(ExperimentalCoroutinesApi::class) // runCurrent/advanceTimeBy virtual-time control
 class ResultsViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
+
+    /**
+     * The app-lifetime scope every [InterstitialCadenceStore] built here runs on.
+     *
+     * It shares [testDispatcher]'s scheduler, so a `runTest` body drives the store's
+     * fire-and-forget writes; outside `runTest` nothing is dispatched, which leaves a
+     * default (fully suppressed) store and is exactly what the non-ad cases want.
+     */
+    private val storeScope = CoroutineScope(testDispatcher)
+
+    /** Keeps every temp store file distinct; `TemporaryFolder.newFile` refuses a repeat name. */
+    private var storeFileCount = 0
+
+    @get:Rule
+    val tempFolder = TemporaryFolder()
 
     @Before
     fun setUp() {
@@ -55,6 +97,7 @@ class ResultsViewModelTest {
 
     @After
     fun tearDown() {
+        storeScope.cancel()
         Dispatchers.resetMain()
     }
 
@@ -354,9 +397,9 @@ class ResultsViewModelTest {
                     pegsRemaining = SOLVED_PEGS_REMAINING,
                 )
 
-            ResultsViewModel(handle, repository)
+            viewModelOver(handle, repository)
             runCurrent()
-            ResultsViewModel(handle, repository)
+            viewModelOver(handle, repository)
             runCurrent()
 
             assertThat(repository.recordCalls).hasSize(1)
@@ -390,8 +433,8 @@ class ResultsViewModelTest {
                 pegsRemaining = SOLVED_PEGS_REMAINING,
             )
 
-        val first = ResultsViewModel(handle, repository)
-        val second = ResultsViewModel(handle, repository)
+        val first = viewModelOver(handle, repository)
+        val second = viewModelOver(handle, repository)
 
         assertThat(first.uiState.value.playCelebration).isTrue()
         assertThat(second.uiState.value.playCelebration).isFalse()
@@ -434,9 +477,9 @@ class ResultsViewModelTest {
                     challengeLevel = SAMPLE_CHALLENGE_LEVEL,
                 )
 
-            val first = ResultsViewModel(handle, repository)
+            val first = viewModelOver(handle, repository)
             runCurrent()
-            val second = ResultsViewModel(handle, repository)
+            val second = viewModelOver(handle, repository)
             runCurrent()
 
             assertThat(first.uiState.value.playCelebration).isTrue()
@@ -456,15 +499,536 @@ class ResultsViewModelTest {
                     pegsRemaining = SOLVED_PEGS_REMAINING,
                 )
 
-            val first = ResultsViewModel(handle, repository)
+            val first = viewModelOver(handle, repository)
             runCurrent()
-            val second = ResultsViewModel(handle, repository)
+            val second = viewModelOver(handle, repository)
             runCurrent()
 
             assertThat(first.uiState.value.playCelebration).isTrue()
             assertThat(second.uiState.value.playCelebration).isFalse()
             assertThat(repository.recordCalls).hasSize(1)
         }
+
+    // ---- INT-01: nothing is shown, and nothing is decided, at construction ------
+
+    @Test
+    fun constructingTheViewModelNeverShowsAnInterstitial() =
+        runTest(testDispatcher) {
+            // INT-01's hardest half: the ad may only follow a continue TAP, so no
+            // combination of eligibility, readiness and a passing cadence may produce one
+            // from construction alone. All three fixtures at once, because the claim is
+            // about the constructor rather than about any one of them.
+            val eligibleGateway = FakeAdGateway()
+            val stuckGateway = FakeAdGateway()
+            val suppressedGateway = FakeAdGateway()
+
+            viewModelFor(
+                levelId = ClassicLevelIds.ENGLISH33,
+                stars = THREE_STARS,
+                pegsRemaining = SOLVED_PEGS_REMAINING,
+                cadenceStore = eligibleCadenceStore(backgroundScope),
+                adGateway = eligibleGateway,
+            )
+            viewModelFor(
+                levelId = ClassicLevelIds.ENGLISH33,
+                stars = ONE_STAR,
+                cadenceStore = eligibleCadenceStore(backgroundScope),
+                adGateway = stuckGateway,
+            )
+            viewModelFor(
+                levelId = ClassicLevelIds.ENGLISH33,
+                stars = THREE_STARS,
+                pegsRemaining = SOLVED_PEGS_REMAINING,
+                cadenceStore = freshCadenceStore(),
+                adGateway = suppressedGateway,
+            )
+            advanceUntilIdle()
+
+            assertThat(eligibleGateway.showCount).isEqualTo(0)
+            assertThat(stuckGateway.showCount).isEqualTo(0)
+            assertThat(suppressedGateway.showCount).isEqualTo(0)
+        }
+
+    // ---- D-12: warm an ad exactly when the next tap could show one -------------
+
+    @Test
+    fun anEligibleFinishWhoseProjectedCadencePassesEveryGatePreloadsExactlyOnce() =
+        runTest(testDispatcher) {
+            val gateway = FakeAdGateway()
+
+            viewModelFor(
+                levelId = ClassicLevelIds.ENGLISH33,
+                stars = THREE_STARS,
+                pegsRemaining = SOLVED_PEGS_REMAINING,
+                cadenceStore = eligibleCadenceStore(backgroundScope),
+                adGateway = gateway,
+            )
+            advanceUntilIdle()
+
+            assertThat(gateway.preloadCount).isEqualTo(1)
+        }
+
+    @Test
+    fun anEligibleFinishUnderFirstSessionSuppressionPreloadsNothing() =
+        runTest(testDispatcher) {
+            // D-12 / Pitfall 11: issuing the request IS the exposure, so a win that cannot
+            // possibly be followed by an ad must not warm one. A fresh store has
+            // firstSessionComplete = false, which alone makes mayShow false at every instant.
+            val gateway = FakeAdGateway()
+
+            viewModelFor(
+                levelId = ClassicLevelIds.ENGLISH33,
+                stars = THREE_STARS,
+                pegsRemaining = SOLVED_PEGS_REMAINING,
+                cadenceStore = freshCadenceStore(),
+                adGateway = gateway,
+            )
+            advanceUntilIdle()
+
+            assertThat(gateway.preloadCount).isEqualTo(0)
+        }
+
+    @Test
+    fun aNonEligibleFinishBanksNoWinAndPreloadsNothing() =
+        runTest(testDispatcher) {
+            val gateway = FakeAdGateway()
+            val store = freshCadenceStore()
+
+            viewModelFor(
+                levelId = ClassicLevelIds.ENGLISH33,
+                stars = ONE_STAR,
+                cadenceStore = store,
+                adGateway = gateway,
+            )
+            advanceUntilIdle()
+
+            assertThat(settledState(store).lifetimeCompletedLevels).isEqualTo(0)
+            assertThat(gateway.preloadCount).isEqualTo(0)
+        }
+
+    @Test
+    fun aSecondViewModelOverTheSameHandleBanksNoSecondWinAndPreloadsNoSecondTime() =
+        runTest(testDispatcher) {
+            // The WIN_COUNTED_KEY latch, reached by both D-16 re-entry paths: a
+            // process-death restore and a back navigation rebuild the ViewModel over the
+            // SAME SavedStateHandle. A win counted twice inflates the counter that decides
+            // how often ads appear.
+            val handle =
+                savedStateHandleFor(
+                    levelId = ClassicLevelIds.ENGLISH33,
+                    stars = THREE_STARS,
+                    pegsRemaining = SOLVED_PEGS_REMAINING,
+                )
+            val freshStore = freshCadenceStore()
+            val gateway = FakeAdGateway()
+
+            viewModelOver(handle, FakeProgressRepository(), freshStore, gateway)
+            viewModelOver(handle, FakeProgressRepository(), freshStore, gateway)
+            advanceUntilIdle()
+
+            assertThat(settledState(freshStore).lifetimeCompletedLevels).isEqualTo(1)
+
+            // The preload half needs a store that can actually pass the gates, since a
+            // suppressed one would report zero either way.
+            val eligibleHandle =
+                savedStateHandleFor(
+                    levelId = ClassicLevelIds.ENGLISH33,
+                    stars = THREE_STARS,
+                    pegsRemaining = SOLVED_PEGS_REMAINING,
+                )
+            val eligibleStore = eligibleCadenceStore(backgroundScope)
+            val eligibleGateway = FakeAdGateway()
+
+            viewModelOver(eligibleHandle, FakeProgressRepository(), eligibleStore, eligibleGateway)
+            viewModelOver(eligibleHandle, FakeProgressRepository(), eligibleStore, eligibleGateway)
+            advanceUntilIdle()
+
+            assertThat(eligibleGateway.preloadCount).isEqualTo(1)
+        }
+
+    // ---- D-14 / INT-03: which finishes an interstitial may follow ---------------
+
+    @Test
+    fun aTwoStarClassicSolveIsAdEligibleSoTheCatalogTapShowsAnAd() =
+        runTest(testDispatcher) {
+            // D-14: an interstitial-eligible win is ANY solved finish, two stars included.
+            // The strict-win test (stars == THREE_STARS) would deny this one.
+            val gateway = FakeAdGateway()
+
+            val viewModel =
+                viewModelFor(
+                    levelId = ClassicLevelIds.ENGLISH33,
+                    stars = TWO_STARS,
+                    pegsRemaining = SOLVED_PEGS_REMAINING,
+                    cadenceStore = eligibleCadenceStore(backgroundScope),
+                    adGateway = gateway,
+                )
+            advanceUntilIdle()
+
+            viewModel.onCatalogTapped()
+            advanceTimeBy(AdConstants.INTERSTITIAL_QUIESCENCE_MS)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.headlineTier).isEqualTo(ResultsHeadlineTier.SOLVED)
+            assertThat(gateway.showCount).isEqualTo(1)
+        }
+
+    @Test
+    fun aOneStarClassicFinishIsNotAdEligibleAndNavigatesImmediately() =
+        runTest(testDispatcher) {
+            val gateway = FakeAdGateway()
+
+            val viewModel =
+                viewModelFor(
+                    levelId = ClassicLevelIds.ENGLISH33,
+                    stars = ONE_STAR,
+                    cadenceStore = eligibleCadenceStore(backgroundScope),
+                    adGateway = gateway,
+                )
+            advanceUntilIdle()
+
+            viewModel.onCatalogTapped()
+            advanceUntilIdle()
+
+            assertThat(viewModel.uiState.value.pendingNavigation).isEqualTo(ResultsNavTarget.Catalog)
+            assertThat(gateway.showCount).isEqualTo(0)
+        }
+
+    @Test
+    fun aStuckChallengeFinishIsNotAdEligibleAtAnyStarCount() =
+        runTest(testDispatcher) {
+            // INT-03: three stars but the board did not fold — tierFor calls that STUCK, and
+            // the eligibility gate inherits that branch rather than restating it.
+            val gateway = FakeAdGateway()
+            val eligibleStore = eligibleCadenceStore(backgroundScope)
+
+            val viewModel =
+                viewModelFor(
+                    levelId = "",
+                    stars = THREE_STARS,
+                    pegsRemaining = SAMPLE_PEGS_REMAINING,
+                    challengeLevel = SAMPLE_CHALLENGE_LEVEL,
+                    cadenceStore = eligibleStore,
+                    adGateway = gateway,
+                )
+            advanceUntilIdle()
+
+            assertThat(viewModel.uiState.value.headlineTier).isEqualTo(ResultsHeadlineTier.STUCK)
+            assertThat(gateway.preloadCount).isEqualTo(0)
+
+            viewModel.onNextLevelTapped(SAMPLE_CHALLENGE_LEVEL + 1)
+            advanceUntilIdle()
+
+            assertThat(gateway.showCount).isEqualTo(0)
+            assertThat(viewModel.uiState.value.pendingNavigation)
+                .isEqualTo(ResultsNavTarget.NextLevel(SAMPLE_CHALLENGE_LEVEL + 1))
+
+            // The same finish banks no win either — a stuck board is not a win at all.
+            val freshStore = freshCadenceStore()
+            viewModelFor(
+                levelId = "",
+                stars = THREE_STARS,
+                pegsRemaining = SAMPLE_PEGS_REMAINING,
+                challengeLevel = SAMPLE_CHALLENGE_LEVEL,
+                cadenceStore = freshStore,
+                adGateway = FakeAdGateway(),
+            )
+            advanceUntilIdle()
+
+            assertThat(settledState(freshStore).lifetimeCompletedLevels).isEqualTo(0)
+        }
+
+    @Test
+    fun aPerfectDiamond41FinishWithTwoPegsRemainingIsAdEligible() =
+        runTest(testDispatcher) {
+            // RESEARCH Pitfall 1, the regression guard this whole gate is shaped around.
+            // Diamond-41's proven floor is TWO pegs (Phase 8, GF(4) colour invariant), so a
+            // perfect Diamond finish leaves 2. An eligibility gate written as
+            // `pegsRemaining == 1` — the constant sitting a few lines away in the ViewModel —
+            // would misclassify the flawless play as a loss and permanently deny it an ad.
+            val gateway = FakeAdGateway()
+
+            val viewModel =
+                viewModelFor(
+                    levelId = ClassicLevelIds.DIAMOND41,
+                    stars = THREE_STARS,
+                    pegsRemaining = DIAMOND_41_PERFECT_PEGS_REMAINING,
+                    cadenceStore = eligibleCadenceStore(backgroundScope),
+                    adGateway = gateway,
+                )
+            advanceUntilIdle()
+
+            assertThat(viewModel.uiState.value.headlineTier).isEqualTo(ResultsHeadlineTier.PERFECT)
+            assertThat(gateway.preloadCount).isEqualTo(1)
+
+            viewModel.onCatalogTapped()
+            advanceTimeBy(AdConstants.INTERSTITIAL_QUIESCENCE_MS)
+            runCurrent()
+
+            assertThat(gateway.showCount).isEqualTo(1)
+        }
+
+    // ---- D-10: the fast path costs nothing -------------------------------------
+
+    @Test
+    fun withNoInterstitialHeldTheTapNavigatesOnTheSameTurnWithNoScrim() =
+        runTest(testDispatcher) {
+            val gateway = FakeAdGateway(interstitialReadyInitially = false)
+
+            val viewModel =
+                viewModelFor(
+                    levelId = ClassicLevelIds.ENGLISH33,
+                    stars = THREE_STARS,
+                    pegsRemaining = SOLVED_PEGS_REMAINING,
+                    cadenceStore = eligibleCadenceStore(backgroundScope),
+                    adGateway = gateway,
+                )
+            advanceUntilIdle()
+
+            viewModel.onCatalogTapped()
+
+            // Deliberately asserted with NO dispatch in between: D-10 means the navigation
+            // is published on the same turn as the tap, not one coroutine hop later.
+            assertThat(viewModel.uiState.value.pendingNavigation).isEqualTo(ResultsNavTarget.Catalog)
+            assertThat(viewModel.uiState.value.adScrimVisible).isFalse()
+
+            advanceUntilIdle()
+            assertThat(gateway.showCount).isEqualTo(0)
+            assertThat(viewModel.uiState.value.adScrimVisible).isFalse()
+        }
+
+    @Test
+    fun withTheCadenceSayingNoTheTapNavigatesOnTheSameTurnWithNoScrim() =
+        runTest(testDispatcher) {
+            // Same fast path, reached by the other clause: an ad IS held, but a fresh store
+            // is still inside D-03's first-session suppression.
+            val gateway = FakeAdGateway()
+
+            val viewModel =
+                viewModelFor(
+                    levelId = ClassicLevelIds.ENGLISH33,
+                    stars = THREE_STARS,
+                    pegsRemaining = SOLVED_PEGS_REMAINING,
+                    cadenceStore = freshCadenceStore(),
+                    adGateway = gateway,
+                )
+            advanceUntilIdle()
+
+            viewModel.onCatalogTapped()
+
+            assertThat(viewModel.uiState.value.pendingNavigation).isEqualTo(ResultsNavTarget.Catalog)
+            assertThat(viewModel.uiState.value.adScrimVisible).isFalse()
+
+            advanceUntilIdle()
+            assertThat(gateway.showCount).isEqualTo(0)
+        }
+
+    // ---- D-08 / D-09 / INT-04: the presentation -------------------------------
+
+    @Test
+    fun theScrimGoesUpAtOnceAndTheAdShowsOnlyAfterTheFullQuiescencePause() =
+        runTest(testDispatcher) {
+            val gateway = FakeAdGateway()
+
+            val viewModel =
+                viewModelFor(
+                    levelId = ClassicLevelIds.ENGLISH33,
+                    stars = THREE_STARS,
+                    pegsRemaining = SOLVED_PEGS_REMAINING,
+                    cadenceStore = eligibleCadenceStore(backgroundScope),
+                    adGateway = gateway,
+                )
+            advanceUntilIdle()
+
+            viewModel.onCatalogTapped()
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.adScrimVisible).isTrue()
+
+            advanceTimeBy(AdConstants.INTERSTITIAL_QUIESCENCE_MS - 1)
+            runCurrent()
+            assertThat(gateway.showCount).isEqualTo(0)
+
+            advanceTimeBy(1)
+            runCurrent()
+            assertThat(gateway.showCount).isEqualTo(1)
+        }
+
+    @Test
+    fun navigationWaitsForTheAdAndTheScrimIsAlreadyDownWhenItArrives() =
+        runTest(testDispatcher) {
+            val gateway = FakeAdGateway()
+
+            val viewModel =
+                viewModelFor(
+                    levelId = ClassicLevelIds.ENGLISH33,
+                    stars = THREE_STARS,
+                    pegsRemaining = SOLVED_PEGS_REMAINING,
+                    cadenceStore = eligibleCadenceStore(backgroundScope),
+                    adGateway = gateway,
+                )
+            advanceUntilIdle()
+
+            viewModel.onCatalogTapped()
+            advanceTimeBy(AdConstants.INTERSTITIAL_QUIESCENCE_MS)
+            runCurrent()
+
+            // D-09: the ad is on screen and navigation has NOT happened.
+            assertThat(gateway.showCount).isEqualTo(1)
+            assertThat(viewModel.uiState.value.pendingNavigation).isNull()
+            assertThat(viewModel.uiState.value.adScrimVisible).isTrue()
+
+            gateway.releaseShow()
+            advanceUntilIdle()
+
+            assertThat(viewModel.uiState.value.pendingNavigation).isEqualTo(ResultsNavTarget.Catalog)
+            assertThat(viewModel.uiState.value.adScrimVisible).isFalse()
+
+            viewModel.onNavigationHandled()
+            assertThat(viewModel.uiState.value.pendingNavigation).isNull()
+        }
+
+    // ---- D-11 / INT-02: counters advance only on a real presentation -----------
+
+    @Test
+    fun aShowThatNeverPresentedNavigatesAnywayAndRecordsNothing() =
+        runTest(testDispatcher) {
+            // D-11: a held ad that fails at show() is indistinguishable from a no-fill and
+            // costs the player nothing — the counters keep running, so the very next
+            // eligible win can show one. Recording here would silently spend the quota on
+            // an ad nobody saw.
+            val gateway = FakeAdGateway(showResult = false)
+            val store = eligibleCadenceStore(backgroundScope)
+
+            val viewModel =
+                viewModelFor(
+                    levelId = ClassicLevelIds.ENGLISH33,
+                    stars = THREE_STARS,
+                    pegsRemaining = SOLVED_PEGS_REMAINING,
+                    cadenceStore = store,
+                    adGateway = gateway,
+                )
+            advanceUntilIdle()
+
+            viewModel.onCatalogTapped()
+            advanceTimeBy(AdConstants.INTERSTITIAL_QUIESCENCE_MS)
+            runCurrent()
+            gateway.releaseShow()
+            advanceUntilIdle()
+
+            assertThat(viewModel.uiState.value.pendingNavigation).isEqualTo(ResultsNavTarget.Catalog)
+
+            val settled = settledState(store)
+            assertThat(settled.lastFullscreenAdAtMs).isEqualTo(InterstitialCadenceState.NEVER_SHOWN)
+            assertThat(settled.winsSinceLastInterstitial)
+                .isEqualTo(InterstitialCadenceParams.WINS_BETWEEN_INTERSTITIALS)
+        }
+
+    @Test
+    fun aShowThatPresentedRecordsTheInterstitial() =
+        runTest(testDispatcher) {
+            val gateway = FakeAdGateway()
+            val store = eligibleCadenceStore(backgroundScope)
+
+            val viewModel =
+                viewModelFor(
+                    levelId = ClassicLevelIds.ENGLISH33,
+                    stars = THREE_STARS,
+                    pegsRemaining = SOLVED_PEGS_REMAINING,
+                    cadenceStore = store,
+                    adGateway = gateway,
+                )
+            advanceUntilIdle()
+
+            viewModel.onCatalogTapped()
+            advanceTimeBy(AdConstants.INTERSTITIAL_QUIESCENCE_MS)
+            runCurrent()
+            gateway.releaseShow()
+            advanceUntilIdle()
+
+            val recorded = store.state.first { it.winsSinceLastInterstitial == 0 }
+            assertThat(recorded.lastFullscreenAdAtMs)
+                .isNotEqualTo(InterstitialCadenceState.NEVER_SHOWN)
+        }
+
+    @Test
+    fun aSecondContinueTapWhileTheAdIsInFlightIsANoOp() =
+        runTest(testDispatcher) {
+            // D-09: the tap's intent is honoured EXACTLY once. The scrim swallows input for
+            // the whole presentation, so this guard covers the instant before it renders —
+            // and a second navigation across an ad is a Challenge ladder that jumps two.
+            val gateway = FakeAdGateway()
+
+            val viewModel =
+                viewModelFor(
+                    levelId = "",
+                    stars = THREE_STARS,
+                    pegsRemaining = SOLVED_PEGS_REMAINING,
+                    challengeLevel = SAMPLE_CHALLENGE_LEVEL,
+                    cadenceStore = eligibleCadenceStore(backgroundScope),
+                    adGateway = gateway,
+                )
+            advanceUntilIdle()
+
+            viewModel.onNextLevelTapped(SAMPLE_CHALLENGE_LEVEL + 1)
+            advanceTimeBy(AdConstants.INTERSTITIAL_QUIESCENCE_MS)
+            runCurrent()
+
+            viewModel.onNextLevelTapped(SAMPLE_CHALLENGE_LEVEL + 1)
+            advanceUntilIdle()
+
+            assertThat(gateway.showCount).isEqualTo(1)
+            assertThat(viewModel.uiState.value.pendingNavigation).isNull()
+
+            gateway.releaseShow()
+            advanceUntilIdle()
+
+            assertThat(gateway.showCount).isEqualTo(1)
+            assertThat(viewModel.uiState.value.pendingNavigation)
+                .isEqualTo(ResultsNavTarget.NextLevel(SAMPLE_CHALLENGE_LEVEL + 1))
+        }
+
+    // ---- ADSF-01 ---------------------------------------------------------------
+
+    @Test
+    fun theElapsedTimeIsUnchangedAcrossTheWholePresentation() =
+        runTest(testDispatcher) {
+            // The time carried INTO Results is the time carried OUT of it: no clock runs or
+            // restarts across an ad, so a player cannot be charged decay for watching one.
+            val gateway = FakeAdGateway()
+
+            val viewModel =
+                viewModelFor(
+                    levelId = ClassicLevelIds.ENGLISH33,
+                    stars = THREE_STARS,
+                    pegsRemaining = SOLVED_PEGS_REMAINING,
+                    elapsedSeconds = SAMPLE_ELAPSED_SECONDS,
+                    cadenceStore = eligibleCadenceStore(backgroundScope),
+                    adGateway = gateway,
+                )
+            advanceUntilIdle()
+
+            val beforeTap = viewModel.uiState.value.elapsedSeconds
+
+            viewModel.onCatalogTapped()
+            advanceTimeBy(AdConstants.INTERSTITIAL_QUIESCENCE_MS)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.adScrimVisible).isTrue()
+            val duringAd = viewModel.uiState.value.elapsedSeconds
+
+            gateway.releaseShow()
+            advanceUntilIdle()
+
+            val onNavigation = viewModel.uiState.value.elapsedSeconds
+
+            assertThat(beforeTap).isEqualTo(SAMPLE_ELAPSED_SECONDS)
+            assertThat(duringAd).isEqualTo(beforeTap)
+            assertThat(onNavigation).isEqualTo(beforeTap)
+            assertThat(viewModel.uiState.value.pendingNavigation).isNotNull()
+        }
+
+    // ---- Harness ---------------------------------------------------------------
 
     private fun viewModelFor(
         levelId: String,
@@ -474,6 +1038,8 @@ class ResultsViewModelTest {
         score: Int = SAMPLE_SCORE,
         challengeLevel: Int? = null,
         repository: ProgressRepository = FakeProgressRepository(),
+        cadenceStore: InterstitialCadenceStore = freshCadenceStore(),
+        adGateway: AdGateway = FakeAdGateway(interstitialReadyInitially = false),
     ): ResultsViewModel =
         ResultsViewModel(
             savedStateHandle =
@@ -486,6 +1052,80 @@ class ResultsViewModelTest {
                     challengeLevel = challengeLevel,
                 ),
             progressRepository = repository,
+            cadenceStore = cadenceStore,
+            adGateway = adGateway,
+        )
+
+    /**
+     * A ViewModel over an already-built [handle] — the shape the process-death and
+     * back-navigation cases need.
+     *
+     * The ad defaults are deliberately the inert pair: a [freshCadenceStore] is inside D-03's
+     * first-session suppression and a [FakeAdGateway] holding no ad takes the D-10 fast
+     * path, so every case that predates Phase 10 keeps exactly the meaning it had — none of
+     * them can accidentally acquire an ad.
+     */
+    private fun viewModelOver(
+        handle: SavedStateHandle,
+        repository: ProgressRepository,
+        cadenceStore: InterstitialCadenceStore = freshCadenceStore(),
+        adGateway: AdGateway = FakeAdGateway(interstitialReadyInitially = false),
+    ): ResultsViewModel =
+        ResultsViewModel(
+            savedStateHandle = handle,
+            progressRepository = repository,
+            cadenceStore = cadenceStore,
+            adGateway = adGateway,
+        )
+
+    /** A brand-new install's cadence: `firstSessionComplete` false, so `mayShow` is never true. */
+    private fun freshCadenceStore(): InterstitialCadenceStore = InterstitialCadenceStore(realDataStore(), storeScope)
+
+    /**
+     * A cadence store seeded into a fully ad-eligible state, settled before it is returned.
+     *
+     * Seeded through the store's own PUBLIC transitions rather than by writing preference
+     * keys: `recordWin()` saturates both lifetime counters at their thresholds, and the
+     * `recordForegroundLeft` / `startSessionIfGapElapsed` pair closes the install's first
+     * session exactly the way `AppForegroundTracker` does at runtime. A fixture built from
+     * real transitions cannot drift away from the policy it is meant to satisfy, whereas one
+     * that pokes keys directly would keep passing after the policy changed underneath it.
+     *
+     * The trailing `first { it.mayShow(now) }` is the barrier: it returns only once the
+     * seeding writes have landed, so a ViewModel constructed after it reads a settled value
+     * rather than racing the disk.
+     */
+    private suspend fun eligibleCadenceStore(scope: CoroutineScope): InterstitialCadenceStore {
+        val store = InterstitialCadenceStore(realDataStore(), scope)
+        val now = System.currentTimeMillis()
+        repeat(InterstitialCadenceParams.SUPPRESSED_FIRST_LEVELS) { store.recordWin() }
+        store.recordForegroundLeft(now - InterstitialCadenceParams.SESSION_GAP_MS - 1)
+        store.startSessionIfGapElapsed(now)
+        store.state.first { it.mayShow(now) }
+        return store
+    }
+
+    /**
+     * [store]'s cadence state with every queued write applied — the 10-02 sequencing-barrier
+     * pattern, which is what makes a "this recorded nothing" assertion mean anything.
+     *
+     * A negative assertion can otherwise pass simply by running before the write it is meant
+     * to rule out. DataStore serialises `updateData`, so issuing a LATER write and awaiting
+     * that one proves anything launched earlier has already been applied. The barrier writes
+     * the foreground stamp specifically because no cadence gate reads it — it settles the
+     * queue without disturbing a single field under assertion.
+     */
+    private suspend fun TestScope.settledState(store: InterstitialCadenceStore): InterstitialCadenceState {
+        store.recordForegroundLeft(WRITE_BARRIER_STAMP_MS)
+        store.lastForegroundAtMs.first { it == WRITE_BARRIER_STAMP_MS }
+        advanceUntilIdle()
+        return store.state.value
+    }
+
+    /** A real temp-file Preferences store, one per call (the `ChallengeProgressTest` harness). */
+    private fun realDataStore(): DataStore<Preferences> =
+        PreferenceDataStoreFactory.create(
+            produceFile = { tempFolder.newFile("cadence_${storeFileCount++}.preferences_pb") },
         )
 
     private fun savedStateHandleFor(
@@ -612,6 +1252,24 @@ private const val SAMPLE_SCORE = 1234
 
 /** A solved board leaves exactly one peg — the sole state that unlocks the next level (D-01). */
 private const val SOLVED_PEGS_REMAINING = 1
+
+/**
+ * What a PERFECT Diamond-41 finish leaves on the board.
+ *
+ * Two, not one: Diamond-41's proven floor is two pegs (Phase 8, GF(4) colour invariant), so
+ * this is a flawless play and not a stuck one. It is the fixture RESEARCH Pitfall 1 exists
+ * for — an interstitial gate written as `pegsRemaining == 1` denies exactly this player.
+ */
+private const val DIAMOND_41_PERFECT_PEGS_REMAINING = 2
+
+/**
+ * An arbitrary, recognisable foreground stamp used only to settle the DataStore write queue.
+ *
+ * A real epoch value (well inside `fromStored`'s trusted `0 until Long.MAX_VALUE` range, so
+ * it is never read back as the sentinel) and far enough in the past that it can never
+ * collide with a stamp a fixture derives from `System.currentTimeMillis()`.
+ */
+private const val WRITE_BARRIER_STAMP_MS = 1_700_000_000_000L
 
 /** An arbitrary in-progress Challenge level number. */
 private const val SAMPLE_CHALLENGE_LEVEL = 5
