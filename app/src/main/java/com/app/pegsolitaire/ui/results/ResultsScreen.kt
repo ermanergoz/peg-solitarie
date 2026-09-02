@@ -50,6 +50,9 @@ const val RESULTS_STAR_ROW_TEST_TAG = "results_star_row"
 /** Test tag of the "New best!" cue, present only when this play improved a stored best (D-09). */
 const val RESULTS_NEW_BEST_TEST_TAG = "results_new_best"
 
+/** Test tag of the INT-04 quiescence dim, present only while an interstitial is coming. */
+const val RESULTS_AD_SCRIM_TEST_TAG = "results_ad_scrim"
+
 /**
  * Semantics: how many of the three stars are filled (earned). The individual star
  * icons are decorative (`contentDescription = null`) — the headline + metrics convey
@@ -79,6 +82,11 @@ private var SemanticsPropertyReceiver.earnedStarCountValue by EarnedStarCountKey
  * Every value is read straight from [state]; mm:ss is formatted from
  * [ResultsUiState.elapsedSeconds] via [GameTimerFormat] — no scoring is recomputed here.
  *
+ * One overlay sits above all of it: while [ResultsUiState.adScrimVisible] is set, an
+ * [AdQuiescenceScrim] dims the whole screen and swallows every pointer and back event, so
+ * the instant between an ad-eligible continue tap and the interstitial rendering cannot
+ * produce an accidental click on the ad (INT-04).
+ *
  * @param state the immutable Results UI state to render.
  * @param onReplay re-plays the same level (carries `replayId`). Classic only.
  * @param onCatalog pops back to the Classic catalog. Classic only.
@@ -100,43 +108,53 @@ fun ResultsScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        topBar = { ResultsTopBar(onNavigateBack = onNavigateBack) },
-    ) { contentPadding ->
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(contentPadding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(dimensionResource(R.dimen.spacing_md)),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
+    Box(modifier = modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = { ResultsTopBar(onNavigateBack = onNavigateBack) },
+        ) { contentPadding ->
             Column(
                 modifier =
                     Modifier
-                        .widthIn(max = dimensionResource(R.dimen.content_max_width))
-                        .fillMaxWidth(),
+                        .fillMaxSize()
+                        .padding(contentPadding)
+                        .verticalScroll(rememberScrollState())
+                        .padding(dimensionResource(R.dimen.spacing_md)),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_lg)),
+                verticalArrangement = Arrangement.Center,
             ) {
-                Headline(tier = state.headlineTier)
-                StarRow(earned = state.stars, playCelebration = state.playCelebration)
-                if (state.newBests.any) {
-                    NewBestBadge()
+                Column(
+                    modifier =
+                        Modifier
+                            .widthIn(max = dimensionResource(R.dimen.content_max_width))
+                            .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement =
+                        Arrangement.spacedBy(dimensionResource(R.dimen.spacing_lg)),
+                ) {
+                    Headline(tier = state.headlineTier)
+                    StarRow(earned = state.stars, playCelebration = state.playCelebration)
+                    if (state.newBests.any) {
+                        NewBestBadge()
+                    }
+                    MetricBlock(state = state)
+                    ResultsActions(
+                        state = state,
+                        onReplay = onReplay,
+                        onCatalog = onCatalog,
+                        onHome = onHome,
+                        onNextLevel = onNextLevel,
+                        onRetry = onRetry,
+                    )
                 }
-                MetricBlock(state = state)
-                ResultsActions(
-                    state = state,
-                    onReplay = onReplay,
-                    onCatalog = onCatalog,
-                    onHome = onHome,
-                    onNextLevel = onNextLevel,
-                    onRetry = onRetry,
-                )
             }
+        }
+
+        // The scrim is a SIBLING of the Scaffold, not a child of its content lambda. Inside
+        // the content it would be laid out within the content padding, leaving the TopAppBar's
+        // back arrow live above it — a working exit from a screen INT-04 requires to be inert.
+        if (state.adScrimVisible) {
+            AdQuiescenceScrim()
         }
     }
 }

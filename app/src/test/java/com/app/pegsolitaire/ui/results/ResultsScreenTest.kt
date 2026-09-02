@@ -8,12 +8,14 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.data.NewBests
 import com.app.pegsolitaire.ui.game.GameTimerFormat
 import com.app.pegsolitaire.ui.theme.AppTheme
+import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -174,8 +176,78 @@ class ResultsScreenTest {
         composeRule.onAllNodesWithText(context.getString(R.string.results_new_best)).assertCountEquals(0)
     }
 
+    @Test
+    fun theQuiescenceScrimIsDisplayedWhileAnInterstitialIsComing() {
+        setResultsContent(state = AD_COMING_STATE)
+
+        composeRule.onNodeWithTag(RESULTS_AD_SCRIM_TEST_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun theFastPathDimsNothing() {
+        // D-10: a continue tap with no ad behind it costs the player nothing — no scrim and
+        // no delay. The dim is conditional on state.adScrimVisible, never unconditional.
+        setResultsContent(state = SOLVED_CHALLENGE_STATE)
+
+        composeRule.onNodeWithTag(RESULTS_AD_SCRIM_TEST_TAG).assertDoesNotExist()
+    }
+
+    /**
+     * INT-04's actual proof: with the dim up, a tap on the primary action does not reach it.
+     *
+     * This is the accidental-click window the scrim exists to close — in the quiescence pause
+     * the player's finger is still travelling, and a second tap that lands after the
+     * interstitial has appeared underneath it is invalid traffic attributed to the publisher.
+     * Asserting "the callback did not fire" is only meaningful because of its paired control
+     * below: without [theSamePrimaryActionTapLandsWhenNoAdIsComing], this test would still pass
+     * if the button had simply stopped being rendered at all.
+     */
+    @Test
+    fun aTapBehindTheQuiescenceScrimNeverReachesThePrimaryAction() {
+        var tappedNextLevel: Int? = null
+        setResultsContent(state = AD_COMING_STATE, onNextLevel = { tappedNextLevel = it })
+
+        composeRule.onNodeWithText(context.getString(R.string.action_next_level)).performClick()
+        composeRule.waitForIdle()
+
+        assertThat(tappedNextLevel).isNull()
+    }
+
+    /** The control for [aTapBehindTheQuiescenceScrimNeverReachesThePrimaryAction]. */
+    @Test
+    fun theSamePrimaryActionTapLandsWhenNoAdIsComing() {
+        var tappedNextLevel: Int? = null
+        setResultsContent(state = SOLVED_CHALLENGE_STATE, onNextLevel = { tappedNextLevel = it })
+
+        composeRule.onNodeWithText(context.getString(R.string.action_next_level)).performClick()
+        composeRule.waitForIdle()
+
+        assertThat(tappedNextLevel).isEqualTo(SAMPLE_CHALLENGE_LEVEL + 1)
+    }
+
     private fun assertTextDisplayed(resId: Int) {
         composeRule.onNodeWithText(context.getString(resId)).performScrollTo().assertIsDisplayed()
+    }
+
+    /** Renders the stateless screen over [state], recording only the callback under test. */
+    private fun setResultsContent(
+        state: ResultsUiState,
+        onNextLevel: (Int) -> Unit = {},
+    ) {
+        composeRule.setContent {
+            AppTheme {
+                ResultsScreen(
+                    state = state,
+                    onReplay = {},
+                    onCatalog = {},
+                    onHome = {},
+                    onNextLevel = onNextLevel,
+                    onRetry = {},
+                    onNavigateBack = {},
+                )
+            }
+        }
+        composeRule.waitForIdle()
     }
 }
 
@@ -224,6 +296,12 @@ private val STUCK_CHALLENGE_STATE =
         replayId = "",
         challengeLevel = SAMPLE_CHALLENGE_LEVEL,
     )
+
+/**
+ * The same solved Challenge result the instant an ad-eligible continue tap is accepted:
+ * the ViewModel has raised the INT-04 quiescence signal and the interstitial is coming.
+ */
+private val AD_COMING_STATE = SOLVED_CHALLENGE_STATE.copy(adScrimVisible = true)
 
 /** An arbitrary in-progress Challenge level number. */
 private const val SAMPLE_CHALLENGE_LEVEL = 5
