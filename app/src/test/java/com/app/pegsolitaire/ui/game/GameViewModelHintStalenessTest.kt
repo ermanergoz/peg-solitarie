@@ -616,5 +616,9 @@ private object HintAdGateway : AdGateway {
 
     override suspend fun requestRewarded(reason: AdReason): RewardOutcome = RewardOutcome.Granted
 
-    override fun showInterstitial() = Unit
+    override val interstitialReady: StateFlow<Boolean> = MutableStateFlow(false).asStateFlow()
+
+    override fun preloadInterstitial() = Unit
+
+    override suspend fun showInterstitial(): Boolean = false
 }

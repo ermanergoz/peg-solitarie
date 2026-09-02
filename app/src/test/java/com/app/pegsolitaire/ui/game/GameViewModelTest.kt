@@ -1717,7 +1717,11 @@ private class FakeAdGateway(
         return outcome
     }
 
-    override fun showInterstitial() = Unit
+    override val interstitialReady: StateFlow<Boolean> = MutableStateFlow(false).asStateFlow()
+
+    override fun preloadInterstitial() = Unit
+
+    override suspend fun showInterstitial(): Boolean = false
 }
 
 /**
