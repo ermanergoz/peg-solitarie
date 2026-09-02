@@ -4,13 +4,18 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import com.app.pegsolitaire.data.InterstitialCadenceStore
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
+import com.app.pegsolitaire.domain.ads.InterstitialCadenceState
 import com.app.pegsolitaire.domain.generator.ChallengeLevelBounds
 import com.app.pegsolitaire.domain.scoring.ScoreParams
 import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.app.pegsolitaire.navigation.Results
+import com.app.pegsolitaire.platform.ads.AdConstants
+import com.app.pegsolitaire.platform.ads.AdGateway
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -53,15 +58,36 @@ import javax.inject.Inject
  *    [ResultsUiState.challengeLevel] that drives `onNextLevel(challengeLevel + 1)`, the
  *    mode branch, and the database level key — uses that one value. A forged or
  *    out-of-range arg therefore cannot reach the stored key or the "Next level" action.
+ *  - **The win is banked at most once (INT-02).** The interstitial cadence counts wins,
+ *    and a re-entry into the same result is not a second win. A THIRD
+ *    [SavedStateHandle] latch — [WIN_COUNTED_KEY] — guards [claimWinOnce] with the same
+ *    guard-before-effect ordering as the two above, so neither a configuration change nor
+ *    a process-death restore can inflate the counter that decides how often ads appear.
+ *  - **An interstitial is decided and shown only on a continue tap (INT-01).** Nothing in
+ *    construction shows an ad; [onNextLevelTapped] and [onCatalogTapped] are the only
+ *    entry points that can, and they are the only two D-06 admits (see
+ *    [ResultsNavTarget]). Construction may at most *warm* one (D-12).
  *
  * @see ChallengeLevelBounds.clamp for why the policy is fail-safe rather than a reject.
  *
  * Replay re-plays the played `levelId`. Classic has no "next board" (a Challenge-mode
  * concept), so no catalog lookup is needed.
  *
+ * ## Navigation timing lives here, not in the composable
+ *
+ * The forward-moving win actions do NOT call their navigation lambdas from `onClick` any
+ * more: they call into this ViewModel, which decides whether an ad presents first and
+ * publishes [ResultsUiState.pendingNavigation] when the tap's intent is due to be honoured
+ * (D-09). That is the structural reason an interstitial can never appear over a fresh
+ * board — the next `GameViewModel` is not constructed until the route consumes that field.
+ *
  * @param savedStateHandle carries the typed `Results(...)` route args and the
  *   already-recorded guard.
  * @param progressRepository the single source of truth for per-level bests.
+ * @param cadenceStore the memory of the interstitial cadence (INT-02) — banks the win and
+ *   records a presentation; it never decides anything, [InterstitialCadenceState] does.
+ * @param adGateway the ad seam: readiness to decide with, a warm-up to call at eligibility
+ *   (D-12), and a presented/not-presented show to sequence navigation around (D-09).
  */
 @HiltViewModel
 class ResultsViewModel
@@ -69,6 +95,8 @@ class ResultsViewModel
     constructor(
         private val savedStateHandle: SavedStateHandle,
         private val progressRepository: ProgressRepository,
+        private val cadenceStore: InterstitialCadenceStore,
+        private val adGateway: AdGateway,
     ) : ViewModel() {
         private val args = savedStateHandle.toRoute<Results>()
 
@@ -81,6 +109,22 @@ class ResultsViewModel
          */
         private val challengeLevel: Int? = args.challengeLevel?.let(ChallengeLevelBounds::clamp)
 
+        /**
+         * This result's outcome bucket, computed ONCE and shared by the state the screen
+         * renders and the ad-eligibility gate below. Sharing one value is what makes the
+         * headline and the gate structurally incapable of disagreeing (see
+         * [isInterstitialEligible]); calling [tierFor] twice would allow exactly that.
+         */
+        private val headlineTier: ResultsHeadlineTier =
+            tierFor(
+                stars = args.stars,
+                pegsRemaining = args.pegsRemaining,
+                challengeLevel = challengeLevel,
+            )
+
+        /** Whether this finish is the kind of win D-14 lets an interstitial follow (INT-03). */
+        private val interstitialEligible: Boolean = isInterstitialEligible(headlineTier)
+
         private val _uiState =
             MutableStateFlow(
                 ResultsUiState(
@@ -88,12 +132,7 @@ class ResultsViewModel
                     pegsRemaining = args.pegsRemaining,
                     elapsedSeconds = args.elapsedSeconds,
                     score = args.score,
-                    headlineTier =
-                        tierFor(
-                            stars = args.stars,
-                            pegsRemaining = args.pegsRemaining,
-                            challengeLevel = challengeLevel,
-                        ),
+                    headlineTier = headlineTier,
                     replayId = args.levelId,
                     challengeLevel = challengeLevel,
                 ),
@@ -102,10 +141,164 @@ class ResultsViewModel
         /** Read-only state stream for the UI; the mutable flow never leaks (state hoisting). */
         val uiState: StateFlow<ResultsUiState> = _uiState.asStateFlow()
 
+        /**
+         * The cadence this Results entry decides from — the persisted state with THIS win
+         * already projected onto it, computed once at construction by [claimWinOnce].
+         *
+         * The decision deliberately reads this rather than re-reading
+         * `cadenceStore.state.value` at tap time. Banking the win is a fire-and-forget
+         * DataStore write, so the store's flow may not have re-emitted by the moment the
+         * player taps — a decision taken from it would differ between a fast tap and a slow
+         * one, which is a cadence that depends on disk latency. Projecting the win locally,
+         * once, makes this entry's answer deterministic. It is also the *same* value the
+         * D-12 preload decision used, so the warm-up and the show can never disagree about
+         * whether this result was eligible.
+         */
+        private val cadenceForThisResult: InterstitialCadenceState = claimWinOnce()
+
+        /**
+         * Whether a continue tap has already been accepted for this Results entry.
+         *
+         * A second tap on a screen that is already leaving must do nothing (D-09 — the
+         * tap's intent is honoured exactly once). The scrim swallows input for the whole ad
+         * path, so this guard covers the fast path and the instant between the tap and the
+         * scrim rendering. It is plain instance state rather than a [SavedStateHandle]
+         * latch on purpose: it guards one screen's lifetime, not one *result's* lifetime —
+         * a genuine re-entry into Results has to be tappable again.
+         */
+        private var continueClaimed = false
+
         init {
             recordSolvedPlayOnce()
             claimCelebrationPlayOnce()
         }
+
+        /**
+         * Challenge "Next level" — one of the two D-06 forward-moving win actions.
+         *
+         * [nextLevel] comes from the screen, which computes it off the clamped
+         * [ResultsUiState.challengeLevel], so the WARN-03 boundary still holds.
+         */
+        fun onNextLevelTapped(nextLevel: Int) {
+            continueWith(ResultsNavTarget.NextLevel(nextLevel))
+        }
+
+        /** Classic "Catalog" after a win — the other D-06 forward-moving win action. */
+        fun onCatalogTapped() {
+            continueWith(ResultsNavTarget.Catalog)
+        }
+
+        /**
+         * Clears the consumed navigation target, for the route to call once it has acted on
+         * it. Pairs with [ResultsUiState.pendingNavigation] being state rather than an
+         * event: the field survives a stopped collector, and this is what stops it being
+         * re-consumed when collection resumes (RESEARCH Pitfall 6).
+         */
+        fun onNavigationHandled() {
+            _uiState.update { it.copy(pendingNavigation = null) }
+        }
+
+        /**
+         * Accepts a continue tap and routes it down one of exactly two paths.
+         *
+         * The fast path (D-10) publishes [ResultsUiState.pendingNavigation] on the same turn
+         * as the tap, with no scrim and no delay: the quiescence pause is part of
+         * *presenting an ad*, never part of navigating, so a player who cannot be served one
+         * is a player who is never delayed. The ad path defers both to
+         * [presentThenNavigate].
+         */
+        private fun continueWith(target: ResultsNavTarget) {
+            if (continueClaimed) return
+            continueClaimed = true
+
+            if (shouldShowInterstitial()) {
+                viewModelScope.launch { presentThenNavigate(target) }
+            } else {
+                _uiState.update { it.copy(pendingNavigation = target) }
+            }
+        }
+
+        /**
+         * Whether this tap should present an interstitial — three clauses, all of which must
+         * hold, and none of which waits for anything.
+         *
+         *  1. [interstitialEligible] — D-14 / INT-03: this finish is a solved one.
+         *  2. `adGateway.interstitialReady.value` — D-10 / D-11: an ad is *already held*. No
+         *     ad means a silent skip, never a wait, and never a pause with nothing behind it.
+         *  3. [InterstitialCadenceState.mayShow] — D-01..D-04: the cadence permits it. This
+         *     is the single place the cadence is asked, and it is asked once per tap.
+         *
+         * It never awaits a load and it never blocks, which is what makes the `false` answer
+         * cost the player literally nothing.
+         */
+        private fun shouldShowInterstitial(): Boolean =
+            interstitialEligible &&
+                adGateway.interstitialReady.value &&
+                cadenceForThisResult.mayShow(System.currentTimeMillis())
+
+        /**
+         * Raises the scrim, pauses, presents the ad, records it if it really appeared, and
+         * then honours the tap — in that order (D-08, D-09, D-11, INT-04).
+         *
+         * The ordering follows `GameViewModel.onAcceptAdOffer`: state up FIRST, then the
+         * suspending gateway call inside `try`, then the resolution in `finally`.
+         *
+         * **Both the scrim teardown and the navigation live in the same `finally`, and that
+         * is the mechanism rather than tidiness.** It is what makes D-09's "the tap's intent
+         * is honoured exactly once either way" true on *every* exit — a dismissal, a show
+         * failure, an exception, a cancelled `viewModelScope` — and it is what guarantees
+         * the scrim can never be left up over a live screen with no ad coming. Splitting
+         * them, or moving the navigation into the `try`, reintroduces both failures at once.
+         *
+         * The recording takes a FRESH `System.currentTimeMillis()` rather than reusing the
+         * decision timestamp: the ad occupied real time, and stamping the later instant
+         * makes the next 90-second gate strictly more conservative.
+         */
+        private suspend fun presentThenNavigate(target: ResultsNavTarget) {
+            _uiState.update { it.copy(adScrimVisible = true) }
+            try {
+                delay(AdConstants.INTERSTITIAL_QUIESCENCE_MS)
+                if (adGateway.showInterstitial()) {
+                    cadenceStore.recordInterstitialShown(System.currentTimeMillis())
+                }
+            } finally {
+                _uiState.update { it.copy(adScrimVisible = false, pendingNavigation = target) }
+            }
+        }
+
+        /**
+         * Banks this result's win exactly once and warms an ad if the next continue tap
+         * could show one (D-12), answering with the cadence this entry will decide from.
+         *
+         * Guard-before-effect, like its two sibling latches: [WIN_COUNTED_KEY] goes up
+         * before anything is written, so a second ViewModel over the same handle — a
+         * configuration change, a process-death restore, a back navigation onto the same
+         * Results entry — banks nothing and warms nothing. A non-eligible finish is not a
+         * win at all (INT-03), so it neither counts nor preloads.
+         *
+         * The preload is conditioned on the *projected* state's [InterstitialCadenceState
+         * .mayShow], which is exactly D-12: warm an ad at the moment a win makes the next
+         * continue tap ad-eligible, and never while first-session suppression, the session
+         * cap or the level and time gates make one impossible. Issuing the request is itself
+         * the exposure the gates exist to avoid, so "load it just in case" is not a cheaper
+         * option.
+         *
+         * Written as one `when` expression rather than a chain of early returns because
+         * detekt's `ReturnCount` is a build gate here — `GameViewModel` carries an in-source
+         * note about a function restructured for the same reason.
+         */
+        private fun claimWinOnce(): InterstitialCadenceState =
+            when {
+                !interstitialEligible -> cadenceStore.state.value
+                savedStateHandle.get<Boolean>(WIN_COUNTED_KEY) == true -> cadenceStore.state.value
+                else -> {
+                    savedStateHandle[WIN_COUNTED_KEY] = true
+                    cadenceStore.recordWin()
+                    val projected = cadenceStore.state.value.recordWin()
+                    if (projected.mayShow(System.currentTimeMillis())) adGateway.preloadInterstitial()
+                    projected
+                }
+            }
 
         /**
          * Merges this play into the level's stored bests exactly once, then surfaces the
@@ -185,6 +378,9 @@ class ResultsViewModel
             /** SavedStateHandle flag marking this result's celebration as already claimed (D-16). */
             const val CELEBRATED_KEY = "results_celebrated"
 
+            /** SavedStateHandle flag marking this result's win as already banked (INT-02). */
+            const val WIN_COUNTED_KEY = "results_win_counted"
+
             /** The `Results` route does not carry pegsCleared, and no stored best uses it. */
             const val PEGS_CLEARED_NOT_CARRIED = 0
 
@@ -210,5 +406,40 @@ class ResultsViewModel
                     stars == ScoreParams.TWO_STARS -> ResultsHeadlineTier.SOLVED
                     else -> ResultsHeadlineTier.STUCK
                 }
+
+            /**
+             * Whether a finish in [tier] is the kind of win an interstitial may follow
+             * (D-14, INT-03).
+             *
+             * D-14 defines an interstitial-eligible win as **any solved finish — two or
+             * three stars** — not only the strict `GameStatus.Won` / three-star condition.
+             * Deriving it from the already-computed [headlineTier] rather than from the raw
+             * args means the gate and the copy the player reads can never disagree: a screen
+             * that says "Solved!" is ad-eligible and a screen that says "Out of moves" is
+             * not. It also inherits [tierFor]'s Challenge-stuck branch for free, so a stuck
+             * Challenge board is excluded *by construction* rather than by a second rule
+             * that could drift from the first.
+             *
+             * Two traps this deliberately avoids, both of which look like improvements:
+             *
+             *  - It is **not** `stars == ScoreParams.THREE_STARS`. That is the strict-win
+             *    test, and using it here would deny an interstitial after every two-star
+             *    Classic solve — a finish D-14 explicitly includes.
+             *  - It must **never** be written as a `pegsRemaining == 1` /
+             *    [PEGS_REMAINING_SOLVED] comparison. That constant is correct where it is
+             *    already used (every Challenge footprint has `minimumPegs == 1`) and it sits
+             *    a few lines away in this very file, which is exactly why it is the line a
+             *    developer would copy into a Classic gate. Doing so would misclassify a
+             *    **perfect Diamond-41 finish as a loss**, because Diamond-41's proven floor
+             *    is two pegs (Phase 8, GF(4) colour invariant) — the player who played it
+             *    flawlessly would be the one permanently denied.
+             *
+             * T-10-06 (accepted, not mitigated): `Results` is an independently reachable
+             * typed route, so a forged `stars = 3` arg could make a never-played result
+             * ad-eligible. No privilege is gained — the "attacker" chooses to watch an ad —
+             * and `challengeLevel` stays clamped by the WARN-03 boundary, so no forged value
+             * reaches a stored key or the ladder. The risk is accepted deliberately.
+             */
+            fun isInterstitialEligible(tier: ResultsHeadlineTier): Boolean = tier != ResultsHeadlineTier.STUCK
         }
     }
