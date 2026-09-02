@@ -27,7 +27,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) · Audit:
 - [x] **Phase 6: Platform Foundation & Build Hardening** - Activity bridge, extended seams, R8, build-config IDs, purity/dependency gates, security advisories closed — zero player-visible change (completed 2026-08-27)
 - [x] **Phase 7: Sound** - The 12-event SFX set consuming the already-persisted `soundOn` flag (completed 2026-08-28; planned as 11 events, grown to 12 by post-phase quick task 260828-vrr, which split peg pick-up and put-down into separate cues)
 - [x] **Phase 8: Assist & Generator Quality Debt** - Hints tell the truth on hard early positions; every Classic board's solvability is proven (completed 2026-08-29)
-- [ ] **Phase 9: Consent & Rewarded Ads** - UMP consent, opt-in-first rewarded assists, fail-open on no-fill, clock frozen across every ad
+- [x] **Phase 9: Consent & Rewarded Ads** - UMP consent, opt-in-first rewarded assists, fail-open on no-fill, clock frozen across every ad (completed 2026-09-02)
 - [ ] **Phase 10: Interstitials** - Frequency-capped, win-only interstitials at the Results continue action
 - [ ] **Phase 11: Play Games Session** - Silent auto sign-in, full signed-out play, manual sign-in fallback
 - [ ] **Phase 12: Leaderboards & Achievements** - 7 leaderboards, 10+ achievements, per-session telemetry migration
@@ -221,7 +221,7 @@ Plans:
 
 **Wave 7** *(blocked on Wave 6)*
 
-- [ ] 09-11-PLAN.md — Blocking AdMob-console gate (D-18) + itemised on-device verification of consent, both privacy rows, a real test rewarded ad and the clock freeze, committed as `09-DEVICE-EVIDENCE.md`
+- [x] 09-11-PLAN.md — Blocking AdMob-console gate (D-18) + itemised on-device verification of consent, both privacy rows, a real test rewarded ad and the clock freeze, committed as `09-DEVICE-EVIDENCE.md`
 **Notes**: Internal ordering is non-negotiable — build and test the opt-in dialog against the still-in-place `NoOpAdGateway` stub **before** the real ad SDK is wired in. The stub's silent `true` auto-grant is exactly what currently hides the missing opt-in UI, and swapping in a real implementation as-is ships an AdMob policy violation. ADSF-01 (clock pause) is owned here and re-asserted as an acceptance criterion in Phase 10. REL-05 (the always-present privacy-policy entry) is placed here rather than in Phase 14 because it shares the Settings surface CONS-03 builds; it needs the policy URL to exist, so the developer website is a hard prerequisite for this phase, not just for release.
 
 ### Phase 10: Interstitials
@@ -318,7 +318,7 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 6. Platform Foundation & Build Hardening | v1.1 | 10/10 | Complete   | 2026-08-27 |
 | 7. Sound | v1.1 | 6/6 | Complete   | 2026-08-28 |
 | 8. Assist & Generator Quality Debt | v1.1 | 12/12 | Complete   | 2026-08-30 |
-| 9. Consent & Rewarded Ads | v1.1 | 10/11 | In Progress|  |
+| 9. Consent & Rewarded Ads | v1.1 | 11/11 | Complete   | 2026-09-02 |
 | 10. Interstitials | v1.1 | 0/TBD | Not started | - |
 | 11. Play Games Session | v1.1 | 0/TBD | Not started | - |
 | 12. Leaderboards & Achievements | v1.1 | 0/TBD | Not started | - |
