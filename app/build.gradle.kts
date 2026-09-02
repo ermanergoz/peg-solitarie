@@ -294,6 +294,9 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel)
     // Lifecycle-aware StateFlow collection in the route (collectAsStateWithLifecycle).
     implementation(libs.androidx.lifecycle.runtime.compose)
+    // ProcessLifecycleOwner: whole-app foreground/background for the interstitial session
+    // boundary (D-16). Inside the atomic group the resolution strategy above already pins.
+    implementation(libs.androidx.lifecycle.process)
 
     // DI: Hilt runtime + annotation processor under KSP (no KAPT).
     implementation(libs.hilt.android)
