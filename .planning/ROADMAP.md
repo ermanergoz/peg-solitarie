@@ -182,6 +182,7 @@ Plans:
 
   1. On a fresh install in a consent region, player sees the consent form before any ad is ever requested, the ads SDK initializes only after consent resolves, and player can reopen their privacy choices from Settings whenever consent rules require it. (CONS-01, CONS-02, CONS-03)
   1a. Player can open the privacy policy from Settings on **every** install, not only in consent regions — a separate, always-present entry from CONS-03's region-gated one, since Play requires the policy to be reachable regardless of where the player is. (REL-05)
+
   2. Player gets a free allowance of hints and undos per level; only once it is spent does an explicit opt-in dialog naming the reward appear, and declining leaves the game exactly as it was — an ad never plays on its own. (ADS-01, ADS-02)
   3. Player can accept a rewarded offer straight from the "no winning move" rescue banner, and the reward lands only when the ad reports it earned. (ADS-04, ADS-05)
   4. When an ad cannot load or fill, or the consent flow fails, player still gets the assist with a brief explanation and keeps playing — no error wall, no dead end. (ADS-03, CONS-04)
@@ -222,6 +223,7 @@ Plans:
 **Wave 7** *(blocked on Wave 6)*
 
 - [x] 09-11-PLAN.md — Blocking AdMob-console gate (D-18) + itemised on-device verification of consent, both privacy rows, a real test rewarded ad and the clock freeze, committed as `09-DEVICE-EVIDENCE.md`
+
 **Notes**: Internal ordering is non-negotiable — build and test the opt-in dialog against the still-in-place `NoOpAdGateway` stub **before** the real ad SDK is wired in. The stub's silent `true` auto-grant is exactly what currently hides the missing opt-in UI, and swapping in a real implementation as-is ships an AdMob policy violation. ADSF-01 (clock pause) is owned here and re-asserted as an acceptance criterion in Phase 10. REL-05 (the always-present privacy-policy entry) is placed here rather than in Phase 14 because it shares the Settings surface CONS-03 builds; it needs the policy URL to exist, so the developer website is a hard prerequisite for this phase, not just for release.
 
 ### Phase 10: Interstitials
@@ -240,11 +242,25 @@ Plans:
 **Plans**: 6 plans in 5 waves
 
 Plans:
+**Wave 1**
+
 - [ ] 10-01-PLAN.md — Pure-Kotlin cadence policy in `:domain`, TDD'd as a truth table (D-01..D-05, D-15)
-- [ ] 10-02-PLAN.md — DataStore cadence persistence + `ProcessLifecycleOwner` session boundary (D-13, D-16)
 - [ ] 10-03-PLAN.md — `InterstitialAdSlot` + the evolved `AdGateway` seam + the real gateway and stub parity
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 10-02-PLAN.md — DataStore cadence persistence + `ProcessLifecycleOwner` session boundary (D-13, D-16)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 10-04-PLAN.md — Results eligibility (D-14), cadence decision, quiescence + ad-then-navigate sequencing
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
 - [ ] 10-05-PLAN.md — The INT-04 quiescence scrim and the deferred one-shot navigation in `ResultsRoute`
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
 - [ ] 10-06-PLAN.md — Full gate sweep, cross-cutting invariants, and the itemised device UAT checkpoint
 
 **Notes**: The cadence policy is pure Kotlin and should be TDD'd as logic (min levels since last, min wall-clock gap, session cap, first-session/first-N suppression, persisted across process death) before it is wired to a live trigger. Retry stays free — `AdReason.RETRY` was dropped at requirements time.
@@ -305,6 +321,7 @@ Plans:
   2. `app-ads.txt` is published on the developer website, linked from the store listing, and shows verified in AdMob. (REL-03)
   3. Play Console declares ads, data safety, and target-audience information that matches what the app actually does. (REL-01)
   3a. A privacy policy is live at a stable HTTPS URL and linked in the store listing, it names advertising-ID collection and every third-party SDK that receives player data, and its claims agree with the Data-safety answers given for REL-01 — the two are checked against each other, not written independently. (REL-04, REL-01)
+
   4. Cold-start time on the SDK-integrated build is measured against the pre-SDK baseline captured in Phase 6 and is within the agreed budget. (PLAT-08)
 
 **Plans**: TBD
