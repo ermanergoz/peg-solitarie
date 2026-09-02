@@ -485,7 +485,11 @@ private class AdClockGatedAdGateway : AdGateway {
         return RewardOutcome.Granted
     }
 
-    override fun showInterstitial() = Unit
+    override val interstitialReady: StateFlow<Boolean> = MutableStateFlow(false).asStateFlow()
+
+    override fun preloadInterstitial() = Unit
+
+    override suspend fun showInterstitial(): Boolean = false
 }
 
 /** Serves the one fixture board through Classic; this spec never touches Challenge. */
