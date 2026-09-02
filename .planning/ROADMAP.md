@@ -237,7 +237,16 @@ Plans:
   4. A brief quiescence pause precedes every interstitial so a tap aimed at the board or a Results button cannot land on the ad. (INT-04)
   5. The game clock stays paused for the whole interstitial presentation. *(carried acceptance criterion — ADSF-01, owned by Phase 9)*
 
-**Plans**: TBD
+**Plans**: 6 plans in 5 waves
+
+Plans:
+- [ ] 10-01-PLAN.md — Pure-Kotlin cadence policy in `:domain`, TDD'd as a truth table (D-01..D-05, D-15)
+- [ ] 10-02-PLAN.md — DataStore cadence persistence + `ProcessLifecycleOwner` session boundary (D-13, D-16)
+- [ ] 10-03-PLAN.md — `InterstitialAdSlot` + the evolved `AdGateway` seam + the real gateway and stub parity
+- [ ] 10-04-PLAN.md — Results eligibility (D-14), cadence decision, quiescence + ad-then-navigate sequencing
+- [ ] 10-05-PLAN.md — The INT-04 quiescence scrim and the deferred one-shot navigation in `ResultsRoute`
+- [ ] 10-06-PLAN.md — Full gate sweep, cross-cutting invariants, and the itemised device UAT checkpoint
+
 **Notes**: The cadence policy is pure Kotlin and should be TDD'd as logic (min levels since last, min wall-clock gap, session cap, first-session/first-N suppression, persisted across process death) before it is wired to a live trigger. Retry stays free — `AdReason.RETRY` was dropped at requirements time.
 
 ### Phase 11: Play Games Session
