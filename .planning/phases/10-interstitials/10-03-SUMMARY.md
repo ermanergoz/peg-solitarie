@@ -155,6 +155,13 @@ None — no external service configuration required by this plan. (The phase-lev
 - **No device verification happened here** — this plan is unit-tested only. The ADSF-01 clock-freeze re-assertion and any on-hardware interstitial check belong to the phase's verification pass.
 - **No blockers.**
 
+## Self-Check: PASSED
+
+- `app/src/main/java/com/app/pegsolitaire/platform/ads/InterstitialAdSlot.kt` — FOUND
+- `.planning/phases/10-interstitials/10-03-SUMMARY.md` — FOUND
+- Commits `390d258`, `16ff8c7`, `3fda38b`, `684402c` — all FOUND on `worktree-agent-a0b1de7b655d86c14`
+- Working tree clean; no shared orchestrator artifacts (STATE.md, ROADMAP.md) touched
+
 ---
 *Phase: 10-interstitials*
 *Completed: 2026-09-02*
