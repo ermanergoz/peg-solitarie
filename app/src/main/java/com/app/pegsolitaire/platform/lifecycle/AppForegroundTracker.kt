@@ -24,9 +24,17 @@ import javax.inject.Singleton
  *
  * `ProcessLifecycleOwner` is immune to that by construction: it dispatches `ON_STOP` only after
  * every Activity in the process has stopped, and it debounces same-process transitions, so a
- * same-process ad Activity is not a background. **[ASSUMED]** — that last claim is the framework's
- * documented behaviour rather than something a JVM test can prove (RESEARCH assumption A1); the
- * device-UAT step in plan 10-06 is what confirms it against a real ad.
+ * same-process ad Activity is not a background.
+ *
+ * **OBSERVED** (RESEARCH assumption A1, plan 10-06 task 2): four interstitials were shown inside a
+ * single uninterrupted session and no fifth followed, so the D-04 per-session cap bound and no ad
+ * forged a background. Confirmed 2026-09-03 on the **Android emulator `sdk_gphone16k_arm64`,
+ * Android 16** — NOT on physical hardware, because none was available to the developer. The
+ * emulator runs the same `androidx.lifecycle` dispatch code as a device, so the observation is
+ * evidence rather than assumption; it is not, however, the physical-device confirmation plan 10-06
+ * asked for. **Physical-device confirmation of A1 remains open** — re-run plan 10-06 task 2 step 8
+ * on real hardware before release. A fifth ad in one session there would mean this class is the
+ * wrong session-boundary source (T-10-11).
  *
  * ## Wall-clock, deliberately
  *
