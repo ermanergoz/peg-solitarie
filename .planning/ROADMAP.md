@@ -257,7 +257,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 10-05-PLAN.md — The INT-04 quiescence scrim and the deferred one-shot navigation in `ResultsRoute`
+- [x] 10-05-PLAN.md — The INT-04 quiescence scrim and the deferred one-shot navigation in `ResultsRoute`
 
 **Wave 5** *(blocked on Wave 4 completion)*
 
@@ -345,7 +345,7 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 7. Sound | v1.1 | 6/6 | Complete   | 2026-08-28 |
 | 8. Assist & Generator Quality Debt | v1.1 | 12/12 | Complete   | 2026-08-30 |
 | 9. Consent & Rewarded Ads | v1.1 | 11/11 | Complete   | 2026-09-02 |
-| 10. Interstitials | v1.1 | 4/6 | In Progress|  |
+| 10. Interstitials | v1.1 | 5/6 | In Progress|  |
 | 11. Play Games Session | v1.1 | 0/TBD | Not started | - |
 | 12. Leaderboards & Achievements | v1.1 | 0/TBD | Not started | - |
 | 13. Cloud Save | v1.1 | 0/TBD | Not started | - |
