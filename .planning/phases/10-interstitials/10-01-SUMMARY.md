@@ -173,6 +173,10 @@ Ready. The downstream plans consume a settled surface:
 
 No blockers.
 
+## Self-Check: PASSED
+
+All three source files and this SUMMARY exist on disk; commits `68ceab5`, `bee45fe` and `cee9cfa` are present in `git log`. No claimed artifact is missing.
+
 ---
 *Phase: 10-interstitials*
 *Completed: 2026-09-02*
