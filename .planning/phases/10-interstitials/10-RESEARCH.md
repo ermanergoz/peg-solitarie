@@ -808,29 +808,31 @@ Not a rename phase, but this phase **introduces new persisted state into an app 
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Is a 2-star Classic finish a "win" for interstitial purposes?**
+> All five questions were resolved during plan-phase on 2026-09-02: Q1 → CONTEXT **D-14** (user chose the *wider* reading: any solved finish, 2+ stars, is eligible — contra the recommendation below), Q2 → accepted as-is, documented in KDoc (plan 10-01/10-02), Q3 → CONTEXT **D-16** (`ProcessLifecycleOwner` via `lifecycle-process`), Q4 → CONTEXT **D-15** (shared "last fullscreen ad at" timestamp), Q5 → accepted as-is, documented in KDoc (plan 10-02).
+
+1. **Is a 2-star Classic finish a "win" for interstitial purposes?** — *RESOLVED: D-14 — any solve (2+ stars) counts; losses/abandons/restarts still excluded (INT-03 unchanged).*
    - *What we know:* `GameStatus.Won ⟺ stars == 3` is exact and machine-checkable. `tierFor` labels a 2-star Classic result `SOLVED` → the copy reads "Solved!".
    - *What's unclear:* D-06 says "Classic 'Catalog' after a win" without defining "win", and the screen's own copy and the proposed gate would disagree in wording for 2-star Classic finishes.
    - *Recommendation:* Use `stars == THREE_STARS`. It is the exact restatement of the domain's own win test, it is the conservative direction (fewer ads), and it is consistent with INT-03's "never after a lost level" — a board that did not reach its perfect finish was not solved. **Flag for user confirmation during planning**, since it materially affects how often Classic players see ads.
 
-2. **The in-memory session count creates a kill-window cap evasion (D-13).**
+2. **The in-memory session count creates a kill-window cap evasion (D-13).** — *RESOLVED: accepted as-is; reasoning documented in KDoc per plans 10-01/10-02.*
    - *What we know:* D-13 puts `interstitialsThisSession` in memory, reasoning that "a kill → relaunch after 30 min is a new session anyway".
    - *What's unclear:* A kill → relaunch after **2 minutes** is the *same* session by D-04's own definition, but the counter reads 0. A player who force-quits can reset the cap.
    - *Recommendation:* Accept it. D-01 (3 wins) and D-02 (90 s) still bind, so the worst case is one extra ad per force-quit, and force-quitting to see *more* ads is not a threat model. **Document the reasoning in KDoc.** Persisting the count would close it but contradicts a locked decision — do not change unilaterally.
 
-3. **`lifecycle-process` dependency vs. a dependency-free "last win" timestamp for the session boundary.**
+3. **`lifecycle-process` dependency vs. a dependency-free "last win" timestamp for the session boundary.** — *RESOLVED: D-16 — `ProcessLifecycleOwner` via `androidx.lifecycle:lifecycle-process` at the pinned atomic-group version.*
    - *What we know:* Both work. `ProcessLifecycleOwner` matches D-04's literal wording ("last-foreground timestamp"); "last win" needs no new artifact and is 100% pure-Kotlin testable.
    - *What's unclear:* Whether the user's intent in D-04 was the mechanism or the behaviour.
    - *Recommendation:* Use `ProcessLifecycleOwner` — it matches the decision's wording, the artifact is a first-party sibling already in the pinned atomic group, and the "last win" proxy would mis-handle a player who opens the app, plays nothing for an hour, and returns. Mention the alternative in the plan so the cost is visible.
 
-4. **Interstitial immediately following a rewarded ad — an uncovered adjacency.**
+4. **Interstitial immediately following a rewarded ad — an uncovered adjacency.** — *RESOLVED: D-15 — D-02's timestamp widened to shared "last fullscreen ad at"; rewarded ads also reset the 90s cooldown.*
    - *What we know:* `ARCHITECTURE.md`'s anti-pattern 6 recommends "never within X seconds of a rewarded ad", and AdMob policy prohibits an interstitial immediately after another fullscreen ad. D-01..D-13 contain **no** rewarded-interstitial interlock.
    - *What's unclear:* Whether the reachable case (rewarded hint on the last move → win → tap Next) is frequent enough to matter, and whether the user considers this in scope.
    - *Recommendation:* Add the D-02 90-second gate as a **shared** "last fullscreen ad at" timestamp rather than a "last interstitial at" timestamp. This is a one-word change to the state field's meaning, closes the policy gap for free, and stays inside the locked 90-second value. **Surface to the user — it is a genuine extension of D-02's scope, not a pure implementation detail.**
 
-5. **Should `lifetimeCompletedLevels` be seeded for existing installs?**
+5. **Should `lifetimeCompletedLevels` be seeded for existing installs?** — *RESOLVED: accepted as-is (fresh grace period for upgrading players is a feature); recorded in KDoc per plan 10-02.*
    - *What we know:* Existing players will get a fresh interstitial-free first session plus 5 free levels (§ Runtime State Inventory).
    - *Recommendation:* Do nothing — a gentle re-introduction for upgrading players is a feature, not a bug. Record the decision in KDoc so it does not read as an oversight later.
 
