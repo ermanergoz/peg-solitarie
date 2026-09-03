@@ -1,11 +1,13 @@
 package com.app.pegsolitaire.ui.game
 
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Position
+import com.app.pegsolitaire.platform.ads.AdReason
 
 /**
  * The single immutable UI state for the playable board screen.
@@ -79,6 +81,26 @@ import com.app.pegsolitaire.domain.model.Position
  *   peg is selected (SOUND-02's quiet invalid tap). That branch is a pure no-op on the board, so
  *   without this ordinal the event leaves no observable trace at all. Guard on `> 0` at the
  *   consumer, as with [selectionTick].
+ * @property pendingAdOffer the assist the themed opt-in dialog is currently offering an ad for
+ *   (ADS-01), or `null` when no dialog is up — the same nullable-flag-drives-a-dialog shape as
+ *   [confirmRestart], which is why no separate `showAdOffer` boolean exists. It carries the
+ *   [AdReason] rather than a bare flag because the dialog picks its hint-vs-undo copy from it.
+ *   Cleared — never carried forward — at every board-install site: a dialog offering an assist
+ *   for a board that no longer exists must not survive the board change.
+ * @property adOfferLoading whether the accepted offer is waiting on the gateway inside the still
+ *   open dialog (the D-10 bounded wait): the dialog swaps its actions for a spinner rather than
+ *   dismissing, so the player is never left looking at an unexplained frozen board. Cleared at
+ *   every board-install site alongside [pendingAdOffer], for the same reason.
+ * @property adMessage a `@StringRes` id for the one-shot ad snackbar (D-11 — "ad unavailable,
+ *   here it is anyway", ADS-03), or `null` when there is nothing to say. Paired with
+ *   [adMessageTick]: the id alone cannot distinguish two consecutive identical messages, so the
+ *   ordinal is what a one-shot consumer keys on and this is only the text it reads.
+ * @property adMessageTick a monotonic cue ordinal, incremented once per ad message raised — the
+ *   same idiom as [undoTick], and for the same reason: the same [adMessage] id shown twice in a
+ *   row leaves no distinguishable state trace at all. A consumer MUST also guard on `> 0`,
+ *   because a fresh state starts at 0 and would otherwise fire on first composition; that guard
+ *   is the second half of the phantom-cue fix whose first half is carrying this ordinal forward
+ *   (never resetting it) at all four board-install sites in `GameViewModel`.
  * @property showRescueBanner derived: whether the inline rescue banner should render over the
  *   still-interactive board (ASST-03, D-08). `true` when the board is [stuck] or the last
  *   hint found [noWinningMove]. Not a constructor field, so it never affects equality — it is
@@ -106,6 +128,15 @@ data class GameUiState(
     val deselectionTick: Int = 0,
     val undoTick: Int = 0,
     val rejectedTapTick: Int = 0,
+    // The assist-funnel surface, and DELIBERATELY only this. No hint/undo allowance count
+    // belongs here (D-05, UI-SPEC §Deliberate Non-UI): the counters stay private to the
+    // ViewModel because the controls must not change appearance with them — no badge, no
+    // "×3" chip, no allowance-driven disabled state. The opt-in dialog is the only signal
+    // the allowance system exists, so do not "complete" this state with a counter.
+    val pendingAdOffer: AdReason? = null,
+    val adOfferLoading: Boolean = false,
+    @param:StringRes val adMessage: Int? = null,
+    val adMessageTick: Int = 0,
 ) {
     /** Whether the inline no-win/stuck rescue banner should surface over the live board (D-08). */
     val showRescueBanner: Boolean get() = stuck || noWinningMove
@@ -140,6 +171,10 @@ data class GameUiState(
                 deselectionTick = 0,
                 undoTick = 0,
                 rejectedTapTick = 0,
+                pendingAdOffer = null,
+                adOfferLoading = false,
+                adMessage = null,
+                adMessageTick = 0,
             )
 
         /**
@@ -170,6 +205,10 @@ data class GameUiState(
                 deselectionTick = 0,
                 undoTick = 0,
                 rejectedTapTick = 0,
+                pendingAdOffer = null,
+                adOfferLoading = false,
+                adMessage = null,
+                adMessageTick = 0,
             )
 
         /**

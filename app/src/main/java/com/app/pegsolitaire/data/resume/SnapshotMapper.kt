@@ -1,6 +1,7 @@
 package com.app.pegsolitaire.data.resume
 
 import com.app.pegsolitaire.data.resume.ResumeSnapshotFormat.MAX_BOARD_POSITIONS
+import com.app.pegsolitaire.domain.assist.AssistAllowance
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardConstants
 import com.app.pegsolitaire.domain.model.BoardSpec
@@ -26,14 +27,19 @@ data class ChallengeStamp(
 
 /**
  * A game rebuilt from a snapshot: the initial board, the replayed current board, the
- * full move history (so undo keeps working), the elapsed time, and the Challenge stamp
- * when there is one.
+ * full move history (so undo keeps working), the elapsed time, the free-assist allowance
+ * the player had left, and the Challenge stamp when there is one.
+ *
+ * [allowance] is non-null by construction: an absent or forged stored counter resolves to
+ * the full default rather than to "no allowance", so there is no such thing as a restored
+ * game without one (ADS-02, D-04/D-17).
  */
 data class RestoredGame(
     val initialBoard: Board,
     val currentBoard: Board,
     val moveHistory: List<Move>,
     val elapsedMs: Long,
+    val allowance: AssistAllowance,
     val challenge: ChallengeStamp?,
 )
 
@@ -77,6 +83,11 @@ object SnapshotMapper {
      * Builds the snapshot for a game in progress from its **initial** board plus the
      * moves played since — deliberately not from the current board, because the history
      * is what makes the restore undoable.
+     *
+     * [freeHintsRemaining]/[freeUndosRemaining] default to `null` — the same "not
+     * written" value an older blob carries — so a caller that does not yet track the
+     * allowance produces a snapshot that restores with a full one rather than a locked
+     * out one.
      */
     fun toDto(
         mode: String,
@@ -85,6 +96,8 @@ object SnapshotMapper {
         moveHistory: List<Move>,
         elapsedMs: Long,
         challenge: ChallengeStamp? = null,
+        freeHintsRemaining: Int? = null,
+        freeUndosRemaining: Int? = null,
     ): ResumeSnapshotDto =
         ResumeSnapshotDto(
             mode = mode,
@@ -98,12 +111,25 @@ object SnapshotMapper {
             moves = moveHistory.map { it.toTuple() },
             elapsedMs = elapsedMs,
             minimumPegs = initialBoard.spec.minimumPegs,
+            freeHintsRemaining = freeHintsRemaining,
+            freeUndosRemaining = freeUndosRemaining,
         )
 
     /**
      * Rebuilds the game [dto] describes, or `null` when it is structurally invalid or
      * its move history does not replay legally (fail-safe: the caller treats `null` as
      * "nothing to resume").
+     *
+     * **The allowance is the one field that never contributes to that `null`.**
+     * [resolveMinimumPegsOrNull] refuses the whole snapshot for an out-of-range target,
+     * because a wrong target silently breaks scoring and hinting for the rest of the
+     * game. The free-assist counters take the opposite path through
+     * [AssistAllowance.fromStoredOrFull]: absent or out-of-range degrades to the default
+     * allowance and the game still restores. Refusing a resume over a forged counter
+     * would be a worse security posture, not a better one — it hands an attacker a way
+     * to destroy an honest player's progress with a one-byte edit, in exchange for
+     * denying them at most three hints they could get by replaying the level anyway
+     * (T-09-01/T-09-02).
      */
     fun fromDto(
         dto: ResumeSnapshotDto,
@@ -117,6 +143,11 @@ object SnapshotMapper {
                         currentBoard = currentBoard,
                         moveHistory = moveHistory,
                         elapsedMs = dto.elapsedMs,
+                        allowance =
+                            AssistAllowance.fromStoredOrFull(
+                                hints = dto.freeHintsRemaining,
+                                undos = dto.freeUndosRemaining,
+                            ),
                         challenge = dto.toChallengeStampOrNull(),
                     )
                 }

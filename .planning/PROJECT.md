@@ -10,6 +10,8 @@ A polished native Android peg solitaire game with two modes: a **Classic** mode 
 
 **Phase 8 complete (2026-08-30)** — DEBT-01/02/03 validated: truthful hints via committed depth-4/3 opening books + bitboard solver (stale-hint race CR-01 and load-window WR-01 fixed and regression-pinned), Diamond-41's 2-peg floor proven both ways (38-move line replayed in CI + exhaustive GF(4) impossibility), phase 3/4 validation contracts reconciled. Confirmed per-item on physical hardware; verification 8/8, code review clean of Critical/Warning.
 
+**Phase 9 complete (2026-09-02)** — Consent & Rewarded Ads live end-to-end: UMP consent flow (privacy policy revised and republished, T-09-31 cleared), free per-level assist allowance persisted through resume, opt-in-first rewarded assists (search first, charge second), elapsed clock frozen across every ad presentation (±1s over 30-40s ads on device), real GMA Next-Gen `AdMobAdGateway` bound, Settings Privacy section (policy row + consent-gated manage-choices row). CONS/ADS/ADSF/REL-05 requirements verified 9/9 (device items on emulator; D-20 records that declines still get non-personalized offers). Known advisory debt: 5 code-review warnings (WR-01..05) on the accept-path re-entrancy and SDK-facing seams, documented in 09-REVIEW.md.
+
 ## Core Value
 
 Infinite, never-repeating, always-solvable Challenge levels that feel fair and satisfying — if nothing else works, the procedurally-generated puzzles must be solvable and fun.
@@ -113,4 +115,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-30 after Phase 8 completion*
+*Last updated: 2026-09-02 after Phase 9 completion*

@@ -51,6 +51,23 @@ import kotlinx.serialization.Serializable
  *   Nullable-with-a-default is also what keeps today's saved games decodable at all:
  *   the writer's `ignoreUnknownKeys` covers the forward direction, this covers the
  *   backward one.
+ * @property freeHintsRemaining Free hints left on this level (ADS-02, D-04/D-17).
+ *
+ *   **On-disk contract:** `null` means "written before the allowance existed", NOT "zero
+ *   remaining" — and unlike [minimumPegs] it resolves **fail-open to a full allowance**
+ *   via `AssistAllowance.fromStoredOrFull`. The two fields point opposite ways on
+ *   purpose: a missing target is a *fact the game needs* to score and hint correctly, so
+ *   guessing it would corrupt play; a missing allowance is a *generosity the player
+ *   gets*, and the worst case of guessing wrong is a few free hints.
+ *
+ *   The same asymmetry governs a forged value. An out-of-range [minimumPegs] refuses the
+ *   whole snapshot; an out-of-range counter must not, because refusing would convert a
+ *   tamper attempt — or an unrelated corruption bug — into progress loss for an honest
+ *   player (T-09-01/T-09-02). A stored `0` is in range and is preserved: an exhausted
+ *   allowance has to survive process death, or backgrounding the app would be a free
+ *   refill.
+ * @property freeUndosRemaining Free undos left on this level — same contract as
+ *   [freeHintsRemaining], resolved against its own independent limit (D-01).
  */
 @Serializable
 data class ResumeSnapshotDto(
@@ -65,6 +82,8 @@ data class ResumeSnapshotDto(
     val moves: List<IntArray>,
     val elapsedMs: Long,
     val minimumPegs: Int? = null,
+    val freeHintsRemaining: Int? = null,
+    val freeUndosRemaining: Int? = null,
 )
 
 /**

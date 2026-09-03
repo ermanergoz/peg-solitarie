@@ -8,6 +8,7 @@ import androidx.navigation.compose.rememberNavController
 import com.app.pegsolitaire.audio.LocalSoundPlayer
 import com.app.pegsolitaire.audio.SoundPlayer
 import com.app.pegsolitaire.navigation.AppNavHost
+import com.app.pegsolitaire.platform.ads.consent.ConsentGateway
 import com.app.pegsolitaire.ui.theme.AppTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -25,17 +26,41 @@ import javax.inject.Inject
  * lifecycle stays entirely in `App`/Hilt; in particular the startup preload is **not**
  * here, because SOUND-01 needs the decode to start before an activity exists.
  *
- * The declared type is the **interface**, for the same reason `App` documents: naming the
- * concrete implementation instead would build a second, unscoped player owning a second
- * `SoundPool`, which the sound-off switch could never silence.
+ * It is also where the consent flow starts (CONS-01, D-16) — see [consentGateway].
+ *
+ * Every declared type here is the **interface**, for the same reason `App` documents:
+ * naming a concrete implementation instead would build a second, unscoped instance — a
+ * second player owning a second `SoundPool` that the sound-off switch could never silence,
+ * or a second consent gateway whose readiness flow nothing ever updates.
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     @Inject
     lateinit var soundPlayer: SoundPlayer
 
+    /**
+     * The consent seam, bootstrapped from [onCreate].
+     *
+     * **This deliberately does not live in `App`, which is where a reader will look for
+     * it**, next to the `ForegroundActivityProvider` registration and the sound preload.
+     * `App` is the `@HiltAndroidApp` class named in the manifest, so Robolectric
+     * instantiates it and runs `onCreate()` for every Robolectric test in the suite —
+     * bootstrapping consent there would drag the consent SDK onto the execution path of
+     * the whole JVM suite and make `./gradlew check --offline` fragile, breaking the
+     * Phase-6 D-18 offline invariant. No test references `MainActivity` and there is no
+     * `androidTest` source set, so this class has exactly zero JVM-test exposure. D-16's
+     * "gather and show on the first Activity at cold start" points here anyway.
+     */
+    @Inject
+    lateinit var consentGateway: ConsentGateway
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // After super.onCreate() is not stylistic: Hilt performs field injection as part of
+        // that call, so touching an injected field earlier throws
+        // UninitializedPropertyAccessException. Fire-and-forget — the app is fully playable
+        // while consent resolves, and CONS-04 keeps it that way if consent never does.
+        consentGateway.bootstrap()
         setContent {
             CompositionLocalProvider(LocalSoundPlayer provides soundPlayer) {
                 AppTheme {

@@ -18,13 +18,14 @@ import com.app.pegsolitaire.BuildConfig
  *    `app/build.gradle.kts` and `build-logic/src/main/kotlin/AdIdResolution.kt`.
  *
  * 3. **Ad IDs are a deliberate, documented exception to the no-magic-strings rule
- *    (QUAL-03).** Where the project's convention would otherwise call for an
- *    `AdConstants` scoped-constants object — the sibling of `ResumeSnapshotFormat` or
- *    `ProgressPersistenceKeys` — writing one here would be actively wrong: it would
- *    hard-code one build type's IDs into every build, and a real unit reaching a
- *    development device is what gets an AdMob account suspended for invalid traffic,
- *    non-appealably. The build gate `adIdLiteralCheck` fails the build on any ad-ID
- *    literal under `src/main` precisely to stop that object from ever being written.
+ *    (QUAL-03).** The project's convention does call for a scoped-constants object for
+ *    the ad layer, and one exists: [AdConstants] — the sibling of `ResumeSnapshotFormat`
+ *    or `ProgressPersistenceKeys` — but it holds **timeouts and retry cadence only**.
+ *    Writing an ad ID into it would be the violation: it would hard-code one build type's
+ *    IDs into every build, and a real unit reaching a development device is what gets an
+ *    AdMob account suspended for invalid traffic, non-appealably. The build gate
+ *    `adIdLiteralCheck` fails the build on any ad-ID literal under `src/main` precisely
+ *    to stop that from ever happening — the IDs stay here, behind `BuildConfig`.
  *
  * The Play Games Services project ID is deliberately **absent** from this object: it is
  * consumed by the manifest, not by code, so it exists only as the generated

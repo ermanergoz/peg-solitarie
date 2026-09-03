@@ -108,4 +108,27 @@
 
     <!-- Min tap target of a gameplay top-bar icon control (DESIGN-SYSTEM.md Gameplay). -->
     <dimen name="top_bar_touch_target">48dp</dimen>
+
+    <!--
+      Phase-9 token: the gold reward glyph at the top of the rewarded-ad opt-in dialog
+      (AdOfferDialog, ADS-01). NOT results_star_size, which is also 48dp: that token
+      means "a Results star" and must stay free to move without dragging the ad dialog
+      with it. Same value today, different owner.
+    -->
+    <dimen name="ad_offer_glyph_size">48dp</dimen>
+
+    <!--
+      Phase-9 token: the in-button loading spinner during the bounded D-10 wait on the
+      opt-in dialog. NOT top_bar_icon_size, which is also 24dp: that token is top-bar
+      scoped and HintControl's thinking spinner owns it — this spinner lives inside a
+      dialog CTA and must be resizable independently.
+    -->
+    <dimen name="ad_offer_progress_size">24dp</dimen>
+
+    <!--
+      Phase-9 token: the trailing "opens externally" glyph on the Settings Privacy policy
+      row (REL-05). NOT top_bar_icon_size, which is also 24dp: this icon sits inside a
+      list card, not a top bar, so it tracks the Settings row scale rather than the bar.
+    -->
+    <dimen name="settings_row_icon_size">24dp</dimen>
 </resources>

@@ -25,6 +25,9 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestResult
@@ -607,6 +610,10 @@ private object HintSettings : SettingsRepository {
 
 /** Always grants, so the grant is never the thing under test here. */
 private object HintAdGateway : AdGateway {
+    override val rewardedOfferable: StateFlow<Boolean> = MutableStateFlow(true).asStateFlow()
+
+    override fun preloadRewarded(reason: AdReason) = Unit
+
     override suspend fun requestRewarded(reason: AdReason): RewardOutcome = RewardOutcome.Granted
 
     override fun showInterstitial() = Unit

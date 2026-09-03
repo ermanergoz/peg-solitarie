@@ -27,7 +27,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) · Audit:
 - [x] **Phase 6: Platform Foundation & Build Hardening** - Activity bridge, extended seams, R8, build-config IDs, purity/dependency gates, security advisories closed — zero player-visible change (completed 2026-08-27)
 - [x] **Phase 7: Sound** - The 12-event SFX set consuming the already-persisted `soundOn` flag (completed 2026-08-28; planned as 11 events, grown to 12 by post-phase quick task 260828-vrr, which split peg pick-up and put-down into separate cues)
 - [x] **Phase 8: Assist & Generator Quality Debt** - Hints tell the truth on hard early positions; every Classic board's solvability is proven (completed 2026-08-29)
-- [ ] **Phase 9: Consent & Rewarded Ads** - UMP consent, opt-in-first rewarded assists, fail-open on no-fill, clock frozen across every ad
+- [x] **Phase 9: Consent & Rewarded Ads** - UMP consent, opt-in-first rewarded assists, fail-open on no-fill, clock frozen across every ad (completed 2026-09-02)
 - [ ] **Phase 10: Interstitials** - Frequency-capped, win-only interstitials at the Results continue action
 - [ ] **Phase 11: Play Games Session** - Silent auto sign-in, full signed-out play, manual sign-in fallback
 - [ ] **Phase 12: Leaderboards & Achievements** - 7 leaderboards, 10+ achievements, per-session telemetry migration
@@ -182,6 +182,7 @@ Plans:
 
   1. On a fresh install in a consent region, player sees the consent form before any ad is ever requested, the ads SDK initializes only after consent resolves, and player can reopen their privacy choices from Settings whenever consent rules require it. (CONS-01, CONS-02, CONS-03)
   1a. Player can open the privacy policy from Settings on **every** install, not only in consent regions — a separate, always-present entry from CONS-03's region-gated one, since Play requires the policy to be reachable regardless of where the player is. (REL-05)
+
   2. Player gets a free allowance of hints and undos per level; only once it is spent does an explicit opt-in dialog naming the reward appear, and declining leaves the game exactly as it was — an ad never plays on its own. (ADS-01, ADS-02)
   3. Player can accept a rewarded offer straight from the "no winning move" rescue banner, and the reward lands only when the ad reports it earned. (ADS-04, ADS-05)
   4. When an ad cannot load or fill, or the consent flow fails, player still gets the assist with a brief explanation and keeps playing — no error wall, no dead end. (ADS-03, CONS-04)
@@ -193,35 +194,36 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 09-01-PLAN.md — `AssistAllowance` pure `:domain` policy (3 hints / 5 undos, refill-to-full) + resume-snapshot counters with fail-open decode (ADS-02, D-01/02/03/04/17)
-- [ ] 09-02-PLAN.md — Interface-first seam contracts: `AdGateway.rewardedOfferable`/`preloadRewarded`, `NoOpAdGateway` flipped to offerable (Pitfall 6), `AdConstants`, `ConsentGateway` + `AdsReadiness`
+- [x] 09-01-PLAN.md — `AssistAllowance` pure `:domain` policy (3 hints / 5 undos, refill-to-full) + resume-snapshot counters with fail-open decode (ADS-02, D-01/02/03/04/17)
+- [x] 09-02-PLAN.md — Interface-first seam contracts: `AdGateway.rewardedOfferable`/`preloadRewarded`, `NoOpAdGateway` flipped to offerable (Pitfall 6), `AdConstants`, `ConsentGateway` + `AdsReadiness`
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 09-03-PLAN.md — `AdOfferDialog` themed opt-in dialog, `ClaySnackbarHost` (the app's first), and every Phase-9 string + the three new dimen tokens (ADS-01, ADS-03)
-- [ ] 09-04-PLAN.md — ADSF-01 clock freeze by ticker rebase, `resumeTickerIfNeeded` guard, virtual-time test class
-- [ ] 09-05-PLAN.md — `UmpConsentGateway` (every-launch consent info, one off-main `MobileAds.initialize`), `AdsModule` inside `..platform..`, `MainActivity` bootstrap, AdMob `APPLICATION_ID` manifest tag (CONS-01/02/03/04)
+- [x] 09-03-PLAN.md — `AdOfferDialog` themed opt-in dialog, `ClaySnackbarHost` (the app's first), and every Phase-9 string + the three new dimen tokens (ADS-01, ADS-03)
+- [x] 09-04-PLAN.md — ADSF-01 clock freeze by ticker rebase, `resumeTickerIfNeeded` guard, virtual-time test class
+- [x] 09-05-PLAN.md — `UmpConsentGateway` (every-launch consent info, one off-main `MobileAds.initialize`), `AdsModule` inside `..platform..`, `MainActivity` bootstrap, AdMob `APPLICATION_ID` manifest tag (CONS-01/02/03/04)
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 09-06-PLAN.md — ADS-06 inversion: hints search first and charge second, undo's empty-history guard hoisted, `GameUiState` offer/snackbar fields carried at all four install sites
-- [ ] 09-07-PLAN.md — Settings Privacy section: always-present policy row (REL-05) + consent-gated manage-choices row (CONS-03), `PrivacyLinks` constant. **Blocking human gate: the live policy URL (D-19)**
+- [x] 09-06-PLAN.md — ADS-06 inversion: hints search first and charge second, undo's empty-history guard hoisted, `GameUiState` offer/snackbar fields carried at all four install sites
+- [x] 09-07-PLAN.md — Settings Privacy section: always-present policy row (REL-05) + consent-gated manage-choices row (CONS-03), `PrivacyLinks` constant. **Blocking human gate: the live policy URL (D-19)**
 
 **Wave 4** *(blocked on Wave 3)*
 
-- [ ] 09-08-PLAN.md — The single assist funnel: free allowance, preload at exhaustion, opt-in offer, refill-then-spend on Granted/Unavailable, silent free grant when unservable, retry-proof persistence (ADS-01/02/03/04/05, CONS-04)
+- [x] 09-08-PLAN.md — The single assist funnel: free allowance, preload at exhaustion, opt-in offer, refill-then-spend on Granted/Unavailable, silent free grant when unservable, retry-proof persistence (ADS-01/02/03/04/05, CONS-04)
 
 **Wave 5** *(blocked on Wave 4)*
 
-- [ ] 09-09-PLAN.md — `GameScreen`/`GameRoute` wiring: dialog gating, tick-driven clay snackbar, and the "no second offer surface" negative-contract test
+- [x] 09-09-PLAN.md — `GameScreen`/`GameRoute` wiring: dialog gating, tick-driven clay snackbar, and the "no second offer surface" negative-contract test
 
 **Wave 6** *(blocked on Wave 5 — the stub-first ordering gate)*
 
-- [ ] 09-10-PLAN.md — `RewardedAdSlot` + `AdMobAdGateway` (GMA Next-Gen suspend load, `earned` only from `OnUserEarnedRewardListener`) and the `PlatformModule` binding swap (ADS-01/03/05, CONS-02/04)
+- [x] 09-10-PLAN.md — `RewardedAdSlot` + `AdMobAdGateway` (GMA Next-Gen suspend load, `earned` only from `OnUserEarnedRewardListener`) and the `PlatformModule` binding swap (ADS-01/03/05, CONS-02/04)
 
 **Wave 7** *(blocked on Wave 6)*
 
-- [ ] 09-11-PLAN.md — Blocking AdMob-console gate (D-18) + itemised on-device verification of consent, both privacy rows, a real test rewarded ad and the clock freeze, committed as `09-DEVICE-EVIDENCE.md`
+- [x] 09-11-PLAN.md — Blocking AdMob-console gate (D-18) + itemised on-device verification of consent, both privacy rows, a real test rewarded ad and the clock freeze, committed as `09-DEVICE-EVIDENCE.md`
+
 **Notes**: Internal ordering is non-negotiable — build and test the opt-in dialog against the still-in-place `NoOpAdGateway` stub **before** the real ad SDK is wired in. The stub's silent `true` auto-grant is exactly what currently hides the missing opt-in UI, and swapping in a real implementation as-is ships an AdMob policy violation. ADSF-01 (clock pause) is owned here and re-asserted as an acceptance criterion in Phase 10. REL-05 (the always-present privacy-policy entry) is placed here rather than in Phase 14 because it shares the Settings surface CONS-03 builds; it needs the policy URL to exist, so the developer website is a hard prerequisite for this phase, not just for release.
 
 ### Phase 10: Interstitials
@@ -237,7 +239,30 @@ Plans:
   4. A brief quiescence pause precedes every interstitial so a tap aimed at the board or a Results button cannot land on the ad. (INT-04)
   5. The game clock stays paused for the whole interstitial presentation. *(carried acceptance criterion — ADSF-01, owned by Phase 9)*
 
-**Plans**: TBD
+**Plans**: 6 plans in 5 waves
+
+Plans:
+**Wave 1**
+
+- [ ] 10-01-PLAN.md — Pure-Kotlin cadence policy in `:domain`, TDD'd as a truth table (D-01..D-05, D-15)
+- [ ] 10-03-PLAN.md — `InterstitialAdSlot` + the evolved `AdGateway` seam + the real gateway and stub parity
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 10-02-PLAN.md — DataStore cadence persistence + `ProcessLifecycleOwner` session boundary (D-13, D-16)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 10-04-PLAN.md — Results eligibility (D-14), cadence decision, quiescence + ad-then-navigate sequencing
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 10-05-PLAN.md — The INT-04 quiescence scrim and the deferred one-shot navigation in `ResultsRoute`
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 10-06-PLAN.md — Full gate sweep, cross-cutting invariants, and the itemised device UAT checkpoint
+
 **Notes**: The cadence policy is pure Kotlin and should be TDD'd as logic (min levels since last, min wall-clock gap, session cap, first-session/first-N suppression, persisted across process death) before it is wired to a live trigger. Retry stays free — `AdReason.RETRY` was dropped at requirements time.
 
 ### Phase 11: Play Games Session
@@ -296,6 +321,7 @@ Plans:
   2. `app-ads.txt` is published on the developer website, linked from the store listing, and shows verified in AdMob. (REL-03)
   3. Play Console declares ads, data safety, and target-audience information that matches what the app actually does. (REL-01)
   3a. A privacy policy is live at a stable HTTPS URL and linked in the store listing, it names advertising-ID collection and every third-party SDK that receives player data, and its claims agree with the Data-safety answers given for REL-01 — the two are checked against each other, not written independently. (REL-04, REL-01)
+
   4. Cold-start time on the SDK-integrated build is measured against the pre-SDK baseline captured in Phase 6 and is within the agreed budget. (PLAT-08)
 
 **Plans**: TBD
@@ -318,7 +344,7 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 6. Platform Foundation & Build Hardening | v1.1 | 10/10 | Complete   | 2026-08-27 |
 | 7. Sound | v1.1 | 6/6 | Complete   | 2026-08-28 |
 | 8. Assist & Generator Quality Debt | v1.1 | 12/12 | Complete   | 2026-08-30 |
-| 9. Consent & Rewarded Ads | v1.1 | 0/11 | Planned | - |
+| 9. Consent & Rewarded Ads | v1.1 | 11/11 | Complete   | 2026-09-02 |
 | 10. Interstitials | v1.1 | 0/TBD | Not started | - |
 | 11. Play Games Session | v1.1 | 0/TBD | Not started | - |
 | 12. Leaderboards & Achievements | v1.1 | 0/TBD | Not started | - |
