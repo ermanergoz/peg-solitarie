@@ -118,6 +118,13 @@
       one of the level's stored bests (stars, time or score).
     -->
     <string name="results_new_best">New best!</string>
+    <!--
+      Content description of the INT-04 quiescence scrim (AdQuiescenceScrim). Deliberately
+      one neutral word: D-08 forbids drawn text or a spinner, but the dim still swallows
+      every tap, so a screen reader must be told the screen is busy rather than be left
+      announcing controls that no longer respond.
+    -->
+    <string name="results_ad_scrim_description">Preparing</string>
     <!-- Challenge-aware Results actions (S3, D-01/D-10). -->
     <string name="action_next_level">Next level</string>
     <string name="action_retry">Retry</string>

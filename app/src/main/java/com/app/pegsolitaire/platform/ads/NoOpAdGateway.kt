@@ -8,8 +8,8 @@ import javax.inject.Inject
 /**
  * The auto-grant [AdGateway] stub: every rewarded request is granted for free
  * ([requestRewarded] returns [RewardOutcome.Granted], unconditionally and for every
- * [AdReason]), [preloadRewarded] is a no-op because there is nothing to warm, and
- * [showInterstitial] is a no-op (D-11). Mirrors
+ * [AdReason]), [preloadRewarded] and [preloadInterstitial] are no-ops because there is
+ * nothing to warm, and [showInterstitial] never presents anything and says so. Mirrors
  * [com.app.pegsolitaire.data.DefaultLevelRepository]'s `@Inject constructor` impl shape.
  *
  * **The grant was "deliberately not configurable" for the duration of Phase 6 only
@@ -29,6 +29,17 @@ import javax.inject.Inject
  * accepting resolves [RewardOutcome.Granted], and declining exercises the ViewModel's own
  * `Declined` path.
  *
+ * **[interstitialReady] is `false`, and the asymmetry against that `true` is deliberate,
+ * not an oversight left to be tidied away.** The two answers come from the same principle
+ * applied to two different ads: this stub's contract is that the player is never worse off
+ * than v1.0. v1.0 had a hint/undo economy the ADS-01 dialog belongs to, so the dialog must
+ * stay reachable — hence `rewardedOfferable = true`. v1.0 had no interstitials at all, so
+ * there is nothing to keep reachable — and a stub reporting one ready would put an
+ * unrequested dim, a 500 ms pause and a scrim (D-08) in front of a player who can never
+ * actually be shown an ad. That is strictly worse than v1.0 for zero revenue. `false`
+ * means a stub build behaves exactly like a no-fill: instant navigation, no pause (D-10,
+ * D-11).
+ *
  * Unlike [com.app.pegsolitaire.platform.games.NoOpGamesService], which deliberately
  * *declines* because reporting a connected player would let a leaderboard surface render
  * as though the player were ranked, this stub fails open: a missing ad would otherwise
@@ -45,5 +56,11 @@ class NoOpAdGateway
 
         override suspend fun requestRewarded(reason: AdReason): RewardOutcome = RewardOutcome.Granted
 
-        override fun showInterstitial() = Unit
+        private val interstitialReadyState = MutableStateFlow(false)
+
+        override val interstitialReady: StateFlow<Boolean> = interstitialReadyState.asStateFlow()
+
+        override fun preloadInterstitial() = Unit
+
+        override suspend fun showInterstitial(): Boolean = false
     }
