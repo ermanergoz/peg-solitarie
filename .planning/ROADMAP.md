@@ -29,7 +29,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) · Audit:
 - [x] **Phase 8: Assist & Generator Quality Debt** - Hints tell the truth on hard early positions; every Classic board's solvability is proven (completed 2026-08-29)
 - [x] **Phase 9: Consent & Rewarded Ads** - UMP consent, opt-in-first rewarded assists, fail-open on no-fill, clock frozen across every ad (completed 2026-09-02)
 - [x] **Phase 10: Interstitials** - Frequency-capped, win-only interstitials at the Results continue action (completed 2026-09-02)
-- [ ] **Phase 11: Play Games Session** - One-time opt-in prompt, silent sign-in for opted-in players, full signed-out play, manual sign-in fallback
+- [x] **Phase 11: Play Games Session** - One-time opt-in prompt, silent sign-in for opted-in players, full signed-out play, manual sign-in fallback (completed 2026-09-03)
 - [ ] **Phase 12: Leaderboards & Achievements** - 7 leaderboards, 10+ achievements, per-session telemetry migration
 - [ ] **Phase 13: Cloud Save** - Bests + ladder synced via Saved Games with deterministic monotonic merge
 - [ ] **Phase 14: Release Readiness** - Play Console declarations, signed-track verification, `app-ads.txt`, cold-start budget
@@ -290,7 +290,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 1 + Wave 2's 11-03 — shared strings.xml edits)*
 
-- [ ] 11-04-PLAN.md — Settings Play Games section (D-06/D-08/D-09/D-11/D-19): three-state row, manual sign-in
+- [x] 11-04-PLAN.md — Settings Play Games section (D-06/D-08/D-09/D-11/D-19): three-state row, manual sign-in
 
 **Notes**: Can run in parallel with Phases 9-10 — it depends only on the Phase 6 Activity provider. PGS v2 has no sign-out and no sign-in wall; do not port v1 patterns. Sign-in is explicit opt-in (planning decision 2026-09-03): the Play Games SDK is never initialized until the player accepts the one-time prompt or taps the Settings row. 11-02 and 11-03 run in parallel (no file overlap); 11-04 is sequenced after 11-03 only because both edit strings.xml, not because of a semantic dependency. Emulator sign-in verification (D-04) has no Play Console project yet and is recorded as pre-release checklist debt, not a plan blocker.
 
@@ -361,7 +361,7 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 8. Assist & Generator Quality Debt | v1.1 | 12/12 | Complete   | 2026-08-30 |
 | 9. Consent & Rewarded Ads | v1.1 | 11/11 | Complete   | 2026-09-02 |
 | 10. Interstitials | v1.1 | 6/6 | Complete    | 2026-09-03 |
-| 11. Play Games Session | v1.1 | 3/4 | In Progress|  |
+| 11. Play Games Session | v1.1 | 4/4 | Complete   | 2026-09-03 |
 | 12. Leaderboards & Achievements | v1.1 | 0/TBD | Not started | - |
 | 13. Cloud Save | v1.1 | 0/TBD | Not started | - |
 | 14. Release Readiness | v1.1 | 0/TBD | Not started | - |
