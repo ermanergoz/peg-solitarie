@@ -168,6 +168,10 @@ Wave 1 is complete and the three dependent plans are unblocked:
 
 No blockers. One thing for the phase verifier to note: `PlayGamesOptInRepository` is `open` rather than the plan's literal `class` — intentional, documented above as Rule 2.
 
+## Self-Check: PASSED
+
+All 8 source/test files claimed above exist on disk, and all 6 commits (`cf2a3fc`, `e88f6e0`, `8d1bc70`, `900aefa`, `dc49ffe`, `4b8ec17`) are present in git history. No missing items.
+
 ---
 *Phase: 11-play-games-session*
 *Completed: 2026-09-04*
