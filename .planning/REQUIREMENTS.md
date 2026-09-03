@@ -71,7 +71,7 @@
 
 ### Play Games — Session
 
-- [ ] **PGS-01**: Player is signed in to Play Games automatically at launch without gameplay ever being blocked or interrupted
+- [ ] **PGS-01**: Player is asked once, on first launch, whether to sign in to Play Games; a player who accepts is signed in automatically on every later launch, and gameplay is never blocked or interrupted by sign-in
 - [ ] **PGS-02**: Every feature of the game works fully when sign-in is unavailable or declined, with social surfaces hidden rather than erroring
 - [ ] **PGS-03**: Player can sign in manually from Settings when automatic sign-in did not happen
 

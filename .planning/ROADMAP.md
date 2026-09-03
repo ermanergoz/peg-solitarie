@@ -29,7 +29,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) · Audit:
 - [x] **Phase 8: Assist & Generator Quality Debt** - Hints tell the truth on hard early positions; every Classic board's solvability is proven (completed 2026-08-29)
 - [x] **Phase 9: Consent & Rewarded Ads** - UMP consent, opt-in-first rewarded assists, fail-open on no-fill, clock frozen across every ad (completed 2026-09-02)
 - [x] **Phase 10: Interstitials** - Frequency-capped, win-only interstitials at the Results continue action (completed 2026-09-02)
-- [ ] **Phase 11: Play Games Session** - Silent auto sign-in, full signed-out play, manual sign-in fallback
+- [ ] **Phase 11: Play Games Session** - One-time opt-in prompt, silent sign-in for opted-in players, full signed-out play, manual sign-in fallback
 - [ ] **Phase 12: Leaderboards & Achievements** - 7 leaderboards, 10+ achievements, per-session telemetry migration
 - [ ] **Phase 13: Cloud Save** - Bests + ladder synced via Saved Games with deterministic monotonic merge
 - [ ] **Phase 14: Release Readiness** - Play Console declarations, signed-track verification, `app-ads.txt`, cold-start budget
@@ -267,17 +267,17 @@ Plans:
 
 ### Phase 11: Play Games Session
 
-**Goal**: Player is signed in to Play Games without ever being asked, and everything works if they are not.
+**Goal**: Player is asked once whether to sign in to Play Games, opted-in players are signed in silently on every later launch, and everything works if they say no.
 **Depends on**: Phase 6
 **Requirements**: PGS-01, PGS-02, PGS-03
 **Success Criteria** (what must be TRUE):
 
-  1. Player launching the app is signed in to Play Games silently in the background — no dialog, no wall, no pause before they can start a level. (PGS-01)
+  1. Player launching the app for the first time sees a single dismissible "Sign in to Play Games?" prompt on Home; a player who accepts is signed in silently in the background on every later launch — no wall, no pause before they can start a level. (PGS-01)
   2. Player who declines, or whose device has no Play Games, can play every mode, every board, and every feature — social surfaces are hidden, never broken. (PGS-02)
   3. Player who was not signed in automatically can sign in from a Settings row that appears only when they are signed out. (PGS-03)
 
 **Plans**: TBD
-**Notes**: Can run in parallel with Phases 9-10 — it depends only on the Phase 6 Activity provider. PGS v2 has no sign-out and no sign-in wall; do not port v1 patterns.
+**Notes**: Can run in parallel with Phases 9-10 — it depends only on the Phase 6 Activity provider. PGS v2 has no sign-out and no sign-in wall; do not port v1 patterns. Sign-in is explicit opt-in (planning decision 2026-09-03): the Play Games SDK is never initialized until the player accepts the one-time prompt or taps the Settings row.
 
 ### Phase 12: Leaderboards & Achievements
 
