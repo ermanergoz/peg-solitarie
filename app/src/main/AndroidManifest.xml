@@ -48,6 +48,29 @@
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="@string/admob_app_id" />
 
+        <!-- PGS-01. Required by PlayGamesSdk.initialize() and every
+             PlayGames.get*Client(...) lookup in platform/games/PlayGamesService.kt: the
+             SDK reads the Games services project ID from here, and without the tag those
+             calls fail at runtime. Phase 6 built the resource for this tag and left the
+             tag itself unwritten because nothing consumed it yet — this is the phase that
+             consumes it.
+
+             The value is the GENERATED string resource, exactly as the AdMob tag above
+             uses admob_app_id: app/build.gradle.kts emits game_services_project_id per
+             build type via resValue(). It MUST stay a @string reference rather than an
+             inline value — the project ID is numeric, and a bare numeric android:value is
+             parsed as an integer rather than a string, which the SDK rejects.
+
+             Placed immediately above the PlayGamesInitProvider removal below so the two
+             Play-Games manifest entries stay adjacent: that removal comment names this
+             phase as the explicit-init owner, and this tag is what explicit init needs.
+
+             A <meta-data> requests no permission, so the merged permission set that
+             ManifestSurfaceTest asserts by equality is unchanged by it. -->
+        <meta-data
+            android:name="com.google.android.gms.games.APP_ID"
+            android:value="@string/game_services_project_id" />
+
         <!-- D-07, as corrected by D-17. play-services-games-v2 declares
              PlayGamesInitProvider (authority ${applicationId}.playgamesinitprovider,
              initOrder 99), and a ContentProvider at that init order runs before

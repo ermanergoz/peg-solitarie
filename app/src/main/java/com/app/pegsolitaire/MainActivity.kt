@@ -9,6 +9,7 @@ import com.app.pegsolitaire.audio.LocalSoundPlayer
 import com.app.pegsolitaire.audio.SoundPlayer
 import com.app.pegsolitaire.navigation.AppNavHost
 import com.app.pegsolitaire.platform.ads.consent.ConsentGateway
+import com.app.pegsolitaire.platform.games.GamesService
 import com.app.pegsolitaire.ui.theme.AppTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -26,7 +27,9 @@ import javax.inject.Inject
  * lifecycle stays entirely in `App`/Hilt; in particular the startup preload is **not**
  * here, because SOUND-01 needs the decode to start before an activity exists.
  *
- * It is also where the consent flow starts (CONS-01, D-16) — see [consentGateway].
+ * It is also where the two platform bootstraps start: the consent flow (CONS-01, D-16) —
+ * see [consentGateway] — and the opt-in-gated Play Games sign-in (PGS-01, D-01) — see
+ * [gamesService]. Both are one undecorated, fire-and-forget line; neither branches here.
  *
  * Every declared type here is the **interface**, for the same reason `App` documents:
  * naming a concrete implementation instead would build a second, unscoped instance — a
@@ -54,13 +57,38 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var consentGateway: ConsentGateway
 
+    /**
+     * The Play Games seam, bootstrapped from [onCreate] (PGS-01, D-01).
+     *
+     * **This lives here and not in `App` for exactly the reason [consentGateway] does**, and
+     * the reason is load-bearing rather than stylistic. `App` is the `@HiltAndroidApp` class
+     * named in the manifest, so Robolectric instantiates it and runs `onCreate()` for every
+     * Robolectric test in the suite; bootstrapping Play Games there would drag the SDK onto
+     * the execution path of the whole JVM suite and make `./gradlew check --offline` fragile,
+     * breaking the Phase-6 D-18 offline invariant. No test references `MainActivity` and
+     * there is no `androidTest` source set, so this class has exactly zero JVM-test exposure.
+     *
+     * Declared as the **interface**, like every other injected field here: naming
+     * `PlayGamesService` instead would build a second, unscoped instance whose session flow
+     * nothing ever updates, leaving every observer permanently at
+     * [com.app.pegsolitaire.platform.games.GamesSignInState.Unknown].
+     */
+    @Inject
+    lateinit var gamesService: GamesService
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // After super.onCreate() is not stylistic: Hilt performs field injection as part of
         // that call, so touching an injected field earlier throws
-        // UninitializedPropertyAccessException. Fire-and-forget — the app is fully playable
-        // while consent resolves, and CONS-04 keeps it that way if consent never does.
+        // UninitializedPropertyAccessException. Both calls below are fire-and-forget — the
+        // app is fully playable while consent resolves, and CONS-04 keeps it that way if
+        // consent never does; PGS-01 makes the same promise for sign-in ("no wall, no pause
+        // before they can start a level"), so neither may be awaited before setContent.
+        // The Play Games call is a no-op unless the player already opted in (D-01): that
+        // branch lives behind the seam, which is what keeps this an undecorated one-liner
+        // and keeps the persisted-flag read where PlatformBoundaryRules can see it.
         consentGateway.bootstrap()
+        gamesService.bootstrapIfOptedIn()
         setContent {
             CompositionLocalProvider(LocalSoundPlayer provides soundPlayer) {
                 AppTheme {
