@@ -31,6 +31,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -42,6 +43,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.core.net.toUri
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.platform.games.GamesSignInState
 import com.app.pegsolitaire.ui.components.ClaySnackbarHost
 import com.app.pegsolitaire.ui.theme.clayEntrance
 import com.app.pegsolitaire.ui.theme.clayShadow
@@ -77,9 +79,23 @@ import kotlinx.coroutines.launch
  * Neither privacy row carries an accent gradient. They are plain clay cards, exact peers of
  * Sound and Haptics — a privacy-policy link is not a celebration.
  *
- * @param state the immutable Settings UI state (the two persisted flags plus the CONS-03 flag).
+ * ## The third section (D-08, PGS-02/PGS-03)
+ *
+ * "Play Games" sits **between** General and Privacy, not after it: D-14 pins Privacy to the
+ * bottom of this screen, so every later section is inserted above it rather than appended.
+ * Phase 12's leaderboard and achievement rows land in this same section.
+ *
+ * It is the one section that can be wholly absent. While the session is
+ * [GamesSignInState.Unknown] there is no header, no row and no placeholder (D-11) — see
+ * [PlayGamesSection]. The screen decides none of that itself: like every other conditional
+ * here, it renders exactly what [SettingsUiState] says and nothing more.
+ *
+ * @param state the immutable Settings UI state (the two persisted flags, the CONS-03 flag,
+ *   and the Play Games session plus its error ordinal).
  * @param onToggleSound persists the new sound choice (SET-01).
  * @param onToggleHaptics persists the new haptics choice (SET-02).
+ * @param onSignInToPlayGames signs the player in to Play Games and records the opt-in
+ *   (PGS-03, D-10/D-19). Reached only from the signed-out row.
  * @param onManagePrivacyChoices opens the UMP privacy-options form (CONS-03).
  * @param onBack leaves Settings (top-bar back nav → pops to Home).
  * @param modifier layout modifier for the screen.
@@ -90,11 +106,19 @@ fun SettingsScreen(
     state: SettingsUiState,
     onToggleSound: (Boolean) -> Unit,
     onToggleHaptics: (Boolean) -> Unit,
+    onSignInToPlayGames: () -> Unit,
     onManagePrivacyChoices: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // One host for both failures this screen can surface — the missing-browser message and
+    // the D-10 sign-in error. A second SnackbarHostState would let two messages fight for
+    // the same corner, and the Scaffold can only host one anyway.
     val snackbarHostState = remember { SnackbarHostState() }
+    PlayGamesSignInErrorSnackbarEffect(
+        errorTick = state.playGamesSignInErrorTick,
+        hostState = snackbarHostState,
+    )
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -127,6 +151,10 @@ fun SettingsScreen(
                     hapticsOn = state.hapticsOn,
                     onToggleSound = onToggleSound,
                     onToggleHaptics = onToggleHaptics,
+                )
+                PlayGamesSection(
+                    gamesSignInState = state.gamesSignInState,
+                    onSignInToPlayGames = onSignInToPlayGames,
                 )
                 PrivacySection(
                     privacyOptionsRequired = state.privacyOptionsRequired,
@@ -170,6 +198,124 @@ private fun GeneralSection(
         entranceOrder = HAPTICS_ROW_ORDER,
         onCheckedChange = onToggleHaptics,
     )
+}
+
+/**
+ * The "Play Games" group (D-08): a header over exactly one row, whose identity — and whose
+ * very existence — is a pure function of the observed session.
+ *
+ * ## Absent, not empty, while Unknown (D-11)
+ *
+ * The early return is the first statement in the function, before the header, so an
+ * unresolved session emits *nothing at all*: no header, no row, no placeholder, and no
+ * `Arrangement.spacedBy` gap where a section will later be. An opted-in player's silent
+ * launch check can still be pending when Settings opens, and the honest rendering of "we do
+ * not know yet" is silence — a sign-in row offered to someone already signed in, or a
+ * signed-in row shown to someone who is not, is a claim this screen has no basis for.
+ * [SettingsUiState.gamesSignInState] defaults to [GamesSignInState.Unknown] for exactly this
+ * reason, so the absent state is also the pre-first-emission state.
+ *
+ * ## Exhaustive `when`, deliberately without an `else`
+ *
+ * [GamesSignInState] is a sealed interface, so listing all three members and no `else` makes
+ * a future fourth member a **compile** error here rather than a silently-skipped branch that
+ * ships a headed section with nothing under it. [GamesSignInState.Unknown] is therefore
+ * still listed — unreachable past the guard above, and kept solely to hold that gate open.
+ *
+ * ## The signed-in row is a statement, not an affordance
+ *
+ * D-06 asks for a non-tappable row, so its `onClick` is empty. It stays a [SettingsLinkRow]
+ * rather than becoming a bespoke composable because the two states must be exact visual
+ * peers: a differently-shaped card would read as a different *kind* of thing appearing when
+ * the player signs in, when in truth one row has simply changed what it says. Its label is
+ * the player's own Play Games display name, or the neutral D-14 fallback used whole when
+ * that lookup failed — a name that never arrived is not a failed sign-in and must not be
+ * rendered as one, which is why there is no "Signed in as (unknown)" form. The name is a
+ * free-text value from Google's service crossing a trust boundary: it is rendered as plain
+ * [Text] through a [stringResource] format (Compose escapes it, and it is never parsed as
+ * markup) and is never logged (T-11-11).
+ *
+ * The row is a genuine re-entry point and never a nag: it renders identically on every
+ * visit, carries no dismiss counter and no re-prompt logic, and an explicit decline leaves
+ * it exactly where it was (D-13, T-11-12).
+ *
+ * @param gamesSignInState the observed Play Games session; the section's sole input.
+ * @param onSignInToPlayGames invoked by the signed-out row's tap (D-10/D-19).
+ */
+@Composable
+private fun PlayGamesSection(
+    gamesSignInState: GamesSignInState,
+    onSignInToPlayGames: () -> Unit,
+) {
+    if (gamesSignInState == GamesSignInState.Unknown) return
+
+    SettingsSectionHeader(
+        title = stringResource(R.string.settings_section_play_games),
+        entranceOrder = PLAY_GAMES_HEADER_ORDER,
+    )
+    when (gamesSignInState) {
+        is GamesSignInState.SignedIn ->
+            SettingsLinkRow(
+                label =
+                    gamesSignInState.displayName
+                        ?.let { stringResource(R.string.settings_play_games_signed_in_as, it) }
+                        ?: stringResource(R.string.settings_play_games_signed_in_fallback),
+                supporting = stringResource(R.string.settings_play_games_signin_supporting),
+                entranceOrder = PLAY_GAMES_ROW_ORDER,
+                trailingIcon = null,
+                onClick = {},
+            )
+
+        GamesSignInState.SignedOut ->
+            SettingsLinkRow(
+                label = stringResource(R.string.settings_play_games_signin_label),
+                supporting = stringResource(R.string.settings_play_games_signin_supporting),
+                entranceOrder = PLAY_GAMES_ROW_ORDER,
+                trailingIcon = null,
+                onClick = onSignInToPlayGames,
+            )
+
+        // Unreachable — the guard above already returned. Present only so the `when` stays
+        // exhaustive without an `else`, which is what makes a future member a build failure.
+        GamesSignInState.Unknown -> Unit
+    }
+}
+
+/**
+ * Shows the D-10 sign-in error once per [errorTick] increment — the same one-shot-event
+ * idiom `HomeScreen`'s `PlayGamesSignInErrorSnackbarEffect` uses, against the same
+ * `play_games_signin_error` string, because it is the same event seen from the app's other
+ * sign-in entry point. A second string resource for it would be two wordings for one failure
+ * the moment either was edited.
+ *
+ * The `> 0` guard is required, not defensive: without it a freshly-composed Settings sits at
+ * tick 0 and fires on its first frame, apologising for a sign-in the player never attempted.
+ *
+ * The text is resolved with [stringResource] **in composition** rather than through
+ * `LocalContext.current.getString(...)` inside the effect — `LocalContext` reads are not
+ * invalidated by a `Configuration` change, and the pinned Compose BOM fails the build on it
+ * (`LocalContextGetResourceValueCall`). Same idiom as the policy-row error below.
+ *
+ * [SnackbarDuration.Short] and no action: the opt-in already stands, the next launch retries
+ * silently, and the row is still right there — there is nothing for the player to do here.
+ *
+ * @param errorTick the monotonic ordinal `SettingsViewModel` bumps on a genuine SDK error.
+ * @param hostState the snackbar queue hoisted by the screen's `Scaffold`.
+ */
+@Composable
+private fun PlayGamesSignInErrorSnackbarEffect(
+    errorTick: Int,
+    hostState: SnackbarHostState,
+) {
+    val message = stringResource(R.string.play_games_signin_error)
+    LaunchedEffect(errorTick) {
+        if (errorTick > 0) {
+            hostState.showSnackbar(
+                message = message,
+                duration = SnackbarDuration.Short,
+            )
+        }
+    }
 }
 
 /**
@@ -429,14 +575,22 @@ private fun SettingsLinkRow(
 /**
  * Entrance stagger order of every element in the Settings column, top to bottom (UI-SPEC §3).
  *
- * Named constants rather than literals (CLAUDE.md: no magic numbers), and a contiguous 0-5
+ * Named constants rather than literals (CLAUDE.md: no magic numbers), and a contiguous 0-7
  * set including the headers, so the [clayEntrance] cascade reads strictly downward. The
- * manage-choices row keeps order 5 even when it is not rendered — the orders describe
- * position in the layout, not the count of visible children.
+ * conditional elements keep their orders even when they are not rendered — the orders
+ * describe position in the layout, not the count of visible children, which is also why the
+ * whole Play Games section being absent (D-11) leaves the Privacy orders untouched.
+ *
+ * Inserting Play Games between General and Privacy is therefore a **renumbering**, not an
+ * append: the three Privacy constants each shift up by two. That is the price of the one
+ * invariant this block exists to keep — position in the column and stagger order are the
+ * same ordering, so nothing can fade in above something that arrived before it.
  */
 private const val GENERAL_HEADER_ORDER = 0
 private const val SOUND_ROW_ORDER = 1
 private const val HAPTICS_ROW_ORDER = 2
-private const val PRIVACY_HEADER_ORDER = 3
-private const val PRIVACY_POLICY_ROW_ORDER = 4
-private const val PRIVACY_CHOICES_ROW_ORDER = 5
+private const val PLAY_GAMES_HEADER_ORDER = 3
+private const val PLAY_GAMES_ROW_ORDER = 4
+private const val PRIVACY_HEADER_ORDER = 5
+private const val PRIVACY_POLICY_ROW_ORDER = 6
+private const val PRIVACY_CHOICES_ROW_ORDER = 7

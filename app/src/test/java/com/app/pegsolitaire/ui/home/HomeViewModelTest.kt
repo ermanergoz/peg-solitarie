@@ -6,6 +6,7 @@ import app.cash.turbine.test
 import com.app.pegsolitaire.data.ChallengeProgress
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.data.FakePlayGamesOptInRepository
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.LevelResult
@@ -638,38 +639,4 @@ private object NoopPreferencesDataStore : DataStore<Preferences> {
 
     override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
         error("not used by the fake")
-}
-
-/**
- * A settable in-memory [PlayGamesOptInRepository] (D-17): overrides the two DataStore-backed
- * flows so the tri-state answer is driven deterministically, and counts each writer so
- * "declining never opts in" and "accepting persists before signing in" are observable.
- * Mirrors [FakeOnboardingRepository] — the base store is a no-op that never emits.
- */
-private class FakePlayGamesOptInRepository(
-    initiallyAnswered: Boolean = false,
-    initiallyOptedIn: Boolean = false,
-) : PlayGamesOptInRepository(NoopPreferencesDataStore) {
-    val answered = MutableStateFlow(initiallyAnswered)
-    val optedInState = MutableStateFlow(initiallyOptedIn)
-    var setNotNowCount = 0
-        private set
-    var setOptedInCount = 0
-        private set
-
-    override val promptAnswered: Flow<Boolean> get() = answered
-    override val optedIn: Flow<Boolean> get() = optedInState
-
-    override suspend fun setNotNow() {
-        setNotNowCount++
-        // Both flags move together, exactly as the real atomic edit does.
-        answered.value = true
-        optedInState.value = false
-    }
-
-    override suspend fun setOptedIn() {
-        setOptedInCount++
-        answered.value = true
-        optedInState.value = true
-    }
 }
