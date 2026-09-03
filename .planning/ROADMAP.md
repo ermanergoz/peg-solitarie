@@ -281,7 +281,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 11-01-PLAN.md — Seam contracts (bootstrapIfOptedIn, displayName), D-17 opt-in persistence, shared FakeGamesService
+- [x] 11-01-PLAN.md — Seam contracts (bootstrapIfOptedIn, displayName), D-17 opt-in persistence, shared FakeGamesService
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -361,7 +361,7 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 8. Assist & Generator Quality Debt | v1.1 | 12/12 | Complete   | 2026-08-30 |
 | 9. Consent & Rewarded Ads | v1.1 | 11/11 | Complete   | 2026-09-02 |
 | 10. Interstitials | v1.1 | 6/6 | Complete    | 2026-09-03 |
-| 11. Play Games Session | v1.1 | 0/TBD | Not started | - |
+| 11. Play Games Session | v1.1 | 1/4 | In Progress|  |
 | 12. Leaderboards & Achievements | v1.1 | 0/TBD | Not started | - |
 | 13. Cloud Save | v1.1 | 0/TBD | Not started | - |
 | 14. Release Readiness | v1.1 | 0/TBD | Not started | - |
