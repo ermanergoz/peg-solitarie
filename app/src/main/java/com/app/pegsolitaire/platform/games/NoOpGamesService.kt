@@ -31,6 +31,19 @@ class NoOpGamesService
 
         override val session: StateFlow<GamesSignInState> = signedOutSession.asStateFlow()
 
+        /**
+         * A no-op: the stub has no persisted opt-in flag to read and no SDK to
+         * initialize, so the D-01 gate's "never opted in" branch is the only branch it
+         * has. [session] is already resolved to [GamesSignInState.SignedOut], which is
+         * exactly what that branch is specified to leave behind.
+         */
+        override fun bootstrapIfOptedIn() = Unit
+
+        /**
+         * Always the silent-decline branch of the D-10 contract: returns `false` and
+         * never throws. A stub has no SDK outcome to classify, so it can never report
+         * the error branch that would raise a snackbar the player cannot act on.
+         */
         override suspend fun signIn(): Boolean = false
 
         override fun submitScore(
