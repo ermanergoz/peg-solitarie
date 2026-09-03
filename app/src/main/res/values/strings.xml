@@ -211,4 +211,21 @@
     <string name="settings_privacy_policy_error">Couldn\'t open the privacy policy — no browser app found.</string>
     <string name="settings_privacy_choices_label">Manage privacy choices</string>
     <string name="settings_privacy_choices_supporting">Change your ad consent choices</string>
+
+    <!--
+      ============================ Phase-11 copy ============================
+      Play Games opt-in (PGS-01, D-15/D-16). The title asks rather than announces: this
+      is a genuine choice, not a step to get through. The body names the same three
+      benefits as the Settings row (leaderboards, achievements, cloud save) and then says
+      outright that the game is fully playable without signing in — D-16 requires both,
+      because a prompt that only lists upside reads as a wall. The closing sentence names
+      Settings, which is the ONLY way back in once this is answered (D-17/D-19).
+
+      "Not now" rather than "No thanks": the answer is permanent for the prompt, but the
+      door is not shut, and the copy should not claim otherwise.
+    -->
+    <string name="play_games_prompt_title">Sign in to Play Games?</string>
+    <string name="play_games_prompt_body">Compete on leaderboards, unlock achievements, and keep your progress backed up to the cloud. Peg Solitaire plays exactly the same either way — you can sign in later from Settings.</string>
+    <string name="play_games_prompt_accept">Sign in</string>
+    <string name="play_games_prompt_decline">Not now</string>
 </resources>
