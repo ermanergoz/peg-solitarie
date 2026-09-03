@@ -12,6 +12,8 @@ A polished native Android peg solitaire game with two modes: a **Classic** mode 
 
 **Phase 9 complete (2026-09-02)** — Consent & Rewarded Ads live end-to-end: UMP consent flow (privacy policy revised and republished, T-09-31 cleared), free per-level assist allowance persisted through resume, opt-in-first rewarded assists (search first, charge second), elapsed clock frozen across every ad presentation (±1s over 30-40s ads on device), real GMA Next-Gen `AdMobAdGateway` bound, Settings Privacy section (policy row + consent-gated manage-choices row). CONS/ADS/ADSF/REL-05 requirements verified 9/9 (device items on emulator; D-20 records that declines still get non-personalized offers). Known advisory debt: 5 code-review warnings (WR-01..05) on the accept-path re-entrancy and SDK-facing seams, documented in 09-REVIEW.md.
 
+**Phase 10 complete (2026-09-03)** — Interstitials live behind the win flow: pure-Kotlin cadence policy in `:domain` (every 3rd win, ≥90s fullscreen-ad gap, first-session/first-5-levels grace, 4-per-session cap), DataStore persistence surviving process death (INT-02), `ProcessLifecycleOwner` 30-min session boundary, real GMA Next-Gen interstitial slot, cadence gated on the two forward-moving Results actions only — losses/exits/replay never pay (INT-03), 500ms quiescence scrim swallowing taps and back presses (INT-04, pointer-consumption proven load-bearing by mutation). INT-01..04 verified 6/6; D-15 rewarded-adjacency wired. UAT ran emulator-only (no physical device available) — physical re-run tracked in 10-HUMAN-UAT.md as pre-release debt. Advisory review debt in 10-REVIEW.md: CR-01 (pre-existing Diamond-41 `pegsRemaining == 1` bests-record trap) + 3 warnings on ad-slot cancellation cleanup, Next-Gen threading contract, consent re-check on load retry.
+
 ## Core Value
 
 Infinite, never-repeating, always-solvable Challenge levels that feel fair and satisfying — if nothing else works, the procedurally-generated puzzles must be solvable and fun.
@@ -115,4 +117,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-02 after Phase 9 completion*
+*Last updated: 2026-09-03 after Phase 10 completion*
