@@ -9,7 +9,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.audio.NoOpSoundPlayer
+import com.app.pegsolitaire.data.FakePlayGamesOptInRepository
 import com.app.pegsolitaire.data.SettingsRepository
+import com.app.pegsolitaire.platform.games.FakeGamesService
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
@@ -226,7 +228,13 @@ class SettingsPrivacyViewModelTest {
         }
 
     private fun viewModelWith(gateway: FakeConsentGateway) =
-        SettingsViewModel(StubSettingsRepository, NoOpSoundPlayer(), gateway)
+        SettingsViewModel(
+            StubSettingsRepository,
+            NoOpSoundPlayer(),
+            gateway,
+            FakeGamesService(),
+            FakePlayGamesOptInRepository(),
+        )
 }
 
 /** A fixed settings store: this file asserts consent behaviour, not persistence. */

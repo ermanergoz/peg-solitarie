@@ -6,12 +6,12 @@ import app.cash.turbine.test
 import com.app.pegsolitaire.data.ChallengeProgress
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.data.FakePlayGamesOptInRepository
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.LevelResult
 import com.app.pegsolitaire.data.NewBests
 import com.app.pegsolitaire.data.OnboardingRepository
-import com.app.pegsolitaire.data.FakePlayGamesOptInRepository
 import com.app.pegsolitaire.data.PlayGamesOptInRepository
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository

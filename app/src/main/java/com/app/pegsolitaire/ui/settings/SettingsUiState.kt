@@ -1,6 +1,7 @@
 package com.app.pegsolitaire.ui.settings
 
 import androidx.compose.runtime.Immutable
+import com.app.pegsolitaire.platform.games.GamesSignInState
 
 /**
  * The single immutable UI state for the Settings screen (SET-01, SET-02, D-14).
@@ -32,10 +33,32 @@ import androidx.compose.runtime.Immutable
  * @property privacyOptionsRequired whether UMP reports that a privacy-options form must be
  *   offered to this player (CONS-03, D-14). Drives the visibility of the "Manage privacy
  *   choices" row alone; the "Privacy policy" row above it is unconditional (REL-05).
+ * @property gamesSignInState the player's observed Play Games session (PGS-02/PGS-03,
+ *   D-11), collected from the `GamesService` seam. It defaults
+ *   [GamesSignInState.Unknown] for exactly the reason [privacyOptionsRequired] defaults
+ *   `false`, applied to a third kind of affordance: a wrong guess must still leave the
+ *   player able to keep playing, and here that means **absent**. D-11 forbids the Play
+ *   Games section — header, row and placeholder alike — while the state is `Unknown`, so
+ *   the pre-first-emission default *is* the hidden state and no other value could be
+ *   correct: defaulting `SignedOut` would flash a sign-in row at an already-signed-in
+ *   player, and defaulting `SignedIn` is not even expressible without a player id. The
+ *   section costs nothing by appearing a frame late; it costs a lie by appearing wrong.
+ *   A player who never opted in is never `Unknown` for long — with the SDK untouched the
+ *   seam resolves straight to [GamesSignInState.SignedOut] (D-19).
+ * @property playGamesSignInErrorTick a monotonic ordinal incremented once per genuine SDK
+ *   sign-in error on the Settings row's path (D-10), consumed by the screen's
+ *   `LaunchedEffect(tick)` snackbar — the same one-shot-event idiom `HomeUiState`'s
+ *   `playGamesSignInErrorTick` and `GameUiState`'s `adMessageTick` use, because a repeated
+ *   identical error otherwise leaves no distinguishable state trace. Deliberately NOT
+ *   raised by a plain chooser dismissal: `signIn()` returning `false` is the player's own
+ *   cancel and stays silent. Starts at 0, which the screen's `> 0` guard reads as
+ *   "nothing to show".
  */
 @Immutable
 data class SettingsUiState(
     val soundOn: Boolean = true,
     val hapticsOn: Boolean = true,
     val privacyOptionsRequired: Boolean = false,
+    val gamesSignInState: GamesSignInState = GamesSignInState.Unknown,
+    val playGamesSignInErrorTick: Int = 0,
 )
