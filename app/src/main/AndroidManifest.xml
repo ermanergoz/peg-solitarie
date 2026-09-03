@@ -28,6 +28,26 @@
             </intent-filter>
         </activity>
 
+        <!-- CONS-01. This tag is a UMP requirement, NOT a GMA one, and the distinction is
+             the only reason it is not obviously redundant: the GMA Next-Gen SDK takes the
+             AdMob application ID programmatically through InitializationConfig (see
+             UmpConsentGateway), so nothing about MobileAds.initialize needs a manifest
+             entry. The User Messaging Platform SDK does read it from here, and its absence
+             produces a "missing application ID" crash on the first UMP call — which, since
+             consent runs before anything else, means at cold start.
+
+             The value is the GENERATED string resource, never a literal. app/build.gradle.kts
+             emits admob_app_id per build type via resValue(), so debug carries Google's test
+             app ID and release the real one with no plumbing here. An inline literal ID
+             would also fail the adIdLiteralCheck gate, which scans all of src/main — this
+             comment deliberately does not spell one out, for the same reason.
+
+             This is a <meta-data> and requests no permission: the merged permission set that
+             ManifestSurfaceTest asserts by equality is unchanged by it. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="@string/admob_app_id" />
+
         <!-- D-07, as corrected by D-17. play-services-games-v2 declares
              PlayGamesInitProvider (authority ${applicationId}.playgamesinitprovider,
              initOrder 99), and a ContentProvider at that init order runs before

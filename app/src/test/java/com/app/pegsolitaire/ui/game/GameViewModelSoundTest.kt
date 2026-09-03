@@ -13,6 +13,7 @@ import com.app.pegsolitaire.data.NewBests
 import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.data.SettingsRepository
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
+import com.app.pegsolitaire.domain.assist.AssistAllowanceLimits
 import com.app.pegsolitaire.domain.generator.LevelGenerator
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardSpec
@@ -31,6 +32,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -289,21 +292,44 @@ class GameViewModelSoundTest {
     @Test
     fun aDeclinedUndoGrantDoesNotTick() =
         runTest(testDispatcher) {
-            val viewModel =
-                viewModelFor(chainStrip(), adGateway = FixedAdGateway(RewardOutcome.Declined))
-            runCurrent()
+            try {
+                val viewModel =
+                    viewModelFor(chainStrip(), adGateway = FixedAdGateway(RewardOutcome.Declined))
+                runCurrent()
 
-            jump(viewModel, fromCol = 0, toCol = 2)
-            runCurrent()
+                // Plan 09-08 put a free allowance in front of the gateway (ADS-02), so a
+                // decline is only reachable past exhaustion. Each cycle plays one jump and
+                // takes it straight back, leaving the board where it started while spending
+                // one free undo — and every one of those undos DOES tick, because it really
+                // happened.
+                repeat(AssistAllowanceLimits.FREE_UNDOS) {
+                    jump(viewModel, fromCol = 0, toCol = 2)
+                    runCurrent()
+                    viewModel.onUndo()
+                    runCurrent()
+                }
+                val afterFreeUndos = viewModel.uiState.value.undoTick
+                assertThat(afterFreeUndos).isEqualTo(AssistAllowanceLimits.FREE_UNDOS)
 
-            viewModel.onUndo()
-            runCurrent()
+                jump(viewModel, fromCol = 0, toCol = 2)
+                runCurrent()
+                viewModel.onUndo()
+                runCurrent()
+                // The allowance is spent, so the tap raised the offer instead of undoing.
+                assertThat(viewModel.uiState.value.pendingAdOffer).isEqualTo(AdReason.UNDO)
 
-            // The undo never happened, so nothing may be heard.
-            assertThat(viewModel.uiState.value.undoTick).isEqualTo(0)
-            assertThat(viewModel.uiState.value.canUndo).isTrue()
+                viewModel.onAcceptAdOffer()
+                runCurrent()
 
-            cancelTickers()
+                // The undo never happened, so nothing may be heard.
+                assertThat(viewModel.uiState.value.undoTick).isEqualTo(afterFreeUndos)
+                assertThat(viewModel.uiState.value.canUndo).isTrue()
+            } finally {
+                // Load-bearing: the board stays Playing throughout, so a failing assertion
+                // that skipped this would leave the eager ticker live and `runTest`'s
+                // end-of-test drain would spin on virtual time instead of reporting.
+                cancelTickers()
+            }
         }
 
     // ---- No state rebuild fires a phantom cue (RESEARCH Pitfall 2) -----------
@@ -613,6 +639,10 @@ private object SoundSettings : SettingsRepository {
 private class FixedAdGateway(
     private val outcome: RewardOutcome,
 ) : AdGateway {
+    override val rewardedOfferable: StateFlow<Boolean> = MutableStateFlow(true).asStateFlow()
+
+    override fun preloadRewarded(reason: AdReason) = Unit
+
     override suspend fun requestRewarded(reason: AdReason): RewardOutcome = outcome
 
     override fun showInterstitial() = Unit

@@ -335,6 +335,8 @@ class ButtonSoundTest {
             onToggleHints = onToggleHints,
             onUndo = {},
             onHint = {},
+            onAcceptAdOffer = {},
+            onDismissAdOffer = {},
             onHome = {},
             onNavigateBack = onNavigateBack,
         )
