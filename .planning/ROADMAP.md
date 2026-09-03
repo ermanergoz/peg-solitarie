@@ -276,8 +276,23 @@ Plans:
   2. Player who declines, or whose device has no Play Games, can play every mode, every board, and every feature — social surfaces are hidden, never broken. (PGS-02)
   3. Player who was not signed in automatically can sign in from a Settings row that appears only when they are signed out. (PGS-03)
 
-**Plans**: TBD
-**Notes**: Can run in parallel with Phases 9-10 — it depends only on the Phase 6 Activity provider. PGS v2 has no sign-out and no sign-in wall; do not port v1 patterns. Sign-in is explicit opt-in (planning decision 2026-09-03): the Play Games SDK is never initialized until the player accepts the one-time prompt or taps the Settings row.
+**Plans**: 4 plans in 3 waves
+
+Plans:
+**Wave 1**
+
+- [ ] 11-01-PLAN.md — Seam contracts (bootstrapIfOptedIn, displayName), D-17 opt-in persistence, shared FakeGamesService
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 11-02-PLAN.md — PlayGamesService real implementation, manifest APP_ID, PlatformModule/MainActivity wiring
+- [ ] 11-03-PLAN.md — Home opt-in prompt (D-15/D-16/D-18): dialog, sequencing, snackbar
+
+**Wave 3** *(blocked on Wave 1 + Wave 2's 11-03 — shared strings.xml edits)*
+
+- [ ] 11-04-PLAN.md — Settings Play Games section (D-06/D-08/D-09/D-11/D-19): three-state row, manual sign-in
+
+**Notes**: Can run in parallel with Phases 9-10 — it depends only on the Phase 6 Activity provider. PGS v2 has no sign-out and no sign-in wall; do not port v1 patterns. Sign-in is explicit opt-in (planning decision 2026-09-03): the Play Games SDK is never initialized until the player accepts the one-time prompt or taps the Settings row. 11-02 and 11-03 run in parallel (no file overlap); 11-04 is sequenced after 11-03 only because both edit strings.xml, not because of a semantic dependency. Emulator sign-in verification (D-04) has no Play Console project yet and is recorded as pre-release checklist debt, not a plan blocker.
 
 ### Phase 12: Leaderboards & Achievements
 
