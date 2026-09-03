@@ -285,8 +285,8 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 11-02-PLAN.md — PlayGamesService real implementation, manifest APP_ID, PlatformModule/MainActivity wiring
-- [ ] 11-03-PLAN.md — Home opt-in prompt (D-15/D-16/D-18): dialog, sequencing, snackbar
+- [x] 11-02-PLAN.md — PlayGamesService real implementation, manifest APP_ID, PlatformModule/MainActivity wiring
+- [x] 11-03-PLAN.md — Home opt-in prompt (D-15/D-16/D-18): dialog, sequencing, snackbar
 
 **Wave 3** *(blocked on Wave 1 + Wave 2's 11-03 — shared strings.xml edits)*
 
@@ -361,7 +361,7 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 8. Assist & Generator Quality Debt | v1.1 | 12/12 | Complete   | 2026-08-30 |
 | 9. Consent & Rewarded Ads | v1.1 | 11/11 | Complete   | 2026-09-02 |
 | 10. Interstitials | v1.1 | 6/6 | Complete    | 2026-09-03 |
-| 11. Play Games Session | v1.1 | 1/4 | In Progress|  |
+| 11. Play Games Session | v1.1 | 3/4 | In Progress|  |
 | 12. Leaderboards & Achievements | v1.1 | 0/TBD | Not started | - |
 | 13. Cloud Save | v1.1 | 0/TBD | Not started | - |
 | 14. Release Readiness | v1.1 | 0/TBD | Not started | - |
