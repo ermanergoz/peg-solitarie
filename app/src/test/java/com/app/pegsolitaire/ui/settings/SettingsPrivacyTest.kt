@@ -70,6 +70,7 @@ class SettingsPrivacyTest {
                     state = SettingsUiState(privacyOptionsRequired = privacyOptionsRequired),
                     onToggleSound = {},
                     onToggleHaptics = {},
+                    onSignInToPlayGames = {},
                     onManagePrivacyChoices = onManagePrivacyChoices,
                     onBack = {},
                 )

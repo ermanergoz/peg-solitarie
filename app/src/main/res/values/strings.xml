@@ -241,4 +241,25 @@
       stands and the next launch retries silently.
     -->
     <string name="play_games_signin_error">Couldn\'t sign in to Play Games</string>
+
+    <!--
+      D-08/D-09 — the Settings "Play Games" section, between General and Privacy.
+
+      The row label and its supporting line are fixed verbatim by D-09 and must not be
+      reworded: they are the one place a player who declined (or was never asked) reads
+      what signing in actually buys them, and the three benefits named here are the same
+      three the opt-in prompt above names. A second, prettier wording here would quietly
+      make the two surfaces promise different things.
+
+      The signed-in row is a statement, not an offer, so it is not phrased as an action.
+      settings_play_games_signed_in_as carries the player's own Play Games display name;
+      settings_play_games_signed_in_fallback replaces it whole when that lookup failed or
+      stalled (D-14) — deliberately NOT "Signed in as (unknown)", which reads as a broken
+      sign-in rather than the successful one it is.
+    -->
+    <string name="settings_section_play_games">Play Games</string>
+    <string name="settings_play_games_signin_label">Sign in to Play Games</string>
+    <string name="settings_play_games_signin_supporting">Leaderboards, achievements and cloud save</string>
+    <string name="settings_play_games_signed_in_as">Signed in as %1$s</string>
+    <string name="settings_play_games_signed_in_fallback">Signed in to Play Games</string>
 </resources>
