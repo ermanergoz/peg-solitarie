@@ -277,6 +277,10 @@ class ButtonSoundTest {
             onResumeChallenge = {},
             onShowHowToPlay = onShowHowToPlay,
             onDismissOnboarding = {},
+            // Not exercised here: the opt-in prompt's own cues are asserted where the
+            // dialog is (PlayGamesPromptDialogTest); this helper renders Home's body.
+            onAcceptPlayGamesPrompt = {},
+            onDeclinePlayGamesPrompt = {},
             onOpenSettings = onOpenSettings,
         )
     }

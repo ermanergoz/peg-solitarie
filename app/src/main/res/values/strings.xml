@@ -228,4 +228,17 @@
     <string name="play_games_prompt_body">Compete on leaderboards, unlock achievements, and keep your progress backed up to the cloud. Peg Solitaire plays exactly the same either way — you can sign in later from Settings.</string>
     <string name="play_games_prompt_accept">Sign in</string>
     <string name="play_games_prompt_decline">Not now</string>
+
+    <!--
+      D-10 / D-18 — the ONE sign-in failure message, shared verbatim by the Home prompt's
+      accept path and the Settings sign-in row. Two strings here would be two wordings the
+      moment either is edited, for what is the same event seen from two places.
+
+      Raised ONLY when the SDK reports a genuine error. A player who simply dismissed the
+      account chooser sees nothing at all — apologising for their own choice is what makes
+      an optional feature feel like a failed mandatory one. Follows the shipped
+      settings_privacy_policy_error shape; no action label, because the opt-in already
+      stands and the next launch retries silently.
+    -->
+    <string name="play_games_signin_error">Couldn\'t sign in to Play Games</string>
 </resources>
