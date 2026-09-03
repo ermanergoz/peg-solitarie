@@ -60,10 +60,10 @@
 
 ### Interstitial Ads
 
-- [ ] **INT-01**: Player sees an interstitial only after tapping the Results continue action, never during the win celebration or at level start
-- [ ] **INT-02**: Interstitials are frequency-capped and suppressed during the first session and first levels of an install
-- [ ] **INT-03**: Interstitials never follow a lost or abandoned level
-- [ ] **INT-04**: A brief pause precedes an interstitial so a tap on the board cannot land on the ad
+- [x] **INT-01**: Player sees an interstitial only after tapping the Results continue action, never during the win celebration or at level start
+- [x] **INT-02**: Interstitials are frequency-capped and suppressed during the first session and first levels of an install
+- [x] **INT-03**: Interstitials never follow a lost or abandoned level
+- [x] **INT-04**: A brief pause precedes an interstitial so a tap on the board cannot land on the ad
 
 ### Ad-Safe Gameplay
 
@@ -178,10 +178,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ADS-04 | Phase 9 | Pending |
 | ADS-05 | Phase 9 | Pending |
 | ADS-06 | Phase 9 | Pending |
-| INT-01 | Phase 10 | Pending |
-| INT-02 | Phase 10 | Pending |
-| INT-03 | Phase 10 | Pending |
-| INT-04 | Phase 10 | Pending |
+| INT-01 | Phase 10 | Complete |
+| INT-02 | Phase 10 | Complete |
+| INT-03 | Phase 10 | Complete |
+| INT-04 | Phase 10 | Complete |
 | ADSF-01 | Phase 9 | Pending |
 | PGS-01 | Phase 11 | Pending |
 | PGS-02 | Phase 11 | Pending |
