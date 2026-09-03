@@ -482,7 +482,11 @@ private class RecordingAdGateway(
         return outcome
     }
 
-    override fun showInterstitial() = Unit
+    override val interstitialReady: StateFlow<Boolean> = MutableStateFlow(false).asStateFlow()
+
+    override fun preloadInterstitial() = Unit
+
+    override suspend fun showInterstitial(): Boolean = false
 }
 
 /** A [LevelRepository] serving one fixed board through Classic. */

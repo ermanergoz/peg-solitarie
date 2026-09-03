@@ -154,6 +154,11 @@ androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "l
 # require compileSdk 37 (uninstallable here); this artifact does not, so it is the
 # compileSdk-36-safe way to expose `androidx.lifecycle.ViewModel`.
 androidx-lifecycle-viewmodel = { group = "androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "androidxLifecycle" }
+# ProcessLifecycleOwner — whole-app foreground/background, for the D-04/D-16 session
+# boundary. `version.ref` and no new version key: this is a sibling of the artifacts
+# above inside the atomic group pinned at the `androidxLifecycle` declaration (see the
+# compileSdk-37 note there), and a hand-pinned version here would split that group.
+androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "androidxLifecycle" }
 
 # --- Navigation + serialization + persistence (Phase-2 NAV-02 / ONB-01) ---
 # Type-safe NavHost between Home / Catalog / Gameplay / Results destinations.
