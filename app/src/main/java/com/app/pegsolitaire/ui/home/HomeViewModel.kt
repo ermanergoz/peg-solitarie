@@ -10,6 +10,7 @@ import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.platform.games.GamesService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -197,14 +198,17 @@ class HomeViewModel
          *
          * `runCatching` rather than a `try`/`catch` around the whole body so a failure
          * cannot skip anything: `setOptedIn()` has already completed before the call it
-         * guards, and the guard covers exactly the one expression that may throw.
+         * guards, and the guard covers exactly the one expression that may throw. It also
+         * catches `CancellationException`, which is rethrown first (WR-04): a cancelled round
+         * trip is this scope being cleared, not an SDK error, and must not raise the tick.
          */
         fun onAcceptPlayGamesPrompt() {
             _uiState.update { it.copy(playGamesPromptVisible = false) }
             viewModelScope.launch {
                 optInRepository.setOptedIn()
                 runCatching { gamesService.signIn() }
-                    .onFailure {
+                    .onFailure { failure ->
+                        if (failure is CancellationException) throw failure
                         _uiState.update { state ->
                             state.copy(playGamesSignInErrorTick = state.playGamesSignInErrorTick + 1)
                         }

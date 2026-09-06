@@ -8,6 +8,7 @@ import com.app.pegsolitaire.data.SettingsRepository
 import com.app.pegsolitaire.platform.ads.consent.ConsentGateway
 import com.app.pegsolitaire.platform.games.GamesService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -181,7 +182,12 @@ class SettingsViewModel
          * change, so there is no optimistic local copy to be wrong.
          *
          * `runCatching` around the single call it guards rather than a `try`/`catch` over the
-         * whole body, so a failure cannot skip the persistence that has already completed.
+         * whole body, so a failure cannot skip the persistence that has already completed. It
+         * also catches `CancellationException`, which is rethrown first (WR-04): this
+         * ViewModel is cleared when Settings is popped, and a chooser still open at that
+         * moment cancels the round trip — a structured-concurrency cancel, not an SDK error,
+         * and not a reason to raise the tick.
+         *
          * The whole body is fire-and-forget from composition's point of view: the click
          * handler returns immediately and the suspending round trip runs in [viewModelScope],
          * never blocking the frame (T-11-13).
@@ -196,9 +202,12 @@ class SettingsViewModel
                 viewModelScope.launch {
                     optInRepository.setOptedIn()
                     runCatching { gamesService.signIn() }
-                        .onFailure {
+                        .onFailure { failure ->
+                            if (failure is CancellationException) throw failure
                             _uiState.update { state ->
-                                state.copy(playGamesSignInErrorTick = state.playGamesSignInErrorTick + 1)
+                                state.copy(
+                                    playGamesSignInErrorTick = state.playGamesSignInErrorTick + 1,
+                                )
                             }
                         }
                 }

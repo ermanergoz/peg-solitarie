@@ -26,6 +26,7 @@ import io.mockk.mockkStatic
 import io.mockk.runs
 import io.mockk.unmockkAll
 import io.mockk.verify
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -312,6 +313,21 @@ class PlayGamesServiceTest {
 
             assertThat(signedIn).isFalse()
             assertThat(service.session.value).isEqualTo(GamesSignInState.SignedOut)
+        }
+
+    @Test
+    fun aCancelledSignInIsRethrownUntouchedAndNeverWritesTheSession() =
+        runTest(testDispatcher) {
+            // WR-04: cancellation is the caller's structured-concurrency signal, not an SDK
+            // outcome. It must propagate as itself — not be classified, and not mutate the
+            // shared session on its way out.
+            every { signInClient.signIn() } returns Tasks.forCanceled()
+            val service = serviceFor(optedIn = false)
+
+            val thrown = runCatching { service.signIn() }.exceptionOrNull()
+
+            assertThat(thrown).isInstanceOf(CancellationException::class.java)
+            assertThat(service.session.value).isEqualTo(GamesSignInState.Unknown)
         }
 
     @Test

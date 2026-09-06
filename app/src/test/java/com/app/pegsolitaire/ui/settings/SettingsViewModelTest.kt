@@ -8,6 +8,7 @@ import com.app.pegsolitaire.platform.games.FakeGamesService
 import com.app.pegsolitaire.platform.games.GamesService
 import com.app.pegsolitaire.platform.games.GamesSignInState
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -266,6 +267,23 @@ class SettingsViewModelTest {
 
             viewModel.onPlayGamesSignInErrorShown()
 
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(0)
+        }
+
+    @Test
+    fun aCancelledSignInRoundTripNeverRaisesTheErrorTick() =
+        runTest(testDispatcher) {
+            // WR-04: popping Settings while the chooser is up cancels the round trip. That is
+            // this scope being cleared, not an SDK error — no tick, no snackbar.
+            val games = FakeGamesService(GamesSignInState.SignedOut)
+            games.signInBehavior = FakeGamesService.SignInBehavior.Error(CancellationException("popped"))
+            val viewModel = viewModelFor(FakeSettingsRepository(), games = games)
+            runCurrent()
+
+            viewModel.onSignInToPlayGames()
+            runCurrent()
+
+            assertThat(games.signInCallCount).isEqualTo(1)
             assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(0)
         }
 

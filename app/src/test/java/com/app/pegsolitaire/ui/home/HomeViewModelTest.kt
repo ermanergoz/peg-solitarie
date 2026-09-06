@@ -23,6 +23,7 @@ import com.app.pegsolitaire.platform.games.GamesService
 import com.google.common.truth.Truth.assertThat
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -443,6 +444,27 @@ class HomeViewModelTest {
 
             viewModel.onPlayGamesSignInErrorShown()
 
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(0)
+        }
+
+    @Test
+    fun aCancelledSignInRoundTripNeverRaisesTheErrorTick() =
+        runTest(testDispatcher) {
+            // WR-04: cancellation is this scope being cleared, not an SDK error — the
+            // runCatching around signIn() must not convert it into a snackbar.
+            val optIn = FakePlayGamesOptInRepository()
+            val games =
+                FakeGamesService().apply {
+                    signInBehavior = FakeGamesService.SignInBehavior.Error(CancellationException("cleared"))
+                }
+            val viewModel =
+                viewModelFor(FakeOnboardingRepository(initiallySeen = true), optIn = optIn, games = games)
+            runCurrent()
+
+            viewModel.onAcceptPlayGamesPrompt()
+            runCurrent()
+
+            assertThat(games.signInCallCount).isEqualTo(1)
             assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(0)
         }
 

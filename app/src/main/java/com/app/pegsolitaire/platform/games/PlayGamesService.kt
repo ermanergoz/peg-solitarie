@@ -8,6 +8,7 @@ import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.games.PlayGames
 import com.google.android.gms.games.PlayGamesSdk
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -191,7 +192,12 @@ class PlayGamesService
          * - a **successful** Task carrying `isAuthenticated == false` is the expected shape
          *   of a plain decline, and is reported as `false`, silently;
          * - a **failed** Task is reported as an error (thrown) unless it is identifiably an
-         *   `ApiException` in the [CommonStatusCodes.CANCELED] family.
+         *   `ApiException` in the [CommonStatusCodes.CANCELED] family;
+         * - a **cancelled** await — the calling coroutine being cancelled, e.g. a
+         *   `SettingsViewModel` cleared while the chooser is up — is neither: it is rethrown
+         *   untouched, before any classification and before the session is written, because
+         *   `runCatching` would otherwise turn a structured-concurrency cancel into "an SDK
+         *   error" (WR-04).
          *
          * The bias is deliberate: under-alerting leaves a player staring at a row that did
          * nothing, while over-alerting shows a snackbar every time someone changes their
@@ -235,6 +241,10 @@ class PlayGamesService
                         signedIn
                     },
                     onFailure = { failure ->
+                        // A cancelled await is the caller's structured-concurrency cancel,
+                        // not an SDK outcome: it is neither classified nor allowed to touch
+                        // the shared session (WR-04).
+                        if (failure is CancellationException) throw failure
                         _session.value = GamesSignInState.SignedOut
                         if ((failure as? ApiException)?.statusCode == CommonStatusCodes.CANCELED) {
                             false
