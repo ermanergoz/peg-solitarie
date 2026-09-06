@@ -8,6 +8,7 @@ import com.app.pegsolitaire.data.SettingsRepository
 import com.app.pegsolitaire.platform.ads.consent.ConsentGateway
 import com.app.pegsolitaire.platform.games.GamesService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -70,6 +71,19 @@ class SettingsViewModel
 
         /** Read-only state stream for the screen; the mutable flow never leaks. */
         val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+        /**
+         * The sign-in round trip currently in flight, if any — the row's re-entry guard
+         * (WR-03).
+         *
+         * The row stays rendered and enabled while `signIn()` is suspended, because the
+         * session is still `SignedOut` until the round trip resolves, so a double tap (or a
+         * tap during the squish replay) would otherwise launch two overlapping SDK sign-ins:
+         * two `initialize` calls, two account choosers queued, two writes to the session and,
+         * on failure, two identical snackbars. Home needs no equivalent — its dialog is hidden
+         * synchronously on the first tap.
+         */
+        private var signInJob: Job? = null
 
         init {
             viewModelScope.launch {
@@ -171,17 +185,23 @@ class SettingsViewModel
          * The whole body is fire-and-forget from composition's point of view: the click
          * handler returns immediately and the suspending round trip runs in [viewModelScope],
          * never blocking the frame (T-11-13).
+         *
+         * A tap while a previous round trip is still in flight is ignored ([signInJob], WR-03):
+         * the player's answer has already been taken, and the chooser it opened is the one
+         * that will resolve it.
          */
         fun onSignInToPlayGames() {
-            viewModelScope.launch {
-                optInRepository.setOptedIn()
-                runCatching { gamesService.signIn() }
-                    .onFailure {
-                        _uiState.update { state ->
-                            state.copy(playGamesSignInErrorTick = state.playGamesSignInErrorTick + 1)
+            if (signInJob?.isActive == true) return
+            signInJob =
+                viewModelScope.launch {
+                    optInRepository.setOptedIn()
+                    runCatching { gamesService.signIn() }
+                        .onFailure {
+                            _uiState.update { state ->
+                                state.copy(playGamesSignInErrorTick = state.playGamesSignInErrorTick + 1)
+                            }
                         }
-                    }
-            }
+                }
         }
 
         /**

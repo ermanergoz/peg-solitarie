@@ -185,6 +185,42 @@ class SettingsViewModelTest {
         }
 
     @Test
+    fun aSecondTapWhileASignInIsInFlightIsIgnored() =
+        runTest(testDispatcher) {
+            // WR-03: the row stays enabled while the round trip is suspended, so a double tap
+            // must not open two account choosers or write the session twice.
+            val optIn = FakePlayGamesOptInRepository()
+            val games = FakeGamesService(GamesSignInState.SignedOut)
+            val viewModel = viewModelFor(FakeSettingsRepository(), optIn = optIn, games = games)
+            runCurrent()
+
+            viewModel.onSignInToPlayGames()
+            viewModel.onSignInToPlayGames()
+            runCurrent()
+
+            assertThat(games.signInCallCount).isEqualTo(1)
+            assertThat(optIn.setOptedInCount).isEqualTo(1)
+        }
+
+    @Test
+    fun aTapAfterThePreviousSignInHasResolvedStartsANewOne() =
+        runTest(testDispatcher) {
+            // The guard is against overlap only (D-13): once a round trip has resolved, the
+            // row is a live re-entry point again.
+            val games = FakeGamesService(GamesSignInState.SignedOut)
+            games.signInBehavior = FakeGamesService.SignInBehavior.Decline
+            val viewModel = viewModelFor(FakeSettingsRepository(), games = games)
+            runCurrent()
+
+            viewModel.onSignInToPlayGames()
+            runCurrent()
+            viewModel.onSignInToPlayGames()
+            runCurrent()
+
+            assertThat(games.signInCallCount).isEqualTo(2)
+        }
+
+    @Test
     fun aSuccessfulManualSignInResolvesTheSessionThroughTheSeam() =
         runTest(testDispatcher) {
             val games = FakeGamesService(GamesSignInState.SignedOut)
