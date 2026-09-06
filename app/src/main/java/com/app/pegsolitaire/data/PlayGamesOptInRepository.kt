@@ -1,9 +1,11 @@
 package com.app.pegsolitaire.data
 
 import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -46,6 +48,10 @@ import javax.inject.Singleton
  * worst re-asks a dismissible question. It can never fabricate an opt-in the player did
  * not give, nor crash a launch.
  *
+ * Both **writes** fail open as well (WR-05, see [editFailOpen]): a write the store cannot
+ * complete is degraded to "not persisted" rather than thrown at a tap handler that has no
+ * handler of its own. The no-crash contract above is only true if it covers both halves.
+ *
  * The `@Inject internal` constructor takes the shared [DataStore] directly: Hilt provides
  * the single `app_prefs` store (see `DataModule`), so as a constructor-injectable
  * `@Singleton` this needs no `@Binds`/`@Provides` entry of its own. `open` (like
@@ -85,7 +91,7 @@ open class PlayGamesOptInRepository
          * SDK stays untouched on every later launch (D-17).
          */
         open suspend fun setNotNow() {
-            dataStore.edit {
+            editFailOpen {
                 it[PlayGamesPreferences.PROMPT_ANSWERED_KEY] = true
                 it[PlayGamesPreferences.OPTED_IN_KEY] = false
             }
@@ -98,9 +104,30 @@ open class PlayGamesOptInRepository
          * previously declined is fully opted back in, not left on the old "Not now".
          */
         open suspend fun setOptedIn() {
-            dataStore.edit {
+            editFailOpen {
                 it[PlayGamesPreferences.PROMPT_ANSWERED_KEY] = true
                 it[PlayGamesPreferences.OPTED_IN_KEY] = true
             }
+        }
+
+        /**
+         * One atomic edit whose failure degrades to "not persisted" (WR-05).
+         *
+         * `DataStore.edit` throws `IOException` when the write fails — a full disk, a corrupt
+         * file, an I/O error — and every caller here is a fire-and-forget
+         * `viewModelScope.launch` from a tap ("Not now", "Sign in", the Settings row) with no
+         * handler of its own, so an unguarded write would take the process down with it. On
+         * the accept path it would do so with the prompt already hidden and *before*
+         * `signIn()`, and the next launch would re-ask and crash on the same tap while the
+         * disk condition persists. Applied here rather than at the call sites so every caller
+         * inherits the policy: the tap still does what the player can see, the flags simply
+         * do not survive the launch, and the worst case is the harmless question again.
+         *
+         * Cancellation is rethrown, not swallowed: it is the caller's structured-concurrency
+         * signal, never a write failure.
+         */
+        private suspend fun editFailOpen(transform: suspend (MutablePreferences) -> Unit) {
+            runCatching { dataStore.edit(transform) }
+                .onFailure { if (it is CancellationException) throw it }
         }
     }

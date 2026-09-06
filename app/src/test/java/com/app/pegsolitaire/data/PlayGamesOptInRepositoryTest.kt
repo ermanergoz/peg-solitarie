@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
@@ -95,17 +96,54 @@ class PlayGamesOptInRepositoryTest {
             assertThat(repository.optedIn.first()).isFalse()
         }
 
+    @Test
+    fun bothWritesFailOpenWhenTheStoreCannotBeWritten() =
+        runTest {
+            // WR-05: a full disk or a corrupt file must never crash "Not now", "Sign in" or
+            // the Settings row — each is a fire-and-forget tap with no handler of its own.
+            // The flags simply do not survive the launch, which at worst re-asks the question.
+            val repository = PlayGamesOptInRepository(throwingDataStore())
+
+            repository.setNotNow()
+            repository.setOptedIn()
+
+            // Nothing was persisted, and — the claim under test — nothing was thrown.
+            assertThat(repository.promptAnswered.first()).isFalse()
+            assertThat(repository.optedIn.first()).isFalse()
+        }
+
+    @Test
+    fun aCancelledWriteStillPropagatesAsCancellation() =
+        runTest {
+            // The fail-open guard must not swallow the caller's own cancellation signal.
+            val repository = PlayGamesOptInRepository(cancellingDataStore())
+
+            val thrown = runCatching { repository.setOptedIn() }.exceptionOrNull()
+
+            assertThat(thrown).isInstanceOf(CancellationException::class.java)
+        }
+
     private fun realDataStore(): DataStore<Preferences> =
         PreferenceDataStoreFactory.create(
             produceFile = { tempFolder.newFile(TEST_STORE_FILE) },
         )
 
+    /** A store that fails every read AND every write with the I/O error DataStore reports. */
     private fun throwingDataStore(): DataStore<Preferences> =
         object : DataStore<Preferences> {
             override val data: Flow<Preferences> = flow { throw IOException("corrupt store") }
 
             override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
-                error("not used in the read path")
+                throw IOException("disk full")
+        }
+
+    /** A store whose write is cancelled underneath the caller. */
+    private fun cancellingDataStore(): DataStore<Preferences> =
+        object : DataStore<Preferences> {
+            override val data: Flow<Preferences> = flow { throw IOException("corrupt store") }
+
+            override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
+                throw CancellationException("cancelled underneath the write")
         }
 
     private companion object {
