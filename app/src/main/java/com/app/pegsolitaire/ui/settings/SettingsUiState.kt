@@ -45,14 +45,15 @@ import com.app.pegsolitaire.platform.games.GamesSignInState
  *   section costs nothing by appearing a frame late; it costs a lie by appearing wrong.
  *   A player who never opted in is never `Unknown` for long — with the SDK untouched the
  *   seam resolves straight to [GamesSignInState.SignedOut] (D-19).
- * @property playGamesSignInErrorTick a monotonic ordinal incremented once per genuine SDK
- *   sign-in error on the Settings row's path (D-10), consumed by the screen's
- *   `LaunchedEffect(tick)` snackbar — the same one-shot-event idiom `HomeUiState`'s
- *   `playGamesSignInErrorTick` and `GameUiState`'s `adMessageTick` use, because a repeated
- *   identical error otherwise leaves no distinguishable state trace. Deliberately NOT
- *   raised by a plain chooser dismissal: `signIn()` returning `false` is the player's own
- *   cancel and stays silent. Starts at 0, which the screen's `> 0` guard reads as
- *   "nothing to show".
+ * @property playGamesSignInErrorTick a one-shot ordinal raised once per genuine SDK
+ *   sign-in error on the Settings row's path (D-10) and consumed back to 0 by the screen
+ *   through `SettingsViewModel.onPlayGamesSignInErrorShown` the moment its snackbar is
+ *   raised — the same consumed-event idiom `HomeUiState`'s `playGamesSignInErrorTick`
+ *   uses, so a rotation after a failed tap does not announce the failure twice (CR-01).
+ *   An ordinal rather than a `Boolean` for the reason `GameUiState`'s `adMessageTick` is
+ *   one: a repeated identical error must leave a distinguishable state trace. Deliberately
+ *   NOT raised by a plain chooser dismissal: `signIn()` returning `false` is the player's
+ *   own cancel and stays silent. Starts at 0, which the screen reads as "nothing to show".
  */
 @Immutable
 data class SettingsUiState(

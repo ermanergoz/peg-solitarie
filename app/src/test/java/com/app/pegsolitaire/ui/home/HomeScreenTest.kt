@@ -135,6 +135,7 @@ class HomeScreenTest {
                 onDismissOnboarding = {},
                 onAcceptPlayGamesPrompt = {},
                 onDeclinePlayGamesPrompt = {},
+                onPlayGamesSignInErrorShown = {},
                 onOpenSettings = {},
             )
         }
@@ -150,11 +151,53 @@ class HomeScreenTest {
     @Test
     fun aSignInErrorTickOfZeroIsNeverShown() {
         // The phantom-cue guard (the T-09-40 shape, on Home this time): a freshly composed
-        // Home sits at tick 0. Drop the `> 0` check in the effect and every visit to Home
-        // opens by apologising for a sign-in the player never attempted.
+        // Home sits at tick 0 — and, once consumed, RETURNS to 0 (CR-01). Show on 0 and every
+        // visit to Home opens by apologising for a sign-in the player never attempted.
         renderHome(state = HomeUiState(playGamesSignInErrorTick = 0))
 
         composeRule.onNodeWithText(signInErrorMessage).assertDoesNotExist()
+    }
+
+    @Test
+    fun aShownSignInErrorIsConsumedAndDoesNotReplayWhenHomeReEntersComposition() {
+        // CR-01: HomeViewModel outlives every visit to Home, so the screen must hand the
+        // ordinal back the moment it shows it. The callback here plays the ViewModel's part
+        // (resetting the tick); leaving and re-entering composition plays a forward
+        // navigation and its pop. The second visit must be silent.
+        val state = mutableStateOf(HomeUiState(playGamesSignInErrorTick = FIRST_ERROR_TICK))
+        val hosted = mutableStateOf(true)
+        var shownCount = 0
+        composeRule.setContent {
+            if (hosted.value) {
+                HomeScreen(
+                    state = state.value,
+                    onPlayClassic = {},
+                    onPlayChallenge = {},
+                    onResumeClassic = {},
+                    onResumeChallenge = {},
+                    onShowHowToPlay = {},
+                    onDismissOnboarding = {},
+                    onAcceptPlayGamesPrompt = {},
+                    onDeclinePlayGamesPrompt = {},
+                    onPlayGamesSignInErrorShown = {
+                        shownCount++
+                        state.value = state.value.copy(playGamesSignInErrorTick = 0)
+                    },
+                    onOpenSettings = {},
+                )
+            }
+        }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText(signInErrorMessage).assertIsDisplayed()
+        assertThat(shownCount).isEqualTo(1)
+
+        hosted.value = false
+        composeRule.waitForIdle()
+        hosted.value = true
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText(signInErrorMessage).assertDoesNotExist()
+        assertThat(shownCount).isEqualTo(1)
     }
 
     private fun renderHome(
@@ -174,6 +217,7 @@ class HomeScreenTest {
                 onDismissOnboarding = {},
                 onAcceptPlayGamesPrompt = {},
                 onDeclinePlayGamesPrompt = {},
+                onPlayGamesSignInErrorShown = {},
                 onOpenSettings = {},
             )
         }

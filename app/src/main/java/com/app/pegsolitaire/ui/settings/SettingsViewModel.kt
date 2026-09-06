@@ -183,4 +183,18 @@ class SettingsViewModel
                     }
             }
         }
+
+        /**
+         * The screen's acknowledgement that the [SettingsUiState.playGamesSignInErrorTick]
+         * snackbar has been raised — resets the ordinal to 0, so the error is a consumed
+         * one-shot event rather than standing state (CR-01).
+         *
+         * Less exposed than `HomeViewModel`'s counterpart, because this ViewModel is cleared
+         * when Settings is popped, but the same replay exists within one visit: a rotation
+         * after a failed tap recomposes the screen, and an unconsumed ordinal would announce
+         * the failure a second time. Same shape as Home so the two entry points cannot drift.
+         */
+        fun onPlayGamesSignInErrorShown() {
+            _uiState.update { it.copy(playGamesSignInErrorTick = 0) }
+        }
     }

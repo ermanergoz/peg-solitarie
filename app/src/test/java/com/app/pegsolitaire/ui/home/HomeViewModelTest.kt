@@ -428,6 +428,25 @@ class HomeViewModelTest {
         }
 
     @Test
+    fun theScreenConsumesAShownSignInErrorSoItCannotReplay() =
+        runTest(testDispatcher) {
+            // CR-01: this ViewModel outlives every visit to Home, so a shown error must be
+            // handed back and reset — otherwise every later return to Home replays it.
+            val optIn = FakePlayGamesOptInRepository()
+            val games = FakeGamesService().apply { signInBehavior = FakeGamesService.SignInBehavior.Error() }
+            val viewModel =
+                viewModelFor(FakeOnboardingRepository(initiallySeen = true), optIn = optIn, games = games)
+            runCurrent()
+            viewModel.onAcceptPlayGamesPrompt()
+            runCurrent()
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(1)
+
+            viewModel.onPlayGamesSignInErrorShown()
+
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(0)
+        }
+
+    @Test
     fun aPlainChooserDismissalStaysSilent() =
         runTest(testDispatcher) {
             // D-18 / D-10 parity: signIn() returning false is a player-initiated cancel,

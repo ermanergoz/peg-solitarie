@@ -281,6 +281,7 @@ class ButtonSoundTest {
             // dialog is (PlayGamesPromptDialogTest); this helper renders Home's body.
             onAcceptPlayGamesPrompt = {},
             onDeclinePlayGamesPrompt = {},
+            onPlayGamesSignInErrorShown = {},
             onOpenSettings = onOpenSettings,
         )
     }

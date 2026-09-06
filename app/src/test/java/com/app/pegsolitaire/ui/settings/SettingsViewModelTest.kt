@@ -216,6 +216,24 @@ class SettingsViewModelTest {
         }
 
     @Test
+    fun theScreenConsumesAShownSignInErrorSoARotationCannotReplayIt() =
+        runTest(testDispatcher) {
+            // CR-01: once the snackbar is raised the ordinal is handed back and reset, so a
+            // recomposition under this same ViewModel finds nothing to announce.
+            val games = FakeGamesService(GamesSignInState.SignedOut)
+            games.signInBehavior = FakeGamesService.SignInBehavior.Error()
+            val viewModel = viewModelFor(FakeSettingsRepository(), games = games)
+            runCurrent()
+            viewModel.onSignInToPlayGames()
+            runCurrent()
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(1)
+
+            viewModel.onPlayGamesSignInErrorShown()
+
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(0)
+        }
+
+    @Test
     fun aDeclinedSignInIsSilentAndLeavesTheRowInPlace() =
         runTest(testDispatcher) {
             // D-10/D-13: a plain chooser dismissal is the player's own cancel — no snackbar,

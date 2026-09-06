@@ -213,6 +213,22 @@ class HomeViewModel
         }
 
         /**
+         * The screen's acknowledgement that the [HomeUiState.playGamesSignInErrorTick]
+         * snackbar has been raised — resets the ordinal to 0, so the error is a consumed
+         * one-shot event rather than standing state (CR-01).
+         *
+         * Home is the `NavHost` start destination, so this ViewModel — and the tick — lives
+         * for the whole process, while `HomeScreen` leaves composition on every forward
+         * navigation and re-enters on every pop and every configuration change. Left
+         * standing, one genuine failure would be re-announced on every later visit to Home
+         * for the rest of the session. The screen calls this the moment it starts showing
+         * the message, so a re-entry during or after the show finds nothing to replay.
+         */
+        fun onPlayGamesSignInErrorShown() {
+            _uiState.update { it.copy(playGamesSignInErrorTick = 0) }
+        }
+
+        /**
          * The prompt's "Not now" action, a tap outside it, or system back (D-16): persist
          * the answer and hide it, permanently (D-17).
          *

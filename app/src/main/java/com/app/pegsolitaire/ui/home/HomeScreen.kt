@@ -39,6 +39,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -58,6 +60,7 @@ import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.ctaGradientBrush
 import com.app.pegsolitaire.ui.theme.goldGradientFill
 import com.app.pegsolitaire.ui.theme.rememberAnimationsEnabled
+import kotlinx.coroutines.flow.first
 
 /**
  * The stateless Home mode-select screen (NAV-01, D-09/D-10/D-14/D-15), in the
@@ -101,6 +104,9 @@ import com.app.pegsolitaire.ui.theme.rememberAnimationsEnabled
  * @param onAcceptPlayGamesPrompt the player chose to sign in to Play Games (D-18).
  * @param onDeclinePlayGamesPrompt the player chose "Not now", tapped outside the prompt,
  *   or pressed back (D-16) — all one answer, and a permanent one (D-17).
+ * @param onPlayGamesSignInErrorShown the D-18 error snackbar has been raised for the
+ *   current [HomeUiState.playGamesSignInErrorTick]; the ViewModel consumes the ordinal so a
+ *   later re-entry to Home does not replay it (CR-01).
  * @param onOpenSettings opens the Settings destination from the top-bar gear (Phase-5
  *   D-14); a hoisted lambda supplied by `AppNavHost` — the screen never sees a controller.
  * @param modifier layout modifier for the screen.
@@ -117,6 +123,7 @@ fun HomeScreen(
     onDismissOnboarding: () -> Unit,
     onAcceptPlayGamesPrompt: () -> Unit,
     onDeclinePlayGamesPrompt: () -> Unit,
+    onPlayGamesSignInErrorShown: () -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -124,6 +131,7 @@ fun HomeScreen(
     PlayGamesSignInErrorSnackbarEffect(
         errorTick = state.playGamesSignInErrorTick,
         hostState = snackbarHostState,
+        onErrorShown = onPlayGamesSignInErrorShown,
     )
 
     Scaffold(
@@ -170,38 +178,62 @@ fun HomeScreen(
 }
 
 /**
- * Shows the D-18 sign-in error once per [errorTick] increment — the same one-shot-event
- * idiom `GameScreen`'s `AdMessageSnackbarEffect` uses, and for the same reason: the
- * message is identical every time, so re-showing it can only be keyed on a monotonic
- * ordinal. A nullable "current message" would leave no distinguishable state trace
- * between two consecutive failures.
+ * Shows the D-18 sign-in error once per raised [errorTick], handing the ordinal back through
+ * [onErrorShown] so it is consumed rather than left standing — the same one-shot-event idiom
+ * `GameScreen`'s `AdMessageSnackbarEffect` uses, and for the same reason: the message is
+ * identical every time, so a nullable "current message" would leave no distinguishable state
+ * trace between two consecutive failures.
  *
- * The `> 0` guard is required, not defensive. Without it a freshly-composed Home at tick 0
- * fires on its very first frame, telling the player sign-in failed for a sign-in they
- * never asked for — the exact phantom-cue bug T-09-40 records on the gameplay side.
+ * ## Why the ordinal is consumed (CR-01)
+ *
+ * `HomeViewModel` is obtained on the `NavHost` start destination and lives for the whole
+ * process, while this screen leaves composition on every forward navigation and re-enters on
+ * every pop and every configuration change. A `LaunchedEffect` runs its block whenever it
+ * *enters* composition with a given key — not only when the key changes — so an unconsumed
+ * tick would re-announce one genuine failure on every later visit to Home for the rest of the
+ * session: the phantom-cue bug T-09-40 records on the gameplay side. The `> 0` guard only
+ * ever covered the never-failed case.
+ *
+ * ## Why the effect is not keyed on the tick
+ *
+ * Consuming the tick moves it back to 0, and an effect keyed on the tick would be cancelled
+ * by that very change; `SnackbarHostState.showSnackbar` clears its message on cancellation,
+ * so the snackbar would vanish the frame it appeared. The effect is keyed on the host and the
+ * text instead, and reads the ordinal through a [rememberUpdatedState] mirror: it waits for
+ * the next positive value, consumes it, shows, and waits again — so a failure raised while the
+ * message is still up is announced right after it, and a re-entry finds a consumed 0 and
+ * shows nothing.
  *
  * The text is resolved with [stringResource] **in composition** rather than through
  * `LocalContext.current.getString(...)` inside the effect: `LocalContext` reads are not
  * invalidated by a `Configuration` change, so the latter can hand a stale-locale string to
  * the snackbar, and the pinned Compose BOM fails the build on it
- * (`LocalContextGetResourceValueCall`). Keying on the ordinal alone means a locale change
- * re-resolves the text without re-showing a message already seen.
+ * (`LocalContextGetResourceValueCall`). Keying the effect on that text means a locale change
+ * re-resolves it without re-showing a message already consumed.
  *
  * [SnackbarDuration.Short] and no action: the opt-in stands regardless, the next launch
  * retries silently, and the Settings row is available meanwhile — there is nothing here
  * for the player to do.
  *
- * @param errorTick the monotonic ordinal `HomeViewModel` bumps on a genuine SDK error.
+ * @param errorTick the ordinal `HomeViewModel` raises on a genuine SDK error and resets on
+ *   [onErrorShown].
  * @param hostState the snackbar queue hoisted by the screen's `Scaffold`.
+ * @param onErrorShown consumes the ordinal — called the moment the message is raised, before
+ *   the show suspends, so a re-entry mid-show does not replay it.
  */
 @Composable
 private fun PlayGamesSignInErrorSnackbarEffect(
     errorTick: Int,
     hostState: SnackbarHostState,
+    onErrorShown: () -> Unit,
 ) {
     val message = stringResource(R.string.play_games_signin_error)
-    LaunchedEffect(errorTick) {
-        if (errorTick > 0) {
+    val latestTick by rememberUpdatedState(errorTick)
+    val latestOnErrorShown by rememberUpdatedState(onErrorShown)
+    LaunchedEffect(hostState, message) {
+        while (true) {
+            snapshotFlow { latestTick }.first { it > 0 }
+            latestOnErrorShown()
             hostState.showSnackbar(
                 message = message,
                 duration = SnackbarDuration.Short,

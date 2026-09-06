@@ -32,8 +32,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -48,6 +51,7 @@ import com.app.pegsolitaire.ui.components.ClaySnackbarHost
 import com.app.pegsolitaire.ui.theme.clayEntrance
 import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -96,6 +100,9 @@ import kotlinx.coroutines.launch
  * @param onToggleHaptics persists the new haptics choice (SET-02).
  * @param onSignInToPlayGames signs the player in to Play Games and records the opt-in
  *   (PGS-03, D-10/D-19). Reached only from the signed-out row.
+ * @param onPlayGamesSignInErrorShown the D-10 error snackbar has been raised for the current
+ *   [SettingsUiState.playGamesSignInErrorTick]; the ViewModel consumes the ordinal so a
+ *   rotation does not replay it (CR-01).
  * @param onManagePrivacyChoices opens the UMP privacy-options form (CONS-03).
  * @param onBack leaves Settings (top-bar back nav → pops to Home).
  * @param modifier layout modifier for the screen.
@@ -107,6 +114,7 @@ fun SettingsScreen(
     onToggleSound: (Boolean) -> Unit,
     onToggleHaptics: (Boolean) -> Unit,
     onSignInToPlayGames: () -> Unit,
+    onPlayGamesSignInErrorShown: () -> Unit,
     onManagePrivacyChoices: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
@@ -118,6 +126,7 @@ fun SettingsScreen(
     PlayGamesSignInErrorSnackbarEffect(
         errorTick = state.playGamesSignInErrorTick,
         hostState = snackbarHostState,
+        onErrorShown = onPlayGamesSignInErrorShown,
     )
 
     Scaffold(
@@ -282,14 +291,21 @@ private fun PlayGamesSection(
 }
 
 /**
- * Shows the D-10 sign-in error once per [errorTick] increment — the same one-shot-event
- * idiom `HomeScreen`'s `PlayGamesSignInErrorSnackbarEffect` uses, against the same
- * `play_games_signin_error` string, because it is the same event seen from the app's other
- * sign-in entry point. A second string resource for it would be two wordings for one failure
- * the moment either was edited.
+ * Shows the D-10 sign-in error once per raised [errorTick] and hands the ordinal back
+ * through [onErrorShown] — the same consumed one-shot-event idiom `HomeScreen`'s
+ * `PlayGamesSignInErrorSnackbarEffect` uses, against the same `play_games_signin_error`
+ * string, because it is the same event seen from the app's other sign-in entry point. A
+ * second string resource for it would be two wordings for one failure the moment either was
+ * edited.
  *
- * The `> 0` guard is required, not defensive: without it a freshly-composed Settings sits at
- * tick 0 and fires on its first frame, apologising for a sign-in the player never attempted.
+ * Consumed rather than left standing (CR-01): a `LaunchedEffect` runs its block whenever it
+ * *enters* composition with a given key, so an unconsumed tick would re-announce one failure
+ * on every recomposition of this screen — a rotation after a failed tap, here. And the effect
+ * is keyed on the host and the text rather than on the tick, because consuming the tick moves
+ * it to 0 and an effect keyed on it would be cancelled by that change — which clears the
+ * snackbar the frame it appeared. It waits for the next positive ordinal through a
+ * [rememberUpdatedState] mirror, consumes it, shows, and waits again; a fresh composition
+ * finds a consumed 0 and shows nothing, so no `> 0` opening guard is needed.
  *
  * The text is resolved with [stringResource] **in composition** rather than through
  * `LocalContext.current.getString(...)` inside the effect — `LocalContext` reads are not
@@ -299,17 +315,25 @@ private fun PlayGamesSection(
  * [SnackbarDuration.Short] and no action: the opt-in already stands, the next launch retries
  * silently, and the row is still right there — there is nothing for the player to do here.
  *
- * @param errorTick the monotonic ordinal `SettingsViewModel` bumps on a genuine SDK error.
+ * @param errorTick the ordinal `SettingsViewModel` raises on a genuine SDK error and resets
+ *   on [onErrorShown].
  * @param hostState the snackbar queue hoisted by the screen's `Scaffold`.
+ * @param onErrorShown consumes the ordinal — called the moment the message is raised, before
+ *   the show suspends, so a recomposition mid-show does not replay it.
  */
 @Composable
 private fun PlayGamesSignInErrorSnackbarEffect(
     errorTick: Int,
     hostState: SnackbarHostState,
+    onErrorShown: () -> Unit,
 ) {
     val message = stringResource(R.string.play_games_signin_error)
-    LaunchedEffect(errorTick) {
-        if (errorTick > 0) {
+    val latestTick by rememberUpdatedState(errorTick)
+    val latestOnErrorShown by rememberUpdatedState(onErrorShown)
+    LaunchedEffect(hostState, message) {
+        while (true) {
+            snapshotFlow { latestTick }.first { it > 0 }
+            latestOnErrorShown()
             hostState.showSnackbar(
                 message = message,
                 duration = SnackbarDuration.Short,

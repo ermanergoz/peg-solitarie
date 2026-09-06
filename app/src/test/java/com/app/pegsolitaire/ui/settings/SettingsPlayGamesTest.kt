@@ -59,6 +59,7 @@ class SettingsPlayGamesTest {
                     onToggleSound = {},
                     onToggleHaptics = {},
                     onSignInToPlayGames = onSignInToPlayGames,
+                    onPlayGamesSignInErrorShown = {},
                     onManagePrivacyChoices = {},
                     onBack = {},
                 )
@@ -192,6 +193,7 @@ class SettingsPlayGamesTest {
                     onToggleSound = {},
                     onToggleHaptics = {},
                     onSignInToPlayGames = {},
+                    onPlayGamesSignInErrorShown = {},
                     onManagePrivacyChoices = {},
                     onBack = {},
                 )
@@ -208,11 +210,58 @@ class SettingsPlayGamesTest {
 
     @Test
     fun aSignInErrorTickOfZeroIsNeverShown() {
-        // The phantom-cue guard: a freshly composed Settings sits at tick 0. Drop the
-        // `> 0` check and every visit opens by apologising for a sign-in never attempted.
+        // The phantom-cue guard: a freshly composed Settings sits at tick 0 — and, once
+        // consumed, returns to 0 (CR-01). Show on 0 and every visit opens by apologising for
+        // a sign-in never attempted.
         setContent(GamesSignInState.SignedOut)
 
         composeRule.onNodeWithText(signInError).assertDoesNotExist()
+    }
+
+    @Test
+    fun aShownSignInErrorIsConsumedAndDoesNotReplayWhenTheScreenRecomposesFromScratch() {
+        // CR-01: the screen hands the ordinal back the moment it shows it. The callback here
+        // plays the ViewModel's part (resetting the tick); leaving and re-entering composition
+        // plays a configuration change under a ViewModel that survives it. The second
+        // composition must be silent.
+        val state =
+            mutableStateOf(
+                SettingsUiState(
+                    gamesSignInState = GamesSignInState.SignedOut,
+                    playGamesSignInErrorTick = FIRST_ERROR_TICK,
+                ),
+            )
+        val hosted = mutableStateOf(true)
+        var shownCount = 0
+        composeRule.setContent {
+            AppTheme {
+                if (hosted.value) {
+                    SettingsScreen(
+                        state = state.value,
+                        onToggleSound = {},
+                        onToggleHaptics = {},
+                        onSignInToPlayGames = {},
+                        onPlayGamesSignInErrorShown = {
+                            shownCount++
+                            state.value = state.value.copy(playGamesSignInErrorTick = 0)
+                        },
+                        onManagePrivacyChoices = {},
+                        onBack = {},
+                    )
+                }
+            }
+        }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText(signInError).assertIsDisplayed()
+        assertThat(shownCount).isEqualTo(1)
+
+        hosted.value = false
+        composeRule.waitForIdle()
+        hosted.value = true
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText(signInError).assertDoesNotExist()
+        assertThat(shownCount).isEqualTo(1)
     }
 
     @Test
@@ -232,6 +281,7 @@ class SettingsPlayGamesTest {
                     onToggleSound = {},
                     onToggleHaptics = {},
                     onSignInToPlayGames = {},
+                    onPlayGamesSignInErrorShown = {},
                     onManagePrivacyChoices = {},
                     onBack = {},
                 )

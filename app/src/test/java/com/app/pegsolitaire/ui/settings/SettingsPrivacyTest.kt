@@ -71,6 +71,7 @@ class SettingsPrivacyTest {
                     onToggleSound = {},
                     onToggleHaptics = {},
                     onSignInToPlayGames = {},
+                    onPlayGamesSignInErrorShown = {},
                     onManagePrivacyChoices = onManagePrivacyChoices,
                     onBack = {},
                 )

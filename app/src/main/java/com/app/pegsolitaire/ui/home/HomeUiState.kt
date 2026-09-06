@@ -36,13 +36,17 @@ import com.app.pegsolitaire.data.ChallengeProgressPreferences
  *   onboarding has been seen AND the question is still unanswered, and it is `false`
  *   forever after either answer (D-17). Nothing sets it back to `true`; there is no
  *   per-session re-ask.
- * @property playGamesSignInErrorTick a monotonic ordinal incremented once per genuine
- *   SDK sign-in error on the accept path (D-18), consumed by the screen's
- *   `LaunchedEffect(tick)` snackbar — the same one-shot-event idiom `GameUiState`'s
- *   `adMessageTick` uses, because a repeated identical error otherwise leaves no
+ * @property playGamesSignInErrorTick a one-shot ordinal raised once per genuine SDK
+ *   sign-in error on the accept path (D-18) and consumed back to 0 by the screen through
+ *   `HomeViewModel.onPlayGamesSignInErrorShown` the moment its snackbar is raised. It is
+ *   consumed rather than left standing because this ViewModel outlives every visit to
+ *   Home: `HomeScreen` re-enters composition on every return from a forward destination
+ *   and on every configuration change, and an unconsumed ordinal would re-announce one
+ *   failure on each of them (CR-01). An ordinal rather than a `Boolean` for the same
+ *   reason `GameUiState`'s `adMessageTick` is one: two consecutive failures must leave a
  *   distinguishable state trace. Deliberately NOT raised by a plain chooser dismissal:
  *   `signIn()` returning `false` is a player's own cancel and stays silent (D-10 parity).
- *   Starts at 0, which the screen's `> 0` guard reads as "nothing to show".
+ *   Starts at 0, which the screen reads as "nothing to show".
  */
 @Immutable
 data class HomeUiState(
