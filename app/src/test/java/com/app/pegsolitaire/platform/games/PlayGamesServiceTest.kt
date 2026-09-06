@@ -87,6 +87,9 @@ class PlayGamesServiceTest {
         every { PlayGames.getPlayersClient(any()) } returns playersClient
         every { activity.applicationContext } returns mockk<Context>()
         coEvery { activityProvider.awaitActivity() } returns activity
+        // Nothing resumed after the await unless a test says otherwise, so the post-await
+        // lookups fall back to the captured instance (WR-01's fallback branch).
+        every { activityProvider.current } returns null
         every { playersClient.getCurrentPlayerId() } returns Tasks.forResult(PLAYER_ID)
         every { playersClient.getCurrentPlayer() } returns Tasks.forResult(player())
         every { signInClient.isAuthenticated() } returns Tasks.forResult(authentication(true))
@@ -277,6 +280,55 @@ class PlayGamesServiceTest {
 
             assertThat(thrown).isInstanceOf(RuntimeException::class.java)
             assertThat(service.session.value).isEqualTo(GamesSignInState.SignedOut)
+        }
+
+    @Test
+    fun signInResolvesThePlayerAgainstTheActivityResumedAfterTheChooser() =
+        runTest(testDispatcher) {
+            // WR-01: the chooser is its own Activity, and a rotation while it is up destroys
+            // the instance captured before the await. The player lookups must use whatever is
+            // resumed once the round trip is back, or a SUCCESSFUL sign-in reads as a decline.
+            val recreated = mockk<Activity>()
+            every { activityProvider.current } returns recreated
+            val service = serviceFor(optedIn = false)
+
+            val signedIn = service.signIn()
+
+            assertThat(signedIn).isTrue()
+            verify(exactly = 1) { PlayGames.getGamesSignInClient(activity) }
+            verify(exactly = 2) { PlayGames.getPlayersClient(recreated) }
+            verify(exactly = 0) { PlayGames.getPlayersClient(activity) }
+        }
+
+    @Test
+    fun signInFallsBackToTheCapturedActivityWhileNothingNewerIsResumed() =
+        runTest(testDispatcher) {
+            // The provider publishes null between a pause and the next resume; in that window
+            // the captured instance is still the right (and only) one to use.
+            every { activityProvider.current } returns null
+            val service = serviceFor(optedIn = false)
+
+            val signedIn = service.signIn()
+
+            assertThat(signedIn).isTrue()
+            verify(exactly = 2) { PlayGames.getPlayersClient(activity) }
+        }
+
+    @Test
+    fun bootstrapResolvesThePlayerAgainstTheActivityResumedAfterTheCheck() =
+        runTest(testDispatcher) {
+            // The isAuthenticated Task can outlive a rotation just as the chooser can.
+            val recreated = mockk<Activity>()
+            every { activityProvider.current } returns recreated
+            val service = serviceFor(optedIn = true)
+
+            service.bootstrapIfOptedIn()
+            advanceUntilIdle()
+
+            assertThat(service.session.value)
+                .isEqualTo(GamesSignInState.SignedIn(PLAYER_ID, DISPLAY_NAME))
+            verify(exactly = 2) { PlayGames.getPlayersClient(recreated) }
+            verify(exactly = 0) { PlayGames.getPlayersClient(activity) }
         }
 
     @Test

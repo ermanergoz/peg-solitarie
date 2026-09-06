@@ -135,7 +135,11 @@ class PlayGamesService
                     }.getOrDefault(false)
 
                 _session.value =
-                    if (authenticated) signedInSessionFor(activity) else GamesSignInState.SignedOut
+                    if (authenticated) {
+                        signedInSessionFor(hostActivityAfterAwait(activity))
+                    } else {
+                        GamesSignInState.SignedOut
+                    }
             }
         }
 
@@ -189,7 +193,11 @@ class PlayGamesService
             return outcome.fold(
                 onSuccess = { authenticated ->
                     val resolved =
-                        if (authenticated) signedInSessionFor(activity) else GamesSignInState.SignedOut
+                        if (authenticated) {
+                            signedInSessionFor(hostActivityAfterAwait(activity))
+                        } else {
+                            GamesSignInState.SignedOut
+                        }
                     _session.value = resolved
                     resolved is GamesSignInState.SignedIn
                 },
@@ -203,6 +211,21 @@ class PlayGamesService
                 },
             )
         }
+
+        /**
+         * The Activity to hand the player lookups that follow an SDK `await()` (WR-01).
+         *
+         * [captured] was resolved *before* an await that may span the SDK's own account
+         * chooser — a separate Activity on top of `MainActivity` — and a configuration change
+         * while the chooser is up destroys the captured instance. `PlayGames.getPlayersClient`
+         * on a destroyed Activity fails, silently, inside `runCatching`, and a *successful*
+         * sign-in would then be reported as a decline (or as signed-in with no name). So the
+         * foreground Activity is re-resolved once the round trip is back, and [captured] is
+         * used only while nothing newer is resumed yet — [ForegroundActivityProvider.current]
+         * is `null` between a pause and the next resume, and in that window the captured
+         * instance is still the best (and possibly only) one there is.
+         */
+        private fun hostActivityAfterAwait(captured: Activity): Activity = activityProvider.current ?: captured
 
         /**
          * The session for a player the SDK has just reported as authenticated.
