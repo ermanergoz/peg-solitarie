@@ -5,12 +5,17 @@ import androidx.lifecycle.viewModelScope
 import com.app.pegsolitaire.data.ChallengeProgress
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.OnboardingRepository
+import com.app.pegsolitaire.data.PlayGamesOptInRepository
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
+import com.app.pegsolitaire.platform.games.GamesService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -30,7 +35,7 @@ import javax.inject.Inject
  * with — and enters at — the player's persisted level, so closing the app and returning
  * continues the ladder instead of restarting it at level 1.
  *
- * Finally it mirrors which modes hold a saved in-progress game (PERS-03, D-01/D-03) into
+ * It also mirrors which modes hold a saved in-progress game (PERS-03, D-01/D-03) into
  * [HomeUiState.classicResumeLevelId] / [HomeUiState.challengeResumeLevel], so Home can
  * offer up to two independent "Continue" affordances. Both snapshots are opened before a
  * tile is offered — the Classic one to learn which board to resume into, the Challenge
@@ -42,6 +47,11 @@ import javax.inject.Inject
  * withheld and the stale row purged, so a bogus id can never reach the Gameplay route's
  * fail-fast catalog lookup (CR-01).
  *
+ * Finally it owns the one-time Play Games opt-in prompt (PGS-01, D-15 to D-18). The
+ * prompt is sequenced strictly after the onboarding overlay and retired permanently once
+ * answered, accepting persists the opt-in and signs in without ever making the player
+ * wait, and declining changes nothing but the two persisted flags.
+ *
  * @param onboardingRepository the DataStore-backed onboarding flag (single source of truth).
  * @param challengeProgress the persisted Challenge ladder position (single source of truth
  *   for the tile's entry level; fail-open to level 1 on a corrupt read).
@@ -49,6 +59,11 @@ import javax.inject.Inject
  *   which Continue affordances exist).
  * @param levelRepository the Classic catalog authority a stored snapshot's `levelId` is
  *   validated against before it may become a Continue affordance (CR-01).
+ * @param optInRepository the persisted Play Games opt-in answer (D-17) — the single source
+ *   of truth for whether the prompt has been answered, and the store both handlers write.
+ * @param gamesService the Play Games seam. Reached only from [onAcceptPlayGamesPrompt]:
+ *   this ViewModel never calls it at launch (that is `MainActivity`'s opt-in-gated
+ *   bootstrap, D-01) and never on the decline path.
  */
 @HiltViewModel
 class HomeViewModel
@@ -58,6 +73,8 @@ class HomeViewModel
         challengeProgress: ChallengeProgress,
         progressRepository: ProgressRepository,
         levelRepository: LevelRepository,
+        private val optInRepository: PlayGamesOptInRepository,
+        private val gamesService: GamesService,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(HomeUiState())
 
@@ -71,6 +88,31 @@ class HomeViewModel
                 onboardingRepository.onboardingSeen.collect { seen ->
                     _uiState.update { it.copy(onboardingVisible = !seen) }
                 }
+            }
+            // The one-time Play Games opt-in prompt (D-15). Its visibility is a pure
+            // function of two persisted flags, which is what makes it genuinely one-time:
+            // it shows only once onboarding is behind the player AND the question is still
+            // unanswered, so the two first-run surfaces are sequenced rather than stacked.
+            // Once either answer lands, promptAnswered is true forever and this collector
+            // can never emit true again — there is no per-session re-ask and no nag
+            // (D-17 / T-11-08). The Settings row is the only later way in (D-19).
+            //
+            // Both inputs are maps over the SAME `app_prefs` DataStore flow, so every store
+            // write (either flag, challenge progress, settings, ad cadence) re-emits both,
+            // and combine delivers the two re-emissions in no fixed order. Without the
+            // per-input dedupe, an unchanged `seen = true` arriving before the new
+            // `answered = true` would re-raise the prompt for a frame right after the player
+            // answered it (WR-07). Deduping each input means an unchanged flag is not an
+            // event at all; the final dedupe keeps a same-valued recompute off the state.
+            viewModelScope.launch {
+                combine(
+                    onboardingRepository.onboardingSeen.distinctUntilChanged(),
+                    optInRepository.promptAnswered.distinctUntilChanged(),
+                ) { seen, answered -> seen && !answered }
+                    .distinctUntilChanged()
+                    .collect { shouldShow ->
+                        _uiState.update { it.copy(playGamesPromptVisible = shouldShow) }
+                    }
             }
             // The persisted ladder position is the single source of truth for the tile's
             // entry level (CHAL-05): collecting it means a solve that advances the level
@@ -146,5 +188,70 @@ class HomeViewModel
         fun onDismissOnboarding() {
             viewModelScope.launch { onboardingRepository.markSeen() }
             _uiState.update { it.copy(onboardingVisible = false) }
+        }
+
+        /**
+         * The prompt's "Sign in" action (D-18): persist the opt-in, then sign in.
+         *
+         * The dialog is hidden **synchronously, first** — before the coroutine that does
+         * the persisting and the sign-in is even launched. That ordering is the whole
+         * point (T-11-09): `signIn()` awaits a real SDK round trip that may put Google's
+         * own account chooser on screen, and a player who has already answered must never
+         * be left looking at their own answered dialog while it happens. PGS-01's "no
+         * wall, no pause" is enforced here, not hoped for.
+         *
+         * Only a **throw** raises [HomeUiState.playGamesSignInErrorTick]. A `false`
+         * return is a plain chooser dismissal — the player's own cancel — and takes no
+         * action at all: no snackbar, nothing to apologise for (D-18 / D-10 parity). The
+         * opt-in stands either way, so the next launch retries silently through
+         * `bootstrapIfOptedIn()` and the Settings row is available meanwhile.
+         *
+         * `runCatching` rather than a `try`/`catch` around the whole body so a failure
+         * cannot skip anything: `setOptedIn()` has already completed before the call it
+         * guards, and the guard covers exactly the one expression that may throw. It also
+         * catches `CancellationException`, which is rethrown first (WR-04): a cancelled round
+         * trip is this scope being cleared, not an SDK error, and must not raise the tick.
+         */
+        fun onAcceptPlayGamesPrompt() {
+            _uiState.update { it.copy(playGamesPromptVisible = false) }
+            viewModelScope.launch {
+                optInRepository.setOptedIn()
+                runCatching { gamesService.signIn() }
+                    .onFailure { failure ->
+                        if (failure is CancellationException) throw failure
+                        _uiState.update { state ->
+                            state.copy(playGamesSignInErrorTick = state.playGamesSignInErrorTick + 1)
+                        }
+                    }
+            }
+        }
+
+        /**
+         * The screen's acknowledgement that the [HomeUiState.playGamesSignInErrorTick]
+         * snackbar has been raised — resets the ordinal to 0, so the error is a consumed
+         * one-shot event rather than standing state (CR-01).
+         *
+         * Home is the `NavHost` start destination, so this ViewModel — and the tick — lives
+         * for the whole process, while `HomeScreen` leaves composition on every forward
+         * navigation and re-enters on every pop and every configuration change. Left
+         * standing, one genuine failure would be re-announced on every later visit to Home
+         * for the rest of the session. The screen calls this the moment it starts showing
+         * the message, so a re-entry during or after the show finds nothing to replay.
+         */
+        fun onPlayGamesSignInErrorShown() {
+            _uiState.update { it.copy(playGamesSignInErrorTick = 0) }
+        }
+
+        /**
+         * The prompt's "Not now" action, a tap outside it, or system back (D-16): persist
+         * the answer and hide it, permanently (D-17).
+         *
+         * [gamesService] is deliberately untouched on this path — not merely "not signed
+         * in", but never reached. Declining leaves the game exactly as it was, and the
+         * only change in the world is the pair of persisted flags.
+         */
+        fun onDeclinePlayGamesPrompt() {
+            _uiState.update { it.copy(playGamesPromptVisible = false) }
+            viewModelScope.launch { optInRepository.setNotNow() }
         }
     }

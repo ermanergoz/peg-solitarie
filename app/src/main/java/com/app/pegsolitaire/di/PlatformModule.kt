@@ -7,6 +7,7 @@ import com.app.pegsolitaire.platform.ads.AdMobAdGateway
 import com.app.pegsolitaire.platform.ads.NoOpAdGateway
 import com.app.pegsolitaire.platform.games.GamesService
 import com.app.pegsolitaire.platform.games.NoOpGamesService
+import com.app.pegsolitaire.platform.games.PlayGamesService
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -21,10 +22,12 @@ import javax.inject.Singleton
  *
  * - [AdGateway] and [GamesService] are the **Slice-2 swap points**: replacing a no-op stub
  *   with a real implementation introduces rewarded ads or leaderboards with no gameplay or
- *   UI change (D-11). **The [AdGateway] half is now delivered** — it binds
- *   [AdMobAdGateway], the Google Mobile Ads Next-Gen rewarded implementation, and the swap
- *   was one line here because everything above the seam had already been built and tested
- *   against the stub. The [GamesService] half is still pending; Phase 11 owns it.
+ *   UI change (D-11). **Both halves are now delivered.** [AdGateway] binds
+ *   [AdMobAdGateway], the Google Mobile Ads Next-Gen rewarded implementation; [GamesService]
+ *   binds [PlayGamesService], the Play Games Services v2 sign-in implementation (Phase 11).
+ *   Each swap was one line here, because everything above each seam had already been built
+ *   and tested against the stub — which is the entire return on having written the stubs
+ *   first.
  * - [ForegroundActivityProvider] → [DefaultForegroundActivityProvider] is **not** a swap
  *   point. It is permanent: the Slice-2 implementations are precisely the callers that
  *   need a foreground Activity, so this binding is what makes the swap possible rather
@@ -36,10 +39,12 @@ import javax.inject.Singleton
  * that [AdMobAdGateway] must honour written down somewhere executable. Deleting it because
  * "nothing uses it" would delete the specification along with the code.
  *
- * [NoOpGamesService] declines sign-in (`false`) so nothing renders as though Play Games
- * were connected — the opposite direction from the ad stub, which granted, and for the
- * opposite reason: a missing ad costs the player an assist, a missing leaderboard costs
- * them nothing.
+ * **[NoOpGamesService] stays in the source tree, unbound, for the same reason
+ * [NoOpAdGateway] does.** It declines sign-in (`false`) so nothing renders as though Play
+ * Games were connected — the opposite direction from the ad stub, which granted, and for
+ * the opposite reason: a missing ad costs the player an assist, a missing leaderboard costs
+ * them nothing. `NoOpGamesServiceTest` still pins that contract, which is what keeps the
+ * seam's reference behaviour written down somewhere executable.
  *
  * **Do not add an SDK-typed `@Provides` to this file — or to any other.** The original
  * form of this warning said such a provider merely belongs in a module inside
@@ -82,9 +87,31 @@ abstract class PlatformModule {
     @Singleton
     abstract fun bindAdGateway(impl: AdMobAdGateway): AdGateway
 
+    /**
+     * The Play Games seam, bound to the real sign-in implementation (PGS-01/02/03).
+     *
+     * **Unconditional, for every build type — no flavor split.** The milestone
+     * `ARCHITECTURE.md` sketch speculated about a `play`/`nosdk` flavor dimension to keep
+     * the real SDK off the test graph; [AdMobAdGateway] then proved that unnecessary.
+     * `PLAT-07` holds because **no JVM test constructs the real Hilt component at all** —
+     * `PlatformBoundaryRules` names `DaggerApp_HiltComponents_SingletonC` for a bytecode
+     * rule, never to instantiate it — so which implementation is bound cannot affect the
+     * offline suite. A flavor dimension would be real build-graph complexity buying a
+     * property the codebase already has for free.
+     *
+     * D-04 — no Play Console project exists yet — constrains this to "not verified on a
+     * real device", **not** "not bindable". Binding the stub in debug would mean the code
+     * path that actually ships is the one no developer ever runs.
+     *
+     * Legal under the SDK-containment rule for the same reason [bindAdGateway] is: both
+     * types named here are SDK-free. [PlayGamesService] constructs its `GamesSignInClient`
+     * and `PlayersClient` per call from an Activity and stores neither, so the generated
+     * Hilt component sees no `com.google.android.gms` type. See the class KDoc above before
+     * adding anything to this file.
+     */
     @Binds
     @Singleton
-    abstract fun bindGamesService(impl: NoOpGamesService): GamesService
+    abstract fun bindGamesService(impl: PlayGamesService): GamesService
 
     @Binds
     @Singleton

@@ -6,19 +6,24 @@ import app.cash.turbine.test
 import com.app.pegsolitaire.data.ChallengeProgress
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.data.FakePlayGamesOptInRepository
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.LevelResult
 import com.app.pegsolitaire.data.NewBests
 import com.app.pegsolitaire.data.OnboardingRepository
+import com.app.pegsolitaire.data.PlayGamesOptInRepository
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.scoring.ScoreResult
+import com.app.pegsolitaire.platform.games.FakeGamesService
+import com.app.pegsolitaire.platform.games.GamesService
 import com.google.common.truth.Truth.assertThat
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -302,6 +307,207 @@ class HomeViewModelTest {
             assertThat(progress.clears).isEmpty()
         }
 
+    // ---- Play Games opt-in prompt (PGS-01, D-15/D-17/D-18) --------------------
+
+    @Test
+    fun theOptInPromptStaysHiddenWhileTheOnboardingOverlayIsStillShowing() =
+        runTest(testDispatcher) {
+            // D-15: the two first-run surfaces never stack — onboarding goes first.
+            val optIn = FakePlayGamesOptInRepository()
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = false), optIn = optIn)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.onboardingVisible).isTrue()
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isFalse()
+        }
+
+    @Test
+    fun theOptInPromptShowsOnceOnboardingIsSeenAndTheQuestionIsStillUnanswered() =
+        runTest(testDispatcher) {
+            val optIn = FakePlayGamesOptInRepository()
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), optIn = optIn)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isTrue()
+        }
+
+    @Test
+    fun dismissingOnboardingHandsOverToTheOptInPrompt() =
+        runTest(testDispatcher) {
+            // The real first-run sequence: overlay first, then the prompt takes its place.
+            val optIn = FakePlayGamesOptInRepository()
+            val onboarding = FakeOnboardingRepository(initiallySeen = false)
+            val viewModel = viewModelFor(onboarding, optIn = optIn)
+            runCurrent()
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isFalse()
+
+            viewModel.onDismissOnboarding()
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.onboardingVisible).isFalse()
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isTrue()
+        }
+
+    @Test
+    fun theOptInPromptNeverShowsAgainOnceAnswered() =
+        runTest(testDispatcher) {
+            // D-17 / T-11-08: "Not now" retires the prompt permanently — no nag on a later
+            // launch, which is what keeps this out of dark-pattern territory.
+            val optIn = FakePlayGamesOptInRepository(initiallyAnswered = true)
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), optIn = optIn)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isFalse()
+        }
+
+    @Test
+    fun theOptInPromptStaysRetiredEvenWhenTheHelpAffordanceReopensOnboarding() =
+        runTest(testDispatcher) {
+            val optIn = FakePlayGamesOptInRepository(initiallyAnswered = true)
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), optIn = optIn)
+            runCurrent()
+
+            viewModel.onShowHowToPlay()
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.onboardingVisible).isTrue()
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isFalse()
+        }
+
+    @Test
+    fun acceptingHidesThePromptPersistsTheOptInAndSignsIn() =
+        runTest(testDispatcher) {
+            val optIn = FakePlayGamesOptInRepository()
+            val games = FakeGamesService()
+            val viewModel =
+                viewModelFor(FakeOnboardingRepository(initiallySeen = true), optIn = optIn, games = games)
+            runCurrent()
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isTrue()
+
+            viewModel.onAcceptPlayGamesPrompt()
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isFalse()
+            assertThat(optIn.setOptedInCount).isEqualTo(1)
+            assertThat(games.signInCallCount).isEqualTo(1)
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(0)
+        }
+
+    @Test
+    fun acceptingHidesThePromptBeforeTheSignInRoundTripEvenBegins() =
+        runTest(testDispatcher) {
+            // T-11-09: the dialog must never sit on screen waiting for the SDK — no wall,
+            // no pause. Asserted with no runCurrent(), so nothing the launch does has run.
+            val optIn = FakePlayGamesOptInRepository()
+            val games = FakeGamesService()
+            val viewModel =
+                viewModelFor(FakeOnboardingRepository(initiallySeen = true), optIn = optIn, games = games)
+            runCurrent()
+
+            viewModel.onAcceptPlayGamesPrompt()
+
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isFalse()
+            assertThat(games.signInCallCount).isEqualTo(0)
+        }
+
+    @Test
+    fun aGenuineSignInErrorRaisesTheErrorTick() =
+        runTest(testDispatcher) {
+            // D-18: only a throw — an SDK-reported failure — surfaces the Home snackbar.
+            val optIn = FakePlayGamesOptInRepository()
+            val games = FakeGamesService().apply { signInBehavior = FakeGamesService.SignInBehavior.Error() }
+            val viewModel =
+                viewModelFor(FakeOnboardingRepository(initiallySeen = true), optIn = optIn, games = games)
+            runCurrent()
+
+            viewModel.onAcceptPlayGamesPrompt()
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(1)
+            // The opt-in still stands, so the next launch retries silently (D-18).
+            assertThat(optIn.optedInState.value).isTrue()
+        }
+
+    @Test
+    fun theScreenConsumesAShownSignInErrorSoItCannotReplay() =
+        runTest(testDispatcher) {
+            // CR-01: this ViewModel outlives every visit to Home, so a shown error must be
+            // handed back and reset — otherwise every later return to Home replays it.
+            val optIn = FakePlayGamesOptInRepository()
+            val games = FakeGamesService().apply { signInBehavior = FakeGamesService.SignInBehavior.Error() }
+            val viewModel =
+                viewModelFor(FakeOnboardingRepository(initiallySeen = true), optIn = optIn, games = games)
+            runCurrent()
+            viewModel.onAcceptPlayGamesPrompt()
+            runCurrent()
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(1)
+
+            viewModel.onPlayGamesSignInErrorShown()
+
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(0)
+        }
+
+    @Test
+    fun aCancelledSignInRoundTripNeverRaisesTheErrorTick() =
+        runTest(testDispatcher) {
+            // WR-04: cancellation is this scope being cleared, not an SDK error — the
+            // runCatching around signIn() must not convert it into a snackbar.
+            val optIn = FakePlayGamesOptInRepository()
+            val games =
+                FakeGamesService().apply {
+                    signInBehavior = FakeGamesService.SignInBehavior.Error(CancellationException("cleared"))
+                }
+            val viewModel =
+                viewModelFor(FakeOnboardingRepository(initiallySeen = true), optIn = optIn, games = games)
+            runCurrent()
+
+            viewModel.onAcceptPlayGamesPrompt()
+            runCurrent()
+
+            assertThat(games.signInCallCount).isEqualTo(1)
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(0)
+        }
+
+    @Test
+    fun aPlainChooserDismissalStaysSilent() =
+        runTest(testDispatcher) {
+            // D-18 / D-10 parity: signIn() returning false is a player-initiated cancel,
+            // not an error — no snackbar, nothing to apologise for.
+            val optIn = FakePlayGamesOptInRepository()
+            val games = FakeGamesService().apply { signInBehavior = FakeGamesService.SignInBehavior.Decline }
+            val viewModel =
+                viewModelFor(FakeOnboardingRepository(initiallySeen = true), optIn = optIn, games = games)
+            runCurrent()
+
+            viewModel.onAcceptPlayGamesPrompt()
+            runCurrent()
+
+            assertThat(games.signInCallCount).isEqualTo(1)
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(0)
+        }
+
+    @Test
+    fun decliningHidesThePromptPersistsNotNowAndNeverTouchesTheSdk() =
+        runTest(testDispatcher) {
+            // D-16/D-17: declining leaves the game exactly as it was — the only change in
+            // the world is the pair of persisted flags.
+            val optIn = FakePlayGamesOptInRepository()
+            val games = FakeGamesService()
+            val viewModel =
+                viewModelFor(FakeOnboardingRepository(initiallySeen = true), optIn = optIn, games = games)
+            runCurrent()
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isTrue()
+
+            viewModel.onDeclinePlayGamesPrompt()
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isFalse()
+            assertThat(optIn.setNotNowCount).isEqualTo(1)
+            assertThat(optIn.setOptedInCount).isEqualTo(0)
+            assertThat(games.signInCallCount).isEqualTo(0)
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(0)
+        }
+
     // ---- Helpers -------------------------------------------------------------
 
     /**
@@ -309,16 +515,30 @@ class HomeViewModelTest {
      * stand-in whose `currentLevel` is driven by [levels] (defaulting to a fixed
      * [persistedLevel]), a resume store [progress] (empty unless a test fills it), and a
      * catalog that knows exactly the real Classic ids — neither real store is touched.
+     *
+     * [optIn] defaults to an ALREADY-ANSWERED prompt so the pre-Play-Games tests above
+     * (onboarding, ladder level, resume affordances) keep asserting the surface they were
+     * written for — an unanswered default would silently raise the opt-in dialog under
+     * every one of them.
      */
     private fun viewModelFor(
         repository: OnboardingRepository,
         persistedLevel: Int = FIRST_LEVEL,
         levels: MutableStateFlow<Int> = MutableStateFlow(persistedLevel),
         progress: ProgressRepository = FakeResumeProgressRepository(),
+        optIn: PlayGamesOptInRepository = FakePlayGamesOptInRepository(initiallyAnswered = true),
+        games: GamesService = FakeGamesService(),
     ): HomeViewModel {
         val challengeProgress = mockk<ChallengeProgress>(relaxed = true)
         every { challengeProgress.currentLevel } returns levels
-        return HomeViewModel(repository, challengeProgress, progress, CatalogOnlyLevelRepository)
+        return HomeViewModel(
+            repository,
+            challengeProgress,
+            progress,
+            CatalogOnlyLevelRepository,
+            optIn,
+            games,
+        )
     }
 }
 

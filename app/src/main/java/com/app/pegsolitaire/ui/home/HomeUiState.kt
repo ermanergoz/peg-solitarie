@@ -30,6 +30,23 @@ import com.app.pegsolitaire.data.ChallengeProgressPreferences
  *   Deliberately NOT [challengeCurrentLevel] (WR-03): at a cold start the ladder flow
  *   can still be at its fail-open initial value while the stamp always names the level
  *   the snapshot actually holds, so the tile labels — and resumes into — the real one.
+ * @property playGamesPromptVisible whether the one-time Play Games opt-in prompt is
+ *   showing (PGS-01, D-15). A peer of [onboardingVisible] rather than a mode of it: the
+ *   two first-run surfaces are sequenced, never stacked — this is `true` only once
+ *   onboarding has been seen AND the question is still unanswered, and it is `false`
+ *   forever after either answer (D-17). Nothing sets it back to `true`; there is no
+ *   per-session re-ask.
+ * @property playGamesSignInErrorTick a one-shot ordinal raised once per genuine SDK
+ *   sign-in error on the accept path (D-18) and consumed back to 0 by the screen through
+ *   `HomeViewModel.onPlayGamesSignInErrorShown` the moment its snackbar is raised. It is
+ *   consumed rather than left standing because this ViewModel outlives every visit to
+ *   Home: `HomeScreen` re-enters composition on every return from a forward destination
+ *   and on every configuration change, and an unconsumed ordinal would re-announce one
+ *   failure on each of them (CR-01). An ordinal rather than a `Boolean` for the same
+ *   reason `GameUiState`'s `adMessageTick` is one: two consecutive failures must leave a
+ *   distinguishable state trace. Deliberately NOT raised by a plain chooser dismissal:
+ *   `signIn()` returning `false` is a player's own cancel and stays silent (D-10 parity).
+ *   Starts at 0, which the screen reads as "nothing to show".
  */
 @Immutable
 data class HomeUiState(
@@ -37,6 +54,8 @@ data class HomeUiState(
     val challengeCurrentLevel: Int = ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL,
     val classicResumeLevelId: String? = null,
     val challengeResumeLevel: Int? = null,
+    val playGamesPromptVisible: Boolean = false,
+    val playGamesSignInErrorTick: Int = 0,
 ) {
     /** Whether a Classic game can be continued — i.e. a resumable board id is known. */
     val classicResumeAvailable: Boolean get() = classicResumeLevelId != null

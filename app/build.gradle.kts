@@ -189,8 +189,11 @@ android {
             // `meta-data` cannot read `BuildConfig`, the AdMob app ID has to appear in the
             // manifest for UMP, and the Play Games project ID *must* be a `@string`
             // reference because a bare numeric `android:value` is parsed as an integer.
-            // Nothing consumes these two resources until Phase 9 wires the manifest, so
-            // the resource shrinker may drop them from release until then — expected.
+            // BOTH resources are now referenced from AndroidManifest.xml — `admob_app_id`
+            // by Phase 9's UMP `meta-data`, `game_services_project_id` by Phase 11's
+            // `com.google.android.gms.games.APP_ID` `meta-data` — so the resource shrinker
+            // retains them in release. The earlier note that they "may be dropped from
+            // release until then" is spent: there is no longer an unreferenced case.
             resValue("string", "admob_app_id", debugIds.appId)
             resValue("string", "game_services_project_id", debugIds.gamesProjectId)
         }
@@ -343,6 +346,12 @@ dependencies {
     implementation(libs.ads.mobile.sdk)
     implementation(libs.user.messaging.platform)
     implementation(libs.play.services.games.v2)
+    // Phase 11: the official Task<T> -> suspend bridge for the Play Games v2 calls made by
+    // platform/games/PlayGamesService. Not hand-rolled with suspendCancellableCoroutine
+    // (the pattern UmpConsentGateway uses) because every PGS v2 entry point this project
+    // touches already returns a Task, and the official adapter is version-locked to the
+    // catalog's coroutines pin.
+    implementation(libs.kotlinx.coroutines.play.services)
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)
