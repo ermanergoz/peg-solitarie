@@ -42,6 +42,13 @@ class NoOpGamesServiceTest {
     }
 
     @Test
+    fun bootstrapIfOptedInDoesNotThrow() {
+        // D-01: the stub has no persisted opt-in flag to read and no SDK to initialize, so the
+        // launch-time bootstrap must be a silent no-op rather than an error path.
+        service.bootstrapIfOptedIn()
+    }
+
+    @Test
     fun submitScoreDoesNotThrow() {
         service.submitScore(leaderboardId = "challenge_high_score", score = 1_200L)
     }

@@ -2,11 +2,17 @@ package com.app.pegsolitaire.ui.settings
 
 import app.cash.turbine.test
 import com.app.pegsolitaire.audio.NoOpSoundPlayer
+import com.app.pegsolitaire.data.FakePlayGamesOptInRepository
 import com.app.pegsolitaire.data.SettingsRepository
+import com.app.pegsolitaire.platform.games.FakeGamesService
+import com.app.pegsolitaire.platform.games.GamesService
+import com.app.pegsolitaire.platform.games.GamesSignInState
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
@@ -51,7 +57,7 @@ class SettingsViewModelTest {
     @Test
     fun bothTogglesDefaultOnBeforeTheStoreEmits() =
         runTest(testDispatcher) {
-            val viewModel = SettingsViewModel(NeverEmittingSettingsRepository, NoOpSoundPlayer(), FakeConsentGateway())
+            val viewModel = viewModelFor(NeverEmittingSettingsRepository)
             runCurrent()
 
             assertThat(viewModel.uiState.value.soundOn).isTrue()
@@ -62,7 +68,7 @@ class SettingsViewModelTest {
     fun persistedFlagsAreMirroredIntoTheUiState() =
         runTest(testDispatcher) {
             val repository = FakeSettingsRepository(soundOn = false, hapticsOn = true)
-            val viewModel = SettingsViewModel(repository, NoOpSoundPlayer(), FakeConsentGateway())
+            val viewModel = viewModelFor(repository)
             runCurrent()
 
             assertThat(viewModel.uiState.value.soundOn).isFalse()
@@ -73,7 +79,7 @@ class SettingsViewModelTest {
     fun aLaterStoreEmissionUpdatesTheUiState() =
         runTest(testDispatcher) {
             val repository = FakeSettingsRepository()
-            val viewModel = SettingsViewModel(repository, NoOpSoundPlayer(), FakeConsentGateway())
+            val viewModel = viewModelFor(repository)
 
             viewModel.uiState.test {
                 assertThat(awaitItem().soundOn).isTrue()
@@ -89,7 +95,7 @@ class SettingsViewModelTest {
     fun onToggleSoundPersistsTheNewValueAndTheStateFollows() =
         runTest(testDispatcher) {
             val repository = FakeSettingsRepository(soundOn = true)
-            val viewModel = SettingsViewModel(repository, NoOpSoundPlayer(), FakeConsentGateway())
+            val viewModel = viewModelFor(repository)
             runCurrent()
 
             viewModel.onToggleSound(false)
@@ -103,7 +109,7 @@ class SettingsViewModelTest {
     fun onToggleHapticsPersistsTheNewValueAndTheStateFollows() =
         runTest(testDispatcher) {
             val repository = FakeSettingsRepository(hapticsOn = true)
-            val viewModel = SettingsViewModel(repository, NoOpSoundPlayer(), FakeConsentGateway())
+            val viewModel = viewModelFor(repository)
             runCurrent()
 
             viewModel.onToggleHaptics(false)
@@ -113,11 +119,239 @@ class SettingsViewModelTest {
             assertThat(viewModel.uiState.value.hapticsOn).isFalse()
         }
 
+    // ---- Play Games session + manual sign-in (PGS-02/PGS-03, D-10/D-11/D-19) ----
+
+    @Test
+    fun theSessionIsUnknownBeforeTheSeamAnswers() =
+        runTest(testDispatcher) {
+            // D-11's fail-hidden default: until the seam speaks there is no section at all.
+            val viewModel = viewModelFor(FakeSettingsRepository(), games = NeverEmittingGamesService)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.gamesSignInState).isEqualTo(GamesSignInState.Unknown)
+        }
+
+    @Test
+    fun aSignedOutSessionIsMirroredIntoTheUiState() =
+        runTest(testDispatcher) {
+            val viewModel = viewModelFor(FakeSettingsRepository(), games = FakeGamesService(GamesSignInState.SignedOut))
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.gamesSignInState).isEqualTo(GamesSignInState.SignedOut)
+        }
+
+    @Test
+    fun aSignedInSessionIsMirroredIntoTheUiStateWithItsDisplayName() =
+        runTest(testDispatcher) {
+            val signedIn = GamesSignInState.SignedIn(playerId = PLAYER_ID, displayName = DISPLAY_NAME)
+            val viewModel = viewModelFor(FakeSettingsRepository(), games = FakeGamesService(signedIn))
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.gamesSignInState).isEqualTo(signedIn)
+        }
+
+    @Test
+    fun aLaterSessionChangeUpdatesTheUiState() =
+        runTest(testDispatcher) {
+            // The live sequence for an opted-in player: Unknown while the silent check runs,
+            // then whatever it resolves to. The section appears only at that second emission.
+            val games = FakeGamesService(GamesSignInState.Unknown)
+            val viewModel = viewModelFor(FakeSettingsRepository(), games = games)
+            runCurrent()
+            assertThat(viewModel.uiState.value.gamesSignInState).isEqualTo(GamesSignInState.Unknown)
+
+            games.emitSession(GamesSignInState.SignedOut)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.gamesSignInState).isEqualTo(GamesSignInState.SignedOut)
+        }
+
+    @Test
+    fun onSignInToPlayGamesPersistsTheOptInBeforeReachingTheSeam() =
+        runTest(testDispatcher) {
+            // D-19: the Settings row is a full opt-in, not a one-off sign-in — both flags
+            // must land so later launches bootstrap silently and the prompt never returns.
+            val optIn = FakePlayGamesOptInRepository()
+            val games = FakeGamesService(GamesSignInState.SignedOut)
+            val viewModel = viewModelFor(FakeSettingsRepository(), optIn = optIn, games = games)
+            runCurrent()
+
+            viewModel.onSignInToPlayGames()
+            runCurrent()
+
+            assertThat(optIn.setOptedInCount).isEqualTo(1)
+            assertThat(optIn.answered.value).isTrue()
+            assertThat(optIn.optedInState.value).isTrue()
+            assertThat(games.signInCallCount).isEqualTo(1)
+        }
+
+    @Test
+    fun aSecondTapWhileASignInIsInFlightIsIgnored() =
+        runTest(testDispatcher) {
+            // WR-03: the row stays enabled while the round trip is suspended, so a double tap
+            // must not open two account choosers or write the session twice.
+            val optIn = FakePlayGamesOptInRepository()
+            val games = FakeGamesService(GamesSignInState.SignedOut)
+            val viewModel = viewModelFor(FakeSettingsRepository(), optIn = optIn, games = games)
+            runCurrent()
+
+            viewModel.onSignInToPlayGames()
+            viewModel.onSignInToPlayGames()
+            runCurrent()
+
+            assertThat(games.signInCallCount).isEqualTo(1)
+            assertThat(optIn.setOptedInCount).isEqualTo(1)
+        }
+
+    @Test
+    fun aTapAfterThePreviousSignInHasResolvedStartsANewOne() =
+        runTest(testDispatcher) {
+            // The guard is against overlap only (D-13): once a round trip has resolved, the
+            // row is a live re-entry point again.
+            val games = FakeGamesService(GamesSignInState.SignedOut)
+            games.signInBehavior = FakeGamesService.SignInBehavior.Decline
+            val viewModel = viewModelFor(FakeSettingsRepository(), games = games)
+            runCurrent()
+
+            viewModel.onSignInToPlayGames()
+            runCurrent()
+            viewModel.onSignInToPlayGames()
+            runCurrent()
+
+            assertThat(games.signInCallCount).isEqualTo(2)
+        }
+
+    @Test
+    fun aSuccessfulManualSignInResolvesTheSessionThroughTheSeam() =
+        runTest(testDispatcher) {
+            val games = FakeGamesService(GamesSignInState.SignedOut)
+            games.signInBehavior = FakeGamesService.SignInBehavior.Success(PLAYER_ID, DISPLAY_NAME)
+            val viewModel = viewModelFor(FakeSettingsRepository(), games = games)
+            runCurrent()
+
+            viewModel.onSignInToPlayGames()
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.gamesSignInState)
+                .isEqualTo(GamesSignInState.SignedIn(PLAYER_ID, DISPLAY_NAME))
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(0)
+        }
+
+    @Test
+    fun aThrownSignInRaisesTheErrorTick() =
+        runTest(testDispatcher) {
+            // D-10: only a genuine SDK error is worth a snackbar.
+            val games = FakeGamesService(GamesSignInState.SignedOut)
+            games.signInBehavior = FakeGamesService.SignInBehavior.Error()
+            val viewModel = viewModelFor(FakeSettingsRepository(), games = games)
+            runCurrent()
+
+            viewModel.onSignInToPlayGames()
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(1)
+        }
+
+    @Test
+    fun theScreenConsumesAShownSignInErrorSoARotationCannotReplayIt() =
+        runTest(testDispatcher) {
+            // CR-01: once the snackbar is raised the ordinal is handed back and reset, so a
+            // recomposition under this same ViewModel finds nothing to announce.
+            val games = FakeGamesService(GamesSignInState.SignedOut)
+            games.signInBehavior = FakeGamesService.SignInBehavior.Error()
+            val viewModel = viewModelFor(FakeSettingsRepository(), games = games)
+            runCurrent()
+            viewModel.onSignInToPlayGames()
+            runCurrent()
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(1)
+
+            viewModel.onPlayGamesSignInErrorShown()
+
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(0)
+        }
+
+    @Test
+    fun aCancelledSignInRoundTripNeverRaisesTheErrorTick() =
+        runTest(testDispatcher) {
+            // WR-04: popping Settings while the chooser is up cancels the round trip. That is
+            // this scope being cleared, not an SDK error — no tick, no snackbar.
+            val games = FakeGamesService(GamesSignInState.SignedOut)
+            games.signInBehavior = FakeGamesService.SignInBehavior.Error(CancellationException("popped"))
+            val viewModel = viewModelFor(FakeSettingsRepository(), games = games)
+            runCurrent()
+
+            viewModel.onSignInToPlayGames()
+            runCurrent()
+
+            assertThat(games.signInCallCount).isEqualTo(1)
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(0)
+        }
+
+    @Test
+    fun aDeclinedSignInIsSilentAndLeavesTheRowInPlace() =
+        runTest(testDispatcher) {
+            // D-10/D-13: a plain chooser dismissal is the player's own cancel — no snackbar,
+            // no state change, and the SignedOut session keeps the row exactly where it was.
+            val games = FakeGamesService(GamesSignInState.SignedOut)
+            games.signInBehavior = FakeGamesService.SignInBehavior.Decline
+            val viewModel = viewModelFor(FakeSettingsRepository(), games = games)
+            runCurrent()
+
+            viewModel.onSignInToPlayGames()
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(0)
+            assertThat(viewModel.uiState.value.gamesSignInState).isEqualTo(GamesSignInState.SignedOut)
+        }
+
+    @Test
+    fun aSecondFailedSignInRaisesTheTickAgain() =
+        runTest(testDispatcher) {
+            // The ordinal must keep moving: two identical failures are two messages, which is
+            // the whole reason the tick is a counter rather than a nullable message.
+            val games = FakeGamesService(GamesSignInState.SignedOut)
+            games.signInBehavior = FakeGamesService.SignInBehavior.Error()
+            val viewModel = viewModelFor(FakeSettingsRepository(), games = games)
+            runCurrent()
+
+            viewModel.onSignInToPlayGames()
+            runCurrent()
+            viewModel.onSignInToPlayGames()
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(2)
+        }
+
+    @Test
+    fun aDeclinedSignInStillPersistsTheOptIn() =
+        runTest(testDispatcher) {
+            // The opt-in is the player's answer to the *app's* question and stands regardless
+            // of what they then do in Google's chooser — otherwise a cancel would silently
+            // resurrect the Home prompt the tap was meant to retire (D-19).
+            val optIn = FakePlayGamesOptInRepository()
+            val games = FakeGamesService(GamesSignInState.SignedOut)
+            games.signInBehavior = FakeGamesService.SignInBehavior.Decline
+            val viewModel = viewModelFor(FakeSettingsRepository(), optIn = optIn, games = games)
+            runCurrent()
+
+            viewModel.onSignInToPlayGames()
+            runCurrent()
+
+            assertThat(optIn.optedInState.value).isTrue()
+        }
+
+    /** Builds the subject with the Play Games collaborators defaulted to their quiet doubles. */
+    private fun viewModelFor(
+        repository: SettingsRepository,
+        optIn: FakePlayGamesOptInRepository = FakePlayGamesOptInRepository(),
+        games: GamesService = FakeGamesService(),
+    ) = SettingsViewModel(repository, NoOpSoundPlayer(), FakeConsentGateway(), games, optIn)
+
     @Test
     fun togglingSoundLeavesHapticsUntouched() =
         runTest(testDispatcher) {
             val repository = FakeSettingsRepository(soundOn = true, hapticsOn = true)
-            val viewModel = SettingsViewModel(repository, NoOpSoundPlayer(), FakeConsentGateway())
+            val viewModel = viewModelFor(repository)
             runCurrent()
 
             viewModel.onToggleSound(false)
@@ -189,3 +423,32 @@ private object NeverEmittingSettingsRepository : SettingsRepository {
 
     override suspend fun setHapticsOn(on: Boolean) = Unit
 }
+
+/** A [GamesService] whose session never emits — proves the D-11 fail-hidden Unknown default. */
+private object NeverEmittingGamesService : GamesService {
+    override val session: StateFlow<GamesSignInState> = MutableStateFlow(GamesSignInState.Unknown)
+
+    override fun bootstrapIfOptedIn() = Unit
+
+    override suspend fun signIn(): Boolean = false
+
+    override fun submitScore(
+        leaderboardId: String,
+        score: Long,
+    ) = Unit
+
+    override fun unlockAchievement(achievementId: String) = Unit
+
+    override fun incrementAchievement(
+        achievementId: String,
+        steps: Int,
+    ) = Unit
+
+    override suspend fun showLeaderboard(leaderboardId: String) = Unit
+
+    override suspend fun showAchievements() = Unit
+}
+
+/** The Play Games identity a successful fake sign-in reports. */
+private const val PLAYER_ID = "player-1"
+private const val DISPLAY_NAME = "Erman"

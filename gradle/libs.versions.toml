@@ -189,6 +189,13 @@ errorprone-annotations = { group = "com.google.errorprone", name = "error_prone_
 ads-mobile-sdk = { group = "com.google.android.libraries.ads.mobile.sdk", name = "ads-mobile-sdk", version.ref = "adsMobileSdk" }
 user-messaging-platform = { group = "com.google.android.ump", name = "user-messaging-platform", version.ref = "userMessagingPlatform" }
 play-services-games-v2 = { group = "com.google.android.gms", name = "play-services-games-v2", version.ref = "playServicesGamesV2" }
+# The official Task<T> -> suspend bridge for the Play Games v2 calls (isAuthenticated,
+# signIn, getCurrentPlayer/getCurrentPlayerId), added by Phase 11. Deliberately
+# `version.ref = "coroutines"` and NOT a new version key: this artifact is a sibling of
+# the kotlinx-coroutines-test entry below, published from the same kotlinx.coroutines
+# release, and a hand-pinned literal here could drift off the runtime coroutines line the
+# rest of the app is compiled against.
+kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutines" }
 
 # --- Domain-purity boundary gate ---
 archunit-junit4 = { group = "com.tngtech.archunit", name = "archunit-junit4", version.ref = "archunit" }

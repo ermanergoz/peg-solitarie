@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -49,8 +50,18 @@ open class OnboardingRepository
                 .catch { emit(emptyPreferences()) }
                 .map { it[OnboardingPreferences.SEEN_KEY] ?: OnboardingPreferences.DEFAULT_SEEN }
 
-        /** Persists that the onboarding has been seen (D-13 — called when the overlay is dismissed). */
+        /**
+         * Persists that the onboarding has been seen (D-13 — called when the overlay is
+         * dismissed).
+         *
+         * The write fails open like the read (WR-05): `DataStore.edit` throws `IOException`
+         * on a full disk or a corrupt file, and the dismiss tap is a fire-and-forget launch
+         * with no handler of its own — so a failed write degrades to "not persisted" (the
+         * tutorial shows again next launch) rather than crashing the tap. Cancellation is
+         * rethrown untouched; it is the caller's signal, not a write failure.
+         */
         open suspend fun markSeen() {
-            dataStore.edit { it[OnboardingPreferences.SEEN_KEY] = true }
+            runCatching { dataStore.edit { it[OnboardingPreferences.SEEN_KEY] = true } }
+                .onFailure { if (it is CancellationException) throw it }
         }
     }
