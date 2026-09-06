@@ -5,7 +5,6 @@ import com.app.pegsolitaire.data.PlayGamesOptInRepository
 import com.app.pegsolitaire.di.ApplicationScope
 import com.app.pegsolitaire.platform.activity.ForegroundActivityProvider
 import com.google.android.gms.common.api.ApiException
-import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.games.PlayGames
 import com.google.android.gms.games.PlayGamesSdk
 import kotlinx.coroutines.CancellationException
@@ -192,7 +191,9 @@ class PlayGamesService
          * - a **successful** Task carrying `isAuthenticated == false` is the expected shape
          *   of a plain decline, and is reported as `false`, silently;
          * - a **failed** Task is reported as an error (thrown) unless it is identifiably an
-         *   `ApiException` in the [CommonStatusCodes.CANCELED] family;
+         *   `ApiException` carrying one of [GamesConstants.CANCEL_STATUS_CODES] — the generic
+         *   `CANCELED` or the sign-in-specific `SIGN_IN_CANCELLED` a dismissed chooser reports
+         *   (WR-08);
          * - a **cancelled** await — the calling coroutine being cancelled, e.g. a
          *   `SettingsViewModel` cleared while the chooser is up — is neither: it is rethrown
          *   untouched, before any classification and before the session is written, because
@@ -246,7 +247,7 @@ class PlayGamesService
                         // the shared session (WR-04).
                         if (failure is CancellationException) throw failure
                         _session.value = GamesSignInState.SignedOut
-                        if ((failure as? ApiException)?.statusCode == CommonStatusCodes.CANCELED) {
+                        if ((failure as? ApiException)?.statusCode in GamesConstants.CANCEL_STATUS_CODES) {
                             false
                         } else {
                             throw failure

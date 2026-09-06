@@ -19,7 +19,7 @@ result: [pending]
 
 ### 2. Settings sign-in row: cancel is silent, genuine error shows the snackbar (PGS-03 / D-10)
 On the same emulator, tap the Settings "Sign in to Play Games" row and dismiss the account chooser without picking an account; then tap it again and complete sign-in with an account not registered as a tester.
-expected: Dismissing the chooser is silent (no snackbar, row stays); an unregistered or erroring account shows the "Couldn't sign in to Play Games" snackbar. This confirms or corrects the `CommonStatusCodes.CANCELED`-based classification in `PlayGamesService.signIn()` marked `[UNVERIFIED — D-04]`.
+expected: Dismissing the chooser is silent (no snackbar, row stays); an unregistered or erroring account shows the "Couldn't sign in to Play Games" snackbar. This confirms or corrects the cancel classification in `PlayGamesService.signIn()` marked `[UNVERIFIED — D-04]`: both `CommonStatusCodes.CANCELED` (16) and the sign-in-specific `SIGN_IN_CANCELLED` (12501, `GamesConstants.SIGN_IN_CANCELLED_STATUS_CODE`) are treated as a silent decline (WR-08). Note which of the two codes the dismissed chooser actually reports, so the set can be narrowed or widened from observation rather than guesswork.
 result: [pending]
 
 ### 3. Play Games chooser and popup do not trip interstitial foreground cadence

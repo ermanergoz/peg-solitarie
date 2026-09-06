@@ -316,6 +316,22 @@ class PlayGamesServiceTest {
         }
 
     @Test
+    fun signInSwallowsTheSignInSpecificCancelCodeAsADeclineToo() =
+        runTest(testDispatcher) {
+            // WR-08: backing out of the account chooser reports SIGN_IN_CANCELLED (12501),
+            // not the generic CANCELED (16). D-10 names over-alerting on a cancel as the worse
+            // misclassification, so this code must be just as silent.
+            every { signInClient.signIn() } returns
+                Tasks.forException(ApiException(Status(GamesConstants.SIGN_IN_CANCELLED_STATUS_CODE)))
+            val service = serviceFor(optedIn = false)
+
+            val signedIn = service.signIn()
+
+            assertThat(signedIn).isFalse()
+            assertThat(service.session.value).isEqualTo(GamesSignInState.SignedOut)
+        }
+
+    @Test
     fun aCancelledSignInIsRethrownUntouchedAndNeverWritesTheSession() =
         runTest(testDispatcher) {
             // WR-04: cancellation is the caller's structured-concurrency signal, not an SDK
