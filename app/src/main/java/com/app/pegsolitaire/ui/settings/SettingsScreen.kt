@@ -233,7 +233,9 @@ private fun GeneralSection(
  *
  * ## The signed-in row is a statement, not an affordance
  *
- * D-06 asks for a non-tappable row, so its `onClick` is empty. It stays a [SettingsLinkRow]
+ * D-06 asks for a non-tappable row, so its `onClick` is `null` — which strips the click
+ * action, the focus stop and the squish from the card (WR-06), leaving it inert to TalkBack
+ * and the D-pad rather than a tap that merely does nothing. It stays a [SettingsLinkRow]
  * rather than becoming a bespoke composable because the two states must be exact visual
  * peers: a differently-shaped card would read as a different *kind* of thing appearing when
  * the player signs in, when in truth one row has simply changed what it says. Its label is
@@ -272,7 +274,7 @@ private fun PlayGamesSection(
                 supporting = stringResource(R.string.settings_play_games_signin_supporting),
                 entranceOrder = PLAY_GAMES_ROW_ORDER,
                 trailingIcon = null,
-                onClick = {},
+                onClick = null,
             )
 
         GamesSignInState.SignedOut ->
@@ -544,6 +546,13 @@ private fun SettingsSectionHeader(
  * introduced. Fully hoisted: the row owns no state and decides nothing — [onClick] is
  * whatever the screen passed.
  *
+ * A `null` [onClick] makes the row **inert**, not merely unhandled (WR-06): neither
+ * `clickable` nor [claySquish] is applied, so there is no click action for TalkBack to
+ * announce as "double-tap to activate", no stop in keyboard/D-pad focus traversal, and no
+ * press animation for a tap that would do nothing. An `onClick = {}` would leave all three
+ * in place — an actionable control with no action, which is an accessibility defect. The
+ * signed-in Play Games row (D-06) is the one caller.
+ *
  * [trailingIcon] is `null` for the manage-choices row on purpose. The UMP form opens
  * in-app while the policy leaves for a browser, so the glyph's presence or absence is what
  * makes the two rows honestly distinguishable at a glance rather than by label alone.
@@ -554,7 +563,7 @@ private fun SettingsLinkRow(
     supporting: String,
     entranceOrder: Int,
     trailingIcon: (@Composable () -> Unit)?,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?,
 ) {
     Card(
         shape = MaterialTheme.shapes.large,
@@ -565,8 +574,9 @@ private fun SettingsLinkRow(
                 .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.large)
                 .fillMaxWidth()
                 .heightIn(min = dimensionResource(R.dimen.settings_row_min_height))
-                .claySquish()
-                .clickable(onClick = onClick),
+                .then(
+                    if (onClick != null) Modifier.claySquish().clickable(onClick = onClick) else Modifier,
+                ),
     ) {
         Row(
             modifier =

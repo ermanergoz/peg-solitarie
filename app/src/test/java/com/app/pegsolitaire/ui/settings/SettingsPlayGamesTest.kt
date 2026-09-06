@@ -1,6 +1,8 @@
 package com.app.pegsolitaire.ui.settings
 
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -110,6 +112,14 @@ class SettingsPlayGamesTest {
     }
 
     @Test
+    fun theSignInRowIsAnActionableControl() {
+        // The counterpart of the signed-in assertion below: the offer really is a control.
+        setContent(GamesSignInState.SignedOut)
+
+        composeRule.onNodeWithText(signInLabel).performScrollTo().assertHasClickAction()
+    }
+
+    @Test
     fun tappingTheSignInRowInvokesItsHandlerExactlyOnce() {
         var signInCount = 0
         setContent(GamesSignInState.SignedOut, onSignInToPlayGames = { signInCount++ })
@@ -164,15 +174,18 @@ class SettingsPlayGamesTest {
 
     @Test
     fun theSignedInRowIsNotAnOfferToSignInAgain() {
-        // D-06's "non-tappable" claim, asserted by consequence: nothing the player can
-        // press in this section reaches the sign-in handler once they are already in.
+        // D-06's "non-tappable" claim, asserted two ways: the node carries no click action at
+        // all (WR-06 — so TalkBack does not announce "double-tap to activate" and it is not a
+        // focus stop), and a tap on it reaches no handler regardless.
         var signInCount = 0
         setContent(
             GamesSignInState.SignedIn(playerId = PLAYER_ID, displayName = DISPLAY_NAME),
             onSignInToPlayGames = { signInCount++ },
         )
 
-        composeRule.onNodeWithText(signedInAs(DISPLAY_NAME)).performScrollTo().performClick()
+        val row = composeRule.onNodeWithText(signedInAs(DISPLAY_NAME)).performScrollTo()
+        row.assertHasNoClickAction()
+        row.performClick()
         composeRule.waitForIdle()
 
         assertThat(signInCount).isEqualTo(0)
