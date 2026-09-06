@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -95,11 +96,20 @@ class HomeViewModel
             // Once either answer lands, promptAnswered is true forever and this collector
             // can never emit true again — there is no per-session re-ask and no nag
             // (D-17 / T-11-08). The Settings row is the only later way in (D-19).
+            //
+            // Both inputs are maps over the SAME `app_prefs` DataStore flow, so every store
+            // write (either flag, challenge progress, settings, ad cadence) re-emits both,
+            // and combine delivers the two re-emissions in no fixed order. Without the
+            // per-input dedupe, an unchanged `seen = true` arriving before the new
+            // `answered = true` would re-raise the prompt for a frame right after the player
+            // answered it (WR-07). Deduping each input means an unchanged flag is not an
+            // event at all; the final dedupe keeps a same-valued recompute off the state.
             viewModelScope.launch {
                 combine(
-                    onboardingRepository.onboardingSeen,
-                    optInRepository.promptAnswered,
+                    onboardingRepository.onboardingSeen.distinctUntilChanged(),
+                    optInRepository.promptAnswered.distinctUntilChanged(),
                 ) { seen, answered -> seen && !answered }
+                    .distinctUntilChanged()
                     .collect { shouldShow ->
                         _uiState.update { it.copy(playGamesPromptVisible = shouldShow) }
                     }
