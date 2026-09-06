@@ -1,14 +1,19 @@
 package com.app.pegsolitaire.ui.home
 
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.app.pegsolitaire.R
 import com.app.pegsolitaire.data.ClassicLevelIds
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
@@ -19,6 +24,10 @@ import org.robolectric.annotation.Config
  * collected correctly and still never reach the screen (the "invisible feature" trap): the
  * Challenge tile would read "Level 1" forever, and a saved game would offer no way back
  * into it however faithfully the snapshot was stored.
+ *
+ * The same trap applies to the Play Games opt-in surfaces (PGS-01, D-15/D-18): the
+ * ViewModel could sequence the prompt perfectly and bump the error tick faithfully while
+ * the screen hosted neither, so the player is never asked and never told sign-in failed.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [HOME_ROBOLECTRIC_SDK])
@@ -91,6 +100,106 @@ class HomeScreenTest {
         assertThat(resumedLevel).isEqualTo(STAMPED_RESUME_LEVEL)
     }
 
+    // ---- Play Games opt-in surfaces (PGS-01, D-15/D-18) ----------------------
+
+    @Test
+    fun theOptInPromptIsHostedWhenTheStateRaisesIt() {
+        renderHome(state = HomeUiState(playGamesPromptVisible = true))
+
+        composeRule.onNodeWithTag(PLAY_GAMES_PROMPT_DIALOG_TEST_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun noOptInPromptIsHostedWhenTheQuestionIsNotBeingAsked() {
+        // The overwhelmingly common case: already answered, or onboarding still up.
+        renderHome(state = HomeUiState())
+
+        composeRule.onNodeWithTag(PLAY_GAMES_PROMPT_DIALOG_TEST_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun aSignInErrorTickRaisedWhileOnHomeShowsTheSnackbar() {
+        // D-18: the error the ViewModel records must actually reach the player. Driven
+        // through a real recomposition (0 -> 1) rather than an already-raised initial
+        // state, because that is the live sequence — the player taps "Sign in", the SDK
+        // fails, and the tick moves under a screen that is already composed.
+        val state = mutableStateOf(HomeUiState())
+        composeRule.setContent {
+            HomeScreen(
+                state = state.value,
+                onPlayClassic = {},
+                onPlayChallenge = {},
+                onResumeClassic = {},
+                onResumeChallenge = {},
+                onShowHowToPlay = {},
+                onDismissOnboarding = {},
+                onAcceptPlayGamesPrompt = {},
+                onDeclinePlayGamesPrompt = {},
+                onPlayGamesSignInErrorShown = {},
+                onOpenSettings = {},
+            )
+        }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText(signInErrorMessage).assertDoesNotExist()
+
+        state.value = state.value.copy(playGamesSignInErrorTick = FIRST_ERROR_TICK)
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText(signInErrorMessage).assertIsDisplayed()
+    }
+
+    @Test
+    fun aSignInErrorTickOfZeroIsNeverShown() {
+        // The phantom-cue guard (the T-09-40 shape, on Home this time): a freshly composed
+        // Home sits at tick 0 — and, once consumed, RETURNS to 0 (CR-01). Show on 0 and every
+        // visit to Home opens by apologising for a sign-in the player never attempted.
+        renderHome(state = HomeUiState(playGamesSignInErrorTick = 0))
+
+        composeRule.onNodeWithText(signInErrorMessage).assertDoesNotExist()
+    }
+
+    @Test
+    fun aShownSignInErrorIsConsumedAndDoesNotReplayWhenHomeReEntersComposition() {
+        // CR-01: HomeViewModel outlives every visit to Home, so the screen must hand the
+        // ordinal back the moment it shows it. The callback here plays the ViewModel's part
+        // (resetting the tick); leaving and re-entering composition plays a forward
+        // navigation and its pop. The second visit must be silent.
+        val state = mutableStateOf(HomeUiState(playGamesSignInErrorTick = FIRST_ERROR_TICK))
+        val hosted = mutableStateOf(true)
+        var shownCount = 0
+        composeRule.setContent {
+            if (hosted.value) {
+                HomeScreen(
+                    state = state.value,
+                    onPlayClassic = {},
+                    onPlayChallenge = {},
+                    onResumeClassic = {},
+                    onResumeChallenge = {},
+                    onShowHowToPlay = {},
+                    onDismissOnboarding = {},
+                    onAcceptPlayGamesPrompt = {},
+                    onDeclinePlayGamesPrompt = {},
+                    onPlayGamesSignInErrorShown = {
+                        shownCount++
+                        state.value = state.value.copy(playGamesSignInErrorTick = 0)
+                    },
+                    onOpenSettings = {},
+                )
+            }
+        }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText(signInErrorMessage).assertIsDisplayed()
+        assertThat(shownCount).isEqualTo(1)
+
+        hosted.value = false
+        composeRule.waitForIdle()
+        hosted.value = true
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText(signInErrorMessage).assertDoesNotExist()
+        assertThat(shownCount).isEqualTo(1)
+    }
+
     private fun renderHome(
         state: HomeUiState,
         onPlayChallenge: (Int) -> Unit = {},
@@ -106,11 +215,22 @@ class HomeScreenTest {
                 onResumeChallenge = onResumeChallenge,
                 onShowHowToPlay = {},
                 onDismissOnboarding = {},
+                onAcceptPlayGamesPrompt = {},
+                onDeclinePlayGamesPrompt = {},
+                onPlayGamesSignInErrorShown = {},
                 onOpenSettings = {},
             )
         }
         composeRule.waitForIdle()
     }
+
+    /**
+     * The D-18 failure copy, read from `strings.xml` rather than retyped: this test's claim
+     * is that the message REACHES the player, not what it says (the wording itself is
+     * D-10/D-18's, shared with the Settings row, and is asserted where it is authored).
+     */
+    private val signInErrorMessage: String
+        get() = RuntimeEnvironment.getApplication().getString(R.string.play_games_signin_error)
 }
 
 /** Robolectric has no android-all jar for Android 16 (SDK 36) yet; emulate SDK 34. */
@@ -134,3 +254,6 @@ private const val STAMPED_RESUME_LEVEL = 9
 
 /** The rendered supporting copy for [STAMPED_RESUME_LEVEL] (verbatim from `strings.xml`). */
 private const val STAMPED_RESUME_SUPPORTING = "Pick up Level 9 where you left off"
+
+/** The first genuine sign-in error of a session — the tick's first meaningful value. */
+private const val FIRST_ERROR_TICK = 1

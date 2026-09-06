@@ -30,6 +30,8 @@ fun SettingsRoute(
         state = state,
         onToggleSound = viewModel::onToggleSound,
         onToggleHaptics = viewModel::onToggleHaptics,
+        onSignInToPlayGames = viewModel::onSignInToPlayGames,
+        onPlayGamesSignInErrorShown = viewModel::onPlayGamesSignInErrorShown,
         onManagePrivacyChoices = viewModel::onManagePrivacyChoices,
         onBack = onBack,
         modifier = modifier,

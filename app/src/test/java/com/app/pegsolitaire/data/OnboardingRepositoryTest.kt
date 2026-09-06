@@ -57,6 +57,18 @@ class OnboardingRepositoryTest {
             assertThat(repository.onboardingSeen.first()).isFalse()
         }
 
+    @Test
+    fun markSeenFailsOpenWhenTheWriteErrors() =
+        runTest {
+            // WR-05: the dismiss tap is a fire-and-forget launch with no handler of its own;
+            // a full disk must degrade to "teach again next launch", never crash the tap.
+            val repository = OnboardingRepository(throwingDataStore())
+
+            repository.markSeen()
+
+            assertThat(repository.onboardingSeen.first()).isFalse()
+        }
+
     private fun realDataStore(): DataStore<Preferences> =
         PreferenceDataStoreFactory.create(
             produceFile = { tempFolder.newFile(TEST_STORE_FILE) },
@@ -67,7 +79,7 @@ class OnboardingRepositoryTest {
             override val data: Flow<Preferences> = flow { throw IOException("corrupt store") }
 
             override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
-                error("not used in the read path")
+                throw IOException("disk full")
         }
 
     private companion object {
