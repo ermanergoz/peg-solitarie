@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.atomic.AtomicBoolean
@@ -101,10 +103,28 @@ class PlayGamesService
          * opted-in player pays for a redundant `initialize` plus `isAuthenticated` round
          * trip on every rotation. Mirrors `UmpConsentGateway.initialized`.
          *
+         * A successful [signIn] sets it too (WR-02): once the chooser has answered, the
+         * silent check has nothing left to learn, and running it on the next rotation
+         * would only replay the SDK's "Welcome back" popup — the exact cost this guard
+         * exists to avoid.
+         *
          * It guards only the SDK-touching branch. The declined-opt-in branch runs on every
          * call, which is free — it touches nothing but a DataStore read and a flow write.
          */
         private val bootstrapped = AtomicBoolean(false)
+
+        /**
+         * Serializes the two SDK-touching paths, [bootstrapIfOptedIn] and [signIn] (WR-02).
+         *
+         * Both initialize the SDK, build clients and publish to [_session] with
+         * last-writer-wins semantics, and they can overlap: a first-ever opt-in from the Home
+         * prompt runs [signIn] with the chooser up, and a rotation while the chooser is up
+         * recreates `MainActivity`, whose `onCreate` fires [bootstrapIfOptedIn] against a
+         * now-`true` opt-in flag. Unserialized, a slow bootstrap could publish `SignedOut`
+         * over the `SignedIn` the chooser had just produced. Under the lock the bootstrap
+         * runs second, finds the answer already published, and touches nothing.
+         */
+        private val sdkMutex = Mutex()
 
         override fun bootstrapIfOptedIn() {
             // Dispatchers.Main because PlayGames.get*Client takes an Activity and the SDK
@@ -121,25 +141,32 @@ class PlayGamesService
                 }
                 if (!bootstrapped.compareAndSet(false, true)) return@launch
 
-                val activity = awaitForegroundActivity()
-                if (activity == null) {
-                    _session.value = GamesSignInState.SignedOut
-                    return@launch
-                }
+                sdkMutex.withLock {
+                    // The WR-02 short-circuit: an explicit signIn may have answered while
+                    // this waited for the lock, and a published SignedIn is authoritative —
+                    // re-checking it could only regress it or replay the SDK popup.
+                    if (_session.value is GamesSignInState.SignedIn) return@withLock
 
-                val authenticated =
-                    runCatching {
-                        PlayGamesSdk.initialize(activity.applicationContext)
-                        val signInClient = PlayGames.getGamesSignInClient(activity)
-                        signInClient.isAuthenticated().await().isAuthenticated
-                    }.getOrDefault(false)
-
-                _session.value =
-                    if (authenticated) {
-                        signedInSessionFor(hostActivityAfterAwait(activity))
-                    } else {
-                        GamesSignInState.SignedOut
+                    val activity = awaitForegroundActivity()
+                    if (activity == null) {
+                        _session.value = GamesSignInState.SignedOut
+                        return@withLock
                     }
+
+                    val authenticated =
+                        runCatching {
+                            PlayGamesSdk.initialize(activity.applicationContext)
+                            val signInClient = PlayGames.getGamesSignInClient(activity)
+                            signInClient.isAuthenticated().await().isAuthenticated
+                        }.getOrDefault(false)
+
+                    _session.value =
+                        if (authenticated) {
+                            signedInSessionFor(hostActivityAfterAwait(activity))
+                        } else {
+                            GamesSignInState.SignedOut
+                        }
+                }
             }
         }
 
@@ -178,39 +205,45 @@ class PlayGamesService
          * [GamesSignInState.SignedIn] to publish without an ID, and a silent decline is the
          * kinder reading of an outcome the player cannot act on.
          */
-        override suspend fun signIn(): Boolean {
-            // Bounded, and a null answer is not an error: nothing was touched, so there is
-            // nothing to surface. A backgrounded tap must not raise a snackbar nobody sees.
-            val activity = awaitForegroundActivity() ?: return false
+        override suspend fun signIn(): Boolean =
+            // Under sdkMutex so it never interleaves with the silent launch check (WR-02).
+            sdkMutex.withLock {
+                // Bounded, and a null answer is not an error: nothing was touched, so there
+                // is nothing to surface. A backgrounded tap must not raise a snackbar nobody
+                // sees.
+                val activity = awaitForegroundActivity() ?: return@withLock false
 
-            val outcome =
-                runCatching {
-                    PlayGamesSdk.initialize(activity.applicationContext)
-                    val signInClient = PlayGames.getGamesSignInClient(activity)
-                    signInClient.signIn().await().isAuthenticated
-                }
-
-            return outcome.fold(
-                onSuccess = { authenticated ->
-                    val resolved =
-                        if (authenticated) {
-                            signedInSessionFor(hostActivityAfterAwait(activity))
-                        } else {
-                            GamesSignInState.SignedOut
-                        }
-                    _session.value = resolved
-                    resolved is GamesSignInState.SignedIn
-                },
-                onFailure = { failure ->
-                    _session.value = GamesSignInState.SignedOut
-                    if ((failure as? ApiException)?.statusCode == CommonStatusCodes.CANCELED) {
-                        false
-                    } else {
-                        throw failure
+                val outcome =
+                    runCatching {
+                        PlayGamesSdk.initialize(activity.applicationContext)
+                        val signInClient = PlayGames.getGamesSignInClient(activity)
+                        signInClient.signIn().await().isAuthenticated
                     }
-                },
-            )
-        }
+
+                outcome.fold(
+                    onSuccess = { authenticated ->
+                        val resolved =
+                            if (authenticated) {
+                                signedInSessionFor(hostActivityAfterAwait(activity))
+                            } else {
+                                GamesSignInState.SignedOut
+                            }
+                        _session.value = resolved
+                        val signedIn = resolved is GamesSignInState.SignedIn
+                        // A signed-in answer satisfies the once-per-process silent check (WR-02).
+                        if (signedIn) bootstrapped.set(true)
+                        signedIn
+                    },
+                    onFailure = { failure ->
+                        _session.value = GamesSignInState.SignedOut
+                        if ((failure as? ApiException)?.statusCode == CommonStatusCodes.CANCELED) {
+                            false
+                        } else {
+                            throw failure
+                        }
+                    },
+                )
+            }
 
         /**
          * The Activity to hand the player lookups that follow an SDK `await()` (WR-01).

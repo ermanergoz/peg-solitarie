@@ -26,8 +26,10 @@ import io.mockk.mockkStatic
 import io.mockk.runs
 import io.mockk.unmockkAll
 import io.mockk.verify
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,6 +37,7 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
@@ -219,6 +222,49 @@ class PlayGamesServiceTest {
 
             verify(exactly = 1) { PlayGamesSdk.initialize(any()) }
             verify(exactly = 1) { signInClient.isAuthenticated() }
+            assertThat(service.session.value)
+                .isEqualTo(GamesSignInState.SignedIn(PLAYER_ID, DISPLAY_NAME))
+        }
+
+    @Test
+    fun aBootstrapOverlappingAnExplicitSignInNeverRegressesTheSignedInAnswer() =
+        runTest(testDispatcher) {
+            // WR-02: a first-ever opt-in from the Home prompt runs signIn with the chooser up;
+            // a rotation while it is up recreates MainActivity, whose onCreate fires the
+            // bootstrap against a now-true flag. The bootstrap's own check answering "not
+            // authenticated" must never overwrite the SignedIn the chooser produced.
+            val resumed = CompletableDeferred<Activity>()
+            coEvery { activityProvider.awaitActivity() } coAnswers { resumed.await() }
+            every { signInClient.isAuthenticated() } returns Tasks.forResult(authentication(false))
+            val service = serviceFor(optedIn = true)
+
+            val signIn = async { service.signIn() }
+            runCurrent() // signIn holds the SDK lock, waiting for an Activity
+            service.bootstrapIfOptedIn()
+            runCurrent() // the bootstrap has passed its gate and is queued behind the lock
+            resumed.complete(activity)
+            advanceUntilIdle()
+
+            assertThat(signIn.await()).isTrue()
+            assertThat(service.session.value)
+                .isEqualTo(GamesSignInState.SignedIn(PLAYER_ID, DISPLAY_NAME))
+            verify(exactly = 0) { signInClient.isAuthenticated() }
+            verify(exactly = 1) { PlayGamesSdk.initialize(any()) }
+        }
+
+    @Test
+    fun aSuccessfulSignInSatisfiesTheOncePerProcessSilentCheck() =
+        runTest(testDispatcher) {
+            // WR-02's other half: once the chooser has answered, a later bootstrap (the next
+            // rotation) has nothing to learn and must not replay the SDK's welcome popup.
+            val service = serviceFor(optedIn = true)
+
+            service.signIn()
+            service.bootstrapIfOptedIn()
+            advanceUntilIdle()
+
+            verify(exactly = 1) { PlayGamesSdk.initialize(any()) }
+            verify(exactly = 0) { signInClient.isAuthenticated() }
             assertThat(service.session.value)
                 .isEqualTo(GamesSignInState.SignedIn(PLAYER_ID, DISPLAY_NAME))
         }
