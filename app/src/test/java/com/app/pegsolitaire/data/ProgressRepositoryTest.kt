@@ -193,7 +193,6 @@ class ProgressRepositoryTest {
             }
         }
 
-
     // ---- The play_session write (D-08) -----------------------------------------
 
     @Test
@@ -316,7 +315,6 @@ class ProgressRepositoryTest {
 
     private suspend fun storedResults(mode: String = MODE): List<LevelResult> = repository.observeResults(mode).first()
 
-
     private fun storedSessions(): List<PlaySessionEntity> {
         // 12-01's PlaySessionDao is insert-only by design; widening a production DAO for
         // a test's convenience is not a reason to add a read method to it.
@@ -361,8 +359,7 @@ class ProgressRepositoryTest {
     private fun repositoryWith(
         levelResultDao: LevelResultDao = database.levelResultDao(),
         playSessionDao: PlaySessionDao = database.playSessionDao(),
-    ): ProgressRepository =
-        DefaultProgressRepository(database, levelResultDao, database.resumeDao(), playSessionDao)
+    ): ProgressRepository = DefaultProgressRepository(database, levelResultDao, database.resumeDao(), playSessionDao)
 
     private fun telemetry(
         hintsUsed: Int = NO_ASSISTS,

@@ -6,6 +6,7 @@ import com.app.pegsolitaire.data.db.LevelResultDao
 import com.app.pegsolitaire.data.db.LevelResultEntity
 import com.app.pegsolitaire.data.db.PegSolitaireDatabase
 import com.app.pegsolitaire.data.db.PlaySessionDao
+import com.app.pegsolitaire.data.db.PlaySessionEntity
 import com.app.pegsolitaire.data.db.ResumeDao
 import com.app.pegsolitaire.data.db.ResumeSnapshotEntity
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
@@ -14,6 +15,7 @@ import com.app.pegsolitaire.domain.achievement.AchievementThresholds
 import com.app.pegsolitaire.domain.achievement.ClassicBoard
 import com.app.pegsolitaire.domain.achievement.ProgressAggregate
 import com.app.pegsolitaire.domain.scoring.ScoreResult
+import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -45,11 +47,25 @@ interface ProgressRepository {
      * The write is best-effort (T-05-13): a storage failure drops this play's record —
      * stored bests keep their prior values — and reports "nothing improved" rather than
      * crashing the Results screen.
+     *
+     * **Both tables are written in ONE transaction (D-08).** The `level_result` upsert and
+     * the `play_session` insert land together or not at all, so telemetry can never
+     * disagree with the best it belongs to: a half-applied write would otherwise leave a
+     * banked best with no telemetry (a permanently unearnable Hint-free) or a telemetry row
+     * for a play whose best was never stored. The two tables mean different things —
+     * `play_session` is append-only and describes THIS PLAY, while `level_result` holds the
+     * merged best — which is why a replay appends a second session row but still updates
+     * one result row.
+     *
+     * @param telemetry this play's per-solve facts (D-08). Deliberately has **no default**:
+     *   a default would let a future call site silently drop telemetry, and the compiler
+     *   catching every call site is exactly the point.
      */
     suspend fun recordResult(
         mode: String,
         levelId: String,
         result: ScoreResult,
+        telemetry: SolveTelemetry,
         nowMs: Long,
     ): NewBests
 
@@ -190,6 +206,7 @@ class DefaultProgressRepository
             mode: String,
             levelId: String,
             result: ScoreResult,
+            telemetry: SolveTelemetry,
             nowMs: Long,
         ): NewBests =
             // Best-effort (T-05-13), guarded at the TRANSACTION boundary deliberately: a
@@ -198,7 +215,7 @@ class DefaultProgressRepository
             // stored bests. Failure drops the write and reports "nothing improved".
             storageFailSafe(fallback = NewBests(stars = false, time = false, score = false)) {
                 database.withTransaction {
-                    recordResultInTransaction(mode, levelId, result, nowMs)
+                    recordResultInTransaction(mode, levelId, result, telemetry, nowMs)
                 }
             }
 
@@ -206,6 +223,7 @@ class DefaultProgressRepository
             mode: String,
             levelId: String,
             result: ScoreResult,
+            telemetry: SolveTelemetry,
             nowMs: Long,
         ): NewBests {
             val previous = levelResultDao.find(mode, levelId)
@@ -224,6 +242,24 @@ class DefaultProgressRepository
                     bestTimeMs = minOf(timeMs, previous?.bestTimeMs ?: Long.MAX_VALUE),
                     bestScore = maxOf(result.score, previous?.bestScore ?: ProgressConstants.NO_SCORE),
                     completedAt = if (newBests.any) nowMs else previous?.completedAt ?: nowMs,
+                ),
+            )
+            // Inside the SAME transaction as the upsert above (D-08), and built from THIS
+            // PLAY's values rather than the merged bests. Note the deliberate asymmetry of
+            // the two timestamps: `completedAt` on the result row means "last improved" and
+            // only moves on an improvement, whereas `finishedAt` here means "this play
+            // happened" and is stamped every time.
+            playSessionDao.insert(
+                PlaySessionEntity(
+                    mode = mode,
+                    levelId = levelId,
+                    stars = result.stars,
+                    score = result.score,
+                    elapsedMs = timeMs,
+                    hintsUsed = telemetry.hintsUsed,
+                    undosUsed = telemetry.undosUsed,
+                    lastPegOnTarget = telemetry.lastPegOnTarget,
+                    finishedAt = nowMs,
                 ),
             )
             return newBests

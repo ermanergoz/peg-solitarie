@@ -1146,7 +1146,6 @@ class ResultsViewModelTest {
                 )
         }
 
-
     @Test
     fun aSolvedResultPassesTheResolvedTelemetryToTheRepositoryVerbatim() =
         runTest(testDispatcher) {

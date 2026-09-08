@@ -12,6 +12,7 @@ import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
 import com.app.pegsolitaire.data.resume.SnapshotMapper
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.scoring.ScoreResult
+import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -111,6 +112,7 @@ class ProgressRepositoryFailureTest {
                     ProgressPersistenceKeys.MODE_CLASSIC,
                     LEVEL_ID,
                     scoreResult(SEEDED_STARS),
+                    SolveTelemetry.NONE,
                     NOW_MS,
                 )
 
@@ -122,7 +124,13 @@ class ProgressRepositoryFailureTest {
     fun aFailedRecordDropsTheWriteAndLeavesTheStoredBestsIntact() =
         runTest {
             val healthy = repositoryWith()
-            healthy.recordResult(ProgressPersistenceKeys.MODE_CLASSIC, LEVEL_ID, scoreResult(SEEDED_STARS), NOW_MS)
+            healthy.recordResult(
+                ProgressPersistenceKeys.MODE_CLASSIC,
+                LEVEL_ID,
+                scoreResult(SEEDED_STARS),
+                SolveTelemetry.NONE,
+                NOW_MS,
+            )
             val failing = repositoryWith(levelResultDao = ThrowingUpsertLevelResultDao(database.levelResultDao()))
 
             val bests =
@@ -130,6 +138,7 @@ class ProgressRepositoryFailureTest {
                     ProgressPersistenceKeys.MODE_CLASSIC,
                     LEVEL_ID,
                     scoreResult(IMPROVED_STARS),
+                    SolveTelemetry.NONE,
                     LATER_MS,
                 )
 
