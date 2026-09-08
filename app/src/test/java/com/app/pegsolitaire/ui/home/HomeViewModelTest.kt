@@ -20,6 +20,7 @@ import com.app.pegsolitaire.domain.achievement.ClassicBoard
 import com.app.pegsolitaire.domain.achievement.ProgressAggregate
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.scoring.ScoreResult
+import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import com.app.pegsolitaire.platform.games.FakeGamesService
 import com.app.pegsolitaire.platform.games.GamesService
 import com.google.common.truth.Truth.assertThat
@@ -612,6 +613,7 @@ private class FakeResumeProgressRepository : ProgressRepository {
         mode: String,
         levelId: String,
         result: ScoreResult,
+        telemetry: SolveTelemetry,
         nowMs: Long,
     ): NewBests = error("Home never records a result")
 

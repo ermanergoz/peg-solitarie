@@ -760,6 +760,7 @@ private class TelemetryProgressRepository(
         mode: String,
         levelId: String,
         result: ScoreResult,
+        telemetry: SolveTelemetry,
         nowMs: Long,
     ): NewBests = error("GameViewModel never records a result — ResultsViewModel owns that")
 
