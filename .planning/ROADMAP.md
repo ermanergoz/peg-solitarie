@@ -312,9 +312,9 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 12-01-PLAN.md — Room v1→v2 migration (D-06): `play_session` telemetry table, `MIGRATION_1_2`, exported `2.json`, progress-preserving `MigrationTest`
-- [ ] 12-02-PLAN.md — Pure `:domain` achievement kernel (D-01..D-05, D-11): `SolveTelemetry`, 20-value `AchievementId`, `AchievementThresholds`, `ProgressAggregate`, `AchievementRules`
-- [ ] 12-03-PLAN.md — `GamesService` seam reshape to Boolean submissions + `setAchievementSteps` (D-12), real `PlayGamesService` bodies, stock-UI Intents, two signed-in-only Settings rows (D-14/D-15)
+- [x] 12-01-PLAN.md — Room v1→v2 migration (D-06): `play_session` telemetry table, `MIGRATION_1_2`, exported `2.json`, progress-preserving `MigrationTest`
+- [x] 12-02-PLAN.md — Pure `:domain` achievement kernel (D-01..D-05, D-11): `SolveTelemetry`, 20-value `AchievementId`, `AchievementThresholds`, `ProgressAggregate`, `AchievementRules`
+- [x] 12-03-PLAN.md — `GamesService` seam reshape to Boolean submissions + `setAchievementSteps` (D-12), real `PlayGamesService` bodies, stock-UI Intents, two signed-in-only Settings rows (D-14/D-15)
 
 **Wave 2** *(12-04 blocked on 12-03 — both edit `GamesConstants.kt`; 12-05 blocked on 12-02)*
 
@@ -386,6 +386,6 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 9. Consent & Rewarded Ads | v1.1 | 11/11 | Complete   | 2026-09-02 |
 | 10. Interstitials | v1.1 | 6/6 | Complete    | 2026-09-03 |
 | 11. Play Games Session | v1.1 | 4/4 | Complete   | 2026-09-03 |
-| 12. Leaderboards & Achievements | v1.1 | 0/TBD | Not started | - |
+| 12. Leaderboards & Achievements | v1.1 | 3/8 | In Progress|  |
 | 13. Cloud Save | v1.1 | 0/TBD | Not started | - |
 | 14. Release Readiness | v1.1 | 0/TBD | Not started | - |
