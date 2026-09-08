@@ -17,9 +17,10 @@ import com.google.android.gms.common.api.CommonStatusCodes
  * **What must never be written here:** anything identifying. The Play Games services
  * project ID is a per-build-type value resolved through `resValue`/`@string` and read by
  * the SDK from the manifest — never a Kotlin constant. No player identifier, no display
- * name and no leaderboard/achievement ID belongs in this file either; Phase 12's IDs get
- * their own build-time resolution, following the [com.app.pegsolitaire.platform.ads.AdIds]
- * precedent.
+ * name and no leaderboard/achievement ID belongs in this file either: the 27 leaderboard
+ * and achievement IDs are resolved at build time into `BuildConfig` and read through
+ * [GamesIds], which follows the [com.app.pegsolitaire.platform.ads.AdIds] precedent. That
+ * reservation has been honoured — the IDs live there, not here.
  */
 object GamesConstants {
     /**
