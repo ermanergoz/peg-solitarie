@@ -279,7 +279,7 @@ class GameViewModelTest {
                 viewModel.onCellTap(Position(row = 0, col = 2))
                 runCurrent()
 
-                val result = awaitItem()
+                val result = awaitItem().result
                 assertThat(result.pegsRemaining).isEqualTo(1)
                 assertThat(result.pegsCleared).isEqualTo(1)
                 // D-03/D-04: the assertion's value is that the VM and the calculator agree
@@ -330,7 +330,7 @@ class GameViewModelTest {
 
                 assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Won)
 
-                val result = awaitItem()
+                val result = awaitItem().result
                 assertThat(result.pegsRemaining).isEqualTo(BoardConstants.DIAMOND41_FEWEST_PEGS_FLOOR)
                 assertThat(result.stars).isEqualTo(3)
                 // The same finish banded on the OLD global target would have been 2 stars —
@@ -675,7 +675,7 @@ class GameViewModelTest {
                 runCurrent()
 
                 // Won still routes to Results (emits exactly once) and shows no banner.
-                awaitItem()
+                awaitItem().result
                 val state = viewModel.uiState.value
                 assertThat(state.status).isEqualTo(GameStatus.Won)
                 assertThat(state.stuck).isFalse()
@@ -754,7 +754,7 @@ class GameViewModelTest {
                 jump(viewModel, from = Position(row = 3, col = 1), to = Position(row = 1, col = 1))
                 runCurrent()
 
-                val result = awaitItem()
+                val result = awaitItem().result
                 assertThat(result.pegsRemaining).isEqualTo(1)
                 assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Won)
                 expectNoEvents()

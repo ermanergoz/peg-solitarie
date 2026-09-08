@@ -30,6 +30,7 @@ import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.scoring.ScoreParams
 import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.app.pegsolitaire.domain.solver.SolverBudget
+import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
 import com.app.pegsolitaire.navigation.Gameplay
 import com.app.pegsolitaire.platform.ads.AdGateway
@@ -249,15 +250,18 @@ class GameViewModel
         /** Read-only state stream for the UI; the mutable flow never leaks (Pitfall 10). */
         val uiState: StateFlow<GameUiState> = _uiState.asStateFlow()
 
-        private val _finished = Channel<ScoreResult>(Channel.CONFLATED)
+        private val _finished = Channel<GameFinish>(Channel.CONFLATED)
 
         /**
-         * Fires exactly once when the game reaches Won/Stuck, carrying the computed
-         * [ScoreResult]. Consumed once by `GameRoute` inside a `LaunchedEffect` to
-         * navigate to Results (one-shot — a recomposition can never re-fire it,
-         * Pitfall 4).
+         * Fires exactly once when the game reaches Won, carrying both halves of the play:
+         * the computed [ScoreResult] and the [SolveTelemetry] of the very same solve
+         * (D-08). Consumed once by `GameRoute` inside a `LaunchedEffect` to navigate to
+         * Results (one-shot — a recomposition can never re-fire it, Pitfall 4).
+         *
+         * The two travel as one [GameFinish] rather than on two flows so a consumer cannot
+         * receive a score without the telemetry that belongs to it.
          */
-        val finished: Flow<ScoreResult> = _finished.receiveAsFlow()
+        val finished: Flow<GameFinish> = _finished.receiveAsFlow()
 
         /** The instant the first move was applied; `null` until then (timer not started). */
         private var startMark: TimeMark? = null
@@ -384,6 +388,57 @@ class GameViewModel
         private var allowance: AssistAllowance = AssistAllowance()
 
         /**
+         * How many hints the player has actually **received** on this play, and how many
+         * undos have actually **rewound the board** (D-09, PGSA-02).
+         *
+         * Every one counts — free-allowance, silently-free-because-ads-are-unservable, and
+         * rewarded alike. There is no "this one was paid for so it does not spoil the run"
+         * carve-out: the achievements these feed (Hint-free, Undo-free) are claims about
+         * the *play*, not about the payment.
+         *
+         * Deliberately **private**, and deliberately absent from [GameUiState], for the
+         * same D-05 reason [allowance] is: no counter may become a visible badge. Their
+         * only legitimate exits are the finish event ([finished]) and the resume snapshot.
+         *
+         * **They ARE reset by a restart and by a new level — the opposite of [allowance].**
+         * [resetToInitial] clears them explicitly, and a genuinely new level is a new
+         * `GameViewModel` whose field initializers are the reset. The asymmetry is the
+         * point: a restart must not refill free assists (D-04), but neither may it let a
+         * player launder a hint-free badge by retrying the level after taking a hint.
+         *
+         * They ride the resume snapshot ([onLeaveScreen]/[applyRestored]) so backgrounding
+         * or killing the app mid-level cannot erase an assist already taken (D-09).
+         */
+        private var hintsUsed: Int = NO_ASSISTS_USED
+
+        /** Undos that really rewound the board on this play — see [hintsUsed]. */
+        private var undosUsed: Int = NO_ASSISTS_USED
+
+        /**
+         * Records one **applied** assist of [kind] — the single place either counter is
+         * ever incremented, in the same register as [performUndo] being the single place
+         * the move history is ever shortened.
+         *
+         * It is called from the two APPLICATION points ([performUndo] and
+         * [revealPendingHint]) and never from [enterAssistFunnel], which is what makes
+         * "a declined or failed offer costs nothing" structurally true instead of a rule
+         * somebody has to remember (D-09, threat T-12-23).
+         *
+         * The `when` is exhaustive with no `else`: a third [AssistKind] must fail the build
+         * rather than silently go uncounted.
+         */
+        private fun countAssist(kind: AssistKind) {
+            when (kind) {
+                AssistKind.HINT -> {
+                    hintsUsed += 1
+                }
+                AssistKind.UNDO -> {
+                    undosUsed += 1
+                }
+            }
+        }
+
+        /**
          * This ad reason as the `:domain` policy names it.
          *
          * The two enums duplicate each other **by design, not by oversight**: [AdReason]
@@ -426,6 +481,14 @@ class GameViewModel
          * The `rewardedOfferable` read sits **after** the allowance check on purpose: a
          * player who still has free assists must not have their behaviour depend on consent
          * state at all.
+         *
+         * **Nothing here counts an assist (D-09).** [countAssist] is called only from the
+         * two APPLICATION points, [performUndo] and [revealPendingHint]. Two of this gate's
+         * three `true` outcomes can still be followed by a no-op action — an undo whose
+         * history was emptied while an ad played, a hint discarded as stale — and
+         * [onDismissAdOffer] / [RewardOutcome.Declined] must cost nothing at all. Counting
+         * where the assist is *applied* rather than where it is *permitted* makes every one
+         * of those fall out with no second rule to keep in sync.
          */
         private fun enterAssistFunnel(
             kind: AssistKind,
@@ -625,6 +688,13 @@ class GameViewModel
             // DTO ints are never read here — the forged-counter decision belongs to the codec,
             // in one place, not to every consumer of a restore.
             allowance = restored.allowance
+            // D-09, and the same argument as the allowance above: `RestoredGame`'s counters
+            // are non-null by construction because SnapshotMapper already resolved the
+            // untrusted stored value through `orNoAssists()` — absent or negative is zero,
+            // fail-CLOSED. The raw DTO ints are never read here; the forged-counter decision
+            // belongs to the codec, in one place, not to every consumer of a restore.
+            hintsUsed = restored.hintsUsed
+            undosUsed = restored.undosUsed
             // Board-install = board mutation, so the CR-01 idiom applies (WR-01); the
             // GameUiState.initial() rebuild below clears solverThinking — and, equally, the
             // pendingAdOffer / adOfferLoading pair — for us.
@@ -685,6 +755,12 @@ class GameViewModel
                     // app would be the loophole the persistence exists to close.
                     freeHintsRemaining = allowance.hintsRemaining,
                     freeUndosRemaining = allowance.undosRemaining,
+                    // D-09's anti-laundering half: the assists already TAKEN ride the
+                    // snapshot too, so killing the process mid-level cannot erase one and
+                    // turn a hinted solve into a hint-free one. A stored 0 is an honest
+                    // claim ("no assists yet") and comes back as 0, not as "unknown".
+                    hintsUsed = hintsUsed,
+                    undosUsed = undosUsed,
                 )
             viewModelScope.launch { progressRepository.saveSnapshot(dto) }
         }
@@ -897,20 +973,65 @@ class GameViewModel
             // non-null here; fall back to the current count defensively.
             val startingPegCount = initialBoard?.pegCount ?: pegsRemaining
             _finished.trySend(
-                scoreCalculator.evaluate(
-                    pegsRemaining = pegsRemaining,
-                    pegsCleared = startingPegCount - pegsRemaining,
-                    elapsedSeconds = _uiState.value.elapsedSeconds,
-                    levelMultiplier = levelMultiplier,
-                    // D-03/D-04: stars are banded on the FINISHING BOARD's own
-                    // perfect finish, taken from the spec that produced this
-                    // result — not from the level id. A level-id lookup would be
-                    // silently wrong for a resumed game, whose spec is rebuilt
-                    // structurally from a persisted blob rather than fetched from
-                    // the catalog. Diamond-41's target is a proven 2.
-                    minimumPegs = nextBoard.spec.minimumPegs,
+                GameFinish(
+                    result =
+                        scoreCalculator.evaluate(
+                            pegsRemaining = pegsRemaining,
+                            pegsCleared = startingPegCount - pegsRemaining,
+                            elapsedSeconds = _uiState.value.elapsedSeconds,
+                            levelMultiplier = levelMultiplier,
+                            // D-03/D-04: stars are banded on the FINISHING BOARD's own
+                            // perfect finish, taken from the spec that produced this
+                            // result — not from the level id. A level-id lookup would be
+                            // silently wrong for a resumed game, whose spec is rebuilt
+                            // structurally from a persisted blob rather than fetched from
+                            // the catalog. Diamond-41's target is a proven 2.
+                            minimumPegs = nextBoard.spec.minimumPegs,
+                        ),
+                    telemetry = telemetryFor(nextBoard),
                 ),
             )
+        }
+
+        /**
+         * This play's [SolveTelemetry] (D-08): the two counters as they stand at the finish,
+         * plus the D-01 target test against the board that was just played.
+         *
+         * Extracted purely to keep [freezeAndFinishIfTerminal] inside detekt's `LongMethod`
+         * budget without an early `return` (its `ReturnCount` allowance is already spent).
+         */
+        private fun telemetryFor(finishingBoard: Board): SolveTelemetry =
+            SolveTelemetry(
+                hintsUsed = hintsUsed,
+                undosUsed = undosUsed,
+                lastPegOnTarget = lastPegOnTarget(finishingBoard),
+            )
+
+        /**
+         * Whether [finishingBoard] holds exactly one peg AND that peg sits on the board's
+         * own target hole (D-01).
+         *
+         * Three facts this encodes, in the order they bite:
+         *  1. **The target comes from the FINISHING BOARD's own spec**, never from a catalog
+         *     lookup by [levelId] — the same reasoning the `minimumPegs` comment a few lines
+         *     above already makes. A resumed game's spec is rebuilt *structurally* from the
+         *     persisted blob, so a level-id lookup would judge a different board than the one
+         *     actually played.
+         *  2. **A board with no target is always false**, which covers every freeform
+         *     Challenge footprint (they are built with `target = null`), and a multi-peg Won
+         *     finish is false too — Diamond-41's perfect finish is a proven TWO pegs, which
+         *     is a flawless win but not a target finish.
+         *  3. **English-33's target IS `(3, 3)`** (`Boards.English33` is built with
+         *     `target = English33Layout.center`), so a true here on English-33 is exactly
+         *     D-01's Center finish. This records the GENERAL fact for every board on purpose:
+         *     the narrowing to English-33 is a `mode = 'classic' AND levelId = 'english33'`
+         *     SQL predicate that plan 12-06 owns, which keeps `play_session` honest and makes
+         *     a future per-board variant a query change rather than a migration.
+         */
+        private fun lastPegOnTarget(finishingBoard: Board): Boolean {
+            val target = finishingBoard.spec.target ?: return false
+            return finishingBoard.pegCount == SINGLE_PEG_REMAINING &&
+                finishingBoard.cellAt(target) == Cell.Peg
         }
 
         /**
@@ -1127,6 +1248,13 @@ class GameViewModel
             // D-07: startMark / elapsedSeconds are intentionally NOT reset here — undo
             // rescues the board but the real elapsed time keeps running; the ticker
             // itself is resumed below when the board returns to Playing.
+            //
+            // D-09: counted HERE, alongside undoTick, and deliberately so — that ordinal
+            // already means "an undo that really happened", so the counter and the cue are
+            // advanced by the same condition and cannot drift apart. Every guard and every
+            // refusal (an empty history, a raised offer, a declined grant) returned before
+            // this line.
+            countAssist(AssistKind.UNDO)
             _uiState.update {
                 it.copy(
                     board = board,
@@ -1410,6 +1538,9 @@ class GameViewModel
             val boardAtRequest = pendingHintBoard
             clearPendingHint()
             if (_uiState.value.board != boardAtRequest) return
+            // D-09: counted HERE, past the null stash and past the staleness return — a
+            // hint the player never saw is not a hint they used.
+            countAssist(AssistKind.HINT)
             _uiState.update { it.copy(hintSource = move.from, hintTarget = move.to) }
         }
 
@@ -1435,6 +1566,16 @@ class GameViewModel
             // The in-flight [unfreezeClockAfterAd] then no-ops, leaving this reset intact.
             frozenForAd = false
             finishedEmitted = false
+            // D-09, and the deliberate MIRROR IMAGE of the allowance paragraph below: the
+            // assist counters ARE reset by a restart. A retry may not refill free assists,
+            // but it equally may not let a player take a hint, restart, and bank a
+            // hint-free badge on the back of the second attempt.
+            //
+            // Because this function also calls clearSnapshot() below, the reset is durable:
+            // unlike the allowance's accepted D-17 Option A hole, a restart cannot be undone
+            // by a later restore, since the row the restore would read is gone.
+            hintsUsed = NO_ASSISTS_USED
+            undosUsed = NO_ASSISTS_USED
             // [allowance] is DELIBERATELY not reset here, and the omission is the D-04
             // mechanism rather than a forgotten line: retrying a level must not refill the
             // free assists, or "restart to farm three more hints" is a one-tap loophole.
@@ -1523,5 +1664,11 @@ class GameViewModel
 
             /** The timer counts whole seconds; the resume snapshot stores milliseconds. */
             const val MILLIS_IN_SECOND = 1_000L
+
+            /** A fresh play — and a restarted one — has taken no hints and no undos (D-09). */
+            const val NO_ASSISTS_USED = 0
+
+            /** The peg count a "last peg on the target hole" finish requires (D-01). */
+            const val SINGLE_PEG_REMAINING = 1
         }
     }

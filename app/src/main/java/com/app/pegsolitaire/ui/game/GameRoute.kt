@@ -58,14 +58,14 @@ fun GameRoute(
     }
 
     LaunchedEffect(Unit) {
-        viewModel.finished.collect { result ->
+        viewModel.finished.collect { finish ->
             onFinished(
                 Results(
                     levelId = viewModel.levelId,
-                    stars = result.stars,
-                    pegsRemaining = result.pegsRemaining,
-                    elapsedSeconds = result.elapsedSeconds,
-                    score = result.score,
+                    stars = finish.result.stars,
+                    pegsRemaining = finish.result.pegsRemaining,
+                    elapsedSeconds = finish.result.elapsedSeconds,
+                    score = finish.result.score,
                     challengeLevel = viewModel.challengeLevel,
                 ),
             )
