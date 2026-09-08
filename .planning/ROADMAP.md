@@ -307,7 +307,31 @@ Plans:
   4. Player earns skill achievements for solving hint-free, solving undo-free, and finishing with the last peg in the center — and every existing saved best, star total, and ladder position survives the schema migration that makes those achievements possible. (PGSA-02, PGSA-06)
   5. Player's growing ladder position and star total tick incremental achievements forward, and they can open the Play Games achievements UI from inside the game. (PGSA-03, PGSA-05)
 
-**Plans**: TBD
+**Plans**: 8 plans in 5 waves
+
+Plans:
+**Wave 1**
+
+- [ ] 12-01-PLAN.md — Room v1→v2 migration (D-06): `play_session` telemetry table, `MIGRATION_1_2`, exported `2.json`, progress-preserving `MigrationTest`
+- [ ] 12-02-PLAN.md — Pure `:domain` achievement kernel (D-01..D-05, D-11): `SolveTelemetry`, 20-value `AchievementId`, `AchievementThresholds`, `ProgressAggregate`, `AchievementRules`
+- [ ] 12-03-PLAN.md — `GamesService` seam reshape to Boolean submissions + `setAchievementSteps` (D-12), real `PlayGamesService` bodies, stock-UI Intents, two signed-in-only Settings rows (D-14/D-15)
+
+**Wave 2** *(12-04 blocked on 12-03 — both edit `GamesConstants.kt`; 12-05 blocked on 12-02)*
+
+- [ ] 12-04-PLAN.md — 27-key build-config ID plumbing (D-17): `GamesIdResolution`, `verifyReleaseGamesIds`, `gamesIdLiteralCheck`, `GamesIds`
+- [ ] 12-05-PLAN.md — Per-session telemetry in `GameViewModel` (D-09): assist counters on the funnel success path, `lastPegOnTarget`, persisted snapshot fields, Results nav args
+
+**Wave 3** *(blocked on 12-01, 12-02, 12-05)*
+
+- [ ] 12-06-PLAN.md — `recordResult` takes `SolveTelemetry` and writes both tables in one transaction (D-08); SQL aggregate projections build `ProgressAggregate` (D-03/D-04/D-07)
+
+**Wave 4** *(blocked on 12-02, 12-03, 12-04, 12-06)*
+
+- [ ] 12-07-PLAN.md — `ProgressSubmitter` `@Singleton` (D-10/D-11/D-13): dirty-flag backfill, mutex-serialised pass, `GamesIds.of`, the `recordSolvedPlayOnce()` hook, `MainActivity.start()`
+
+**Wave 5** *(blocked on all seven)*
+
+- [ ] 12-08-PLAN.md — Operator closure: Play Console checklist (7 leaderboards, 20 achievements ≤ 2,000 pts), Phase 12 device UAT items, ROADMAP icon row 10–12 → 20 (D-05)
 **Notes**: PGSA-06 (per-session telemetry Room migration) must land **before or with** PGSA-02 — the skill achievements are unearnable without it, and the migration must be proven progress-preserving with a `MigrationTestHelper` test before any achievement wiring. Submission hooks into `ResultsViewModel.recordSolvedPlayOnce()` (which already has the process-death-safe exactly-once guard), **not** `GameViewModel` — `finishedEmitted` is reset by `onUndo()` and would double-submit. Aggregates must be SQL-backed, not an in-memory fold: Challenge reaches thousands of rows. 512×512 achievement icons must already be uploaded (see External Prerequisites).
 
 ### Phase 13: Cloud Save
