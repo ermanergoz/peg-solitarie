@@ -318,8 +318,8 @@ Plans:
 
 **Wave 2** *(12-04 blocked on 12-03 — both edit `GamesConstants.kt`; 12-05 blocked on 12-02)*
 
-- [ ] 12-04-PLAN.md — 27-key build-config ID plumbing (D-17): `GamesIdResolution`, `verifyReleaseGamesIds`, `gamesIdLiteralCheck`, `GamesIds`
-- [ ] 12-05-PLAN.md — Per-session telemetry in `GameViewModel` (D-09): assist counters on the funnel success path, `lastPegOnTarget`, persisted snapshot fields, Results nav args
+- [x] 12-04-PLAN.md — 27-key build-config ID plumbing (D-17): `GamesIdResolution`, `verifyReleaseGamesIds`, `gamesIdLiteralCheck`, `GamesIds`
+- [x] 12-05-PLAN.md — Per-session telemetry in `GameViewModel` (D-09): assist counters on the funnel success path, `lastPegOnTarget`, persisted snapshot fields, Results nav args
 
 **Wave 3** *(blocked on 12-01, 12-02, 12-05)*
 
@@ -386,6 +386,6 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 9. Consent & Rewarded Ads | v1.1 | 11/11 | Complete   | 2026-09-02 |
 | 10. Interstitials | v1.1 | 6/6 | Complete    | 2026-09-03 |
 | 11. Play Games Session | v1.1 | 4/4 | Complete   | 2026-09-03 |
-| 12. Leaderboards & Achievements | v1.1 | 3/8 | In Progress|  |
+| 12. Leaderboards & Achievements | v1.1 | 5/8 | In Progress|  |
 | 13. Cloud Save | v1.1 | 0/TBD | Not started | - |
 | 14. Release Readiness | v1.1 | 0/TBD | Not started | - |
