@@ -849,7 +849,7 @@ D-01 restricts the *achievement* to English-33; that restriction belongs in `Ach
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Does `showLeaderboard(leaderboardId)` keep its parameter?**
    - What we know: D-14 says the row opens the **all-leaderboards picker**; the seam's declared method takes an id and its KDoc promises a per-id view; `getAllLeaderboardsIntent()` takes no argument.
