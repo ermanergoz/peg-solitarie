@@ -226,4 +226,39 @@ class SettingsViewModel
         fun onPlayGamesSignInErrorShown() {
             _uiState.update { it.copy(playGamesSignInErrorTick = 0) }
         }
+
+        /**
+         * The signed-in-only Leaderboards row's action (PGSL-06, D-14) — opens the stock
+         * all-leaderboards picker.
+         *
+         * Modelled on [onManagePrivacyChoices], and deliberately just as empty. Nothing is
+         * read back, no state is set and no error is surfaced: the screen it opens is
+         * Google-rendered and owns its own result, and one that cannot be opened — offline,
+         * backgrounded, Play Games unavailable — is a silent no-op the player is never
+         * apologised to for. That is the same bargain [GamesService.showLeaderboards] already
+         * strikes, and the same one PGS-02 makes for the rest of this seam: a cosmetic
+         * surface's absence is not worth a snackbar.
+         *
+         * **No leaderboard id appears here, and none can (D-13):**
+         * [GamesService.showLeaderboards] takes no argument, which is precisely why D-14 chose
+         * the all-leaderboards picker over a per-board view — an id in `ui/` would be a
+         * Play-Console-shaped literal in the layer furthest from the Play Console.
+         *
+         * **No re-entry guard, unlike [onSignInToPlayGames]'s `signInJob`.** WR-03 exists
+         * because two overlapping sign-ins mean two account choosers competing to write one
+         * session; here the launched stock Activity covers the row that started it, and the
+         * worst a duplicate call can do is start the same Google-owned screen twice. Guarding
+         * it would add state to defend against a hazard that is not there.
+         */
+        fun onShowLeaderboards() {
+            viewModelScope.launch { gamesService.showLeaderboards() }
+        }
+
+        /**
+         * The signed-in-only Achievements row's action (PGSA-05, D-14) — opens the stock
+         * achievements UI, on exactly the same terms as [onShowLeaderboards].
+         */
+        fun onShowAchievements() {
+            viewModelScope.launch { gamesService.showAchievements() }
+        }
     }

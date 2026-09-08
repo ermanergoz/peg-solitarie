@@ -1,6 +1,7 @@
 package com.app.pegsolitaire.platform.games
 
 import android.app.Activity
+import android.content.Intent
 import com.app.pegsolitaire.data.PlayGamesOptInRepository
 import com.app.pegsolitaire.di.ApplicationScope
 import com.app.pegsolitaire.platform.activity.ForegroundActivityProvider
@@ -74,15 +75,40 @@ import javax.inject.Singleton
  * **Two things deliberately absent.** Sign-in never consults
  * [com.app.pegsolitaire.platform.ads.consent.ConsentGateway] or `AdsReadiness`: CONS-02
  * governs the ads SDK only, and the published privacy policy already discloses optional
- * Play Games (D-03). And nothing here touches, suppresses or repositions the SDK's own
- * "Welcome back" popup — it is the only launch-time signal that sign-in happened, and that
- * is intended (D-05).
+ * Play Games (D-03). And nothing here touches, suppresses or repositions any SDK popup —
+ * neither the "Welcome back" sign-in toast, which is the only launch-time signal that
+ * sign-in happened (D-05), nor the "achievement unlocked" toast (D-16). The second is not
+ * even a choice: Play Games Services v2 retired the v1 client that owned popup placement,
+ * and exposes no replacement, so both toasts appear in the SDK's default position by
+ * construction. D-16 costs zero lines here. Like the no-logging rule above, the absence is
+ * enforced by a grep gate rather than by review — which is why this paragraph names no
+ * popup-positioning API, not even to say it is unavailable.
  *
- * The Phase-12 methods ([submitScore], [unlockAchievement], [incrementAchievement],
- * [showLeaderboard], [showAchievements]) are still no-ops. Nothing in `ui/` calls them until
- * Phase 12, and writing bodies now would ship submission code that no surface exercises and
- * no test covers.
+ * ## The submission contract ([submitScore], [unlockAchievement], [setAchievementSteps])
+ *
+ * All three run through [submitting], and its three steps are the contract in order:
+ * **session-gated** (nothing is attempted unless [session] is
+ * [GamesSignInState.SignedIn] — a call made while the SDK has not signed the player in is
+ * dropped by the SDK anyway, so reaching for a client first would only cost a round trip to
+ * learn what [_session] already knows), **Activity-bounded** (never a wait longer than
+ * [GamesConstants.ACTIVITY_WAIT_MS]), and **failure-as-`false`** (an SDK throw, an offline
+ * device or a backgrounded app is reported, never propagated). A caller answers `false` with
+ * the D-10 pending-submissions flag, never with an error the player sees (PGSL-04).
+ *
+ * The two stock-UI launches ([showLeaderboards], [showAchievements]) follow the same
+ * Activity-bounded, never-throwing shape, and both obtain *and* start their `Intent` inside
+ * this class — no `Intent` and no Activity crosses the seam (PLAT-03/PLAT-04).
+ *
+ * ## Size suppression
+ *
+ * `TooManyFunctions` is suppressed because the count is [GamesService]'s own method set plus
+ * four private helpers, not accreted responsibility: eight overrides are fixed by the
+ * interface, and the helpers ([submitting], [launchStockUi], [awaitForegroundActivity],
+ * [hostActivityAfterAwait]) each exist to state one rule exactly once rather than repeat it
+ * per call site. Splitting the class to satisfy the threshold would mean a second holder of
+ * [_session] — the precise bug the `@Singleton`-on-the-class note above exists to prevent.
  */
+@Suppress("TooManyFunctions") // see "Size suppression" above
 @Singleton
 class PlayGamesService
     @Inject
@@ -336,19 +362,107 @@ class PlayGamesService
         private suspend fun awaitForegroundActivity(): Activity? =
             withTimeoutOrNull(GamesConstants.ACTIVITY_WAIT_MS) { activityProvider.awaitActivity() }
 
-        override fun submitScore(
+        override suspend fun submitScore(
             leaderboardId: String,
             score: Long,
-        ) = Unit
+        ): Boolean =
+            submitting { activity ->
+                PlayGames.getLeaderboardsClient(activity).submitScoreImmediate(leaderboardId, score).await()
+            }
 
-        override fun unlockAchievement(achievementId: String) = Unit
+        override suspend fun unlockAchievement(achievementId: String): Boolean =
+            submitting { activity ->
+                PlayGames.getAchievementsClient(activity).unlockImmediate(achievementId).await()
+            }
 
-        override fun incrementAchievement(
+        /**
+         * Absolute steps (D-12), which is what makes a resend safe: the SDK no-ops when the
+         * player's recorded steps already exceed [steps], so a retry can never double-count
+         * or move progress backwards.
+         *
+         * `setStepsImmediate` returns `Task<Boolean>` and that payload is **discarded on
+         * purpose** — it reports "the achievement is now unlocked", not "the submission was
+         * accepted". Returning it would tell a caller that every step short of the final one
+         * had failed.
+         */
+        override suspend fun setAchievementSteps(
             achievementId: String,
             steps: Int,
-        ) = Unit
+        ): Boolean =
+            submitting { activity ->
+                PlayGames.getAchievementsClient(activity).setStepsImmediate(achievementId, steps).await()
+            }
 
-        override suspend fun showLeaderboard(leaderboardId: String) = Unit
+        override suspend fun showLeaderboards() =
+            launchStockUi(GamesConstants.LEADERBOARDS_REQUEST_CODE) { activity ->
+                PlayGames.getLeaderboardsClient(activity).getAllLeaderboardsIntent().await()
+            }
 
-        override suspend fun showAchievements() = Unit
+        override suspend fun showAchievements() =
+            launchStockUi(GamesConstants.ACHIEVEMENTS_REQUEST_CODE) { activity ->
+                PlayGames.getAchievementsClient(activity).getAchievementsIntent().await()
+            }
+
+        /**
+         * Runs one submission against the SDK and reports whether it was accepted, never
+         * throwing for a submission failure (PGSL-04).
+         *
+         * **The order of the three steps is the whole point.**
+         *
+         * 1. Not [GamesSignInState.SignedIn] means no submission is attempted at all — and
+         *    [GamesSignInState.Unknown] takes the same branch as [GamesSignInState.SignedOut]
+         *    deliberately. `Unknown` means "the first check has not answered yet", and the SDK
+         *    silently drops calls made before sign-in resolves; treating it as "probably fine"
+         *    would convert a droppable submission into a reported success and lose it for good.
+         * 2. [awaitForegroundActivity] is already capped at [GamesConstants.ACTIVITY_WAIT_MS];
+         *    a backgrounded app reports `false` rather than hanging a process-lifetime
+         *    singleton (T-11-06).
+         * 3. Everything else is classified into `false`, **except** a
+         *    `CancellationException`, which is rethrown before classification. A caller's
+         *    structured-concurrency cancel is not an SDK failure and must not be reported as
+         *    one — the same WR-04 rule [signIn] follows.
+         *
+         * [sdkMutex] is deliberately **not** taken: it serializes the two session-writing
+         * paths, and a submission neither writes [_session] nor initializes the SDK. Holding
+         * it here would make an offline submission's round trip block sign-in.
+         */
+        private suspend fun <T> submitting(block: suspend (Activity) -> T): Boolean {
+            // The session check gates the await, not just the submission: a signed-out or
+            // still-Unknown player never even waits for an Activity.
+            val activity =
+                if (_session.value is GamesSignInState.SignedIn) awaitForegroundActivity() else null
+
+            return activity != null &&
+                runCatching { block(activity) }
+                    .onFailure { if (it is CancellationException) throw it }
+                    .isSuccess
+        }
+
+        /**
+         * Awaits the SDK's own `Intent` for a stock Play Games screen and starts it, silently
+         * doing nothing if either step fails.
+         *
+         * The Activity is re-resolved through [awaitForegroundActivity] on every call and
+         * never held in a field — the same lifetime rule the rest of this class follows.
+         *
+         * These getters are documented to fail with a `RemoteException`, and that must never
+         * surface to the player: an unreachable cosmetic screen is not something to apologise
+         * for. Cancellation is rethrown before the failure is swallowed (WR-04).
+         */
+        private suspend fun launchStockUi(
+            requestCode: Int,
+            intentFor: suspend (Activity) -> Intent,
+        ) {
+            val activity = awaitForegroundActivity() ?: return
+            runCatching {
+                val intent = intentFor(activity)
+                // startActivityForResult is deprecated on ComponentActivity but not removed,
+                // and the SDK javadoc *requires* it for every stock-UI Intent so the calling
+                // package's identity can be established. The ActivityResult API cannot
+                // substitute: it needs a launcher registered before STARTED on a specific
+                // Activity, which this process-lifetime singleton has no handle on, and
+                // nothing consumes the result anyway.
+                activity.startActivityForResult(intent, requestCode)
+            }.onFailure { if (it is CancellationException) throw it }
+        }
     }
