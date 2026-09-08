@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.app.pegsolitaire.data.db.LevelResultDao
 import com.app.pegsolitaire.data.db.LevelResultEntity
 import com.app.pegsolitaire.data.db.PegSolitaireDatabase
+import com.app.pegsolitaire.data.db.PlaySessionDao
 import com.app.pegsolitaire.data.db.ResumeDao
 import com.app.pegsolitaire.data.db.ResumeSnapshotEntity
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
@@ -174,7 +175,8 @@ class ProgressRepositoryFailureTest {
     private fun repositoryWith(
         levelResultDao: LevelResultDao = database.levelResultDao(),
         resumeDao: ResumeDao = database.resumeDao(),
-    ): ProgressRepository = DefaultProgressRepository(database, levelResultDao, resumeDao)
+        playSessionDao: PlaySessionDao = database.playSessionDao(),
+    ): ProgressRepository = DefaultProgressRepository(database, levelResultDao, resumeDao, playSessionDao)
 
     private fun scoreResult(stars: Int): ScoreResult =
         ScoreResult(

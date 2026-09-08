@@ -13,6 +13,8 @@ import com.app.pegsolitaire.data.NewBests
 import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.data.SettingsRepository
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
+import com.app.pegsolitaire.domain.achievement.ClassicBoard
+import com.app.pegsolitaire.domain.achievement.ProgressAggregate
 import com.app.pegsolitaire.domain.assist.AssistAllowanceLimits
 import com.app.pegsolitaire.domain.generator.LevelGenerator
 import com.app.pegsolitaire.domain.model.Board
@@ -599,6 +601,12 @@ private class InMemoryProgressRepository : ProgressRepository {
         result: ScoreResult,
         nowMs: Long,
     ): NewBests = error("GameViewModel never records a result — ResultsViewModel owns that")
+
+    /** Unused by this screen — GameViewModel never reads the achievement aggregate. */
+    override suspend fun aggregate(): ProgressAggregate = ProgressAggregate()
+
+    /** Unused by this screen — no per-board leaderboard read happens here. */
+    override suspend fun classicBests(): Map<ClassicBoard, Int> = emptyMap()
 
     override fun observeResults(mode: String): Flow<List<LevelResult>> = flowOf(emptyList())
 

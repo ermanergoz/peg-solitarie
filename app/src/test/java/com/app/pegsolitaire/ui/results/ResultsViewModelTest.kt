@@ -11,6 +11,8 @@ import com.app.pegsolitaire.data.NewBests
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
+import com.app.pegsolitaire.domain.achievement.ClassicBoard
+import com.app.pegsolitaire.domain.achievement.ProgressAggregate
 import com.app.pegsolitaire.domain.ads.InterstitialCadenceParams
 import com.app.pegsolitaire.domain.ads.InterstitialCadenceState
 import com.app.pegsolitaire.domain.generator.ChallengeLevelBounds
@@ -1335,6 +1337,12 @@ private class FakeProgressRepository : ProgressRepository {
             )
         return newBests
     }
+
+    /** Unused by this screen — Results never reads the achievement aggregate. */
+    override suspend fun aggregate(): ProgressAggregate = ProgressAggregate()
+
+    /** Unused by this screen — no per-board leaderboard read happens here. */
+    override suspend fun classicBests(): Map<ClassicBoard, Int> = emptyMap()
 
     override fun observeResults(mode: String): Flow<List<LevelResult>> =
         flowOf(stored.values.filter { it.mode == mode })

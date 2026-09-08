@@ -10,6 +10,8 @@ import com.app.pegsolitaire.data.NewBests
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
+import com.app.pegsolitaire.domain.achievement.ClassicBoard
+import com.app.pegsolitaire.domain.achievement.ProgressAggregate
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.scoring.ScoreResult
@@ -238,6 +240,12 @@ private class FakeProgressRepository(
         result: ScoreResult,
         nowMs: Long,
     ): NewBests = error("The catalog never records a result")
+
+    /** Unused by this screen — the catalog never reads the achievement aggregate. */
+    override suspend fun aggregate(): ProgressAggregate = ProgressAggregate()
+
+    /** Unused by this screen — no per-board leaderboard read happens here. */
+    override suspend fun classicBests(): Map<ClassicBoard, Int> = emptyMap()
 
     override fun observeResults(mode: String): Flow<List<LevelResult>> {
         observedModes += mode

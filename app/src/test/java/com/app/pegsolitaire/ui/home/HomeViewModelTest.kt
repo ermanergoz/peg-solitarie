@@ -16,6 +16,8 @@ import com.app.pegsolitaire.data.PlayGamesOptInRepository
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
+import com.app.pegsolitaire.domain.achievement.ClassicBoard
+import com.app.pegsolitaire.domain.achievement.ProgressAggregate
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.app.pegsolitaire.platform.games.FakeGamesService
@@ -612,6 +614,12 @@ private class FakeResumeProgressRepository : ProgressRepository {
         result: ScoreResult,
         nowMs: Long,
     ): NewBests = error("Home never records a result")
+
+    /** Unused by this screen — Home never reads the achievement aggregate. */
+    override suspend fun aggregate(): ProgressAggregate = ProgressAggregate()
+
+    /** Unused by this screen — no per-board leaderboard read happens here. */
+    override suspend fun classicBests(): Map<ClassicBoard, Int> = emptyMap()
 
     override fun observeResults(mode: String): Flow<List<LevelResult>> = flowOf(emptyList())
 
