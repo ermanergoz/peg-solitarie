@@ -135,13 +135,14 @@ class ResultsViewModel
          * `SnapshotMapper` makes for the free-assist allowance. A route reached without the
          * args reads as [SolveTelemetry.NONE], because the three are defaulted primitives.
          *
-         * `internal` rather than `private` for two reasons: plan 12-06 passes it to
-         * `ProgressRepository.recordResult` from inside [recordSolvedPlayOnce], and exposing
-         * the *resolved* value is what lets the arg-clamping boundary be asserted directly
-         * — the same narrow precedent `GameViewModel.isOnRecordedLine()` sets.
+         * `internal` rather than `private` for two reasons: [recordSolvedPlayOnce] passes it
+         * to `ProgressRepository.recordResult`, which writes it to `play_session` in the
+         * same transaction as the best row (D-08); and exposing the *resolved* value is what
+         * lets the arg-clamping boundary be asserted directly — the same narrow precedent
+         * `GameViewModel.isOnRecordedLine()` sets.
          *
-         * What this plan deliberately does NOT do: `recordResult` keeps its current
-         * signature and this value is not yet written anywhere. Plan 12-06 owns that.
+         * It is passed through **verbatim**: the coercion happened here, once, at the nav
+         * boundary, and the repository must not re-do or second-guess it.
          */
         internal val solveTelemetry: SolveTelemetry =
             SolveTelemetry.coerced(
@@ -342,8 +343,9 @@ class ResultsViewModel
             }
 
         /**
-         * Merges this play into the level's stored bests exactly once, then surfaces the
-         * returned per-field flags as the one-shot "New best!" cue (D-09).
+         * Merges this play into the level's stored bests exactly once — writing its
+         * [solveTelemetry] to `play_session` in the same transaction (D-08) — then surfaces
+         * the returned per-field flags as the one-shot "New best!" cue (D-09).
          *
          * Returns without writing when the play was not a solve (D-08) or when this play
          * has already been recorded — the flag is set *before* the write is launched, so
@@ -368,6 +370,7 @@ class ResultsViewModel
                         mode = mode,
                         levelId = levelId,
                         result = scoreResultFromArgs(),
+                        telemetry = solveTelemetry,
                         nowMs = System.currentTimeMillis(),
                     )
                 _uiState.update { it.copy(newBests = newBests) }

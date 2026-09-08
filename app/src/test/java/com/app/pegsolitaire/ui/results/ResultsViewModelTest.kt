@@ -11,6 +11,8 @@ import com.app.pegsolitaire.data.NewBests
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
+import com.app.pegsolitaire.domain.achievement.ClassicBoard
+import com.app.pegsolitaire.domain.achievement.ProgressAggregate
 import com.app.pegsolitaire.domain.ads.InterstitialCadenceParams
 import com.app.pegsolitaire.domain.ads.InterstitialCadenceState
 import com.app.pegsolitaire.domain.generator.ChallengeLevelBounds
@@ -1122,9 +1124,18 @@ class ResultsViewModelTest {
                 )
             advanceUntilIdle()
 
-            assertThat(forgedRepository.recordCalls).isEqualTo(plainRepository.recordCalls)
+            // 12-06 gave recordResult a telemetry parameter, so the two write paths are
+            // deliberately no longer byte-identical: everything SCORING-related still is,
+            // and the telemetry is the one field that legitimately differs.
+            assertThat(forgedRepository.recordCalls.map { it.result })
+                .isEqualTo(plainRepository.recordCalls.map { it.result })
+            assertThat(forgedRepository.recordCalls.map { it.mode to it.levelId })
+                .isEqualTo(plainRepository.recordCalls.map { it.mode to it.levelId })
+            assertThat(plainRepository.recordCalls.single().telemetry).isEqualTo(SolveTelemetry.NONE)
             assertThat(forged.uiState.value).isEqualTo(plain.uiState.value)
-            // The one and only difference: the resolved, clamped telemetry.
+            // The one and only difference: the resolved, clamped telemetry — and it is
+            // exactly what reached the repository.
+            assertThat(forgedRepository.recordCalls.single().telemetry).isEqualTo(forged.solveTelemetry)
             assertThat(forged.solveTelemetry)
                 .isEqualTo(
                     SolveTelemetry(
@@ -1133,6 +1144,78 @@ class ResultsViewModelTest {
                         lastPegOnTarget = true,
                     ),
                 )
+        }
+
+    @Test
+    fun aSolvedResultPassesTheResolvedTelemetryToTheRepositoryVerbatim() =
+        runTest(testDispatcher) {
+            val repository = FakeProgressRepository()
+            val viewModel =
+                viewModelFor(
+                    levelId = ClassicLevelIds.ENGLISH33,
+                    stars = THREE_STARS,
+                    pegsRemaining = SOLVED_PEGS_REMAINING,
+                    hintsUsed = SAMPLE_HINTS_USED,
+                    undosUsed = SAMPLE_UNDOS_USED,
+                    lastPegOnTarget = true,
+                    repository = repository,
+                )
+            advanceUntilIdle()
+
+            // D-08: the value 12-05 already coerced at the nav boundary is handed straight
+            // through — this ViewModel neither re-coerces it nor invents its own.
+            assertThat(repository.recordCalls).hasSize(1)
+            assertThat(repository.recordCalls.single().telemetry).isEqualTo(viewModel.solveTelemetry)
+            assertThat(repository.recordCalls.single().telemetry)
+                .isEqualTo(
+                    SolveTelemetry(
+                        hintsUsed = SAMPLE_HINTS_USED,
+                        undosUsed = SAMPLE_UNDOS_USED,
+                        lastPegOnTarget = true,
+                    ),
+                )
+        }
+
+    @Test
+    fun aSecondViewModelOverTheSameHandleWritesNoSecondTelemetryRow() =
+        runTest(testDispatcher) {
+            val repository = FakeProgressRepository()
+            val handle =
+                savedStateHandleFor(
+                    levelId = ClassicLevelIds.ENGLISH33,
+                    stars = THREE_STARS,
+                    pegsRemaining = SOLVED_PEGS_REMAINING,
+                    hintsUsed = SAMPLE_HINTS_USED,
+                    undosUsed = SAMPLE_UNDOS_USED,
+                    lastPegOnTarget = true,
+                )
+            viewModelOver(handle = handle, repository = repository)
+            advanceUntilIdle()
+            viewModelOver(handle = handle, repository = repository)
+            advanceUntilIdle()
+
+            // The existing exactly-once guard is INHERITED, not duplicated (Pattern 2).
+            assertThat(repository.recordCalls).hasSize(1)
+        }
+
+    @Test
+    fun aStuckFinishWritesNoTelemetryAtAll() =
+        runTest(testDispatcher) {
+            val repository = FakeProgressRepository()
+            viewModelFor(
+                levelId = ClassicLevelIds.ENGLISH33,
+                stars = ONE_STAR,
+                pegsRemaining = SAMPLE_PEGS_REMAINING,
+                hintsUsed = SAMPLE_HINTS_USED,
+                undosUsed = SAMPLE_UNDOS_USED,
+                lastPegOnTarget = true,
+                repository = repository,
+            )
+            advanceUntilIdle()
+
+            // Only solved plays are recorded (D-08), so a stuck finish leaves neither a
+            // best row nor a telemetry row.
+            assertThat(repository.recordCalls).isEmpty()
         }
 
     // ---- Harness ---------------------------------------------------------------
@@ -1275,6 +1358,7 @@ private data class RecordCall(
     val mode: String,
     val levelId: String,
     val result: ScoreResult,
+    val telemetry: SolveTelemetry,
 )
 
 /**
@@ -1312,9 +1396,10 @@ private class FakeProgressRepository : ProgressRepository {
         mode: String,
         levelId: String,
         result: ScoreResult,
+        telemetry: SolveTelemetry,
         nowMs: Long,
     ): NewBests {
-        recordCalls += RecordCall(mode = mode, levelId = levelId, result = result)
+        recordCalls += RecordCall(mode = mode, levelId = levelId, result = result, telemetry = telemetry)
         val key = mode to levelId
         val previous = stored[key]
         val timeMs = result.elapsedSeconds * MILLIS_IN_SECOND
@@ -1335,6 +1420,12 @@ private class FakeProgressRepository : ProgressRepository {
             )
         return newBests
     }
+
+    /** Unused by this screen — Results never reads the achievement aggregate. */
+    override suspend fun aggregate(): ProgressAggregate = ProgressAggregate()
+
+    /** Unused by this screen — no per-board leaderboard read happens here. */
+    override suspend fun classicBests(): Map<ClassicBoard, Int> = emptyMap()
 
     override fun observeResults(mode: String): Flow<List<LevelResult>> =
         flowOf(stored.values.filter { it.mode == mode })
