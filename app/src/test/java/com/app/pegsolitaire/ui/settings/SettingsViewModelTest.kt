@@ -432,19 +432,19 @@ private object NeverEmittingGamesService : GamesService {
 
     override suspend fun signIn(): Boolean = false
 
-    override fun submitScore(
+    override suspend fun submitScore(
         leaderboardId: String,
         score: Long,
-    ) = Unit
+    ): Boolean = false
 
-    override fun unlockAchievement(achievementId: String) = Unit
+    override suspend fun unlockAchievement(achievementId: String): Boolean = false
 
-    override fun incrementAchievement(
+    override suspend fun setAchievementSteps(
         achievementId: String,
         steps: Int,
-    ) = Unit
+    ): Boolean = false
 
-    override suspend fun showLeaderboard(leaderboardId: String) = Unit
+    override suspend fun showLeaderboards() = Unit
 
     override suspend fun showAchievements() = Unit
 }
