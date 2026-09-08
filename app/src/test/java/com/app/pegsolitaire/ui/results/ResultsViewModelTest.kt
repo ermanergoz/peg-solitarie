@@ -16,6 +16,7 @@ import com.app.pegsolitaire.domain.ads.InterstitialCadenceState
 import com.app.pegsolitaire.domain.generator.ChallengeLevelBounds
 import com.app.pegsolitaire.domain.generator.GeneratorConstants
 import com.app.pegsolitaire.domain.scoring.ScoreResult
+import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import com.app.pegsolitaire.platform.ads.AdConstants
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.google.common.truth.Truth.assertThat
@@ -1028,6 +1029,112 @@ class ResultsViewModelTest {
             assertThat(viewModel.uiState.value.pendingNavigation).isNotNull()
         }
 
+    // --- solve telemetry (D-08/D-09) --------------------------------------------
+
+    @Test
+    fun aResultsRouteWithoutTheTelemetryArgsReadsAsNoTelemetry() {
+        // The three route defaults are load-bearing, not cosmetic: they are what makes a
+        // Results destination reached without telemetry read as NONE rather than crash.
+        val viewModel = viewModelFor(levelId = ClassicLevelIds.ENGLISH33, stars = THREE_STARS)
+
+        assertThat(viewModel.solveTelemetry).isEqualTo(SolveTelemetry.NONE)
+    }
+
+    @Test
+    fun theTelemetryArgsResolveIntoExactlyThatTelemetry() {
+        val viewModel =
+            viewModelFor(
+                levelId = ClassicLevelIds.ENGLISH33,
+                stars = THREE_STARS,
+                hintsUsed = SAMPLE_HINTS_USED,
+                undosUsed = SAMPLE_UNDOS_USED,
+                lastPegOnTarget = true,
+            )
+
+        assertThat(viewModel.solveTelemetry)
+            .isEqualTo(
+                SolveTelemetry(
+                    hintsUsed = SAMPLE_HINTS_USED,
+                    undosUsed = SAMPLE_UNDOS_USED,
+                    lastPegOnTarget = true,
+                ),
+            )
+    }
+
+    @Test
+    fun aNegativeCounterArgIsClampedToZeroRatherThanRefused() {
+        // T-12-20: `Results` is registered in `AppNavHost` independently of `GameRoute`, so
+        // its args are untrusted in their own right. The posture is the codebase's existing
+        // one — clamp, never refuse — because refusing would convert a one-byte edit into a
+        // crashed Results screen and a lost recorded best for an honest player.
+        val viewModel =
+            viewModelFor(
+                levelId = ClassicLevelIds.ENGLISH33,
+                stars = THREE_STARS,
+                hintsUsed = FORGED_NEGATIVE_COUNTER,
+                undosUsed = FORGED_NEGATIVE_COUNTER,
+            )
+
+        assertThat(viewModel.solveTelemetry).isEqualTo(SolveTelemetry.NONE)
+    }
+
+    @Test
+    fun aLargeForgedCounterArgPassesThroughUnchanged() {
+        // The clamp BOUNDS, it does not police: only the negative case can corrupt a
+        // downstream `> 0` predicate, and a forged-high count only denies the tamperer
+        // their own badge.
+        val viewModel =
+            viewModelFor(
+                levelId = ClassicLevelIds.ENGLISH33,
+                stars = THREE_STARS,
+                hintsUsed = FORGED_LARGE_COUNTER,
+            )
+
+        assertThat(viewModel.solveTelemetry.hintsUsed).isEqualTo(FORGED_LARGE_COUNTER)
+    }
+
+    @Test
+    fun theTelemetryArgsAreInertForEverythingButSolveTelemetry() =
+        runTest(testDispatcher) {
+            // The whole screen and the whole write path must be byte-identical with and
+            // without telemetry — including a FORGED one. This plan adds a value; it
+            // changes no behaviour, and `recordResult` keeps its current signature (12-06).
+            val plainRepository = FakeProgressRepository()
+            val plain =
+                viewModelFor(
+                    levelId = ClassicLevelIds.ENGLISH33,
+                    stars = THREE_STARS,
+                    pegsRemaining = SOLVED_PEGS_REMAINING,
+                    repository = plainRepository,
+                )
+            advanceUntilIdle()
+
+            val forgedRepository = FakeProgressRepository()
+            val forged =
+                viewModelFor(
+                    levelId = ClassicLevelIds.ENGLISH33,
+                    stars = THREE_STARS,
+                    pegsRemaining = SOLVED_PEGS_REMAINING,
+                    repository = forgedRepository,
+                    hintsUsed = FORGED_NEGATIVE_COUNTER,
+                    undosUsed = FORGED_LARGE_COUNTER,
+                    lastPegOnTarget = true,
+                )
+            advanceUntilIdle()
+
+            assertThat(forgedRepository.recordCalls).isEqualTo(plainRepository.recordCalls)
+            assertThat(forged.uiState.value).isEqualTo(plain.uiState.value)
+            // The one and only difference: the resolved, clamped telemetry.
+            assertThat(forged.solveTelemetry)
+                .isEqualTo(
+                    SolveTelemetry(
+                        hintsUsed = NO_TELEMETRY_COUNT,
+                        undosUsed = FORGED_LARGE_COUNTER,
+                        lastPegOnTarget = true,
+                    ),
+                )
+        }
+
     // ---- Harness ---------------------------------------------------------------
 
     private fun viewModelFor(
@@ -1037,6 +1144,9 @@ class ResultsViewModelTest {
         elapsedSeconds: Int = SAMPLE_ELAPSED_SECONDS,
         score: Int = SAMPLE_SCORE,
         challengeLevel: Int? = null,
+        hintsUsed: Int = NO_TELEMETRY_COUNT,
+        undosUsed: Int = NO_TELEMETRY_COUNT,
+        lastPegOnTarget: Boolean = false,
         repository: ProgressRepository = FakeProgressRepository(),
         cadenceStore: InterstitialCadenceStore = freshCadenceStore(),
         adGateway: AdGateway = FakeAdGateway(interstitialReadyInitially = false),
@@ -1050,6 +1160,9 @@ class ResultsViewModelTest {
                     elapsedSeconds = elapsedSeconds,
                     score = score,
                     challengeLevel = challengeLevel,
+                    hintsUsed = hintsUsed,
+                    undosUsed = undosUsed,
+                    lastPegOnTarget = lastPegOnTarget,
                 ),
             progressRepository = repository,
             cadenceStore = cadenceStore,
@@ -1135,6 +1248,9 @@ class ResultsViewModelTest {
         elapsedSeconds: Int = SAMPLE_ELAPSED_SECONDS,
         score: Int = SAMPLE_SCORE,
         challengeLevel: Int? = null,
+        hintsUsed: Int = NO_TELEMETRY_COUNT,
+        undosUsed: Int = NO_TELEMETRY_COUNT,
+        lastPegOnTarget: Boolean = false,
     ): SavedStateHandle =
         SavedStateHandle(
             buildMap {
@@ -1144,6 +1260,12 @@ class ResultsViewModelTest {
                 put(ELAPSED_SECONDS_ARG, elapsedSeconds)
                 put(SCORE_ARG, score)
                 if (challengeLevel != null) put(CHALLENGE_LEVEL_ARG, challengeLevel)
+                // Each telemetry arg is put into the map ONLY when it differs from the
+                // route default, so the "absent args" case genuinely exercises the
+                // `Results` defaults rather than an explicit zero that happens to match.
+                if (hintsUsed != NO_TELEMETRY_COUNT) put(HINTS_USED_ARG, hintsUsed)
+                if (undosUsed != NO_TELEMETRY_COUNT) put(UNDOS_USED_ARG, undosUsed)
+                if (lastPegOnTarget) put(LAST_PEG_ON_TARGET_ARG, true)
             },
         )
 }
@@ -1239,6 +1361,24 @@ private const val PEGS_REMAINING_ARG = "pegsRemaining"
 private const val ELAPSED_SECONDS_ARG = "elapsedSeconds"
 private const val SCORE_ARG = "score"
 private const val CHALLENGE_LEVEL_ARG = "challengeLevel"
+private const val HINTS_USED_ARG = "hintsUsed"
+private const val UNDOS_USED_ARG = "undosUsed"
+private const val LAST_PEG_ON_TARGET_ARG = "lastPegOnTarget"
+
+/** The `Results` route's own default for both telemetry counters (D-08). */
+private const val NO_TELEMETRY_COUNT = 0
+
+/** A play that took two hints — the non-zero pass-through fixture. */
+private const val SAMPLE_HINTS_USED = 2
+
+/** A play that took three undos — the non-zero pass-through fixture. */
+private const val SAMPLE_UNDOS_USED = 3
+
+/** T-12-20 forgery: a negative counter arg, clamped to zero rather than refused. */
+private const val FORGED_NEGATIVE_COUNTER = -4
+
+/** T-12-20 forgery: a large in-range counter arg, preserved verbatim. */
+private const val FORGED_LARGE_COUNTER = 9_999
 
 /** Earned-star counts for the three D-08 headline tiers. */
 private const val THREE_STARS = 3

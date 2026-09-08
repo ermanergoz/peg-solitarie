@@ -1,0 +1,35 @@
+package com.app.pegsolitaire.ui.game
+
+import com.app.pegsolitaire.domain.scoring.ScoreResult
+import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
+
+/**
+ * The payload of `GameViewModel.finished`: the play's [ScoreResult] and the
+ * [SolveTelemetry] that belongs to it, travelling as one event (D-08).
+ *
+ * This is D-08's "rides alongside" made structural. [ScoreResult] is a *scoring* type —
+ * stars, score, pegs, elapsed seconds — and gains nothing here; the achievement-facing
+ * facts (hints taken, undos taken, whether the last peg landed on the board's target)
+ * live in their own carrier. Pairing them in one event is what makes it impossible for a
+ * consumer to receive a score without the telemetry of the very play that produced it,
+ * which a second `Flow` or a nullable side channel would not.
+ *
+ * Deliberately a **UI-layer transport type**:
+ *  - not in `:domain`, because there is nothing pure to compute — it is a two-field
+ *    envelope for a one-shot event that only exists between `GameViewModel` and
+ *    `GameRoute`;
+ *  - not a [ScoreResult] field, because a scoring type that also carried assist counts
+ *    would be re-derived, persisted and compared in places that have no business seeing
+ *    them (`ProgressRepository`'s per-level best merge, for one).
+ *
+ * `GameRoute` unpacks it into the `Results` route's flat scalar args; `ResultsViewModel`
+ * resolves those back into one clamped [SolveTelemetry].
+ *
+ * @property result the pure-domain scoring outcome, byte-identical to what the finish
+ *   event carried before telemetry existed.
+ * @property telemetry the per-solve facts scoring does not care about but achievements do.
+ */
+data class GameFinish(
+    val result: ScoreResult,
+    val telemetry: SolveTelemetry,
+)

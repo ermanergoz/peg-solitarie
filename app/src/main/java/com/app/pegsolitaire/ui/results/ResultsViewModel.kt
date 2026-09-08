@@ -11,6 +11,7 @@ import com.app.pegsolitaire.domain.ads.InterstitialCadenceState
 import com.app.pegsolitaire.domain.generator.ChallengeLevelBounds
 import com.app.pegsolitaire.domain.scoring.ScoreParams
 import com.app.pegsolitaire.domain.scoring.ScoreResult
+import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import com.app.pegsolitaire.navigation.Results
 import com.app.pegsolitaire.platform.ads.AdConstants
 import com.app.pegsolitaire.platform.ads.AdGateway
@@ -58,6 +59,11 @@ import javax.inject.Inject
  *    [ResultsUiState.challengeLevel] that drives `onNextLevel(challengeLevel + 1)`, the
  *    mode branch, and the database level key — uses that one value. A forged or
  *    out-of-range arg therefore cannot reach the stored key or the "Next level" action.
+ *  - **The solve telemetry is clamped at the same boundary (D-08/D-09, T-12-23).** The
+ *    three `Results` telemetry args pass through [SolveTelemetry.coerced] exactly once
+ *    into [solveTelemetry]; the raw args are never read again. Absent args read as
+ *    [SolveTelemetry.NONE] and a forged counter is bounded rather than refused, on the
+ *    same reasoning as the Challenge level above.
  *  - **The win is banked at most once (INT-02).** The interstitial cadence counts wins,
  *    and a re-entry into the same result is not a second win. A THIRD
  *    [SavedStateHandle] latch — [WIN_COUNTED_KEY] — guards [claimWinOnce] with the same
@@ -108,6 +114,41 @@ class ResultsViewModel
          * is never mis-recorded as Challenge level 1.
          */
         private val challengeLevel: Int? = args.challengeLevel?.let(ChallengeLevelBounds::clamp)
+
+        /**
+         * This play's per-solve telemetry, resolved ONCE from the route args at the same
+         * boundary — and by the same idiom — as [challengeLevel] above (D-08/D-09).
+         *
+         * **Coerced here and only here.** These three lines are the sole read of
+         * `args.hintsUsed` / `args.undosUsed` / `args.lastPegOnTarget`; every later use is
+         * of this value. `Results` is registered in `AppNavHost` *independently* of
+         * `GameRoute` and its args survive process death through the [SavedStateHandle], so
+         * they are untrusted in their own right rather than merely downstream of
+         * `GameViewModel`'s counters — exactly the WARN-03 argument the Challenge level
+         * already makes.
+         *
+         * **Clamped, never refused, never fatal (threat T-12-23).**
+         * [SolveTelemetry.coerced] bounds the counters at zero and passes a large forged
+         * value through untouched. Refusing a forged arg would convert a one-byte edit into
+         * a crashed Results screen and a lost recorded best for an honest player, in
+         * exchange for denying a cheat a cosmetic badge — the identical argument
+         * `SnapshotMapper` makes for the free-assist allowance. A route reached without the
+         * args reads as [SolveTelemetry.NONE], because the three are defaulted primitives.
+         *
+         * `internal` rather than `private` for two reasons: plan 12-06 passes it to
+         * `ProgressRepository.recordResult` from inside [recordSolvedPlayOnce], and exposing
+         * the *resolved* value is what lets the arg-clamping boundary be asserted directly
+         * — the same narrow precedent `GameViewModel.isOnRecordedLine()` sets.
+         *
+         * What this plan deliberately does NOT do: `recordResult` keeps its current
+         * signature and this value is not yet written anywhere. Plan 12-06 owns that.
+         */
+        internal val solveTelemetry: SolveTelemetry =
+            SolveTelemetry.coerced(
+                hintsUsed = args.hintsUsed,
+                undosUsed = args.undosUsed,
+                lastPegOnTarget = args.lastPegOnTarget,
+            )
 
         /**
          * This result's outcome bucket, computed ONCE and shared by the state the screen
