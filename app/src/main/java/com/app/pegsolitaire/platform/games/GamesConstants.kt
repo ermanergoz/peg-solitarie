@@ -59,4 +59,36 @@ object GamesConstants {
      * pre-release emulator checklist (`11-HUMAN-UAT.md`).
      */
     val CANCEL_STATUS_CODES: Set<Int> = setOf(CommonStatusCodes.CANCELED, SIGN_IN_CANCELLED_STATUS_CODE)
+
+    /**
+     * The `requestCode` passed to `Activity.startActivityForResult` when launching the stock
+     * all-leaderboards picker.
+     *
+     * **A request code is not optional here, and `startActivity` is not an equivalent.** The
+     * 22.0.0 javadoc for every Intent getter (`getAllLeaderboardsIntent`,
+     * `getLeaderboardIntent`, `getAchievementsIntent`) states the returned Intent *"must be
+     * invoked with `Activity.startActivityForResult(Intent, int)`, so that the identity of the
+     * calling package can be established"* — launched the plain way, the stock UI comes up
+     * broken rather than failing loudly, which is the kind of bug that survives review.
+     *
+     * **Nothing consumes the result, deliberately.** `MainActivity` overrides no
+     * `onActivityResult`: Play Games v2 hands back no outcome the app must act on, and the
+     * code exists purely so the SDK can attribute the launch. It is a `const val` rather than
+     * an inline literal because detekt's `MagicNumber` rule is active over `src/main` and
+     * CLAUDE.md forbids magic numbers regardless.
+     *
+     * Value matches Google's own Play Games samples (`RC_LEADERBOARD_UI`).
+     */
+    const val LEADERBOARDS_REQUEST_CODE = 9004
+
+    /**
+     * The `requestCode` passed to `Activity.startActivityForResult` when launching the stock
+     * achievements UI — same contract, same reasoning and the same "nothing reads the result"
+     * note as [LEADERBOARDS_REQUEST_CODE].
+     *
+     * Value matches Google's own Play Games samples (`RC_ACHIEVEMENT_UI`). The two codes are
+     * distinct only because `startActivityForResult` requires a code per launch site; no
+     * dispatch is ever performed on them.
+     */
+    const val ACHIEVEMENTS_REQUEST_CODE = 9003
 }

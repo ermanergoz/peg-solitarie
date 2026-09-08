@@ -7,8 +7,8 @@ import javax.inject.Inject
 
 /**
  * The Slice-1 [GamesService] stub: [signIn] reports "not signed in" (`false`), [session]
- * is permanently [GamesSignInState.SignedOut], and every submission and stock-UI hook
- * discards the call silently.
+ * is permanently [GamesSignInState.SignedOut], every submission reports `false`, and both
+ * stock-UI hooks discard the call silently.
  *
  * Unlike [com.app.pegsolitaire.platform.ads.NoOpAdGateway], which auto-grants
  * ([com.app.pegsolitaire.platform.ads.RewardOutcome.Granted]) so hint/undo stay usable
@@ -19,6 +19,13 @@ import javax.inject.Inject
  * in `PlatformModule`. The ad seam needs a third, fail-open answer because a missing ad
  * would otherwise cost the player an assist (ADS-03); a missing leaderboard costs them
  * nothing, so this seam needs no equivalent.
+ *
+ * **That same reasoning is why the submissions return `false` rather than `true`.** `false`
+ * is simply the truth for a stub — nothing was submitted — and it is also the answer that
+ * keeps a caller's retry logic correct: a caller that records the D-10 pending-submissions
+ * flag on `false` ends up with an accurate "still owed to the server" record, whereas a
+ * phantom `true` would have it discard progress that never left the device. Fail-open costs
+ * nothing on the ad seam and costs a lost submission here.
  *
  * [session] reports [GamesSignInState.SignedOut] rather than [GamesSignInState.Unknown]
  * on purpose: `Unknown` means "the first check has not answered yet", and a stub that
@@ -46,19 +53,22 @@ class NoOpGamesService
          */
         override suspend fun signIn(): Boolean = false
 
-        override fun submitScore(
+        /** `false`: nothing was submitted, and a caller's retry bookkeeping should say so. */
+        override suspend fun submitScore(
             leaderboardId: String,
             score: Long,
-        ) = Unit
+        ): Boolean = false
 
-        override fun unlockAchievement(achievementId: String) = Unit
+        /** `false`, for the same reason as [submitScore]. */
+        override suspend fun unlockAchievement(achievementId: String): Boolean = false
 
-        override fun incrementAchievement(
+        /** `false`, for the same reason as [submitScore]. */
+        override suspend fun setAchievementSteps(
             achievementId: String,
             steps: Int,
-        ) = Unit
+        ): Boolean = false
 
-        override suspend fun showLeaderboard(leaderboardId: String) = Unit
+        override suspend fun showLeaderboards() = Unit
 
         override suspend fun showAchievements() = Unit
     }
