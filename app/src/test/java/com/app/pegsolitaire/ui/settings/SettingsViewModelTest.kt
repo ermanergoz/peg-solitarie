@@ -360,6 +360,37 @@ class SettingsViewModelTest {
             assertThat(repository.lastHapticsWritten).isNull()
             assertThat(viewModel.uiState.value.hapticsOn).isTrue()
         }
+
+    @Test
+    fun onShowLeaderboardsReachesTheSeamAndDoesNotOpenAchievements() =
+        runTest(testDispatcher) {
+            // The ViewModel -> seam half of the link SettingsPlayGamesTest proves the
+            // screen -> ViewModel half of. Asserting the other counter stays at zero is what
+            // catches the two lambdas being wired the wrong way round.
+            val games = FakeGamesService(GamesSignInState.SignedIn(PLAYER_ID, DISPLAY_NAME))
+            val viewModel = viewModelFor(FakeSettingsRepository(), games = games)
+            runCurrent()
+
+            viewModel.onShowLeaderboards()
+            runCurrent()
+
+            assertThat(games.showLeaderboardsCallCount).isEqualTo(1)
+            assertThat(games.showAchievementsCallCount).isEqualTo(0)
+        }
+
+    @Test
+    fun onShowAchievementsReachesTheSeamAndDoesNotOpenLeaderboards() =
+        runTest(testDispatcher) {
+            val games = FakeGamesService(GamesSignInState.SignedIn(PLAYER_ID, DISPLAY_NAME))
+            val viewModel = viewModelFor(FakeSettingsRepository(), games = games)
+            runCurrent()
+
+            viewModel.onShowAchievements()
+            runCurrent()
+
+            assertThat(games.showAchievementsCallCount).isEqualTo(1)
+            assertThat(games.showLeaderboardsCallCount).isEqualTo(0)
+        }
 }
 
 /**
