@@ -21,8 +21,10 @@ import com.app.pegsolitaire.navigation.Results
  * [GameScreen].
  *
  * Game-over is a one-shot hand-off, not screen state: a single [LaunchedEffect]
- * collects the VM's `finished` flow and, per emitted `ScoreResult`, navigates exactly
- * once to [Results] (carrying the played `levelId` + computed stars/score). Because
+ * collects the VM's `finished` flow and, per emitted `GameFinish`, navigates exactly
+ * once to [Results] (carrying the played `levelId` + computed stars/score). Since Phase 12
+ * that event carries the play's `SolveTelemetry` alongside the score (D-08), and this
+ * route is the **only** producer of the three telemetry args on [Results]. Because
  * the effect collects a `Channel`-backed flow keyed on `Unit`, a recomposition can
  * never re-fire the navigation or pollute the back stack (T-02-05-NAV, Pitfall 4).
  *
@@ -67,6 +69,9 @@ fun GameRoute(
                     elapsedSeconds = finish.result.elapsedSeconds,
                     score = finish.result.score,
                     challengeLevel = viewModel.challengeLevel,
+                    hintsUsed = finish.telemetry.hintsUsed,
+                    undosUsed = finish.telemetry.undosUsed,
+                    lastPegOnTarget = finish.telemetry.lastPegOnTarget,
                 ),
             )
         }
