@@ -25,6 +25,13 @@ internal object ProgressPersistenceKeys {
     /** In-progress resume snapshots, one row per mode (max two live rows, D-03) — PERS-03. */
     const val TABLE_RESUME_SNAPSHOT = "resume_snapshot"
 
+    /**
+     * Per-play solve telemetry, one row per **solved** play — PGSA-06 / D-06. Unlike
+     * [TABLE_LEVEL_RESULT]'s one row per `(mode, levelId)` best, a replay appends a
+     * second row here, so the achievement aggregates stay derivable from history.
+     */
+    const val TABLE_PLAY_SESSION = "play_session"
+
     /** Shared discriminator column: which game mode a row belongs to. */
     const val COLUMN_MODE = "mode"
 

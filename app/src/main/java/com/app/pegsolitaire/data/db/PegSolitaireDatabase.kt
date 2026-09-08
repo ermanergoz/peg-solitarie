@@ -16,12 +16,15 @@ import androidx.room.RoomDatabase
  * change shipped without a matching `Migration` fails the build rather than
  * destroying a player's stars on their device.
  *
- * The version stays at **1** until an entity's columns actually change; any such
- * change requires bumping [DB_VERSION], adding a `Migration` in `DatabaseModule`, and
- * regenerating the exported schema.
+ * **v2** added `play_session` as a purely additive `CREATE TABLE` (PGSA-06 / D-06):
+ * `level_result` and `resume_snapshot` are untouched by `MIGRATION_1_2`, which is the
+ * whole progress-preservation argument — an upgrading player keeps every star, best
+ * time and in-progress game. The bump ritual is unchanged for v3 and beyond: bump
+ * [DB_VERSION], add a `Migration`, register it on the builder in `DatabaseModule`, and
+ * commit the freshly generated schema JSON.
  */
 @Database(
-    entities = [LevelResultEntity::class, ResumeSnapshotEntity::class],
+    entities = [LevelResultEntity::class, ResumeSnapshotEntity::class, PlaySessionEntity::class],
     version = PegSolitaireDatabase.DB_VERSION,
     exportSchema = true,
 )
@@ -32,8 +35,11 @@ abstract class PegSolitaireDatabase : RoomDatabase() {
     /** In-progress snapshots, one per mode. */
     abstract fun resumeDao(): ResumeDao
 
+    /** Append-only per-play solve telemetry (PGSA-06). */
+    abstract fun playSessionDao(): PlaySessionDao
+
     companion object {
         /** Current schema version; bump only alongside a `Migration` + a fresh schema JSON. */
-        const val DB_VERSION = 1
+        const val DB_VERSION = 2
     }
 }
