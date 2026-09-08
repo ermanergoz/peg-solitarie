@@ -68,6 +68,25 @@ import kotlinx.serialization.Serializable
  *   refill.
  * @property freeUndosRemaining Free undos left on this level — same contract as
  *   [freeHintsRemaining], resolved against its own independent limit (D-01).
+ * @property hintsUsed Hints the player actually received during this play (D-09) — free,
+ *   silently-free and rewarded alike.
+ *
+ *   **On-disk contract:** `null` means "written before assist counting existed", NOT
+ *   "unknown", and it resolves to **0** — fail-CLOSED, deliberately the opposite
+ *   direction to the [freeHintsRemaining] field it sits beside. The asymmetry is the
+ *   whole point of putting them adjacent: a missing *allowance* is a generosity the
+ *   player receives, so guessing generously costs at most a few free hints; a missing
+ *   *assist counter* is a **claim of purity**, and guessing generously there would hand
+ *   out a Hint-free or Undo-free achievement nobody earned.
+ *
+ *   The counters ride the snapshot for exactly one reason (D-09's anti-laundering
+ *   purpose): the assists are spent in `GameViewModel`, which does not survive process
+ *   death, so without this field killing the app mid-level would erase an assist already
+ *   taken and turn a hinted solve into a hint-free one. A forged value is CLAMPED at the
+ *   bottom rather than refused — see [SnapshotMapper] — because refusing a resume over a
+ *   counter would convert a one-byte edit into progress loss for an honest player.
+ * @property undosUsed Undos that actually rewound the board during this play — same
+ *   fail-closed contract as [hintsUsed], counted independently.
  */
 @Serializable
 data class ResumeSnapshotDto(
@@ -84,6 +103,8 @@ data class ResumeSnapshotDto(
     val minimumPegs: Int? = null,
     val freeHintsRemaining: Int? = null,
     val freeUndosRemaining: Int? = null,
+    val hintsUsed: Int? = null,
+    val undosUsed: Int? = null,
 )
 
 /**

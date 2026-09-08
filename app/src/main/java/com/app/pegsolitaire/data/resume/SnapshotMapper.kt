@@ -28,11 +28,18 @@ data class ChallengeStamp(
 /**
  * A game rebuilt from a snapshot: the initial board, the replayed current board, the
  * full move history (so undo keeps working), the elapsed time, the free-assist allowance
- * the player had left, and the Challenge stamp when there is one.
+ * the player had left, the assists already taken on this play, and the Challenge stamp
+ * when there is one.
  *
  * [allowance] is non-null by construction: an absent or forged stored counter resolves to
  * the full default rather than to "no allowance", so there is no such thing as a restored
  * game without one (ADS-02, D-04/D-17).
+ *
+ * [hintsUsed]/[undosUsed] are non-null for the same structural reason and by the opposite
+ * rule (D-09): the codec resolved the untrusted stored value **in one place**, so no
+ * consumer of a restore ever sees a raw nullable counter and no second site has to
+ * re-decide what an absent one means. Absent or negative is 0 — fail-CLOSED, because an
+ * absent assist counter is a claim of purity rather than a generosity.
  */
 data class RestoredGame(
     val initialBoard: Board,
@@ -40,6 +47,8 @@ data class RestoredGame(
     val moveHistory: List<Move>,
     val elapsedMs: Long,
     val allowance: AssistAllowance,
+    val hintsUsed: Int,
+    val undosUsed: Int,
     val challenge: ChallengeStamp?,
 )
 
@@ -75,9 +84,21 @@ data class RestoredGame(
  * [Boards.CLASSIC_SPECS] by footprint equality. Without both halves, a resumed Diamond-41
  * game would revert to a one-peg target that its board cannot reach.
  */
+@Suppress("TooManyFunctions") // one private validator per stored field; merging any two would hide a rejection rule
 object SnapshotMapper {
     /** Unknown keys are ignored so a future field cannot orphan today's saved games. */
     private val json = Json { ignoreUnknownKeys = true }
+
+    /**
+     * The assist count an absent or forged-negative stored counter resolves to (D-09).
+     *
+     * Named rather than written inline for the same reason
+     * `ResultsViewModel.PEGS_CLEARED_NOT_CARRIED` is: the zero is a *policy*, not an
+     * arithmetic constant. It is the fail-CLOSED direction — a snapshot that does not say
+     * how many assists were taken is treated as having recorded none *yet*, which concedes
+     * nothing to a tamperer, exactly opposite to the allowance's fail-open-to-full.
+     */
+    private const val NO_ASSISTS_RECORDED = 0
 
     /**
      * Builds the snapshot for a game in progress from its **initial** board plus the
@@ -88,6 +109,11 @@ object SnapshotMapper {
      * written" value an older blob carries — so a caller that does not yet track the
      * allowance produces a snapshot that restores with a full one rather than a locked
      * out one.
+     *
+     * [hintsUsed]/[undosUsed] default to `null` on the same principle and resolve the
+     * other way (D-09): for these, the caller-absent case and the legacy-blob case both
+     * mean **zero assists recorded**, so a caller that does not track them cannot
+     * accidentally assert a hint-free play.
      */
     fun toDto(
         mode: String,
@@ -98,6 +124,8 @@ object SnapshotMapper {
         challenge: ChallengeStamp? = null,
         freeHintsRemaining: Int? = null,
         freeUndosRemaining: Int? = null,
+        hintsUsed: Int? = null,
+        undosUsed: Int? = null,
     ): ResumeSnapshotDto =
         ResumeSnapshotDto(
             mode = mode,
@@ -113,6 +141,8 @@ object SnapshotMapper {
             minimumPegs = initialBoard.spec.minimumPegs,
             freeHintsRemaining = freeHintsRemaining,
             freeUndosRemaining = freeUndosRemaining,
+            hintsUsed = hintsUsed,
+            undosUsed = undosUsed,
         )
 
     /**
@@ -130,6 +160,13 @@ object SnapshotMapper {
      * to destroy an honest player's progress with a one-byte edit, in exchange for
      * denying them at most three hints they could get by replaying the level anyway
      * (T-09-01/T-09-02).
+     *
+     * **The assist counters behave the same way and clamp instead of refusing**
+     * (D-09, threat T-12-21, ASVS V5): [orNoAssists] resolves absent or negative to
+     * [NO_ASSISTS_RECORDED] and a forged large value passes through, because only the
+     * negative case can corrupt a downstream `> 0` predicate. They too can never
+     * contribute to the `null` above. The direction is the only thing that differs from
+     * the allowance: this one fails CLOSED, since an absent count is a claim of purity.
      */
     fun fromDto(
         dto: ResumeSnapshotDto,
@@ -148,11 +185,22 @@ object SnapshotMapper {
                                 hints = dto.freeHintsRemaining,
                                 undos = dto.freeUndosRemaining,
                             ),
+                        hintsUsed = dto.hintsUsed.orNoAssists(),
+                        undosUsed = dto.undosUsed.orNoAssists(),
                         challenge = dto.toChallengeStampOrNull(),
                     )
                 }
             }
         }
+
+    /**
+     * The assist count a stored counter denotes: absent or negative is
+     * [NO_ASSISTS_RECORDED], anything else is taken as written (D-09).
+     *
+     * One resolver rather than two inline expressions, so the fail-closed rule is stated
+     * once and the two counters cannot drift into disagreeing about what a `null` means.
+     */
+    private fun Int?.orNoAssists(): Int = (this ?: NO_ASSISTS_RECORDED).coerceAtLeast(NO_ASSISTS_RECORDED)
 
     /** Serializes [dto] to the string stored in the snapshot row's blob column. */
     fun encode(dto: ResumeSnapshotDto): String = json.encodeToString(dto)
