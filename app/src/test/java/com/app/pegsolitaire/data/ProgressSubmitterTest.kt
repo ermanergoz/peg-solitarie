@@ -480,6 +480,44 @@ class ProgressSubmitterTest {
             assertThat(repository.passCount).isEqualTo(2)
         }
 
+    @Test
+    fun aSignInThatLandsWhileTheFlagWriteIsStillInFlightStillRunsItsBackfillOnce() =
+        runTest(testDispatcher) {
+            // WR-01: the pending flag must be read UNDER the pass mutex, not in the
+            // collector before it. The interleaving: a solve is banked while the session is
+            // still unresolved, so its pass takes the signed-out branch and parks inside the
+            // suspending `setPending(true)` while holding the lock; sign-in resolves in that
+            // window. A collector that read the flag before taking the lock would see the
+            // not-yet-committed `false`, skip, and strand the backfill until the next
+            // signed-in solve or the next process launch — the session StateFlow does not
+            // re-emit an equal value.
+            val writeGate = CompletableDeferred<Unit>()
+            val games = FakeGamesService(GamesSignInState.Unknown)
+            val repository = FakeProgressRepository(populatedAggregate(), populatedBests())
+            val store = FakeSubmissionSyncStore(initial = false, writeGate = writeGate)
+            val submitter = submitterFor(repository, games, store)
+
+            submitter.start()
+            advanceUntilIdle()
+
+            submitter.onResultRecorded()
+            advanceUntilIdle()
+            // The write is in flight: asked for, not committed.
+            assertThat(store.value).isFalse()
+
+            games.emitSession(signedIn())
+            advanceUntilIdle()
+
+            writeGate.complete(Unit)
+            advanceUntilIdle()
+
+            // Exactly one pass — the queued backfill — and it really submitted.
+            assertThat(repository.passCount).isEqualTo(1)
+            assertThat(games.submittedScores).isNotEmpty()
+            // Everything succeeded, so the drained flag is left clear.
+            assertThat(store.value).isFalse()
+        }
+
     // ---- Harness ---------------------------------------------------------------
 
     private fun submitterFor(
@@ -599,6 +637,7 @@ private class FakeProgressRepository(
  */
 private class FakeSubmissionSyncStore(
     initial: Boolean = false,
+    private val writeGate: CompletableDeferred<Unit>? = null,
 ) : SubmissionSyncStore(unusedDataStore()) {
     private val state = MutableStateFlow(initial)
 
@@ -607,7 +646,15 @@ private class FakeSubmissionSyncStore(
     /** The flag as the last write left it — the single value most cases here assert on. */
     val value: Boolean get() = state.value
 
+    /**
+     * Parks every write until [writeGate] completes, when one is supplied.
+     *
+     * The real store's write is a suspending `DataStore.edit`, so "the flag has been asked
+     * to change but has not committed yet" is a state production genuinely occupies. That
+     * window is the whole of WR-01, and it is unobservable without a gate.
+     */
     override suspend fun setPending(pending: Boolean) {
+        writeGate?.await()
         state.value = pending
     }
 }

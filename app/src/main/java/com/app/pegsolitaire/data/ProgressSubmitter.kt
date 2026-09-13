@@ -113,16 +113,23 @@ open class ProgressSubmitter
          * closed the app, while passing every JVM test. That is why this method exists at
          * all, and why [started] guards it.
          *
-         * The flag is read INSIDE the collector, once per emission. Reading it once outside
-         * would freeze a launch-time value and miss every solve banked since.
+         * The flag is read INSIDE the pass, under [passMutex], once per emission — never
+         * here in the collector and never once outside it (WR-01). Reading it once outside
+         * would freeze a launch-time value and miss every solve banked since; reading it
+         * here, before the lock, would race the signed-out branch of [submitAll] that writes
+         * it. That race loses a backfill: a solve banked while the session was still
+         * `Unknown` begins its suspending `setPending(true)`, the session then resolves to
+         * `SignedIn`, this collector reads the not-yet-committed `false` and skips, and the
+         * write lands a moment later with nobody left to observe it — the session
+         * `StateFlow` does not re-emit, so the work waits for the next signed-in solve or
+         * the next process launch. Taking the lock FIRST and reading the flag inside is what
+         * makes the session check and the flag check one consistent snapshot.
          */
         open fun start() {
             if (!started.compareAndSet(false, true)) return
             scope.launch {
                 gamesService.session.collect { session ->
-                    if (session is GamesSignInState.SignedIn && syncStore.pending.first()) {
-                        submitAll()
-                    }
+                    if (session is GamesSignInState.SignedIn) submitAll(onlyIfPending = true)
                 }
             }
         }
@@ -143,14 +150,23 @@ open class ProgressSubmitter
          * this call in anything.
          */
         open fun onResultRecorded() {
-            scope.launch { submitAll() }
+            scope.launch { submitAll(onlyIfPending = false) }
         }
 
         /**
-         * One serialized pass: gate on the session, read the aggregates, evaluate the rules
-         * once, issue every call, then move the flag.
+         * One serialized pass: gate on the session, consult the flag if this trigger asks
+         * it to, read the aggregates, evaluate the rules once, issue every call, then move
+         * the flag.
+         *
+         * @param onlyIfPending whether this pass exists solely to drain a pending backfill,
+         *   and should therefore do nothing when the flag is clear. `true` for the [start]
+         *   collector — a clean launch by a signed-in player with nothing owed makes no SDK
+         *   calls at all (D-10) — and `false` for [onResultRecorded], whose fresh solve is
+         *   always worth submitting. The read happens **inside** [passMutex] so it cannot
+         *   observe a `setPending(true)` that a concurrent signed-out pass has begun but not
+         *   committed (WR-01).
          */
-        private suspend fun submitAll() =
+        private suspend fun submitAll(onlyIfPending: Boolean) =
             passMutex.withLock {
                 // `Unknown` takes this branch too (RESEARCH Pitfall 8). It means "the first
                 // check has not answered", and reading it as "offline" — or as "probably
@@ -160,6 +176,9 @@ open class ProgressSubmitter
                     syncStore.setPending(true)
                     return@withLock
                 }
+                // Ordered AFTER the session gate on purpose: a signed-out trigger must
+                // still set the flag, whatever its reason for running.
+                if (onlyIfPending && !syncStore.pending.first()) return@withLock
                 // Both reads already fail safe inside `storageFailSafe` (12-06), so neither
                 // needs wrapping here — and note what that means for the flag write below.
                 val aggregate = progressRepository.aggregate()
