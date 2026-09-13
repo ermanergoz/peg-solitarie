@@ -46,7 +46,7 @@ These have no code equivalent and multi-hour-to-multi-day latency. Start them in
 | `app-ads.txt` published on that website and linked in the store listing | Phase 14 (REL-03) | Up to 24h crawl after the site is live |
 | Privacy policy authored and published on that website, disclosing advertising-ID collection and every third-party SDK receiving player data | Phases 9 (REL-05), 14 (REL-01, REL-04) | Hours to author; Play Console requires the URL for **every** app, and the Data-safety form (REL-01) must agree with what it says |
 | UMP consent message configured in the AdMob UI | Phase 9 (CONS-01) | Minutes, but UMP renders nothing without it |
-| 10–12 unique 512×512 achievement icons | Phase 12 (PGSA-01/04) | Art turnaround; popups silently fail to render without them |
+| 20 unique 512×512 achievement icons (one per achievement — see 12-OPERATOR-CHECKLIST.md) | Phase 12 (PGSA-01/04) | Art turnaround; popups silently fail to render without them |
 | Play Console: Saved Games enabled on the PGS project | Phase 13 | Minutes |
 
 ## Phase Details
@@ -332,6 +332,7 @@ Plans:
 **Wave 5** *(blocked on all seven)*
 
 - [ ] 12-08-PLAN.md — Operator closure: Play Console checklist (7 leaderboards, 20 achievements ≤ 2,000 pts), Phase 12 device UAT items, ROADMAP icon row 10–12 → 20 (D-05)
+
 **Notes**: PGSA-06 (per-session telemetry Room migration) must land **before or with** PGSA-02 — the skill achievements are unearnable without it, and the migration must be proven progress-preserving with a `MigrationTestHelper` test before any achievement wiring. Submission hooks into `ResultsViewModel.recordSolvedPlayOnce()` (which already has the process-death-safe exactly-once guard), **not** `GameViewModel` — `finishedEmitted` is reset by `onUndo()` and would double-submit. Aggregates must be SQL-backed, not an in-memory fold: Challenge reaches thousands of rows. 512×512 achievement icons must already be uploaded (see External Prerequisites).
 
 ### Phase 13: Cloud Save
