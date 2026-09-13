@@ -30,7 +30,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) · Audit:
 - [x] **Phase 9: Consent & Rewarded Ads** - UMP consent, opt-in-first rewarded assists, fail-open on no-fill, clock frozen across every ad (completed 2026-09-02)
 - [x] **Phase 10: Interstitials** - Frequency-capped, win-only interstitials at the Results continue action (completed 2026-09-02)
 - [x] **Phase 11: Play Games Session** - One-time opt-in prompt, silent sign-in for opted-in players, full signed-out play, manual sign-in fallback (completed 2026-09-03)
-- [ ] **Phase 12: Leaderboards & Achievements** - 7 leaderboards, 10+ achievements, per-session telemetry migration
+- [x] **Phase 12: Leaderboards & Achievements** - 7 leaderboards, 10+ achievements, per-session telemetry migration (completed 2026-09-13)
 - [ ] **Phase 13: Cloud Save** - Bests + ladder synced via Saved Games with deterministic monotonic merge
 - [ ] **Phase 14: Release Readiness** - Play Console declarations, signed-track verification, `app-ads.txt`, cold-start budget
 
@@ -331,7 +331,7 @@ Plans:
 
 **Wave 5** *(blocked on all seven)*
 
-- [ ] 12-08-PLAN.md — Operator closure: Play Console checklist (7 leaderboards, 20 achievements ≤ 2,000 pts), Phase 12 device UAT items, ROADMAP icon row 10–12 → 20 (D-05)
+- [x] 12-08-PLAN.md — Operator closure: Play Console checklist (7 leaderboards, 20 achievements ≤ 2,000 pts), Phase 12 device UAT items, ROADMAP icon row 10–12 → 20 (D-05)
 
 **Notes**: PGSA-06 (per-session telemetry Room migration) must land **before or with** PGSA-02 — the skill achievements are unearnable without it, and the migration must be proven progress-preserving with a `MigrationTestHelper` test before any achievement wiring. Submission hooks into `ResultsViewModel.recordSolvedPlayOnce()` (which already has the process-death-safe exactly-once guard), **not** `GameViewModel` — `finishedEmitted` is reset by `onUndo()` and would double-submit. Aggregates must be SQL-backed, not an in-memory fold: Challenge reaches thousands of rows. 512×512 achievement icons must already be uploaded (see External Prerequisites).
 
@@ -387,6 +387,6 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 9. Consent & Rewarded Ads | v1.1 | 11/11 | Complete   | 2026-09-02 |
 | 10. Interstitials | v1.1 | 6/6 | Complete    | 2026-09-03 |
 | 11. Play Games Session | v1.1 | 4/4 | Complete   | 2026-09-03 |
-| 12. Leaderboards & Achievements | v1.1 | 7/8 | In Progress|  |
+| 12. Leaderboards & Achievements | v1.1 | 8/8 | Complete   | 2026-09-13 |
 | 13. Cloud Save | v1.1 | 0/TBD | Not started | - |
 | 14. Release Readiness | v1.1 | 0/TBD | Not started | - |

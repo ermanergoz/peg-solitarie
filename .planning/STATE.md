@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Slice 2 — Play Games, AdMob & Polish
-status: executing
+status: completed
 stopped_at: Phase 12 planned (8 plans, verification passed)
-last_updated: "2026-09-13T19:20:23.388Z"
-last_activity: 2026-09-13 -- Phase 12 execution started
+last_updated: "2026-09-13T19:51:41.503Z"
+last_activity: 2026-09-13
 progress:
   total_phases: 9
-  completed_phases: 6
+  completed_phases: 7
   total_plans: 57
-  completed_plans: 55
-  percent: 67
+  completed_plans: 57
+  percent: 78
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-08-27)
 
 ## Current Position
 
-Phase: 12 (leaderboards-achievements) — EXECUTING
-Plan: 1 of 8
-Status: Executing Phase 12
-Last activity: 2026-09-13 -- Phase 12 execution started
+Phase: 12 (leaderboards-achievements) — COMPLETE (8 of 8 plans)
+Plan: 8 of 8
+Status: Phase 12 code-complete; operator checklist and device UAT 4-9 outstanding
+Last activity: 2026-09-13
 
 Progress: [██████████] 100%
 
@@ -67,6 +67,7 @@ Per-plan durations archived in `.planning/milestones/v1.0-ROADMAP.md`.
 
 *Updated after each plan completion*
 | Phase 07 P06 | ~15 min | 2 tasks | 4 files |
+| Phase 12 P08 | 22 min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -107,6 +108,10 @@ Recent decisions affecting current work:
 - [Phase 08]: Wiegleb-45's book ships at **K=3** with the file named `wiegleb45-k3.txt` so the artifact cannot misrepresent its own coverage — any check assuming a uniform `-k4` suffix will find four files, not five, and that is the artifacts being honest
 - [Phase 08]: The book resources are plain **JAR** resources, not Android `res/` entries — `aapt2` cannot see them, which is precisely why `isShrinkResources` has no remit over them and they survive R8 byte-intact (proven in `08-BOOK-EVIDENCE.md`)
 - [Phase 08]: `OpeningBook` fails **closed** — absent resources produce a MISS and a silent degradation to pre-book behaviour with no error at all, which is why release-APK retention is proven rather than assumed
+- [Phase 12]: Phase 12's device tests append to Phase 11's 11-HUMAN-UAT.md rather than opening a 12-HUMAN-UAT.md — D-04 made that file the project's single accumulating device checklist, and a second one would split the pre-release pass in two
+- [Phase 12]: The 20-achievement point budget is 1,130 of Play Games' 2,000 LIFETIME maximum, leaving 870 points of headroom; the four D-02 first-hour wins carry the four cheapest values (5/10/10/15) on purpose, so ROADMAP criterion 3 is readable off the budget rather than asserted
+- [Phase 12]: The 27-row ID recording table holds key names and tick boxes only — never a value; its key column is deliberately un-backticked so the grep that selects the 27 recording rows cannot collide with the 27 roster mentions, and 'CgkI' = 0 is an acceptance criterion
+- [Phase 12]: PGSA-04, PGSL-06, PGSA-05 and the PGSL-01/02/03 runtime claims stay [UNVERIFIED — D-04] until a Play Console project exists and 11-HUMAN-UAT tests 4-9 run on a device — the plan names the gap rather than producing a green check for it
 
 ### Resolved
 
@@ -146,9 +151,9 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-06T18:17:53.559Z
+Last session: 2026-09-13T19:51:33.020Z
 Stopped at: Phase 12 planned (8 plans, verification passed)
-Resume file: .planning/phases/12-leaderboards-achievements/12-CONTEXT.md
+Resume file: None
 
 ## Operator Next Steps
 
