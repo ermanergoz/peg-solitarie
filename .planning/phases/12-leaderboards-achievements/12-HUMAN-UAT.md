@@ -3,7 +3,7 @@ status: partial
 phase: 12-leaderboards-achievements
 source: [12-VERIFICATION.md]
 started: 2026-09-13T20:04:08Z
-updated: 2026-09-13T20:04:08Z
+updated: 2026-09-13T21:51:27Z
 ---
 
 ## Current Test
@@ -42,12 +42,16 @@ result: [pending]
 expected: `./gradlew :app:assembleRelease` with all 27 IDs configured succeeds; `missing_rules.txt` names no `com.google.android.gms.games` class; installing the minified build and re-running test 2 still passes.
 result: [pending]
 
+### 7. A perfect Diamond-41 finish is recorded and unlocks CLEARED_DIAMOND41 (CR-01 fix, 12-REVIEW-FIX.md)
+expected: On a debug build (no Play Console needed for the first three checks), finish Diamond-41 with two pegs remaining. The Results screen shows PERFECT, the Classic catalog shows star pips and "New best!" for Diamond-41, and a `level_result` row plus a `play_session` row exist for `diamond41`. With a Play Console project, `CLEARED_DIAMOND41` unlocks and the Diamond-41 leaderboard receives the score.
+result: [pending]
+
 ## Summary
 
-total: 6
+total: 7
 passed: 0
 issues: 0
-pending: 6
+pending: 7
 skipped: 0
 blocked: 0
 
