@@ -395,6 +395,119 @@ class ResultsViewModelTest {
         }
 
     @Test
+    fun aPerfectDiamond41FinishAtItsTwoPegFloorIsRecordedAndSubmittedLikeAnyOtherSolve() =
+        runTest(testDispatcher) {
+            // CR-01, the regression this whole per-board floor exists for. Diamond-41's
+            // proven floor is TWO pegs (Phase 8, GF(4) colour invariant), so a flawless
+            // Diamond play arrives at Results with pegsRemaining = 2 and THREE stars. The
+            // record gate used to be `pegsRemaining != 1`, which silently dropped it: no
+            // level_result row, no play_session row, no submission — and therefore no
+            // CLEARED_DIAMOND41, no GRAND_TOUR, no PERFECTIONIST and an empty Diamond-41
+            // leaderboard, for the one player who played it perfectly.
+            val log = mutableListOf<String>()
+            val repository = FakeProgressRepository(log = log)
+            val submitter = recordingSubmitter(log = log)
+
+            val viewModel =
+                viewModelFor(
+                    levelId = ClassicLevelIds.DIAMOND41,
+                    stars = THREE_STARS,
+                    pegsRemaining = DIAMOND_41_PERFECT_PEGS_REMAINING,
+                    minimumPegs = DIAMOND_41_PERFECT_PEGS_REMAINING,
+                    repository = repository,
+                    progressSubmitter = submitter,
+                )
+            advanceUntilIdle()
+
+            val call = repository.recordCalls.single()
+            assertThat(call.mode).isEqualTo(ProgressPersistenceKeys.MODE_CLASSIC)
+            assertThat(call.levelId).isEqualTo(ClassicLevelIds.DIAMOND41)
+            assertThat(call.result.stars).isEqualTo(THREE_STARS)
+            assertThat(call.result.pegsRemaining).isEqualTo(DIAMOND_41_PERFECT_PEGS_REMAINING)
+            // Recorded THEN submitted, exactly once — the same ordering every other solve gets.
+            assertThat(log).containsExactly(RECORD_EVENT, SUBMIT_EVENT).inOrder()
+            assertThat(submitter.callCount).isEqualTo(1)
+            assertThat(viewModel.uiState.value.isSolved).isTrue()
+            assertThat(viewModel.uiState.value.headlineTier).isEqualTo(ResultsHeadlineTier.PERFECT)
+        }
+
+    @Test
+    fun aStuckTwoPegFinishOnAOnePegBoardIsStillNotRecorded() =
+        runTest(testDispatcher) {
+            // The other half of CR-01: widening the gate to a per-board floor must NOT
+            // widen it for the boards whose floor really is one peg. A Challenge board left
+            // with two pegs is stuck, banks nothing and submits nothing — exactly as before.
+            val repository = FakeProgressRepository()
+            val submitter = recordingSubmitter()
+
+            val viewModel =
+                viewModelFor(
+                    levelId = "",
+                    stars = TWO_STARS,
+                    pegsRemaining = DIAMOND_41_PERFECT_PEGS_REMAINING,
+                    challengeLevel = SAMPLE_CHALLENGE_LEVEL,
+                    minimumPegs = DEFAULT_MINIMUM_PEGS,
+                    repository = repository,
+                    progressSubmitter = submitter,
+                )
+            advanceUntilIdle()
+
+            assertThat(repository.recordCalls).isEmpty()
+            assertThat(submitter.callCount).isEqualTo(0)
+            assertThat(viewModel.uiState.value.isSolved).isFalse()
+            assertThat(viewModel.uiState.value.showNextLevel).isFalse()
+            assertThat(viewModel.uiState.value.headlineTier).isEqualTo(ResultsHeadlineTier.STUCK)
+        }
+
+    @Test
+    fun aForgedHugeMinimumPegsArgCannotDeclareABarelyPlayedBoardSolved() =
+        runTest(testDispatcher) {
+            // `Results` is independently reachable, so the floor is untrusted in its own
+            // right. It is clamped into the shipped range at the nav boundary — NEVER
+            // against the play's own pegsRemaining, which would make every forged value
+            // satisfy the solved test and hand out a stored best for an unplayed board.
+            val repository = FakeProgressRepository()
+            val submitter = recordingSubmitter()
+
+            val viewModel =
+                viewModelFor(
+                    levelId = ClassicLevelIds.ENGLISH33,
+                    stars = THREE_STARS,
+                    pegsRemaining = SAMPLE_PEGS_REMAINING,
+                    minimumPegs = FORGED_HUGE_MINIMUM_PEGS,
+                    repository = repository,
+                    progressSubmitter = submitter,
+                )
+            advanceUntilIdle()
+
+            assertThat(repository.recordCalls).isEmpty()
+            assertThat(submitter.callCount).isEqualTo(0)
+            assertThat(viewModel.uiState.value.isSolved).isFalse()
+        }
+
+    @Test
+    fun aForgedNonPositiveMinimumPegsArgStillLetsAGenuineSolveBank() =
+        runTest(testDispatcher) {
+            // The clamp's lower bound: a forged zero or negative floor would otherwise make
+            // `pegsRemaining <= minimumPegs` unsatisfiable and destroy an honest player's
+            // recorded best — the same fail-safe posture the Challenge-level clamp takes.
+            val repository = FakeProgressRepository()
+
+            val viewModel =
+                viewModelFor(
+                    levelId = ClassicLevelIds.ENGLISH33,
+                    stars = THREE_STARS,
+                    pegsRemaining = SOLVED_PEGS_REMAINING,
+                    minimumPegs = FORGED_NON_POSITIVE_MINIMUM_PEGS,
+                    repository = repository,
+                )
+            advanceUntilIdle()
+
+            assertThat(repository.recordCalls).hasSize(1)
+            assertThat(viewModel.uiState.value.isSolved).isTrue()
+        }
+
+    @Test
     fun recreatingTheViewModelOverTheSameSavedStateRecordsOnlyOnce() =
         runTest(testDispatcher) {
             // A process-death restore rebuilds the ViewModel over the SAME SavedStateHandle;
@@ -1358,6 +1471,7 @@ class ResultsViewModelTest {
         elapsedSeconds: Int = SAMPLE_ELAPSED_SECONDS,
         score: Int = SAMPLE_SCORE,
         challengeLevel: Int? = null,
+        minimumPegs: Int = DEFAULT_MINIMUM_PEGS,
         hintsUsed: Int = NO_TELEMETRY_COUNT,
         undosUsed: Int = NO_TELEMETRY_COUNT,
         lastPegOnTarget: Boolean = false,
@@ -1375,6 +1489,7 @@ class ResultsViewModelTest {
                     elapsedSeconds = elapsedSeconds,
                     score = score,
                     challengeLevel = challengeLevel,
+                    minimumPegs = minimumPegs,
                     hintsUsed = hintsUsed,
                     undosUsed = undosUsed,
                     lastPegOnTarget = lastPegOnTarget,
@@ -1505,6 +1620,7 @@ class ResultsViewModelTest {
         elapsedSeconds: Int = SAMPLE_ELAPSED_SECONDS,
         score: Int = SAMPLE_SCORE,
         challengeLevel: Int? = null,
+        minimumPegs: Int = DEFAULT_MINIMUM_PEGS,
         hintsUsed: Int = NO_TELEMETRY_COUNT,
         undosUsed: Int = NO_TELEMETRY_COUNT,
         lastPegOnTarget: Boolean = false,
@@ -1517,6 +1633,10 @@ class ResultsViewModelTest {
                 put(ELAPSED_SECONDS_ARG, elapsedSeconds)
                 put(SCORE_ARG, score)
                 if (challengeLevel != null) put(CHALLENGE_LEVEL_ARG, challengeLevel)
+                // Same discipline as the telemetry args below: the per-board floor is put
+                // into the map ONLY when it differs from the route default, so the cases
+                // that predate CR-01 genuinely exercise `Results`' own one-peg default.
+                if (minimumPegs != DEFAULT_MINIMUM_PEGS) put(MINIMUM_PEGS_ARG, minimumPegs)
                 // Each telemetry arg is put into the map ONLY when it differs from the
                 // route default, so the "absent args" case genuinely exercises the
                 // `Results` defaults rather than an explicit zero that happens to match.
@@ -1633,9 +1753,16 @@ private const val PEGS_REMAINING_ARG = "pegsRemaining"
 private const val ELAPSED_SECONDS_ARG = "elapsedSeconds"
 private const val SCORE_ARG = "score"
 private const val CHALLENGE_LEVEL_ARG = "challengeLevel"
+private const val MINIMUM_PEGS_ARG = "minimumPegs"
 private const val HINTS_USED_ARG = "hintsUsed"
 private const val UNDOS_USED_ARG = "undosUsed"
 private const val LAST_PEG_ON_TARGET_ARG = "lastPegOnTarget"
+
+/**
+ * The `Results` route's own default perfect-finish floor: one peg, which is every shipped
+ * board's floor except Diamond-41's proven two (CR-01).
+ */
+private const val DEFAULT_MINIMUM_PEGS = 1
 
 /** The `Results` route's own default for both telemetry counters (D-08). */
 private const val NO_TELEMETRY_COUNT = 0
@@ -1651,6 +1778,12 @@ private const val FORGED_NEGATIVE_COUNTER = -4
 
 /** T-12-20 forgery: a large in-range counter arg, preserved verbatim. */
 private const val FORGED_LARGE_COUNTER = 9_999
+
+/** CR-01 forgery: a floor above every shipped board's, clamped down rather than obeyed. */
+private const val FORGED_HUGE_MINIMUM_PEGS = 41
+
+/** CR-01 forgery: a floor below one, clamped up so an honest solve still banks. */
+private const val FORGED_NON_POSITIVE_MINIMUM_PEGS = 0
 
 /** Earned-star counts for the three D-08 headline tiers. */
 private const val THREE_STARS = 3

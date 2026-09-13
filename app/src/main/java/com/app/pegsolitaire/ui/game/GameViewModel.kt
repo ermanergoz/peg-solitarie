@@ -989,6 +989,10 @@ class GameViewModel
                             minimumPegs = nextBoard.spec.minimumPegs,
                         ),
                     telemetry = telemetryFor(nextBoard),
+                    // The same per-board floor the stars were banded against, carried on
+                    // so Results can apply the SAME solved test this ViewModel just did
+                    // (`pegCount <= spec.minimumPegs`) rather than a hardcoded one peg.
+                    minimumPegs = nextBoard.spec.minimumPegs,
                 ),
             )
         }

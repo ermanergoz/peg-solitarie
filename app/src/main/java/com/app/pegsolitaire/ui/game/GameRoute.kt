@@ -69,6 +69,7 @@ fun GameRoute(
                     elapsedSeconds = finish.result.elapsedSeconds,
                     score = finish.result.score,
                     challengeLevel = viewModel.challengeLevel,
+                    minimumPegs = finish.minimumPegs,
                     hintsUsed = finish.telemetry.hintsUsed,
                     undosUsed = finish.telemetry.undosUsed,
                     lastPegOnTarget = finish.telemetry.lastPegOnTarget,

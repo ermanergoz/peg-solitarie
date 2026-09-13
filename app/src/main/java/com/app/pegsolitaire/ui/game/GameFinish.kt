@@ -28,8 +28,16 @@ import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
  * @property result the pure-domain scoring outcome, byte-identical to what the finish
  *   event carried before telemetry existed.
  * @property telemetry the per-solve facts scoring does not care about but achievements do.
+ * @property minimumPegs the FINISHING BOARD's own `BoardSpec.minimumPegs` — the peg count
+ *   at which this board counts as solved. Carried because "solved" is a per-board fact and
+ *   nothing downstream can re-derive it: `GameViewModel` declares the win with
+ *   `pegCount <= spec.minimumPegs` (Diamond-41's proven floor is TWO), while Results is a
+ *   display-only destination with no board in hand. Sending it alongside the score is what
+ *   lets `ResultsViewModel` ask the same question `GameViewModel` already answered, instead
+ *   of a hardcoded one-peg test that drops every flawless Diamond-41 win on the floor.
  */
 data class GameFinish(
     val result: ScoreResult,
     val telemetry: SolveTelemetry,
+    val minimumPegs: Int,
 )
