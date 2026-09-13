@@ -327,7 +327,7 @@ Plans:
 
 **Wave 4** *(blocked on 12-02, 12-03, 12-04, 12-06)*
 
-- [ ] 12-07-PLAN.md — `ProgressSubmitter` `@Singleton` (D-10/D-11/D-13): dirty-flag backfill, mutex-serialised pass, `GamesIds.of`, the `recordSolvedPlayOnce()` hook, `MainActivity.start()`
+- [x] 12-07-PLAN.md — `ProgressSubmitter` `@Singleton` (D-10/D-11/D-13): dirty-flag backfill, mutex-serialised pass, `GamesIds.of`, the `recordSolvedPlayOnce()` hook, `MainActivity.start()`
 
 **Wave 5** *(blocked on all seven)*
 
@@ -386,6 +386,6 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 9. Consent & Rewarded Ads | v1.1 | 11/11 | Complete   | 2026-09-02 |
 | 10. Interstitials | v1.1 | 6/6 | Complete    | 2026-09-03 |
 | 11. Play Games Session | v1.1 | 4/4 | Complete   | 2026-09-03 |
-| 12. Leaderboards & Achievements | v1.1 | 6/8 | In Progress|  |
+| 12. Leaderboards & Achievements | v1.1 | 7/8 | In Progress|  |
 | 13. Cloud Save | v1.1 | 0/TBD | Not started | - |
 | 14. Release Readiness | v1.1 | 0/TBD | Not started | - |
