@@ -24,16 +24,67 @@ import com.app.pegsolitaire.domain.achievement.AchievementId
  *    `build-logic/src/main/kotlin/GamesIdResolution.kt`. The `gamesIdLiteralCheck` build
  *    gate fails on any ID-shaped literal under `src/main` to keep it that way.
  *
- * 3. **Plan 12-07 will add `fun of(id: AchievementId): String`** — an exhaustive `when`
- *    mapping the `:domain` `AchievementId` enum onto [Achievements]' accessors, so the
- *    enum-to-ID mapping is checked at compile time. That enum is plan 12-02's work and
- *    does **not** exist yet, so this file deliberately stops short of it: there is no
- *    stub enum, no placeholder `of()` and no `TODO` marker here. [Achievements] is structured
- *    so the function drops in beside it without anything moving.
+ * 3. **[of] is the enum-to-ID map, and it is exhaustive at compile time.** It takes the
+ *    `:domain` [AchievementId] — the app's only achievement identity — and returns the
+ *    matching [Achievements] accessor. `:domain` never learns an ID string; it travels
+ *    as an enum constant and becomes text exactly here.
  */
 object GamesIds {
-    /** RED stub — see plan 12-07 Task 1. The exhaustive map arrives in the GREEN commit. */
-    fun of(id: AchievementId): String = Achievements.firstSolve
+    /**
+     * The Play Games achievement ID for [id] (D-17).
+     *
+     * A single `when` over all twenty constants with **no `else` branch**, in the enum's
+     * own declaration order so the two lists can be diffed by eye.
+     *
+     * **The missing `else` is the point.** A twenty-first [AchievementId] must fail to
+     * compile here, because both alternatives an `else` admits are worse than a build
+     * error: returning a placeholder submits the *wrong* achievement to Play Games under a
+     * valid-looking ID, and throwing crashes a fire-and-forget submission pass that has no
+     * handler of its own. The same argument `AchievementRules.clearedAchievement` and
+     * [com.app.pegsolitaire.data.ClassicBoardIds.levelIdFor] make for [ClassicLevelIds].
+     *
+     * ## The `CyclomaticComplexMethod` suppression
+     *
+     * detekt counts every `when` arm as a decision point, so a total map over a 20-constant
+     * enum scores 21 against a threshold of 14 — by construction, and the score rises with
+     * the roster rather than with anything a reader would call complexity. There is no
+     * branching logic here at all: each arm is one constant, there are no conditions, no
+     * nesting and no early returns, and the compiler's own exhaustiveness check is what
+     * makes the function total.
+     *
+     * The plan's suggested remedy — splitting into `ofOneShot` / `ofTiered` — was tried and
+     * rejected, because it **cannot be done without reintroducing an `else`**: a `when` over
+     * [AchievementId] listing only the fourteen one-shots is not exhaustive, so each half
+     * would need an `else` throwing or returning a placeholder, which is precisely the
+     * compile-time guarantee this function exists to provide. A suppression that keeps one
+     * total, exhaustive map is strictly safer than two partial ones that compile when the
+     * roster grows. Follows [PlayGamesService]'s documented `TooManyFunctions` precedent:
+     * suppress the metric, and state why the metric is measuring the wrong thing.
+     */
+    @Suppress("CyclomaticComplexMethod") // see "The CyclomaticComplexMethod suppression" above
+    fun of(id: AchievementId): String =
+        when (id) {
+            AchievementId.FIRST_SOLVE -> Achievements.firstSolve
+            AchievementId.FIRST_THREE_STAR -> Achievements.firstThreeStar
+            AchievementId.CHALLENGE_LEVEL_5 -> Achievements.challengeLevel5
+            AchievementId.SPEED_SOLVE -> Achievements.speedSolve
+            AchievementId.HINT_FREE -> Achievements.hintFree
+            AchievementId.UNDO_FREE -> Achievements.undoFree
+            AchievementId.CENTER_FINISH -> Achievements.centerFinish
+            AchievementId.LADDER_10 -> Achievements.ladder10
+            AchievementId.LADDER_50 -> Achievements.ladder50
+            AchievementId.LADDER_100 -> Achievements.ladder100
+            AchievementId.STARS_25 -> Achievements.stars25
+            AchievementId.STARS_100 -> Achievements.stars100
+            AchievementId.STARS_250 -> Achievements.stars250
+            AchievementId.CLEARED_ENGLISH33 -> Achievements.clearedEnglish33
+            AchievementId.CLEARED_EUROPEAN37 -> Achievements.clearedEuropean37
+            AchievementId.CLEARED_ASYMMETRIC39 -> Achievements.clearedAsymmetric39
+            AchievementId.CLEARED_DIAMOND41 -> Achievements.clearedDiamond41
+            AchievementId.CLEARED_WIEGLEB45 -> Achievements.clearedWiegleb45
+            AchievementId.GRAND_TOUR -> Achievements.grandTour
+            AchievementId.PERFECTIONIST -> Achievements.perfectionist
+        }
 
     /** The seven leaderboards: two Challenge boards plus one per Classic board. */
     object Leaderboards {
@@ -85,9 +136,8 @@ object GamesIds {
     /**
      * The twenty achievements of the CONTEXT D-01…D-04 roster.
      *
-     * Plan 12-07's `of(AchievementId)` will map the `:domain` enum onto exactly these
-     * accessors; the order below follows `GamesIdKeys.ACHIEVEMENTS` so the two lists can
-     * be read side by side.
+     * [of] maps the `:domain` enum onto exactly these accessors; the order below follows
+     * `GamesIdKeys.ACHIEVEMENTS` so the two lists can be read side by side.
      */
     object Achievements {
         /** First solved level in either mode (D-02). */
