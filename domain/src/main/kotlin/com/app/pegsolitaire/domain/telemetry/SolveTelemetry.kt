@@ -26,8 +26,10 @@ package com.app.pegsolitaire.domain.telemetry
  * after the data layer has folded them into the aggregate's EXISTS flags. That is what
  * lets one rule pass serve both a live solve and the offline backfill.
  *
- * @property hintsUsed Hints taken during this solve, free or rewarded; never negative.
- * @property undosUsed Undos taken during this solve, free or rewarded; never negative.
+ * @property hintsUsed Hints taken during this solve, free or rewarded; never negative —
+ *   [coerced] resolves a forged negative to [UNACCOUNTED_ASSIST] before this type exists.
+ * @property undosUsed Undos taken during this solve, free or rewarded; never negative —
+ *   same resolution as [hintsUsed].
  * @property lastPegOnTarget Whether the final surviving peg sat on the board's target
  *   hole. Only English-33 finishing on `(3, 3)` earns the Center-finish achievement
  *   (D-01); the flag is recorded for every board, and the *achievement* predicate that
@@ -48,21 +50,51 @@ data class SolveTelemetry(
         val NONE = SolveTelemetry(hintsUsed = 0, undosUsed = 0, lastPegOnTarget = false)
 
         /**
-         * Telemetry built from untrusted counters, **clamped** rather than refused
+         * What a FORGED NEGATIVE counter resolves to: one unaccounted assist.
+         *
+         * A negative count is not a legacy state and never a real one — no writer in this
+         * codebase can produce it — so it is tampering, and resolving tampering in the
+         * tamperer's favour is the one thing this boundary must not do. The Hint-free and
+         * Undo-free predicates are `= 0` over `play_session`, so ANY non-zero value
+         * disqualifies purity; one is the smallest honest way to say "assists were taken
+         * and this play cannot be counted pure", and it stays a plausible count rather
+         * than a sentinel that would look absurd anywhere it is ever displayed or summed.
+         *
+         * Named rather than written inline because it is a *policy*, not arithmetic —
+         * the `SnapshotMapper.NO_ASSISTS_RECORDED` discipline, and its exact mirror
+         * image: that constant is the ABSENT case (zero, per D-09, fail-open toward the
+         * achievement and accepted as such), this one is the FORGED case.
+         */
+        const val UNACCOUNTED_ASSIST = 1
+
+        /**
+         * Telemetry built from untrusted counters, **resolved** rather than refused
          * (T-12-06 / ASVS V5).
          *
          * The `Results` destination is independently reachable in `AppNavHost` and the
          * resume snapshot is an on-device, player-editable blob, so both counters are an
          * untrusted boundary by construction. The posture copied here is
-         * `AssistAllowance.fromStoredOrFull`'s: coerce into a sane range, never crash,
+         * `AssistAllowance.fromStoredOrFull`'s: resolve into a sane range, never crash,
          * never refuse the write. Refusing would let a one-byte edit destroy an honest
          * player's recorded progress in exchange for denying a cheat a cosmetic badge.
          *
-         * The clamp BOUNDS, it does not police: a large but in-range value (a forged
-         * `9999` hints) is preserved verbatim, because only the *negative* case can
-         * corrupt a downstream `> 0` predicate. A forged *low* count — claiming a
-         * hint-free solve that was not — is the residual explicitly accepted by T-12-04:
-         * the only real fix is a server, and this milestone has none.
+         * Three cases, and the directions genuinely differ:
+         *  - An **absent** arg never reaches here as a distinct value — the `Results`
+         *    route defaults it to `0` (D-09), which fails OPEN toward the Hint-free /
+         *    Undo-free achievements. That is a locked product decision, accepted because
+         *    the store is local-only and the exposure is one self-awarded badge.
+         *  - A **large** value (a forged `9999` hints) passes through verbatim: it only
+         *    ever disqualifies purity, so there is nothing to defend against.
+         *  - A **negative** value resolves to [UNACCOUNTED_ASSIST], NOT to zero. It is
+         *    forgery rather than history, and zero would be the one resolution that pays
+         *    the forger — it is precisely the value the Hint-free and Undo-free predicates
+         *    are looking for. This mirrors `SnapshotMapper`, which refuses a resume
+         *    outright for the same shape; refusing is not available at this boundary,
+         *    because the honest player's recorded best rides on the same call.
+         *
+         * A forged *low but non-negative* count — claiming a hint-free solve that was not
+         * — remains the residual explicitly accepted by T-12-04: the only real fix is a
+         * server, and this milestone has none.
          */
         fun coerced(
             hintsUsed: Int,
@@ -70,9 +102,18 @@ data class SolveTelemetry(
             lastPegOnTarget: Boolean,
         ): SolveTelemetry =
             SolveTelemetry(
-                hintsUsed = hintsUsed.coerceAtLeast(0),
-                undosUsed = undosUsed.coerceAtLeast(0),
+                hintsUsed = hintsUsed.orUnaccountedIfNegative(),
+                undosUsed = undosUsed.orUnaccountedIfNegative(),
                 lastPegOnTarget = lastPegOnTarget,
             )
+
+        /**
+         * A forged negative count resolved to [UNACCOUNTED_ASSIST]; everything else is
+         * taken as written.
+         *
+         * One resolver rather than two inline expressions, so the two counters cannot
+         * drift into disagreeing about what a negative means.
+         */
+        private fun Int.orUnaccountedIfNegative(): Int = if (this < 0) UNACCOUNTED_ASSIST else this
     }
 }

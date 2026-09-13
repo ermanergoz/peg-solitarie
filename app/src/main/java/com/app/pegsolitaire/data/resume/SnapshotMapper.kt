@@ -35,11 +35,13 @@ data class ChallengeStamp(
  * the full default rather than to "no allowance", so there is no such thing as a restored
  * game without one (ADS-02, D-04/D-17).
  *
- * [hintsUsed]/[undosUsed] are non-null for the same structural reason and by the opposite
- * rule (D-09): the codec resolved the untrusted stored value **in one place**, so no
- * consumer of a restore ever sees a raw nullable counter and no second site has to
- * re-decide what an absent one means. Absent or negative is 0 — fail-CLOSED, because an
- * absent assist counter is a claim of purity rather than a generosity.
+ * [hintsUsed]/[undosUsed] are non-null for the same structural reason (D-09): the codec
+ * resolved the untrusted stored value **in one place**, so no consumer of a restore ever
+ * sees a raw nullable counter and no second site has to re-decide what an absent one
+ * means. Absent is 0 — which fails OPEN toward the achievement, accepted because the store
+ * is local-only and the exposure is one self-awarded badge. A negative counter is forgery
+ * rather than absence and never reaches this type at all: [SnapshotMapper.fromDto] refuses
+ * the whole resume for it.
  */
 data class RestoredGame(
     val initialBoard: Board,
@@ -90,13 +92,18 @@ object SnapshotMapper {
     private val json = Json { ignoreUnknownKeys = true }
 
     /**
-     * The assist count an absent or forged-negative stored counter resolves to (D-09).
+     * The assist count an ABSENT stored counter resolves to — D-09's "absent fields on an
+     * old snapshot read as zero" (and only absent: a negative one is refused, see
+     * [fromDto]).
      *
      * Named rather than written inline for the same reason
      * `ResultsViewModel.PEGS_CLEARED_NOT_CARRIED` is: the zero is a *policy*, not an
-     * arithmetic constant. It is the fail-CLOSED direction — a snapshot that does not say
-     * how many assists were taken is treated as having recorded none *yet*, which concedes
-     * nothing to a tamperer, exactly opposite to the allowance's fail-open-to-full.
+     * arithmetic constant. State its direction honestly — zero is the purest count a play
+     * can have, so this default fails **OPEN toward the achievement**: a pre-Phase-12 blob
+     * restores as a hint-free, undo-free play. D-09 locks that choice and the exposure is
+     * bounded to one self-awarded cosmetic badge on a local-only, unsynced store, whereas
+     * denying purity for missing evidence would disqualify every legacy resume an honest
+     * player holds.
      */
     private const val NO_ASSISTS_RECORDED = 0
 
@@ -161,18 +168,25 @@ object SnapshotMapper {
      * denying them at most three hints they could get by replaying the level anyway
      * (T-09-01/T-09-02).
      *
-     * **The assist counters behave the same way and clamp instead of refusing**
-     * (D-09, threat T-12-21, ASVS V5): [orNoAssists] resolves absent or negative to
-     * [NO_ASSISTS_RECORDED] and a forged large value passes through, because only the
-     * negative case can corrupt a downstream `> 0` predicate. They too can never
-     * contribute to the `null` above. The direction is the only thing that differs from
-     * the allowance: this one fails CLOSED, since an absent count is a claim of purity.
+     * **The assist counters split the two cases** (D-09, threat T-12-21, ASVS V5).
+     * *Absent* resolves to [NO_ASSISTS_RECORDED] through [orNoAssists] and can never
+     * contribute to the `null` above — that is D-09's locked default, and it fails OPEN
+     * toward the achievement, which is accepted because the store is local-only and the
+     * exposure is one self-awarded badge. A forged *large* value passes through untouched,
+     * because a high count only ever disqualifies purity. A *negative* value is neither:
+     * no writer that ever existed produced one, so it is forgery rather than absence, and
+     * [hasForgedAssistCounter] REFUSES the whole snapshot for it — the same rule the
+     * mapper already applies to a forged move, footprint or minimum-peg target. Refusing
+     * costs an honest player nothing here, precisely because the absent case is handled
+     * separately and cannot reach this branch; clamping a negative to zero, by contrast,
+     * would resolve tampering in the tamperer's favour.
      */
     fun fromDto(
         dto: ResumeSnapshotDto,
         rulesEngine: RulesEngine,
-    ): RestoredGame? =
-        dto.toInitialBoardOrNull()?.let { initialBoard ->
+    ): RestoredGame? {
+        if (dto.hasForgedAssistCounter()) return null
+        return dto.toInitialBoardOrNull()?.let { initialBoard ->
             dto.toMoveHistoryOrNull()?.let { moveHistory ->
                 replayOrNull(initialBoard, moveHistory, rulesEngine)?.let { currentBoard ->
                     RestoredGame(
@@ -192,15 +206,31 @@ object SnapshotMapper {
                 }
             }
         }
+    }
 
     /**
-     * The assist count a stored counter denotes: absent or negative is
-     * [NO_ASSISTS_RECORDED], anything else is taken as written (D-09).
+     * Whether either stored assist counter is negative — the one shape that is tampering
+     * rather than history, and therefore refuses the resume (D-09, T-12-21).
      *
-     * One resolver rather than two inline expressions, so the fail-closed rule is stated
-     * once and the two counters cannot drift into disagreeing about what a `null` means.
+     * Asked once, over both counters, so the rule cannot end up stated for hints and
+     * forgotten for undos.
      */
-    private fun Int?.orNoAssists(): Int = (this ?: NO_ASSISTS_RECORDED).coerceAtLeast(NO_ASSISTS_RECORDED)
+    private fun ResumeSnapshotDto.hasForgedAssistCounter(): Boolean =
+        hintsUsed.isForgedAssistCounter() || undosUsed.isForgedAssistCounter()
+
+    /** A stored counter below zero: never written by any version of this codec. */
+    private fun Int?.isForgedAssistCounter(): Boolean = this != null && this < NO_ASSISTS_RECORDED
+
+    /**
+     * The assist count an absent stored counter denotes: [NO_ASSISTS_RECORDED] for `null`,
+     * anything else taken as written (D-09).
+     *
+     * No clamp: [hasForgedAssistCounter] has already refused every negative before this
+     * runs, and a second, disagreeing answer to the same question is exactly the drift
+     * one resolver exists to prevent. One resolver rather than two inline expressions, so
+     * the two counters cannot disagree about what a `null` means.
+     */
+    private fun Int?.orNoAssists(): Int = this ?: NO_ASSISTS_RECORDED
 
     /** Serializes [dto] to the string stored in the snapshot row's blob column. */
     fun encode(dto: ResumeSnapshotDto): String = json.encodeToString(dto)

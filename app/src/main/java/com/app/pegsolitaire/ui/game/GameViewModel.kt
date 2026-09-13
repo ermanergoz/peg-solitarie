@@ -690,9 +690,12 @@ class GameViewModel
             allowance = restored.allowance
             // D-09, and the same argument as the allowance above: `RestoredGame`'s counters
             // are non-null by construction because SnapshotMapper already resolved the
-            // untrusted stored value through `orNoAssists()` — absent or negative is zero,
-            // fail-CLOSED. The raw DTO ints are never read here; the forged-counter decision
-            // belongs to the codec, in one place, not to every consumer of a restore.
+            // untrusted stored value. Absent resolves to zero per D-09 — which fails OPEN
+            // toward the achievement, accepted because the store is local-only and the
+            // exposure is one self-awarded badge — while a negative counter is forgery and
+            // refuses the resume outright, so a restore never carries one. The raw DTO ints
+            // are never read here; the forged-counter decision belongs to the codec, in one
+            // place, not to every consumer of a restore.
             hintsUsed = restored.hintsUsed
             undosUsed = restored.undosUsed
             // Board-install = board mutation, so the CR-01 idiom applies (WR-01); the

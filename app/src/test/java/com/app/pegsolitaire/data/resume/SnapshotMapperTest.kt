@@ -404,30 +404,35 @@ class SnapshotMapperTest {
     }
 
     @Test
-    fun aForgedNegativeAssistCounterClampsToZeroWithoutRefusingTheResume() {
-        // T-12-21: the counters are the one class of field that can never contribute to a
-        // null restore. Both halves are asserted together because either alone would pass
-        // a wrong implementation — a mapper that refused the blob would satisfy "the
-        // counter is not negative" vacuously.
+    fun aForgedNegativeAssistCounterRefusesTheResumeLikeAnyOtherForgedField() {
+        // WR-03 / T-12-21: a negative count is not a legacy state and never a real one —
+        // no version of this codec can write it — so it is tampering, and the mapper
+        // already refuses a resume for a forged move, footprint or minimum-peg target.
+        // Resolving it to zero instead would hand the tamperer exactly the value the
+        // Hint-free / Undo-free predicates reward. Refusing costs an honest player
+        // nothing, because ABSENT counters are a separate case handled by the `null`
+        // branch and never reach this rule.
         val valid = snapshotOf(Boards.english33Initial)
-        val forged =
-            valid.copy(
-                hintsUsed = FORGED_NEGATIVE_ASSIST_COUNT,
-                undosUsed = FORGED_NEGATIVE_ASSIST_COUNT,
-            )
 
-        val restored = restore(forged)
-
-        assertThat(restored).isNotNull()
-        assertThat(restored!!.hintsUsed).isEqualTo(NO_ASSISTS)
-        assertThat(restored.undosUsed).isEqualTo(NO_ASSISTS)
+        assertThat(restore(valid.copy(hintsUsed = FORGED_NEGATIVE_ASSIST_COUNT))).isNull()
+        assertThat(restore(valid.copy(undosUsed = FORGED_NEGATIVE_ASSIST_COUNT))).isNull()
+        // Both at once, and the untouched control: only the forgery is refused.
+        assertThat(
+            restore(
+                valid.copy(
+                    hintsUsed = FORGED_NEGATIVE_ASSIST_COUNT,
+                    undosUsed = FORGED_NEGATIVE_ASSIST_COUNT,
+                ),
+            ),
+        ).isNull()
+        assertThat(restore(valid)).isNotNull()
     }
 
     @Test
     fun aForgedHugeAssistCounterIsPreservedRatherThanCapped() {
-        // The resolver bounds the BOTTOM only. A forged large count costs the tamperer
-        // their own hint-free badge and nothing else, whereas capping would invent a
-        // ceiling no honest play can be checked against (T-12-21 / T-12-24 residual).
+        // Nothing is capped at the top. A forged large count costs the tamperer their own
+        // hint-free badge and nothing else, whereas capping would invent a ceiling no
+        // honest play can be checked against (T-12-21 / T-12-24 residual).
         val valid = snapshotOf(Boards.english33Initial)
 
         val restored = restore(valid.copy(hintsUsed = FORGED_HUGE_ASSIST_COUNT))
@@ -605,7 +610,14 @@ class SnapshotMapperTest {
         /** A genuinely exhausted undo counter: `0` is in range, so it must survive. */
         const val STORED_UNDOS = 0
 
-        /** The value an absent or forged-negative assist counter resolves to (D-09). */
+        /**
+         * The value an ABSENT assist counter resolves to (D-09).
+         *
+         * Absent only: a negative counter refuses the resume outright (WR-03). Note the
+         * direction this default points — zero is the purest count, so it fails OPEN
+         * toward the Hint-free / Undo-free achievements. D-09 locks that, and the exposure
+         * is one self-awarded badge on a local-only store.
+         */
         const val NO_ASSISTS = 0
 
         /** A play that took two hints — the non-zero half of the round-trip case. */
@@ -618,8 +630,10 @@ class SnapshotMapperTest {
         const val STORED_UNDOS_USED = 0
 
         /**
-         * T-12-21 forgery: a negative assist counter. Clamped to zero, and — the half that
-         * matters — the resume still succeeds; the counters never refuse a snapshot.
+         * T-12-21 forgery: a negative assist counter. REFUSES the resume (WR-03), unlike
+         * the forged-huge counter below, which is preserved verbatim — a high count only
+         * ever denies the tamperer their own badge, whereas a negative one was edited in
+         * to claim purity.
          */
         const val FORGED_NEGATIVE_ASSIST_COUNT = -7
 

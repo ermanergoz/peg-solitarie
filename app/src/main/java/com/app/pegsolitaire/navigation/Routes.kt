@@ -104,7 +104,12 @@ data class Gameplay(
  *   boundary, so a forged value cannot declare an unplayed board solved.
  * @property hintsUsed hints the player actually received during this play, free or
  *   rewarded (PGSA-02, D-09). Defaults `0` — absent means "no telemetry carried", which
- *   `ResultsViewModel` reads as `SolveTelemetry.NONE`.
+ *   `ResultsViewModel` reads as `SolveTelemetry.NONE`. Note the direction that default
+ *   points: zero is the purest count, so a telemetry-less route fails OPEN toward the
+ *   Hint-free / Undo-free achievements. That is D-09's locked choice, accepted because the
+ *   only thing riding on it is one self-awarded cosmetic badge. A *forged negative* is a
+ *   different case and is resolved by `SolveTelemetry.coerced` to a count that
+ *   disqualifies purity, never to zero.
  * @property undosUsed undos that actually rewound the board during this play — same
  *   contract as [hintsUsed], counted independently.
  * @property lastPegOnTarget whether the final surviving peg came to rest on the finishing

@@ -72,21 +72,28 @@ import kotlinx.serialization.Serializable
  *   silently-free and rewarded alike.
  *
  *   **On-disk contract:** `null` means "written before assist counting existed", NOT
- *   "unknown", and it resolves to **0** — fail-CLOSED, deliberately the opposite
- *   direction to the [freeHintsRemaining] field it sits beside. The asymmetry is the
- *   whole point of putting them adjacent: a missing *allowance* is a generosity the
- *   player receives, so guessing generously costs at most a few free hints; a missing
- *   *assist counter* is a **claim of purity**, and guessing generously there would hand
- *   out a Hint-free or Undo-free achievement nobody earned.
+ *   "unknown", and it resolves to **0** per D-09's "absent fields on an old snapshot read
+ *   as zero".
+ *
+ *   Be clear about which way that points: zero is the *purest* possible count, so the
+ *   default fails **OPEN toward the achievement** — an old blob written before Phase 12
+ *   restores as a hint-free, undo-free play. That is accepted rather than defended
+ *   against, for a reason of scope rather than of security: this store is local-only and
+ *   unsynced, the only thing riding on the counters is one self-awarded cosmetic badge,
+ *   and D-09 locks the zero default. The honest alternative — denying purity whenever the
+ *   evidence is missing — would retroactively disqualify every legacy resume, which costs
+ *   real players more than it costs a tamperer.
  *
  *   The counters ride the snapshot for exactly one reason (D-09's anti-laundering
  *   purpose): the assists are spent in `GameViewModel`, which does not survive process
  *   death, so without this field killing the app mid-level would erase an assist already
- *   taken and turn a hinted solve into a hint-free one. A forged value is CLAMPED at the
- *   bottom rather than refused — see [SnapshotMapper] — because refusing a resume over a
- *   counter would convert a one-byte edit into progress loss for an honest player.
+ *   taken and turn a hinted solve into a hint-free one. A **negative** value is a
+ *   different thing entirely — no legacy writer ever produced one, so it is forgery, not
+ *   absence — and it REFUSES the resume, exactly as a forged move, footprint or target
+ *   does (see [SnapshotMapper.fromDto]). Refusing is safe here precisely because absence
+ *   is already handled by the `null` branch above: nothing honest reaches it.
  * @property undosUsed Undos that actually rewound the board during this play — same
- *   fail-closed contract as [hintsUsed], counted independently.
+ *   contract as [hintsUsed], counted independently.
  */
 @Serializable
 data class ResumeSnapshotDto(

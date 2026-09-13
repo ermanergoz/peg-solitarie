@@ -1194,11 +1194,13 @@ class ResultsViewModelTest {
     }
 
     @Test
-    fun aNegativeCounterArgIsClampedToZeroRatherThanRefused() {
-        // T-12-20: `Results` is registered in `AppNavHost` independently of `GameRoute`, so
-        // its args are untrusted in their own right. The posture is the codebase's existing
-        // one — clamp, never refuse — because refusing would convert a one-byte edit into a
-        // crashed Results screen and a lost recorded best for an honest player.
+    fun aNegativeCounterArgIsResolvedAgainstPurityRatherThanRefusedOrZeroed() {
+        // T-12-20 / WR-03: `Results` is registered in `AppNavHost` independently of
+        // `GameRoute`, so its args are untrusted in their own right. The posture is the
+        // codebase's existing one — resolve, never refuse — because refusing would convert
+        // a one-byte edit into a crashed Results screen and a lost recorded best for an
+        // honest player. But the resolution must not be ZERO: zero is precisely what the
+        // Hint-free / Undo-free predicates reward, so it would pay the forger.
         val viewModel =
             viewModelFor(
                 levelId = ClassicLevelIds.ENGLISH33,
@@ -1207,14 +1209,21 @@ class ResultsViewModelTest {
                 undosUsed = FORGED_NEGATIVE_COUNTER,
             )
 
-        assertThat(viewModel.solveTelemetry).isEqualTo(SolveTelemetry.NONE)
+        assertThat(viewModel.solveTelemetry)
+            .isEqualTo(
+                SolveTelemetry(
+                    hintsUsed = SolveTelemetry.UNACCOUNTED_ASSIST,
+                    undosUsed = SolveTelemetry.UNACCOUNTED_ASSIST,
+                    lastPegOnTarget = false,
+                ),
+            )
+        assertThat(viewModel.solveTelemetry).isNotEqualTo(SolveTelemetry.NONE)
     }
 
     @Test
     fun aLargeForgedCounterArgPassesThroughUnchanged() {
-        // The clamp BOUNDS, it does not police: only the negative case can corrupt a
-        // downstream `> 0` predicate, and a forged-high count only denies the tamperer
-        // their own badge.
+        // Nothing is capped at the top: only the negative case is resolved, and a
+        // forged-high count only denies the tamperer their own badge.
         val viewModel =
             viewModelFor(
                 levelId = ClassicLevelIds.ENGLISH33,
@@ -1263,13 +1272,15 @@ class ResultsViewModelTest {
                 .isEqualTo(plainRepository.recordCalls.map { it.mode to it.levelId })
             assertThat(plainRepository.recordCalls.single().telemetry).isEqualTo(SolveTelemetry.NONE)
             assertThat(forged.uiState.value).isEqualTo(plain.uiState.value)
-            // The one and only difference: the resolved, clamped telemetry — and it is
-            // exactly what reached the repository.
+            // The one and only difference: the resolved telemetry — and it is exactly what
+            // reached the repository. The forged NEGATIVE hint count resolves to one
+            // unaccounted assist, not to zero (WR-03), while the forged large undo count
+            // passes through verbatim.
             assertThat(forgedRepository.recordCalls.single().telemetry).isEqualTo(forged.solveTelemetry)
             assertThat(forged.solveTelemetry)
                 .isEqualTo(
                     SolveTelemetry(
-                        hintsUsed = NO_TELEMETRY_COUNT,
+                        hintsUsed = SolveTelemetry.UNACCOUNTED_ASSIST,
                         undosUsed = FORGED_LARGE_COUNTER,
                         lastPegOnTarget = true,
                     ),
@@ -1773,7 +1784,7 @@ private const val SAMPLE_HINTS_USED = 2
 /** A play that took three undos — the non-zero pass-through fixture. */
 private const val SAMPLE_UNDOS_USED = 3
 
-/** T-12-20 forgery: a negative counter arg, clamped to zero rather than refused. */
+/** T-12-20 forgery: a negative counter arg, resolved against purity rather than refused. */
 private const val FORGED_NEGATIVE_COUNTER = -4
 
 /** T-12-20 forgery: a large in-range counter arg, preserved verbatim. */
