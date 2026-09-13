@@ -2,6 +2,7 @@ package com.app.pegsolitaire.platform.games
 
 import com.app.pegsolitaire.BuildConfig
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.domain.achievement.AchievementId
 
 /**
  * The app's single window onto the generated Play Games leaderboard and achievement
@@ -31,6 +32,9 @@ import com.app.pegsolitaire.data.ClassicLevelIds
  *    so the function drops in beside it without anything moving.
  */
 object GamesIds {
+    /** RED stub — see plan 12-07 Task 1. The exhaustive map arrives in the GREEN commit. */
+    fun of(id: AchievementId): String = Achievements.firstSolve
+
     /** The seven leaderboards: two Challenge boards plus one per Classic board. */
     object Leaderboards {
         /** Highest Challenge level reached (PGSL-01). */
