@@ -414,9 +414,17 @@ class PlayGamesService
          *    deliberately. `Unknown` means "the first check has not answered yet", and the SDK
          *    silently drops calls made before sign-in resolves; treating it as "probably fine"
          *    would convert a droppable submission into a reported success and lose it for good.
-         * 2. [awaitForegroundActivity] is already capped at [GamesConstants.ACTIVITY_WAIT_MS];
-         *    a backgrounded app reports `false` rather than hanging a process-lifetime
-         *    singleton (T-11-06).
+         * 2. No foreground Activity means `false` **immediately** — this path reads
+         *    [ForegroundActivityProvider.current] and never awaits one (WR-02). A submission
+         *    is fire-and-forget and the caller's dirty flag already guarantees a retry, so
+         *    waiting buys nothing and costs a great deal: `onActivityPaused` nulls the
+         *    reference, so a player who backgrounds the app right after a solve — the normal
+         *    "finish level, switch apps" pattern — would make every call in the pass burn the
+         *    full [GamesConstants.ACTIVITY_WAIT_MS] and still return `false`. At up to ~29
+         *    calls in a fully-unlocked player's pass that is minutes of `ProgressSubmitter`
+         *    holding its pass mutex while producing nothing, with every later solve queued
+         *    behind it. `showLeaderboards` / `showAchievements` keep the wait, because a
+         *    stock UI genuinely cannot start without a foreground Activity.
          * 3. Everything else is classified into `false`, **except** a
          *    `CancellationException`, which is rethrown before classification. A caller's
          *    structured-concurrency cancel is not an SDK failure and must not be reported as
@@ -427,10 +435,10 @@ class PlayGamesService
          * it here would make an offline submission's round trip block sign-in.
          */
         private suspend fun <T> submitting(block: suspend (Activity) -> T): Boolean {
-            // The session check gates the await, not just the submission: a signed-out or
-            // still-Unknown player never even waits for an Activity.
+            // The session check gates the Activity read, not just the submission: a
+            // signed-out or still-Unknown player never reaches the SDK at all.
             val activity =
-                if (_session.value is GamesSignInState.SignedIn) awaitForegroundActivity() else null
+                if (_session.value is GamesSignInState.SignedIn) activityProvider.current else null
 
             return activity != null &&
                 runCatching { block(activity) }

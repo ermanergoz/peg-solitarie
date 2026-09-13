@@ -20,6 +20,7 @@ import com.google.android.gms.games.Player
 import com.google.android.gms.games.PlayersClient
 import com.google.android.gms.tasks.Tasks
 import com.google.common.truth.Truth.assertThat
+import io.mockk.clearMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -445,7 +446,7 @@ class PlayGamesServiceTest {
     @Test
     fun submitScoreForASignedInPlayerSendsTheIdAndScoreAndReportsAcceptance() =
         runTest(testDispatcher) {
-            val service = signedInService()
+            val service = signedInServiceInForeground()
 
             val accepted = service.submitScore(leaderboardId = LEADERBOARD_ID, score = SCORE)
 
@@ -458,7 +459,7 @@ class PlayGamesServiceTest {
         runTest(testDispatcher) {
             every { leaderboardsClient.submitScoreImmediate(any(), any()) } returns
                 Tasks.forException(RuntimeException(SDK_FAILURE))
-            val service = signedInService()
+            val service = signedInServiceInForeground()
 
             // The caller's answer to false is the D-10 pending flag; an exception here would
             // instead propagate into a solved level's completion path (PGSL-04).
@@ -495,7 +496,7 @@ class PlayGamesServiceTest {
     @Test
     fun unlockAchievementForASignedInPlayerSendsTheIdAndReportsAcceptance() =
         runTest(testDispatcher) {
-            val service = signedInService()
+            val service = signedInServiceInForeground()
 
             val accepted = service.unlockAchievement(achievementId = ACHIEVEMENT_ID)
 
@@ -510,12 +511,38 @@ class PlayGamesServiceTest {
             // "the submission was accepted". Returning the payload would report failure for
             // every step short of the last one — so a false payload must still yield true.
             every { achievementsClient.setStepsImmediate(any(), any()) } returns Tasks.forResult(false)
-            val service = signedInService()
+            val service = signedInServiceInForeground()
 
             val accepted = service.setAchievementSteps(achievementId = ACHIEVEMENT_ID, steps = STEPS)
 
             assertThat(accepted).isTrue()
             verify(exactly = 1) { achievementsClient.setStepsImmediate(ACHIEVEMENT_ID, STEPS) }
+        }
+
+    @Test
+    fun aSubmissionWithNoForegroundActivityFailsAtOnceRatherThanWaitingForOne() =
+        runTest(testDispatcher) {
+            // WR-02: `onActivityPaused` nulls the reference, so the ordinary "finish the
+            // level, switch apps" pattern leaves every call in a pass with no Activity. This
+            // path must NOT await one: at up to ~29 calls per pass, a 10-second wait each
+            // would hold `ProgressSubmitter`'s pass mutex for minutes and still produce only
+            // `false`s, queueing every later solve behind it. The dirty flag already
+            // guarantees the retry, so failing immediately loses nothing.
+            val service = signedInService()
+            every { activityProvider.current } returns null
+            clearMocks(activityProvider, answers = false, recordedCalls = true)
+            val startedAt = testScheduler.currentTime
+
+            assertThat(service.submitScore(leaderboardId = LEADERBOARD_ID, score = SCORE)).isFalse()
+            assertThat(service.unlockAchievement(achievementId = ACHIEVEMENT_ID)).isFalse()
+            assertThat(service.setAchievementSteps(achievementId = ACHIEVEMENT_ID, steps = STEPS)).isFalse()
+
+            // Not one virtual millisecond spent, and the awaiting path never entered.
+            assertThat(testScheduler.currentTime).isEqualTo(startedAt)
+            coVerify(exactly = 0) { activityProvider.awaitActivity() }
+            verify(exactly = 0) { leaderboardsClient.submitScoreImmediate(any(), any()) }
+            verify(exactly = 0) { achievementsClient.unlockImmediate(any()) }
+            verify(exactly = 0) { achievementsClient.setStepsImmediate(any(), any()) }
         }
 
     // ---- stock UI: the Intent is obtained and started inside platform/ (PLAT-03) -----
@@ -584,6 +611,20 @@ class PlayGamesServiceTest {
         val service = serviceFor(optedIn = true)
         service.bootstrapIfOptedIn()
         advanceUntilIdle()
+        return service
+    }
+
+    /**
+     * A [signedInService] with an Activity actually resumed in front of the player.
+     *
+     * Submissions read [ForegroundActivityProvider.current] and never await one (WR-02), so
+     * this — rather than [signedInService] alone — is the precondition for a submission that
+     * reaches the SDK. The class-wide default leaves `current` null, which is exactly the
+     * backgrounded case the fast-fail test below pins.
+     */
+    private fun TestScope.signedInServiceInForeground(): PlayGamesService {
+        val service = signedInService()
+        every { activityProvider.current } returns activity
         return service
     }
 
