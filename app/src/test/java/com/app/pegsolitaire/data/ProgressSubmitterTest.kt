@@ -45,8 +45,9 @@ import java.io.IOException
  *    `false` or any throw; cleared only when a pass that actually *issued* calls saw every
  *    one of them succeed.
  *  - **That the backfill needs no ViewModel** (RESEARCH Pitfall 5): the whole
- *    `start()` → `SignedIn` → resubmit path is exercised here, and this file names no
- *    `ResultsViewModel` at all — which is the point, since the player the backfill exists
+ *    `start()` → `SignedIn` → resubmit path is exercised here, and **no ViewModel of any
+ *    kind is constructed in this file** — a grep gate asserts the Results one is not even
+ *    named. That is the point rather than an accident, since the player the backfill exists
  *    for is precisely the one who never opened a Results screen.
  *  - **That two passes never interleave** (PGSL-05): a solve landing while sign-in resolves
  *    produces two serialized passes, not one racing pair whose flag writes could be lost.
@@ -246,7 +247,11 @@ class ProgressSubmitterTest {
             submitter.onResultRecorded()
             advanceUntilIdle()
 
-            val tieredIds = AchievementId.entries.filter { it.isIncremental }.map(GamesIds::of).toSet()
+            val tieredIds =
+                AchievementId.entries
+                    .filter { it.isIncremental }
+                    .map(GamesIds::of)
+                    .toSet()
             assertThat(games.unlockedAchievements.toSet().intersect(tieredIds)).isEmpty()
         }
 
@@ -329,7 +334,8 @@ class ProgressSubmitterTest {
         runTest(testDispatcher) {
             // The seam documents failure as `false`, but an SDK that throws anyway must be
             // indistinguishable from one that reported it: same flag, no propagation into a
-            // fire-and-forget launch that has no handler.
+            // fire-and-forget launch that has no handler. [SeamFailure] is an unchecked
+            // exception the submitter has no special knowledge of — which is the case.
             val games = ScriptedGamesService(signedInGamesService(), throwAtCall = FIRST_CALL)
             val store = FakeSubmissionSyncStore()
             val submitter =
@@ -369,8 +375,8 @@ class ProgressSubmitterTest {
     fun aPlayerWhoBankedBestsOfflineGetsEverythingResubmittedOnSignIn() =
         runTest(testDispatcher) {
             // The whole point of the phase, and note what is NOT in this test: no
-            // ResultsViewModel, no Results screen, no solve. The player this path exists
-            // for signed in from Settings and may never open Results at all.
+            // ViewModel, no Results screen, no solve. The player this path exists for
+            // signed in from Settings and may never finish a level at all.
             val aggregate = populatedAggregate()
             val expected = AchievementRules.evaluate(aggregate)
             val games = FakeGamesService(GamesSignInState.SignedOut)
@@ -648,12 +654,22 @@ private class ScriptedGamesService(
         callCount++
         val recorded = call()
         return when (callCount) {
-            throwAtCall -> throw RuntimeException("the seam exploded")
+            throwAtCall -> throw SeamFailure()
             failAtCall -> false
             else -> recorded
         }
     }
 }
+
+/**
+ * What [ScriptedGamesService] throws instead of reporting.
+ *
+ * A named type rather than a bare `RuntimeException` for detekt's `TooGenericExceptionThrown`,
+ * and it reads better at the assertion: the claim is that an unchecked exception the
+ * submitter knows nothing about is caught and classified as a failure, not that one
+ * particular stdlib type is.
+ */
+private class SeamFailure : RuntimeException("the seam exploded")
 
 /** The Play Games player id the fake session carries; no assertion depends on its value. */
 private const val TEST_PLAYER_ID = "backfill-player"
