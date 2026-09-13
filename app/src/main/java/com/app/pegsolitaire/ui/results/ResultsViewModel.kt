@@ -7,6 +7,7 @@ import androidx.navigation.toRoute
 import com.app.pegsolitaire.data.InterstitialCadenceStore
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
+import com.app.pegsolitaire.data.ProgressSubmitter
 import com.app.pegsolitaire.domain.ads.InterstitialCadenceState
 import com.app.pegsolitaire.domain.generator.ChallengeLevelBounds
 import com.app.pegsolitaire.domain.scoring.ScoreParams
@@ -101,6 +102,7 @@ class ResultsViewModel
     constructor(
         private val savedStateHandle: SavedStateHandle,
         private val progressRepository: ProgressRepository,
+        private val progressSubmitter: ProgressSubmitter,
         private val cadenceStore: InterstitialCadenceStore,
         private val adGateway: AdGateway,
     ) : ViewModel() {
