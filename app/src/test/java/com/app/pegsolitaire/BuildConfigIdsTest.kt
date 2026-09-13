@@ -1,6 +1,7 @@
 package com.app.pegsolitaire
 
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.domain.achievement.AchievementId
 import com.app.pegsolitaire.platform.ads.AdIds
 import com.app.pegsolitaire.platform.games.GamesIds
 import com.google.common.truth.Truth.assertThat
@@ -117,6 +118,44 @@ class BuildConfigIdsTest {
         assertThat(GamesIds.Leaderboards.forClassic("challenge-7")).isNull()
         assertThat(GamesIds.Leaderboards.forClassic("")).isNull()
     }
+
+    @Test
+    fun everyAchievementIdResolvesToANonBlankPlayGamesId() {
+        // Driven off `AchievementId.entries`, never a hand-written list: a hand-written
+        // list is exactly what the exhaustive `when` in `of` already guarantees, and
+        // duplicating it means a dropped constant passes both.
+        AchievementId.entries.forEach { id ->
+            assertThat(GamesIds.of(id).isNotBlank()).isTrue()
+        }
+    }
+
+    @Test
+    fun theTwentyAchievementIdsMapToTwentyDistinctPlayGamesIds() {
+        // The copy-paste guard: two enum constants sharing one accessor would submit one
+        // achievement twice and another never, at identical call counts.
+        val mapped = AchievementId.entries.map { GamesIds.of(it) }
+
+        assertThat(mapped).hasSize(EXPECTED_ACHIEVEMENT_COUNT)
+        assertThat(mapped.distinct()).hasSize(EXPECTED_ACHIEVEMENT_COUNT)
+    }
+
+    @Test
+    fun theAchievementMapIsABijectionOntoTheAchievementAccessors() {
+        // D-17's proof, and it holds on an unconfigured machine and on CI alike: the 20
+        // enum constants cover the 20 accessors exactly — no accessor unreachable, no
+        // constant pointing outside the roster.
+        assertThat(AchievementId.entries.map { GamesIds.of(it) }.toSet())
+            .isEqualTo(achievementIdsByKey.values.toSet())
+    }
+
+    @Test
+    fun twoSpotChecksPinTheEnumToAccessorPairingByName() {
+        // Set equality alone would survive a wholesale rotation of the map — every value
+        // still present, every one attached to the wrong constant. These two name the
+        // pairing, one from each half of the roster (a tier and a one-shot).
+        assertThat(GamesIds.of(AchievementId.LADDER_10)).isEqualTo(GamesIds.Achievements.ladder10)
+        assertThat(GamesIds.of(AchievementId.PERFECTIONIST)).isEqualTo(GamesIds.Achievements.perfectionist)
+    }
 }
 
 // Google's test-publisher account. Named once here rather than inlined in three
@@ -135,6 +174,12 @@ private const val UNRESOLVED_RELEASE_MARKER = "UNRESOLVED-see-local.properties.t
 private const val COMMITTED_PLACEHOLDER_PREFIX = "REPLACE_ME"
 
 private const val EXPECTED_GAMES_ID_COUNT = 27
+
+/** The D-05 roster size — the 20 `AchievementId` constants and the 20 accessors alike. */
+private const val EXPECTED_ACHIEVEMENT_COUNT = 20
+
+/** The generated-field prefix that separates the 20 achievement keys from the 7 leaderboards. */
+private const val ACHIEVEMENT_KEY_PREFIX = "PGS_ACH_"
 
 /**
  * Each of the 27 generated `BuildConfig` field names mapped to the value its [GamesIds]
@@ -175,3 +220,10 @@ private val gamesIdsByKey: Map<String, String> =
         "PGS_ACH_GRAND_TOUR" to GamesIds.Achievements.grandTour,
         "PGS_ACH_PERFECTIONIST" to GamesIds.Achievements.perfectionist,
     )
+
+/**
+ * The achievement half of [gamesIdsByKey] — the 20 accessor values `GamesIds.of` must map
+ * onto, derived from the same map rather than restated, so the two can never disagree.
+ */
+private val achievementIdsByKey: Map<String, String> =
+    gamesIdsByKey.filterKeys { it.startsWith(ACHIEVEMENT_KEY_PREFIX) }

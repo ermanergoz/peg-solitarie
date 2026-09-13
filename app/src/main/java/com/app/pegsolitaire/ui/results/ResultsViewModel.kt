@@ -7,6 +7,7 @@ import androidx.navigation.toRoute
 import com.app.pegsolitaire.data.InterstitialCadenceStore
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
+import com.app.pegsolitaire.data.ProgressSubmitter
 import com.app.pegsolitaire.domain.ads.InterstitialCadenceState
 import com.app.pegsolitaire.domain.generator.ChallengeLevelBounds
 import com.app.pegsolitaire.domain.scoring.ScoreParams
@@ -44,6 +45,21 @@ import javax.inject.Inject
  *  - **It is recorded at most once (T-05-09).** The guard flag lives in the
  *    [SavedStateHandle], so neither a configuration change (same instance) nor a
  *    process-death restore (new instance, same handle) can double-count the play.
+ *  - **The Play Games submission rides that same latch, rather than adding a fourth
+ *    (D-13/PGSL-04).** [ProgressSubmitter.onResultRecorded] is called once, immediately
+ *    after [ProgressRepository.recordResult] returns and the screen's own state is
+ *    committed — inside the [RECORDED_KEY] guard, so a configuration change, a
+ *    process-death restore and a back navigation onto the same entry all bank and submit
+ *    nothing, because none of them gets past the latch. **This is why the hook is here and
+ *    not in `GameViewModel`**: that ViewModel's `finishedEmitted` latch is reset by
+ *    `performUndo()` when the undone board returns to `Playing`, so an undo/re-jump cycle
+ *    re-emits the finish and a hook there would resubmit on every cycle. [RECORDED_KEY] is
+ *    the only latch in this codebase that survives both configuration change and process
+ *    death, which no `LaunchedEffect` does. The call is deliberately **not** wrapped: it is
+ *    non-suspend and its whole body is a launch on the application scope, so it can neither
+ *    throw a submission failure at this coroutine nor delay it — and a defensive
+ *    `runCatching` here would disguise a regression in exactly that shape rather than guard
+ *    against one.
  *  - **The celebration sounds at most once (D-16).** The star-pop ceremony on the
  *    Results screen gets its own latch in the same [SavedStateHandle], for the same
  *    reason and with the same reach: neither a configuration change (same instance) nor
@@ -90,6 +106,10 @@ import javax.inject.Inject
  * @param savedStateHandle carries the typed `Results(...)` route args and the
  *   already-recorded guard.
  * @param progressRepository the single source of truth for per-level bests.
+ * @param progressSubmitter the Play Games submission orchestrator (D-13) — positioned
+ *   after [progressRepository] because it is that call's consequence, and reached through
+ *   exactly one fire-and-forget line. Nothing here ever names a leaderboard or achievement
+ *   ID; the submitter resolves every one of them behind this seam.
  * @param cadenceStore the memory of the interstitial cadence (INT-02) — banks the win and
  *   records a presentation; it never decides anything, [InterstitialCadenceState] does.
  * @param adGateway the ad seam: readiness to decide with, a warm-up to call at eligibility
@@ -101,6 +121,7 @@ class ResultsViewModel
     constructor(
         private val savedStateHandle: SavedStateHandle,
         private val progressRepository: ProgressRepository,
+        private val progressSubmitter: ProgressSubmitter,
         private val cadenceStore: InterstitialCadenceStore,
         private val adGateway: AdGateway,
     ) : ViewModel() {
@@ -374,6 +395,7 @@ class ResultsViewModel
                         nowMs = System.currentTimeMillis(),
                     )
                 _uiState.update { it.copy(newBests = newBests) }
+                progressSubmitter.onResultRecorded()
             }
         }
 
