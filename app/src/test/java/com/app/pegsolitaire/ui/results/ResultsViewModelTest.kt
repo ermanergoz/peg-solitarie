@@ -24,6 +24,8 @@ import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import com.app.pegsolitaire.platform.ads.AdConstants
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.games.FakeGamesService
+import com.app.pegsolitaire.platform.games.GamesService
+import com.app.pegsolitaire.platform.games.GamesSignInState
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -1233,7 +1235,6 @@ class ResultsViewModelTest {
             assertThat(repository.recordCalls).isEmpty()
         }
 
-
     // --- the Play Games submission hook (PGSL-04, D-13) -------------------------
 
     @Test
@@ -1301,12 +1302,24 @@ class ResultsViewModelTest {
         }
 
     @Test
-    fun aThrowingSubmitterLeavesTheBankedResultAndTheWholeScreenUntouched() =
+    fun aSubmitterWhoseEverySdkCallThrowsLeavesTheBankedResultAndTheWholeScreenUntouched() =
         runTest(testDispatcher) {
-            // PGSL-04, and the load-bearing case of this plan: a submission that explodes
-            // must be invisible to the player who just solved the level. The two ViewModels
-            // differ in exactly one thing — whether the submitter throws — and the claim is
-            // that nothing observable differs as a result.
+            // PGSL-04, and the load-bearing case of this plan.
+            //
+            // The failing submitter here is the REAL `ProgressSubmitter`, wired to a seam
+            // that throws on every call — not a fake that throws out of
+            // `onResultRecorded()` itself. That distinction is the whole point rather than
+            // a convenience. Production's `onResultRecorded()` is non-suspend and its entire
+            // body is a launch on the application scope, so it *cannot* throw at this
+            // coroutine; a fake that did would be asserting the ViewModel defends against a
+            // violated contract, and the only way to pass would be the defensive
+            // `runCatching` at the call site that this plan's grep gate forbids — which
+            // would then hide any real regression in the fire-and-forget shape. The shape
+            // itself is pinned by `ProgressSubmitterTest` and by those greps; what is
+            // asserted here is the reachable failure: an SDK that explodes mid-pass.
+            //
+            // The two ViewModels differ in exactly one thing — whether every submission
+            // throws — and the claim is that nothing the player can observe differs.
             val healthyRepository = FakeProgressRepository()
             val healthy =
                 viewModelFor(
@@ -1325,12 +1338,12 @@ class ResultsViewModelTest {
                     stars = THREE_STARS,
                     pegsRemaining = SOLVED_PEGS_REMAINING,
                     repository = explodingRepository,
-                    progressSubmitter = recordingSubmitter(throwOnSubmit = true),
+                    progressSubmitter = submitterOverAThrowingSeam(),
                 )
             advanceUntilIdle()
 
-            // The `runTest` body reaching here at all is half the claim: the throw did not
-            // escape into the record coroutine.
+            // The `runTest` body reaching here at all is half the claim: nothing escaped
+            // into the record coroutine or onto the application scope.
             assertThat(exploding.uiState.value).isEqualTo(healthy.uiState.value)
             assertThat(exploding.uiState.value.newBests).isEqualTo(NewBests(stars = true, time = true, score = true))
             assertThat(explodingRepository.recordCalls).isEqualTo(healthyRepository.recordCalls)
@@ -1406,15 +1419,31 @@ class ResultsViewModelTest {
      * it stands in for. None of the four is ever touched: the subclass overrides both public
      * methods, and the base class does nothing in its own constructor.
      */
-    private fun recordingSubmitter(
-        log: MutableList<String> = mutableListOf(),
-        throwOnSubmit: Boolean = false,
-    ): RecordingProgressSubmitter =
+    private fun recordingSubmitter(log: MutableList<String> = mutableListOf()): RecordingProgressSubmitter =
         RecordingProgressSubmitter(
             log = log,
-            throwOnSubmit = throwOnSubmit,
             progressRepository = FakeProgressRepository(),
             gamesService = FakeGamesService(),
+            syncStore = SubmissionSyncStore(unusedDataStore()),
+            scope = storeScope,
+        )
+
+    /**
+     * A **real** [ProgressSubmitter] whose every SDK call throws — the PGSL-04 fixture.
+     *
+     * The aggregate is deliberately non-empty (one solved level, three stars), because a
+     * fresh-player aggregate issues zero calls and would give a throwing seam nothing to
+     * throw from. The sync store is the real one over a store that also throws, so even the
+     * dirty-flag write on the failure path is a failing write — and none of it reaches the
+     * Results screen.
+     */
+    private fun submitterOverAThrowingSeam(): ProgressSubmitter =
+        ProgressSubmitter(
+            progressRepository =
+                FakeProgressRepository(
+                    aggregate = ProgressAggregate(solvedLevelCount = 1, totalStars = THREE_STARS),
+                ),
+            gamesService = ThrowingGamesService(),
             syncStore = SubmissionSyncStore(unusedDataStore()),
             scope = storeScope,
         )
@@ -1515,6 +1544,7 @@ private data class RecordCall(
  */
 private class FakeProgressRepository(
     private val log: MutableList<String> = mutableListOf(),
+    private val aggregate: ProgressAggregate = ProgressAggregate(),
 ) : ProgressRepository {
     val recordCalls = mutableListOf<RecordCall>()
 
@@ -1569,8 +1599,11 @@ private class FakeProgressRepository(
         return newBests
     }
 
-    /** Unused by this screen — Results never reads the achievement aggregate. */
-    override suspend fun aggregate(): ProgressAggregate = ProgressAggregate()
+    /**
+     * Unread by the Results screen itself — only by a [ProgressSubmitter] built over this
+     * repository, which is why it is settable: an empty aggregate issues no submissions.
+     */
+    override suspend fun aggregate(): ProgressAggregate = aggregate
 
     /** Unused by this screen — no per-board leaderboard read happens here. */
     override suspend fun classicBests(): Map<ClassicBoard, Int> = emptyMap()
@@ -1671,18 +1704,15 @@ private const val MILLIS_IN_SECOND = 1_000L
  * "recorded before submitted" is a single ordered comparison rather than two independent
  * counters that could both be satisfied in the wrong order.
  *
- * [throwOnSubmit] exists for PGSL-04's case. It is a harsher fake than production can be —
- * the real `onResultRecorded()` cannot throw at its caller, because its whole body is a
- * launch on the application scope — and that is the point: the ViewModel must be written so
- * that even a submitter that breaks its own contract cannot touch the banked result. A
- * defensive `runCatching` at the call site would pass this case while HIDING a regression in
- * the fire-and-forget shape, which is why there is none.
+ * It never throws. The PGSL-04 failure case is driven through the real submitter over a
+ * [ThrowingGamesService] instead, because production's `onResultRecorded()` cannot throw at
+ * its caller — its whole body is a launch on the application scope — so a fake that did
+ * would only be asserting the ViewModel defends against a violated contract.
  *
  * [start] is a no-op: it belongs to `MainActivity`, which no JVM test constructs.
  */
 private class RecordingProgressSubmitter(
     private val log: MutableList<String>,
-    private val throwOnSubmit: Boolean,
     progressRepository: ProgressRepository,
     gamesService: FakeGamesService,
     syncStore: SubmissionSyncStore,
@@ -1696,12 +1726,37 @@ private class RecordingProgressSubmitter(
     override fun onResultRecorded() {
         callCount++
         log += SUBMIT_EVENT
-        if (throwOnSubmit) throw SubmitterFailure()
     }
 }
 
-/** What [RecordingProgressSubmitter] throws for the PGSL-04 case; a named type for detekt. */
-private class SubmitterFailure : RuntimeException("the submitter exploded")
+/**
+ * A signed-in [GamesService] whose three submission methods throw instead of reporting —
+ * the SDK failure the real [ProgressSubmitter] must absorb entirely.
+ *
+ * Delegation supplies the rest of the seam unchanged, so this file names only the three
+ * methods the failure is actually about.
+ */
+private class ThrowingGamesService(
+    private val delegate: FakeGamesService = FakeGamesService(GamesSignInState.SignedIn(SUBMIT_TEST_PLAYER_ID)),
+) : GamesService by delegate {
+    override suspend fun submitScore(
+        leaderboardId: String,
+        score: Long,
+    ): Boolean = throw SubmitterFailure()
+
+    override suspend fun unlockAchievement(achievementId: String): Boolean = throw SubmitterFailure()
+
+    override suspend fun setAchievementSteps(
+        achievementId: String,
+        steps: Int,
+    ): Boolean = throw SubmitterFailure()
+}
+
+/** What [ThrowingGamesService] throws; a named type rather than a bare generic exception. */
+private class SubmitterFailure : RuntimeException("the seam exploded")
+
+/** The signed-in player id the PGSL-04 fixture carries; no assertion depends on it. */
+private const val SUBMIT_TEST_PLAYER_ID = "results-test-player"
 
 /**
  * A [DataStore] that exists only to satisfy the real `SubmissionSyncStore` constructor the
