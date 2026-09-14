@@ -28,6 +28,7 @@ class AdIdResolutionTest {
             .isEqualTo("rewarded$ENV_SUFFIX")
     }
 
+    /** The UNCONFIGURED case: a fresh clone, where even the project ID has no source. */
     @Test
     fun debugResolvesGoogleTestIdsWhenNothingIsConfigured() {
         val result =
@@ -42,7 +43,8 @@ class AdIdResolutionTest {
     }
 
     /**
-     * DEF-06-01 (resolved 2026-08-27): debug IGNORES configured IDs entirely.
+     * DEF-06-01 (resolved 2026-08-27, narrowed 2026-09-15): debug IGNORES configured **ad**
+     * IDs entirely.
      *
      * This test previously asserted the opposite — that a `local.properties` value won on
      * debug too. That override meant configuring real IDs for one release build silently
@@ -50,9 +52,12 @@ class AdIdResolutionTest {
      * invalid-traffic pattern that gets an AdMob account suspended non-appealably. It also
      * directly contradicted `BuildConfigIdsTest`, which asserts the debug `BuildConfig`
      * always carries Google's test publisher prefix. Both now encode the same rule.
+     *
+     * The rule covers the three AD IDs only. `PGS_PROJECT_ID` is carved out — see
+     * [debugHonoursAConfiguredGamesProjectIdWhileKeepingTestAdUnits].
      */
     @Test
-    fun debugIgnoresConfiguredIdsAndAlwaysUsesGoogleTestUnits() {
+    fun debugIgnoresConfiguredAdIdsAndAlwaysUsesGoogleTestUnits() {
         val result =
             AdIdResolution.resolve(
                 env = mapOf(AdIdKeys.APP_ID to "ca-app-pub-9999999999999999~1111111111"),
@@ -64,7 +69,72 @@ class AdIdResolutionTest {
         assertThat(resolved.appId).isEqualTo(AdIdDefaults.TEST_APP_ID)
         assertThat(resolved.rewarded).isEqualTo(AdIdDefaults.TEST_REWARDED)
         assertThat(resolved.interstitial).isEqualTo(AdIdDefaults.TEST_INTERSTITIAL)
-        assertThat(resolved.gamesProjectId).isEqualTo(AdIdDefaults.TEST_GAMES_PROJECT_ID)
+    }
+
+    /**
+     * The DEF-06-01 carve-out, and the regression test for the reported defect: a debug APK
+     * shipped `com.google.android.gms.games.APP_ID` = "0" even on a machine that had a real
+     * `PGS_PROJECT_ID`, so Play Services answered NOT_FOUND and the SDK reported
+     * `isAuthenticated=false` with no error — indistinguishable from a user cancel.
+     *
+     * A Play Games project ID cannot serve an ad, so the AdMob suspension risk that
+     * hard-wires the three ad units does not reach it (D-17's reasoning, applied to the
+     * fourth key). Both halves are asserted in one test on purpose: honouring the project ID
+     * must not loosen the ad hard-wire.
+     */
+    @Test
+    fun debugHonoursAConfiguredGamesProjectIdWhileKeepingTestAdUnits() {
+        val result =
+            AdIdResolution.resolve(
+                env = emptyMap(),
+                local = releaseIds(suffix = LOCAL_SUFFIX),
+                isRelease = false,
+            )
+
+        val resolved = result as AdIdResolutionResult.Resolved
+        assertThat(resolved.gamesProjectId).isEqualTo("gamesProjectId$LOCAL_SUFFIX")
+        assertThat(resolved.appId).isEqualTo(AdIdDefaults.TEST_APP_ID)
+        assertThat(resolved.rewarded).isEqualTo(AdIdDefaults.TEST_REWARDED)
+        assertThat(resolved.interstitial).isEqualTo(AdIdDefaults.TEST_INTERSTITIAL)
+    }
+
+    /** Env-over-local holds for the carved-out key on debug too, not just on release. */
+    @Test
+    fun debugPrefersAnEnvironmentGamesProjectIdOverLocalProperties() {
+        val result =
+            AdIdResolution.resolve(
+                env = mapOf(AdIdKeys.PGS_PROJECT_ID to "gamesProjectId$ENV_SUFFIX"),
+                local = releaseIds(suffix = LOCAL_SUFFIX),
+                isRelease = false,
+            )
+
+        assertThat((result as AdIdResolutionResult.Resolved).gamesProjectId)
+            .isEqualTo("gamesProjectId$ENV_SUFFIX")
+    }
+
+    /**
+     * The carve-out must not turn a fresh clone into a broken build: blank and still-a-
+     * placeholder both mean "unset", and unset still yields the inert placeholder.
+     */
+    @Test
+    fun debugTreatsABlankOrPlaceholderGamesProjectIdAsUnset() {
+        val blank =
+            AdIdResolution.resolve(
+                env = emptyMap(),
+                local = mapOf(AdIdKeys.PGS_PROJECT_ID to "   "),
+                isRelease = false,
+            )
+        val placeholder =
+            AdIdResolution.resolve(
+                env = emptyMap(),
+                local = mapOf(AdIdKeys.PGS_PROJECT_ID to "REPLACE_ME_PGS_PROJECT_ID"),
+                isRelease = false,
+            )
+
+        assertThat((blank as AdIdResolutionResult.Resolved).gamesProjectId)
+            .isEqualTo(AdIdDefaults.TEST_GAMES_PROJECT_ID)
+        assertThat((placeholder as AdIdResolutionResult.Resolved).gamesProjectId)
+            .isEqualTo(AdIdDefaults.TEST_GAMES_PROJECT_ID)
     }
 
     @Test
