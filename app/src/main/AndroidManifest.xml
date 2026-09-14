@@ -11,9 +11,20 @@
          than something that arrived with a dependency bump. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- UI-ICON-01. android:icon and android:roundIcon deliberately point at the SAME
+         resource. @mipmap/ic_launcher is an adaptive icon on API 26+, which already
+         answers every mask the launcher can ask for, including round ones; a separate
+         round asset would be the same artwork stored twice and would drift. On API 24-25
+         the resource resolves to the mipmap-anydpi layer-list instead, which carries its
+         own rounded silhouette.
+
+         Both attributes request no permission and declare no component, so the merged
+         permission set that ManifestSurfaceTest asserts by equality is unchanged. -->
     <application
         android:name=".App"
         android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.PegSolitaire">
