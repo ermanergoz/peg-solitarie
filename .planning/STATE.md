@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-27)
 Phase: 12 (leaderboards-achievements) — COMPLETE (8 of 8 plans)
 Plan: 8 of 8
 Status: Phase 12 code-complete; operator checklist and device UAT 4-9 outstanding
-Last activity: 2026-09-13
+Last activity: 2026-09-15 - Completed quick task 260915-3jd: debug builds honour a configured PGS_PROJECT_ID
 
 Progress: [██████████] 100%
 
@@ -141,6 +141,7 @@ Recent decisions affecting current work:
 | fast | Drop the star triad below the sample's own pitch (base pow(-4)→pow(-8)) | 2026-08-28 | 724b7ae | — (inline /gsd:fast, no plan dir) |
 | 260828-vb3 | Swap star pop for the CC0 freesound blip; stagger 260→500, pop 260→600 | 2026-08-28 | 86b68db | [260828-vb3-swap-star-pop-sound-for-cc0-blip-and-wid](./quick/260828-vb3-swap-star-pop-sound-for-cc0-blip-and-wid/) |
 | 260828-vrr | Distinct peg pick-up / put-down cues (twelfth cue `sfx_deselect`) | 2026-08-28 | c25883e | [260828-vrr-distinct-peg-pick-up-and-put-down-sounds](./quick/260828-vrr-distinct-peg-pick-up-and-put-down-sounds/) |
+| 260915-3jd | Debug builds honour a configured `PGS_PROJECT_ID` (was shipping `"0"`, so Play Games sign-in silently failed) | 2026-09-15 | f734f44, 8f2cbe3 | [260915-3jd-fix-debug-builds-emitting-play-games-pro](./quick/260915-3jd-fix-debug-builds-emitting-play-games-pro/) |
 
 ## Deferred Items
 
