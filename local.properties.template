@@ -10,8 +10,10 @@
 # traffic gets an AdMob account suspended non-appealably.
 #
 # A DEBUG BUILD NEEDS NONE OF THIS. `assembleDebug`, `check`, `test` and Android Studio
-# sync all work on a fresh clone with this file never copied — debug is hard-wired to
-# Google's published test ad units (see build-logic/src/main/kotlin/AdIdDefaults.kt).
+# sync all work on a fresh clone with this file never copied — the three AD units are
+# hard-wired on debug to Google's published test units, and a value set below is ignored
+# for them (see build-logic/src/main/kotlin/AdIdDefaults.kt). PGS_PROJECT_ID is the one
+# exception — a project ID cannot serve an ad, so debug honours it; see its key comment.
 # Only a release invocation (`assembleRelease`, `bundleRelease`, or a bare `assemble` /
 # `build` / `bundle`, which build both variants) requires real values; it fails at
 # configuration time with a message naming the exact key that is missing.
@@ -28,6 +30,10 @@ ADMOB_REWARDED_AD_UNIT_ID=REPLACE_ME_ADMOB_REWARDED_AD_UNIT_ID
 ADMOB_INTERSTITIAL_AD_UNIT_ID=REPLACE_ME_ADMOB_INTERSTITIAL_AD_UNIT_ID
 
 # Play Games Services project ID from the Play Console (numeric).
+# Unlike the three AdMob keys above, a DEBUG build HONOURS this value: set it and your
+# debug builds sign in to the REAL Play Games project (that is what the debug-keystore
+# SHA-1 is registered for). Leave it unset or `REPLACE_ME` and debug falls back to the
+# inert "0" placeholder, where Play Games sign-in will simply never succeed.
 PGS_PROJECT_ID=REPLACE_ME_PGS_PROJECT_ID
 
 # =============================================================================
