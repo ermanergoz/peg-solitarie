@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Themed-icon MONOCHROME layer (API 33+). The system tints this flat; only the silhouette
+  carries meaning, so it is a single evenOdd path: the cross slab with all 33 cells
+  punched out.
+
+  Chosen variant: ALL 33 holes, not the centre-hole-only alternative. A cross with one dot
+  does not read as a peg board; the perforated cross does.
+
+  Hole radius is 15 here rather than the 20 used on the colour foreground. At 0.69 scale a
+  20-unit hole leaves only about 2.3dp of webbing between neighbours, which turns to mush
+  under a single flat tint; 15 leaves 56 - 30 = 26 units, roughly 3.8dp. The centre hole
+  stays at radius 20 so the "one empty cell" read survives.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <group
+        android:name="board"
+        android:pivotX="256"
+        android:pivotY="256"
+        android:scaleX="0.69"
+        android:scaleY="0.69">
+
+        <path
+            android:pathData="M176 44 H336 A20 20 0 0 1 356 64 V146 A10 10 0 0 0 366 156 H448 A20 20 0 0 1 468 176 V336 A20 20 0 0 1 448 356 H366 A10 10 0 0 0 356 366 V448 A20 20 0 0 1 336 468 H176 A20 20 0 0 1 156 448 V366 A10 10 0 0 0 146 356 H64 A20 20 0 0 1 44 336 V176 A20 20 0 0 1 64 156 H146 A10 10 0 0 0 156 146 V64 A20 20 0 0 1 176 44 Z M185,88 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M241,88 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M297,88 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M185,144 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M241,144 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M297,144 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M73,200 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M129,200 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M185,200 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M241,200 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M297,200 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M353,200 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M409,200 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M73,256 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M129,256 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M185,256 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M236,256 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0 M297,256 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M353,256 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M409,256 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M73,312 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M129,312 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M185,312 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M241,312 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M297,312 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M353,312 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M409,312 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M185,368 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M241,368 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M297,368 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M185,424 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M241,424 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0 M297,424 a15,15 0 1,0 30,0 a15,15 0 1,0 -30,0"
+            android:fillType="evenOdd"
+            android:fillColor="@color/ic_launcher_mono_ink" />
+
+    </group>
+</vector>

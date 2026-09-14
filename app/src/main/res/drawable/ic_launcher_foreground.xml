@@ -1,0 +1,662 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Adaptive-icon FOREGROUND layer: the English-33 board in its opening position, 32 pegs
+  with the centre cell (3,3) empty.
+
+  Everything sits in one group scaled 0.69 about the canvas centre. That factor puts the
+  board's true circumradius (221.2 design units) at 152.6 units = 32.2dp, inside the
+  66dp adaptive safe-zone circle, so no launcher mask can clip a peg.
+
+  Geometry is authored on the design's 512-unit canvas: cell centres are 88 + 56*index,
+  dimples are radius 20, pegs radius 22 riding 6 units high, speculars are 12x8 ellipses.
+  Gradient coordinates are in the same design space because the group transform applies
+  to them too.
+
+  Deliberate fidelity losses versus the design canvas: no blurred drop shadows (a vector
+  has no blur primitive; launchers add their own elevation shadow), speculars are not
+  rotated -25 degrees (invisible at final size, and it would cost 32 extra groups), and
+  the 32 occupied-cell dimples are flat rather than inset-shaded since only their lower
+  crescent shows. The centre hole keeps its two-tone inset treatment.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <group
+        android:name="board"
+        android:pivotX="256"
+        android:pivotY="256"
+        android:scaleX="0.69"
+        android:scaleY="0.69">
+
+        <!-- Cross slab. -->
+        <path
+            android:pathData="M176 44 H336 A20 20 0 0 1 356 64 V146 A10 10 0 0 0 366 156 H448 A20 20 0 0 1 468 176 V336 A20 20 0 0 1 448 356 H366 A10 10 0 0 0 356 366 V448 A20 20 0 0 1 336 468 H176 A20 20 0 0 1 156 448 V366 A10 10 0 0 0 146 356 H64 A20 20 0 0 1 44 336 V176 A20 20 0 0 1 64 156 H146 A10 10 0 0 0 156 146 V64 A20 20 0 0 1 176 44 Z"
+            android:fillColor="@color/ic_launcher_slab" />
+
+        <!-- Cell dimples for the 32 occupied cells. -->
+        <path
+            android:pathData="M180,88 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M236,88 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M292,88 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M180,144 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M236,144 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M292,144 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M68,200 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M124,200 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M180,200 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M236,200 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M292,200 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M348,200 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M404,200 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M68,256 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M124,256 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M180,256 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M292,256 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M348,256 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M404,256 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M68,312 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M124,312 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M180,312 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M236,312 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M292,312 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M348,312 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M404,312 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M180,368 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M236,368 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M292,368 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M180,424 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M236,424 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+        <path
+            android:pathData="M292,424 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_dimple_fill" />
+
+        <!-- Empty centre cell: inset ring plus an inner disc dropped 3 units,
+             leaving a shadow arc along the top. -->
+        <path
+            android:pathData="M236,256 a20,20 0 1,0 40,0 a20,20 0 1,0 -40,0"
+            android:fillColor="@color/ic_launcher_hole_shadow" />
+        <path
+            android:pathData="M239,259 a17,17 0 1,0 34,0 a17,17 0 1,0 -34,0"
+            android:fillColor="@color/ic_launcher_hole_fill" />
+
+        <!-- Pegs, each followed by its specular highlight. -->
+        <path android:pathData="M178,82 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="193.4"
+                    android:centerY="73.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M188,71 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M234,82 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="249.4"
+                    android:centerY="73.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M244,71 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M290,82 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="305.4"
+                    android:centerY="73.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M300,71 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M178,138 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="193.4"
+                    android:centerY="129.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M188,127 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M234,138 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="249.4"
+                    android:centerY="129.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M244,127 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M290,138 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="305.4"
+                    android:centerY="129.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M300,127 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M66,194 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="81.4"
+                    android:centerY="185.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M76,183 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M122,194 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="137.4"
+                    android:centerY="185.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M132,183 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M178,194 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="193.4"
+                    android:centerY="185.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M188,183 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M234,194 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="249.4"
+                    android:centerY="185.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M244,183 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M290,194 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="305.4"
+                    android:centerY="185.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M300,183 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M346,194 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="361.4"
+                    android:centerY="185.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M356,183 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M402,194 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="417.4"
+                    android:centerY="185.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M412,183 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M66,250 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="81.4"
+                    android:centerY="241.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M76,239 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M122,250 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="137.4"
+                    android:centerY="241.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M132,239 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M178,250 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="193.4"
+                    android:centerY="241.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M188,239 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M290,250 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="305.4"
+                    android:centerY="241.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M300,239 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M346,250 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="361.4"
+                    android:centerY="241.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M356,239 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M402,250 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="417.4"
+                    android:centerY="241.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M412,239 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M66,306 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="81.4"
+                    android:centerY="297.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M76,295 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M122,306 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="137.4"
+                    android:centerY="297.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M132,295 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M178,306 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="193.4"
+                    android:centerY="297.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M188,295 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M234,306 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="249.4"
+                    android:centerY="297.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M244,295 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M290,306 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="305.4"
+                    android:centerY="297.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M300,295 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M346,306 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="361.4"
+                    android:centerY="297.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M356,295 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M402,306 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="417.4"
+                    android:centerY="297.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M412,295 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M178,362 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="193.4"
+                    android:centerY="353.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M188,351 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M234,362 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="249.4"
+                    android:centerY="353.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M244,351 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M290,362 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="305.4"
+                    android:centerY="353.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M300,351 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M178,418 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="193.4"
+                    android:centerY="409.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M188,407 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M234,418 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="249.4"
+                    android:centerY="409.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M244,407 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+        <path android:pathData="M290,418 a22,22 0 1,0 44,0 a22,22 0 1,0 -44,0">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="radial"
+                    android:centerX="305.4"
+                    android:centerY="409.2"
+                    android:gradientRadius="42">
+                    <item android:offset="0" android:color="@color/ic_launcher_peg_highlight" />
+                    <item android:offset="0.55" android:color="@color/ic_launcher_peg_body" />
+                    <item android:offset="1" android:color="@color/ic_launcher_peg_rim" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path
+            android:pathData="M300,407 a6,4 0 1,0 12,0 a6,4 0 1,0 -12,0"
+            android:fillColor="@color/ic_launcher_peg_specular" />
+
+    </group>
+</vector>
