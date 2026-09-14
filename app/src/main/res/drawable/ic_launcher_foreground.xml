@@ -3,8 +3,8 @@
   Adaptive-icon FOREGROUND layer: the English-33 board in its opening position, 32 pegs
   with the centre cell (3,3) empty.
 
-  Everything sits in one group scaled 0.69 about the canvas centre. That factor puts the
-  board's true circumradius (221.2 design units) at 152.6 units = 32.2dp, inside the
+  Everything sits in one group scaled 0.55 about the canvas centre. That factor puts the
+  board's true circumradius (221.2 design units) at 121.7 units = 25.7dp, well inside the
   66dp adaptive safe-zone circle, so no launcher mask can clip a peg.
 
   Geometry is authored on the design's 512-unit canvas: cell centres are 88 + 56*index,
@@ -29,8 +29,8 @@
         android:name="board"
         android:pivotX="256"
         android:pivotY="256"
-        android:scaleX="0.69"
-        android:scaleY="0.69">
+        android:scaleX="0.55"
+        android:scaleY="0.55">
 
         <!-- Cross slab. -->
         <path

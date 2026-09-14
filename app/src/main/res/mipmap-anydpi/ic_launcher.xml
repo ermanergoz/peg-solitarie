@@ -10,7 +10,7 @@
 
   The foreground is the SAME drawable the adaptive icon uses, not a re-authored full-bleed
   version. Re-authoring would duplicate roughly 450 lines of hand-derived geometry for one
-  cosmetic gain; sharing it costs only that the board sits at 0.57 of the legacy tile
+  cosmetic gain; sharing it costs only that the board sits at 0.46 of the legacy tile
   instead of the 0.83 a dedicated legacy asset could use — which is exactly the proportion
   an API 26+ mask shows anyway, so the two eras look consistent.
 -->
