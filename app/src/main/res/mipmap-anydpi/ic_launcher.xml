@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Legacy launcher icon for API 24-25. These levels resolve here because the -v26 variant
+  is a better configuration match from API 26 up, so nothing above 25 ever inflates this
+  file.
+
+  There are no PNG mipmaps anywhere in the tree by design: <gradient> inside a
+  VectorDrawable has been supported since API 24, which is this app's minSdk, so a vector
+  fallback is inflatable on every supported level and no rasteriser is needed to build it.
+
+  The foreground is the SAME drawable the adaptive icon uses, not a re-authored full-bleed
+  version. Re-authoring would duplicate roughly 450 lines of hand-derived geometry for one
+  cosmetic gain; sharing it costs only that the board sits at 0.57 of the legacy tile
+  instead of the 0.83 a dedicated legacy asset could use — which is exactly the proportion
+  an API 26+ mask shows anyway, so the two eras look consistent.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/ic_launcher_background_legacy" />
+    <item android:drawable="@drawable/ic_launcher_foreground" />
+</layer-list>
