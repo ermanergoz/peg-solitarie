@@ -28,11 +28,20 @@ data class ChallengeStamp(
 /**
  * A game rebuilt from a snapshot: the initial board, the replayed current board, the
  * full move history (so undo keeps working), the elapsed time, the free-assist allowance
- * the player had left, and the Challenge stamp when there is one.
+ * the player had left, the assists already taken on this play, and the Challenge stamp
+ * when there is one.
  *
  * [allowance] is non-null by construction: an absent or forged stored counter resolves to
  * the full default rather than to "no allowance", so there is no such thing as a restored
  * game without one (ADS-02, D-04/D-17).
+ *
+ * [hintsUsed]/[undosUsed] are non-null for the same structural reason (D-09): the codec
+ * resolved the untrusted stored value **in one place**, so no consumer of a restore ever
+ * sees a raw nullable counter and no second site has to re-decide what an absent one
+ * means. Absent is 0 — which fails OPEN toward the achievement, accepted because the store
+ * is local-only and the exposure is one self-awarded badge. A negative counter is forgery
+ * rather than absence and never reaches this type at all: [SnapshotMapper.fromDto] refuses
+ * the whole resume for it.
  */
 data class RestoredGame(
     val initialBoard: Board,
@@ -40,6 +49,8 @@ data class RestoredGame(
     val moveHistory: List<Move>,
     val elapsedMs: Long,
     val allowance: AssistAllowance,
+    val hintsUsed: Int,
+    val undosUsed: Int,
     val challenge: ChallengeStamp?,
 )
 
@@ -75,9 +86,26 @@ data class RestoredGame(
  * [Boards.CLASSIC_SPECS] by footprint equality. Without both halves, a resumed Diamond-41
  * game would revert to a one-peg target that its board cannot reach.
  */
+@Suppress("TooManyFunctions") // one private validator per stored field; merging any two would hide a rejection rule
 object SnapshotMapper {
     /** Unknown keys are ignored so a future field cannot orphan today's saved games. */
     private val json = Json { ignoreUnknownKeys = true }
+
+    /**
+     * The assist count an ABSENT stored counter resolves to — D-09's "absent fields on an
+     * old snapshot read as zero" (and only absent: a negative one is refused, see
+     * [fromDto]).
+     *
+     * Named rather than written inline for the same reason
+     * `ResultsViewModel.PEGS_CLEARED_NOT_CARRIED` is: the zero is a *policy*, not an
+     * arithmetic constant. State its direction honestly — zero is the purest count a play
+     * can have, so this default fails **OPEN toward the achievement**: a pre-Phase-12 blob
+     * restores as a hint-free, undo-free play. D-09 locks that choice and the exposure is
+     * bounded to one self-awarded cosmetic badge on a local-only, unsynced store, whereas
+     * denying purity for missing evidence would disqualify every legacy resume an honest
+     * player holds.
+     */
+    private const val NO_ASSISTS_RECORDED = 0
 
     /**
      * Builds the snapshot for a game in progress from its **initial** board plus the
@@ -88,6 +116,11 @@ object SnapshotMapper {
      * written" value an older blob carries — so a caller that does not yet track the
      * allowance produces a snapshot that restores with a full one rather than a locked
      * out one.
+     *
+     * [hintsUsed]/[undosUsed] default to `null` on the same principle and resolve the
+     * other way (D-09): for these, the caller-absent case and the legacy-blob case both
+     * mean **zero assists recorded**, so a caller that does not track them cannot
+     * accidentally assert a hint-free play.
      */
     fun toDto(
         mode: String,
@@ -98,6 +131,8 @@ object SnapshotMapper {
         challenge: ChallengeStamp? = null,
         freeHintsRemaining: Int? = null,
         freeUndosRemaining: Int? = null,
+        hintsUsed: Int? = null,
+        undosUsed: Int? = null,
     ): ResumeSnapshotDto =
         ResumeSnapshotDto(
             mode = mode,
@@ -113,6 +148,8 @@ object SnapshotMapper {
             minimumPegs = initialBoard.spec.minimumPegs,
             freeHintsRemaining = freeHintsRemaining,
             freeUndosRemaining = freeUndosRemaining,
+            hintsUsed = hintsUsed,
+            undosUsed = undosUsed,
         )
 
     /**
@@ -130,12 +167,26 @@ object SnapshotMapper {
      * to destroy an honest player's progress with a one-byte edit, in exchange for
      * denying them at most three hints they could get by replaying the level anyway
      * (T-09-01/T-09-02).
+     *
+     * **The assist counters split the two cases** (D-09, threat T-12-21, ASVS V5).
+     * *Absent* resolves to [NO_ASSISTS_RECORDED] through [orNoAssists] and can never
+     * contribute to the `null` above — that is D-09's locked default, and it fails OPEN
+     * toward the achievement, which is accepted because the store is local-only and the
+     * exposure is one self-awarded badge. A forged *large* value passes through untouched,
+     * because a high count only ever disqualifies purity. A *negative* value is neither:
+     * no writer that ever existed produced one, so it is forgery rather than absence, and
+     * [hasForgedAssistCounter] REFUSES the whole snapshot for it — the same rule the
+     * mapper already applies to a forged move, footprint or minimum-peg target. Refusing
+     * costs an honest player nothing here, precisely because the absent case is handled
+     * separately and cannot reach this branch; clamping a negative to zero, by contrast,
+     * would resolve tampering in the tamperer's favour.
      */
     fun fromDto(
         dto: ResumeSnapshotDto,
         rulesEngine: RulesEngine,
-    ): RestoredGame? =
-        dto.toInitialBoardOrNull()?.let { initialBoard ->
+    ): RestoredGame? {
+        if (dto.hasForgedAssistCounter()) return null
+        return dto.toInitialBoardOrNull()?.let { initialBoard ->
             dto.toMoveHistoryOrNull()?.let { moveHistory ->
                 replayOrNull(initialBoard, moveHistory, rulesEngine)?.let { currentBoard ->
                     RestoredGame(
@@ -148,11 +199,38 @@ object SnapshotMapper {
                                 hints = dto.freeHintsRemaining,
                                 undos = dto.freeUndosRemaining,
                             ),
+                        hintsUsed = dto.hintsUsed.orNoAssists(),
+                        undosUsed = dto.undosUsed.orNoAssists(),
                         challenge = dto.toChallengeStampOrNull(),
                     )
                 }
             }
         }
+    }
+
+    /**
+     * Whether either stored assist counter is negative — the one shape that is tampering
+     * rather than history, and therefore refuses the resume (D-09, T-12-21).
+     *
+     * Asked once, over both counters, so the rule cannot end up stated for hints and
+     * forgotten for undos.
+     */
+    private fun ResumeSnapshotDto.hasForgedAssistCounter(): Boolean =
+        hintsUsed.isForgedAssistCounter() || undosUsed.isForgedAssistCounter()
+
+    /** A stored counter below zero: never written by any version of this codec. */
+    private fun Int?.isForgedAssistCounter(): Boolean = this != null && this < NO_ASSISTS_RECORDED
+
+    /**
+     * The assist count an absent stored counter denotes: [NO_ASSISTS_RECORDED] for `null`,
+     * anything else taken as written (D-09).
+     *
+     * No clamp: [hasForgedAssistCounter] has already refused every negative before this
+     * runs, and a second, disagreeing answer to the same question is exactly the drift
+     * one resolver exists to prevent. One resolver rather than two inline expressions, so
+     * the two counters cannot disagree about what a `null` means.
+     */
+    private fun Int?.orNoAssists(): Int = this ?: NO_ASSISTS_RECORDED
 
     /** Serializes [dto] to the string stored in the snapshot row's blob column. */
     fun encode(dto: ResumeSnapshotDto): String = json.encodeToString(dto)

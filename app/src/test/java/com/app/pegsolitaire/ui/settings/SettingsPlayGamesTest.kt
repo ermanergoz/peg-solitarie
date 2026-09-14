@@ -46,6 +46,10 @@ class SettingsPlayGamesTest {
     private val supporting get() = app.getString(R.string.settings_play_games_signin_supporting)
     private val signedInFallback get() = app.getString(R.string.settings_play_games_signed_in_fallback)
     private val signInError get() = app.getString(R.string.play_games_signin_error)
+    private val leaderboardsLabel get() = app.getString(R.string.settings_play_games_leaderboards_label)
+    private val leaderboardsSupporting get() = app.getString(R.string.settings_play_games_leaderboards_supporting)
+    private val achievementsLabel get() = app.getString(R.string.settings_play_games_achievements_label)
+    private val achievementsSupporting get() = app.getString(R.string.settings_play_games_achievements_supporting)
 
     private fun signedInAs(name: String) = app.getString(R.string.settings_play_games_signed_in_as, name)
 
@@ -53,6 +57,8 @@ class SettingsPlayGamesTest {
     private fun setContent(
         gamesSignInState: GamesSignInState,
         onSignInToPlayGames: () -> Unit = {},
+        onShowLeaderboards: () -> Unit = {},
+        onShowAchievements: () -> Unit = {},
     ) {
         composeRule.setContent {
             AppTheme {
@@ -61,6 +67,8 @@ class SettingsPlayGamesTest {
                     onToggleSound = {},
                     onToggleHaptics = {},
                     onSignInToPlayGames = onSignInToPlayGames,
+                    onShowLeaderboards = onShowLeaderboards,
+                    onShowAchievements = onShowAchievements,
                     onPlayGamesSignInErrorShown = {},
                     onManagePrivacyChoices = {},
                     onBack = {},
@@ -191,6 +199,108 @@ class SettingsPlayGamesTest {
         assertThat(signInCount).isEqualTo(0)
     }
 
+    // ---- The two stock-UI rows (PGSL-06 / PGSA-05, D-14/D-15) ------------------
+
+    @Test
+    fun aSignedInPlayerSeesBothStockUiRowsWithTheirExactCopy() {
+        // D-14 fixes all four lines verbatim; this is the assertion that catches a reword.
+        setContent(GamesSignInState.SignedIn(playerId = PLAYER_ID, displayName = DISPLAY_NAME))
+
+        composeRule.onNodeWithText(leaderboardsLabel).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(leaderboardsSupporting).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(achievementsLabel).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(achievementsSupporting).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun bothStockUiRowsAreAbsentWhileSignedOut() {
+        // D-15: absent, not disabled. A greyed-out "Leaderboards" explains nothing, while
+        // the sign-in row that IS shown already says exactly what to do about it.
+        setContent(GamesSignInState.SignedOut)
+
+        composeRule.onNodeWithText(leaderboardsLabel).assertDoesNotExist()
+        composeRule.onNodeWithText(leaderboardsSupporting).assertDoesNotExist()
+        composeRule.onNodeWithText(achievementsLabel).assertDoesNotExist()
+        composeRule.onNodeWithText(achievementsSupporting).assertDoesNotExist()
+    }
+
+    @Test
+    fun bothStockUiRowsAreAbsentWithTheWholeSectionWhileTheSessionIsUnknown() {
+        // D-15 under D-11: the section is gone, so the rows cannot be hiding inside it.
+        setContent(GamesSignInState.Unknown)
+
+        composeRule.onNodeWithText(sectionHeader).assertDoesNotExist()
+        composeRule.onNodeWithText(leaderboardsLabel).assertDoesNotExist()
+        composeRule.onNodeWithText(achievementsLabel).assertDoesNotExist()
+    }
+
+    @Test
+    fun bothStockUiRowsAreActionableControls() {
+        setContent(GamesSignInState.SignedIn(playerId = PLAYER_ID, displayName = DISPLAY_NAME))
+
+        composeRule.onNodeWithText(leaderboardsLabel).performScrollTo().assertHasClickAction()
+        composeRule.onNodeWithText(achievementsLabel).performScrollTo().assertHasClickAction()
+    }
+
+    @Test
+    fun tappingLeaderboardsInvokesOnlyItsOwnHandler() {
+        // Asserting the OTHER counter stays at zero is the point: a "both were called"
+        // shape would pass just as happily with the two lambdas swapped.
+        var leaderboards = 0
+        var achievements = 0
+        setContent(
+            GamesSignInState.SignedIn(playerId = PLAYER_ID, displayName = DISPLAY_NAME),
+            onShowLeaderboards = { leaderboards++ },
+            onShowAchievements = { achievements++ },
+        )
+
+        composeRule.onNodeWithText(leaderboardsLabel).performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        assertThat(leaderboards).isEqualTo(1)
+        assertThat(achievements).isEqualTo(0)
+    }
+
+    @Test
+    fun tappingAchievementsInvokesOnlyItsOwnHandler() {
+        var leaderboards = 0
+        var achievements = 0
+        setContent(
+            GamesSignInState.SignedIn(playerId = PLAYER_ID, displayName = DISPLAY_NAME),
+            onShowLeaderboards = { leaderboards++ },
+            onShowAchievements = { achievements++ },
+        )
+
+        composeRule.onNodeWithText(achievementsLabel).performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        assertThat(achievements).isEqualTo(1)
+        assertThat(leaderboards).isEqualTo(0)
+    }
+
+    @Test
+    fun theSignedInStatementRowStaysInertNowThatTappableRowsSitBelowIt() {
+        // The regression this guards: making the section tappable by making the whole
+        // section tappable. The statement row is still a statement (D-06/WR-06).
+        setContent(GamesSignInState.SignedIn(playerId = PLAYER_ID, displayName = DISPLAY_NAME))
+
+        composeRule.onNodeWithText(signedInAs(DISPLAY_NAME)).performScrollTo().assertHasNoClickAction()
+    }
+
+    @Test
+    fun bothStockUiRowsSitAbovethePrivacySection() {
+        // Privacy stays pinned last (Phase 9 D-14), so the new rows go above it — the same
+        // ordering the entrance-order constants encode.
+        setContent(GamesSignInState.SignedIn(playerId = PLAYER_ID, displayName = DISPLAY_NAME))
+
+        val leaderboardsTop = topOf(leaderboardsLabel)
+        val achievementsTop = topOf(achievementsLabel)
+        val privacyTop = topOf(app.getString(R.string.settings_section_privacy))
+
+        assertThat(leaderboardsTop).isLessThan(achievementsTop)
+        assertThat(achievementsTop).isLessThan(privacyTop)
+    }
+
     // ---- The D-10 error snackbar ----------------------------------------------
 
     @Test
@@ -206,6 +316,8 @@ class SettingsPlayGamesTest {
                     onToggleSound = {},
                     onToggleHaptics = {},
                     onSignInToPlayGames = {},
+                    onShowLeaderboards = {},
+                    onShowAchievements = {},
                     onPlayGamesSignInErrorShown = {},
                     onManagePrivacyChoices = {},
                     onBack = {},
@@ -254,6 +366,8 @@ class SettingsPlayGamesTest {
                         onToggleSound = {},
                         onToggleHaptics = {},
                         onSignInToPlayGames = {},
+                        onShowLeaderboards = {},
+                        onShowAchievements = {},
                         onPlayGamesSignInErrorShown = {
                             shownCount++
                             state.value = state.value.copy(playGamesSignInErrorTick = 0)
@@ -294,6 +408,8 @@ class SettingsPlayGamesTest {
                     onToggleSound = {},
                     onToggleHaptics = {},
                     onSignInToPlayGames = {},
+                    onShowLeaderboards = {},
+                    onShowAchievements = {},
                     onPlayGamesSignInErrorShown = {},
                     onManagePrivacyChoices = {},
                     onBack = {},

@@ -20,14 +20,21 @@ object AdIdDefaults {
     const val TEST_INTERSTITIAL = "ca-app-pub-3940256099942544/1033173712"
 
     /**
-     * Debug Play Games project ID. D-05.
+     * The debug Play Games project ID **fallback**, used only when `PGS_PROJECT_ID` resolves
+     * to nothing. D-05, narrowed by DEF-06-01's 2026-09-15 carve-out.
      *
      * Google publishes **no** test Play Games project ID, so there is nothing safe to
      * hard-wire here; `"0"` is an inert placeholder that keeps the generated
      * `game_services_project_id` string resource well-formed (the manifest `meta-data`
      * value must be a `@string` resource — a bare numeric `android:value` is parsed as
-     * an integer). Phase 11 supplies a real debug value from `local.properties` once the
-     * Play Console project exists; until then nothing consumes this resource.
+     * an integer).
+     *
+     * Unlike the three ad units above, this constant is NOT a hard-wire: a configured
+     * `PGS_PROJECT_ID` (environment over `local.properties`) wins on debug, because a
+     * project ID cannot serve an ad. The resource **is** consumed — the manifest's
+     * `com.google.android.gms.games.APP_ID` meta-data reads it at sign-in — so shipping
+     * `"0"` means Play Services looks up game 0 for this package, gets NOT_FOUND, and the
+     * SDK reports `isAuthenticated=false` with no error at all.
      */
     const val TEST_GAMES_PROJECT_ID = "0"
 }

@@ -25,11 +25,40 @@ internal object ProgressPersistenceKeys {
     /** In-progress resume snapshots, one row per mode (max two live rows, D-03) — PERS-03. */
     const val TABLE_RESUME_SNAPSHOT = "resume_snapshot"
 
+    /**
+     * Per-play solve telemetry, one row per **solved** play — PGSA-06 / D-06. Unlike
+     * [TABLE_LEVEL_RESULT]'s one row per `(mode, levelId)` best, a replay appends a
+     * second row here, so the achievement aggregates stay derivable from history.
+     */
+    const val TABLE_PLAY_SESSION = "play_session"
+
     /** Shared discriminator column: which game mode a row belongs to. */
     const val COLUMN_MODE = "mode"
 
     /** Catalog id (Classic) or level number as text (Challenge); half of the results PK. */
     const val COLUMN_LEVEL_ID = "levelId"
+
+    /** Star rating column, shared by [TABLE_LEVEL_RESULT] (the best) and [TABLE_PLAY_SESSION] (this play). */
+    const val COLUMN_STARS = "stars"
+
+    /** Best (maximum) score column on [TABLE_LEVEL_RESULT]; summed for the cumulative Challenge score. */
+    const val COLUMN_BEST_SCORE = "bestScore"
+
+    /** Wall-clock solve time of one play, in millis, on [TABLE_PLAY_SESSION] — the Speed-solve bound. */
+    const val COLUMN_ELAPSED_MS = "elapsedMs"
+
+    /** Hints consumed by one play, on [TABLE_PLAY_SESSION] — the Hint-free predicate. */
+    const val COLUMN_HINTS_USED = "hintsUsed"
+
+    /** Undos used by one play, on [TABLE_PLAY_SESSION] — the Undo-free predicate. */
+    const val COLUMN_UNDOS_USED = "undosUsed"
+
+    /**
+     * Whether one play's last peg finished on the board's target hole, on
+     * [TABLE_PLAY_SESSION]. Room stores `Boolean` as `INTEGER NOT NULL`, so SQL compares
+     * it against `1`/`0` and never `true`/`false`.
+     */
+    const val COLUMN_LAST_PEG_ON_TARGET = "lastPegOnTarget"
 
     /** Mode literal for the hand-defined Classic boards. */
     const val MODE_CLASSIC = "classic"

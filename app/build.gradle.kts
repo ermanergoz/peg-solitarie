@@ -28,28 +28,48 @@ room {
     schemaDirectory(roomSchemaDir)
 }
 
-// ---- PLAT-06 / D-05 / D-08 / D-09: build-time ad + Play Games IDs -------------
-// The resolution itself lives in `build-logic/src/main/kotlin/AdIdResolution.kt` as a
-// Gradle-free pure function so it can be unit-tested (AGP 9.1.0 gives :app no
-// `testReleaseUnitTest`, so the release-failure contract is unprovable from here).
-// This file only supplies its two input maps and acts on the result.
+// ---- PLAT-06 / D-05 / D-08 / D-09 / D-17: build-time ad + Play Games IDs ------
+// The resolution itself lives in `build-logic/src/main/kotlin/AdIdResolution.kt` and its
+// sibling `GamesIdResolution.kt` as Gradle-free pure functions so they can be unit-tested
+// (AGP 9.1.0 gives :app no `testReleaseUnitTest`, so the release-failure contract is
+// unprovable from here). This file only supplies their input maps and acts on the results.
 //
 // `local.properties` is NOT automatically exposed as Gradle properties — AGP reads only
 // `sdk.dir` out of it — so it is parsed by hand. `providers.fileContents` /
 // `providers.environmentVariable` are the configuration-cache-safe accessors; a plain
 // FileInputStream would work today (CC is off) but would be a future migration blocker.
+//
+// Read and parsed EXACTLY ONCE, then sliced per key list below: with 4 ad keys plus 27
+// Play Games keys (D-17) a second parse would be pure duplicated I/O for the same bytes.
+val localProperties: Properties? =
+    providers
+        .fileContents(rootProject.layout.projectDirectory.file("local.properties"))
+        .asText.orNull
+        ?.let { text -> Properties().apply { load(text.reader()) } }
+
 val adIdEnv: Map<String, String> =
     AdIdKeys.ALL
         .mapNotNull { key -> providers.environmentVariable(key).orNull?.let { key to it } }
         .toMap()
 
 val adIdLocal: Map<String, String> =
-    providers
-        .fileContents(rootProject.layout.projectDirectory.file("local.properties"))
-        .asText.orNull
-        ?.let { text -> Properties().apply { load(text.reader()) } }
+    localProperties
         ?.let { props ->
             AdIdKeys.ALL.mapNotNull { key -> props.getProperty(key)?.let { key to it } }.toMap()
+        }
+        ?: emptyMap()
+
+// D-17: the same two sources, over the 27 leaderboard/achievement keys. Separate maps
+// rather than one merged map so each resolver's failure message names only its own domain.
+val gamesIdEnv: Map<String, String> =
+    GamesIdKeys.ALL
+        .mapNotNull { key -> providers.environmentVariable(key).orNull?.let { key to it } }
+        .toMap()
+
+val gamesIdLocal: Map<String, String> =
+    localProperties
+        ?.let { props ->
+            GamesIdKeys.ALL.mapNotNull { key -> props.getProperty(key)?.let { key to it } }.toMap()
         }
         ?: emptyMap()
 
@@ -103,6 +123,34 @@ val releaseIds =
         }
     }
 
+// D-17, the Play Games half. Debug can never fail either: with nothing configured every
+// key falls back to the inert `UNCONFIGURED-<KEY>` placeholder, so a fresh clone builds.
+val debugGamesIds: Map<String, String> =
+    (
+        GamesIdResolution.resolve(gamesIdEnv, gamesIdLocal, isRelease = false)
+            as GamesIdResolutionResult.Resolved
+    ).ids
+
+// Same fail-fast shape as `releaseIds` above, and for the same reason: a warning in a long
+// Gradle log is what gets missed before a store upload.
+val releaseGamesIds: Map<String, String> =
+    when (val resolved = GamesIdResolution.resolve(gamesIdEnv, gamesIdLocal, isRelease = true)) {
+        is GamesIdResolutionResult.Resolved -> resolved.ids
+        is GamesIdResolutionResult.Failure -> {
+            if (isReleaseInvocation) {
+                throw GradleException(resolved.message)
+            }
+            // Not a release invocation, so configuration must still succeed. The marker is
+            // the loud `UNRESOLVED-…` one shared with the ad IDs, NOT the debug
+            // `UNCONFIGURED-…` placeholder: the release variant must never silently inherit
+            // a debug value, and `GamesIdResolution.present()` treats an `UNCONFIGURED-`
+            // string as absent precisely so a leaked debug placeholder cannot pass the
+            // release check. Any invocation the name gate above misses is still caught by
+            // `verifyReleaseGamesIds` below, before the APK/AAB is packaged.
+            GamesIdKeys.ALL.associateWith { unresolvedReleaseId }
+        }
+    }
+
 // Execution-time backstop for the same rule. The task-name gate above is a heuristic —
 // it cannot be proven exhaustive over every invocation form — so the packaging tasks
 // carry a hard dependency that re-runs the identical resolution and fails outright.
@@ -118,8 +166,25 @@ val verifyReleaseAdIds =
         }
     }
 
+// Deliberately a SECOND task rather than more `doLast` inside `verifyReleaseAdIds`: each
+// failure message then names its own domain, so a reader sees "missing leaderboard IDs"
+// rather than one merged list mixing AdMob unit IDs with Play Games IDs.
+val verifyReleaseGamesIds =
+    tasks.register("verifyReleaseGamesIds") {
+        group = "verification"
+        description =
+            "Fails if a release package would be built without real Play Games leaderboard/achievement IDs."
+        doLast {
+            val result = GamesIdResolution.resolve(gamesIdEnv, gamesIdLocal, isRelease = true)
+            if (result is GamesIdResolutionResult.Failure) {
+                throw GradleException(result.message)
+            }
+        }
+    }
+
+// One hook, two dependencies — both ID domains are checked before anything is packaged.
 tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }.configureEach {
-    dependsOn(verifyReleaseAdIds)
+    dependsOn(verifyReleaseAdIds, verifyReleaseGamesIds)
 }
 
 android {
@@ -196,6 +261,20 @@ android {
             // release until then" is spent: there is no longer an unreferenced case.
             resValue("string", "admob_app_id", debugIds.appId)
             resValue("string", "game_services_project_id", debugIds.gamesProjectId)
+
+            // D-17: 27 `String` fields whose names are `GamesIdKeys.ALL` verbatim (7
+            // leaderboards + 20 achievements), emitted in a loop rather than 27 hand-written
+            // lines per build type. Same Pitfall 2 as above — the third argument is a
+            // Java/Kotlin SOURCE LITERAL, not a value, so a String field needs the embedded
+            // quotes. Unset keys arrive here as `UNCONFIGURED-<KEY>`, which is why a fresh
+            // clone with no Play Games configuration still builds and still runs.
+            //
+            // No `resValue` for any of the 27, deliberately: nothing in the manifest or any
+            // layout reads a leaderboard or achievement ID, and an unreferenced string
+            // resource is dead weight the shrinker has to reason about. The
+            // `game_services_project_id` `resValue` above exists ONLY because manifest
+            // `meta-data` cannot read `BuildConfig` — that reasoning does not transfer.
+            debugGamesIds.forEach { (key, value) -> buildConfigField("String", key, "\"$value\"") }
         }
         release {
             // R8 (full mode, per the note above) plus the resource shrinker. The
@@ -233,6 +312,14 @@ android {
             buildConfigField("String", "INTERSTITIAL_AD_UNIT_ID", "\"${releaseIds.interstitial}\"")
             resValue("string", "admob_app_id", releaseIds.appId)
             resValue("string", "game_services_project_id", releaseIds.gamesProjectId)
+
+            // D-17: the same 27 `String` fields, named `GamesIdKeys.ALL` verbatim, from the
+            // real values. Same Pitfall 2 — the third argument is a source literal needing
+            // embedded quotes. Reaching this line with anything unresolved on a release
+            // invocation is impossible: `releaseGamesIds` threw above, and
+            // `verifyReleaseGamesIds` re-checks at packaging time. No `resValue` here for
+            // the same reason as debug: nothing outside Kotlin reads these IDs.
+            releaseGamesIds.forEach { (key, value) -> buildConfigField("String", key, "\"$value\"") }
         }
     }
 

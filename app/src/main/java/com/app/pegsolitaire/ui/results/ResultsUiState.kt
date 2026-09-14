@@ -2,6 +2,7 @@ package com.app.pegsolitaire.ui.results
 
 import androidx.compose.runtime.Immutable
 import com.app.pegsolitaire.data.NewBests
+import com.app.pegsolitaire.domain.model.BoardConstants
 
 /**
  * The single immutable UI state for the end-of-game Results destination (SCOR-03).
@@ -25,6 +26,11 @@ import com.app.pegsolitaire.data.NewBests
  * @property challengeLevel the Challenge level just played, or `null` for a Classic game.
  *   When non-null the screen renders the mode-aware Challenge actions (Next level / Retry,
  *   D-01/D-10) instead of the Classic Replay / Catalog / Home trio.
+ * @property minimumPegs the finishing board's own perfect-finish floor, already clamped by
+ *   `ResultsViewModel` at the nav boundary — the peg count [isSolved] compares against.
+ *   Defaults [BoardConstants.MINIMUM_PEGS_DEFAULT], which is the floor of every shipped
+ *   board except Diamond-41, so a state built without it keeps the one-peg meaning this
+ *   field replaced.
  * @property newBests which of the level's stored bests this play improved (D-09), as
  *   reported by `ProgressRepository.recordResult`. All three are `false` until the record
  *   completes — and stay `false` for a play that beat nothing (or was never recorded at
@@ -71,19 +77,35 @@ data class ResultsUiState(
     val headlineTier: ResultsHeadlineTier,
     val replayId: String,
     val challengeLevel: Int? = null,
+    val minimumPegs: Int = BoardConstants.MINIMUM_PEGS_DEFAULT,
     val newBests: NewBests = NO_NEW_BESTS,
     val playCelebration: Boolean = false,
     val adScrimVisible: Boolean = false,
     val pendingNavigation: ResultsNavTarget? = null,
 ) {
     /**
+     * Whether this play actually solved its board — the ONE solved test the whole Results
+     * feature asks, in the same `pegsRemaining <= minimumPegs` form `GameViewModel.statusFor`
+     * used to declare the win (CR-01).
+     *
+     * It is per-board on purpose. The `pegsRemaining == 1` constant this replaced was
+     * correct for Challenge (every generated footprint has a one-peg floor) and wrong for
+     * Diamond-41, whose proven floor is two: a flawless Diamond play was shown "Perfect!"
+     * and then treated as unsolved by the record gate, so it never reached `level_result`
+     * and its achievements and leaderboard were unreachable. Deriving [showNextLevel], the
+     * headline tier and the record gate from this single value is what stops those three
+     * answers drifting apart again.
+     */
+    val isSolved: Boolean
+        get() = pegsRemaining <= minimumPegs
+
+    /**
      * Whether the "Next level" action is offered (D-01): only a solved Challenge level
-     * advances. Solved ⇔ exactly one peg by construction, so a stuck Challenge board
-     * ([pegsRemaining] >= 2) yields `false` and gets Retry instead (D-10). Always `false`
-     * for Classic ([challengeLevel] == null).
+     * advances, so a stuck Challenge board yields `false` and gets Retry instead (D-10).
+     * Always `false` for Classic ([challengeLevel] == null), which has no next board.
      */
     val showNextLevel: Boolean
-        get() = challengeLevel != null && pegsRemaining == PEGS_REMAINING_SOLVED
+        get() = challengeLevel != null && isSolved
 }
 
 /**
@@ -116,9 +138,6 @@ sealed interface ResultsNavTarget {
     /** Classic: back to the board catalog after a win. */
     data object Catalog : ResultsNavTarget
 }
-
-/** A solved board leaves exactly one peg — the sole state that unlocks the next level (D-01). */
-private const val PEGS_REMAINING_SOLVED = 1
 
 /** Nothing improved (yet): the pre-record state and the state of a play that beat no best. */
 private val NO_NEW_BESTS = NewBests(stars = false, time = false, score = false)

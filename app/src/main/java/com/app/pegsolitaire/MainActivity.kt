@@ -7,6 +7,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.navigation.compose.rememberNavController
 import com.app.pegsolitaire.audio.LocalSoundPlayer
 import com.app.pegsolitaire.audio.SoundPlayer
+import com.app.pegsolitaire.data.ProgressSubmitter
 import com.app.pegsolitaire.navigation.AppNavHost
 import com.app.pegsolitaire.platform.ads.consent.ConsentGateway
 import com.app.pegsolitaire.platform.games.GamesService
@@ -27,14 +28,17 @@ import javax.inject.Inject
  * lifecycle stays entirely in `App`/Hilt; in particular the startup preload is **not**
  * here, because SOUND-01 needs the decode to start before an activity exists.
  *
- * It is also where the two platform bootstraps start: the consent flow (CONS-01, D-16) —
- * see [consentGateway] — and the opt-in-gated Play Games sign-in (PGS-01, D-01) — see
- * [gamesService]. Both are one undecorated, fire-and-forget line; neither branches here.
+ * It is also where the three platform bootstraps start: the consent flow (CONS-01, D-16) —
+ * see [consentGateway] — the opt-in-gated Play Games sign-in (PGS-01, D-01) — see
+ * [gamesService] — and the Play Games submission collector (PGSL-05, D-10) — see
+ * [progressSubmitter]. Each is one undecorated, fire-and-forget line; none branches here.
  *
- * Every declared type here is the **interface**, for the same reason `App` documents:
+ * Every seam declared here is the **interface**, for the same reason `App` documents:
  * naming a concrete implementation instead would build a second, unscoped instance — a
  * second player owning a second `SoundPool` that the sound-off switch could never silence,
- * or a second consent gateway whose readiness flow nothing ever updates.
+ * or a second consent gateway whose readiness flow nothing ever updates. [progressSubmitter]
+ * is the one field that names a class, because it *is* a class rather than a seam with an
+ * implementation; its KDoc explains why the convention's purpose is still served.
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -76,19 +80,50 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var gamesService: GamesService
 
+    /**
+     * The Play Games submission orchestrator, started from [onCreate] (PGSL-05, D-10).
+     *
+     * **Why this line exists at all (RESEARCH Pitfall 5).** Hilt constructs a `@Singleton`
+     * lazily, on first injection. [ProgressSubmitter] is otherwise injected only by
+     * `ResultsViewModel`, so without this call its session collector would not exist until
+     * the player first reached a Results screen — and the D-10/PGSL-05 backfill, whose
+     * entire purpose is the player who signed in from Settings without finishing a level,
+     * would never run. It would fail silently, in production only, while passing every JVM
+     * test. [ProgressSubmitter.start] is `AtomicBoolean`-guarded, so the repeat call every
+     * configuration change makes is free.
+     *
+     * **This is the one field here declared as a concrete class, and the convention above
+     * still holds.** That convention exists because naming an implementation would build a
+     * second, unscoped instance beside the bound one. [ProgressSubmitter] has no interface
+     * to name — it is a `@Singleton` with an `@Inject` constructor, like
+     * [com.app.pegsolitaire.data.ChallengeProgress] — so `@Singleton` alone already
+     * guarantees the single instance the convention was protecting, and there is nothing
+     * else it could be declared as.
+     *
+     * Like everything else in this class it has **zero JVM-test coverage by construction**:
+     * no test references [MainActivity] and there is no `androidTest` source set. It is
+     * verified by plan 12-07's grep gate and by the device checklist plan 12-08 extends.
+     */
+    @Inject
+    lateinit var progressSubmitter: ProgressSubmitter
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // After super.onCreate() is not stylistic: Hilt performs field injection as part of
         // that call, so touching an injected field earlier throws
-        // UninitializedPropertyAccessException. Both calls below are fire-and-forget — the
-        // app is fully playable while consent resolves, and CONS-04 keeps it that way if
+        // UninitializedPropertyAccessException. All three calls below are fire-and-forget —
+        // the app is fully playable while consent resolves, and CONS-04 keeps it that way if
         // consent never does; PGS-01 makes the same promise for sign-in ("no wall, no pause
-        // before they can start a level"), so neither may be awaited before setContent.
+        // before they can start a level"), so none may be awaited before setContent.
         // The Play Games call is a no-op unless the player already opted in (D-01): that
         // branch lives behind the seam, which is what keeps this an undecorated one-liner
         // and keeps the persisted-flag read where PlatformBoundaryRules can see it.
+        // The third bootstrap only attaches a collector to the session the second one
+        // resolves; it issues no submission until that session reports SignedIn AND the
+        // persisted pending flag is set (D-10), so a player who never opted in pays nothing.
         consentGateway.bootstrap()
         gamesService.bootstrapIfOptedIn()
+        progressSubmitter.start()
         setContent {
             CompositionLocalProvider(LocalSoundPlayer provides soundPlayer) {
                 AppTheme {
