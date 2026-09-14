@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Legacy (API 24-25) background layer. Identical to ic_launcher_background except the
+  gradient field is a rounded rect of radius 92 (about 18% of 512) rather than a raw
+  square: pre-O launchers apply no adaptive mask, so the icon has to carry its own
+  silhouette or it ships as a hard-edged violet tile.
+
+  The rounding cannot clip the board. The rounded corners only remove the regions where
+  x < 92 and y < 92 (and mirrors), while the cross slab's nearest approach to any corner
+  is (176, 44) / (44, 176).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- Violet CTA gradient on a rounded tile. -->
+    <path android:pathData="M92,0 H420 A92,92 0 0 1 512,92 V420 A92,92 0 0 1 420,512 H92 A92,92 0 0 1 0,420 V92 A92,92 0 0 1 92,0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="0"
+                android:startY="0"
+                android:endX="0"
+                android:endY="512">
+                <item android:offset="0" android:color="@color/ic_launcher_violet_light" />
+                <item android:offset="1" android:color="@color/ic_launcher_violet_deep" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Soft white glow behind the board, centred slightly above the canvas centre. -->
+    <path android:pathData="M76,236 a180,180 0 1,0 360,0 a180,180 0 1,0 -360,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="256"
+                android:centerY="236"
+                android:gradientRadius="180">
+                <item android:offset="0" android:color="@color/ic_launcher_glow" />
+                <item android:offset="0.7" android:color="@color/ic_launcher_glow_fade" />
+                <item android:offset="1" android:color="@color/ic_launcher_glow_fade" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>
