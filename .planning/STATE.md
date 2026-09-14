@@ -142,6 +142,7 @@ Recent decisions affecting current work:
 | 260828-vb3 | Swap star pop for the CC0 freesound blip; stagger 260→500, pop 260→600 | 2026-08-28 | 86b68db | [260828-vb3-swap-star-pop-sound-for-cc0-blip-and-wid](./quick/260828-vb3-swap-star-pop-sound-for-cc0-blip-and-wid/) |
 | 260828-vrr | Distinct peg pick-up / put-down cues (twelfth cue `sfx_deselect`) | 2026-08-28 | c25883e | [260828-vrr-distinct-peg-pick-up-and-put-down-sounds](./quick/260828-vrr-distinct-peg-pick-up-and-put-down-sounds/) |
 | 260915-3jd | Debug builds honour a configured `PGS_PROJECT_ID` (was shipping `"0"`, so Play Games sign-in silently failed) | 2026-09-15 | f734f44, 8f2cbe3 | [260915-3jd-fix-debug-builds-emitting-play-games-pro](./quick/260915-3jd-fix-debug-builds-emitting-play-games-pro/) |
+| fast | Record Phase 12 UAT results (tests 4–8 pass, 9 partial) and tick the operator checklist; fix its package name | 2026-09-15 | 306b71e | — (inline /gsd:fast, no plan dir) |
 
 ## Deferred Items
 

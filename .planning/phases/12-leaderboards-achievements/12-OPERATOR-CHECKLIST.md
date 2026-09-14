@@ -1,7 +1,7 @@
 ---
 phase: 12-leaderboards-achievements
 type: operator-checklist
-status: pending
+status: executed (2026-09-15; UAT test 9 install half outstanding)
 blocks: [PGSL-01, PGSL-02, PGSL-03, PGSL-06, PGSA-01, PGSA-04, PGSA-05]
 generated_by: 12-08-PLAN.md
 ---
@@ -34,18 +34,18 @@ runtime as `ERROR_NOT_AUTHORIZED` or a silent `isAuthenticated() == false` — i
 a code bug. Transcribed from PITFALLS.md Pitfall 7 and Pitfall 8, carried unchanged as 12-RESEARCH
 Pitfall 11.
 
-1. [ ] **Create a Google Cloud project and enable the Google Play Games Services API on it.**
+1. [x] **Create a Google Cloud project and enable the Google Play Games Services API on it.**
        Everything below hangs off this project; the Console links to it rather than creating it.
-2. [ ] **Create the Play Games Services project in Play Console and link it to this app**
-       (package `com.app.pegsolitaire`). Verify the numeric project ID is what lands in
+2. [x] **Create the Play Games Services project in Play Console and link it to this app**
+       (package `com.erman.pegsolitarie` — the published store id with the "-arie" spelling; `com.app.pegsolitaire` is only the code namespace, see `app/build.gradle.kts`). Verify the numeric project ID is what lands in
        `PGS_PROJECT_ID` — the full `…apps.googleusercontent.com` client ID is a documented and
        common error, and a value containing dots is always wrong.
-3. [ ] **Configure and PUBLISH the OAuth consent screen in Google Cloud**, with scopes `games`,
+3. [x] **Configure and PUBLISH the OAuth consent screen in Google Cloud**, with scopes `games`,
        `games_lite` and `drive.appdata`. Publishing is a separate action from configuring. Without
        it, **no non-tester account can use any Play Games Services feature at all** — sign-in,
        leaderboards and achievements all fail for the public audience while working perfectly for
        you.
-4. [ ] **Create the Android credentials THROUGH PLAY CONSOLE, never directly in Google Cloud.** A
+4. [x] **Create the Android credentials THROUGH PLAY CONSOLE, never directly in Google Cloud.** A
        client created in the Cloud console is not associated with this game's leaderboards and
        achievements, so sign-in appears to work and every submission silently goes nowhere. Create
        **two** credentials against the same package name:
@@ -56,16 +56,16 @@ Pitfall 11.
        - the **Play App Signing SHA-1**, taken from Play Console → **App integrity**. This is *not*
          the upload certificate. Registering the upload certificate is the classic failure: the
          local build signs in, the internal-testing download does not (PITFALLS.md Pitfall 8).
-5. [ ] **Fill in the game properties** — display name at minimum, plus the store icon and graphics
+5. [x] **Fill in the game properties** — display name at minimum, plus the store icon and graphics
        the Console marks required before it will let you publish.
-6. [ ] **Add yourself, and every tester, to the tester list.** Stated on its own line because it is
+6. [x] **Add yourself, and every tester, to the tester list.** Stated on its own line because it is
        the single most expensive omission here:
        **the account that created the game does not automatically become a tester.**
        Propagation takes up to a couple of hours, so do this before you need it, not when a test
        fails.
-7. [ ] **Create the 7 leaderboards (Step 1) and the 20 achievements (Step 2), and upload all 20
+7. [x] **Create the 7 leaderboards (Step 1) and the 20 achievements (Step 2), and upload all 20
        icons (Step 3).**
-8. [ ] **Publish the Play Games Services settings BEFORE publishing the app.** Google's own
+8. [x] **Publish the Play Games Services settings BEFORE publishing the app.** Google's own
        wording: publish the Play Games Services settings first, or players authenticating with
        non-tester accounts encounter errors.
 
@@ -217,41 +217,41 @@ Mechanics, all from plan 12-04 and the existing `local.properties.template` prea
 
 | local.properties key | CI secret / env var name | Identifies | ID recorded? |
 |----------------------|--------------------------|------------|--------------|
-| PGS_LB_CHALLENGE_LADDER | PGS_LB_CHALLENGE_LADDER | L1 — Challenge Ladder | [ ] |
-| PGS_LB_CHALLENGE_SCORE | PGS_LB_CHALLENGE_SCORE | L2 — Challenge Total Score | [ ] |
-| PGS_LB_CLASSIC_ENGLISH33 | PGS_LB_CLASSIC_ENGLISH33 | L3 — English-33 Best Score | [ ] |
-| PGS_LB_CLASSIC_EUROPEAN37 | PGS_LB_CLASSIC_EUROPEAN37 | L4 — European-37 Best Score | [ ] |
-| PGS_LB_CLASSIC_ASYMMETRIC39 | PGS_LB_CLASSIC_ASYMMETRIC39 | L5 — Asymmetric-39 Best Score | [ ] |
-| PGS_LB_CLASSIC_DIAMOND41 | PGS_LB_CLASSIC_DIAMOND41 | L6 — Diamond-41 Best Score | [ ] |
-| PGS_LB_CLASSIC_WIEGLEB45 | PGS_LB_CLASSIC_WIEGLEB45 | L7 — Wiegleb-45 Best Score | [ ] |
-| PGS_ACH_FIRST_SOLVE | PGS_ACH_FIRST_SOLVE | A01 — First Clear | [ ] |
-| PGS_ACH_FIRST_THREE_STAR | PGS_ACH_FIRST_THREE_STAR | A02 — Three Stars | [ ] |
-| PGS_ACH_CHALLENGE_LEVEL_5 | PGS_ACH_CHALLENGE_LEVEL_5 | A03 — Getting Started | [ ] |
-| PGS_ACH_SPEED_SOLVE | PGS_ACH_SPEED_SOLVE | A04 — Quick Hands | [ ] |
-| PGS_ACH_HINT_FREE | PGS_ACH_HINT_FREE | A05 — No Hints Needed | [ ] |
-| PGS_ACH_UNDO_FREE | PGS_ACH_UNDO_FREE | A06 — No Take-Backs | [ ] |
-| PGS_ACH_CENTER_FINISH | PGS_ACH_CENTER_FINISH | A07 — Dead Center | [ ] |
-| PGS_ACH_CLEARED_ENGLISH33 | PGS_ACH_CLEARED_ENGLISH33 | A08 — English Cleared | [ ] |
-| PGS_ACH_CLEARED_EUROPEAN37 | PGS_ACH_CLEARED_EUROPEAN37 | A09 — European Cleared | [ ] |
-| PGS_ACH_CLEARED_ASYMMETRIC39 | PGS_ACH_CLEARED_ASYMMETRIC39 | A10 — Asymmetric Cleared | [ ] |
-| PGS_ACH_CLEARED_DIAMOND41 | PGS_ACH_CLEARED_DIAMOND41 | A11 — Diamond Cleared | [ ] |
-| PGS_ACH_CLEARED_WIEGLEB45 | PGS_ACH_CLEARED_WIEGLEB45 | A12 — Wiegleb Cleared | [ ] |
-| PGS_ACH_LADDER_10 | PGS_ACH_LADDER_10 | A13 — Climbing | [ ] |
-| PGS_ACH_LADDER_50 | PGS_ACH_LADDER_50 | A14 — Ascending | [ ] |
-| PGS_ACH_LADDER_100 | PGS_ACH_LADDER_100 | A15 — Century Climb | [ ] |
-| PGS_ACH_STARS_25 | PGS_ACH_STARS_25 | A16 — Star Collector | [ ] |
-| PGS_ACH_STARS_100 | PGS_ACH_STARS_100 | A17 — Star Hoarder | [ ] |
-| PGS_ACH_STARS_250 | PGS_ACH_STARS_250 | A18 — Constellation | [ ] |
-| PGS_ACH_GRAND_TOUR | PGS_ACH_GRAND_TOUR | A19 — Grand Tour | [ ] |
-| PGS_ACH_PERFECTIONIST | PGS_ACH_PERFECTIONIST | A20 — Perfectionist | [ ] |
+| PGS_LB_CHALLENGE_LADDER | PGS_LB_CHALLENGE_LADDER | L1 — Challenge Ladder | [x] |
+| PGS_LB_CHALLENGE_SCORE | PGS_LB_CHALLENGE_SCORE | L2 — Challenge Total Score | [x] |
+| PGS_LB_CLASSIC_ENGLISH33 | PGS_LB_CLASSIC_ENGLISH33 | L3 — English-33 Best Score | [x] |
+| PGS_LB_CLASSIC_EUROPEAN37 | PGS_LB_CLASSIC_EUROPEAN37 | L4 — European-37 Best Score | [x] |
+| PGS_LB_CLASSIC_ASYMMETRIC39 | PGS_LB_CLASSIC_ASYMMETRIC39 | L5 — Asymmetric-39 Best Score | [x] |
+| PGS_LB_CLASSIC_DIAMOND41 | PGS_LB_CLASSIC_DIAMOND41 | L6 — Diamond-41 Best Score | [x] |
+| PGS_LB_CLASSIC_WIEGLEB45 | PGS_LB_CLASSIC_WIEGLEB45 | L7 — Wiegleb-45 Best Score | [x] |
+| PGS_ACH_FIRST_SOLVE | PGS_ACH_FIRST_SOLVE | A01 — First Clear | [x] |
+| PGS_ACH_FIRST_THREE_STAR | PGS_ACH_FIRST_THREE_STAR | A02 — Three Stars | [x] |
+| PGS_ACH_CHALLENGE_LEVEL_5 | PGS_ACH_CHALLENGE_LEVEL_5 | A03 — Getting Started | [x] |
+| PGS_ACH_SPEED_SOLVE | PGS_ACH_SPEED_SOLVE | A04 — Quick Hands | [x] |
+| PGS_ACH_HINT_FREE | PGS_ACH_HINT_FREE | A05 — No Hints Needed | [x] |
+| PGS_ACH_UNDO_FREE | PGS_ACH_UNDO_FREE | A06 — No Take-Backs | [x] |
+| PGS_ACH_CENTER_FINISH | PGS_ACH_CENTER_FINISH | A07 — Dead Center | [x] |
+| PGS_ACH_CLEARED_ENGLISH33 | PGS_ACH_CLEARED_ENGLISH33 | A08 — English Cleared | [x] |
+| PGS_ACH_CLEARED_EUROPEAN37 | PGS_ACH_CLEARED_EUROPEAN37 | A09 — European Cleared | [x] |
+| PGS_ACH_CLEARED_ASYMMETRIC39 | PGS_ACH_CLEARED_ASYMMETRIC39 | A10 — Asymmetric Cleared | [x] |
+| PGS_ACH_CLEARED_DIAMOND41 | PGS_ACH_CLEARED_DIAMOND41 | A11 — Diamond Cleared | [x] |
+| PGS_ACH_CLEARED_WIEGLEB45 | PGS_ACH_CLEARED_WIEGLEB45 | A12 — Wiegleb Cleared | [x] |
+| PGS_ACH_LADDER_10 | PGS_ACH_LADDER_10 | A13 — Climbing | [x] |
+| PGS_ACH_LADDER_50 | PGS_ACH_LADDER_50 | A14 — Ascending | [x] |
+| PGS_ACH_LADDER_100 | PGS_ACH_LADDER_100 | A15 — Century Climb | [x] |
+| PGS_ACH_STARS_25 | PGS_ACH_STARS_25 | A16 — Star Collector | [x] |
+| PGS_ACH_STARS_100 | PGS_ACH_STARS_100 | A17 — Star Hoarder | [x] |
+| PGS_ACH_STARS_250 | PGS_ACH_STARS_250 | A18 — Constellation | [x] |
+| PGS_ACH_GRAND_TOUR | PGS_ACH_GRAND_TOUR | A19 — Grand Tour | [x] |
+| PGS_ACH_PERFECTIONIST | PGS_ACH_PERFECTIONIST | A20 — Perfectionist | [x] |
 
 Nothing goes in the **ID recorded?** column except a tick. The IDs themselves live only in your
 untracked `local.properties`.
 
 ## Step 5 — Before calling Phase 12 done
 
-- [ ] All 7 leaderboards and 20 achievements created, 20 icons uploaded, PGS settings **published**.
-- [ ] All 27 IDs recorded in the untracked `local.properties`; `git status` shows nothing new.
-- [ ] `./gradlew :app:assembleRelease` configures without a missing-ID failure (`verifyReleaseGamesIds`).
-- [ ] `.planning/phases/11-play-games-session/11-HUMAN-UAT.md` tests **4 through 9** executed on a
+- [x] All 7 leaderboards and 20 achievements created, 20 icons uploaded, PGS settings **published**.
+- [x] All 27 IDs recorded in the untracked `local.properties`; `git status` shows nothing new.
+- [x] `./gradlew :app:assembleRelease` configures without a missing-ID failure (`verifyReleaseGamesIds`).
+- [ ] (tests 4–8 pass, test 9 install half pending) `.planning/phases/11-play-games-session/11-HUMAN-UAT.md` tests **4 through 9** executed on a
       device with Play Games and a tester account, results recorded.
