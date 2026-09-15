@@ -14,8 +14,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
  * hands the immutable state plus the nav/handler lambdas down to the stateless
  * [HomeScreen]. The `onPlayClassic`/`onPlayChallenge` callbacks are forwarded from
  * `AppNavHost` (→ `ClassicCatalog` / → Challenge gameplay); the onboarding show/dismiss,
- * the Play Games opt-in accept/decline and the sign-in-error-shown acknowledgement come
- * from the ViewModel.
+ * the Play Games opt-in accept/decline, the two account-switch answers (D-13/D-14) and the
+ * sign-in-error-shown acknowledgement come from the ViewModel.
  *
  * @param onPlayClassic navigates to the Classic catalog (supplied by `AppNavHost`).
  * @param onPlayChallenge enters Challenge at the level the screen hands it — the persisted
@@ -49,6 +49,8 @@ fun HomeRoute(
         onDismissOnboarding = viewModel::onDismissOnboarding,
         onAcceptPlayGamesPrompt = viewModel::onAcceptPlayGamesPrompt,
         onDeclinePlayGamesPrompt = viewModel::onDeclinePlayGamesPrompt,
+        onKeepDeviceProgress = viewModel::onKeepDeviceProgress,
+        onUseCloudProgress = viewModel::onUseCloudProgress,
         onPlayGamesSignInErrorShown = viewModel::onPlayGamesSignInErrorShown,
         onOpenSettings = onOpenSettings,
         modifier = modifier,

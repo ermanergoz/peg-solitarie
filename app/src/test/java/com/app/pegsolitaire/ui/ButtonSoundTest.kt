@@ -281,6 +281,10 @@ class ButtonSoundTest {
             // dialog is (PlayGamesPromptDialogTest); this helper renders Home's body.
             onAcceptPlayGamesPrompt = {},
             onDeclinePlayGamesPrompt = {},
+            // Not exercised here either: the swap dialog's own cues are asserted in
+            // ProfileSwapDialogTest, and this helper renders Home's body.
+            onKeepDeviceProgress = {},
+            onUseCloudProgress = {},
             onPlayGamesSignInErrorShown = {},
             onOpenSettings = onOpenSettings,
         )
