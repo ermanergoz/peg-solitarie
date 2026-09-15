@@ -3,12 +3,12 @@ status: partial
 phase: 11-play-games-session
 source: [11-VERIFICATION.md, 12-08-PLAN.md]
 started: 2026-09-03T22:20:00Z
-updated: 2026-09-15T00:00:00Z
+updated: 2026-09-15T04:00:00Z
 ---
 
 ## Current Test
 
-Phase 12 tests 4–9 all pass. Phase 11 tests 1–3 executed 2026-09-15: test 1 FAILS (root cause in its result line), test 2 blocked, test 3 partial. Earlier note for test 1: on this emulator a cold relaunch after a successful explicit sign-in resolved to signed-out on BOTH debug and minified builds (Play Services brokered an unauthenticated GamesService for the silent `isAuthenticated` check), so the "Welcome back" path has not yet been observed — to be investigated under test 1, not a Phase 12 regression.
+Phase 12 tests 4–9 all pass. Phase 11 tests 1–3 executed 2026-09-15: test 1 now PASSES after quick task 260915-51n, test 2 remains blocked, test 3 remains partial. Historical note, kept because it explains the shape of the fix: the first run of test 1 saw a cold relaunch after a successful explicit sign-in resolve to signed-out on BOTH debug and minified builds. The cause was not Play Services brokering an unauthenticated session — it was `PlayGamesSdk.initialize` running too late (from `MainActivity.onCreate`) for the SDK's automatic authenticator to ever fire; see test 1's result line.
 
 Session note (2026-09-15): the first debug run could not sign in at all — root cause was the debug build shipping Play Games project ID `"0"` (AdMob resolver hard-wire, DEF-06-01), fixed as quick task 260915-3jd before tests 4–8 were run. Design observation from test 4: the first English-33 solve (3 stars, 28 hints, 0 undos, centre finish) legitimately unlocked five achievements at once (First Clear, Three Stars, No Take-Backs, Dead Center, English Cleared). User decision 2026-09-15: keep the rules as designed (D-01/D-02); no change.
 
@@ -17,7 +17,7 @@ Session note (2026-09-15): the first debug run could not sign in at all — root
 ### 1. Real silent sign-in and "Welcome back" popup on relaunch (PGS-01)
 Install a debug build on an emulator with Play Games and Google Play services, once a PGS Play Console project, OAuth credentials for both debug and release SHA-1s, and a tester account exist (D-04). Accept the Home "Sign in to Play Games?" prompt, confirm sign-in completes, kill the process and relaunch.
 expected: The stock Play Games "Welcome back" popup appears at launch with no app-owned dialog, no wall and no pause before a level can start.
-result: FAIL (2026-09-15, emulator, debug build from develop 29f7034). Explicit sign-in completes (welcome popup shown), but after kill + relaunch the session resolves to SignedOut within ~9 s and Play Services is never contacted; the stored `play_games_opted_in` flag is true (decoded from `app_prefs.preferences_pb`). Root cause, from the v2 SDK bytecode (`zzbw.zza` / `zzar` / `zzbq`): `PlayGamesSdk.initialize` starts an `AutomaticGamesAuthenticator` whose ONLY trigger is `Application.ActivityLifecycleCallbacks.onActivityCreated` of an Activity created AFTER initialize, and `isAuthenticated()` merely returns that authenticator's cached state — it never contacts Play Services itself. D-07 removed `PlayGamesInitProvider` and the app calls `initialize` from a coroutine dispatched from `MainActivity.onCreate`, i.e. after the only Activity already exists, so the automatic attempt never runs on a cold start and the silent check answers not-authenticated. Proof: with the process alive, relaunching `MainActivity` with CLEAR_TASK (a second `onActivityCreated`) made the SDK sign in silently — `GamesConnectSignInOp: Returning SUCCESS`, `Found existing game run`, `shouldShowWelcomePopup=true`. Same on the minified build. Fix pending (design decision: initialize before the first Activity is created, gated on the persisted opt-in, vs. an explicit `signIn()` in the bootstrap).
+result: PASS (2026-09-15, emulator-5554 Pixel_9a AVD / Android 16, debug build from `bugfix/phase-11-silent-sign-in-on-relaunch` 5ddd120, tester account already opted in). Kill + relaunch with no taps at all: `am force-stop` → `logcat -c` → launcher intent, and within ~2 s Play Services logged `GamesConnectSignInOp: signIn(%s): Returning SUCCESS`, then `SignInPerformer: Found existing game run` and `Connection from [%s], returning true for shouldShowWelcomePopup` — the silent sign-in and the stock welcome popup, neither of which the earlier build produced. Opening Settings (the only tap in the run) showed the Play Games section reading `Signed in as …` with the tester's gamertag, plus the Leaderboards and Achievements rows. Shipped fix (quick task 260915-51n): `PlayGamesSdk.initialize` moved to `App.onCreate` via the new `GamesService.initializeIfOptedIn()` seam, still gated on the persisted `play_games_opted_in` flag and with `PlayGamesInitProvider` still removed — so the SDK's `AutomaticGamesAuthenticator` is registered before the first Activity is created and its one automatic attempt fires on `MainActivity`'s `onActivityCreated`, while a player who never opted in is still never reached by the SDK (D-07/D-17). Earlier root-cause evidence, retained: from the v2 SDK bytecode (`zzbw.zza` / `zzar` / `zzbq`), `initialize` starts an `AutomaticGamesAuthenticator` whose ONLY trigger is `Application.ActivityLifecycleCallbacks.onActivityCreated` of an Activity created AFTER initialize, and `isAuthenticated()` merely returns that authenticator's cached state — it never contacts Play Services itself. With the old code initializing from a coroutine dispatched out of `MainActivity.onCreate`, i.e. after the only Activity already existed, the automatic attempt never ran on a cold start and the silent check truthfully answered not-authenticated; relaunching `MainActivity` with CLEAR_TASK against a live process (a second `onActivityCreated`) made the SDK sign in silently, which is what identified the trigger.
 
 ### 2. Settings sign-in row: cancel is silent, genuine error shows the snackbar (PGS-03 / D-10)
 On the same emulator, tap the Settings "Sign in to Play Games" row and dismiss the account chooser without picking an account; then tap it again and complete sign-in with an account not registered as a tester.
@@ -66,12 +66,11 @@ result: pass (2026-09-15). Build half: `:app:assembleRelease` with all 27 IDs co
 ## Summary
 
 total: 9
-passed: 6
-issues: 1
+passed: 7
+issues: 0
 pending: 0
 blocked: 1
 partial: 1
 skipped: 0
-blocked: 0
 
 ## Gaps
