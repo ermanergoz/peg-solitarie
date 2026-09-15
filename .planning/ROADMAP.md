@@ -364,8 +364,8 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 13-07-PLAN.md — CLOUD-03, D-09/D-11: localized capped description and the cover rasterized from the launcher vectors
-- [ ] 13-08-PLAN.md — CLOUD-01/02/03/05, D-01/D-02/D-12/D-14: `ProgressSubmitter` pass — profile gate, pull-once, Phase-12 catch-up, push, swap resolution
+- [x] 13-07-PLAN.md — CLOUD-03, D-09/D-11: localized capped description and the cover rasterized from the launcher vectors
+- [x] 13-08-PLAN.md — CLOUD-01/02/03/05, D-01/D-02/D-12/D-14: `ProgressSubmitter` pass — profile gate, pull-once, Phase-12 catch-up, push, swap resolution
 
 **Wave 4** *(blocked on Wave 3)*
 
@@ -416,5 +416,5 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 10. Interstitials | v1.1 | 6/6 | Complete    | 2026-09-03 |
 | 11. Play Games Session | v1.1 | 4/4 | Complete   | 2026-09-03 |
 | 12. Leaderboards & Achievements | v1.1 | 8/8 | Complete   | 2026-09-13 |
-| 13. Cloud Save | v1.1 | 6/11 | In Progress|  |
+| 13. Cloud Save | v1.1 | 8/11 | In Progress|  |
 | 14. Release Readiness | v1.1 | 0/TBD | Not started | - |
