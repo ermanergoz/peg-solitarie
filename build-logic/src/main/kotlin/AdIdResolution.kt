@@ -55,6 +55,10 @@ sealed interface AdIdResolutionResult {
  * hard failure naming the key; on debug it can never fail, because "a fresh clone builds
  * with test IDs and never accidentally serves real ads" is the governing rule of D-08.
  *
+ * On debug the three AD IDs stop at the hard-wired [AdIdDefaults] test units and never read
+ * the configured value at all (DEF-06-01); [AdIdKeys.PGS_PROJECT_ID] is the one key that
+ * keeps the full order, because it cannot serve an ad — see the comment on the debug return.
+ *
  * **[resolve] is deliberately Gradle-free** — `Map` in, result out, no `Project`, no
  * `Provider`. That is the whole reason it is a plain `.kt` file here rather than logic
  * inlined in a `.gradle.kts` script the way `standards.gradle.kts`'s `dpSpLiteralCheck`
@@ -85,19 +89,37 @@ object AdIdResolution {
             )
         }
 
-        // DEF-06-01 (resolved 2026-08-27, user decision): debug is HARD-WIRED to Google's
-        // test units and deliberately ignores `configured`. Honouring a configured ID here
-        // meant that the moment a developer set real IDs in `local.properties` for a
-        // release build, every subsequent debug build on that machine served REAL ads —
-        // the exact invalid-traffic pattern that gets an AdMob account suspended
-        // non-appealably. D-08's governing sentence is "a fresh clone builds with test IDs
-        // and never accidentally serves real ads"; an override makes the second half
-        // conditional on developer discipline, so there is no override.
+        // DEF-06-01 (resolved 2026-08-27, narrowed 2026-09-15): the three AD IDs are
+        // HARD-WIRED to Google's test units on debug and deliberately ignore `configured`.
+        // Honouring a configured ad ID here meant that the moment a developer set real IDs
+        // in `local.properties` for a release build, every subsequent debug build on that
+        // machine served REAL ads — the exact invalid-traffic pattern that gets an AdMob
+        // account suspended non-appealably. D-08's governing sentence is "a fresh clone
+        // builds with test IDs and never accidentally serves real ads"; an override makes
+        // the second half conditional on developer discipline, so there is no override.
+        //
+        // `PGS_PROJECT_ID` is EXEMPT, and the original hard-wire covering it was a defect:
+        // a Play Games project ID cannot serve an ad, so no AdMob penalty reaches it. All it
+        // does is let a debug build sign in to the real Play Games project — which is
+        // exactly why the project registers the debug-keystore SHA-1 (Phase 11 D-04). The
+        // placeholder shipped instead: debug APKs carried
+        // `com.google.android.gms.games.APP_ID` = "0", the backend answered NOT_FOUND for
+        // the package, and the SDK reported `isAuthenticated=false` with no error — which
+        // the Settings sign-in row renders as a silent user cancel.
+        //
+        // This is D-17's rule, which `GamesIdResolution` already applies to the 27
+        // leaderboard/achievement IDs addressing this same project; the four-key result is
+        // no longer split-brain about Play Games. Residual risk is D-17's, unchanged: a
+        // developer with real IDs in `local.properties` writes to the REAL leaderboards from
+        // a debug build, and pre-publication scores/unlocks are resettable per whitelisted
+        // tester through the Management API. Env-over-local and the blank/`REPLACE_ME`-means-
+        // absent rule come for free from `configured`, so an unset key still yields the inert
+        // placeholder and a fresh clone still builds.
         return AdIdResolutionResult.Resolved(
             appId = AdIdDefaults.TEST_APP_ID,
             rewarded = AdIdDefaults.TEST_REWARDED,
             interstitial = AdIdDefaults.TEST_INTERSTITIAL,
-            gamesProjectId = AdIdDefaults.TEST_GAMES_PROJECT_ID,
+            gamesProjectId = configured[AdIdKeys.PGS_PROJECT_ID] ?: AdIdDefaults.TEST_GAMES_PROJECT_ID,
         )
     }
 

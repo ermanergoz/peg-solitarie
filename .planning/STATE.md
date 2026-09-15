@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Slice 2 — Play Games, AdMob & Polish
-status: executing
-stopped_at: Phase 11 context gathered
-last_updated: "2026-09-03T20:40:24.257Z"
-last_activity: 2026-09-03 -- Phase 11 execution started
+status: completed
+stopped_at: Phase 12 complete and merged; next Phase 11 UAT tests 1-3, then Phase 13
+last_updated: "2026-09-15T01:15:00.000Z"
+last_activity: 2026-09-15
 progress:
   total_phases: 9
-  completed_phases: 5
-  total_plans: 49
-  completed_plans: 45
-  percent: 56
+  completed_phases: 7
+  total_plans: 57
+  completed_plans: 57
+  percent: 78
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-27)
 
 **Core value:** Infinite, never-repeating, always-solvable Challenge levels that feel fair and satisfying.
-**Current focus:** Phase 11 — play-games-session
+**Current focus:** Phase 12 — leaderboards-achievements
 
 ## Current Position
 
-Phase: 11 (play-games-session) — EXECUTING
-Plan: 1 of 4
-Status: Executing Phase 11
-Last activity: 2026-09-15 - Completed quick task 260914-x4a: adaptive launcher icon
+Phase: 12 (leaderboards-achievements) — COMPLETE (8 of 8 plans)
+Plan: 8 of 8
+Status: Phase 12 COMPLETE — code, Play Console operator checklist and device UAT 4-9 all done (2026-09-15); merged to develop
+Last activity: 2026-09-15 - Completed quick task 260915-3jd: debug builds honour a configured PGS_PROJECT_ID
 
 Progress: [██████████] 100%
 
@@ -67,6 +67,7 @@ Per-plan durations archived in `.planning/milestones/v1.0-ROADMAP.md`.
 
 *Updated after each plan completion*
 | Phase 07 P06 | ~15 min | 2 tasks | 4 files |
+| Phase 12 P08 | 22 min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -107,6 +108,10 @@ Recent decisions affecting current work:
 - [Phase 08]: Wiegleb-45's book ships at **K=3** with the file named `wiegleb45-k3.txt` so the artifact cannot misrepresent its own coverage — any check assuming a uniform `-k4` suffix will find four files, not five, and that is the artifacts being honest
 - [Phase 08]: The book resources are plain **JAR** resources, not Android `res/` entries — `aapt2` cannot see them, which is precisely why `isShrinkResources` has no remit over them and they survive R8 byte-intact (proven in `08-BOOK-EVIDENCE.md`)
 - [Phase 08]: `OpeningBook` fails **closed** — absent resources produce a MISS and a silent degradation to pre-book behaviour with no error at all, which is why release-APK retention is proven rather than assumed
+- [Phase 12]: Phase 12's device tests append to Phase 11's 11-HUMAN-UAT.md rather than opening a 12-HUMAN-UAT.md — D-04 made that file the project's single accumulating device checklist, and a second one would split the pre-release pass in two
+- [Phase 12]: The 20-achievement point budget is 1,130 of Play Games' 2,000 LIFETIME maximum, leaving 870 points of headroom; the four D-02 first-hour wins carry the four cheapest values (5/10/10/15) on purpose, so ROADMAP criterion 3 is readable off the budget rather than asserted
+- [Phase 12]: The 27-row ID recording table holds key names and tick boxes only — never a value; its key column is deliberately un-backticked so the grep that selects the 27 recording rows cannot collide with the 27 roster mentions, and 'CgkI' = 0 is an acceptance criterion
+- [Phase 12]: PGSA-04, PGSL-06, PGSA-05 and the PGSL-01/02/03 runtime claims stay [UNVERIFIED — D-04] until a Play Console project exists and 11-HUMAN-UAT tests 4-9 run on a device — the plan names the gap rather than producing a green check for it
 
 ### Resolved
 
@@ -137,6 +142,8 @@ Recent decisions affecting current work:
 | 260828-vb3 | Swap star pop for the CC0 freesound blip; stagger 260→500, pop 260→600 | 2026-08-28 | 86b68db | [260828-vb3-swap-star-pop-sound-for-cc0-blip-and-wid](./quick/260828-vb3-swap-star-pop-sound-for-cc0-blip-and-wid/) |
 | 260828-vrr | Distinct peg pick-up / put-down cues (twelfth cue `sfx_deselect`) | 2026-08-28 | c25883e | [260828-vrr-distinct-peg-pick-up-and-put-down-sounds](./quick/260828-vrr-distinct-peg-pick-up-and-put-down-sounds/) |
 | 260914-x4a | Adaptive launcher icon from the approved English-33 board design | 2026-09-15 | 27a8f8d | [260914-x4a-add-adaptive-launcher-icon-from-the-appr](./quick/260914-x4a-add-adaptive-launcher-icon-from-the-appr/) |
+| 260915-3jd | Debug builds honour a configured `PGS_PROJECT_ID` (was shipping `"0"`, so Play Games sign-in silently failed) | 2026-09-15 | f734f44, 8f2cbe3 | [260915-3jd-fix-debug-builds-emitting-play-games-pro](./quick/260915-3jd-fix-debug-builds-emitting-play-games-pro/) |
+| fast | Record Phase 12 UAT results (tests 4–8 pass, 9 partial) and tick the operator checklist; fix its package name | 2026-09-15 | 306b71e | — (inline /gsd:fast, no plan dir) |
 
 ## Deferred Items
 
@@ -147,9 +154,9 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-03T14:18:08.370Z
-Stopped at: Phase 11 context gathered
-Resume file: .planning/phases/11-play-games-session/11-CONTEXT.md
+Last session: 2026-09-13T19:51:33.020Z
+Stopped at: Phase 12 planned (8 plans, verification passed)
+Resume file: None
 
 ## Operator Next Steps
 

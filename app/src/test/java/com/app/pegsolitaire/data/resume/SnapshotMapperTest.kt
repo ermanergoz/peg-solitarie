@@ -360,6 +360,98 @@ class SnapshotMapperTest {
         assertThat(restored!!.allowance).isEqualTo(AssistAllowance())
     }
 
+    // --- assist counters (D-09) ---------------------------------------------
+
+    @Test
+    fun aStoredAssistCountRoundTripsThroughTheBlobIncludingAGenuineZero() {
+        // D-09: the counters ride the snapshot so process death cannot launder an assist
+        // away. A stored 0 is a real value — "this play took no undos" — and must come
+        // back as 0 rather than being re-defaulted by a resolver that cannot tell the
+        // difference between an absent key and an honest zero.
+        val dto =
+            SnapshotMapper.toDto(
+                mode = ProgressPersistenceKeys.MODE_CLASSIC,
+                levelId = CLASSIC_LEVEL_ID,
+                initialBoard = Boards.english33Initial,
+                moveHistory = emptyList(),
+                elapsedMs = ELAPSED_MS,
+                hintsUsed = STORED_HINTS_USED,
+                undosUsed = STORED_UNDOS_USED,
+            )
+
+        val restored = restore(dto)
+
+        assertThat(restored).isNotNull()
+        assertThat(restored!!.hintsUsed).isEqualTo(STORED_HINTS_USED)
+        assertThat(restored.undosUsed).isEqualTo(STORED_UNDOS_USED)
+    }
+
+    @Test
+    fun aLegacyBlobWithNoAssistCounterKeysRestoresToZeroAssists() {
+        // The fail-CLOSED direction, deliberately opposite to the allowance above: a
+        // missing allowance is a generosity, so it guesses full; a missing assist counter
+        // is a CLAIM OF PURITY, so it guesses zero — the value that concedes nothing.
+        // The doesNotContain assertions are belt and braces: without them this would
+        // silently degrade into a re-serialised-modern-payload test if legacyBlobFor drifts.
+        val blob = legacyBlobFor(Boards.english33Initial)
+        val restored = SnapshotMapper.decode(blob)?.let { SnapshotMapper.fromDto(it, RulesEngine) }
+
+        assertThat(blob).doesNotContain("hintsUsed")
+        assertThat(blob).doesNotContain("undosUsed")
+        assertThat(restored).isNotNull()
+        assertThat(restored!!.hintsUsed).isEqualTo(NO_ASSISTS)
+        assertThat(restored.undosUsed).isEqualTo(NO_ASSISTS)
+    }
+
+    @Test
+    fun aForgedNegativeAssistCounterRefusesTheResumeLikeAnyOtherForgedField() {
+        // WR-03 / T-12-21: a negative count is not a legacy state and never a real one —
+        // no version of this codec can write it — so it is tampering, and the mapper
+        // already refuses a resume for a forged move, footprint or minimum-peg target.
+        // Resolving it to zero instead would hand the tamperer exactly the value the
+        // Hint-free / Undo-free predicates reward. Refusing costs an honest player
+        // nothing, because ABSENT counters are a separate case handled by the `null`
+        // branch and never reach this rule.
+        val valid = snapshotOf(Boards.english33Initial)
+
+        assertThat(restore(valid.copy(hintsUsed = FORGED_NEGATIVE_ASSIST_COUNT))).isNull()
+        assertThat(restore(valid.copy(undosUsed = FORGED_NEGATIVE_ASSIST_COUNT))).isNull()
+        // Both at once, and the untouched control: only the forgery is refused.
+        assertThat(
+            restore(
+                valid.copy(
+                    hintsUsed = FORGED_NEGATIVE_ASSIST_COUNT,
+                    undosUsed = FORGED_NEGATIVE_ASSIST_COUNT,
+                ),
+            ),
+        ).isNull()
+        assertThat(restore(valid)).isNotNull()
+    }
+
+    @Test
+    fun aForgedHugeAssistCounterIsPreservedRatherThanCapped() {
+        // Nothing is capped at the top. A forged large count costs the tamperer their own
+        // hint-free badge and nothing else, whereas capping would invent a ceiling no
+        // honest play can be checked against (T-12-21 / T-12-24 residual).
+        val valid = snapshotOf(Boards.english33Initial)
+
+        val restored = restore(valid.copy(hintsUsed = FORGED_HUGE_ASSIST_COUNT))
+
+        assertThat(restored).isNotNull()
+        assertThat(restored!!.hintsUsed).isEqualTo(FORGED_HUGE_ASSIST_COUNT)
+    }
+
+    @Test
+    fun toDtoWithoutTheAssistCountersWritesNeitherValue() {
+        // Every pre-existing caller keeps writing today's shape: the two params are
+        // defaulted, so "not tracked by this caller" and "written by an older build" are
+        // the same on-disk value, and both resolve to zero on the way back in.
+        val dto = snapshotOf(Boards.english33Initial)
+
+        assertThat(dto.hintsUsed).isNull()
+        assertThat(dto.undosUsed).isNull()
+    }
+
     // --- helpers -------------------------------------------------------------
 
     /**
@@ -517,5 +609,39 @@ class SnapshotMapperTest {
 
         /** A genuinely exhausted undo counter: `0` is in range, so it must survive. */
         const val STORED_UNDOS = 0
+
+        /**
+         * The value an ABSENT assist counter resolves to (D-09).
+         *
+         * Absent only: a negative counter refuses the resume outright (WR-03). Note the
+         * direction this default points — zero is the purest count, so it fails OPEN
+         * toward the Hint-free / Undo-free achievements. D-09 locks that, and the exposure
+         * is one self-awarded badge on a local-only store.
+         */
+        const val NO_ASSISTS = 0
+
+        /** A play that took two hints — the non-zero half of the round-trip case. */
+        const val STORED_HINTS_USED = 2
+
+        /**
+         * A play that took no undos. `0` here is a CLAIM (an undo-free run), not an
+         * absence, so the round trip must preserve it rather than re-default it.
+         */
+        const val STORED_UNDOS_USED = 0
+
+        /**
+         * T-12-21 forgery: a negative assist counter. REFUSES the resume (WR-03), unlike
+         * the forged-huge counter below, which is preserved verbatim — a high count only
+         * ever denies the tamperer their own badge, whereas a negative one was edited in
+         * to claim purity.
+         */
+        const val FORGED_NEGATIVE_ASSIST_COUNT = -7
+
+        /**
+         * T-12-21 forgery: an absurdly large assist counter. Preserved verbatim, because
+         * the resolver bounds the bottom only and a forged-high count only denies the
+         * tamperer their own badge.
+         */
+        const val FORGED_HUGE_ASSIST_COUNT = 9_999
     }
 }

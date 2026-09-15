@@ -30,7 +30,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) · Audit:
 - [x] **Phase 9: Consent & Rewarded Ads** - UMP consent, opt-in-first rewarded assists, fail-open on no-fill, clock frozen across every ad (completed 2026-09-02)
 - [x] **Phase 10: Interstitials** - Frequency-capped, win-only interstitials at the Results continue action (completed 2026-09-02)
 - [x] **Phase 11: Play Games Session** - One-time opt-in prompt, silent sign-in for opted-in players, full signed-out play, manual sign-in fallback (completed 2026-09-03)
-- [ ] **Phase 12: Leaderboards & Achievements** - 7 leaderboards, 10+ achievements, per-session telemetry migration
+- [x] **Phase 12: Leaderboards & Achievements** - 7 leaderboards, 10+ achievements, per-session telemetry migration (completed 2026-09-13)
 - [ ] **Phase 13: Cloud Save** - Bests + ladder synced via Saved Games with deterministic monotonic merge
 - [ ] **Phase 14: Release Readiness** - Play Console declarations, signed-track verification, `app-ads.txt`, cold-start budget
 
@@ -46,7 +46,7 @@ These have no code equivalent and multi-hour-to-multi-day latency. Start them in
 | `app-ads.txt` published on that website and linked in the store listing | Phase 14 (REL-03) | Up to 24h crawl after the site is live |
 | Privacy policy authored and published on that website, disclosing advertising-ID collection and every third-party SDK receiving player data | Phases 9 (REL-05), 14 (REL-01, REL-04) | Hours to author; Play Console requires the URL for **every** app, and the Data-safety form (REL-01) must agree with what it says |
 | UMP consent message configured in the AdMob UI | Phase 9 (CONS-01) | Minutes, but UMP renders nothing without it |
-| 10–12 unique 512×512 achievement icons | Phase 12 (PGSA-01/04) | Art turnaround; popups silently fail to render without them |
+| 20 unique 512×512 achievement icons (one per achievement — see 12-OPERATOR-CHECKLIST.md) | Phase 12 (PGSA-01/04) | Art turnaround; popups silently fail to render without them |
 | Play Console: Saved Games enabled on the PGS project | Phase 13 | Minutes |
 
 ## Phase Details
@@ -307,7 +307,32 @@ Plans:
   4. Player earns skill achievements for solving hint-free, solving undo-free, and finishing with the last peg in the center — and every existing saved best, star total, and ladder position survives the schema migration that makes those achievements possible. (PGSA-02, PGSA-06)
   5. Player's growing ladder position and star total tick incremental achievements forward, and they can open the Play Games achievements UI from inside the game. (PGSA-03, PGSA-05)
 
-**Plans**: TBD
+**Plans**: 8 plans in 5 waves
+
+Plans:
+**Wave 1**
+
+- [x] 12-01-PLAN.md — Room v1→v2 migration (D-06): `play_session` telemetry table, `MIGRATION_1_2`, exported `2.json`, progress-preserving `MigrationTest`
+- [x] 12-02-PLAN.md — Pure `:domain` achievement kernel (D-01..D-05, D-11): `SolveTelemetry`, 20-value `AchievementId`, `AchievementThresholds`, `ProgressAggregate`, `AchievementRules`
+- [x] 12-03-PLAN.md — `GamesService` seam reshape to Boolean submissions + `setAchievementSteps` (D-12), real `PlayGamesService` bodies, stock-UI Intents, two signed-in-only Settings rows (D-14/D-15)
+
+**Wave 2** *(12-04 blocked on 12-03 — both edit `GamesConstants.kt`; 12-05 blocked on 12-02)*
+
+- [x] 12-04-PLAN.md — 27-key build-config ID plumbing (D-17): `GamesIdResolution`, `verifyReleaseGamesIds`, `gamesIdLiteralCheck`, `GamesIds`
+- [x] 12-05-PLAN.md — Per-session telemetry in `GameViewModel` (D-09): assist counters on the funnel success path, `lastPegOnTarget`, persisted snapshot fields, Results nav args
+
+**Wave 3** *(blocked on 12-01, 12-02, 12-05)*
+
+- [x] 12-06-PLAN.md — `recordResult` takes `SolveTelemetry` and writes both tables in one transaction (D-08); SQL aggregate projections build `ProgressAggregate` (D-03/D-04/D-07)
+
+**Wave 4** *(blocked on 12-02, 12-03, 12-04, 12-06)*
+
+- [x] 12-07-PLAN.md — `ProgressSubmitter` `@Singleton` (D-10/D-11/D-13): dirty-flag backfill, mutex-serialised pass, `GamesIds.of`, the `recordSolvedPlayOnce()` hook, `MainActivity.start()`
+
+**Wave 5** *(blocked on all seven)*
+
+- [x] 12-08-PLAN.md — Operator closure: Play Console checklist (7 leaderboards, 20 achievements ≤ 2,000 pts), Phase 12 device UAT items, ROADMAP icon row 10–12 → 20 (D-05)
+
 **Notes**: PGSA-06 (per-session telemetry Room migration) must land **before or with** PGSA-02 — the skill achievements are unearnable without it, and the migration must be proven progress-preserving with a `MigrationTestHelper` test before any achievement wiring. Submission hooks into `ResultsViewModel.recordSolvedPlayOnce()` (which already has the process-death-safe exactly-once guard), **not** `GameViewModel` — `finishedEmitted` is reset by `onUndo()` and would double-submit. Aggregates must be SQL-backed, not an in-memory fold: Challenge reaches thousands of rows. 512×512 achievement icons must already be uploaded (see External Prerequisites).
 
 ### Phase 13: Cloud Save
@@ -362,6 +387,6 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 9. Consent & Rewarded Ads | v1.1 | 11/11 | Complete   | 2026-09-02 |
 | 10. Interstitials | v1.1 | 6/6 | Complete    | 2026-09-03 |
 | 11. Play Games Session | v1.1 | 4/4 | Complete   | 2026-09-03 |
-| 12. Leaderboards & Achievements | v1.1 | 0/TBD | Not started | - |
+| 12. Leaderboards & Achievements | v1.1 | 8/8 | Complete   | 2026-09-13 |
 | 13. Cloud Save | v1.1 | 0/TBD | Not started | - |
 | 14. Release Readiness | v1.1 | 0/TBD | Not started | - |

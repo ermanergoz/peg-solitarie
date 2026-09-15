@@ -82,15 +82,15 @@
 - [ ] **PGSL-03**: Player's best score on each of the five Classic boards is submitted to that board's leaderboard
 - [ ] **PGSL-04**: A failed submission never fails, blocks, or alters a solved level
 - [ ] **PGSL-05**: Player's existing bests are submitted once when they sign in after having played offline
-- [ ] **PGSL-06**: Player can open the Play Games leaderboard UI from the game
+- [x] **PGSL-06**: Player can open the Play Games leaderboard UI from the game
 
 ### Play Games — Achievements
 
-- [ ] **PGSA-01**: Player can earn at least ten visible achievements, at least four of which are reachable within the first hour
+- [x] **PGSA-01**: Player can earn at least ten visible achievements, at least four of which are reachable within the first hour
 - [ ] **PGSA-02**: Player earns skill achievements for solving without hints, solving without undo, and finishing with the last peg in the center
 - [ ] **PGSA-03**: Player earns incremental progression achievements as their Challenge ladder and star totals grow
-- [ ] **PGSA-04**: Player sees the in-app unlock popup when an achievement is earned
-- [ ] **PGSA-05**: Player can open the Play Games achievements UI from the game
+- [x] **PGSA-04**: Player sees the in-app unlock popup when an achievement is earned
+- [x] **PGSA-05**: Player can open the Play Games achievements UI from the game
 - [ ] **PGSA-06**: Per-session play telemetry needed for skill achievements is recorded through a schema migration that preserves all existing saved progress
 
 ### Cloud Save
@@ -191,12 +191,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PGSL-03 | Phase 12 | Pending |
 | PGSL-04 | Phase 12 | Pending |
 | PGSL-05 | Phase 12 | Pending |
-| PGSL-06 | Phase 12 | Pending |
-| PGSA-01 | Phase 12 | Pending |
+| PGSL-06 | Phase 12 | Complete |
+| PGSA-01 | Phase 12 | Complete |
 | PGSA-02 | Phase 12 | Pending |
 | PGSA-03 | Phase 12 | Pending |
-| PGSA-04 | Phase 12 | Pending |
-| PGSA-05 | Phase 12 | Pending |
+| PGSA-04 | Phase 12 | Complete |
+| PGSA-05 | Phase 12 | Complete |
 | PGSA-06 | Phase 12 | Pending |
 | CLOUD-01 | Phase 13 | Pending |
 | CLOUD-02 | Phase 13 | Pending |

@@ -1,14 +1,21 @@
 package com.app.pegsolitaire.data
 
 import androidx.room.withTransaction
+import com.app.pegsolitaire.data.db.ClassicStanding
 import com.app.pegsolitaire.data.db.LevelResultDao
 import com.app.pegsolitaire.data.db.LevelResultEntity
 import com.app.pegsolitaire.data.db.PegSolitaireDatabase
+import com.app.pegsolitaire.data.db.PlaySessionDao
+import com.app.pegsolitaire.data.db.PlaySessionEntity
 import com.app.pegsolitaire.data.db.ResumeDao
 import com.app.pegsolitaire.data.db.ResumeSnapshotEntity
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
 import com.app.pegsolitaire.data.resume.SnapshotMapper
+import com.app.pegsolitaire.domain.achievement.AchievementThresholds
+import com.app.pegsolitaire.domain.achievement.ClassicBoard
+import com.app.pegsolitaire.domain.achievement.ProgressAggregate
 import com.app.pegsolitaire.domain.scoring.ScoreResult
+import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -40,11 +47,25 @@ interface ProgressRepository {
      * The write is best-effort (T-05-13): a storage failure drops this play's record —
      * stored bests keep their prior values — and reports "nothing improved" rather than
      * crashing the Results screen.
+     *
+     * **Both tables are written in ONE transaction (D-08).** The `level_result` upsert and
+     * the `play_session` insert land together or not at all, so telemetry can never
+     * disagree with the best it belongs to: a half-applied write would otherwise leave a
+     * banked best with no telemetry (a permanently unearnable Hint-free) or a telemetry row
+     * for a play whose best was never stored. The two tables mean different things —
+     * `play_session` is append-only and describes THIS PLAY, while `level_result` holds the
+     * merged best — which is why a replay appends a second session row but still updates
+     * one result row.
+     *
+     * @param telemetry this play's per-solve facts (D-08). Deliberately has **no default**:
+     *   a default would let a future call site silently drop telemetry, and the compiler
+     *   catching every call site is exactly the point.
      */
     suspend fun recordResult(
         mode: String,
         levelId: String,
         result: ScoreResult,
+        telemetry: SolveTelemetry,
         nowMs: Long,
     ): NewBests
 
@@ -55,6 +76,50 @@ interface ProgressRepository {
      * (T-05-10): the catalog renders as unplayed rather than crashing.
      */
     fun observeResults(mode: String): Flow<List<LevelResult>>
+
+    /**
+     * The whole stored-progress snapshot the achievement rules consume, computed entirely
+     * in SQL.
+     *
+     * Every field is produced by a `@Query` projection rather than a Kotlin fold over
+     * rows, per the ROADMAP's Phase 12 note: the Challenge ladder reaches thousands of
+     * rows, and folding them in memory would load the entire history to compute a `MAX`.
+     * The only Kotlin work left is mapping a stored `levelId` to a [ClassicBoard].
+     *
+     * This is the SINGLE input to `AchievementRules.evaluate` (D-11), and it is computed
+     * identically for a live solve — where it already reflects the result just recorded —
+     * and for the offline backfill. That one shape is what removes the second rule set
+     * D-11 forbids.
+     *
+     * Deliberately takes **no `mode` parameter**: [ProgressAggregate] spans both modes by
+     * construction (the D-03 star tiers count stars everywhere), and a mode parameter
+     * would invite exactly the per-mode split the achievement rules do not have.
+     *
+     * A storage failure degrades to `ProgressAggregate()` (T-12-34), which reads as "a
+     * brand-new player" and therefore submits nothing rather than submitting something
+     * wrong.
+     *
+     * **The `ChallengeProgress` off-by-one is expected, not a bug.**
+     * `highestChallengeLevel` here is the highest level actually BANKED in `level_result`,
+     * whereas [ChallengeProgress.currentLevel] stores `max(current, solved + 1)` — the
+     * NEXT level to play. The two therefore normally differ by exactly one, and by more if
+     * a best-effort [recordResult] write failed while `advancePast` succeeded. **This SQL
+     * value is the authoritative one**: the ROADMAP mandates it and it matches what the
+     * player actually banked. Do not "reconcile" the difference.
+     */
+    suspend fun aggregate(): ProgressAggregate
+
+    /**
+     * Each stored Classic board's best score, keyed by the domain enum — the input to the
+     * five per-board Classic leaderboards (PGSL-03).
+     *
+     * Keying by [ClassicBoard] rather than by id text is what keeps the on-disk id strings
+     * inside the data layer (QUAL-01); the translation happens once, in [ClassicBoardIds].
+     * A board that has never been solved is simply **absent** from the map rather than
+     * present with a zero, so a caller cannot accidentally submit a score of 0 for a board
+     * the player has not played. A storage failure degrades to an empty map.
+     */
+    suspend fun classicBests(): Map<ClassicBoard, Int>
 
     /**
      * Saves [dto] as the resume point for its own [ResumeSnapshotDto.mode], replacing any
@@ -135,11 +200,13 @@ class DefaultProgressRepository
         private val database: PegSolitaireDatabase,
         private val levelResultDao: LevelResultDao,
         private val resumeDao: ResumeDao,
+        private val playSessionDao: PlaySessionDao,
     ) : ProgressRepository {
         override suspend fun recordResult(
             mode: String,
             levelId: String,
             result: ScoreResult,
+            telemetry: SolveTelemetry,
             nowMs: Long,
         ): NewBests =
             // Best-effort (T-05-13), guarded at the TRANSACTION boundary deliberately: a
@@ -148,7 +215,7 @@ class DefaultProgressRepository
             // stored bests. Failure drops the write and reports "nothing improved".
             storageFailSafe(fallback = NewBests(stars = false, time = false, score = false)) {
                 database.withTransaction {
-                    recordResultInTransaction(mode, levelId, result, nowMs)
+                    recordResultInTransaction(mode, levelId, result, telemetry, nowMs)
                 }
             }
 
@@ -156,6 +223,7 @@ class DefaultProgressRepository
             mode: String,
             levelId: String,
             result: ScoreResult,
+            telemetry: SolveTelemetry,
             nowMs: Long,
         ): NewBests {
             val previous = levelResultDao.find(mode, levelId)
@@ -176,8 +244,86 @@ class DefaultProgressRepository
                     completedAt = if (newBests.any) nowMs else previous?.completedAt ?: nowMs,
                 ),
             )
+            // Inside the SAME transaction as the upsert above (D-08), and built from THIS
+            // PLAY's values rather than the merged bests. Note the deliberate asymmetry of
+            // the two timestamps: `completedAt` on the result row means "last improved" and
+            // only moves on an improvement, whereas `finishedAt` here means "this play
+            // happened" and is stamped every time.
+            playSessionDao.insert(
+                PlaySessionEntity(
+                    mode = mode,
+                    levelId = levelId,
+                    stars = result.stars,
+                    score = result.score,
+                    elapsedMs = timeMs,
+                    hintsUsed = telemetry.hintsUsed,
+                    undosUsed = telemetry.undosUsed,
+                    lastPegOnTarget = telemetry.lastPegOnTarget,
+                    finishedAt = nowMs,
+                ),
+            )
             return newBests
         }
+
+        override suspend fun aggregate(): ProgressAggregate =
+            // Fails safe to a fresh-player aggregate (T-12-34): a corrupt database submits
+            // nothing rather than crashing Results or submitting a half-read number.
+            storageFailSafe(fallback = ProgressAggregate()) {
+                // All three reads share ONE transaction so the snapshot is internally
+                // consistent: a solve landing between the totals query and the flags query
+                // cannot produce an aggregate claiming a level the star total does not
+                // know about.
+                database.withTransaction {
+                    val totals =
+                        levelResultDao.totals(
+                            challengeMode = ProgressPersistenceKeys.MODE_CHALLENGE,
+                            threeStars = AchievementThresholds.PERFECT_STARS,
+                        )
+                    val standings = levelResultDao.classicStandings(ProgressPersistenceKeys.MODE_CLASSIC)
+                    val flags =
+                        playSessionDao.flags(
+                            classicMode = ProgressPersistenceKeys.MODE_CLASSIC,
+                            english33Id = ClassicLevelIds.ENGLISH33,
+                            speedLimitMs = AchievementThresholds.SPEED_SOLVE_MAX_ELAPSED_MS,
+                        )
+                    ProgressAggregate(
+                        highestChallengeLevel = totals.highestChallengeLevel,
+                        challengeScoreTotal = totals.challengeScoreTotal,
+                        totalStars = totals.totalStars,
+                        solvedLevelCount = totals.solvedLevelCount,
+                        threeStarCount = totals.threeStarCount,
+                        // Both sets come from the SAME standings read, so a Grand tour or
+                        // Perfectionist answer can never disagree with the per-board set it
+                        // was counted from (D-04).
+                        clearedClassicBoards = standings.boards(),
+                        perfectClassicBoards = standings.boards(minStars = AchievementThresholds.PERFECT_STARS),
+                        anyHintFreeSolve = flags.anyHintFreeSolve,
+                        anyUndoFreeSolve = flags.anyUndoFreeSolve,
+                        anyCenterFinish = flags.anyCenterFinish,
+                        anySpeedSolve = flags.anySpeedSolve,
+                    )
+                }
+            }
+
+        override suspend fun classicBests(): Map<ClassicBoard, Int> =
+            storageFailSafe(fallback = emptyMap()) {
+                levelResultDao
+                    .classicStandings(ProgressPersistenceKeys.MODE_CLASSIC)
+                    .mapNotNull { standing ->
+                        // An id naming no shipped board (legacy or forged) is dropped, never
+                        // fatal — a leaderboard read must not die on one stale row.
+                        ClassicBoardIds.boardFor(standing.levelId)?.let { it to standing.bestScore }
+                    }.toMap()
+            }
+
+        /**
+         * The [ClassicBoard]s these standings represent, optionally narrowed to those at or
+         * above [minStars]. An id naming no shipped board is dropped.
+         */
+        private fun List<ClassicStanding>.boards(minStars: Int = ProgressConstants.ANY_STARS): Set<ClassicBoard> =
+            filter { it.stars >= minStars }
+                .mapNotNull { ClassicBoardIds.boardFor(it.levelId) }
+                .toSet()
 
         override fun observeResults(mode: String): Flow<List<LevelResult>> =
             levelResultDao
@@ -261,4 +407,11 @@ private object ProgressConstants {
 
     /** The "no previous row" floor for the max-score merge. */
     const val NO_SCORE = 0
+
+    /**
+     * The "do not narrow by stars" floor for the cleared-boards read: a stored row means
+     * the board was cleared regardless of how well. The *perfect* narrowing binds
+     * `AchievementThresholds.PERFECT_STARS` instead, so the 3 is never restated here.
+     */
+    const val ANY_STARS = 0
 }

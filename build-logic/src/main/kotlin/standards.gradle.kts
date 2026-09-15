@@ -4,7 +4,7 @@ import org.gradle.api.GradleException
 /**
  * Code-standards gate (QUAL-02 / QUAL-03), applied by BOTH `:domain` and `:app`.
  *
- * Wires five checks into the `check` lifecycle so the build FAILS on any
+ * Wires six checks into the `check` lifecycle so the build FAILS on any
  * violation, from commit 0:
  *  - detekt (`dev.detekt` 2.0) with `MagicNumber` enabled — no magic numbers.
  *  - ktlint (`org.jlleitschuh.gradle.ktlint`) — format/lint.
@@ -12,6 +12,8 @@ import org.gradle.api.GradleException
  *    (no built-in detekt/ktlint rule covers this; QUAL-03).
  *  - a custom `adIdLiteralCheck` — no ad-unit-ID literal anywhere in `src/main`
  *    (PLAT-06; ad IDs are `buildConfigField`/`resValue` only).
+ *  - a custom `gamesIdLiteralCheck` — no Play Games leaderboard/achievement ID
+ *    literal anywhere in `src/main` (PLAT-06 / D-17; the games half of the same rule).
  *  - a custom `audioFocusLiteralCheck` — no audio-focus request anywhere in `src/main`
  *    (SOUND-06; holding no focus is what stops the game ducking the user's music).
  */
@@ -88,6 +90,18 @@ val adIdSourceRoots = listOf("src/main/java", "src/main/kotlin", "src/main/res")
 // The AdMob ID publisher prefix, shared by app IDs (`…~…`) and unit IDs (`…/…`).
 val adIdMarker = "ca-app-pub-"
 
+// The shared leading fragment of a Play Games leaderboard/achievement ID — they are
+// base64url payloads of the form `CgkI…EAIQAQ` and every one observed begins `CgkI`.
+//
+// This is a HEURISTIC on an ID shape, not a proof: a hand-crafted ID that does not start
+// `CgkI` would slip past, and an unrelated base64 blob that does start `CgkI` would trip
+// it. It earns its place anyway. PLAT-06 forbids any ID literal under `src/main`, and
+// `adIdMarker` (`ca-app-pub-`) matches no Play Games ID at all — so without this gate the
+// games half of PLAT-06 is enforced by code review alone, which is exactly the kind of
+// rule that decays. The IDs belong in `app/build.gradle.kts`'s `buildConfigField` loop and
+// are read through `platform/games/GamesIds.kt`.
+val gamesIdMarker = "CgkI"
+
 // The audio-focus APIs SOUND-06 forbids. Requesting focus is what *initiates* ducking,
 // so the abandon call is listed too: its presence can only mean a request exists.
 val audioFocusMarkers = listOf("requestAudioFocus", "abandonAudioFocusRequest")
@@ -125,6 +139,47 @@ val adIdLiteralCheck =
                     "Ad-unit-ID literals are forbidden in src/main (PLAT-06 / D-05). " +
                         "IDs differ per build type — declare them as buildConfigField/resValue " +
                         "in app/build.gradle.kts and read them via platform/ads/AdIds.kt:\n  " +
+                        offenders.joinToString("\n  "),
+                )
+            }
+        }
+    }
+
+// ---- PLAT-06 / D-17: custom "no Play Games ID literal in source" gate --------
+// The games sibling of `adIdLiteralCheck`, and it exists because that gate cannot cover
+// this: it scans for `ca-app-pub-`, which no leaderboard or achievement ID contains.
+// Same 27 values, same rule — they are per-build-type `buildConfigField`s resolved from
+// an untracked `local.properties`, never source. Reuses `adIdSourceRoots`, so it scans
+// `src/main` only: `src/test` legitimately spells key names (see `BuildConfigIdsTest`).
+val gamesIdLiteralCheck =
+    tasks.register("gamesIdLiteralCheck") {
+        group = "verification"
+        description =
+            "Fails on Play Games leaderboard/achievement ID literals in src/main (use buildConfigField)."
+        doLast {
+            val offenders = mutableListOf<String>()
+            adIdSourceRoots.filter { it.exists() }.forEach { root ->
+                root.walkTopDown()
+                    .filter { it.isFile }
+                    .forEach { file ->
+                        file.readLines().forEachIndexed { index, line ->
+                            val trimmed = line.trimStart()
+                            if (commentPrefixes.any { trimmed.startsWith(it) }) {
+                                return@forEachIndexed
+                            }
+                            if (line.contains(gamesIdMarker)) {
+                                val where = file.relativeTo(moduleDir).invariantSeparatorsPath
+                                offenders += "$where:${index + 1}: $trimmed"
+                            }
+                        }
+                    }
+            }
+            if (offenders.isNotEmpty()) {
+                throw GradleException(
+                    "Play Games leaderboard/achievement ID literals are forbidden in src/main " +
+                        "(PLAT-06 / D-17). IDs differ per build type — declare them in the " +
+                        "buildConfigField loop in app/build.gradle.kts and read them via " +
+                        "platform/games/GamesIds.kt:\n  " +
                         offenders.joinToString("\n  "),
                 )
             }
@@ -174,5 +229,12 @@ val audioFocusLiteralCheck =
     }
 
 tasks.named("check").configure {
-    dependsOn("detekt", "ktlintCheck", dpSpLiteralCheck, adIdLiteralCheck, audioFocusLiteralCheck)
+    dependsOn(
+        "detekt",
+        "ktlintCheck",
+        dpSpLiteralCheck,
+        adIdLiteralCheck,
+        gamesIdLiteralCheck,
+        audioFocusLiteralCheck,
+    )
 }

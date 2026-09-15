@@ -256,10 +256,25 @@
       settings_play_games_signed_in_fallback replaces it whole when that lookup failed or
       stalled (D-14) — deliberately NOT "Signed in as (unknown)", which reads as a broken
       sign-in rather than the successful one it is.
+
+      Phase 12 D-14/D-15 — the two stock-UI rows below the signed-in row, and they are
+      shown to a signed-in player ONLY. Signed out, they are absent rather than disabled:
+      a greyed-out "Leaderboards" is an affordance that explains nothing, whereas the
+      sign-in row directly above it already says what to do. While the session is still
+      Unknown the whole section is absent (Phase 11 D-11), these rows included.
+
+      Both labels are fixed verbatim by D-14. "Leaderboards" is plural because the row
+      opens the all-leaderboards picker, not one board — the supporting lines describe
+      looking at what is already there, since neither row submits anything. No id and no
+      player-identifying text belongs in either: the seam takes no argument for these.
     -->
     <string name="settings_section_play_games">Play Games</string>
     <string name="settings_play_games_signin_label">Sign in to Play Games</string>
     <string name="settings_play_games_signin_supporting">Leaderboards, achievements and cloud save</string>
     <string name="settings_play_games_signed_in_as">Signed in as %1$s</string>
     <string name="settings_play_games_signed_in_fallback">Signed in to Play Games</string>
+    <string name="settings_play_games_leaderboards_label">Leaderboards</string>
+    <string name="settings_play_games_leaderboards_supporting">See how your scores rank</string>
+    <string name="settings_play_games_achievements_label">Achievements</string>
+    <string name="settings_play_games_achievements_supporting">View the achievements you\'ve earned</string>
 </resources>

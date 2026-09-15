@@ -68,6 +68,32 @@ import kotlinx.serialization.Serializable
  *   refill.
  * @property freeUndosRemaining Free undos left on this level — same contract as
  *   [freeHintsRemaining], resolved against its own independent limit (D-01).
+ * @property hintsUsed Hints the player actually received during this play (D-09) — free,
+ *   silently-free and rewarded alike.
+ *
+ *   **On-disk contract:** `null` means "written before assist counting existed", NOT
+ *   "unknown", and it resolves to **0** per D-09's "absent fields on an old snapshot read
+ *   as zero".
+ *
+ *   Be clear about which way that points: zero is the *purest* possible count, so the
+ *   default fails **OPEN toward the achievement** — an old blob written before Phase 12
+ *   restores as a hint-free, undo-free play. That is accepted rather than defended
+ *   against, for a reason of scope rather than of security: this store is local-only and
+ *   unsynced, the only thing riding on the counters is one self-awarded cosmetic badge,
+ *   and D-09 locks the zero default. The honest alternative — denying purity whenever the
+ *   evidence is missing — would retroactively disqualify every legacy resume, which costs
+ *   real players more than it costs a tamperer.
+ *
+ *   The counters ride the snapshot for exactly one reason (D-09's anti-laundering
+ *   purpose): the assists are spent in `GameViewModel`, which does not survive process
+ *   death, so without this field killing the app mid-level would erase an assist already
+ *   taken and turn a hinted solve into a hint-free one. A **negative** value is a
+ *   different thing entirely — no legacy writer ever produced one, so it is forgery, not
+ *   absence — and it REFUSES the resume, exactly as a forged move, footprint or target
+ *   does (see [SnapshotMapper.fromDto]). Refusing is safe here precisely because absence
+ *   is already handled by the `null` branch above: nothing honest reaches it.
+ * @property undosUsed Undos that actually rewound the board during this play — same
+ *   contract as [hintsUsed], counted independently.
  */
 @Serializable
 data class ResumeSnapshotDto(
@@ -84,6 +110,8 @@ data class ResumeSnapshotDto(
     val minimumPegs: Int? = null,
     val freeHintsRemaining: Int? = null,
     val freeUndosRemaining: Int? = null,
+    val hintsUsed: Int? = null,
+    val undosUsed: Int? = null,
 )
 
 /**

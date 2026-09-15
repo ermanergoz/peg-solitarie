@@ -4,7 +4,9 @@ import android.content.Context
 import androidx.room.Room
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.db.LevelResultDao
+import com.app.pegsolitaire.data.db.MIGRATION_1_2
 import com.app.pegsolitaire.data.db.PegSolitaireDatabase
+import com.app.pegsolitaire.data.db.PlaySessionDao
 import com.app.pegsolitaire.data.db.ResumeDao
 import dagger.Module
 import dagger.Provides
@@ -43,7 +45,11 @@ object DatabaseModule {
                 PegSolitaireDatabase::class.java,
                 ProgressPersistenceKeys.DB_NAME,
             )
-            // Future schema versions land here as `.addMigrations(MIGRATION_1_2, …)`.
+            // v2 added the `play_session` solve-telemetry table as a pure additive
+            // CREATE TABLE (PGSA-06). Registering it here is what keeps an upgrading
+            // device from crashing on first open — the destructive fallback stays
+            // absent, so a missing migration has no silent path.
+            .addMigrations(MIGRATION_1_2)
             .build()
 
     @Provides
@@ -51,4 +57,7 @@ object DatabaseModule {
 
     @Provides
     fun provideResumeDao(database: PegSolitaireDatabase): ResumeDao = database.resumeDao()
+
+    @Provides
+    fun providePlaySessionDao(database: PegSolitaireDatabase): PlaySessionDao = database.playSessionDao()
 }
