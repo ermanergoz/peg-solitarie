@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The cover image attached to every Play Games cloud commit (CLOUD-03, D-09): the app's own
+  English-33 board art over its own violet field, composed here and rasterized at runtime by
+  CoverImageSource.
+
+  WHY THIS FILE EXISTS RATHER THAN RASTERIZING R.mipmap.ic_launcher — on API 26+ that id
+  resolves to mipmap-anydpi-v26/ic_launcher.xml, an <adaptive-icon>, and AdaptiveIconDrawable
+  .draw() applies its OWN mask. The cover would come out circle-cropped (or squircle-cropped,
+  or teardrop-cropped) according to whatever the device's launcher last negotiated — a saves
+  listing that looks different on two of the same player's phones for no reason they can see.
+  This composite is deliberately UNMASKED and FULL-BLEED.
+
+  It is also deliberately not a committed PNG. Both items below point at the existing vectors,
+  so there is exactly ONE copy of the art in the tree and the cover cannot silently drift from
+  the launcher icon. The mipmap-anydpi/ic_launcher.xml comment states the no-PNG rule for the
+  whole repo; this file keeps it.
+
+  The first item is the adaptive BACKGROUND vector and deliberately not its "..._legacy"
+  sibling: that variant exists to give the API 24-25 square tile its own inset treatment, a
+  launcher-tile concern with no meaning on a 512-square cover.
+
+  The foreground group is scaled 0.55 about centre for the adaptive safe zone, so the board
+  occupies the middle ~55% here too. That is intentional: a cover cropped tight to the board
+  would lose the violet field that makes the entry recognisable at listing size.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@drawable/ic_launcher_background" />
+    <item android:drawable="@drawable/ic_launcher_foreground" />
+</layer-list>
