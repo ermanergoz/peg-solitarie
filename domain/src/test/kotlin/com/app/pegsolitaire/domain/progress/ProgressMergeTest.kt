@@ -199,7 +199,9 @@ class ProgressMergeTest {
 
         val trimmed = ProgressMerge.dropLowestChallenge(progress, count = progress.bests.size * 2)
 
-        assertThat(trimmed.bests.keys.map { it.mode }.toSet()).containsExactly(ProgressMode.CLASSIC)
+        val survivingModes = trimmed.bests.keys.mapTo(mutableSetOf()) { it.mode }
+
+        assertThat(survivingModes).containsExactly(ProgressMode.CLASSIC)
         assertThat(trimmed.ladder).isEqualTo(progress.ladder)
         assertThat(trimmed.playedTimeMs).isEqualTo(progress.playedTimeMs)
     }
