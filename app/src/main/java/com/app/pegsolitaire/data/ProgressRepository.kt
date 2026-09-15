@@ -14,6 +14,8 @@ import com.app.pegsolitaire.data.resume.SnapshotMapper
 import com.app.pegsolitaire.domain.achievement.AchievementThresholds
 import com.app.pegsolitaire.domain.achievement.ClassicBoard
 import com.app.pegsolitaire.domain.achievement.ProgressAggregate
+import com.app.pegsolitaire.domain.progress.LevelBest
+import com.app.pegsolitaire.domain.progress.ProgressMerge
 import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import kotlinx.coroutines.flow.Flow
@@ -186,8 +188,13 @@ data class LevelResult(
  * [recordResult] is a read-modify-write inside `withTransaction`: two plays finishing
  * concurrently (a background save racing a Results write) cannot interleave into a lost
  * update, and the "which fields improved" answer is computed against the same row that
- * is then written. The merge itself deliberately lives here rather than in SQL because
- * the DAO cannot report *what* improved (see `LevelResultDao`).
+ * is then written. The read-modify-write deliberately happens in Kotlin rather than in
+ * SQL because the DAO cannot report *what* improved (see `LevelResultDao`).
+ *
+ * The merge it applies is [ProgressMerge], the pure `:domain` join — the very same
+ * function the cloud import and the Saved Games conflict loop run (CLOUD-02). Recording a
+ * solve locally and receiving that solve from another device are therefore the same
+ * operation, proven commutative, associative and idempotent by `ProgressMergeTest`.
  *
  * The resume blob is treated as untrusted on the way in: [loadSnapshot] decodes
  * defensively and additionally refuses a payload whose own `mode` is not the key it was
@@ -234,13 +241,39 @@ class DefaultProgressRepository
                     time = previous == null || timeMs < previous.bestTimeMs,
                     score = previous == null || result.score > previous.bestScore,
                 )
+            val thisPlay =
+                LevelBest(
+                    stars = result.stars,
+                    bestTimeMs = timeMs,
+                    bestScore = result.score,
+                )
+            // The SAME join the cloud import and the Saved Games conflict loop run
+            // (CLOUD-02) — one named merge rather than three hand-written copies free to
+            // drift apart. A first solve is `thisPlay` verbatim rather than a merge
+            // against a fabricated identity row: the two are equal by the identity law,
+            // but not inventing a row keeps the "no previous" case obviously lossless.
+            //
+            // `completedAt` is deliberately NOT merged. It means "last improved on THIS
+            // device", so it has no cross-device meaning and stays out of `LevelBest`
+            // entirely; its expression below is unchanged.
+            val merged =
+                previous?.let { row ->
+                    ProgressMerge.merge(
+                        thisPlay,
+                        LevelBest(
+                            stars = row.stars,
+                            bestTimeMs = row.bestTimeMs,
+                            bestScore = row.bestScore,
+                        ),
+                    )
+                } ?: thisPlay
             levelResultDao.upsert(
                 LevelResultEntity(
                     mode = mode,
                     levelId = levelId,
-                    stars = maxOf(result.stars, previous?.stars ?: ProgressConstants.NO_STARS),
-                    bestTimeMs = minOf(timeMs, previous?.bestTimeMs ?: Long.MAX_VALUE),
-                    bestScore = maxOf(result.score, previous?.bestScore ?: ProgressConstants.NO_SCORE),
+                    stars = merged.stars,
+                    bestTimeMs = merged.bestTimeMs,
+                    bestScore = merged.bestScore,
                     completedAt = if (newBests.any) nowMs else previous?.completedAt ?: nowMs,
                 ),
             )
@@ -395,18 +428,18 @@ class DefaultProgressRepository
     }
 
 /**
- * Scoped constants for the progress merge (QUAL-03 — no inline magic numbers in logic).
- * Kept separate from `ProgressPersistenceKeys`, which owns the on-disk *names*.
+ * Scoped constants for this repository's unit conversions and query narrowing (QUAL-03 —
+ * no inline magic numbers in logic). Kept separate from `ProgressPersistenceKeys`, which
+ * owns the on-disk *names*.
+ *
+ * The merge's own floors are **not** here: `NO_STARS`, `NO_SCORE` and `NO_TIME_RECORDED`
+ * moved to `ProgressMergeLimits` in `:domain` when `ProgressMerge` was named, so the
+ * identities of the merge are stated exactly once and the cloud path cannot end up using
+ * a different zero from the local one.
  */
 private object ProgressConstants {
     /** `ScoreResult` reports whole seconds; the stored best time is in milliseconds. */
     const val MILLIS_IN_SECOND = 1_000L
-
-    /** The "no previous row" floor for the max-stars merge. */
-    const val NO_STARS = 0
-
-    /** The "no previous row" floor for the max-score merge. */
-    const val NO_SCORE = 0
 
     /**
      * The "do not narrow by stars" floor for the cleared-boards read: a stored row means
