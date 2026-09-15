@@ -1,6 +1,7 @@
 package com.app.pegsolitaire.platform.games.save
 
 import android.app.Activity
+import android.graphics.Bitmap
 import com.app.pegsolitaire.platform.activity.ForegroundActivityProvider
 import com.google.android.gms.games.PlayGames
 import com.google.android.gms.games.SnapshotsClient
@@ -293,6 +294,193 @@ class PlayGamesCloudSaveStoreTest {
             assertThat(outcome.exceptionOrNull()).isInstanceOf(CancellationException::class.java)
         }
 
+    // ---- save: the Activity bound and the open triple ------------------------------------
+
+    @Test
+    fun saveWithoutAForegroundActivityReturnsFalseAndNeverTouchesTheSdk() =
+        runTest(testDispatcher) {
+            coEvery { activityProvider.awaitActivity() } coAnswers { awaitCancellation() }
+
+            val accepted = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            assertThat(accepted).isFalse()
+            verify(exactly = 0) { PlayGames.getSnapshotsClient(any()) }
+        }
+
+    @Test
+    fun saveOpensTheSameNameCreateFlagAndPolicyTripleThatLoadDoes() =
+        runTest(testDispatcher) {
+            store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            verify(exactly = 1) {
+                client.open(
+                    CloudSaveConstants.SNAPSHOT_NAME,
+                    true,
+                    SnapshotsClient.RESOLUTION_POLICY_MANUAL,
+                )
+            }
+        }
+
+    // ---- save: what actually gets written --------------------------------------------------
+
+    @Test
+    fun saveFoldsTheBytesAlreadyOnTheSnapshotIntoWhatItWrites() =
+        runTest(testDispatcher) {
+            val written = slot<ByteArray>()
+            every { contents.writeBytes(capture(written)) } returns true
+
+            store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            // Bytes that arrived during conflict resolution are already in the server copy by the
+            // time the handle comes back open. Writing the payload alone would undo, at commit
+            // time, the resolution that had just succeeded.
+            assertThat(written.captured).isEqualTo(REMOTE_BYTES + PAYLOAD)
+        }
+
+    @Test
+    fun saveOnAnEmptySnapshotWritesThePayloadVerbatim() =
+        runTest(testDispatcher) {
+            every { contents.readFully() } returns ByteArray(0)
+            val written = slot<ByteArray>()
+            every { contents.writeBytes(capture(written)) } returns true
+            var merged = false
+
+            store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS) { first, second ->
+                merged = true
+                concat(first, second)
+            }
+
+            assertThat(written.captured).isEqualTo(PAYLOAD)
+            // Merging against nothing would be a no-op at best; asserting it is skipped pins that
+            // a first-ever push cannot be perturbed by a merge it never needed.
+            assertThat(merged).isFalse()
+        }
+
+    // ---- save: the listing metadata (CLOUD-03) ----------------------------------------------
+
+    @Test
+    fun theCommitCarriesTheDescriptionThePlayedTimeAndTheCover() =
+        runTest(testDispatcher) {
+            coEvery { coverImageSource.coverOrNull() } returns mockk<Bitmap>()
+            val change = slot<SnapshotMetadataChange>()
+            every { client.commitAndClose(any(), capture(change)) } returns Tasks.forResult(metadata)
+
+            store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            assertThat(change.captured.description).isEqualTo(DESCRIPTION_LINE)
+            assertThat(change.captured.playedTimeMillis).isEqualTo(PLAYED_TIME_MS)
+            assertThat(change.captured.coverImage).isNotNull()
+        }
+
+    @Test
+    fun aNullCoverOmitsTheArtAndStillCommits() =
+        runTest(testDispatcher) {
+            coEvery { coverImageSource.coverOrNull() } returns null
+            val change = slot<SnapshotMetadataChange>()
+            every { client.commitAndClose(any(), capture(change)) } returns Tasks.forResult(metadata)
+
+            val accepted = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            // A save without decoration is worth immeasurably more than no save at all, so an
+            // unavailable cover degrades the listing and never the push (T-13-26).
+            assertThat(accepted).isTrue()
+            assertThat(change.captured.coverImage).isNull()
+            assertThat(change.captured.description).isEqualTo(DESCRIPTION_LINE)
+        }
+
+    // ---- save: the terminal-call guarantee ---------------------------------------------------
+
+    @Test
+    fun aSuccessfulSaveCommitsExactlyOnceAndNeverDiscards() =
+        runTest(testDispatcher) {
+            val accepted = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            assertThat(accepted).isTrue()
+            verify(exactly = 1) { client.commitAndClose(snapshot, any()) }
+            verify(exactly = 0) { client.discardAndClose(any()) }
+        }
+
+    @Test
+    fun aFailingCommitReturnsFalseAndStillCloses() =
+        runTest(testDispatcher) {
+            every {
+                client.commitAndClose(any(), any())
+            } returns Tasks.forException(IllegalStateException(SDK_FAILURE))
+
+            val accepted = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            assertThat(accepted).isFalse()
+            // Exactly one terminal call, never both and never neither: a handle left open would
+            // fail every later open for the rest of the process (Pitfall 1).
+            verify(exactly = 1) { client.discardAndClose(snapshot) }
+        }
+
+    // ---- save: the runtime cap guard ----------------------------------------------------------
+
+    @Test
+    fun aPayloadLargerThanTheServerCapAbortsThePushWithoutCommitting() =
+        runTest(testDispatcher) {
+            every { contents.readFully() } returns ByteArray(0)
+            every { client.getMaxDataSize() } returns Tasks.forResult(TINY_SERVER_CAP_BYTES)
+
+            val accepted = store().save(OVERSIZED_PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            // The ROADMAP's "confirm it at runtime", implemented as an enforced guard: committing
+            // a payload the server will reject would burn the push and leave the handle to be
+            // cleaned up by the failure path instead of by the decision (T-13-39).
+            assertThat(accepted).isFalse()
+            verify(exactly = 0) { client.commitAndClose(any(), any()) }
+            verify(exactly = 1) { client.discardAndClose(snapshot) }
+        }
+
+    @Test
+    fun aFailingCapQueryDoesNotAbortThePush() =
+        runTest(testDispatcher) {
+            every { client.getMaxDataSize() } returns Tasks.forException(IllegalStateException(SDK_FAILURE))
+
+            val accepted = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            // A guard, not a precondition: the query is documented to be able to fail, and a guard
+            // that cannot answer must not become a reason to drop a save.
+            assertThat(accepted).isTrue()
+            verify(exactly = 1) { client.commitAndClose(snapshot, any()) }
+        }
+
+    // ---- save: failure classification -----------------------------------------------------------
+
+    @Test
+    fun aThrownSdkCallOnTheWritePathYieldsFalseAndStillClosesTheSnapshot() =
+        runTest(testDispatcher) {
+            every { contents.writeBytes(any()) } throws IllegalStateException(SDK_FAILURE)
+
+            val accepted = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            assertThat(accepted).isFalse()
+            verify(exactly = 1) { client.discardAndClose(snapshot) }
+        }
+
+    @Test
+    fun anUnresolvableConflictOnThePushPathYieldsFalse() =
+        runTest(testDispatcher) {
+            every { client.open(any<String>(), any(), any()) } returns Tasks.forResult(conflictResult())
+            every { client.resolveConflict(any(), any(), any(), any()) } answers { Tasks.forResult(conflictResult()) }
+
+            val accepted = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            assertThat(accepted).isFalse()
+            verify(exactly = 0) { client.commitAndClose(any(), any()) }
+        }
+
+    @Test
+    fun cancellationPropagatesOutOfSaveRatherThanBeingClassifiedAsAFailure() =
+        runTest(testDispatcher) {
+            every { contents.readFully() } throws CancellationException(CANCELLED)
+
+            val outcome = runCatching { store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat) }
+
+            assertThat(outcome.exceptionOrNull()).isInstanceOf(CancellationException::class.java)
+        }
+
     // ---- fixtures ------------------------------------------------------------------------
 
     private fun store() =
@@ -355,9 +543,27 @@ private fun concat(
 private val REMOTE_BYTES = "remote".toByteArray()
 private val SERVER_BYTES = "server".toByteArray()
 private val MODIFIED_BYTES = "mine".toByteArray()
+private val PAYLOAD = "payload".toByteArray()
+
+/** Comfortably larger than [TINY_SERVER_CAP_BYTES], so the cap guard has something to reject. */
+private val OVERSIZED_PAYLOAD = ByteArray(100) { 'x'.code.toByte() }
+
 private const val SNAPSHOT_ID = "placeholder-snapshot-id"
 private const val CONFLICT_ID = "placeholder-conflict-id"
 private const val DESCRIPTION_LINE = "Challenge level 7 - 21 stars - 3/5 Classic boards"
 private const val SDK_FAILURE = "sdk failure"
 private const val CANCELLED = "cancelled"
+private const val PLAYED_TIME_MS = 987_654L
+
+/** The documented floor: the javadoc guarantees at least 3 MB per snapshot. */
 private const val SERVER_CAP_BYTES = 3 * 1024 * 1024
+
+/** A contract-violating server answer — the only thing that can make the guard fire. */
+private const val TINY_SERVER_CAP_BYTES = 10
+
+private val DESCRIPTION =
+    CloudSaveDescription(
+        ladder = 7,
+        totalStars = 21,
+        classicCleared = 3,
+    )
