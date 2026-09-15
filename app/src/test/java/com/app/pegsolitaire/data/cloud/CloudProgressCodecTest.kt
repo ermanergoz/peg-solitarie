@@ -171,8 +171,10 @@ class CloudProgressCodecTest {
     @OptIn(ExperimentalSerializationApi::class)
     @Test
     fun thePayloadCarriesNoBoardNoMovesAndNoResumeField() {
-        val payloadFields = CloudProgressDto.serializer().descriptor.elementNames.toSet()
-        val rowFields = LevelBestDto.serializer().descriptor.elementNames.toSet()
+        val payloadDescriptor = CloudProgressDto.serializer().descriptor
+        val rowDescriptor = LevelBestDto.serializer().descriptor
+        val payloadFields = payloadDescriptor.elementNames.toSet()
+        val rowFields = rowDescriptor.elementNames.toSet()
 
         assertThat(payloadFields).isEqualTo(setOf("schemaVersion", "ladder", "playedTimeMs", "bests"))
         assertThat(rowFields).isEqualTo(setOf("mode", "levelId", "stars", "bestTimeMs", "bestScore"))
