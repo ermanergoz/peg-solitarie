@@ -39,6 +39,14 @@ class NoOpGamesService
         override val session: StateFlow<GamesSignInState> = signedOutSession.asStateFlow()
 
         /**
+         * A no-op, for the same reason [bootstrapIfOptedIn] is: no persisted opt-in flag
+         * to read and no SDK to initialize, so the stub has only the D-01 gate's "never
+         * opted in" branch. Nothing is published either — the process-start hook never
+         * writes [session] in any implementation.
+         */
+        override fun initializeIfOptedIn() = Unit
+
+        /**
          * A no-op: the stub has no persisted opt-in flag to read and no SDK to
          * initialize, so the D-01 gate's "never opted in" branch is the only branch it
          * has. [session] is already resolved to [GamesSignInState.SignedOut], which is

@@ -48,6 +48,15 @@ class NoOpGamesServiceTest {
     }
 
     @Test
+    fun initializeIfOptedInDoesNotThrowAndLeavesTheSessionSignedOut() {
+        // The process-start hook: no persisted flag, no SDK, nothing to initialize — and
+        // nothing published either, so the stub's resolved session is untouched.
+        service.initializeIfOptedIn()
+
+        assertThat(service.session.value).isEqualTo(GamesSignInState.SignedOut)
+    }
+
+    @Test
     fun bootstrapIfOptedInDoesNotThrow() {
         // D-01: the stub has no persisted opt-in flag to read and no SDK to initialize, so the
         // launch-time bootstrap must be a silent no-op rather than an error path.

@@ -4,6 +4,7 @@ import android.app.Application
 import com.app.pegsolitaire.audio.SoundPlayer
 import com.app.pegsolitaire.di.ApplicationScope
 import com.app.pegsolitaire.platform.activity.ForegroundActivityProvider
+import com.app.pegsolitaire.platform.games.GamesService
 import com.app.pegsolitaire.platform.lifecycle.AppForegroundTracker
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
@@ -26,9 +27,23 @@ import javax.inject.Inject
  * interstitial session boundary; see [AppForegroundTracker]'s KDoc for why.
  *
  * The ordering in [onCreate] is **not optional**: Hilt performs field injection into an
- * `Application` as part of `super.onCreate()`, so [activityProvider], [foregroundTracker],
- * [soundPlayer] and [appScope] are only non-null once that call has returned — touching any of
- * them before it would throw `UninitializedPropertyAccessException`.
+ * `Application` as part of `super.onCreate()`, so [activityProvider], [gamesService],
+ * [foregroundTracker], [soundPlayer] and [appScope] are only non-null once that call has
+ * returned — touching any of them before it would throw
+ * `UninitializedPropertyAccessException`.
+ *
+ * It is also where the Play Games SDK is initialized for an already-opted-in player, through
+ * [GamesService.initializeIfOptedIn] (PGS-01). That call site is load-bearing in **both**
+ * directions: it must be after `super.onCreate()` because that is where Hilt injects, and it
+ * must be inside `Application.onCreate` because the SDK's automatic sign-in attempt fires only
+ * for an Activity created *after* initialization — from `MainActivity.onCreate` it is already
+ * too late, and an opted-in player's cold relaunch silently resolves to signed-out (Phase 11
+ * UAT test 1). The opt-in gate itself lives behind the seam and is unchanged: a player who
+ * never opted in is still never reached by the SDK (D-07/D-17).
+ *
+ * That is also why this class imports **nothing** from `com.google.android.gms`: the SDK call
+ * happens inside `platform/games`, and [PlatformBoundaryTest]'s exemption for this class
+ * covers only [ForegroundActivityProvider] — it grants no licence to name an SDK type here.
  *
  * The preload lives here rather than in `MainActivity` because SOUND-01 requires the first
  * tap of a session to be audible: `SoundPool` decodes asynchronously, so the decode has to
@@ -57,6 +72,11 @@ class App : Application() {
     @Inject
     lateinit var activityProvider: ForegroundActivityProvider
 
+    // The interface, never `PlayGamesService` — see the class KDoc's rule; a concrete type
+    // here would be a second, unscoped instance whose session nothing ever updates.
+    @Inject
+    lateinit var gamesService: GamesService
+
     @Inject
     lateinit var foregroundTracker: AppForegroundTracker
 
@@ -73,6 +93,11 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
         activityProvider.attachTo(this)
+        // Position is load-bearing in both directions: after super.onCreate() because Hilt
+        // injects there, and inside Application.onCreate because the SDK's automatic sign-in
+        // attempt only fires for an Activity created AFTER initialize (Phase 11 UAT test 1).
+        // Opt-in-gated behind the seam, so a player who never opted in is untouched.
+        gamesService.initializeIfOptedIn()
         foregroundTracker.attach()
         appScope.launch { soundPlayer.preload() }
     }
