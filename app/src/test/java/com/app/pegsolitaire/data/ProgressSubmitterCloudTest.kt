@@ -17,6 +17,7 @@ import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import com.app.pegsolitaire.platform.games.FakeGamesService
 import com.app.pegsolitaire.platform.games.GamesService
 import com.app.pegsolitaire.platform.games.GamesSignInState
+import com.app.pegsolitaire.platform.games.save.CloudSaveDescription
 import com.app.pegsolitaire.platform.games.save.CloudSaveStore
 import com.app.pegsolitaire.platform.games.save.FakeCloudSaveStore
 import com.google.common.truth.Truth.assertThat
@@ -372,6 +373,206 @@ class ProgressSubmitterCloudTest {
             assertThat(profileStore.value).isNull()
         }
 
+    // ---- Step 4: the push, its metadata and its retry marker (D-01/D-11) -------
+
+    @Test
+    fun aSolveTriggeredPassPushesTheStoredProgressWithItsListingMetadata() =
+        runTest(testDispatcher) {
+            val challengeProgress = ChallengeProgress(inMemoryDataStore(), submitterScope)
+            val repository = FakeCloudRepository(initial = localBests())
+            val saveStore = FakeCloudSaveStore()
+            val submitter =
+                submitterFor(
+                    repository = repository,
+                    games = FakeGamesService(signedIn()),
+                    saveStore = saveStore,
+                    challengeProgress = challengeProgress,
+                )
+
+            submitter.onResultRecorded()
+            advanceUntilIdle()
+
+            assertThat(saveStore.saveCallCount).isEqualTo(1)
+            val pushed = decodePushed(saveStore.savedPayloads.single())
+            assertThat(pushed.bests).containsExactlyEntriesIn(localBests())
+            assertThat(pushed.ladder).isEqualTo(ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL)
+            // D-11's three numbers, carried as numbers so `platform/` owns the wording.
+            assertThat(saveStore.lastDescription)
+                .isEqualTo(
+                    CloudSaveDescription(
+                        ladder = ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL,
+                        totalStars = TOTAL_STARS,
+                        classicCleared = cloudClassicBests().size,
+                    ),
+                )
+            // D-10: the snapshot's played time is the payload's, i.e. the SUM(elapsedMs).
+            assertThat(saveStore.lastPlayedTimeMs).isEqualTo(LOCAL_PLAYED_TIME_MS)
+        }
+
+    @Test
+    fun theConflictMergeIsTheCodecsOwnUnionRatherThanASecondImplementation() =
+        runTest(testDispatcher) {
+            // The one place in the JVM suite where the conflict lambda actually runs. The
+            // server gains a payload AFTER this process's single pull, so the pushed bytes
+            // cannot already contain it — the union can only come from `mergeRemote`.
+            val repository = FakeCloudRepository(initial = localBests())
+            val saveStore = FakeCloudSaveStore(remote = null)
+            val submitter =
+                submitterFor(
+                    repository = repository,
+                    games = FakeGamesService(signedIn()),
+                    saveStore = saveStore,
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+            saveStore.remote = remotePayload()
+            submitter.onResultRecorded()
+            advanceUntilIdle()
+
+            val pushed = decodePushed(saveStore.savedPayloads.single())
+            assertThat(pushed.bests.keys).containsExactly(challengeKey(LOCAL_LEVEL), challengeKey(REMOTE_LEVEL))
+            assertThat(pushed.ladder).isEqualTo(REMOTE_LADDER)
+            assertThat(pushed.playedTimeMs).isEqualTo(REMOTE_PLAYED_TIME_MS)
+        }
+
+    @Test
+    fun aPushThatDidNotLandIsRememberedForTheNextPass() =
+        runTest(testDispatcher) {
+            // `false` is not an error (CLOUD-05): it means "nothing reached the cloud", and
+            // the answer is the persisted marker, never a snackbar (D-01, T-13-30).
+            val cloudSyncStore = FakeCloudSyncStore(initial = false)
+            val submitter =
+                submitterFor(
+                    games = FakeGamesService(signedIn()),
+                    cloudSyncStore = cloudSyncStore,
+                    saveStore = FakeCloudSaveStore(saveResult = false),
+                )
+
+            submitter.onResultRecorded()
+            advanceUntilIdle()
+
+            assertThat(cloudSyncStore.value).isTrue()
+        }
+
+    @Test
+    fun aPushThatLandedClearsTheMarker() =
+        runTest(testDispatcher) {
+            val cloudSyncStore = FakeCloudSyncStore(initial = true)
+            val submitter =
+                submitterFor(
+                    games = FakeGamesService(signedIn()),
+                    cloudSyncStore = cloudSyncStore,
+                    saveStore = FakeCloudSaveStore(saveResult = true),
+                )
+
+            submitter.onResultRecorded()
+            advanceUntilIdle()
+
+            assertThat(cloudSyncStore.value).isFalse()
+        }
+
+    @Test
+    fun aThrowingPushIsTreatedExactlyAsAReportedFailure() =
+        runTest(testDispatcher) {
+            val cloudSyncStore = FakeCloudSyncStore(initial = false)
+            val saveStore = FakeCloudSaveStore(throwOnSave = StoreFailure())
+            val repository = FakeCloudRepository(initial = localBests())
+            val submitter =
+                submitterFor(
+                    repository = repository,
+                    games = FakeGamesService(signedIn()),
+                    cloudSyncStore = cloudSyncStore,
+                    saveStore = saveStore,
+                )
+
+            submitter.onResultRecorded()
+            advanceUntilIdle()
+
+            assertThat(saveStore.saveCallCount).isEqualTo(1)
+            assertThat(cloudSyncStore.value).isTrue()
+            // The pass completed: the local half of the solve is untouched by a cloud fault.
+            assertThat(repository.stored).isEqualTo(localBests())
+        }
+
+    @Test
+    fun aCleanLaunchThatPulledNothingNeverPushes() =
+        runTest(testDispatcher) {
+            // The other half of assumption A7: the pull is the only cloud call a clean
+            // launch may make. A push here would upload a fresh device's payload for no
+            // reason, every launch, forever.
+            val games = FakeGamesService(signedIn())
+            val saveStore = FakeCloudSaveStore(remote = null)
+            val submitter =
+                submitterFor(
+                    games = games,
+                    cloudSyncStore = FakeCloudSyncStore(initial = false),
+                    saveStore = saveStore,
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+            assertThat(saveStore.saveCallCount).isEqualTo(0)
+
+            // A second SignedIn emission, with the pull guard now consumed as well.
+            games.emitSession(signedIn(displayName = RENAMED_DISPLAY_NAME))
+            advanceUntilIdle()
+
+            assertThat(saveStore.loadCallCount).isEqualTo(1)
+            assertThat(saveStore.saveCallCount).isEqualTo(0)
+        }
+
+    @Test
+    fun anOutstandingRetryMarkerPushesOnTheNextStartTriggeredPass() =
+        runTest(testDispatcher) {
+            // D-01's retry: the marker survived the last process, and draining it is the
+            // whole reason it is persisted.
+            val cloudSyncStore = FakeCloudSyncStore(initial = true)
+            val saveStore = FakeCloudSaveStore(remote = null)
+            val submitter =
+                submitterFor(
+                    games = FakeGamesService(signedIn()),
+                    cloudSyncStore = cloudSyncStore,
+                    saveStore = saveStore,
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+
+            assertThat(saveStore.saveCallCount).isEqualTo(1)
+            assertThat(cloudSyncStore.value).isFalse()
+        }
+
+    @Test
+    fun aPassThatImportedALadderPushesThatLadderBackRatherThanTheCachedOne() =
+        runTest(testDispatcher) {
+            // RESEARCH open question 4, and the reason `ChallengeProgress.settledLevel()`
+            // exists: the `stateIn` cache re-emits asynchronously after `mergeLadder`
+            // commits, so a push that read it would write back a LOWER ladder than the one
+            // this very pass imported. It would also make "one pass converges two devices"
+            // untrue, which is the property the phase is selling.
+            val challengeProgress = ChallengeProgress(inMemoryDataStore(), submitterScope)
+            val repository = FakeCloudRepository(initial = localBests())
+            val saveStore = FakeCloudSaveStore(remote = remotePayload())
+            val submitter =
+                submitterFor(
+                    repository = repository,
+                    games = FakeGamesService(signedIn()),
+                    cloudSyncStore = FakeCloudSyncStore(initial = false),
+                    saveStore = saveStore,
+                    challengeProgress = challengeProgress,
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+
+            // A pulled payload forces the write-back even on a clean, start-triggered pass.
+            assertThat(saveStore.saveCallCount).isEqualTo(1)
+            assertThat(repository.exportedLadders).containsExactly(REMOTE_LADDER)
+            assertThat(saveStore.lastDescription?.ladder).isEqualTo(REMOTE_LADDER)
+            assertThat(decodePushed(saveStore.savedPayloads.single()).ladder).isAtLeast(REMOTE_LADDER)
+        }
+
     // ---- Harness ---------------------------------------------------------------
 
     @Suppress("LongParameterList") // one optional collaborator per store the pass sequences
@@ -401,6 +602,13 @@ private fun signedIn(displayName: String? = TEST_DISPLAY_NAME): GamesSignInState
 
 /** One Challenge level's key — the shape both the payload fixtures and the assertions use. */
 private fun challengeKey(level: Int): LevelKey = LevelKey(mode = ProgressMode.CHALLENGE, levelId = level.toString())
+
+/** What this device stores: one Challenge level the remote fixture never carries. */
+private fun localBests(): Map<LevelKey, LevelBest> = mapOf(challengeKey(LOCAL_LEVEL) to challengeBest(LOCAL_SCORE))
+
+/** The pushed bytes as progress again — a payload the push wrote must be one this build can read. */
+private fun decodePushed(bytes: ByteArray): CloudProgress =
+    requireNotNull(CloudProgressCodec.decode(bytes)) { "the push must write a payload this build can decode" }
 
 private fun challengeBest(score: Int): LevelBest =
     LevelBest(stars = FULL_STARS, bestTimeMs = SOLVE_TIME_MS, bestScore = score)
@@ -636,6 +844,10 @@ private const val REMOTE_PLAYED_TIME_MS = 90_000L
 /** The local side: a lower ladder and a distinct played time, so the two are never confusable. */
 private const val LOCAL_LADDER = 10
 private const val LOCAL_PLAYED_TIME_MS = 45_000L
+
+/** A Challenge level only this device has — its survival proves the push carried local progress. */
+private const val LOCAL_LEVEL = 7
+private const val LOCAL_SCORE = 500
 
 private const val FULL_STARS = 3
 private const val SOLVE_TIME_MS = 30_000L
