@@ -369,8 +369,8 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3)*
 
-- [ ] 13-09-PLAN.md — CLOUD-01/02/03/05: `SnapshotsClient` plumbing under `RESOLUTION_POLICY_MANUAL`, bounded conflict merge, metadata commit, binding flip
-- [ ] 13-10-PLAN.md — CLOUD-02, D-13/D-14/D-15: Home-only profile-swap dialog, `HomeUiState` peers, never-stacked sequencing
+- [x] 13-09-PLAN.md — CLOUD-01/02/03/05: `SnapshotsClient` plumbing under `RESOLUTION_POLICY_MANUAL`, bounded conflict merge, metadata commit, binding flip
+- [x] 13-10-PLAN.md — CLOUD-02, D-13/D-14/D-15: Home-only profile-swap dialog, `HomeUiState` peers, never-stacked sequencing
 
 **Wave 5** *(blocked on Wave 4)*
 
@@ -416,5 +416,5 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 10. Interstitials | v1.1 | 6/6 | Complete    | 2026-09-03 |
 | 11. Play Games Session | v1.1 | 4/4 | Complete   | 2026-09-03 |
 | 12. Leaderboards & Achievements | v1.1 | 8/8 | Complete   | 2026-09-13 |
-| 13. Cloud Save | v1.1 | 8/11 | In Progress|  |
+| 13. Cloud Save | v1.1 | 10/11 | In Progress|  |
 | 14. Release Readiness | v1.1 | 0/TBD | Not started | - |
