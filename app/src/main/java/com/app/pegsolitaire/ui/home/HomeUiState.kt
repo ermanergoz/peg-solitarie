@@ -36,6 +36,24 @@ import com.app.pegsolitaire.data.ChallengeProgressPreferences
  *   onboarding has been seen AND the question is still unanswered, and it is `false`
  *   forever after either answer (D-17). Nothing sets it back to `true`; there is no
  *   per-session re-ask.
+ * @property profileSwapVisible whether the account-switch dialog is showing (CLOUD-02,
+ *   D-12/D-15) — the one dialog this milestone reserved, and the only route to the only
+ *   destructive path in the app. A **third peer** of [onboardingVisible] and
+ *   [playGamesPromptVisible] rather than a mode of either: the three surfaces are
+ *   sequenced, never stacked, so this is `true` only once onboarding has been seen AND
+ *   the opt-in question has been answered AND the data layer has a pending swap. Unlike
+ *   [playGamesPromptVisible] it is **not** one-time — a player who signs into a third
+ *   account is asked again, because each switch is its own unanswered question — but it
+ *   is never re-raised for an answer already given.
+ * @property profileSwapAccountName the arriving account's Play Games display name, or
+ *   `null` when the SDK's lookup failed or stalled (Phase 11 D-14) — a degraded name,
+ *   never a failed sign-in, which the dialog falls back from with neutral copy. A
+ *   separate field rather than a nullable [profileSwapVisible] precisely because that
+ *   `null` is legitimate: one nullable field could not distinguish "visible, name
+ *   unknown" from "not visible", and collapsing them would hide the wipe question from
+ *   exactly the player whose name could not be read. Follows
+ *   [classicResumeLevelId]'s convention — the screen carries the value, the host never
+ *   guesses.
  * @property playGamesSignInErrorTick a one-shot ordinal raised once per genuine SDK
  *   sign-in error on the accept path (D-18) and consumed back to 0 by the screen through
  *   `HomeViewModel.onPlayGamesSignInErrorShown` the moment its snackbar is raised. It is
@@ -55,6 +73,8 @@ data class HomeUiState(
     val classicResumeLevelId: String? = null,
     val challengeResumeLevel: Int? = null,
     val playGamesPromptVisible: Boolean = false,
+    val profileSwapVisible: Boolean = false,
+    val profileSwapAccountName: String? = null,
     val playGamesSignInErrorTick: Int = 0,
 ) {
     /** Whether a Classic game can be continued — i.e. a resumable board id is known. */

@@ -7,6 +7,7 @@ import com.app.pegsolitaire.data.ChallengeProgress
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.data.FakePlayGamesOptInRepository
+import com.app.pegsolitaire.data.FakeProgressSubmitter
 import com.app.pegsolitaire.data.ImportOutcome
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
@@ -16,6 +17,7 @@ import com.app.pegsolitaire.data.OnboardingRepository
 import com.app.pegsolitaire.data.PlayGamesOptInRepository
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
+import com.app.pegsolitaire.data.ProgressSubmitter
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
 import com.app.pegsolitaire.domain.achievement.ClassicBoard
 import com.app.pegsolitaire.domain.achievement.ProgressAggregate
@@ -524,7 +526,9 @@ class HomeViewModelTest {
      * [optIn] defaults to an ALREADY-ANSWERED prompt so the pre-Play-Games tests above
      * (onboarding, ladder level, resume affordances) keep asserting the surface they were
      * written for — an unanswered default would silently raise the opt-in dialog under
-     * every one of them.
+     * every one of them. The submitter defaults to one with **no** pending account-switch
+     * question, for the same reason: Phase 13's dialog must not appear under assertions
+     * about anything else. Its own coverage is `HomeViewModelCloudTest`.
      */
     private fun viewModelFor(
         repository: OnboardingRepository,
@@ -533,6 +537,7 @@ class HomeViewModelTest {
         progress: ProgressRepository = FakeResumeProgressRepository(),
         optIn: PlayGamesOptInRepository = FakePlayGamesOptInRepository(initiallyAnswered = true),
         games: GamesService = FakeGamesService(),
+        submitter: ProgressSubmitter = FakeProgressSubmitter(),
     ): HomeViewModel {
         val challengeProgress = mockk<ChallengeProgress>(relaxed = true)
         every { challengeProgress.currentLevel } returns levels
@@ -543,6 +548,7 @@ class HomeViewModelTest {
             CatalogOnlyLevelRepository,
             optIn,
             games,
+            submitter,
         )
     }
 }

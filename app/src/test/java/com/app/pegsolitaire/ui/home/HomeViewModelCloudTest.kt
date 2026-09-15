@@ -141,7 +141,7 @@ class HomeViewModelCloudTest {
             val submitter = FakeProgressSubmitter(initialRequest = ARRIVING_REQUEST)
             val viewModel =
                 viewModelFor(
-                    repository = FakeOnboardingRepository(initiallySeen = false),
+                    repository = SwapTestOnboardingRepository(initiallySeen = false),
                     submitter = submitter,
                 )
             runCurrent()
@@ -173,7 +173,7 @@ class HomeViewModelCloudTest {
         runTest(testDispatcher) {
             // Sequenced, not dropped: the question is still pending in the data layer, so it
             // must surface the moment the surface ahead of it is answered.
-            val onboarding = FakeOnboardingRepository(initiallySeen = false)
+            val onboarding = SwapTestOnboardingRepository(initiallySeen = false)
             val submitter = FakeProgressSubmitter(initialRequest = ARRIVING_REQUEST)
             val viewModel = viewModelFor(repository = onboarding, submitter = submitter)
             runCurrent()
@@ -242,7 +242,7 @@ class HomeViewModelCloudTest {
             // unrelated write re-emits them and combine delivers the re-emissions in no fixed
             // order. Without the per-input dedupe an unchanged value would re-raise the
             // dialog for a frame — over the only wipe in the app.
-            val onboarding = FakeOnboardingRepository(initiallySeen = true)
+            val onboarding = SwapTestOnboardingRepository(initiallySeen = true)
             val submitter = FakeProgressSubmitter(initialRequest = ARRIVING_REQUEST)
             val viewModel = viewModelFor(repository = onboarding, submitter = submitter)
             runCurrent()
@@ -265,7 +265,7 @@ class HomeViewModelCloudTest {
      * assertion here can be reading is the swap dialog.
      */
     private fun viewModelFor(
-        repository: OnboardingRepository = FakeOnboardingRepository(initiallySeen = true),
+        repository: OnboardingRepository = SwapTestOnboardingRepository(initiallySeen = true),
         optIn: FakePlayGamesOptInRepository = FakePlayGamesOptInRepository(initiallyAnswered = true),
         submitter: FakeProgressSubmitter = FakeProgressSubmitter(),
     ): HomeViewModel {
@@ -303,7 +303,7 @@ private const val FIRST_LEVEL = 1
  * A settable in-memory [OnboardingRepository] — the same idiom `HomeViewModelTest` uses,
  * with [seen] settable so an unrelated re-emission of an unchanged flag can be staged.
  */
-private class FakeOnboardingRepository(
+private class SwapTestOnboardingRepository(
     initiallySeen: Boolean,
 ) : OnboardingRepository(NoopCloudPreferencesDataStore) {
     val seen = MutableStateFlow(initiallySeen)
