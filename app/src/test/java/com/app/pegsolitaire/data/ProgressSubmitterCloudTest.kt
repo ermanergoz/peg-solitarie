@@ -573,6 +573,197 @@ class ProgressSubmitterCloudTest {
             assertThat(decodePushed(saveStore.savedPayloads.single()).ladder).isAtLeast(REMOTE_LADDER)
         }
 
+    // ---- Resolving the swap: D-13's merge and D-14's replace -------------------
+
+    @Test
+    fun resolvingTheSwapReturnsImmediatelyAndDoesTheWorkOnTheApplicationScope() =
+        runTest(testDispatcher) {
+            // The shape matters as much as the outcome: awaiting a wipe-and-import from
+            // `viewModelScope` would let a back-navigation mid-write cancel it and leave the
+            // device a half-replaced hybrid of two accounts.
+            val repository = FakeCloudRepository(initial = localBests())
+            val submitter =
+                submitterFor(
+                    repository = repository,
+                    games = FakeGamesService(signedIn()),
+                    profileStore = FakeCloudProfileStore(initial = OTHER_PLAYER_ID),
+                    saveStore = FakeCloudSaveStore(),
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+            assertThat(submitter.profileSwap.value).isNotNull()
+
+            submitter.onProfileSwapResolved(keepLocalProgress = false)
+
+            // Nothing has run: the whole body is a launch on the application scope, and
+            // virtual time has not been advanced past this line.
+            assertThat(repository.resetCallCount).isEqualTo(0)
+            assertThat(submitter.profileSwap.value).isNotNull()
+
+            advanceUntilIdle()
+
+            assertThat(repository.resetCallCount).isEqualTo(1)
+        }
+
+    @Test
+    fun keepingThisDevicesProgressMergesWithoutWipingAnything() =
+        runTest(testDispatcher) {
+            // D-13's safe answer, and the one dismissal maps to at the UI layer: the local
+            // rows survive, the remote rows arrive, and the union is written back to the new
+            // account's cloud save exactly like a first sign-in.
+            val repository = FakeCloudRepository(initial = localBests())
+            val saveStore = FakeCloudSaveStore(remote = remotePayload())
+            val profileStore = FakeCloudProfileStore(initial = OTHER_PLAYER_ID)
+            val submitter =
+                submitterFor(
+                    repository = repository,
+                    games = FakeGamesService(signedIn()),
+                    profileStore = profileStore,
+                    saveStore = saveStore,
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+            assertThat(submitter.profileSwap.value).isNotNull()
+
+            submitter.onProfileSwapResolved(keepLocalProgress = true)
+            advanceUntilIdle()
+
+            assertThat(repository.resetCallCount).isEqualTo(0)
+            assertThat(repository.stored.keys).containsExactly(challengeKey(LOCAL_LEVEL), challengeKey(REMOTE_LEVEL))
+            assertThat(saveStore.loadCallCount).isEqualTo(1)
+            assertThat(decodePushed(saveStore.savedPayloads.single()).bests.keys)
+                .containsExactly(challengeKey(LOCAL_LEVEL), challengeKey(REMOTE_LEVEL))
+            assertThat(submitter.profileSwap.value).isNull()
+            assertThat(profileStore.value).isEqualTo(TEST_PLAYER_ID)
+        }
+
+    @Test
+    fun usingTheOtherAccountsCloudProgressAgainstAnEmptyCloudLeavesACleanSlate() =
+        runTest(testDispatcher) {
+            // D-14's full wipe. The `level_result` / `play_session` / both-resume-snapshots
+            // half is one `resetAllProgress()` call, whose table-by-table coverage is
+            // `ProgressRepositoryTest`'s claim; the ladder is its own store and so its own
+            // call, and both are asserted here because only this file owns their ORDER.
+            val challengeProgress = ChallengeProgress(inMemoryDataStore(), submitterScope)
+            challengeProgress.mergeLadder(LOCAL_LADDER)
+            val repository = FakeCloudRepository(initial = localBests())
+            val profileStore = FakeCloudProfileStore(initial = OTHER_PLAYER_ID)
+            val submitter =
+                submitterFor(
+                    repository = repository,
+                    games = FakeGamesService(signedIn()),
+                    profileStore = profileStore,
+                    saveStore = FakeCloudSaveStore(remote = null),
+                    challengeProgress = challengeProgress,
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+
+            submitter.onProfileSwapResolved(keepLocalProgress = false)
+            advanceUntilIdle()
+
+            assertThat(repository.resetCallCount).isEqualTo(1)
+            assertThat(repository.stored).isEmpty()
+            assertThat(challengeProgress.settledLevel()).isEqualTo(ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL)
+            assertThat(submitter.profileSwap.value).isNull()
+            assertThat(profileStore.value).isEqualTo(TEST_PLAYER_ID)
+        }
+
+    @Test
+    fun usingTheOtherAccountsCloudProgressLeavesExactlyThatAccountsRowsAndLadder() =
+        runTest(testDispatcher) {
+            val challengeProgress = ChallengeProgress(inMemoryDataStore(), submitterScope)
+            challengeProgress.mergeLadder(LOCAL_LADDER)
+            val repository = FakeCloudRepository(initial = localBests())
+            val submitter =
+                submitterFor(
+                    repository = repository,
+                    games = FakeGamesService(signedIn()),
+                    profileStore = FakeCloudProfileStore(initial = OTHER_PLAYER_ID),
+                    saveStore = FakeCloudSaveStore(remote = remotePayload()),
+                    challengeProgress = challengeProgress,
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+
+            submitter.onProfileSwapResolved(keepLocalProgress = false)
+            advanceUntilIdle()
+
+            // The device becomes that account's device outright: its rows, its ladder, and
+            // none of the departing account's — whose data still lives in its own cloud save.
+            assertThat(repository.stored.keys).containsExactly(challengeKey(REMOTE_LEVEL))
+            assertThat(challengeProgress.settledLevel()).isEqualTo(REMOTE_LADDER)
+        }
+
+    @Test
+    fun theSwapResolutionReleasesThePullGuardSoTheNewAccountIsActuallyPulled() =
+        runTest(testDispatcher) {
+            // The realistic account switch: this process already pulled for player A, and
+            // the once-per-process guard would otherwise deny player B their own progress.
+            val games = FakeGamesService(signedIn())
+            val saveStore = FakeCloudSaveStore(remote = null)
+            val profileStore = FakeCloudProfileStore(initial = null)
+            val submitter =
+                submitterFor(
+                    games = games,
+                    profileStore = profileStore,
+                    saveStore = saveStore,
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+            assertThat(saveStore.loadCallCount).isEqualTo(1)
+            assertThat(profileStore.value).isEqualTo(TEST_PLAYER_ID)
+
+            games.emitSession(otherSignedIn())
+            advanceUntilIdle()
+
+            assertThat(submitter.profileSwap.value)
+                .isEqualTo(ProfileSwapRequest(playerId = OTHER_PLAYER_ID, displayName = OTHER_DISPLAY_NAME))
+            // Still zero new store calls while the question is open (D-15).
+            assertThat(saveStore.loadCallCount).isEqualTo(1)
+
+            submitter.onProfileSwapResolved(keepLocalProgress = true)
+            advanceUntilIdle()
+
+            assertThat(saveStore.loadCallCount).isEqualTo(2)
+            assertThat(submitter.profileSwap.value).isNull()
+            assertThat(profileStore.value).isEqualTo(OTHER_PLAYER_ID)
+        }
+
+    @Test
+    fun aResolutionThatArrivesAfterSignOutChangesNothing() =
+        runTest(testDispatcher) {
+            // The wipe is the only destructive path in the app, so the session is re-read
+            // under the lock rather than trusted from when the dialog was raised.
+            val games = FakeGamesService(signedIn())
+            val repository = FakeCloudRepository(initial = localBests())
+            val profileStore = FakeCloudProfileStore(initial = OTHER_PLAYER_ID)
+            val submitter =
+                submitterFor(
+                    repository = repository,
+                    games = games,
+                    profileStore = profileStore,
+                    saveStore = FakeCloudSaveStore(),
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+            games.emitSession(GamesSignInState.SignedOut)
+
+            submitter.onProfileSwapResolved(keepLocalProgress = false)
+            advanceUntilIdle()
+
+            assertThat(repository.resetCallCount).isEqualTo(0)
+            assertThat(repository.stored).isEqualTo(localBests())
+            assertThat(profileStore.value).isEqualTo(OTHER_PLAYER_ID)
+            assertThat(submitter.profileSwap.value).isNotNull()
+        }
+
     // ---- Harness ---------------------------------------------------------------
 
     @Suppress("LongParameterList") // one optional collaborator per store the pass sequences
@@ -599,6 +790,10 @@ class ProgressSubmitterCloudTest {
 
 private fun signedIn(displayName: String? = TEST_DISPLAY_NAME): GamesSignInState.SignedIn =
     GamesSignInState.SignedIn(playerId = TEST_PLAYER_ID, displayName = displayName)
+
+/** The other account — the one an account switch moves this device to. */
+private fun otherSignedIn(): GamesSignInState.SignedIn =
+    GamesSignInState.SignedIn(playerId = OTHER_PLAYER_ID, displayName = OTHER_DISPLAY_NAME)
 
 /** One Challenge level's key — the shape both the payload fixtures and the assertions use. */
 private fun challengeKey(level: Int): LevelKey = LevelKey(mode = ProgressMode.CHALLENGE, levelId = level.toString())
@@ -828,6 +1023,9 @@ private const val RENAMED_DISPLAY_NAME = "Cloud Player (2)"
 
 /** A DIFFERENT account — the whole of the D-12 mismatch. */
 private const val OTHER_PLAYER_ID = "other-player"
+
+/** Its display name, which the D-13 dialog copy names ("Use [account]'s cloud progress"). */
+private const val OTHER_DISPLAY_NAME = "Other Player"
 
 /** Bytes that are not a payload at all, so the codec refuses them. */
 private const val NOT_A_PAYLOAD = "{not json"
