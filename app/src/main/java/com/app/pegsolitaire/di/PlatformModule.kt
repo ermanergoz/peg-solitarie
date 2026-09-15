@@ -8,6 +8,8 @@ import com.app.pegsolitaire.platform.ads.NoOpAdGateway
 import com.app.pegsolitaire.platform.games.GamesService
 import com.app.pegsolitaire.platform.games.NoOpGamesService
 import com.app.pegsolitaire.platform.games.PlayGamesService
+import com.app.pegsolitaire.platform.games.save.CloudSaveStore
+import com.app.pegsolitaire.platform.games.save.NoOpCloudSaveStore
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -18,7 +20,7 @@ import javax.inject.Singleton
  * Hilt bindings for the platform seam (spec §8.4/§8.5). Mirrors `DataModule`'s
  * `@InstallIn(SingletonComponent::class)` + abstract interface-to-impl binding shape.
  *
- * Three bindings, of two different kinds:
+ * Four bindings, of three different kinds:
  *
  * - [AdGateway] and [GamesService] are the **Slice-2 swap points**: replacing a no-op stub
  *   with a real implementation introduces rewarded ads or leaderboards with no gameplay or
@@ -32,6 +34,11 @@ import javax.inject.Singleton
  *   point. It is permanent: the Slice-2 implementations are precisely the callers that
  *   need a foreground Activity, so this binding is what makes the swap possible rather
  *   than something the swap replaces.
+ * - [CloudSaveStore] → [NoOpCloudSaveStore] is the third kind: a **temporary binding, live only
+ *   within Phase 13**. Plan 13-06 declared the seam and bound the stub so that wave 3's cloud
+ *   push/pull could be written and tested green before any `SnapshotsClient` plumbing existed;
+ *   plan 13-09 replaces this one line with `PlayGamesCloudSaveStore`. Cloud save is not shipping
+ *   disabled — a reader of an intermediate commit is looking at scaffolding, not a decision.
  *
  * **[NoOpAdGateway] stays in the source tree on purpose, unbound.** It is the seam's
  * reference behaviour — the definition of "the player is never worse off than v1.0" — and
@@ -112,6 +119,27 @@ abstract class PlatformModule {
     @Binds
     @Singleton
     abstract fun bindGamesService(impl: PlayGamesService): GamesService
+
+    /**
+     * The cloud-save seam (CLOUD-01/05), bound to the silently-degrading stub.
+     *
+     * **Temporary within Phase 13, and deliberately so.** [NoOpCloudSaveStore] reports "no payload"
+     * and "nothing was written" so that the wave-3 push/pull pass compiles and runs green against a
+     * real graph before the Saved Games plumbing exists; plan 13-09 changes this parameter type to
+     * `PlayGamesCloudSaveStore` and nothing else. Read this binding as scaffolding mid-phase, never
+     * as "cloud save shipped disabled".
+     *
+     * **The bound type must always be the seam — never a gms type, and never a type that exposes
+     * one.** [CloudSaveStore] names only Kotlin/JVM types precisely so that the generated
+     * `DaggerApp_HiltComponents_SingletonC`, which carries a `Provider<T>` field per binding and
+     * which `onlyPlatformDependsOnPlaySdks` inspects at the bytecode level, sees nothing from
+     * `com.google.android.gms..`. Plan 13-09's real implementation will hold its `SnapshotsClient`
+     * internally and expose none, the way [PlayGamesService] and [AdMobAdGateway] already do. See
+     * the class KDoc above before adding anything to this file.
+     */
+    @Binds
+    @Singleton
+    abstract fun bindCloudSaveStore(impl: NoOpCloudSaveStore): CloudSaveStore
 
     @Binds
     @Singleton
