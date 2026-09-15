@@ -1,9 +1,9 @@
 ---
 status: partial
 phase: 11-play-games-session
-source: [11-VERIFICATION.md, 12-08-PLAN.md]
+source: [11-VERIFICATION.md, 12-08-PLAN.md, 13-03-PLAN.md]
 started: 2026-09-03T22:20:00Z
-updated: 2026-09-15T04:00:00Z
+updated: 2026-09-15T20:06:55Z
 ---
 
 ## Current Test
@@ -63,14 +63,40 @@ Run `./gradlew :app:assembleRelease` with all 27 IDs configured (so `verifyRelea
 expected: The build succeeds and `missing_rules.txt` contains **no entry naming `com.google.android.gms.games`**. The `play-services-games-v2:22.0.0` AAR ships no `proguard.txt` of its own and its SafeParcelable / `@Keep` / DynamiteApi reflection is covered only transitively by `play-services-basement`, so this phase's first `LeaderboardsClient`, `AchievementsClient` and `Intent`-returning calls are what would expose the gap. If a rule is needed, add it to `app/proguard-rules.pro` with a comment explaining why, and spell out `{ <init>(); }` for any reflectively-instantiated class — AGP 9.1.0 runs R8 in strict full mode. Test 5 must then still pass against the installed minified build.
 result: pass (2026-09-15). Build half: `:app:assembleRelease` with all 27 IDs configured succeeded (`verifyReleaseGamesIds` green), R8 wrote no `missing_rules.txt` at all, and the Play Games classes appear in `mapping.txt` (58 entries). Install half, driven over adb on the emulator: the minified APK (release build with Google's test ad units, signed with the debug key so the debug credential applies) installed at 3.7 MB, explicit sign-in from Settings succeeded (`Signed in as …`, both rows appeared), the Leaderboards row opened the all-leaderboards picker listing all seven boards, the Achievements row opened the achievements UI at 5/20 with the earned ones unlocked, Back returned to Settings both times, and the app task held exactly one Activity. No new keep rule needed; `app/proguard-rules.pro` unchanged.
 
+## Phase 13 Tests — Cloud Save
+
+Every test below requires `.planning/phases/13-cloud-save/13-OPERATOR-CHECKLIST.md` to have been executed in full — Saved Games enabled on the PGS project **and** the Play Games Services configuration **published** (publishing is a separate action from configuring, and a configured-but-unpublished toggle behaves exactly like one that was never touched) — plus **both** AVDs, `Pixel_9a` and `Pixel_9`, booted with Play Games present and signed in as the **one existing tester account**. None of these four is expressible as a JVM test: they need two real devices, a real Play Games backend and the stock saves UI. Diagnosis note that applies to all four: with the Saved Games toggle off, every `SnapshotsClient` call fails into the same `null`/`false` the offline path produces (CLOUD-05's deliberate silent degradation), so "nothing happens, no error anywhere" means re-read 13-OPERATOR-CHECKLIST Step 0 before opening a Kotlin file.
+
+### 10. Restore on a new device (CLOUD-01)
+On `Pixel_9a` (`~/Library/Android/sdk/emulator/emulator -avd Pixel_9a`), signed in as the tester, solve English-33 and Challenge levels 1–3, then force-stop the app. Fresh-install (or wipe and install) on `Pixel_9` and sign in as the **same** tester account.
+expected: Within seconds of the stock "Welcome back" popup, the Classic catalog shows English-33's stars and the Challenge tile reads the same level `Pixel_9a` had reached — with **no toast, no dialog and no Settings status row** (D-03). Diagnostic note on D-03: the stock popup is the *only* launch-time signal this phase adds, so an app-owned "Progress restored" snackbar, dialog or Settings "last synced" row appearing is a **defect, not a nicety** — it was considered under D-03 and rejected. The restore must also not fire the "New best!" flag or the Results celebration: a merge is not a play.
+result: pending
+
+### 11. Two-device union (CLOUD-02, CLOUD-04 / D-04)
+On `Pixel_9a` solve Challenge levels 1–5 and English-33 at 3 stars. On `Pixel_9`, signed in as the same account, solve European-37 and Challenge levels 6–8. Relaunch **both** devices.
+expected: Both devices show the Challenge tile at level 9, English-33 at 3 stars and European-37 cleared — the union, arrived at with **no prompt and nothing lost on either side**. D-04 sub-check, run it in the same pass: before triggering the merge, leave a Challenge game **in progress at a low level** on one device, then confirm after the merge that the Continue tile still resumes **that** level and that the board is exactly as it was left. The in-progress game is kept and the ladder jumps underneath it — solving that level advances `advancePast`, which is a `max`, so the ladder does not regress and "Next level" still serves the merged level.
+result: pending
+
+### 12. Legible listing entry (CLOUD-03)
+Open the Play Games app → this game → **Saved games**.
+expected: Exactly one entry, carrying the description line "Challenge level N · S stars · K/5 Classic boards" with numbers matching what the app shows, a non-zero played-time value, and the board cover art (the launcher-icon English-33 design). While you are in this screen, also record the RESEARCH A1 measurement: the value `getMaxCoverImageSize()` returns on this device and the PNG-compressed size of the 512×512 cover actually committed. A1 assumes the cover is accounted against the cap by its transported PNG size rather than its ~1 MB in-memory size; measuring it once here turns an undocumented accounting basis into a known number, and if it is wrong the remedy is one constant (`COVER_PX` → 384 or 256).
+result: pending
+
+### 13. Network kill degrades silently (CLOUD-05)
+On `Pixel_9`: `adb shell svc wifi disable && adb shell svc data disable` (or `adb emu gsm data off`). Solve two levels, relaunch the app, solve another, then re-enable the network and relaunch once more.
+expected: Every solve records locally and Results, the Classic catalog and the Challenge tile behave **exactly as offline v1.0 did** — **no error wall, no snackbar, no dialog, no retry prompt**, and nothing in the UI that hints a cloud exists. After the network is restored and the app relaunched, the pending push drains and the two devices reconverge to the union (re-check `Pixel_9a` to confirm it picked up the offline solves).
+result: pending
+
 ## Summary
 
-total: 9
+total: 13
 passed: 7
 issues: 0
-pending: 0
+pending: 4
 blocked: 1
 partial: 1
 skipped: 0
 
 ## Gaps
+
+- **The profile-swap dialog (D-12 to D-15) — not exercisable on this setup.** The one dialog this milestone reserves (shown when `session` resolves to a **different** player id than the one local progress was last merged with, offering "Keep this device's progress" vs "Use [account]'s cloud progress") cannot be produced here: it needs a **second Google account on the device that has never authorised the game**, and one does not exist. Same root cause as Phase 11 test 2 — one account, already authorised for the game, so neither the chooser path nor the alternate-player path can be reached. Covered instead by JVM tests over `FakeGamesService.emitSession(SignedIn(playerId = "other"))` in plans 13-08 and 13-10, which exercise the dialog's state, the dismissal-means-keep default (D-13) and the replace path's wipe (D-14) without a device. Recorded rather than dropped: if a second account ever exists, this is the test to run.
