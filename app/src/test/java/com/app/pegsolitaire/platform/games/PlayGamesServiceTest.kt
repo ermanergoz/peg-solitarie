@@ -124,6 +124,39 @@ class PlayGamesServiceTest {
         unmockkAll()
     }
 
+    // ---- initializeIfOptedIn: the process-start gate -------------------------------
+
+    // Like the bootstrap section below, this is the only place the gate is proven
+    // *negatively* — that a player who never opted in is not reached by the SDK at all.
+    // [FakeGamesService] counts the call and re-implements nothing, so if these cases go
+    // the whole guarantee goes with them.
+
+    @Test
+    fun initializeIfOptedInForANonOptedInPlayerNeverTouchesTheSdk() =
+        runTest(testDispatcher) {
+            val service = serviceFor(optedIn = false)
+
+            service.initializeIfOptedIn()
+
+            verify(exactly = 0) { PlayGamesSdk.initialize(any()) }
+            // Not even the Activity: the process-start hook has no Activity to await, and
+            // awaiting one here would block Application.onCreate for the ten-second bound.
+            coVerify(exactly = 0) { activityProvider.awaitActivity() }
+        }
+
+    @Test
+    fun initializeIfOptedInForAnOptedInPlayerInitializesTheSdk() =
+        runTest(testDispatcher) {
+            val service = serviceFor(optedIn = true)
+
+            service.initializeIfOptedIn()
+
+            // No advanceUntilIdle(): initialization must have happened by the time the call
+            // returns. Anything deferred to a coroutine lands after the first Activity is
+            // created, which is the Phase 11 UAT test 1 failure this fix exists to undo.
+            verify(exactly = 1) { PlayGamesSdk.initialize(any()) }
+        }
+
     // ---- bootstrapIfOptedIn: the D-01 gate -----------------------------------------
 
     @Test

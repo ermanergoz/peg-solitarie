@@ -168,6 +168,8 @@ class FakeGamesService(
         bootstrapCallCount++
     }
 
+    override fun initializeIfOptedIn() = Unit
+
     override suspend fun submitScore(
         leaderboardId: String,
         score: Long,

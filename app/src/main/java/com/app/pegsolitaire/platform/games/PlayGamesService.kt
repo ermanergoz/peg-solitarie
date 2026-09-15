@@ -152,6 +152,9 @@ class PlayGamesService
          */
         private val sdkMutex = Mutex()
 
+        // RED placeholder: the real, opt-in-gated process-start initialize lands next.
+        override fun initializeIfOptedIn() = Unit
+
         override fun bootstrapIfOptedIn() {
             // Dispatchers.Main because PlayGames.get*Client takes an Activity and the SDK
             // may put its own UI on screen; the injected application scope runs on
