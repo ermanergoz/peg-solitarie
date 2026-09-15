@@ -1,7 +1,7 @@
 ---
 phase: 12-leaderboards-achievements
 type: operator-checklist
-status: executed (2026-09-15; UAT test 9 install half outstanding)
+status: complete (2026-09-15)
 blocks: [PGSL-01, PGSL-02, PGSL-03, PGSL-06, PGSA-01, PGSA-04, PGSA-05]
 generated_by: 12-08-PLAN.md
 ---
@@ -253,5 +253,5 @@ untracked `local.properties`.
 - [x] All 7 leaderboards and 20 achievements created, 20 icons uploaded, PGS settings **published**.
 - [x] All 27 IDs recorded in the untracked `local.properties`; `git status` shows nothing new.
 - [x] `./gradlew :app:assembleRelease` configures without a missing-ID failure (`verifyReleaseGamesIds`).
-- [ ] (tests 4–8 pass, test 9 install half pending) `.planning/phases/11-play-games-session/11-HUMAN-UAT.md` tests **4 through 9** executed on a
+- [x] `.planning/phases/11-play-games-session/11-HUMAN-UAT.md` tests **4 through 9** executed on a
       device with Play Games and a tester account, results recorded.

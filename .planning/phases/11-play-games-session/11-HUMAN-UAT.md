@@ -8,7 +8,7 @@ updated: 2026-09-15T00:00:00Z
 
 ## Current Test
 
-Test 9 install half: install the minified release (debug-signed) and re-run test 5 against it.
+Phase 12 tests 4–9 all pass. Phase 11 tests 1–3 remain pending; note for test 1: on this emulator a cold relaunch after a successful explicit sign-in resolved to signed-out on BOTH debug and minified builds (Play Services brokered an unauthenticated GamesService for the silent `isAuthenticated` check), so the "Welcome back" path has not yet been observed — to be investigated under test 1, not a Phase 12 regression.
 
 Session note (2026-09-15): the first debug run could not sign in at all — root cause was the debug build shipping Play Games project ID `"0"` (AdMob resolver hard-wire, DEF-06-01), fixed as quick task 260915-3jd before tests 4–8 were run. Design observation from test 4: the first English-33 solve (3 stars, 28 hints, 0 undos, centre finish) legitimately unlocked five achievements at once (First Clear, Three Stars, No Take-Backs, Dead Center, English Cleared). User decision 2026-09-15: keep the rules as designed (D-01/D-02); no change.
 
@@ -61,14 +61,14 @@ result: pass (2026-09-15). Signed out, the Play Games section showed only the si
 ### 9. Minified release build needs no new R8 keep rules (Pitfall 12)
 Run `./gradlew :app:assembleRelease` with all 27 IDs configured (so `verifyReleaseGamesIds` passes) and with network available for at least one warm run (so `compose-group-mapping` resolves), then inspect `app/build/outputs/mapping/release/missing_rules.txt`, then install the minified release on a device and re-run test 5 against it.
 expected: The build succeeds and `missing_rules.txt` contains **no entry naming `com.google.android.gms.games`**. The `play-services-games-v2:22.0.0` AAR ships no `proguard.txt` of its own and its SafeParcelable / `@Keep` / DynamiteApi reflection is covered only transitively by `play-services-basement`, so this phase's first `LeaderboardsClient`, `AchievementsClient` and `Intent`-returning calls are what would expose the gap. If a rule is needed, add it to `app/proguard-rules.pro` with a comment explaining why, and spell out `{ <init>(); }` for any reflectively-instantiated class — AGP 9.1.0 runs R8 in strict full mode. Test 5 must then still pass against the installed minified build.
-result: partial (2026-09-15). Build half PASSES: `:app:assembleRelease` with all 27 IDs configured succeeded (`verifyReleaseGamesIds` green), R8 wrote no `missing_rules.txt` at all, and the Play Games classes appear in `mapping.txt` (58 entries). Install half PENDING: the minified APK (signed with the debug key so the debug credential applies) is to be installed and test 5 re-run against it.
+result: pass (2026-09-15). Build half: `:app:assembleRelease` with all 27 IDs configured succeeded (`verifyReleaseGamesIds` green), R8 wrote no `missing_rules.txt` at all, and the Play Games classes appear in `mapping.txt` (58 entries). Install half, driven over adb on the emulator: the minified APK (release build with Google's test ad units, signed with the debug key so the debug credential applies) installed at 3.7 MB, explicit sign-in from Settings succeeded (`Signed in as …`, both rows appeared), the Leaderboards row opened the all-leaderboards picker listing all seven boards, the Achievements row opened the achievements UI at 5/20 with the earned ones unlocked, Back returned to Settings both times, and the app task held exactly one Activity. No new keep rule needed; `app/proguard-rules.pro` unchanged.
 
 ## Summary
 
 total: 9
-passed: 5
+passed: 6
 issues: 0
-pending: 4
+pending: 3
 skipped: 0
 blocked: 0
 
