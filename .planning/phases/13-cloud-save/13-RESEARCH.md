@@ -1228,7 +1228,7 @@ deliberate — it is the only way a JVM test can exercise the conflict merge wit
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED — each recommendation below was adopted by the plans: Q1 → 13-02, Q2 → 13-08, Q3 → 13-05, Q4 → 13-05/13-08, Q5 → 13-09)
 
 1. **Does the cloud-push-pending marker share `SubmissionSyncStore` or get a sibling?**
    - What we know: `SubmissionSyncStore`'s KDoc argues at length for *not* folding the submissions
