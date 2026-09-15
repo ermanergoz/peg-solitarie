@@ -90,24 +90,22 @@ class FakeCloudSaveStoreTest {
         }
 
     @Test
-    fun throwOnSaveThrowsOutOfSaveSoACallerCanProveItSurvivesAThrowingStore() =
-        runTest {
-            val store = FakeCloudSaveStore(throwOnSave = IllegalStateException(FAILURE_MESSAGE))
+    fun throwOnSaveThrowsOutOfSaveSoACallerCanProveItSurvivesAThrowingStore() {
+        val store = FakeCloudSaveStore(throwOnSave = IllegalStateException(FAILURE_MESSAGE))
 
-            assertThrows(IllegalStateException::class.java) {
-                runTest { store.save(LOCAL, DESCRIPTION, PLAYED_TIME_MS, CONCATENATING_MERGE) }
-            }
+        assertThrows(IllegalStateException::class.java) {
+            runTest { store.save(LOCAL, DESCRIPTION, PLAYED_TIME_MS, CONCATENATING_MERGE) }
         }
+    }
 
     @Test
-    fun throwOnLoadThrowsOutOfLoad() =
-        runTest {
-            val store = FakeCloudSaveStore(throwOnLoad = IllegalStateException(FAILURE_MESSAGE))
+    fun throwOnLoadThrowsOutOfLoad() {
+        val store = FakeCloudSaveStore(throwOnLoad = IllegalStateException(FAILURE_MESSAGE))
 
-            assertThrows(IllegalStateException::class.java) {
-                runTest { store.load(CONCATENATING_MERGE) }
-            }
+        assertThrows(IllegalStateException::class.java) {
+            runTest { store.load(CONCATENATING_MERGE) }
         }
+    }
 
     private companion object {
         val REMOTE = "remote".toByteArray()
