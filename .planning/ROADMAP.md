@@ -358,9 +358,9 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 13-04-PLAN.md — CLOUD-01/04, D-05/D-07: `@Serializable` payload DTO, validating decode boundary, encode-measure-trim loop
-- [ ] 13-05-PLAN.md — CLOUD-01/02/04: additive DAO members, awaitable ladder merge, transactional `importProgress`/`exportProgress`/`resetAllProgress`
-- [ ] 13-06-PLAN.md — CLOUD-01/05: `CloudSaveStore` seam (bytes in/out), scoped constants, NoOp stub, recording fake
+- [x] 13-04-PLAN.md — CLOUD-01/04, D-05/D-07: `@Serializable` payload DTO, validating decode boundary, encode-measure-trim loop
+- [x] 13-05-PLAN.md — CLOUD-01/02/04: additive DAO members, awaitable ladder merge, transactional `importProgress`/`exportProgress`/`resetAllProgress`
+- [x] 13-06-PLAN.md — CLOUD-01/05: `CloudSaveStore` seam (bytes in/out), scoped constants, NoOp stub, recording fake
 
 **Wave 3** *(blocked on Wave 2)*
 
@@ -416,5 +416,5 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 10. Interstitials | v1.1 | 6/6 | Complete    | 2026-09-03 |
 | 11. Play Games Session | v1.1 | 4/4 | Complete   | 2026-09-03 |
 | 12. Leaderboards & Achievements | v1.1 | 8/8 | Complete   | 2026-09-13 |
-| 13. Cloud Save | v1.1 | 3/11 | In Progress|  |
+| 13. Cloud Save | v1.1 | 6/11 | In Progress|  |
 | 14. Release Readiness | v1.1 | 0/TBD | Not started | - |
