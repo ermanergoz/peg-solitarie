@@ -136,3 +136,13 @@ None. Both artifacts are complete documents. The unticked checkboxes and the fou
 - **Wave 1 hand-off:** the operator can start Step 0 immediately and in parallel with engineering. It takes minutes and blocks every device test in the phase, so it should be done before plan 13-11 is scheduled, not when it starts.
 - **Plan 13-11 owns the `result:` lines.** No other plan should write one. If a test is run early, record it there rather than editing the four pending lines in place.
 - **Plans 13-08 and 13-10 are named in the Gaps entry** as the home of the profile-swap JVM coverage. If that coverage lands elsewhere, update the gap entry so the compensating-coverage claim stays true.
+
+## Self-Check: PASSED
+
+- `13-OPERATOR-CHECKLIST.md` — FOUND
+- `11-HUMAN-UAT.md` — FOUND (modified)
+- `13-03-SUMMARY.md` — FOUND
+- Commit `36e6dbb` — FOUND
+- Commit `bf5ecd1` — FOUND
+- `git diff 3b6d1d9..HEAD --name-only` lists only the three `.planning/` files above — no source file, no `STATE.md`, no `ROADMAP.md` (worktree mode; the orchestrator owns those writes)
+- Working tree clean, no untracked files, no deletions in either task commit
