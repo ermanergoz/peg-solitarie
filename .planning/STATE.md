@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Slice 2 — Play Games, AdMob & Polish
 status: completed
-stopped_at: Phase 12 complete and merged; next Phase 11 UAT tests 1-3, then Phase 13
+stopped_at: Phase 12 merged; Phase 11 UAT 1 fixed (quick 260915-51n), UAT 2 blocked (needs a second account); next Phase 13
 last_updated: "2026-09-15T01:15:00.000Z"
 last_activity: 2026-09-15
 progress:
@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-08-27)
 Phase: 12 (leaderboards-achievements) — COMPLETE (8 of 8 plans)
 Plan: 8 of 8
 Status: Phase 12 COMPLETE — code, Play Console operator checklist and device UAT 4-9 all done (2026-09-15); merged to develop
-Last activity: 2026-09-15 - Completed quick task 260915-3jd: debug builds honour a configured PGS_PROJECT_ID
+Last activity: 2026-09-15 - Completed quick task 260915-51n: Play Games SDK initialized at process start (silent sign-in on relaunch fixed)
 
 Progress: [██████████] 100%
 
@@ -144,6 +144,7 @@ Recent decisions affecting current work:
 | 260914-x4a | Adaptive launcher icon from the approved English-33 board design | 2026-09-15 | 27a8f8d | [260914-x4a-add-adaptive-launcher-icon-from-the-appr](./quick/260914-x4a-add-adaptive-launcher-icon-from-the-appr/) |
 | 260915-3jd | Debug builds honour a configured `PGS_PROJECT_ID` (was shipping `"0"`, so Play Games sign-in silently failed) | 2026-09-15 | f734f44, 8f2cbe3 | [260915-3jd-fix-debug-builds-emitting-play-games-pro](./quick/260915-3jd-fix-debug-builds-emitting-play-games-pro/) |
 | fast | Record Phase 12 UAT results (tests 4–8 pass, 9 partial) and tick the operator checklist; fix its package name | 2026-09-15 | 306b71e | — (inline /gsd:fast, no plan dir) |
+| 260915-51n | Initialize Play Games at process start behind the opt-in gate — silent sign-in on relaunch now works (Phase 11 UAT test 1 FAIL → PASS) | 2026-09-15 | 5ddd120 | [260915-51n-fix-silent-play-games-sign-in-on-relaunc](./quick/260915-51n-fix-silent-play-games-sign-in-on-relaunc/) |
 
 ## Deferred Items
 
