@@ -277,4 +277,27 @@
     <string name="settings_play_games_leaderboards_supporting">See how your scores rank</string>
     <string name="settings_play_games_achievements_label">Achievements</string>
     <string name="settings_play_games_achievements_supporting">View the achievements you\'ve earned</string>
+
+    <!-- ====================== Phase-13 cloud-save copy ====================== -->
+    <!--
+      CLOUD-03 / D-11 — the ONE line the player reads under this game's entry in the
+      Play Games saved-games list. It is written into the snapshot's metadata at commit
+      time and therefore follows the DEVICE LOCALE AT THAT MOMENT, by design: a player
+      who changes language sees the new language on their next solve rather than a line
+      frozen in whatever locale first wrote the save. That is why the numbers cross the
+      platform seam as three raw ints (CloudSaveDescription) and the wording lives only
+      here, where a translator can reach it.
+
+      Four positional arguments, in order: the Challenge ladder level, total stars,
+      Classic boards cleared, and the size of the Classic roster. The fourth is supplied
+      from ClassicBoard.entries.size and is NOT a literal 5 anywhere — a sixth Classic
+      board must move this denominator on its own.
+
+      Positional %1$d-style arguments throughout, matching settings_play_games_signed_in_as;
+      a bare %d would be untranslatable the moment a language needs another word order.
+      The separator is a middle dot rather than a comma so the three figures read as
+      peers rather than as a sentence.
+    -->
+    <string name="cloud_save_description">Challenge level %1$d · %2$d stars · %3$d/%4$d Classic boards</string>
+    <!-- ==================== end Phase-13 cloud-save copy ==================== -->
 </resources>
