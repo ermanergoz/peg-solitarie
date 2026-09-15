@@ -306,6 +306,9 @@ class PlayGamesCloudSaveStoreTest {
     private fun dataResult(value: Snapshot): SnapshotsClient.DataOrConflict<Snapshot> {
         val result = mockk<SnapshotsClient.DataOrConflict<Snapshot>>()
         every { result.isConflict } returns false
+        // `getConflict()` is `@Nullable` and is null exactly when `isConflict()` is false; the
+        // store reads it as the discriminator, so the fixture must model both halves.
+        every { result.conflict } returns null
         every { result.data } returns value
         return result
     }
