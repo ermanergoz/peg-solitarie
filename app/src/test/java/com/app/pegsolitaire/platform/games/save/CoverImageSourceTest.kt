@@ -14,15 +14,22 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import java.io.ByteArrayOutputStream
 
 /**
  * The cover art attached to every cloud commit (CLOUD-03, D-09).
  *
  * Robolectric, because what is under test is a real vector inflation followed by a real
- * 512-square draw — the two steps that can actually fail. Robolectric 4.16 renders natively, so
- * [theCoverActuallyDrewSomething] is a genuine check that both layer-list items painted rather
- * than a tautology over a stubbed `Canvas`.
+ * 512-square draw — the two steps that can actually fail.
+ *
+ * **[GraphicsMode.Mode.NATIVE] is load-bearing and must not be removed.** Robolectric's default
+ * LEGACY mode stubs the whole drawing pipeline: every `Canvas` call is a no-op and
+ * `Bitmap.compress` writes the raw ARGB buffer instead of encoding. Under LEGACY this file is
+ * worse than no test — it was observed reporting an all-zero (fully transparent) bitmap and a
+ * "PNG" of 1,049,700 bytes, i.e. exactly 512x512x4 plus a header, which is how both the
+ * not-blank and the under-the-ceiling assertions were caught lying. NATIVE runs the real Skia
+ * pipeline, so both now measure the bytes that would actually cross `BitmapTeleporter`.
  *
  * Every assertion here protects a commit that must not fail: an oversized cover, a blank cover
  * and a thrown inflation failure are three different ways to lose a push the player would never
@@ -30,6 +37,7 @@ import java.io.ByteArrayOutputStream
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [COVER_ROBOLECTRIC_SDK])
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class CoverImageSourceTest {
     private fun sourceFor(context: Context = RuntimeEnvironment.getApplication()) = CoverImageSource(context)
 
@@ -99,7 +107,9 @@ class CoverImageSourceTest {
  * lowest place a subclass can still reach. `ContextCompat.getDrawable` routes through exactly
  * that call, so this is the real inflation path failing, not a shortcut around it.
  */
-private class BrokenDrawableContext(base: Context) : ContextWrapper(base) {
+private class BrokenDrawableContext(
+    base: Context,
+) : ContextWrapper(base) {
     private val broken: Resources =
         mockk {
             every { getDrawable(any<Int>(), any()) } throws
@@ -117,5 +127,9 @@ private const val PNG_QUALITY_LOSSLESS = 100
 /**
  * The Play Games cover ceiling, in bytes. Play Games guarantees at least 800 KB; the runtime
  * `getMaxCoverImageSize()` cross-check is UAT test 12's measurement ask (RESEARCH A1).
+ *
+ * Measured on this art at `COVER_PX = 512`: **35,907 bytes**, 4.4% of the ceiling. Recorded so
+ * that a future failure here reads as "the art changed" rather than "the number was always
+ * marginal" — there are four and a half doublings of headroom.
  */
 private const val MAX_COVER_BYTES = 800 * 1024
