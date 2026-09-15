@@ -347,7 +347,35 @@ Plans:
   3. Player browsing saves in the Play Games UI sees a legible entry carrying a description, played time, and cover image. (CLOUD-03)
   4. The in-progress board snapshot never leaves the device, and a cloud save or load failure quietly degrades to local-only play with no data loss and no error wall. (CLOUD-04, CLOUD-05)
 
-**Plans**: TBD
+**Plans**: 11 plans in 5 waves
+
+Plans:
+**Wave 1**
+
+- [ ] 13-01-PLAN.md — CLOUD-02: extract the monotonic merge into pure `:domain` `ProgressMerge` + its algebraic-law tests (the ROADMAP sequencing mandate)
+- [ ] 13-02-PLAN.md — CLOUD-05/D-12: `CloudSyncStore` push-pending marker and `CloudProfileStore` last-merged player id, with argued fail-open defaults
+- [ ] 13-03-PLAN.md — D-16: `13-OPERATOR-CHECKLIST.md` (Enable Saved Games) and 11-HUMAN-UAT tests 10-13 + the profile-swap gap
+
+**Wave 2** *(blocked on Wave 1)*
+
+- [ ] 13-04-PLAN.md — CLOUD-01/04, D-05/D-07: `@Serializable` payload DTO, validating decode boundary, encode-measure-trim loop
+- [ ] 13-05-PLAN.md — CLOUD-01/02/04: additive DAO members, awaitable ladder merge, transactional `importProgress`/`exportProgress`/`resetAllProgress`
+- [ ] 13-06-PLAN.md — CLOUD-01/05: `CloudSaveStore` seam (bytes in/out), scoped constants, NoOp stub, recording fake
+
+**Wave 3** *(blocked on Wave 2)*
+
+- [ ] 13-07-PLAN.md — CLOUD-03, D-09/D-11: localized capped description and the cover rasterized from the launcher vectors
+- [ ] 13-08-PLAN.md — CLOUD-01/02/03/05, D-01/D-02/D-12/D-14: `ProgressSubmitter` pass — profile gate, pull-once, Phase-12 catch-up, push, swap resolution
+
+**Wave 4** *(blocked on Wave 3)*
+
+- [ ] 13-09-PLAN.md — CLOUD-01/02/03/05: `SnapshotsClient` plumbing under `RESOLUTION_POLICY_MANUAL`, bounded conflict merge, metadata commit, binding flip
+- [ ] 13-10-PLAN.md — CLOUD-02, D-13/D-14/D-15: Home-only profile-swap dialog, `HomeUiState` peers, never-stacked sequencing
+
+**Wave 5** *(blocked on Wave 4)*
+
+- [ ] 13-11-PLAN.md — phase gate (`check`, minified release + `missing_rules.txt`, containment greps) and the two-emulator device pass (manual)
+
 **Notes**: The least reversible slice — it touches the persistence contract and needs two devices/accounts to test honestly. Use `RESOLUTION_POLICY_MANUAL` with the monotonic merge extracted into `:domain` and exhaustively unit-tested before any `SnapshotsClient` code is written; the default most-recently-modified policy silently deletes progress. **Research gap to close at planning time:** the Saved Games per-snapshot size cap is unverified — confirm it at runtime and design the payload capped/lossy-by-default rather than assuming an unbounded dump is safe.
 
 ### Phase 14: Release Readiness
