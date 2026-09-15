@@ -352,9 +352,9 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 13-01-PLAN.md — CLOUD-02: extract the monotonic merge into pure `:domain` `ProgressMerge` + its algebraic-law tests (the ROADMAP sequencing mandate)
-- [ ] 13-02-PLAN.md — CLOUD-05/D-12: `CloudSyncStore` push-pending marker and `CloudProfileStore` last-merged player id, with argued fail-open defaults
-- [ ] 13-03-PLAN.md — D-16: `13-OPERATOR-CHECKLIST.md` (Enable Saved Games) and 11-HUMAN-UAT tests 10-13 + the profile-swap gap
+- [x] 13-01-PLAN.md — CLOUD-02: extract the monotonic merge into pure `:domain` `ProgressMerge` + its algebraic-law tests (the ROADMAP sequencing mandate)
+- [x] 13-02-PLAN.md — CLOUD-05/D-12: `CloudSyncStore` push-pending marker and `CloudProfileStore` last-merged player id, with argued fail-open defaults
+- [x] 13-03-PLAN.md — D-16: `13-OPERATOR-CHECKLIST.md` (Enable Saved Games) and 11-HUMAN-UAT tests 10-13 + the profile-swap gap
 
 **Wave 2** *(blocked on Wave 1)*
 
@@ -416,5 +416,5 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 10. Interstitials | v1.1 | 6/6 | Complete    | 2026-09-03 |
 | 11. Play Games Session | v1.1 | 4/4 | Complete   | 2026-09-03 |
 | 12. Leaderboards & Achievements | v1.1 | 8/8 | Complete   | 2026-09-13 |
-| 13. Cloud Save | v1.1 | 0/TBD | Not started | - |
+| 13. Cloud Save | v1.1 | 3/11 | In Progress|  |
 | 14. Release Readiness | v1.1 | 0/TBD | Not started | - |
