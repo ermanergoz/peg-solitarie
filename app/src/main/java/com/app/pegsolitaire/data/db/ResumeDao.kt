@@ -36,4 +36,21 @@ interface ResumeDao {
     /** Drops [mode]'s snapshot (solved, restarted, or new game — D-05). */
     @Query("DELETE FROM $TABLE_RESUME_SNAPSHOT WHERE $COLUMN_MODE = :mode")
     suspend fun clear(mode: String)
+
+    /**
+     * Drops BOTH modes' snapshots.
+     *
+     * **D-14's profile-replace path only — and nothing else, ever.** The in-progress board
+     * never leaves this device and is never touched by a cloud event (CLOUD-04/CLOUD-05):
+     * no cloud read, no import and no conflict resolution may call this, which is why a
+     * cloud import is written so that it cannot even reach this DAO. The one legitimate
+     * caller is the player answering "use the other account's progress", which replaces
+     * the whole device state on purpose.
+     *
+     * D-04 is the case this exists to *contrast* with: a merged ladder jumping from 10 to
+     * 50 leaves a level-10 game in progress perfectly resumable, because an import is not
+     * a replace.
+     */
+    @Query("DELETE FROM $TABLE_RESUME_SNAPSHOT")
+    suspend fun clearAll()
 }
