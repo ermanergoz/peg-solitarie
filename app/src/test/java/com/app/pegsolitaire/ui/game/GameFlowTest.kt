@@ -113,7 +113,7 @@ class GameFlowTest {
         // D-05: the Phase-1 game-over dialog is gone — the VM emits a single finish
         // event (carrying the ScoreCalculator-consistent result) for GameRoute to turn
         // into a Results navigation; no in-screen overlay appears.
-        val result = runBlocking { viewModel.finished.first() }
+        val result = runBlocking { viewModel.finished.first().result }
         assertThat(result.pegsRemaining).isEqualTo(1)
         // D-03/D-04: the calculator is asked with the SAME per-board target the VM
         // threads (English-33's default one peg), so the agreement being asserted is

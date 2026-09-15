@@ -100,6 +100,10 @@ import kotlinx.coroutines.launch
  * @param onToggleHaptics persists the new haptics choice (SET-02).
  * @param onSignInToPlayGames signs the player in to Play Games and records the opt-in
  *   (PGS-03, D-10/D-19). Reached only from the signed-out row.
+ * @param onShowLeaderboards opens the stock all-leaderboards picker (PGSL-06, D-14).
+ *   Reached only from the signed-in rows.
+ * @param onShowAchievements opens the stock achievements UI (PGSA-05, D-14). Reached only
+ *   from the signed-in rows.
  * @param onPlayGamesSignInErrorShown the D-10 error snackbar has been raised for the current
  *   [SettingsUiState.playGamesSignInErrorTick]; the ViewModel consumes the ordinal so a
  *   rotation does not replay it (CR-01).
@@ -114,6 +118,8 @@ fun SettingsScreen(
     onToggleSound: (Boolean) -> Unit,
     onToggleHaptics: (Boolean) -> Unit,
     onSignInToPlayGames: () -> Unit,
+    onShowLeaderboards: () -> Unit,
+    onShowAchievements: () -> Unit,
     onPlayGamesSignInErrorShown: () -> Unit,
     onManagePrivacyChoices: () -> Unit,
     onBack: () -> Unit,
@@ -164,6 +170,8 @@ fun SettingsScreen(
                 PlayGamesSection(
                     gamesSignInState = state.gamesSignInState,
                     onSignInToPlayGames = onSignInToPlayGames,
+                    onShowLeaderboards = onShowLeaderboards,
+                    onShowAchievements = onShowAchievements,
                 )
                 PrivacySection(
                     privacyOptionsRequired = state.privacyOptionsRequired,
@@ -250,13 +258,27 @@ private fun GeneralSection(
  * visit, carries no dismiss counter and no re-prompt logic, and an explicit decline leaves
  * it exactly where it was (D-13, T-11-12).
  *
+ * The two stock-UI rows below the signed-in statement row (Phase 12 D-14/D-15) exist in the
+ * `SignedIn` branch **only**, and their absence elsewhere is the design rather than an
+ * oversight: signed out they do not exist at all — not disabled, not empty — because the
+ * sign-in row directly above already says what to do, and a greyed-out "Leaderboards"
+ * explains nothing while still looking like a broken feature. While the session is
+ * [GamesSignInState.Unknown] the guard above hides the whole section, these rows included.
+ *
+ * They render straight off [gamesSignInState], so there is no second copy of "is the player
+ * signed in" that could fall out of step with the row above them.
+ *
  * @param gamesSignInState the observed Play Games session; the section's sole input.
  * @param onSignInToPlayGames invoked by the signed-out row's tap (D-10/D-19).
+ * @param onShowLeaderboards invoked by the signed-in Leaderboards row's tap (PGSL-06).
+ * @param onShowAchievements invoked by the signed-in Achievements row's tap (PGSA-05).
  */
 @Composable
 private fun PlayGamesSection(
     gamesSignInState: GamesSignInState,
     onSignInToPlayGames: () -> Unit,
+    onShowLeaderboards: () -> Unit,
+    onShowAchievements: () -> Unit,
 ) {
     if (gamesSignInState == GamesSignInState.Unknown) return
 
@@ -265,7 +287,7 @@ private fun PlayGamesSection(
         entranceOrder = PLAY_GAMES_HEADER_ORDER,
     )
     when (gamesSignInState) {
-        is GamesSignInState.SignedIn ->
+        is GamesSignInState.SignedIn -> {
             SettingsLinkRow(
                 label =
                     gamesSignInState.displayName
@@ -274,8 +296,24 @@ private fun PlayGamesSection(
                 supporting = stringResource(R.string.settings_play_games_signin_supporting),
                 entranceOrder = PLAY_GAMES_ROW_ORDER,
                 trailingIcon = null,
+                // Still a statement, not an offer: the rows below are what the player taps.
                 onClick = null,
             )
+            SettingsLinkRow(
+                label = stringResource(R.string.settings_play_games_leaderboards_label),
+                supporting = stringResource(R.string.settings_play_games_leaderboards_supporting),
+                entranceOrder = PLAY_GAMES_LEADERBOARDS_ROW_ORDER,
+                trailingIcon = null,
+                onClick = onShowLeaderboards,
+            )
+            SettingsLinkRow(
+                label = stringResource(R.string.settings_play_games_achievements_label),
+                supporting = stringResource(R.string.settings_play_games_achievements_supporting),
+                entranceOrder = PLAY_GAMES_ACHIEVEMENTS_ROW_ORDER,
+                trailingIcon = null,
+                onClick = onShowAchievements,
+            )
+        }
 
         GamesSignInState.SignedOut ->
             SettingsLinkRow(
@@ -609,22 +647,27 @@ private fun SettingsLinkRow(
 /**
  * Entrance stagger order of every element in the Settings column, top to bottom (UI-SPEC §3).
  *
- * Named constants rather than literals (no magic numbers), and a contiguous 0-7
+ * Named constants rather than literals (no magic numbers), and a contiguous 0-9
  * set including the headers, so the [clayEntrance] cascade reads strictly downward. The
  * conditional elements keep their orders even when they are not rendered — the orders
  * describe position in the layout, not the count of visible children, which is also why the
- * whole Play Games section being absent (D-11) leaves the Privacy orders untouched.
+ * whole Play Games section being absent (D-11), or its two signed-in-only rows being absent
+ * (Phase 12 D-15), leaves the Privacy orders untouched.
  *
- * Inserting Play Games between General and Privacy is therefore a **renumbering**, not an
- * append: the three Privacy constants each shift up by two. That is the price of the one
- * invariant this block exists to keep — position in the column and stagger order are the
- * same ordering, so nothing can fade in above something that arrived before it.
+ * Inserting anything above Privacy is therefore a **renumbering**, not an append. Play Games
+ * arriving between General and Privacy shifted the three Privacy constants up by two; the
+ * Phase-12 stock-UI rows shifted them by two again, to 7-9. Privacy stays pinned last
+ * (Phase 9 D-14), so new rows go above it and never between it and the bottom. That is the
+ * price of the one invariant this block exists to keep — position in the column and stagger
+ * order are the same ordering, so nothing can fade in above something that arrived before it.
  */
 private const val GENERAL_HEADER_ORDER = 0
 private const val SOUND_ROW_ORDER = 1
 private const val HAPTICS_ROW_ORDER = 2
 private const val PLAY_GAMES_HEADER_ORDER = 3
 private const val PLAY_GAMES_ROW_ORDER = 4
-private const val PRIVACY_HEADER_ORDER = 5
-private const val PRIVACY_POLICY_ROW_ORDER = 6
-private const val PRIVACY_CHOICES_ROW_ORDER = 7
+private const val PLAY_GAMES_LEADERBOARDS_ROW_ORDER = 5
+private const val PLAY_GAMES_ACHIEVEMENTS_ROW_ORDER = 6
+private const val PRIVACY_HEADER_ORDER = 7
+private const val PRIVACY_POLICY_ROW_ORDER = 8
+private const val PRIVACY_CHOICES_ROW_ORDER = 9

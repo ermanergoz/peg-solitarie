@@ -40,4 +40,23 @@ object BoardConstants {
      * escalation clause fires instead.
      */
     const val DIAMOND41_FEWEST_PEGS_FLOOR = 2
+
+    /**
+     * The largest [BoardSpec.minimumPegs] any shipped board declares — the upper bound
+     * for clamping an *untrusted* minimum-peg floor that arrives from outside the
+     * board model (a nav argument, a persisted blob).
+     *
+     * Every Classic cross board and every generated Challenge footprint sits at
+     * [MINIMUM_PEGS_DEFAULT]; Diamond-41 alone sits at
+     * [DIAMOND41_FEWEST_PEGS_FLOOR], which is therefore the ceiling. Clamping a
+     * forged floor to this value is what keeps "did this play solve the board?"
+     * (`pegsRemaining <= minimumPegs`) from being widened by a route argument: a
+     * forged `41` would otherwise declare a barely-played board solved. Clamping
+     * against the play's own `pegsRemaining` would have exactly that effect and is
+     * the trap this constant exists to avoid.
+     *
+     * It is derived from the shipped roster, so a future board with a higher proven
+     * floor must raise it here rather than at any clamp site.
+     */
+    const val HIGHEST_MINIMUM_PEGS = DIAMOND41_FEWEST_PEGS_FLOOR
 }

@@ -5,8 +5,14 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
 /**
- * Proves the Slice-1 [NoOpGamesService] stub reports "not signed in" and that every one
- * of its submission and stock-UI hooks is a safe, silent no-op.
+ * Proves the Slice-1 [NoOpGamesService] stub reports "not signed in", that every
+ * submission reports `false`, and that both stock-UI hooks are safe, silent no-ops.
+ *
+ * The submission cases assert `false` rather than merely "does not throw", and the
+ * distinction is the point: `false` means *nothing was submitted*, which is what keeps a
+ * caller's retry bookkeeping honest. A stub that reported success would have the caller
+ * clear its pending-submissions flag (D-10) for a submission that never left the device,
+ * losing it silently — the one failure mode a stub is supposed to make impossible.
  *
  * Note the deliberate contrast with `NoOpAdGatewayTest`: the ad stub *grants*
  * ([com.app.pegsolitaire.platform.ads.RewardOutcome.Granted]) so hint/undo stay free
@@ -49,24 +55,27 @@ class NoOpGamesServiceTest {
     }
 
     @Test
-    fun submitScoreDoesNotThrow() {
-        service.submitScore(leaderboardId = "challenge_high_score", score = 1_200L)
-    }
-
-    @Test
-    fun unlockAchievementDoesNotThrow() {
-        service.unlockAchievement(achievementId = "first_solve")
-    }
-
-    @Test
-    fun incrementAchievementDoesNotThrow() {
-        service.incrementAchievement(achievementId = "hundred_solves", steps = 1)
-    }
-
-    @Test
-    fun showLeaderboardDoesNotThrow() =
+    fun submitScoreReportsNothingWasSubmitted() =
         runTest {
-            service.showLeaderboard(leaderboardId = "challenge_high_score")
+            assertThat(service.submitScore(leaderboardId = PLACEHOLDER_LEADERBOARD_ID, score = 1_200L)).isFalse()
+        }
+
+    @Test
+    fun unlockAchievementReportsNothingWasSubmitted() =
+        runTest {
+            assertThat(service.unlockAchievement(achievementId = PLACEHOLDER_ACHIEVEMENT_ID)).isFalse()
+        }
+
+    @Test
+    fun setAchievementStepsReportsNothingWasSubmitted() =
+        runTest {
+            assertThat(service.setAchievementSteps(achievementId = PLACEHOLDER_ACHIEVEMENT_ID, steps = 1)).isFalse()
+        }
+
+    @Test
+    fun showLeaderboardsDoesNotThrow() =
+        runTest {
+            service.showLeaderboards()
         }
 
     @Test
@@ -74,4 +83,14 @@ class NoOpGamesServiceTest {
         runTest {
             service.showAchievements()
         }
+
+    private companion object {
+        /**
+         * Obviously-fake ids. The stub never reads them, and no real Play Console id belongs
+         * in source — real ids are resolved at build time, and this seam takes them as opaque
+         * parameters (D-13).
+         */
+        const val PLACEHOLDER_LEADERBOARD_ID = "placeholder-leaderboard-id"
+        const val PLACEHOLDER_ACHIEVEMENT_ID = "placeholder-achievement-id"
+    }
 }

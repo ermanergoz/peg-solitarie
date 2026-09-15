@@ -7,10 +7,13 @@ import androidx.navigation.toRoute
 import com.app.pegsolitaire.data.InterstitialCadenceStore
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
+import com.app.pegsolitaire.data.ProgressSubmitter
 import com.app.pegsolitaire.domain.ads.InterstitialCadenceState
 import com.app.pegsolitaire.domain.generator.ChallengeLevelBounds
+import com.app.pegsolitaire.domain.model.BoardConstants
 import com.app.pegsolitaire.domain.scoring.ScoreParams
 import com.app.pegsolitaire.domain.scoring.ScoreResult
+import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import com.app.pegsolitaire.navigation.Results
 import com.app.pegsolitaire.platform.ads.AdConstants
 import com.app.pegsolitaire.platform.ads.AdGateway
@@ -37,12 +40,29 @@ import javax.inject.Inject
  * "New best!" cue on the screen (D-09).
  *
  * Three guards keep that write honest:
- *  - **Only a solved play is recorded (D-08).** A board that did not fold to a single
- *    peg reaches Results in its stuck/Retry state (D-10) and must not leave a stored
- *    best behind for a level that was never solved.
+ *  - **Only a solved play is recorded (D-08).** A board that did not fold to its own
+ *    `BoardSpec.minimumPegs` floor reaches Results in its stuck/Retry state (D-10) and
+ *    must not leave a stored best behind for a level that was never solved. That floor is
+ *    per-board and rides on the route — Diamond-41's is a proven TWO pegs — so the gate is
+ *    `pegsRemaining <= minimumPegs` and never a hardcoded one peg (CR-01).
  *  - **It is recorded at most once (T-05-09).** The guard flag lives in the
  *    [SavedStateHandle], so neither a configuration change (same instance) nor a
  *    process-death restore (new instance, same handle) can double-count the play.
+ *  - **The Play Games submission rides that same latch, rather than adding a fourth
+ *    (D-13/PGSL-04).** [ProgressSubmitter.onResultRecorded] is called once, immediately
+ *    after [ProgressRepository.recordResult] returns and the screen's own state is
+ *    committed — inside the [RECORDED_KEY] guard, so a configuration change, a
+ *    process-death restore and a back navigation onto the same entry all bank and submit
+ *    nothing, because none of them gets past the latch. **This is why the hook is here and
+ *    not in `GameViewModel`**: that ViewModel's `finishedEmitted` latch is reset by
+ *    `performUndo()` when the undone board returns to `Playing`, so an undo/re-jump cycle
+ *    re-emits the finish and a hook there would resubmit on every cycle. [RECORDED_KEY] is
+ *    the only latch in this codebase that survives both configuration change and process
+ *    death, which no `LaunchedEffect` does. The call is deliberately **not** wrapped: it is
+ *    non-suspend and its whole body is a launch on the application scope, so it can neither
+ *    throw a submission failure at this coroutine nor delay it — and a defensive
+ *    `runCatching` here would disguise a regression in exactly that shape rather than guard
+ *    against one.
  *  - **The celebration sounds at most once (D-16).** The star-pop ceremony on the
  *    Results screen gets its own latch in the same [SavedStateHandle], for the same
  *    reason and with the same reach: neither a configuration change (same instance) nor
@@ -58,6 +78,11 @@ import javax.inject.Inject
  *    [ResultsUiState.challengeLevel] that drives `onNextLevel(challengeLevel + 1)`, the
  *    mode branch, and the database level key — uses that one value. A forged or
  *    out-of-range arg therefore cannot reach the stored key or the "Next level" action.
+ *  - **The solve telemetry is clamped at the same boundary (D-08/D-09, T-12-23).** The
+ *    three `Results` telemetry args pass through [SolveTelemetry.coerced] exactly once
+ *    into [solveTelemetry]; the raw args are never read again. Absent args read as
+ *    [SolveTelemetry.NONE] and a forged counter is bounded rather than refused, on the
+ *    same reasoning as the Challenge level above.
  *  - **The win is banked at most once (INT-02).** The interstitial cadence counts wins,
  *    and a re-entry into the same result is not a second win. A THIRD
  *    [SavedStateHandle] latch — [WIN_COUNTED_KEY] — guards [claimWinOnce] with the same
@@ -84,6 +109,10 @@ import javax.inject.Inject
  * @param savedStateHandle carries the typed `Results(...)` route args and the
  *   already-recorded guard.
  * @param progressRepository the single source of truth for per-level bests.
+ * @param progressSubmitter the Play Games submission orchestrator (D-13) — positioned
+ *   after [progressRepository] because it is that call's consequence, and reached through
+ *   exactly one fire-and-forget line. Nothing here ever names a leaderboard or achievement
+ *   ID; the submitter resolves every one of them behind this seam.
  * @param cadenceStore the memory of the interstitial cadence (INT-02) — banks the win and
  *   records a presentation; it never decides anything, [InterstitialCadenceState] does.
  * @param adGateway the ad seam: readiness to decide with, a warm-up to call at eligibility
@@ -95,6 +124,7 @@ class ResultsViewModel
     constructor(
         private val savedStateHandle: SavedStateHandle,
         private val progressRepository: ProgressRepository,
+        private val progressSubmitter: ProgressSubmitter,
         private val cadenceStore: InterstitialCadenceStore,
         private val adGateway: AdGateway,
     ) : ViewModel() {
@@ -110,6 +140,75 @@ class ResultsViewModel
         private val challengeLevel: Int? = args.challengeLevel?.let(ChallengeLevelBounds::clamp)
 
         /**
+         * The finishing board's perfect-finish floor, clamped once at this boundary — the
+         * same WARN-03 treatment [challengeLevel] gets, for the same reason.
+         *
+         * The clamp ceiling is [BoardConstants.HIGHEST_MINIMUM_PEGS] (the highest floor any
+         * shipped board declares), **never** the play's own `pegsRemaining`: clamping
+         * against `pegsRemaining` would make every forged value satisfy
+         * `pegsRemaining <= minimumPegs` and hand a stored best, a `play_session` row and a
+         * leaderboard submission to a board that was never played. The floor is
+         * [BoardConstants.MINIMUM_PEGS_DEFAULT], so a forged zero or negative cannot make
+         * the solved test unsatisfiable either.
+         */
+        private val minimumPegs: Int =
+            args.minimumPegs.coerceIn(
+                BoardConstants.MINIMUM_PEGS_DEFAULT,
+                BoardConstants.HIGHEST_MINIMUM_PEGS,
+            )
+
+        /**
+         * Whether this play solved its board — the single solved test this ViewModel owns
+         * (CR-01), in the same `pegsRemaining <= minimumPegs` form `GameViewModel.statusFor`
+         * used to declare the win.
+         *
+         * Three answers read it and none re-derives it: the record gate
+         * ([recordSolvedPlayOnce], which also decides whether the play is submitted to Play
+         * Games), the headline bucket ([tierFor]'s Challenge-stuck branch), and
+         * [ResultsUiState.showNextLevel] via the state's own [ResultsUiState.isSolved]. They
+         * were three separate `pegsRemaining == 1` comparisons across two files, which is
+         * how the Diamond-41 gap survived: the copy the player read said "Perfect!" while
+         * the gate a few lines away called the same play unsolved.
+         */
+        private val isSolved: Boolean = args.pegsRemaining <= minimumPegs
+
+        /**
+         * This play's per-solve telemetry, resolved ONCE from the route args at the same
+         * boundary — and by the same idiom — as [challengeLevel] above (D-08/D-09).
+         *
+         * **Coerced here and only here.** These three lines are the sole read of
+         * `args.hintsUsed` / `args.undosUsed` / `args.lastPegOnTarget`; every later use is
+         * of this value. `Results` is registered in `AppNavHost` *independently* of
+         * `GameRoute` and its args survive process death through the [SavedStateHandle], so
+         * they are untrusted in their own right rather than merely downstream of
+         * `GameViewModel`'s counters — exactly the WARN-03 argument the Challenge level
+         * already makes.
+         *
+         * **Clamped, never refused, never fatal (threat T-12-23).**
+         * [SolveTelemetry.coerced] bounds the counters at zero and passes a large forged
+         * value through untouched. Refusing a forged arg would convert a one-byte edit into
+         * a crashed Results screen and a lost recorded best for an honest player, in
+         * exchange for denying a cheat a cosmetic badge — the identical argument
+         * `SnapshotMapper` makes for the free-assist allowance. A route reached without the
+         * args reads as [SolveTelemetry.NONE], because the three are defaulted primitives.
+         *
+         * `internal` rather than `private` for two reasons: [recordSolvedPlayOnce] passes it
+         * to `ProgressRepository.recordResult`, which writes it to `play_session` in the
+         * same transaction as the best row (D-08); and exposing the *resolved* value is what
+         * lets the arg-clamping boundary be asserted directly — the same narrow precedent
+         * `GameViewModel.isOnRecordedLine()` sets.
+         *
+         * It is passed through **verbatim**: the coercion happened here, once, at the nav
+         * boundary, and the repository must not re-do or second-guess it.
+         */
+        internal val solveTelemetry: SolveTelemetry =
+            SolveTelemetry.coerced(
+                hintsUsed = args.hintsUsed,
+                undosUsed = args.undosUsed,
+                lastPegOnTarget = args.lastPegOnTarget,
+            )
+
+        /**
          * This result's outcome bucket, computed ONCE and shared by the state the screen
          * renders and the ad-eligibility gate below. Sharing one value is what makes the
          * headline and the gate structurally incapable of disagreeing (see
@@ -118,7 +217,7 @@ class ResultsViewModel
         private val headlineTier: ResultsHeadlineTier =
             tierFor(
                 stars = args.stars,
-                pegsRemaining = args.pegsRemaining,
+                isSolved = isSolved,
                 challengeLevel = challengeLevel,
             )
 
@@ -135,6 +234,7 @@ class ResultsViewModel
                     headlineTier = headlineTier,
                     replayId = args.levelId,
                     challengeLevel = challengeLevel,
+                    minimumPegs = minimumPegs,
                 ),
             )
 
@@ -301,15 +401,16 @@ class ResultsViewModel
             }
 
         /**
-         * Merges this play into the level's stored bests exactly once, then surfaces the
-         * returned per-field flags as the one-shot "New best!" cue (D-09).
+         * Merges this play into the level's stored bests exactly once — writing its
+         * [solveTelemetry] to `play_session` in the same transaction (D-08) — then surfaces
+         * the returned per-field flags as the one-shot "New best!" cue (D-09).
          *
          * Returns without writing when the play was not a solve (D-08) or when this play
          * has already been recorded — the flag is set *before* the write is launched, so
          * a second ViewModel built over the same handle cannot race a duplicate in.
          */
         private fun recordSolvedPlayOnce() {
-            if (args.pegsRemaining != PEGS_REMAINING_SOLVED) return
+            if (!isSolved) return
             if (savedStateHandle.get<Boolean>(RECORDED_KEY) == true) return
             savedStateHandle[RECORDED_KEY] = true
 
@@ -327,9 +428,11 @@ class ResultsViewModel
                         mode = mode,
                         levelId = levelId,
                         result = scoreResultFromArgs(),
+                        telemetry = solveTelemetry,
                         nowMs = System.currentTimeMillis(),
                     )
                 _uiState.update { it.copy(newBests = newBests) }
+                progressSubmitter.onResultRecorded()
             }
         }
 
@@ -369,9 +472,6 @@ class ResultsViewModel
             )
 
         private companion object {
-            /** A solved board leaves exactly one peg; a Challenge board that did not is stuck. */
-            const val PEGS_REMAINING_SOLVED = 1
-
             /** SavedStateHandle flag marking this play as already merged into the stored bests. */
             const val RECORDED_KEY = "results_recorded"
 
@@ -387,21 +487,24 @@ class ResultsViewModel
             /**
              * Maps the terminal outcome to its headline bucket (D-08). For a Challenge
              * result the headline must agree with the offered action (WR-03): a board
-             * that did NOT fold to a single peg is stuck regardless of star count, so a
+             * that did NOT reach its own floor is stuck regardless of star count, so a
              * 2-star Challenge board left with 2-3 pegs reads "Out of moves" (STUCK) over
              * its Retry action instead of a contradictory "Solved!". Otherwise (and for
              * Classic, [challengeLevel] `null`, star-only headline D-08): the top band
              * (>= [ScoreParams.THREE_STARS]) is PERFECT, the middle band
              * ([ScoreParams.TWO_STARS]) is SOLVED, everything else (the 1-star floor) STUCK.
+             *
+             * [isSolved] is passed in rather than recomputed from a peg count so this
+             * branch, the record gate and [ResultsUiState.showNextLevel] are the same
+             * answer by construction (CR-01).
              */
             fun tierFor(
                 stars: Int,
-                pegsRemaining: Int,
+                isSolved: Boolean,
                 challengeLevel: Int?,
             ): ResultsHeadlineTier =
                 when {
-                    challengeLevel != null && pegsRemaining != PEGS_REMAINING_SOLVED ->
-                        ResultsHeadlineTier.STUCK
+                    challengeLevel != null && !isSolved -> ResultsHeadlineTier.STUCK
                     stars >= ScoreParams.THREE_STARS -> ResultsHeadlineTier.PERFECT
                     stars == ScoreParams.TWO_STARS -> ResultsHeadlineTier.SOLVED
                     else -> ResultsHeadlineTier.STUCK
@@ -425,14 +528,15 @@ class ResultsViewModel
              *  - It is **not** `stars == ScoreParams.THREE_STARS`. That is the strict-win
              *    test, and using it here would deny an interstitial after every two-star
              *    Classic solve — a finish D-14 explicitly includes.
-             *  - It must **never** be written as a `pegsRemaining == 1` /
-             *    [PEGS_REMAINING_SOLVED] comparison. That constant is correct where it is
-             *    already used (every Challenge footprint has `minimumPegs == 1`) and it sits
-             *    a few lines away in this very file, which is exactly why it is the line a
-             *    developer would copy into a Classic gate. Doing so would misclassify a
+             *  - It must **never** be written as a `pegsRemaining == 1` comparison. That
+             *    test is only correct for Challenge (every generated footprint has
+             *    `minimumPegs == 1`); used anywhere Classic can reach it, it misclassifies a
              *    **perfect Diamond-41 finish as a loss**, because Diamond-41's proven floor
              *    is two pegs (Phase 8, GF(4) colour invariant) — the player who played it
-             *    flawlessly would be the one permanently denied.
+             *    flawlessly would be the one permanently denied. That is not hypothetical:
+             *    the record gate in this file was written that way and silently dropped
+             *    every Diamond-41 win until CR-01. The per-board answer is [isSolved], which
+             *    compares against the route's clamped `minimumPegs`.
              *
              * T-10-06 (accepted, not mitigated): `Results` is an independently reachable
              * typed route, so a forged `stars = 3` arg could make a never-played result

@@ -44,7 +44,13 @@ class ResumeRepositoryTest {
                     RuntimeEnvironment.getApplication(),
                     PegSolitaireDatabase::class.java,
                 ).build()
-        repository = DefaultProgressRepository(database, database.levelResultDao(), database.resumeDao())
+        repository =
+            DefaultProgressRepository(
+                database,
+                database.levelResultDao(),
+                database.resumeDao(),
+                database.playSessionDao(),
+            )
     }
 
     @After

@@ -10,8 +10,10 @@
 # traffic gets an AdMob account suspended non-appealably.
 #
 # A DEBUG BUILD NEEDS NONE OF THIS. `assembleDebug`, `check`, `test` and Android Studio
-# sync all work on a fresh clone with this file never copied — debug is hard-wired to
-# Google's published test ad units (see build-logic/src/main/kotlin/AdIdDefaults.kt).
+# sync all work on a fresh clone with this file never copied — the three AD units are
+# hard-wired on debug to Google's published test units, and a value set below is ignored
+# for them (see build-logic/src/main/kotlin/AdIdDefaults.kt). PGS_PROJECT_ID is the one
+# exception — a project ID cannot serve an ad, so debug honours it; see its key comment.
 # Only a release invocation (`assembleRelease`, `bundleRelease`, or a bare `assemble` /
 # `build` / `bundle`, which build both variants) requires real values; it fails at
 # configuration time with a message naming the exact key that is missing.
@@ -28,4 +30,117 @@ ADMOB_REWARDED_AD_UNIT_ID=REPLACE_ME_ADMOB_REWARDED_AD_UNIT_ID
 ADMOB_INTERSTITIAL_AD_UNIT_ID=REPLACE_ME_ADMOB_INTERSTITIAL_AD_UNIT_ID
 
 # Play Games Services project ID from the Play Console (numeric).
+# Unlike the three AdMob keys above, a DEBUG build HONOURS this value: set it and your
+# debug builds sign in to the REAL Play Games project (that is what the debug-keystore
+# SHA-1 is registered for). Leave it unset or `REPLACE_ME` and debug falls back to the
+# inert "0" placeholder, where Play Games sign-in will simply never succeed.
 PGS_PROJECT_ID=REPLACE_ME_PGS_PROJECT_ID
+
+# =============================================================================
+# Play Games leaderboard and achievement IDs (27 keys — D-17 / PLAT-06)
+# =============================================================================
+#
+# These come from the Play Console once the leaderboards and achievements actually exist
+# (Phase 14 / the 12-08 operator checklist). Until that project is created there is
+# nothing to paste here, and that is fine — see the next paragraph.
+#
+# A DEBUG BUILD NEEDS NONE OF THEM. An unset key resolves to `UNCONFIGURED-<KEY>`, which
+# is a real, well-formed string the Play Games SDK simply rejects server-side. The game
+# builds, the whole JVM suite runs, and only submission is inert. A RELEASE invocation
+# behaves the opposite way: it fails at configuration time with a message naming every
+# missing key, and a copy-pasted `UNCONFIGURED-…` value counts as missing too.
+#
+# Unlike the AdMob block above, the ads suspension paragraph does NOT apply here — that
+# risk is about serving real ads from a development device and has no Play Games
+# equivalent. Debug therefore HONOURS a value set below, deliberately: Google publishes no
+# test leaderboard/achievement IDs, and the Play Games project registers the debug-keystore
+# SHA-1 precisely so debug builds can sign in and submit. Be aware of the flip side: fill
+# in real IDs here and your debug builds write to the REAL leaderboards.
+#
+# These are not secrets either — they ship inside the APK. They stay out of git so a fork
+# cannot write to this game's leaderboards and achievements.
+
+# --- Play Games leaderboard IDs (7) ------------------------------------------
+
+# Challenge ladder — highest Challenge level reached (PGSL-01).
+PGS_LB_CHALLENGE_LADDER=REPLACE_ME_PGS_LB_CHALLENGE_LADDER
+
+# Challenge cumulative score — SUM(bestScore) over solved Challenge levels (PGSL-02).
+PGS_LB_CHALLENGE_SCORE=REPLACE_ME_PGS_LB_CHALLENGE_SCORE
+
+# Classic board leaderboard — English-33.
+PGS_LB_CLASSIC_ENGLISH33=REPLACE_ME_PGS_LB_CLASSIC_ENGLISH33
+
+# Classic board leaderboard — European-37.
+PGS_LB_CLASSIC_EUROPEAN37=REPLACE_ME_PGS_LB_CLASSIC_EUROPEAN37
+
+# Classic board leaderboard — Asymmetric-39.
+PGS_LB_CLASSIC_ASYMMETRIC39=REPLACE_ME_PGS_LB_CLASSIC_ASYMMETRIC39
+
+# Classic board leaderboard — Diamond-41.
+PGS_LB_CLASSIC_DIAMOND41=REPLACE_ME_PGS_LB_CLASSIC_DIAMOND41
+
+# Classic board leaderboard — Wiegleb-45.
+PGS_LB_CLASSIC_WIEGLEB45=REPLACE_ME_PGS_LB_CLASSIC_WIEGLEB45
+
+# --- Play Games achievement IDs (20) -----------------------------------------
+
+# "First solve" — the first solved level in either mode.
+PGS_ACH_FIRST_SOLVE=REPLACE_ME_PGS_ACH_FIRST_SOLVE
+
+# "First 3-star" — the first three-star result in either mode.
+PGS_ACH_FIRST_THREE_STAR=REPLACE_ME_PGS_ACH_FIRST_THREE_STAR
+
+# "Challenge level 5" — reached Challenge level 5.
+PGS_ACH_CHALLENGE_LEVEL_5=REPLACE_ME_PGS_ACH_CHALLENGE_LEVEL_5
+
+# "Speed solve" — any level solved in under 60 seconds.
+PGS_ACH_SPEED_SOLVE=REPLACE_ME_PGS_ACH_SPEED_SOLVE
+
+# "Hint free" — a level solved without using a hint.
+PGS_ACH_HINT_FREE=REPLACE_ME_PGS_ACH_HINT_FREE
+
+# "Undo free" — a level solved without using an undo.
+PGS_ACH_UNDO_FREE=REPLACE_ME_PGS_ACH_UNDO_FREE
+
+# "Center finish" — English-33 solved with the last peg on the centre hole.
+PGS_ACH_CENTER_FINISH=REPLACE_ME_PGS_ACH_CENTER_FINISH
+
+# "Cleared English-33" — the per-board first-solve unlock.
+PGS_ACH_CLEARED_ENGLISH33=REPLACE_ME_PGS_ACH_CLEARED_ENGLISH33
+
+# "Cleared European-37" — the per-board first-solve unlock.
+PGS_ACH_CLEARED_EUROPEAN37=REPLACE_ME_PGS_ACH_CLEARED_EUROPEAN37
+
+# "Cleared Asymmetric-39" — the per-board first-solve unlock.
+PGS_ACH_CLEARED_ASYMMETRIC39=REPLACE_ME_PGS_ACH_CLEARED_ASYMMETRIC39
+
+# "Cleared Diamond-41" — the per-board first-solve unlock.
+PGS_ACH_CLEARED_DIAMOND41=REPLACE_ME_PGS_ACH_CLEARED_DIAMOND41
+
+# "Cleared Wiegleb-45" — the per-board first-solve unlock.
+PGS_ACH_CLEARED_WIEGLEB45=REPLACE_ME_PGS_ACH_CLEARED_WIEGLEB45
+
+# Ladder tier — incremental, reach Challenge level 10.
+PGS_ACH_LADDER_10=REPLACE_ME_PGS_ACH_LADDER_10
+
+# Ladder tier — incremental, reach Challenge level 50.
+PGS_ACH_LADDER_50=REPLACE_ME_PGS_ACH_LADDER_50
+
+# Ladder tier — incremental, reach Challenge level 100.
+PGS_ACH_LADDER_100=REPLACE_ME_PGS_ACH_LADDER_100
+
+# Star tier — incremental, 25 total stars across both modes.
+PGS_ACH_STARS_25=REPLACE_ME_PGS_ACH_STARS_25
+
+# Star tier — incremental, 100 total stars across both modes.
+PGS_ACH_STARS_100=REPLACE_ME_PGS_ACH_STARS_100
+
+# Star tier — incremental, 250 total stars across both modes.
+PGS_ACH_STARS_250=REPLACE_ME_PGS_ACH_STARS_250
+
+# "Grand tour" — a stored result on every one of the five Classic boards.
+PGS_ACH_GRAND_TOUR=REPLACE_ME_PGS_ACH_GRAND_TOUR
+
+# "Perfectionist" — every Classic board's best is at that board's minimum-peg finish.
+PGS_ACH_PERFECTIONIST=REPLACE_ME_PGS_ACH_PERFECTIONIST

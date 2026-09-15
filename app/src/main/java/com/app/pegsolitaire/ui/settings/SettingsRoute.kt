@@ -31,6 +31,8 @@ fun SettingsRoute(
         onToggleSound = viewModel::onToggleSound,
         onToggleHaptics = viewModel::onToggleHaptics,
         onSignInToPlayGames = viewModel::onSignInToPlayGames,
+        onShowLeaderboards = viewModel::onShowLeaderboards,
+        onShowAchievements = viewModel::onShowAchievements,
         onPlayGamesSignInErrorShown = viewModel::onPlayGamesSignInErrorShown,
         onManagePrivacyChoices = viewModel::onManagePrivacyChoices,
         onBack = onBack,
