@@ -97,4 +97,38 @@ interface LevelResultDao {
     /** Inserts, or replaces the row sharing the `(mode, levelId)` primary key. */
     @Upsert
     suspend fun upsert(entity: LevelResultEntity)
+
+    /**
+     * Every stored row across BOTH modes — the cloud export's single read, and the
+     * local side of the cloud import's merge (CLOUD-01 / CLOUD-02).
+     *
+     * Deliberately unfiltered and unordered: the caller keys the rows by `(mode, levelId)`
+     * into a map, so a `WHERE` would only force a second query and an `ORDER BY` would buy
+     * nothing. The cost is bounded by the same row count `totals` already scans.
+     */
+    @Query("SELECT * FROM $TABLE_LEVEL_RESULT")
+    suspend fun all(): List<LevelResultEntity>
+
+    /**
+     * Writes every entity in [entities], replacing the rows sharing their `(mode, levelId)`
+     * primary keys — the cloud import's single write.
+     *
+     * It is a bulk verb rather than a loop over [upsert] because the import has already
+     * merged each row against its stored counterpart *inside the same transaction*, so
+     * there is no per-row read-modify-write left to serialize. Room issues one statement
+     * set; ten thousand point upserts would issue ten thousand.
+     */
+    @Upsert
+    suspend fun upsertAll(entities: List<LevelResultEntity>)
+
+    /**
+     * Empties the table.
+     *
+     * **D-14's profile-replace path only.** The player answered a dialog saying this
+     * device now belongs to another account; nothing else in the app may call it, and in
+     * particular no cloud read or import path ever does — an import merges, it never
+     * wipes (CLOUD-02).
+     */
+    @Query("DELETE FROM $TABLE_LEVEL_RESULT")
+    suspend fun deleteAll()
 }

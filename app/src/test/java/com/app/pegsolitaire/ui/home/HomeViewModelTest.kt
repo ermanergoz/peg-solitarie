@@ -7,6 +7,7 @@ import com.app.pegsolitaire.data.ChallengeProgress
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.data.FakePlayGamesOptInRepository
+import com.app.pegsolitaire.data.ImportOutcome
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.LevelResult
@@ -19,6 +20,7 @@ import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
 import com.app.pegsolitaire.domain.achievement.ClassicBoard
 import com.app.pegsolitaire.domain.achievement.ProgressAggregate
 import com.app.pegsolitaire.domain.model.Boards
+import com.app.pegsolitaire.domain.progress.CloudProgress
 import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import com.app.pegsolitaire.platform.games.FakeGamesService
@@ -639,6 +641,16 @@ private class FakeResumeProgressRepository : ProgressRepository {
     }
 
     override fun observeResumeModes(): Flow<List<String>> = modes
+
+    /** Unreachable from here — Home never calls cloud save (CLOUD-01/CLOUD-04). */
+    override suspend fun exportProgress(ladder: Int): CloudProgress = error("Home never calls cloud save")
+
+    override suspend fun importProgress(
+        remote: CloudProgress,
+        nowMs: Long,
+    ): ImportOutcome = error("Home never calls cloud save")
+
+    override suspend fun resetAllProgress() = error("Home never calls cloud save")
 
     private fun snapshotOf(
         mode: String,
