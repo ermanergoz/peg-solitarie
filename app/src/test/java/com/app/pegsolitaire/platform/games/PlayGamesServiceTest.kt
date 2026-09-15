@@ -92,6 +92,9 @@ class PlayGamesServiceTest {
     /** The SDK-authored stock-UI Intent. Only ever passed through, never read. */
     private val stockUiIntent = mockk<Intent>()
 
+    /** The application context the process-start initialize is handed. Never read. */
+    private val appContext = mockk<Context>()
+
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
@@ -663,6 +666,7 @@ class PlayGamesServiceTest {
 
     private fun serviceFor(optedIn: Boolean) =
         PlayGamesService(
+            appContext = appContext,
             activityProvider = activityProvider,
             optInRepository = SettableOptInRepository(optedIn),
             scope = CoroutineScope(testDispatcher),

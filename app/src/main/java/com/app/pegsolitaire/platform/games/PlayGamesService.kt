@@ -1,6 +1,7 @@
 package com.app.pegsolitaire.platform.games
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import com.app.pegsolitaire.data.PlayGamesOptInRepository
 import com.app.pegsolitaire.di.ApplicationScope
@@ -8,6 +9,7 @@ import com.app.pegsolitaire.platform.activity.ForegroundActivityProvider
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.games.PlayGames
 import com.google.android.gms.games.PlayGamesSdk
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.tasks.await
@@ -31,13 +34,23 @@ import javax.inject.Singleton
  * **The opt-in check is the outermost gate, and its position is the whole design.** D-01
  * says a player who never opted in is never reached by the SDK at all: no
  * `PlayGamesSdk.initialize`, no `isAuthenticated`, no account chooser, no "Welcome back"
- * popup. Google's own documented pattern initializes unconditionally in
- * `Application.onCreate`, and copying that shape is how this file would quietly stop
- * honouring the requirement while still looking correct — the violating version differs
- * from this one only in where a single `if` sits. [bootstrapIfOptedIn] therefore reads
- * [PlayGamesOptInRepository.optedIn] **before** it awaits an Activity, before it
- * initializes, and before it constructs any client. `PlayGamesServiceTest` pins that
- * negatively, by asserting the Activity is never even awaited on the declined path.
+ * popup. Google's own documented pattern initializes **unconditionally** at process start,
+ * and copying that shape is how this file would quietly stop honouring the requirement
+ * while still looking correct — the violating version differs from this one only in where
+ * a single `if` sits. Both [initializeIfOptedIn] and [bootstrapIfOptedIn] therefore read
+ * [PlayGamesOptInRepository.optedIn] **first**: before any Activity is awaited, before the
+ * SDK is initialized, and before any client is constructed. `PlayGamesServiceTest` pins
+ * both negatively, by asserting the SDK is untouched — and the Activity never even awaited
+ * — on the declined path.
+ *
+ * **Two SDK-touching moments, one gate.** [initializeIfOptedIn] runs at *process start*
+ * from `Application.onCreate`, and does nothing but initialize; [bootstrapIfOptedIn] runs
+ * from `MainActivity.onCreate` and performs the silent check that resolves [session]. The
+ * split is not stylistic: the SDK's automatic sign-in attempt fires only for an Activity
+ * created *after* initialization, so a cold start that initializes from the only Activity's
+ * own `onCreate` can never produce a silent sign-in (Phase 11 UAT test 1). What matters for
+ * D-01/D-17 is that moving initialization earlier did not move it out from behind the gate;
+ * [initializeIfOptedIn] documents the mechanism in full.
  *
  * **Every branch resolves [session]; none may return leaving it [GamesSignInState.Unknown].**
  * `Unknown` means "the first check has not answered yet", and D-11 hides the whole Settings
@@ -113,6 +126,7 @@ import javax.inject.Singleton
 class PlayGamesService
     @Inject
     constructor(
+        @param:ApplicationContext private val appContext: Context,
         private val activityProvider: ForegroundActivityProvider,
         private val optInRepository: PlayGamesOptInRepository,
         @param:ApplicationScope private val scope: CoroutineScope,
@@ -140,6 +154,19 @@ class PlayGamesService
         private val bootstrapped = AtomicBoolean(false)
 
         /**
+         * Exactly one process-start `initialize` per process — a different guard from
+         * [bootstrapped], and deliberately not merged with it.
+         *
+         * [bootstrapped] guards the once-per-process **silent check**: the `isAuthenticated`
+         * round trip plus the session write that follows it. This one guards the
+         * once-per-process **process-start initialize** only. They protect different calls
+         * made at different moments by different callers, and a single flag would let
+         * whichever ran first silence the other — a first-ever opt-in in this process needs
+         * [signIn] to initialize even though [initializeIfOptedIn] already ran and declined.
+         */
+        private val sdkInitialized = AtomicBoolean(false)
+
+        /**
          * Serializes the two SDK-touching paths, [bootstrapIfOptedIn] and [signIn] (WR-02).
          *
          * Both initialize the SDK, build clients and publish to [_session] with
@@ -152,8 +179,60 @@ class PlayGamesService
          */
         private val sdkMutex = Mutex()
 
-        // RED placeholder: the real, opt-in-gated process-start initialize lands next.
-        override fun initializeIfOptedIn() = Unit
+        /**
+         * Initializes the SDK at process start, for an opted-in player only (PGS-01).
+         *
+         * ## The SDK mechanism this satisfies
+         *
+         * `PlayGamesSdk.initialize` starts an automatic authenticator that registers
+         * `Application.ActivityLifecycleCallbacks`, and its single automatic sign-in attempt
+         * is fired from **`onActivityCreated` of an Activity created after that
+         * registration** — nothing else triggers it. `isAuthenticated()` then merely reports
+         * that authenticator's cached answer; it never contacts Play Services itself. So
+         * initializing from `MainActivity.onCreate`, as this class used to via
+         * [bootstrapIfOptedIn] alone, is permanently too late: the only Activity already
+         * exists, no later one is created on a cold start, the automatic attempt never runs
+         * and the silent check truthfully reports "not authenticated". That is the Phase 11
+         * UAT test 1 failure, and it is why this call sits in `Application.onCreate`, before
+         * the first Activity — the earliest moment at which the SDK can still observe one.
+         * It is also why [bootstrapIfOptedIn]'s silent check only becomes meaningful once
+         * this has run.
+         *
+         * ## Why it blocks, and why that is not the thing PGS-01 forbids
+         *
+         * The gate cannot be answered asynchronously here: the decision must be made before
+         * the first Activity is created, and there is no later point at which a deferred
+         * answer could still be acted on. So the flag is read with [runBlocking] — one
+         * `first()` on the small shared `app_prefs` DataStore file, a few milliseconds on the
+         * main thread at process start. PGS-01's "no wall, no pause before they can start a
+         * level" is a promise about the *player's* path through the UI — no dialog, no
+         * sign-in gate in front of the board — not a prohibition on process-start IO, which
+         * every DataStore-backed launch already performs.
+         *
+         * ## Failure, and the deliberate absence of a session write
+         *
+         * The whole body is wrapped in [runCatching]: a corrupt or unreadable store at
+         * process start must degrade to "not initialized", never take the process down
+         * before the first frame. Nothing is published to [_session] on any branch — there is
+         * no answer to publish yet, and [bootstrapIfOptedIn] resolves it moments later
+         * regardless. An uninitialized SDK simply reports the player as not authenticated,
+         * which is the same [GamesSignInState.SignedOut] an offline launch produces.
+         *
+         * [sdkMutex] is deliberately **not** taken. Nothing can contend for it yet — this
+         * runs before any coroutine that touches the SDK has been launched — and blocking
+         * `Application.onCreate` on a lock the SDK paths hold would trade a startup race for
+         * a startup deadlock.
+         */
+        override fun initializeIfOptedIn() {
+            runCatching {
+                // The gate first, exactly as in bootstrapIfOptedIn: a player who never
+                // opted in is not reached by the SDK, and moving initialize earlier must
+                // never become moving it out from behind this read (D-07/D-17).
+                if (!runBlocking { optInRepository.optedIn.first() }) return@runCatching
+                if (!sdkInitialized.compareAndSet(false, true)) return@runCatching
+                PlayGamesSdk.initialize(appContext)
+            }
+        }
 
         override fun bootstrapIfOptedIn() {
             // Dispatchers.Main because PlayGames.get*Client takes an Activity and the SDK
@@ -184,6 +263,11 @@ class PlayGamesService
 
                     val authenticated =
                         runCatching {
+                            // Normally a no-op re-init: initializeIfOptedIn already ran at
+                            // process start, which is what makes the silent check below
+                            // meaningful at all. It is kept for the one case that hook
+                            // cannot cover — a first-ever opt-in granted in THIS process
+                            // (D-19), where the process-start call took its declined branch.
                             PlayGamesSdk.initialize(activity.applicationContext)
                             val signInClient = PlayGames.getGamesSignInClient(activity)
                             signInClient.isAuthenticated().await().isAuthenticated
@@ -204,10 +288,12 @@ class PlayGamesService
          * in afterwards and throwing on a genuine SDK error.
          *
          * `PlayGamesSdk.initialize` runs unconditionally rather than being skipped when
-         * [bootstrapIfOptedIn] already ran. It is idempotent, and the case that makes it
-         * necessary is D-19: a tap on the Settings row may be this player's first-ever
-         * opt-in, so the launch bootstrap will have taken its declined branch and left the
-         * SDK untouched.
+         * [initializeIfOptedIn] or [bootstrapIfOptedIn] already ran. It is idempotent, and
+         * the case that makes it necessary is D-19: a tap on the Settings row may be this
+         * player's first-ever opt-in, so both of those will have taken their declined
+         * branch — at process start and at launch respectively — and left the SDK
+         * untouched. Neither [sdkInitialized] nor [bootstrapped] may short-circuit it for
+         * that reason.
          *
          * ## Classifying the failure (the one deliberately-conservative decision here)
          *
