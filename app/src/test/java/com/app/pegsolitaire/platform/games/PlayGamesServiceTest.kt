@@ -39,6 +39,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -158,6 +159,36 @@ class PlayGamesServiceTest {
             // returns. Anything deferred to a coroutine lands after the first Activity is
             // created, which is the Phase 11 UAT test 1 failure this fix exists to undo.
             verify(exactly = 1) { PlayGamesSdk.initialize(any()) }
+        }
+
+    @Test
+    fun initializeIfOptedInInitializesAtMostOncePerProcess() =
+        runTest(testDispatcher) {
+            val service = serviceFor(optedIn = true)
+
+            service.initializeIfOptedIn()
+            service.initializeIfOptedIn()
+
+            verify(exactly = 1) { PlayGamesSdk.initialize(any()) }
+        }
+
+    @Test
+    fun initializeIfOptedInSurvivesAFailingOptInRead() =
+        runTest(testDispatcher) {
+            val service =
+                PlayGamesService(
+                    appContext = appContext,
+                    activityProvider = activityProvider,
+                    optInRepository = ThrowingOptInRepository(),
+                    scope = CoroutineScope(testDispatcher),
+                )
+
+            // Returns normally: Application.onCreate has no handler, so a throw here is a
+            // crash before the first frame rather than a degraded launch.
+            service.initializeIfOptedIn()
+
+            // And degrades to the safe branch — an unanswerable gate is not an opt-in.
+            verify(exactly = 0) { PlayGamesSdk.initialize(any()) }
         }
 
     // ---- bootstrapIfOptedIn: the D-01 gate -----------------------------------------
@@ -710,6 +741,20 @@ private class SettableOptInRepository(
 ) : PlayGamesOptInRepository(NoopPreferencesDataStore) {
     override val optedIn: Flow<Boolean> = MutableStateFlow(optedIn)
 }
+
+/**
+ * A [PlayGamesOptInRepository] whose flag read fails outright.
+ *
+ * The real repository already fails open to `false` on a corrupt or unreadable store, so
+ * this is not that case: it pins the belt-and-braces `runCatching` at the one call site
+ * that runs before anything exists to catch for it — `Application.onCreate`, where an
+ * escaping exception is a crash at process start rather than a degraded launch.
+ */
+private class ThrowingOptInRepository : PlayGamesOptInRepository(NoopPreferencesDataStore) {
+    override val optedIn: Flow<Boolean> = flow { throw IllegalStateException(OPT_IN_READ_FAILURE) }
+}
+
+private const val OPT_IN_READ_FAILURE = "opt-in read failed"
 
 /** A never-emitting [DataStore] so the base repository constructor is safe in the fake. */
 private object NoopPreferencesDataStore : DataStore<Preferences> {

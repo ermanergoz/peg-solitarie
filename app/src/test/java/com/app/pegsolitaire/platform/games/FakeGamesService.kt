@@ -67,6 +67,13 @@ class FakeGamesService(
         private set
 
     /**
+     * How many times [initializeIfOptedIn] was called — the process-start hook, which
+     * `App.onCreate` must run exactly once per process.
+     */
+    var initializeCallCount = 0
+        private set
+
+    /**
      * What every submission reports. `true` is "the SDK accepted it"; setting it to `false`
      * drives the caller's failure path — for `ProgressSubmitter` (plan 12-07), the D-10
      * pending-submissions flag.
@@ -168,7 +175,14 @@ class FakeGamesService(
         bootstrapCallCount++
     }
 
-    override fun initializeIfOptedIn() = Unit
+    /**
+     * Counts the call only, for the same reason [bootstrapIfOptedIn] does: the opt-in gate
+     * is proven where it lives (`PlayGamesService`), never duplicated here where a drifting
+     * copy could pass while production ships an ungated initialize.
+     */
+    override fun initializeIfOptedIn() {
+        initializeCallCount++
+    }
 
     override suspend fun submitScore(
         leaderboardId: String,
