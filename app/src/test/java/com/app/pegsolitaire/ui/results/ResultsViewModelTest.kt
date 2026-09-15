@@ -4,7 +4,10 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.SavedStateHandle
+import com.app.pegsolitaire.data.ChallengeProgress
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.data.CloudProfileStore
+import com.app.pegsolitaire.data.CloudSyncStore
 import com.app.pegsolitaire.data.ImportOutcome
 import com.app.pegsolitaire.data.InterstitialCadenceStore
 import com.app.pegsolitaire.data.LevelResult
@@ -28,6 +31,8 @@ import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.games.FakeGamesService
 import com.app.pegsolitaire.platform.games.GamesService
 import com.app.pegsolitaire.platform.games.GamesSignInState
+import com.app.pegsolitaire.platform.games.save.CloudSaveStore
+import com.app.pegsolitaire.platform.games.save.FakeCloudSaveStore
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -1538,13 +1543,13 @@ class ResultsViewModelTest {
         )
 
     /**
-     * A [RecordingProgressSubmitter] with the four constructor arguments the real
+     * A [RecordingProgressSubmitter] with every constructor argument the real
      * `ProgressSubmitter` demands, in one place.
      *
-     * Threading a repository, a games seam, a sync store and a scope through forty call
-     * sites would be noise, and widening production visibility to avoid it would be worse —
-     * the arguments are real types precisely so this fake cannot drift from the constructor
-     * it stands in for. None of the four is ever touched: the subclass overrides both public
+     * Threading a repository, a games seam, four stores and a scope through forty call sites
+     * would be noise, and widening production visibility to avoid it would be worse — the
+     * arguments are real types precisely so this fake cannot drift from the constructor it
+     * stands in for. None of them is ever touched: the subclass overrides both public
      * methods, and the base class does nothing in its own constructor.
      */
     private fun recordingSubmitter(log: MutableList<String> = mutableListOf()): RecordingProgressSubmitter =
@@ -1554,6 +1559,10 @@ class ResultsViewModelTest {
             gamesService = FakeGamesService(),
             syncStore = SubmissionSyncStore(unusedDataStore()),
             scope = storeScope,
+            cloudSyncStore = CloudSyncStore(unusedDataStore()),
+            cloudProfileStore = CloudProfileStore(unusedDataStore()),
+            cloudSaveStore = FakeCloudSaveStore(),
+            challengeProgress = ChallengeProgress(unusedDataStore(), storeScope),
         )
 
     /**
@@ -1573,6 +1582,14 @@ class ResultsViewModelTest {
                 ),
             gamesService = ThrowingGamesService(),
             syncStore = SubmissionSyncStore(unusedDataStore()),
+            // Phase 13's cloud collaborators, each over the SAME throwing store, so the
+            // cloud half of the pass is as hostile as the submission half and still reaches
+            // the Results screen with nothing (CLOUD-05). The saved-games seam is the empty
+            // fake: `null` from a load is "stay local", which is the quiet path.
+            cloudSyncStore = CloudSyncStore(unusedDataStore()),
+            cloudProfileStore = CloudProfileStore(unusedDataStore()),
+            cloudSaveStore = FakeCloudSaveStore(),
+            challengeProgress = ChallengeProgress(unusedDataStore(), storeScope),
             scope = storeScope,
         )
 
@@ -1755,15 +1772,24 @@ private class FakeProgressRepository(
 
     override fun observeResumeModes(): Flow<List<String>> = flowOf(emptyList())
 
-    /** Unreachable from here — Results never calls cloud save (CLOUD-01/CLOUD-04). */
-    override suspend fun exportProgress(ladder: Int): CloudProgress = error("Results never calls cloud save")
+    /**
+     * The fresh-player payload a push would write.
+     *
+     * Results still never *calls* cloud save — but the solve it records triggers
+     * `ProgressSubmitter`'s pass, and Phase 13 gave that pass a push (D-01). This returns the
+     * empty shape rather than throwing, because a throw here would land in the
+     * application-scoped coroutine driving the pass and take the scope with it, which is
+     * exactly the failure mode CLOUD-05 says must not exist.
+     */
+    override suspend fun exportProgress(ladder: Int): CloudProgress = CloudProgress(ladder = ladder)
 
+    /** Unreachable from here — the fake saved-games seam holds no payload to import. */
     override suspend fun importProgress(
         remote: CloudProgress,
         nowMs: Long,
-    ): ImportOutcome = error("Results never calls cloud save")
+    ): ImportOutcome = error("Results never imports a cloud payload")
 
-    override suspend fun resetAllProgress() = error("Results never calls cloud save")
+    override suspend fun resetAllProgress() = error("Results never answers the profile-swap dialog (D-14)")
 }
 
 /** Robolectric has no android-all jar for Android 16 (SDK 36) yet; emulate SDK 34. */
@@ -1867,13 +1893,27 @@ private const val MILLIS_IN_SECOND = 1_000L
  *
  * [start] is a no-op: it belongs to `MainActivity`, which no JVM test constructs.
  */
+@Suppress("LongParameterList") // mirrors the superclass's, which is suppressed for the same reason
 private class RecordingProgressSubmitter(
     private val log: MutableList<String>,
     progressRepository: ProgressRepository,
     gamesService: FakeGamesService,
     syncStore: SubmissionSyncStore,
     scope: CoroutineScope,
-) : ProgressSubmitter(progressRepository, gamesService, syncStore, scope) {
+    cloudSyncStore: CloudSyncStore,
+    cloudProfileStore: CloudProfileStore,
+    cloudSaveStore: CloudSaveStore,
+    challengeProgress: ChallengeProgress,
+) : ProgressSubmitter(
+        progressRepository,
+        gamesService,
+        syncStore,
+        cloudSyncStore,
+        cloudProfileStore,
+        cloudSaveStore,
+        challengeProgress,
+        scope,
+    ) {
     var callCount = 0
         private set
 
