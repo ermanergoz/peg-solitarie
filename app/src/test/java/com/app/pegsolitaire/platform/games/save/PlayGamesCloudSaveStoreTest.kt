@@ -46,10 +46,10 @@ import java.io.IOException
  * then silently stops (RESEARCH Pitfall 1). Each path below asserts the close count, not just
  * the return value, because the return value is identical whether or not the handle leaked.
  *
- * **The third rule: nothing ever throws out of the seam.** No Activity, a thrown SDK call and a
- * conflict that never resolves are all `null` (CLOUD-05) — with the single documented exception
- * of `CancellationException`, which is a caller's structured concurrency and not an SDK failure
- * (WR-04).
+ * **The third rule: nothing ever throws out of the seam.** No Activity, a thrown SDK call, a
+ * conflict that never resolves and a payload the server will not accept are all `null` or `false`
+ * (CLOUD-05) — with the single documented exception of `CancellationException`, which is a
+ * caller's structured concurrency and not an SDK failure (WR-04).
  *
  * Same harness as `PlayGamesServiceTest`: `mockkStatic(PlayGames::class)` over the real static
  * entry point, `Tasks.forResult(...)` for completed `Task`s — taken by `await()`'s fast path with
