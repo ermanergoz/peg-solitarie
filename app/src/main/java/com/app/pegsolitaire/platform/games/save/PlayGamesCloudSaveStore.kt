@@ -142,6 +142,7 @@ class PlayGamesCloudSaveStore
                 try {
                     val existing = snapshot.snapshotContents.readFully()
                     val finalBytes = if (existing.isEmpty()) bytes else mergeRemote(existing, bytes)
+                    if (exceedsServerCap(client, finalBytes)) return@runCatching false
 
                     // A FULL overwrite, and that is the point (RESEARCH Pitfall 5). The partial
                     // write sibling on SnapshotContents is documented to leave the excess in place
@@ -289,6 +290,29 @@ class PlayGamesCloudSaveStore
                 .setPlayedTimeMillis(playedTimeMs)
                 .apply { coverImageSource.coverOrNull()?.let { setCoverImage(it) } }
                 .build()
+
+        /**
+         * Whether [payload] exceeds the size this server will accept — the ROADMAP's "confirm it
+         * at runtime".
+         *
+         * **A guard, not a precondition.** The javadoc guarantees the cap is *"at least 3 MB"*, and
+         * the payload is trimmed to a target below that before it ever reaches this seam, so this
+         * can only fire against a server violating its own documented contract. That is exactly
+         * why it is an enforced check rather than an assumption: an oversized payload is rejected
+         * server-side *permanently*, so a push that kept retrying it would never succeed and would
+         * burn a pass every solve.
+         *
+         * **A failed query is not a failed push.** `getMaxDataSize` is documented to be able to
+         * fail with a `RemoteException`; when it does, the push proceeds unchanged. A guard that
+         * cannot answer must never become a reason to drop a save (T-13-39, CLOUD-05).
+         */
+        private suspend fun exceedsServerCap(
+            client: SnapshotsClient,
+            payload: ByteArray,
+        ): Boolean {
+            val cap = runCatching { client.getMaxDataSize().await() }.getOrNull() ?: return false
+            return payload.size > cap
+        }
 
         /**
          * Closes an opened [snapshot] without writing to it, swallowing whatever the SDK says.
