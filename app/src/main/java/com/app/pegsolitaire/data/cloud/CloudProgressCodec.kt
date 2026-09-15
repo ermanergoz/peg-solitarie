@@ -86,6 +86,65 @@ object CloudProgressCodec {
     fun encode(progress: CloudProgress): ByteArray = json.encodeToString(progress.toDto()).toByteArray(Charsets.UTF_8)
 
     /**
+     * [progress] encoded to fit inside [maxBytes], dropping the **lowest Challenge levels**
+     * — and only those — until it does (D-05).
+     *
+     * A safety valve that is expected never to fire: at roughly 40 bytes per level, the
+     * full 10,000-level ladder is ~400 KB against a [CloudPayloadLimits.TRIM_TARGET_BYTES]
+     * of ~2.75 MB. It exists because a payload the server rejects for size can never be
+     * pushed *at all*, which would silently freeze a player's cloud save forever.
+     *
+     * ## Why it terminates
+     *
+     * This is the only loop in the phase whose exit condition depends on data, so the
+     * argument is worth stating rather than trusting:
+     *  - Every iteration drops **at least one** Challenge row (the drop count is floored at
+     *    1), and `ProgressMerge.dropLowestChallenge` never removes a Classic row, the
+     *    ladder or the played time.
+     *  - So the Challenge row count strictly decreases every pass, and the loop runs at
+     *    most `challengeRowCount` times.
+     *  - When it reaches zero, the `challengeRows == 0` branch returns unconditionally.
+     * The drop count is proportional to the overshoot rather than fixed at one, so a wildly
+     * oversized payload converges in a handful of encodes instead of thousands.
+     *
+     * ## The honest failure
+     *
+     * If the Classic rows plus the two scalars alone exceed [maxBytes], the encoding is
+     * returned **over the cap** rather than trimmed further. That case is unreachable in
+     * practice — five rows — and if it ever were reachable, losing a player's hand-played
+     * Classic bests to satisfy a byte budget would be the wrong trade. A push that fails is
+     * recoverable; deleted progress is not.
+     */
+    fun encodeWithinCap(
+        progress: CloudProgress,
+        maxBytes: Int = CloudPayloadLimits.TRIM_TARGET_BYTES,
+    ): ByteArray {
+        var current = progress
+        var encoded = encode(current)
+        while (encoded.size > maxBytes) {
+            val challengeRows = current.bests.count { it.key.mode == ProgressMode.CHALLENGE }
+            if (challengeRows == 0) return encoded
+            current = ProgressMerge.dropLowestChallenge(current, dropCount(challengeRows, encoded.size, maxBytes))
+            encoded = encode(current)
+        }
+        return encoded
+    }
+
+    /**
+     * How many Challenge rows to drop on this pass: the share of the payload that overshoots
+     * [maxBytes], plus one, and never fewer than one.
+     *
+     * The `+ 1` and the floor are both load-bearing. Integer division rounds toward zero, so
+     * a small overshoot would otherwise compute zero rows and the loop would never make
+     * progress — the one way this could spin.
+     */
+    private fun dropCount(
+        challengeRows: Int,
+        encodedSize: Int,
+        maxBytes: Int,
+    ): Int = maxOf(1, challengeRows * (encodedSize - maxBytes) / encodedSize + 1)
+
+    /**
      * The progress [bytes] describe, or `null` when they are not a payload this build can
      * read — which every caller treats as "stay local, lose nothing" (CLOUD-05).
      *
@@ -120,13 +179,17 @@ object CloudProgressCodec {
      * than discarding the other side. That is the fail-open rule again, and it matters
      * most here: a conflict whose remote half is corrupt must still preserve the local
      * half, not resolve to nothing.
+     *
+     * The result goes through [encodeWithinCap], not [encode]: a merge is a *union* and is
+     * therefore the one operation that can grow a payload, so resolving a conflict must
+     * never produce bytes a plain push would have refused.
      */
     fun mergeBytes(
         left: ByteArray,
         right: ByteArray,
     ): ByteArray {
         val merged = ProgressMerge.merge(left.decodeOrEmpty(), right.decodeOrEmpty())
-        return encode(merged)
+        return encodeWithinCap(merged)
     }
 
     /** [decode], with the merge identity standing in for bytes that cannot be read. */
