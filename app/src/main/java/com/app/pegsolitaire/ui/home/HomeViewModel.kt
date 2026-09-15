@@ -8,6 +8,7 @@ import com.app.pegsolitaire.data.OnboardingRepository
 import com.app.pegsolitaire.data.PlayGamesOptInRepository
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
+import com.app.pegsolitaire.data.ProgressSubmitter
 import com.app.pegsolitaire.platform.games.GamesService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -47,10 +48,16 @@ import javax.inject.Inject
  * withheld and the stale row purged, so a bogus id can never reach the Gameplay route's
  * fail-fast catalog lookup (CR-01).
  *
- * Finally it owns the one-time Play Games opt-in prompt (PGS-01, D-15 to D-18). The
+ * It also owns the one-time Play Games opt-in prompt (PGS-01, D-15 to D-18). The
  * prompt is sequenced strictly after the onboarding overlay and retired permanently once
  * answered, accepting persists the opt-in and signs in without ever making the player
  * wait, and declining changes nothing but the two persisted flags.
+ *
+ * Finally it owns the account-switch question (CLOUD-02, D-12 to D-15) — the one dialog
+ * this milestone reserved. It is a **third** surface sequenced behind the other two, never
+ * stacked with either, and both answers hand straight off to
+ * [ProgressSubmitter.onProfileSwapResolved] without this scope ever owning the merge or the
+ * wipe that follows.
  *
  * @param onboardingRepository the DataStore-backed onboarding flag (single source of truth).
  * @param challengeProgress the persisted Challenge ladder position (single source of truth
@@ -64,6 +71,10 @@ import javax.inject.Inject
  * @param gamesService the Play Games seam. Reached only from [onAcceptPlayGamesPrompt]:
  *   this ViewModel never calls it at launch (that is `MainActivity`'s opt-in-gated
  *   bootstrap, D-01) and never on the decline path.
+ * @param progressSubmitter the single sync orchestrator. Exactly two of its members are
+ *   consumed here — `profileSwap`, the pending account-switch question, and
+ *   `onProfileSwapResolved`, its one answer channel. No push and no pull runs while that
+ *   question stands (D-15), so this collector is what unblocks the whole cloud pass.
  */
 @HiltViewModel
 class HomeViewModel
@@ -75,6 +86,7 @@ class HomeViewModel
         levelRepository: LevelRepository,
         private val optInRepository: PlayGamesOptInRepository,
         private val gamesService: GamesService,
+        private val progressSubmitter: ProgressSubmitter,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(HomeUiState())
 
@@ -112,6 +124,38 @@ class HomeViewModel
                     .distinctUntilChanged()
                     .collect { shouldShow ->
                         _uiState.update { it.copy(playGamesPromptVisible = shouldShow) }
+                    }
+            }
+            // The account-switch question (D-12/D-15) — a THIRD surface, sequenced behind
+            // the other two rather than layered over them. It is asked only once onboarding
+            // is behind the player and the opt-in question has been answered, so a
+            // brand-new player is never handed a choice between two accounts' progress
+            // before they have played a level, and the opt-in prompt — which decides
+            // whether Play Games is involved at all — is always answered first.
+            //
+            // Visibility is a pure function of those three inputs, so nothing here can
+            // leave the dialog standing after the data layer has withdrawn the question,
+            // and nothing can raise it without one.
+            //
+            // The two boolean inputs are deduped for the reason the collector above is
+            // (WR-07): both are maps over the SAME `app_prefs` DataStore, so every store
+            // write re-emits them and combine delivers the re-emissions in no fixed order.
+            // Undeduped, an unchanged flag arriving after an answer would flicker the
+            // dialog back on for a frame — over the only wipe in the app.
+            viewModelScope.launch {
+                combine(
+                    progressSubmitter.profileSwap,
+                    onboardingRepository.onboardingSeen.distinctUntilChanged(),
+                    optInRepository.promptAnswered.distinctUntilChanged(),
+                ) { swap, seen, answered -> swap.takeIf { seen && answered } }
+                    .distinctUntilChanged()
+                    .collect { request ->
+                        _uiState.update {
+                            it.copy(
+                                profileSwapVisible = request != null,
+                                profileSwapAccountName = request?.displayName,
+                            )
+                        }
                     }
             }
             // The persisted ladder position is the single source of truth for the tile's
@@ -253,5 +297,48 @@ class HomeViewModel
         fun onDeclinePlayGamesPrompt() {
             _uiState.update { it.copy(playGamesPromptVisible = false) }
             viewModelScope.launch { optInRepository.setNotNow() }
+        }
+
+        /**
+         * "Keep this device's progress" (D-13) — the safe answer, and the one **every**
+         * dismissal resolves to.
+         *
+         * The device's progress is merged into the arriving account's cloud save exactly as
+         * a first sign-in would merge it: a monotonic union, nothing lost on either side
+         * (CLOUD-02). Back, a tap outside the scrim and any other dismissal arrive here too,
+         * but that mapping lives at the screen layer — `ProfileSwapDialog` passes this
+         * handler as its `onDismissRequest` — so the safe default is expressed in exactly
+         * one place and cannot drift between two that both think they own it.
+         *
+         * The flag is cleared **synchronously, first**, then the resolution is handed off.
+         * [ProgressSubmitter.onProfileSwapResolved] is deliberately not `suspend` and is
+         * **not** wrapped in [viewModelScope]: it runs on the application scope, and awaiting
+         * a merge-and-push from a screen scope is the anti-pattern its KDoc names — a
+         * back-navigation mid-write would cancel the very work the answer authorised
+         * (T-13-46).
+         */
+        fun onKeepDeviceProgress() {
+            _uiState.update { it.copy(profileSwapVisible = false) }
+            progressSubmitter.onProfileSwapResolved(keepLocalProgress = true)
+        }
+
+        /**
+         * "Use their cloud progress" (D-14) — the deliberate, destructive answer.
+         *
+         * The device becomes the arriving account's device outright: the data layer wipes
+         * the level results, the play history, the Challenge ladder and **both** resume
+         * snapshots, then imports that account's cloud save. It is safe precisely because
+         * the departing account's own data already lives in its own cloud save from earlier
+         * pushes — but the dialog still names all four categories before this is reachable,
+         * because a player must never authorise a wipe they could not have understood.
+         *
+         * Same shape as [onKeepDeviceProgress] and for a sharper version of the same reason:
+         * the flag clears synchronously, and the wipe runs on the application scope. A
+         * `viewModelScope` launch cancelled halfway through would leave the device a
+         * half-replaced hybrid of two accounts (T-13-46).
+         */
+        fun onUseCloudProgress() {
+            _uiState.update { it.copy(profileSwapVisible = false) }
+            progressSubmitter.onProfileSwapResolved(keepLocalProgress = false)
         }
     }
