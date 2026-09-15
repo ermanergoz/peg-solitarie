@@ -219,6 +219,63 @@ class CloudProgressCodecTest {
             .isEqualTo(ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL)
     }
 
+    @Test
+    fun aPayloadAlreadyUnderTheCapIsEncodedWithoutDroppingARow() {
+        val progress = progressOf(classicKey(CLASSIC_ID), challengeKey(1), challengeKey(2))
+
+        val capped = CloudProgressCodec.encodeWithinCap(progress)
+
+        assertThat(capped.toList()).isEqualTo(CloudProgressCodec.encode(progress).toList())
+        assertThat(CloudProgressCodec.decode(capped)).isEqualTo(progress)
+    }
+
+    @Test
+    fun tenThousandChallengeRowsAreTrimmedToFitAnArtificialCap() {
+        val capped = CloudProgressCodec.encodeWithinCap(largeProgress(), ARTIFICIAL_CAP_BYTES)
+
+        assertThat(capped.size).isAtMost(ARTIFICIAL_CAP_BYTES)
+    }
+
+    @Test
+    fun theTrimKeepsEveryClassicRowAndBothScalars() {
+        val capped = CloudProgressCodec.encodeWithinCap(largeProgress(), ARTIFICIAL_CAP_BYTES)
+
+        val decoded = requireNotNull(CloudProgressCodec.decode(capped))
+
+        assertThat(decoded.bests.keys).containsAtLeastElementsIn(CLASSIC_IDS.map { classicKey(it) })
+        assertThat(decoded.ladder).isEqualTo(LADDER)
+        assertThat(decoded.playedTimeMs).isEqualTo(PLAYED_TIME_MS)
+    }
+
+    @Test
+    fun theTrimKeepsTheNumericallyHighestChallengeRows() {
+        val capped = CloudProgressCodec.encodeWithinCap(largeProgress(), ARTIFICIAL_CAP_BYTES)
+
+        val decoded = requireNotNull(CloudProgressCodec.decode(capped))
+        val survivors = challengeLevelsIn(decoded)
+        val dropped = (1..CHALLENGE_ROW_COUNT).toSet() - survivors
+
+        assertThat(survivors).isNotEmpty()
+        assertThat(dropped).isNotEmpty()
+        assertThat(survivors.min()).isGreaterThan(dropped.max())
+        assertThat(survivors.max()).isEqualTo(CHALLENGE_ROW_COUNT)
+    }
+
+    @Test
+    fun aClassicOnlyPayloadAgainstAnAbsurdCapIsEmittedWholeRatherThanLosingARow() {
+        val classicOnly = classicOnlyProgress()
+
+        val capped = CloudProgressCodec.encodeWithinCap(classicOnly, ABSURD_CAP_BYTES)
+
+        assertThat(capped.size).isGreaterThan(ABSURD_CAP_BYTES)
+        assertThat(CloudProgressCodec.decode(capped)).isEqualTo(classicOnly)
+    }
+
+    private fun challengeLevelsIn(progress: CloudProgress): Set<Int> =
+        progress.bests.keys
+            .filter { it.mode == ProgressMode.CHALLENGE }
+            .mapNotNullTo(mutableSetOf()) { it.levelId.toIntOrNull() }
+
     private fun decodeOrFail(payload: String): CloudProgress =
         requireNotNull(CloudProgressCodec.decode(payload.toByteArray(Charsets.UTF_8)))
 
@@ -235,6 +292,44 @@ class CloudProgressCodecTest {
         const val CLASSIC_ID = "english-33"
         const val LADDER = 42
         const val PLAYED_TIME_MS = 123_456L
+
+        /** The full Challenge ladder, so the trim has a realistic worst case to chew on. */
+        const val CHALLENGE_ROW_COUNT = ChallengeLevelBounds.MAX
+
+        /**
+         * A deliberately tiny stand-in for `CloudPayloadLimits.TRIM_TARGET_BYTES`.
+         *
+         * The real target is ~2.75 MB and the realistic payload is ~600 KB, so the trim
+         * would never fire against it — and a safety valve that is never exercised is a
+         * safety valve that is not known to work. 64 KB forces the loop to run for real.
+         */
+        const val ARTIFICIAL_CAP_BYTES = 64 * 1024
+
+        /** Smaller than the shortest possible payload: the honest-failure branch. */
+        const val ABSURD_CAP_BYTES = 16
+
+        val CLASSIC_IDS =
+            listOf("english-33", "european-37", "diamond-41", "triangle-15", "asymmetrical-45")
+
+        fun largeProgress(): CloudProgress {
+            val challenge =
+                (1..CHALLENGE_ROW_COUNT).associate { level ->
+                    challengeKey(level) to LevelBest(stars = 3, bestTimeMs = 30_000L, bestScore = 500)
+                }
+            return CloudProgress(
+                ladder = LADDER,
+                playedTimeMs = PLAYED_TIME_MS,
+                bests = challenge + classicBests(),
+            )
+        }
+
+        fun classicOnlyProgress(): CloudProgress =
+            CloudProgress(ladder = LADDER, playedTimeMs = PLAYED_TIME_MS, bests = classicBests())
+
+        fun classicBests(): Map<LevelKey, LevelBest> =
+            CLASSIC_IDS.associate { id ->
+                classicKey(id) to LevelBest(stars = 3, bestTimeMs = 9_000L, bestScore = 1_200)
+            }
 
         fun classicKey(levelId: String) = LevelKey(mode = ProgressMode.CLASSIC, levelId = levelId)
 
