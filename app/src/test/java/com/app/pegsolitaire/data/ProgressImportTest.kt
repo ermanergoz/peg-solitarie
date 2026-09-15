@@ -315,8 +315,7 @@ class ProgressImportTest {
                 },
         )
 
-    private fun greatBest(): LevelBest =
-        LevelBest(stars = GREAT_STARS, bestTimeMs = FAST_MS, bestScore = GREAT_SCORE)
+    private fun greatBest(): LevelBest = LevelBest(stars = GREAT_STARS, bestTimeMs = FAST_MS, bestScore = GREAT_SCORE)
 
     private fun poorBest(): LevelBest = LevelBest(stars = POOR_STARS, bestTimeMs = SLOW_MS, bestScore = POOR_SCORE)
 

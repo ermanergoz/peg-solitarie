@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.SavedStateHandle
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.data.ImportOutcome
 import com.app.pegsolitaire.data.InterstitialCadenceStore
 import com.app.pegsolitaire.data.LevelResult
 import com.app.pegsolitaire.data.NewBests
@@ -19,6 +20,7 @@ import com.app.pegsolitaire.domain.ads.InterstitialCadenceParams
 import com.app.pegsolitaire.domain.ads.InterstitialCadenceState
 import com.app.pegsolitaire.domain.generator.ChallengeLevelBounds
 import com.app.pegsolitaire.domain.generator.GeneratorConstants
+import com.app.pegsolitaire.domain.progress.CloudProgress
 import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import com.app.pegsolitaire.platform.ads.AdConstants
@@ -1752,6 +1754,16 @@ private class FakeProgressRepository(
     override suspend fun clearSnapshot(mode: String) = error("Results never clears a resume snapshot")
 
     override fun observeResumeModes(): Flow<List<String>> = flowOf(emptyList())
+
+    /** Unreachable from here — Results never calls cloud save (CLOUD-01/CLOUD-04). */
+    override suspend fun exportProgress(ladder: Int): CloudProgress = error("Results never calls cloud save")
+
+    override suspend fun importProgress(
+        remote: CloudProgress,
+        nowMs: Long,
+    ): ImportOutcome = error("Results never calls cloud save")
+
+    override suspend fun resetAllProgress() = error("Results never calls cloud save")
 }
 
 /** Robolectric has no android-all jar for Android 16 (SDK 36) yet; emulate SDK 34. */

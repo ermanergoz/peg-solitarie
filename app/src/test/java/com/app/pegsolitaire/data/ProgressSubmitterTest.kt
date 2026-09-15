@@ -7,6 +7,7 @@ import com.app.pegsolitaire.domain.achievement.AchievementId
 import com.app.pegsolitaire.domain.achievement.AchievementRules
 import com.app.pegsolitaire.domain.achievement.ClassicBoard
 import com.app.pegsolitaire.domain.achievement.ProgressAggregate
+import com.app.pegsolitaire.domain.progress.CloudProgress
 import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import com.app.pegsolitaire.platform.games.FakeGamesService
@@ -626,6 +627,16 @@ private class FakeProgressRepository(
     override suspend fun clearSnapshot(mode: String) = error("the submitter never touches a resume snapshot")
 
     override fun observeResumeModes(): Flow<List<String>> = flowOf(emptyList())
+
+    /** Unreachable from here — the cloud pass lands in plan 13-08 (CLOUD-01/CLOUD-04). */
+    override suspend fun exportProgress(ladder: Int): CloudProgress = error("the cloud pass lands in plan 13-08")
+
+    override suspend fun importProgress(
+        remote: CloudProgress,
+        nowMs: Long,
+    ): ImportOutcome = error("the cloud pass lands in plan 13-08")
+
+    override suspend fun resetAllProgress() = error("the cloud pass lands in plan 13-08")
 }
 
 /**
