@@ -459,6 +459,8 @@ private object NeverEmittingSettingsRepository : SettingsRepository {
 private object NeverEmittingGamesService : GamesService {
     override val session: StateFlow<GamesSignInState> = MutableStateFlow(GamesSignInState.Unknown)
 
+    override fun initializeIfOptedIn() = Unit
+
     override fun bootstrapIfOptedIn() = Unit
 
     override suspend fun signIn(): Boolean = false

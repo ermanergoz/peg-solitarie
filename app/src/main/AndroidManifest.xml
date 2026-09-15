@@ -89,8 +89,15 @@
              device before this app has decided anything.
 
              The reason for removing it is production cold start plus the downstream
-             CONS-02 requirement: initialisation must happen at a moment this app
-             chooses (PlayGamesSdk.initialize, Phase 11), not at process start.
+             CONS-02 requirement: initialisation must happen only for a player who
+             chose it. PlayGamesSdk.initialize now runs in App.onCreate, gated on the
+             persisted play_games_opted_in flag (GamesService.initializeIfOptedIn) —
+             i.e. at the same process-start moment this provider would have used, but
+             only for a player who opted in, which is precisely the distinction the
+             provider cannot make. The removal therefore still stands: the provider
+             would initialise unconditionally, for everyone, before the app has
+             decided anything.
+
              It is NOT about test isolation — Robolectric 4.16 does not instantiate
              manifest ContentProviders at startup (verified from its bytecode:
              AndroidTestEnvironment has no provider loop, and ShadowContentResolver
