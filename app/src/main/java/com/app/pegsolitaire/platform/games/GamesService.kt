@@ -6,7 +6,8 @@ import kotlinx.coroutines.flow.StateFlow
  * The platform seam through which the game talks to Play Games Services (spec §8.4,
  * PLAT-03).
  *
- * The seam covers an observable [session], the opt-in-gated launch bootstrap
+ * The seam covers an observable [session], the opt-in-gated process-start SDK
+ * initialize ([initializeIfOptedIn]), the opt-in-gated launch bootstrap
  * ([bootstrapIfOptedIn]), explicit [signIn], leaderboard and achievement submission, and
  * the two stock Play Games UI launches — the whole method set Phases 11-12 need. It was
  * declared before any Play Games SDK code existed, precisely so that the SDK could never
@@ -14,9 +15,12 @@ import kotlinx.coroutines.flow.StateFlow
  * remains the stub that declines everything.
  *
  * **The opt-in gate is part of the contract, not an implementation detail.** Every
- * implementation must touch the Play Games SDK only through [bootstrapIfOptedIn]'s
- * opted-in branch or an explicit [signIn] call, so a player who has never opted in is
- * never reached by the SDK at all (D-01/D-17).
+ * implementation must touch the Play Games SDK only through one of three equally-gated
+ * entry points — [initializeIfOptedIn]'s opted-in branch at process start,
+ * [bootstrapIfOptedIn]'s opted-in branch at launch, or an explicit [signIn] call — so a
+ * player who has never opted in is never reached by the SDK at all (D-01/D-17). Adding
+ * the earliest of the three moved *when* the SDK may first be touched; it did not add a
+ * way to touch it ungated.
  *
  * **Failure is a return value, not an exception (PGSL-04).** The three submission methods
  * report `false` rather than throwing, so a caller can *observe* a failed submission and
@@ -65,9 +69,52 @@ interface GamesService {
     val session: StateFlow<GamesSignInState>
 
     /**
-     * The launch-time, **opt-in-gated** bootstrap (D-01) — the single place the Play
-     * Games SDK may first be touched, and the one gate every implementation of this
-     * interface must respect.
+     * Initializes the Play Games SDK at **process start**, and only for a player who has
+     * already opted in — the earliest point at which the SDK may be touched at all.
+     *
+     * Called from `Application.onCreate`, before any Activity of this app exists. That
+     * position is the method's entire reason to exist: the SDK's automatic sign-in
+     * attempt is triggered only by the creation of an Activity that comes *after*
+     * initialization, so an implementation initialized from an Activity's own `onCreate`
+     * can never see one (the Phase 11 UAT test 1 failure). `PlayGamesService` documents
+     * the SDK mechanism in full.
+     *
+     * **Gated exactly like [bootstrapIfOptedIn], and for the same reason** (D-07/D-17):
+     * the implementation reads the persisted opt-in flag
+     * ([com.app.pegsolitaire.data.PlayGamesOptInRepository]) first and touches the SDK
+     * only on the opted-in branch, so a player who has never opted in is still never
+     * reached by it. Moving initialization earlier must never become moving it out from
+     * behind the gate — which is the one way this method could betray the design it
+     * exists to preserve.
+     *
+     * The flag is read **synchronously**. There is no alternative: the decision must be
+     * made before the first Activity is created, so there is no later point at which an
+     * asynchronous answer could still be acted on, and an unresolved answer is
+     * indistinguishable from "not opted in" — the branch that leaves the SDK inert.
+     *
+     * Deliberately **not** `suspend`, and it performs no sign-in work of its own: it
+     * neither awaits an Activity nor consults [session], which it never writes. All it
+     * does is let the SDK's automatic authenticator observe the first Activity's
+     * creation; the silent check that turns that into a resolved [session] is still
+     * [bootstrapIfOptedIn]'s job, moments later.
+     *
+     * Runs once per process, and a failure is not an error the app reports: process
+     * start must never crash on it, so an implementation degrades to "not initialized"
+     * and the session resolves to [GamesSignInState.SignedOut] as it would offline.
+     *
+     * Logs nothing about the player: neither the opt-in flag nor any identifier reaches
+     * logcat, here or in the real implementation.
+     */
+    fun initializeIfOptedIn()
+
+    /**
+     * The launch-time, **opt-in-gated** bootstrap (D-01) — the silent check that resolves
+     * [session], and the same gate every implementation of this interface must respect.
+     *
+     * On a cold start the SDK has normally already been initialized, at process start and
+     * behind the identical gate, by [initializeIfOptedIn]; this method still initializes
+     * because it must also cover the case that one cannot — a first-ever opt-in granted
+     * *in this process*, where the process-start call took its declined branch (D-19).
      *
      * The implementation reads the persisted opt-in flag
      * ([com.app.pegsolitaire.data.PlayGamesOptInRepository], D-17) and:

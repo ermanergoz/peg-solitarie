@@ -3,12 +3,12 @@ status: partial
 phase: 11-play-games-session
 source: [11-VERIFICATION.md, 12-08-PLAN.md]
 started: 2026-09-03T22:20:00Z
-updated: 2026-09-15T00:00:00Z
+updated: 2026-09-15T04:00:00Z
 ---
 
 ## Current Test
 
-Phase 12 tests 4–9 all pass. Phase 11 tests 1–3 remain pending; note for test 1: on this emulator a cold relaunch after a successful explicit sign-in resolved to signed-out on BOTH debug and minified builds (Play Services brokered an unauthenticated GamesService for the silent `isAuthenticated` check), so the "Welcome back" path has not yet been observed — to be investigated under test 1, not a Phase 12 regression.
+Phase 12 tests 4–9 all pass. Phase 11 tests 1–3 executed 2026-09-15: test 1 now PASSES after quick task 260915-51n, test 2 remains blocked, test 3 remains partial. Historical note, kept because it explains the shape of the fix: the first run of test 1 saw a cold relaunch after a successful explicit sign-in resolve to signed-out on BOTH debug and minified builds. The cause was not Play Services brokering an unauthenticated session — it was `PlayGamesSdk.initialize` running too late (from `MainActivity.onCreate`) for the SDK's automatic authenticator to ever fire; see test 1's result line.
 
 Session note (2026-09-15): the first debug run could not sign in at all — root cause was the debug build shipping Play Games project ID `"0"` (AdMob resolver hard-wire, DEF-06-01), fixed as quick task 260915-3jd before tests 4–8 were run. Design observation from test 4: the first English-33 solve (3 stars, 28 hints, 0 undos, centre finish) legitimately unlocked five achievements at once (First Clear, Three Stars, No Take-Backs, Dead Center, English Cleared). User decision 2026-09-15: keep the rules as designed (D-01/D-02); no change.
 
@@ -17,17 +17,17 @@ Session note (2026-09-15): the first debug run could not sign in at all — root
 ### 1. Real silent sign-in and "Welcome back" popup on relaunch (PGS-01)
 Install a debug build on an emulator with Play Games and Google Play services, once a PGS Play Console project, OAuth credentials for both debug and release SHA-1s, and a tester account exist (D-04). Accept the Home "Sign in to Play Games?" prompt, confirm sign-in completes, kill the process and relaunch.
 expected: The stock Play Games "Welcome back" popup appears at launch with no app-owned dialog, no wall and no pause before a level can start.
-result: [pending]
+result: PASS (2026-09-15, emulator-5554 Pixel_9a AVD / Android 16, debug build from `bugfix/phase-11-silent-sign-in-on-relaunch` 5ddd120, tester account already opted in). Kill + relaunch with no taps at all: `am force-stop` → `logcat -c` → launcher intent, and within ~2 s Play Services logged `GamesConnectSignInOp: signIn(%s): Returning SUCCESS`, then `SignInPerformer: Found existing game run` and `Connection from [%s], returning true for shouldShowWelcomePopup` — the silent sign-in and the stock welcome popup, neither of which the earlier build produced. Opening Settings (the only tap in the run) showed the Play Games section reading `Signed in as …` with the tester's gamertag, plus the Leaderboards and Achievements rows. Shipped fix (quick task 260915-51n): `PlayGamesSdk.initialize` moved to `App.onCreate` via the new `GamesService.initializeIfOptedIn()` seam, still gated on the persisted `play_games_opted_in` flag and with `PlayGamesInitProvider` still removed — so the SDK's `AutomaticGamesAuthenticator` is registered before the first Activity is created and its one automatic attempt fires on `MainActivity`'s `onActivityCreated`, while a player who never opted in is still never reached by the SDK (D-07/D-17). Earlier root-cause evidence, retained: from the v2 SDK bytecode (`zzbw.zza` / `zzar` / `zzbq`), `initialize` starts an `AutomaticGamesAuthenticator` whose ONLY trigger is `Application.ActivityLifecycleCallbacks.onActivityCreated` of an Activity created AFTER initialize, and `isAuthenticated()` merely returns that authenticator's cached state — it never contacts Play Services itself. With the old code initializing from a coroutine dispatched out of `MainActivity.onCreate`, i.e. after the only Activity already existed, the automatic attempt never ran on a cold start and the silent check truthfully answered not-authenticated; relaunching `MainActivity` with CLEAR_TASK against a live process (a second `onActivityCreated`) made the SDK sign in silently, which is what identified the trigger.
 
 ### 2. Settings sign-in row: cancel is silent, genuine error shows the snackbar (PGS-03 / D-10)
 On the same emulator, tap the Settings "Sign in to Play Games" row and dismiss the account chooser without picking an account; then tap it again and complete sign-in with an account not registered as a tester.
 expected: Dismissing the chooser is silent (no snackbar, row stays); an unregistered or erroring account shows the "Couldn't sign in to Play Games" snackbar. This confirms or corrects the cancel classification in `PlayGamesService.signIn()` marked `[UNVERIFIED — D-04]`: both `CommonStatusCodes.CANCELED` (16) and the sign-in-specific `SIGN_IN_CANCELLED` (12501, `GamesConstants.SIGN_IN_CANCELLED_STATUS_CODE`) are treated as a silent decline (WR-08). Note which of the two codes the dismissed chooser actually reports, so the set can be narrowed or widened from observation rather than guesswork.
-result: [pending]
+result: partial / blocked (2026-09-15). The cancel path cannot be produced on this emulator: the single account is already authorised for the game, so `signIn()` never shows a chooser (`Found existing game run` → immediate success). The error path cannot be produced either: the Play Games project is published to everyone, so no account is 'unregistered'. `CANCELED` vs `SIGN_IN_CANCELLED` remains `[UNVERIFIED — D-04]`. Needs a second Google account on the device that has never authorised the game, or revoking the game's access in the Play Games app, to observe the chooser dismissal code.
 
 ### 3. Play Games chooser and popup do not trip interstitial foreground cadence
 With Phase 10 interstitial foreground-cadence logging on, trigger the manual Settings sign-in row (or the Home prompt's "Sign in" action) and watch for spurious foreground/background transitions.
 expected: The Play Games account chooser and the "Welcome back" popup do not trip `AppForegroundTracker`'s interstitial cadence.
-result: [pending]
+result: pass by observation for the popup path (2026-09-15): the welcome/unlock popups are views attached to the app's own window (`PopupQueueManagerV2`), no Activity switch occurs, and no foreground/background transition was seen. The chooser path could not be exercised (see test 2). Note: the stock Leaderboards/Achievements screens are a GMS Activity (`InGameUiActivity`) and DO stop `MainActivity` — that is a real app-to-app transition, expected, and outside this test's scope.
 
 ## Phase 12 Tests — Leaderboards & Achievements
 
@@ -66,10 +66,11 @@ result: pass (2026-09-15). Build half: `:app:assembleRelease` with all 27 IDs co
 ## Summary
 
 total: 9
-passed: 6
+passed: 7
 issues: 0
-pending: 3
+pending: 0
+blocked: 1
+partial: 1
 skipped: 0
-blocked: 0
 
 ## Gaps
