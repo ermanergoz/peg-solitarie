@@ -1,3 +1,12 @@
+# Peg Solitaire
+
+Product: game
+Stack: android-compose-game
+Studio plugin: ergoz-soft v0.1.0 (rules snapshot in .claude/rules/, refresh with /ergoz-soft:status)
+Check command: ./gradlew check
+Build command: ./gradlew :app:assembleRelease
+Version file: VERSION (semver; publish approval is .planning/approvals/publish-<VERSION>.approved)
+
 <!-- GSD:project-start source:PROJECT.md -->
 ## Project
 
@@ -177,3 +186,17 @@ Do not make direct repo edits outside a GSD workflow unless the user explicitly 
 > Profile not yet configured. Run `/gsd-profile-user` to generate your developer profile.
 > This section is managed by `generate-claude-profile` -- do not edit manually.
 <!-- GSD:profile-end -->
+@.claude/rules/studio.md
+@.claude/rules/gitflow.md
+@.claude/rules/testing.md
+@.claude/rules/ip-policy.md
+@.claude/rules/reporting.md
+@.claude/rules/skills-policy.md
+@.claude/rules/stacks.md
+@.claude/rules/logging.md
+@.claude/rules/memory.md
+@.claude/rules/puzzle-design.md
+@.claude/rules/play-store.md
+@.claude/rules/kotlin-android.md
+@.claude/rules/compose.md
+@.claude/rules/lessons.md
