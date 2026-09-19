@@ -19,9 +19,9 @@ import javax.inject.Inject
  * Its answers are the *pessimistic* ones, matching [com.app.pegsolitaire.platform.games.NoOpGamesService]
  * rather than the fail-open ad stub, and for the same reason the games stub declines: a phantom
  * success would have the caller clear its cloud-push-pending marker for a payload that never left
- * the device, losing the retry rather than the round trip. `null` and `false` are simply the truth
- * for a stub, and they are also the answers that leave the local store untouched and the retry
- * bookkeeping honest (CLOUD-05).
+ * the device, losing the retry rather than the round trip. `null` and an uncommitted outcome are
+ * simply the truth for a stub, and they are also the answers that leave the local store untouched
+ * and the retry bookkeeping honest (CLOUD-05).
  */
 class NoOpCloudSaveStore
     @Inject
@@ -33,13 +33,14 @@ class NoOpCloudSaveStore
         override suspend fun load(mergeRemote: (ByteArray, ByteArray) -> ByteArray): ByteArray? = null
 
         /**
-         * `false`: nothing was written, and a caller's retry bookkeeping should say so.
-         * [mergeRemote] is not invoked; there is no remote payload to merge against.
+         * Uncommitted: nothing was written, and a caller's retry bookkeeping should say so.
+         * [CloudSaveStage.FAILED_OTHER] with no status code, because a stub reaches no SDK stage
+         * it could name. [mergeRemote] is not invoked; there is no remote payload to merge against.
          */
         override suspend fun save(
             bytes: ByteArray,
             description: CloudSaveDescription,
             playedTimeMs: Long,
             mergeRemote: (ByteArray, ByteArray) -> ByteArray,
-        ): Boolean = false
+        ): CloudSaveOutcome = CloudSaveOutcome(CloudSaveStage.FAILED_OTHER)
     }

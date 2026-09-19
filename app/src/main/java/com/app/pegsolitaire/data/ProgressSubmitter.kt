@@ -11,6 +11,8 @@ import com.app.pegsolitaire.platform.games.GamesIds
 import com.app.pegsolitaire.platform.games.GamesService
 import com.app.pegsolitaire.platform.games.GamesSignInState
 import com.app.pegsolitaire.platform.games.save.CloudSaveDescription
+import com.app.pegsolitaire.platform.games.save.CloudSaveOutcome
+import com.app.pegsolitaire.platform.games.save.CloudSaveStage
 import com.app.pegsolitaire.platform.games.save.CloudSaveStore
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -470,9 +472,14 @@ open class ProgressSubmitter
          * [recordPassOutcome]'s three-case `when` is the precedent, with one deliberate
          * difference: the push is a **single** call, not a batch, so there is no "issued
          * nothing" middle case to preserve. Either it was attempted and the answer is known —
-         * `setPushPending(!committed)` — or the guard declined and the flag is not touched at
-         * all. A `false` is not an error (see [CloudSaveStore.save]); it means "nothing
-         * reached the cloud", and the answer is a retry on the next pass, never a snackbar.
+         * pending is "not committed" — or the guard declined and the flag is not touched at
+         * all. An uncommitted outcome is not an error (see [CloudSaveStore.save]); it means
+         * "nothing reached the cloud", and the answer is a retry on the next pass, never a
+         * snackbar.
+         *
+         * [CloudSyncStore.recordPushOutcome] moves the marker and, in the same edit, records
+         * the stage and status code the seam reported. Those two are a device diagnostic
+         * that nothing reads back; the marker's meaning is unchanged by them.
          */
         private suspend fun pushIfNeeded(
             onlyIfPending: Boolean,
@@ -489,8 +496,8 @@ open class ProgressSubmitter
                     totalStars = totals.aggregate.totalStars,
                     classicCleared = totals.classicBests.size,
                 )
-            val committed =
-                attempt {
+            val outcome =
+                attemptPush {
                     cloudSaveStore.save(
                         bytes = CloudProgressCodec.encodeWithinCap(progress),
                         description = description,
@@ -498,7 +505,7 @@ open class ProgressSubmitter
                         mergeRemote = CloudProgressCodec::mergeBytes,
                     )
                 }
-            cloudSyncStore.setPushPending(!committed)
+            cloudSyncStore.recordPushOutcome(outcome)
         }
 
         /**
@@ -586,6 +593,19 @@ open class ProgressSubmitter
             runCatching { block() }
                 .onFailure { if (it is CancellationException) throw it }
                 .getOrDefault(false)
+
+        /**
+         * [attempt]'s sibling for the one seam call whose failure value is an uncommitted
+         * [CloudSaveOutcome] — [CloudSaveStore.save].
+         *
+         * A throw is recorded as [CloudSaveStage.FAILED_OTHER] with no status code. Nothing
+         * is read off the throwable, not even its type: the seam is where an SDK failure is
+         * classified, and anything that escapes it is by definition unclassified.
+         */
+        private suspend fun attemptPush(block: suspend () -> CloudSaveOutcome): CloudSaveOutcome =
+            runCatching { block() }
+                .onFailure { if (it is CancellationException) throw it }
+                .getOrDefault(CloudSaveOutcome(CloudSaveStage.FAILED_OTHER))
 
         /**
          * [attempt]'s sibling for the one seam call whose failure value is `null` rather than

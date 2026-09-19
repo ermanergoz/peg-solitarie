@@ -3,6 +3,7 @@ package com.app.pegsolitaire.platform.games.save
 import android.app.Activity
 import com.app.pegsolitaire.platform.activity.ForegroundActivityProvider
 import com.app.pegsolitaire.platform.games.GamesConstants
+import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.games.PlayGames
 import com.google.android.gms.games.SnapshotsClient
 import com.google.android.gms.games.snapshot.Snapshot
@@ -49,7 +50,7 @@ import javax.inject.Singleton
  * ## An offline commit reports success, and that is correct
  *
  * Play Games caches a `commitAndClose` locally when the device has no connectivity and syncs it on
- * reconnection, so [save] can legitimately return `true` before anything has reached Google's
+ * reconnection, so [save] can legitimately report a commit before anything has reached Google's
  * servers. The data is not lost — GMS owns that retry queue and exposes no API through which an
  * app could observe its state. An app-level "did it really upload" check would therefore duplicate
  * a queue Google already runs while being unable to see the thing it claims to verify. A reviewer
@@ -59,10 +60,19 @@ import javax.inject.Singleton
  * ## Nothing here logs
  *
  * The payload, the description and any SDK exception message are all tied to a signed-in player
- * (T-13-40 / T-11-04, ASVS V7). Every failure becomes `null` or `false` and nothing else, matching
+ * (T-13-40 / T-11-04, ASVS V7). Every failed read becomes `null` and nothing else, matching
  * [com.app.pegsolitaire.platform.games.PlayGamesService] and
  * [com.app.pegsolitaire.platform.ads.RewardedAdSlot]. The absence is enforced by a grep gate
  * rather than by review, which is why this paragraph names no logging API.
+ *
+ * ## What a failed push does report
+ *
+ * A [CloudSaveOutcome]: which of this class's own stages the push ended at, and the SDK's status
+ * **integer** when the failure was an `ApiException`. That is the whole of it. The exception's
+ * message, the snapshot id, the description and the payload are never copied anywhere — the
+ * outcome type has no slot that could hold them. It exists because a bare `false` from two
+ * signed-in, online devices could not be told apart from a missing Activity, and the alternative
+ * was the logging the paragraph above forbids.
  */
 @Singleton
 class PlayGamesCloudSaveStore
@@ -115,7 +125,7 @@ class PlayGamesCloudSaveStore
         /**
          * Writes [bytes] as the player's cloud payload together with the listing metadata that
          * makes the save legible in the Play Games saves UI (CLOUD-03), reporting whether the SDK
-         * accepted the commit.
+         * accepted the commit and, when it did not, the stage that ended the push.
          *
          * **The commit is a superset of everything this pass has seen.** Bytes that arrived during
          * conflict resolution are already in the server copy by the time the handle comes back
@@ -123,26 +133,36 @@ class PlayGamesCloudSaveStore
          * merge. Writing [bytes] alone would undo, at commit time, the resolution that had just
          * succeeded.
          *
-         * See the class KDoc for why `true` offline is a truthful answer, and why the handle is
-         * closed in a `finally` rather than on the happy path alone.
+         * **Classification is per await, not per push.** `open`, `resolveConflict` and
+         * `commitAndClose` each run through [awaitStage], which is what lets the outcome say
+         * *which* SDK call refused. The outer `runCatching` stays as the net that keeps the seam
+         * from ever throwing; whatever it catches that no stage claimed is
+         * [CloudSaveStage.FAILED_OTHER].
+         *
+         * See the class KDoc for why a commit reported offline is a truthful answer, and why the
+         * handle is closed in a `finally` rather than on the happy path alone.
          */
         override suspend fun save(
             bytes: ByteArray,
             description: CloudSaveDescription,
             playedTimeMs: Long,
             mergeRemote: (ByteArray, ByteArray) -> ByteArray,
-        ): Boolean {
-            val activity = awaitForegroundActivity() ?: return false
+        ): CloudSaveOutcome {
+            val activity = awaitForegroundActivity() ?: return CloudSaveOutcome(CloudSaveStage.NO_ACTIVITY)
 
             return runCatching {
                 val client = PlayGames.getSnapshotsClient(activity)
-                val snapshot = openResolved(client, mergeRemote) ?: return@runCatching false
+                val snapshot =
+                    openResolved(client, mergeRemote)
+                        ?: return@runCatching CloudSaveOutcome(CloudSaveStage.CONFLICT_UNRESOLVED)
 
                 var committed = false
                 try {
                     val existing = snapshot.snapshotContents.readFully()
                     val finalBytes = if (existing.isEmpty()) bytes else mergeRemote(existing, bytes)
-                    if (exceedsServerCap(client, finalBytes)) return@runCatching false
+                    if (exceedsServerCap(client, finalBytes)) {
+                        return@runCatching CloudSaveOutcome(CloudSaveStage.OVER_CAP)
+                    }
 
                     // A FULL overwrite, and that is the point (RESEARCH Pitfall 5). The partial
                     // write sibling on SnapshotContents is documented to leave the excess in place
@@ -151,15 +171,41 @@ class PlayGamesCloudSaveStore
                     // on some parsers and throws on others. Do not switch to it.
                     snapshot.snapshotContents.writeBytes(finalBytes)
 
-                    client.commitAndClose(snapshot, metadataChangeFor(description, playedTimeMs)).await()
+                    val change = metadataChangeFor(description, playedTimeMs)
+                    awaitStage(CloudSaveStage.COMMIT_FAILED) { client.commitAndClose(snapshot, change).await() }
                     committed = true
-                    true
+                    CloudSaveOutcome(CloudSaveStage.COMMITTED)
                 } finally {
                     if (!committed) discardQuietly(client, snapshot)
                 }
-            }.onFailure { if (it is CancellationException) throw it }
-                .getOrDefault(false)
+            }.getOrElse { failure ->
+                if (failure is CancellationException) throw failure
+                (failure as? StageFailure)?.outcome
+                    ?: CloudSaveOutcome(CloudSaveStage.FAILED_OTHER, statusCodeOf(failure))
+            }
         }
+
+        /**
+         * Runs one SDK await and, if it fails, re-raises the failure as a [StageFailure] naming
+         * [stage] and carrying the status integer — and nothing else — from the original.
+         *
+         * The original throwable is deliberately **not** chained as the cause: its message is
+         * tied to a signed-in player, and a `StageFailure` that held it would be one careless
+         * `toString()` away from the leak T-11-04 exists to prevent. Cancellation is rethrown
+         * untouched before any classification, because it is a caller's structured concurrency
+         * and never an SDK failure (WR-04).
+         */
+        private suspend fun <T> awaitStage(
+            stage: CloudSaveStage,
+            call: suspend () -> T,
+        ): T =
+            runCatching { call() }.getOrElse { failure ->
+                if (failure is CancellationException) throw failure
+                throw StageFailure(CloudSaveOutcome(stage, statusCodeOf(failure)))
+            }
+
+        /** `ApiException.statusCode` when [failure] is one, else `null`. The only datum read off it. */
+        private fun statusCodeOf(failure: Throwable): Int? = (failure as? ApiException)?.statusCode
 
         /**
          * The foreground [Activity], or `null` if none arrives within
@@ -195,15 +241,17 @@ class PlayGamesCloudSaveStore
             mergeRemote: (ByteArray, ByteArray) -> ByteArray,
         ): Snapshot? {
             val opened =
-                client
-                    .open(
-                        CloudSaveConstants.SNAPSHOT_NAME,
-                        // createIfNotFound: a first-ever push must not have to create the snapshot
-                        // in a separate step, and a first-ever pull on a fresh account reads the
-                        // empty one it creates as "no payload".
-                        true,
-                        SnapshotsClient.RESOLUTION_POLICY_MANUAL,
-                    ).await()
+                awaitStage(CloudSaveStage.OPEN_FAILED) {
+                    client
+                        .open(
+                            CloudSaveConstants.SNAPSHOT_NAME,
+                            // createIfNotFound: a first-ever push must not have to create the
+                            // snapshot in a separate step, and a first-ever pull on a fresh
+                            // account reads the empty one it creates as "no payload".
+                            true,
+                            SnapshotsClient.RESOLUTION_POLICY_MANUAL,
+                        ).await()
+                }
 
             return resolveToOpenSnapshot(client, opened, mergeRemote)
         }
@@ -254,13 +302,15 @@ class PlayGamesCloudSaveStore
                 resolution.writeBytes(mergeRemote(serverBytes, modifiedBytes))
 
                 result =
-                    client
-                        .resolveConflict(
-                            conflict.conflictId,
-                            conflict.snapshot.metadata.snapshotId,
-                            SnapshotMetadataChange.EMPTY_CHANGE,
-                            resolution,
-                        ).await()
+                    awaitStage(CloudSaveStage.CONFLICT_UNRESOLVED) {
+                        client
+                            .resolveConflict(
+                                conflict.conflictId,
+                                conflict.snapshot.metadata.snapshotId,
+                                SnapshotMetadataChange.EMPTY_CHANGE,
+                                resolution,
+                            ).await()
+                    }
             }
 
             val unresolved = result.conflict ?: return result.data
@@ -328,4 +378,15 @@ class PlayGamesCloudSaveStore
         ) {
             runCatching { client.discardAndClose(snapshot).await() }
         }
+
+        /**
+         * A failed SDK await, reduced to the [CloudSaveOutcome] it should be reported as.
+         *
+         * Private to this file and caught only by [save]; on the read path [load]'s own
+         * `runCatching` turns it into the same `null` every other read failure becomes. It has no
+         * message and no cause on purpose — see [awaitStage].
+         */
+        private class StageFailure(
+            val outcome: CloudSaveOutcome,
+        ) : Exception()
     }

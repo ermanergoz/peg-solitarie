@@ -1,6 +1,7 @@
 package com.app.pegsolitaire.data
 
 import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 
 /**
@@ -87,6 +88,34 @@ internal object PlayGamesPreferences {
      * the marker and the push is retried on that pass.
      */
     const val DEFAULT_CLOUD_PUSH_PENDING = false
+
+    /**
+     * The stage the most recent **attempted** cloud push ended at — a
+     * [com.app.pegsolitaire.platform.games.save.CloudSaveStage] name, written in the same
+     * edit as [CLOUD_PUSH_PENDING_KEY] so the two can never describe different pushes.
+     *
+     * A device diagnostic and nothing else. **Nothing in the app reads it**: it changes no
+     * behaviour, reaches no UI, and the retry bookkeeping still runs off the boolean alone
+     * (CLOUD-05, D-03). It exists because a marker stuck at `true` on a signed-in, online
+     * device said *that* pushes were refused and nothing about *where*, and logging — the
+     * other way to find out — is what T-11-04's grep gate forbids in this package. It is
+     * read off a debuggable build through `run-as`; on a release build it is app-private
+     * and unreadable.
+     *
+     * Not player data: one of seven names this game defines. Overwritten on every push.
+     */
+    val CLOUD_LAST_PUSH_STAGE_KEY = stringPreferencesKey("play_games_cloud_last_push_stage")
+
+    /**
+     * The Play services status integer the most recent attempted push failed with.
+     * **Absent**, not zero, whenever that push carried none — a success, a missing
+     * Activity, a non-SDK failure — because a stale code beside a newer stage would be read
+     * as belonging to it.
+     *
+     * The integer only. The exception it came from, and above all its message, are never
+     * stored (T-11-04 / T-13-40).
+     */
+    val CLOUD_LAST_PUSH_STATUS_KEY = intPreferencesKey("play_games_cloud_last_push_status")
 
     /**
      * The Play Games player id this device's local progress was last merged with — D-12's

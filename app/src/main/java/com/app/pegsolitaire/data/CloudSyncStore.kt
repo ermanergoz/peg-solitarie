@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import com.app.pegsolitaire.platform.games.save.CloudSaveOutcome
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -43,6 +44,13 @@ import javax.inject.Singleton
  * whole progress payload from SQL from scratch (the merge is a monotonic union,
  * CLOUD-02), so a stored record of what was pending could only ever go stale against the
  * database it would then be checked against.
+ *
+ * ## The two diagnostic keys beside it
+ *
+ * [recordPushOutcome] also writes the stage and the status code of the last attempted push.
+ * They are **write-only from the app's point of view**: nothing here exposes them as a
+ * `Flow`, deliberately, so no behaviour and no UI can come to depend on them (CLOUD-05,
+ * D-03). They are for a developer reading a debuggable device.
  *
  * The `@Inject internal` constructor takes the shared [DataStore] directly, so Hilt
  * resolves it with no `@Binds`/`@Provides` entry — a `@Singleton` with an `@Inject`
@@ -87,6 +95,37 @@ open class CloudSyncStore
         open suspend fun setPushPending(pending: Boolean) {
             runCatching {
                 dataStore.edit { it[PlayGamesPreferences.CLOUD_PUSH_PENDING_KEY] = pending }
+            }.onFailure { if (it is CancellationException) throw it }
+        }
+
+        /**
+         * Records an **attempted** push: the marker moves to "not committed", and the stage
+         * and status code that explain it are written in the **same edit**.
+         *
+         * One edit and not three, because the three keys describe one event. Written
+         * separately, a process death between them would leave a marker from this push
+         * beside a stage from the last one, which is worse than no diagnostic at all: it
+         * would send whoever reads it after the wrong refusal. The status key is *removed*
+         * when the outcome carries no code, for the reason given on
+         * [PlayGamesPreferences.CLOUD_LAST_PUSH_STATUS_KEY].
+         *
+         * The marker semantics are exactly [setPushPending]'s — pending means not committed —
+         * and so is the failure handling: a failed write is dropped, cancellation is
+         * rethrown. [setPushPending] remains for the callers that set the marker without
+         * having attempted a push, and so have no outcome to record.
+         */
+        open suspend fun recordPushOutcome(outcome: CloudSaveOutcome) {
+            runCatching {
+                dataStore.edit { prefs ->
+                    prefs[PlayGamesPreferences.CLOUD_PUSH_PENDING_KEY] = !outcome.committed
+                    prefs[PlayGamesPreferences.CLOUD_LAST_PUSH_STAGE_KEY] = outcome.stage.name
+                    val statusCode = outcome.statusCode
+                    if (statusCode == null) {
+                        prefs.remove(PlayGamesPreferences.CLOUD_LAST_PUSH_STATUS_KEY)
+                    } else {
+                        prefs[PlayGamesPreferences.CLOUD_LAST_PUSH_STATUS_KEY] = statusCode
+                    }
+                }
             }.onFailure { if (it is CancellationException) throw it }
         }
     }

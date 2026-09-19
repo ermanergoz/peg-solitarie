@@ -13,7 +13,8 @@ package com.app.pegsolitaire.platform.games.save
  * entire phase keeping minimal.
  *
  * **Bytes in, bytes out.** Every signature below names only Kotlin/JVM types: `ByteArray`, `Long`,
- * `Boolean`, and one local `data class` of three `Int`s. Nothing `Snapshot`-shaped, no
+ * and two local `data class`es — three `Int`s going in, an enum and a nullable `Int` coming out.
+ * Nothing `Snapshot`-shaped, no
  * `SnapshotsClient`, and — exactly as on the games seam — **no Activity type and no Play Games SDK
  * type in any signature**, so no ViewModel and no repository can obtain one through it. That is not
  * a convention: `PlatformBoundaryRules.onlyPlatformDependsOnPlaySdks` matches the Play/AdMob/UMP SDK
@@ -47,7 +48,7 @@ package com.app.pegsolitaire.platform.games.save
  * ## Offline commits report success, and that is correct (RESEARCH Pitfall 4)
  *
  * Play Games Services caches a `commitAndClose` locally when the device has no connectivity and
- * syncs it on reconnection, so [save] can legitimately return `true` before anything has reached
+ * syncs it on reconnection, so [save] can legitimately report a commit before anything has reached
  * Google's servers. The data is not lost — GMS owns that retry queue, and the SDK exposes no API
  * through which an app could observe its state. An app-level "did it really upload" check would
  * therefore duplicate a queue Google already runs while being unable to see the thing it claims to
@@ -65,7 +66,9 @@ interface CloudSaveStore {
      *
      * **Never throws.** Offline, opted out, signed out, no foreground Activity, a Play Console
      * project with Saved Games disabled, and the SDK's own contents-unavailable failure all collapse
-     * to `null`. An implementation classifies inside `platform/` and reports nothing further.
+     * to `null`. An implementation classifies inside `platform/` and reports nothing further from
+     * a read; the one thing the seam does report is [save]'s [CloudSaveOutcome]. `open` is shared by
+     * both methods, so a push outcome diagnoses a failing pull as well.
      *
      * @param mergeRemote resolves a conflict encountered while opening: given the two conflicting
      *   payloads' bytes it returns the merged bytes, which are written back to the server as part of
@@ -76,10 +79,12 @@ interface CloudSaveStore {
 
     /**
      * Writes [bytes] as the player's cloud payload, along with the listing metadata that makes the
-     * save legible in the Play Games saves UI (CLOUD-03), reporting whether the SDK accepted it.
+     * save legible in the Play Games saves UI (CLOUD-03), reporting whether the SDK accepted it and,
+     * when it did not, which stage refused.
      *
-     * **`false` is not an error.** It means "nothing reached the cloud", and the caller's answer is
-     * to set the persisted cloud-push-pending marker and retry on the next pass (D-01) — never a
+     * **An uncommitted outcome is not an error.** It means "nothing reached the cloud", and the
+     * caller's answer is to set the persisted cloud-push-pending marker and retry on the next pass
+     * (D-01) — never a
      * snackbar, never a blocked level, exactly as
      * [com.app.pegsolitaire.platform.games.GamesService.submitScore]'s KDoc describes for
      * submissions. The player is never shown a cloud failure.
@@ -89,15 +94,17 @@ interface CloudSaveStore {
      *   longest-playtime resolution policy would order by.
      * @param mergeRemote resolves a conflict: given the server's payload and [bytes], returns the
      *   merged payload. See the class KDoc.
-     * @return `true` when the SDK accepted the commit — which offline means "queued locally and will
-     *   sync", per the class KDoc — and `false` for every "nothing was written" cause.
+     * @return an outcome whose [CloudSaveOutcome.committed] is `true` when the SDK accepted the
+     *   commit — which offline means "queued locally and will sync", per the class KDoc — and
+     *   otherwise names the stage that ended the push plus the SDK's status integer where one
+     *   existed. Never an exception message, an id, the description or the payload.
      */
     suspend fun save(
         bytes: ByteArray,
         description: CloudSaveDescription,
         playedTimeMs: Long,
         mergeRemote: (ByteArray, ByteArray) -> ByteArray,
-    ): Boolean
+    ): CloudSaveOutcome
 }
 
 /**
