@@ -809,7 +809,8 @@ class PlayGamesCloudSaveStoreTest {
      * what let a store that read `conflict` as a nullable discriminator pass 33 tests and fail
      * every push and every pull on a device.
      */
-    private fun dataResult(value: Snapshot): SnapshotsClient.DataOrConflict<Snapshot> = SnapshotsClient.DataOrConflict(value, null)
+    private fun dataResult(value: Snapshot): SnapshotsClient.DataOrConflict<Snapshot> =
+        SnapshotsClient.DataOrConflict(value, null)
 
     /**
      * A conflicted open: two versions of the snapshot plus the contents the merge is written

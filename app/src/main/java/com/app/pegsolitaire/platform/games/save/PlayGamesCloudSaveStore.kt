@@ -9,7 +9,11 @@ import com.google.android.gms.games.SnapshotsClient
 import com.google.android.gms.games.snapshot.Snapshot
 import com.google.android.gms.games.snapshot.SnapshotMetadataChange
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -42,10 +46,11 @@ import javax.inject.Singleton
  * `commitAndClose` is documented to fail *"when called with a snapshot that was not opened or has
  * already been committed/discarded"*, and an open handle that is never closed makes the **next**
  * open fail for the rest of the process. The failure mode is therefore "cloud save works once per
- * app launch and then silently stops" — which looks like flakiness, not like a bug. Both public
- * methods run their handle through a `try`/`finally` with a local latch so that every path,
- * including a thrown SDK call and an early return, closes exactly once and never twice
- * (T-13-36, RESEARCH Pitfalls 1 and 2).
+ * app launch and then silently stops" — which looks like flakiness, not like a bug. Ownership
+ * therefore never has a gap: while a conflict is being resolved the loop owns the handle and
+ * closes it if anything throws, and the moment a resolved handle comes back the public method
+ * puts it under a `try`/`finally`. Every path — a thrown SDK call, an early return, a caller's
+ * cancel — closes exactly once and never twice (T-13-36, RESEARCH Pitfalls 1 and 2).
  *
  * ## An offline commit reports success, and that is correct
  *
@@ -107,17 +112,19 @@ class PlayGamesCloudSaveStore
                 val client = PlayGames.getSnapshotsClient(activity)
                 val snapshot = openResolved(client, mergeRemote) ?: return@runCatching null
 
-                var closed = false
-                try {
-                    val bytes = snapshot.snapshotContents.readFully()
-                    discardQuietly(client, snapshot)
-                    closed = true
-                    bytes.takeIf { it.isNotEmpty() }
-                } finally {
-                    // The latch is what makes this exactly-once rather than at-least-once: a
-                    // second terminal call on a closed handle fails its Task (Pitfall 2).
-                    if (!closed) discardQuietly(client, snapshot)
-                }
+                // One terminal call, in one place: the read path only ever discards, so the
+                // `finally` IS the close and there is no second site to double it (Pitfall 2).
+                val bytes =
+                    try {
+                        snapshot.snapshotContents.readFully()
+                    } finally {
+                        discardQuietly(client, snapshot)
+                    }
+
+                // The close is non-cancellable on purpose, so a cancel that arrived during it is
+                // honoured here instead: a stopped pass must not hand bytes on to its caller.
+                currentCoroutineContext().ensureActive()
+                bytes.takeIf { it.isNotEmpty() }
             }.onFailure { if (it is CancellationException) throw it }
                 .getOrNull()
         }
@@ -152,36 +159,59 @@ class PlayGamesCloudSaveStore
 
             return runCatching {
                 val client = PlayGames.getSnapshotsClient(activity)
+
+                // Built BEFORE the open, not between the open and the commit: formatting and the
+                // cover raster can both throw, and nothing that can throw may sit between a handle
+                // coming back open and [commitOrDiscard] taking ownership of it.
+                val change = metadataChangeFor(description, playedTimeMs)
                 val snapshot =
                     openResolved(client, mergeRemote)
                         ?: return@runCatching CloudSaveOutcome(CloudSaveStage.CONFLICT_UNRESOLVED)
 
-                var committed = false
-                try {
-                    val existing = snapshot.snapshotContents.readFully()
-                    val finalBytes = if (existing.isEmpty()) bytes else mergeRemote(existing, bytes)
-                    if (exceedsServerCap(client, finalBytes)) {
-                        return@runCatching CloudSaveOutcome(CloudSaveStage.OVER_CAP)
-                    }
+                val outcome = commitOrDiscard(client, snapshot, bytes, change, mergeRemote)
 
-                    // A FULL overwrite, and that is the point (RESEARCH Pitfall 5). The partial
-                    // write sibling on SnapshotContents is documented to leave the excess in place
-                    // whenever the new payload is shorter than the old one — after a trim, or once
-                    // a JSON field shrinks — producing {...valid json...}xyz, a blob that decodes
-                    // on some parsers and throws on others. Do not switch to it.
-                    snapshot.snapshotContents.writeBytes(finalBytes)
-
-                    val change = metadataChangeFor(description, playedTimeMs)
-                    awaitStage(CloudSaveStage.COMMIT_FAILED) { client.commitAndClose(snapshot, change).await() }
-                    committed = true
-                    CloudSaveOutcome(CloudSaveStage.COMMITTED)
-                } finally {
-                    if (!committed) discardQuietly(client, snapshot)
-                }
+                // See [load]: the close cannot be cancelled, so the cancel is honoured after it.
+                currentCoroutineContext().ensureActive()
+                outcome
             }.getOrElse { failure ->
                 if (failure is CancellationException) throw failure
                 (failure as? StageFailure)?.outcome
                     ?: CloudSaveOutcome(CloudSaveStage.FAILED_OTHER, statusCodeOf(failure))
+            }
+        }
+
+        /**
+         * Takes ownership of an open [snapshot] and ends it with exactly one terminal call: the
+         * commit when everything went through, a discard on every other path.
+         *
+         * The latch is what makes this exactly-once rather than at-least-once — a second terminal
+         * call on a closed handle fails its Task (Pitfall 2).
+         */
+        private suspend fun commitOrDiscard(
+            client: SnapshotsClient,
+            snapshot: Snapshot,
+            bytes: ByteArray,
+            change: SnapshotMetadataChange,
+            mergeRemote: (ByteArray, ByteArray) -> ByteArray,
+        ): CloudSaveOutcome {
+            var committed = false
+            try {
+                val existing = snapshot.snapshotContents.readFully()
+                val finalBytes = if (existing.isEmpty()) bytes else mergeRemote(existing, bytes)
+                if (exceedsServerCap(client, finalBytes)) return CloudSaveOutcome(CloudSaveStage.OVER_CAP)
+
+                // A FULL overwrite, and that is the point (RESEARCH Pitfall 5). The partial write
+                // sibling on SnapshotContents is documented to leave the excess in place whenever
+                // the new payload is shorter than the old one — after a trim, or once a JSON field
+                // shrinks — producing {...valid json...}xyz, a blob that decodes on some parsers
+                // and throws on others. Do not switch to it.
+                snapshot.snapshotContents.writeBytes(finalBytes)
+
+                awaitStage(CloudSaveStage.COMMIT_FAILED) { client.commitAndClose(snapshot, change).await() }
+                committed = true
+                return CloudSaveOutcome(CloudSaveStage.COMMITTED)
+            } finally {
+                if (!committed) discardQuietly(client, snapshot)
             }
         }
 
@@ -203,9 +233,6 @@ class PlayGamesCloudSaveStore
                 if (failure is CancellationException) throw failure
                 throw StageFailure(CloudSaveOutcome(stage, statusCodeOf(failure)))
             }
-
-        /** `ApiException.statusCode` when [failure] is one, else `null`. The only datum read off it. */
-        private fun statusCodeOf(failure: Throwable): Int? = (failure as? ApiException)?.statusCode
 
         /**
          * The foreground [Activity], or `null` if none arrives within
@@ -266,7 +293,8 @@ class PlayGamesCloudSaveStore
          * 1. **The loop's exit value is an *open* snapshot.** `resolveConflict` has already written
          *    the merged bytes server-side, but the handle it returns still must reach a terminal
          *    call; leaving it open blocks the next open for the rest of the process (Pitfall 1).
-         *    Both callers therefore take ownership of it immediately.
+         *    Both callers therefore take ownership of it immediately, and until they do the loop
+         *    itself closes whatever it is holding when anything throws.
          * 2. **`EMPTY_CHANGE` during resolution, real metadata only at the final commit.** The
          *    javadoc says values absent from a metadata change *"will be resolved to the version
          *    currently on the server"*, so a half-built change mid-loop would fight the commit that
@@ -290,35 +318,59 @@ class PlayGamesCloudSaveStore
             var result = initial
             var attempts = 0
 
-            while (attempts < CloudSaveConstants.MAX_CONFLICT_RETRIES) {
-                // `getConflict()` is the SDK's own nullable discriminator — null exactly when
-                // `isConflict()` is false — so reading it is both the test and the value.
-                val conflict = result.conflict ?: break
+            // `isConflict()` is the ONLY discriminator. The two getters are not nullable views of
+            // it: the pinned SDK throws IllegalStateException from `getConflict()` when there is
+            // no conflict and from `getData()` when there is one, so each is read strictly on its
+            // own side of this test. Reading `conflict` first failed every push and every pull.
+            while (result.isConflict) {
+                // Annotated `@Nullable` in the SDK, which is what invited the `?:` in the first
+                // place; it is non-null exactly when `isConflict()` is true (same field).
+                val conflict = checkNotNull(result.conflict)
+                if (attempts == CloudSaveConstants.MAX_CONFLICT_RETRIES) {
+                    // Giving up is not a licence to leak: the unresolved handle is closed here so
+                    // the next pass can still open the snapshot at all.
+                    discardQuietly(client, conflict.snapshot)
+                    return null
+                }
                 attempts++
-                val serverBytes = conflict.snapshot.snapshotContents.readFully()
-                val modifiedBytes = conflict.conflictingSnapshot.snapshotContents.readFully()
 
-                val resolution = conflict.resolutionSnapshotContents
-                resolution.writeBytes(mergeRemote(serverBytes, modifiedBytes))
-
-                result =
-                    awaitStage(CloudSaveStage.CONFLICT_UNRESOLVED) {
-                        client
-                            .resolveConflict(
-                                conflict.conflictId,
-                                conflict.snapshot.metadata.snapshotId,
-                                SnapshotMetadataChange.EMPTY_CHANGE,
-                                resolution,
-                            ).await()
-                    }
+                // Nobody above this frame can close a handle they were never given, so until
+                // `resolveConflict` hands back the next result the loop is the owner: a read that
+                // throws, a merge that throws, a refused resolution and a caller's cancel all
+                // close it on the way out.
+                var resolved = false
+                try {
+                    result = resolveOnce(client, conflict, mergeRemote)
+                    resolved = true
+                } finally {
+                    if (!resolved) discardQuietly(client, conflict.snapshot)
+                }
             }
 
-            val unresolved = result.conflict ?: return result.data
+            return result.data
+        }
 
-            // Giving up is not a licence to leak: the unresolved handle is closed here so the next
-            // pass can still open the snapshot at all.
-            discardQuietly(client, unresolved.snapshot)
-            return null
+        /** One pass of the conflict loop: merge both sides and hand the result to the SDK. */
+        private suspend fun resolveOnce(
+            client: SnapshotsClient,
+            conflict: SnapshotsClient.SnapshotConflict,
+            mergeRemote: (ByteArray, ByteArray) -> ByteArray,
+        ): SnapshotsClient.DataOrConflict<Snapshot> {
+            val serverBytes = conflict.snapshot.snapshotContents.readFully()
+            val modifiedBytes = conflict.conflictingSnapshot.snapshotContents.readFully()
+
+            val resolution = conflict.resolutionSnapshotContents
+            resolution.writeBytes(mergeRemote(serverBytes, modifiedBytes))
+
+            return awaitStage(CloudSaveStage.CONFLICT_UNRESOLVED) {
+                client
+                    .resolveConflict(
+                        conflict.conflictId,
+                        conflict.snapshot.metadata.snapshotId,
+                        SnapshotMetadataChange.EMPTY_CHANGE,
+                        resolution,
+                    ).await()
+            }
         }
 
         /**
@@ -360,7 +412,12 @@ class PlayGamesCloudSaveStore
             client: SnapshotsClient,
             payload: ByteArray,
         ): Boolean {
-            val cap = runCatching { client.getMaxDataSize().await() }.getOrNull() ?: return false
+            val cap =
+                runCatching { client.getMaxDataSize().await() }
+                    // A cancel is not a failed query: absorbing it here would let a stopped pass
+                    // go on to commit (WR-04).
+                    .onFailure { if (it is CancellationException) throw it }
+                    .getOrNull() ?: return false
             return payload.size > cap
         }
 
@@ -371,12 +428,23 @@ class PlayGamesCloudSaveStore
          * runs from a `finally`, frequently while another failure is already propagating, and a
          * throw from a cleanup call would replace the real cause with the noise from tidying up
          * after it.
+         *
+         * **`NonCancellable`, so the `runCatching` has no caller's cancel to swallow.** A cancelled
+         * pass is exactly when a handle most needs closing, and a cancellable await would abandon
+         * the close half-way. The cancel is not lost: it is still pending on the caller's job, a
+         * `finally` lets it keep propagating, and the two happy paths re-check it with
+         * `ensureActive()` straight after the close.
+         *
+         * A close the SDK refuses stays silent here, and the handle may then really be open. That
+         * is visible one push later as [CloudSaveStage.OPEN_FAILED] with the SDK's status integer.
          */
         private suspend fun discardQuietly(
             client: SnapshotsClient,
             snapshot: Snapshot,
         ) {
-            runCatching { client.discardAndClose(snapshot).await() }
+            withContext(NonCancellable) {
+                runCatching { client.discardAndClose(snapshot).await() }
+            }
         }
 
         /**
@@ -390,3 +458,9 @@ class PlayGamesCloudSaveStore
             val outcome: CloudSaveOutcome,
         ) : Exception()
     }
+
+/**
+ * `ApiException.statusCode` when [failure] is one, else `null`. The only datum ever read off an
+ * SDK failure. File-level because it reads no state of the store at all.
+ */
+private fun statusCodeOf(failure: Throwable): Int? = (failure as? ApiException)?.statusCode
