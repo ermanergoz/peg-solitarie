@@ -50,8 +50,9 @@ import java.io.IOException
  *
  * **The third rule: nothing ever throws out of the seam.** No Activity, a thrown SDK call, a
  * conflict that never resolves and a payload the server will not accept are all `null` or an
- * uncommitted [CloudSaveOutcome] naming the stage that refused (CLOUD-05) — with the single documented exception of `CancellationException`, which is a
- * caller's structured concurrency and not an SDK failure (WR-04).
+ * uncommitted [CloudSaveOutcome] naming the stage that refused (CLOUD-05) — with the single
+ * documented exception of `CancellationException`, which is a caller's structured concurrency
+ * and not an SDK failure (WR-04).
  *
  * Same harness as `PlayGamesServiceTest`: `mockkStatic(PlayGames::class)` over the real static
  * entry point, `Tasks.forResult(...)` for completed `Task`s — taken by `await()`'s fast path with
