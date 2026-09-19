@@ -1,0 +1,35 @@
+09-20 02:37:59.807  1539  7694 I SignInPerformer-17: Requested scopes is empty. Promoting to `games_lite` & `drive_appfolder`. [CONTEXT service_id=1 ]
+09-20 02:37:59.807  1539  7694 I SignInPerformer-17: (REDACTED) Handling request [%s], isFirstPartyCaller [%s]
+09-20 02:37:59.808  1539  7694 I SignInPerformer-17: (REDACTED) java sdk version: [%s]	unity sdk version: [%s]	native sdk version: [%s]
+09-20 02:37:59.817  1539  2989 W GetGamesServiceReqFacto: Parsing request with ignored arguments. signInOptionsBundle [Bundle[{com.google.android.gms.signin.internal.serverClientId=null, com.google.android.gms.signin.internal.usePromptModeForAuthCode=true, com.google.android.gms.signin.internal.logS
+09-20 02:37:59.817  1539  2989 I GetGamesServiceReqFacto: Replacing request for `games` scope with `games_lite`
+09-20 02:37:59.820  1539  7694 I SignInPerformer-18: (REDACTED) Handling request [%s], isFirstPartyCaller [%s]
+09-20 02:37:59.823  1539  7694 I SignInPerformer-18: Successfully brokered first-party unauthenticated GamesService [CONTEXT service_id=1 ]
+09-20 02:37:59.826  1539  7694 I GetGamesServiceV2Op: (REDACTED) Successfully brokered GamesService for request %s
+09-20 02:37:59.840  1539  6155 I SignInPerformer-17: (REDACTED) Successfully resolved account: [%s]
+09-20 02:37:59.890  1539  6155 I SignInPerformer-17: (REDACTED) Successfully authorized %s
+09-20 02:37:59.898  1539  6155 I SignInPerformer-17: (REDACTED) Successfully found player (id [%s], originalId [%s], displayName [%s]) for account [%s]
+09-20 02:37:59.903  1539  6155 I SignInPerformer-17: (REDACTED) Successfully found game: displayName [%s], applicationId [%s], packageName [%s]
+09-20 02:37:59.925  1539  6155 I SignInPerformer-17: (REDACTED) Started a new game run [%s]
+09-20 02:37:59.932  1539  6155 I SignInPerformer-17: Connection from games connect service, returning false for shouldShowWelcomePopup. [CONTEXT service_id=1 ]
+09-20 02:38:00.506  1539  4015 W GetGamesServiceReqFacto: Parsing request with ignored arguments. signInOptionsBundle [Bundle[mParcelledData.dataSize=1160]], isRetryingSignIn [false], skipWelcomePopup [false], requireGooglePlus [false]
+09-20 02:38:00.518  1539  7694 I SignInPerformer-19: Requested scopes is empty. Promoting to `games_lite` & `drive_appfolder`. [CONTEXT service_id=1 ]
+09-20 02:38:00.519  1539  7694 I SignInPerformer-19: (REDACTED) Handling request [%s], isFirstPartyCaller [%s]
+09-20 02:38:00.520  1539  7694 I SignInPerformer-19: (REDACTED) java sdk version: [%s]	unity sdk version: [%s]	native sdk version: [%s]
+09-20 02:38:00.534  1539  7348 I SignInPerformer-19: (REDACTED) Found existing game run [%s]
+09-20 02:38:00.539  1539  7348 I SignInPerformer-19: (REDACTED) Successfully resolved account: [%s]
+09-20 02:38:00.553  1539  7348 I SignInPerformer-19: (REDACTED) Successfully authorized %s
+09-20 02:38:00.557  1539  7348 I SignInPerformer-19: (REDACTED) Successfully found player (id [%s], originalId [%s], displayName [%s]) for account [%s]
+09-20 02:38:00.560  1539  7348 I SignInPerformer-19: (REDACTED) Successfully found game: displayName [%s], applicationId [%s], packageName [%s]
+09-20 02:38:00.572  1539  7348 I SignInPerformer-19: (REDACTED) Connection from [%s], returning true for shouldShowWelcomePopup.
+09-20 02:38:00.582  1539  7348 I GetGamesServiceV2Op: (REDACTED) Successfully brokered GamesService for request %s
+09-20 02:39:25.440  1539  2989 W GetGamesServiceReqFacto: Parsing request with ignored arguments. signInOptionsBundle [Bundle[{com.google.android.gms.signin.internal.serverClientId=null, com.google.android.gms.signin.internal.usePromptModeForAuthCode=true, com.google.android.gms.signin.internal.logS
+09-20 02:39:25.441  1539  2989 I GetGamesServiceReqFacto: Replacing request for `games` scope with `games_lite`
+09-20 02:39:25.444  1539  8096 I SignInPerformer-20: (REDACTED) Handling request [%s], isFirstPartyCaller [%s]
+09-20 02:39:25.444  1539  8096 I SignInPerformer-20: Successfully brokered first-party unauthenticated GamesService [CONTEXT service_id=1 ]
+09-20 02:39:25.445  1539  8096 I GetGamesServiceV2Op: (REDACTED) Successfully brokered GamesService for request %s
+09-20 02:43:51.686  1539  2989 W GetGamesServiceReqFacto: Parsing request with ignored arguments. signInOptionsBundle [Bundle[{com.google.android.gms.signin.internal.serverClientId=null, com.google.android.gms.signin.internal.usePromptModeForAuthCode=true, com.google.android.gms.signin.internal.logS
+09-20 02:43:51.686  1539  2989 I GetGamesServiceReqFacto: Replacing request for `games` scope with `games_lite`
+09-20 02:43:51.687  1539  8285 I SignInPerformer-21: (REDACTED) Handling request [%s], isFirstPartyCaller [%s]
+09-20 02:43:51.687  1539  8285 I SignInPerformer-21: Successfully brokered first-party unauthenticated GamesService [CONTEXT service_id=1 ]
+09-20 02:43:51.687  1539  8285 I GetGamesServiceV2Op: (REDACTED) Successfully brokered GamesService for request %s

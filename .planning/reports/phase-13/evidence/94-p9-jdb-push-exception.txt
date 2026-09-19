@@ -1,0 +1,12 @@
+Exception occurred: java.lang.IllegalStateException (to be caught at: kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(), line=37 bci=39)"thread=DefaultDispatcher-worker-2", com.google.android.gms.games.SnapshotsClient$DataOrConflict.getConflict(), line=1 bci=17
+DefaultDispatcher-worker-2[1]   [1] com.google.android.gms.games.SnapshotsClient$DataOrConflict.getConflict (com.google.android.gms:play-services-games-v2@@22.0.0:1)
+  [2] com.app.pegsolitaire.platform.games.save.PlayGamesCloudSaveStore.resolveToOpenSnapshot (PlayGamesCloudSaveStore.kt:296)
+  [3] com.app.pegsolitaire.platform.games.save.PlayGamesCloudSaveStore.openResolved (PlayGamesCloudSaveStore.kt:256)
+  [4] com.app.pegsolitaire.platform.games.save.PlayGamesCloudSaveStore.access$openResolved (PlayGamesCloudSaveStore.kt:77)
+  [5] com.app.pegsolitaire.platform.games.save.PlayGamesCloudSaveStore$openResolved$1.invokeSuspend (null)
+  [6] kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith (ContinuationImpl.kt:34)
+  [7] kotlinx.coroutines.DispatchedTask.run (DispatchedTask.kt:100)
+  [8] kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely (CoroutineScheduler.kt:586)
+  [9] kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask (CoroutineScheduler.kt:807)
+  [10] kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker (CoroutineScheduler.kt:717)
+  [11] kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run (CoroutineScheduler.kt:704)
