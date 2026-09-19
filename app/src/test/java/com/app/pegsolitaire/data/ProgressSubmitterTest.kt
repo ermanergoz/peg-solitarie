@@ -14,6 +14,7 @@ import com.app.pegsolitaire.platform.games.FakeGamesService
 import com.app.pegsolitaire.platform.games.GamesIds
 import com.app.pegsolitaire.platform.games.GamesService
 import com.app.pegsolitaire.platform.games.GamesSignInState
+import com.app.pegsolitaire.platform.games.save.CloudSaveOutcome
 import com.app.pegsolitaire.platform.games.save.FakeCloudSaveStore
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CompletableDeferred
@@ -678,6 +679,10 @@ private class InertCloudSyncStore : CloudSyncStore(unusedDataStore()) {
 
     override suspend fun setPushPending(pending: Boolean) {
         state.value = pending
+    }
+
+    override suspend fun recordPushOutcome(outcome: CloudSaveOutcome) {
+        state.value = !outcome.committed
     }
 }
 

@@ -3,6 +3,8 @@ package com.app.pegsolitaire.platform.games.save
 import android.app.Activity
 import android.graphics.Bitmap
 import com.app.pegsolitaire.platform.activity.ForegroundActivityProvider
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.Status
 import com.google.android.gms.games.PlayGames
 import com.google.android.gms.games.SnapshotsClient
 import com.google.android.gms.games.snapshot.Snapshot
@@ -47,8 +49,8 @@ import java.io.IOException
  * the return value, because the return value is identical whether or not the handle leaked.
  *
  * **The third rule: nothing ever throws out of the seam.** No Activity, a thrown SDK call, a
- * conflict that never resolves and a payload the server will not accept are all `null` or `false`
- * (CLOUD-05) — with the single documented exception of `CancellationException`, which is a
+ * conflict that never resolves and a payload the server will not accept are all `null` or an
+ * uncommitted [CloudSaveOutcome] naming the stage that refused (CLOUD-05) — with the single documented exception of `CancellationException`, which is a
  * caller's structured concurrency and not an SDK failure (WR-04).
  *
  * Same harness as `PlayGamesServiceTest`: `mockkStatic(PlayGames::class)` over the real static
@@ -301,9 +303,9 @@ class PlayGamesCloudSaveStoreTest {
         runTest(testDispatcher) {
             coEvery { activityProvider.awaitActivity() } coAnswers { awaitCancellation() }
 
-            val accepted = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+            val outcome = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
 
-            assertThat(accepted).isFalse()
+            assertThat(outcome).isEqualTo(CloudSaveOutcome(CloudSaveStage.NO_ACTIVITY))
             verify(exactly = 0) { PlayGames.getSnapshotsClient(any()) }
         }
 
@@ -379,11 +381,11 @@ class PlayGamesCloudSaveStoreTest {
             val change = slot<SnapshotMetadataChange>()
             every { client.commitAndClose(any(), capture(change)) } returns Tasks.forResult(metadata)
 
-            val accepted = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+            val outcome = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
 
             // A save without decoration is worth immeasurably more than no save at all, so an
             // unavailable cover degrades the listing and never the push (T-13-26).
-            assertThat(accepted).isTrue()
+            assertThat(outcome).isEqualTo(CloudSaveOutcome(CloudSaveStage.COMMITTED))
             assertThat(change.captured.coverImage).isNull()
             assertThat(change.captured.description).isEqualTo(DESCRIPTION_LINE)
         }
@@ -393,9 +395,9 @@ class PlayGamesCloudSaveStoreTest {
     @Test
     fun aSuccessfulSaveCommitsExactlyOnceAndNeverDiscards() =
         runTest(testDispatcher) {
-            val accepted = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+            val outcome = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
 
-            assertThat(accepted).isTrue()
+            assertThat(outcome).isEqualTo(CloudSaveOutcome(CloudSaveStage.COMMITTED))
             verify(exactly = 1) { client.commitAndClose(snapshot, any()) }
             verify(exactly = 0) { client.discardAndClose(any()) }
         }
@@ -407,9 +409,9 @@ class PlayGamesCloudSaveStoreTest {
                 client.commitAndClose(any(), any())
             } returns Tasks.forException(IllegalStateException(SDK_FAILURE))
 
-            val accepted = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+            val outcome = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
 
-            assertThat(accepted).isFalse()
+            assertThat(outcome).isEqualTo(CloudSaveOutcome(CloudSaveStage.COMMIT_FAILED))
             // Exactly one terminal call, never both and never neither: a handle left open would
             // fail every later open for the rest of the process (Pitfall 1).
             verify(exactly = 1) { client.discardAndClose(snapshot) }
@@ -423,12 +425,12 @@ class PlayGamesCloudSaveStoreTest {
             every { contents.readFully() } returns ByteArray(0)
             every { client.getMaxDataSize() } returns Tasks.forResult(TINY_SERVER_CAP_BYTES)
 
-            val accepted = store().save(OVERSIZED_PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+            val outcome = store().save(OVERSIZED_PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
 
             // The ROADMAP's "confirm it at runtime", implemented as an enforced guard: committing
             // a payload the server will reject would burn the push and leave the handle to be
             // cleaned up by the failure path instead of by the decision (T-13-39).
-            assertThat(accepted).isFalse()
+            assertThat(outcome).isEqualTo(CloudSaveOutcome(CloudSaveStage.OVER_CAP))
             verify(exactly = 0) { client.commitAndClose(any(), any()) }
             verify(exactly = 1) { client.discardAndClose(snapshot) }
         }
@@ -438,11 +440,11 @@ class PlayGamesCloudSaveStoreTest {
         runTest(testDispatcher) {
             every { client.getMaxDataSize() } returns Tasks.forException(IllegalStateException(SDK_FAILURE))
 
-            val accepted = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+            val outcome = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
 
             // A guard, not a precondition: the query is documented to be able to fail, and a guard
             // that cannot answer must not become a reason to drop a save.
-            assertThat(accepted).isTrue()
+            assertThat(outcome).isEqualTo(CloudSaveOutcome(CloudSaveStage.COMMITTED))
             verify(exactly = 1) { client.commitAndClose(snapshot, any()) }
         }
 
@@ -453,9 +455,9 @@ class PlayGamesCloudSaveStoreTest {
         runTest(testDispatcher) {
             every { contents.writeBytes(any()) } throws IllegalStateException(SDK_FAILURE)
 
-            val accepted = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+            val outcome = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
 
-            assertThat(accepted).isFalse()
+            assertThat(outcome).isEqualTo(CloudSaveOutcome(CloudSaveStage.FAILED_OTHER))
             verify(exactly = 1) { client.discardAndClose(snapshot) }
         }
 
@@ -465,9 +467,9 @@ class PlayGamesCloudSaveStoreTest {
             every { client.open(any<String>(), any(), any()) } returns Tasks.forResult(conflictResult())
             every { client.resolveConflict(any(), any(), any(), any()) } answers { Tasks.forResult(conflictResult()) }
 
-            val accepted = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+            val outcome = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
 
-            assertThat(accepted).isFalse()
+            assertThat(outcome).isEqualTo(CloudSaveOutcome(CloudSaveStage.CONFLICT_UNRESOLVED))
             verify(exactly = 0) { client.commitAndClose(any(), any()) }
         }
 
@@ -476,9 +478,93 @@ class PlayGamesCloudSaveStoreTest {
         runTest(testDispatcher) {
             every { contents.readFully() } throws CancellationException(CANCELLED)
 
-            val outcome = runCatching { store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat) }
+            val attempt = runCatching { store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat) }
 
-            assertThat(outcome.exceptionOrNull()).isInstanceOf(CancellationException::class.java)
+            assertThat(attempt.exceptionOrNull()).isInstanceOf(CancellationException::class.java)
+        }
+
+    // ---- save: the outcome names the stage and carries the status code, and nothing else ----
+
+    @Test
+    fun aRefusedOpenReportsTheOpenStageWithTheSdkStatusCode() =
+        runTest(testDispatcher) {
+            every { client.open(any<String>(), any(), any()) } returns Tasks.forException(apiFailure())
+
+            val outcome = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            // The status code is the datum that discriminates: OPEN_FAILED alone cannot tell a
+            // disabled feature from a network or an auth refusal. Equality on the whole value is
+            // also the privacy assertion — the exception's message went nowhere.
+            assertThat(outcome).isEqualTo(CloudSaveOutcome(CloudSaveStage.OPEN_FAILED, API_STATUS_CODE))
+            verify(exactly = 0) { client.discardAndClose(any()) }
+        }
+
+    @Test
+    fun anOpenThatFailsWithoutAnApiExceptionReportsTheOpenStageWithNoStatusCode() =
+        runTest(testDispatcher) {
+            every {
+                client.open(any<String>(), any(), any())
+            } returns Tasks.forException(IllegalStateException(SDK_FAILURE))
+
+            val outcome = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            assertThat(outcome).isEqualTo(CloudSaveOutcome(CloudSaveStage.OPEN_FAILED))
+        }
+
+    @Test
+    fun aRefusedConflictResolutionReportsTheConflictStageWithTheSdkStatusCode() =
+        runTest(testDispatcher) {
+            every { client.open(any<String>(), any(), any()) } returns Tasks.forResult(conflictResult())
+            every { client.resolveConflict(any(), any(), any(), any()) } returns Tasks.forException(apiFailure())
+
+            val outcome = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            assertThat(outcome)
+                .isEqualTo(CloudSaveOutcome(CloudSaveStage.CONFLICT_UNRESOLVED, API_STATUS_CODE))
+        }
+
+    @Test
+    fun aRefusedCommitReportsTheCommitStageWithTheSdkStatusCodeAndStillCloses() =
+        runTest(testDispatcher) {
+            every { client.commitAndClose(any(), any()) } returns Tasks.forException(apiFailure())
+
+            val outcome = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            assertThat(outcome).isEqualTo(CloudSaveOutcome(CloudSaveStage.COMMIT_FAILED, API_STATUS_CODE))
+            verify(exactly = 1) { client.discardAndClose(snapshot) }
+        }
+
+    @Test
+    fun anApiExceptionOutsideTheThreeAwaitsStillSurfacesItsStatusCode() =
+        runTest(testDispatcher) {
+            every { contents.readFully() } throws apiFailure()
+
+            val outcome = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            assertThat(outcome).isEqualTo(CloudSaveOutcome(CloudSaveStage.FAILED_OTHER, API_STATUS_CODE))
+            verify(exactly = 1) { client.discardAndClose(snapshot) }
+        }
+
+    @Test
+    fun aRefusedOpenOnTheReadPathIsStillJustNull() =
+        runTest(testDispatcher) {
+            every { client.open(any<String>(), any(), any()) } returns Tasks.forException(apiFailure())
+
+            // `load` shares the open with `save` but deliberately reports nothing further: the
+            // push outcome diagnoses the shared open, and "stay local" needs no reason.
+            assertThat(store().load(::concat)).isNull()
+        }
+
+    @Test
+    fun cancellationDuringAnAwaitPropagatesRatherThanBecomingAStage() =
+        runTest(testDispatcher) {
+            every {
+                client.commitAndClose(any(), any())
+            } returns Tasks.forException(CancellationException(CANCELLED))
+
+            val attempt = runCatching { store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat) }
+
+            assertThat(attempt.exceptionOrNull()).isInstanceOf(CancellationException::class.java)
         }
 
     // ---- fixtures ------------------------------------------------------------------------
@@ -518,6 +604,12 @@ class PlayGamesCloudSaveStoreTest {
         return result
     }
 
+    /**
+     * The failure shape GMS reports a refusal in. It carries a message on purpose: the outcome
+     * assertions compare whole values, so a message that leaked into one would fail them.
+     */
+    private fun apiFailure() = ApiException(Status(API_STATUS_CODE, SDK_FAILURE))
+
     private fun snapshotOf(bytes: ByteArray): Snapshot {
         val snapshotContents = mockk<SnapshotContents>()
         every { snapshotContents.readFully() } returns bytes
@@ -553,6 +645,9 @@ private const val CONFLICT_ID = "placeholder-conflict-id"
 private const val DESCRIPTION_LINE = "Challenge level 7 - 21 stars - 3/5 Classic boards"
 private const val SDK_FAILURE = "sdk failure"
 private const val CANCELLED = "cancelled"
+
+/** An arbitrary GMS status integer; the store must pass it through untouched, whatever it is. */
+private const val API_STATUS_CODE = 4_002
 private const val PLAYED_TIME_MS = 987_654L
 
 /** The documented floor: the javadoc guarantees at least 3 MB per snapshot. */

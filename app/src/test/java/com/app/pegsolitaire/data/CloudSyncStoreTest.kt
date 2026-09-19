@@ -3,6 +3,8 @@ package com.app.pegsolitaire.data
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import com.app.pegsolitaire.platform.games.save.CloudSaveOutcome
+import com.app.pegsolitaire.platform.games.save.CloudSaveStage
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -96,6 +98,81 @@ class CloudSyncStoreTest {
         }
 
     @Test
+    fun recordingAFailedPushPersistsTheMarkerTheStageNameAndTheStatusCode() =
+        runTest {
+            val dataStore = realDataStore()
+            val store = CloudSyncStore(dataStore)
+
+            store.recordPushOutcome(CloudSaveOutcome(CloudSaveStage.OPEN_FAILED, STATUS_CODE))
+
+            val stored = dataStore.data.first()
+            assertThat(store.pushPending.first()).isTrue()
+            assertThat(stored[PlayGamesPreferences.CLOUD_LAST_PUSH_STAGE_KEY]).isEqualTo("OPEN_FAILED")
+            assertThat(stored[PlayGamesPreferences.CLOUD_LAST_PUSH_STATUS_KEY]).isEqualTo(STATUS_CODE)
+        }
+
+    @Test
+    fun recordingACommittedPushClearsTheMarkerAndRemovesAStaleStatusCode() =
+        runTest {
+            val dataStore = realDataStore()
+            val store = CloudSyncStore(dataStore)
+            store.recordPushOutcome(CloudSaveOutcome(CloudSaveStage.OPEN_FAILED, STATUS_CODE))
+
+            store.recordPushOutcome(CloudSaveOutcome(CloudSaveStage.COMMITTED))
+
+            // "Absent when null": a status code left over from an earlier refusal, sitting
+            // beside COMMITTED, would be read as belonging to the push that succeeded.
+            val stored = dataStore.data.first()
+            assertThat(store.pushPending.first()).isFalse()
+            assertThat(stored[PlayGamesPreferences.CLOUD_LAST_PUSH_STAGE_KEY]).isEqualTo("COMMITTED")
+            assertThat(stored.contains(PlayGamesPreferences.CLOUD_LAST_PUSH_STATUS_KEY)).isFalse()
+        }
+
+    @Test
+    fun anOutcomeIsRecordedInASingleEditSoTheThreeKeysCannotDisagree() =
+        runTest {
+            val dataStore = CountingDataStore(realDataStore())
+            val store = CloudSyncStore(dataStore)
+
+            store.recordPushOutcome(CloudSaveOutcome(CloudSaveStage.COMMIT_FAILED, STATUS_CODE))
+
+            assertThat(dataStore.updateCount).isEqualTo(1)
+        }
+
+    @Test
+    fun theDiagnosticKeysKeepTheNamesTheDeviceToolReads() {
+        // `tools/prefs.py` and the QA brief name these literally; a rename here would make the
+        // next device pass read "absent" for a value that was written.
+        assertThat(PlayGamesPreferences.CLOUD_LAST_PUSH_STAGE_KEY.name)
+            .isEqualTo("play_games_cloud_last_push_stage")
+        assertThat(PlayGamesPreferences.CLOUD_LAST_PUSH_STATUS_KEY.name)
+            .isEqualTo("play_games_cloud_last_push_status")
+    }
+
+    @Test
+    fun aFailingOutcomeWriteIsDroppedRatherThanThrown() =
+        runTest {
+            val store = CloudSyncStore(throwingDataStore())
+
+            store.recordPushOutcome(CloudSaveOutcome(CloudSaveStage.OPEN_FAILED, STATUS_CODE))
+
+            assertThat(store.pushPending.first()).isFalse()
+        }
+
+    @Test
+    fun aCancelledOutcomeWriteStillPropagatesAsCancellation() =
+        runTest {
+            val store = CloudSyncStore(cancellingDataStore())
+
+            val thrown =
+                runCatching {
+                    store.recordPushOutcome(CloudSaveOutcome(CloudSaveStage.OPEN_FAILED, STATUS_CODE))
+                }.exceptionOrNull()
+
+            assertThat(thrown).isInstanceOf(CancellationException::class.java)
+        }
+
+    @Test
     fun aPendingCloudPushLeavesTheSubmissionsMarkerAlone() =
         runTest {
             // The reason this is a sibling store and not a fifth key on SubmissionSyncStore:
@@ -148,7 +225,25 @@ class CloudSyncStoreTest {
                 throw CancellationException("cancelled underneath the write")
         }
 
+    /** Counts writes, so "one edit" is an assertion rather than a reading of the source. */
+    private class CountingDataStore(
+        private val delegate: DataStore<Preferences>,
+    ) : DataStore<Preferences> {
+        var updateCount = 0
+            private set
+
+        override val data: Flow<Preferences> = delegate.data
+
+        override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences {
+            updateCount++
+            return delegate.updateData(transform)
+        }
+    }
+
     private companion object {
         const val TEST_STORE_FILE = "cloud_sync_test.preferences_pb"
+
+        /** An arbitrary GMS status integer; the store persists whatever it is given. */
+        const val STATUS_CODE = 4_002
     }
 }

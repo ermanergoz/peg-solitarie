@@ -21,15 +21,15 @@ package com.app.pegsolitaire.platform.games.save
  * a claim into a fact.
  *
  * [remote] therefore behaves like the server's copy: [save] merges the incoming payload against it,
- * and — crucially — advances it **only when [saveResult] is `true`**. A caller's retry bookkeeping is
+ * and — crucially — advances it **only when [saveOutcome] is committed**. A caller's retry bookkeeping is
  * written against precisely that, since a failed push must leave the server where it was so the next
  * pass merges against the same bytes rather than against its own failed write.
  *
  * ## The throwing knobs
  *
  * [throwOnLoad] and [throwOnSave] exist so a caller test can prove the seam's fail-quiet contract
- * end to end: a throwing store must be **indistinguishable** from one that returns `null`/`false`
- * (CLOUD-05, T-13-21). The real implementation never throws, but the caller must not depend on that
+ * end to end: a throwing store must be **indistinguishable** from one that returns `null` or an
+ * uncommitted outcome (CLOUD-05, T-13-21). The real implementation never throws, but the caller must not depend on that
  * — an SDK exception escaping into the application-scoped coroutine that drives the sync pass would
  * take the process rather than the pass.
  *
@@ -39,13 +39,14 @@ package com.app.pegsolitaire.platform.games.save
  * the pair, not about either one alone.
  *
  * @param remote the payload the "server" currently holds; `null` for a player with no cloud save.
- * @param saveResult what [save] reports, and therefore whether [remote] advances.
+ * @param saveOutcome what [save] reports — stage and status code, verbatim — and therefore whether
+ *   [remote] advances.
  * @param throwOnSave when set, thrown out of [save] instead of returning.
  * @param throwOnLoad when set, thrown out of [load] instead of returning.
  */
 class FakeCloudSaveStore(
     var remote: ByteArray? = null,
-    var saveResult: Boolean = true,
+    var saveOutcome: CloudSaveOutcome = CloudSaveOutcome(CloudSaveStage.COMMITTED),
     var throwOnSave: Throwable? = null,
     var throwOnLoad: Throwable? = null,
 ) : CloudSaveStore {
@@ -53,7 +54,7 @@ class FakeCloudSaveStore(
     var loadCallCount = 0
         private set
 
-    /** How many times [save] was called, including calls that reported `false`. */
+    /** How many times [save] was called, including calls that reported an uncommitted outcome. */
     var saveCallCount = 0
         private set
 
@@ -83,7 +84,7 @@ class FakeCloudSaveStore(
 
     /**
      * Merges [bytes] against [remote] through the caller's own `mergeRemote`, records the merged
-     * payload and the listing metadata, and advances [remote] only when [saveResult] is `true`.
+     * payload and the listing metadata, and advances [remote] only when [saveOutcome] is committed.
      *
      * With no [remote] the payload is recorded verbatim — there is nothing to merge against, which is
      * the first-push case.
@@ -93,16 +94,16 @@ class FakeCloudSaveStore(
         description: CloudSaveDescription,
         playedTimeMs: Long,
         mergeRemote: (ByteArray, ByteArray) -> ByteArray,
-    ): Boolean {
+    ): CloudSaveOutcome {
         saveCallCount++
         throwOnSave?.let { throw it }
         val merged = remote?.let { mergeRemote(it, bytes) } ?: bytes
         savedPayloads = savedPayloads + merged
         lastDescription = description
         lastPlayedTimeMs = playedTimeMs
-        if (saveResult) {
+        if (saveOutcome.committed) {
             remote = merged
         }
-        return saveResult
+        return saveOutcome
     }
 }

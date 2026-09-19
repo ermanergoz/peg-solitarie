@@ -18,6 +18,8 @@ import com.app.pegsolitaire.platform.games.FakeGamesService
 import com.app.pegsolitaire.platform.games.GamesService
 import com.app.pegsolitaire.platform.games.GamesSignInState
 import com.app.pegsolitaire.platform.games.save.CloudSaveDescription
+import com.app.pegsolitaire.platform.games.save.CloudSaveOutcome
+import com.app.pegsolitaire.platform.games.save.CloudSaveStage
 import com.app.pegsolitaire.platform.games.save.CloudSaveStore
 import com.app.pegsolitaire.platform.games.save.FakeCloudSaveStore
 import com.google.common.truth.Truth.assertThat
@@ -446,7 +448,7 @@ class ProgressSubmitterCloudTest {
                 submitterFor(
                     games = FakeGamesService(signedIn()),
                     cloudSyncStore = cloudSyncStore,
-                    saveStore = FakeCloudSaveStore(saveResult = false),
+                    saveStore = FakeCloudSaveStore(saveOutcome = REFUSED_OPEN),
                 )
 
             submitter.onResultRecorded()
@@ -463,13 +465,92 @@ class ProgressSubmitterCloudTest {
                 submitterFor(
                     games = FakeGamesService(signedIn()),
                     cloudSyncStore = cloudSyncStore,
-                    saveStore = FakeCloudSaveStore(saveResult = true),
+                    saveStore = FakeCloudSaveStore(),
                 )
 
             submitter.onResultRecorded()
             advanceUntilIdle()
 
             assertThat(cloudSyncStore.value).isFalse()
+        }
+
+    @Test
+    fun aPushThatDidNotLandRecordsWhyInTheSameWriteAsTheMarker() =
+        runTest(testDispatcher) {
+            // The device pass that motivated this: `pending = true` on two signed-in, online
+            // emulators with nothing to say which stage refused. Stage and status code are the
+            // whole diagnostic, and they ride in the marker's own write so the three can never
+            // describe different pushes.
+            val cloudSyncStore = FakeCloudSyncStore(initial = false)
+            val submitter =
+                submitterFor(
+                    games = FakeGamesService(signedIn()),
+                    cloudSyncStore = cloudSyncStore,
+                    saveStore = FakeCloudSaveStore(saveOutcome = REFUSED_OPEN),
+                )
+
+            submitter.onResultRecorded()
+            advanceUntilIdle()
+
+            assertThat(cloudSyncStore.recordedOutcomes).containsExactly(REFUSED_OPEN)
+            assertThat(cloudSyncStore.value).isTrue()
+        }
+
+    @Test
+    fun aPushThatLandedRecordsTheCommittedStage() =
+        runTest(testDispatcher) {
+            val cloudSyncStore = FakeCloudSyncStore(initial = true)
+            val submitter =
+                submitterFor(
+                    games = FakeGamesService(signedIn()),
+                    cloudSyncStore = cloudSyncStore,
+                    saveStore = FakeCloudSaveStore(),
+                )
+
+            submitter.onResultRecorded()
+            advanceUntilIdle()
+
+            // A stale failure stage beside a cleared marker would send the next reader after a
+            // refusal that has already healed.
+            assertThat(cloudSyncStore.recordedOutcomes)
+                .containsExactly(CloudSaveOutcome(CloudSaveStage.COMMITTED))
+        }
+
+    @Test
+    fun aThrowingPushIsRecordedAsTheOtherStageWithNoStatusCode() =
+        runTest(testDispatcher) {
+            val cloudSyncStore = FakeCloudSyncStore(initial = false)
+            val submitter =
+                submitterFor(
+                    games = FakeGamesService(signedIn()),
+                    cloudSyncStore = cloudSyncStore,
+                    saveStore = FakeCloudSaveStore(throwOnSave = StoreFailure()),
+                )
+
+            submitter.onResultRecorded()
+            advanceUntilIdle()
+
+            // Nothing is read off the throwable — not its message, not its type.
+            assertThat(cloudSyncStore.recordedOutcomes)
+                .containsExactly(CloudSaveOutcome(CloudSaveStage.FAILED_OTHER))
+        }
+
+    @Test
+    fun aPushTheGuardDeclinedRecordsNothing() =
+        runTest(testDispatcher) {
+            val cloudSyncStore = FakeCloudSyncStore(initial = false)
+            val submitter =
+                submitterFor(
+                    games = FakeGamesService(signedIn()),
+                    cloudSyncStore = cloudSyncStore,
+                    saveStore = FakeCloudSaveStore(remote = null),
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+
+            // "Last push" must mean a push that was attempted; a declined guard is not one.
+            assertThat(cloudSyncStore.recordedOutcomes).isEmpty()
         }
 
     @Test
@@ -944,8 +1025,18 @@ private class FakeCloudSyncStore(
     /** The marker as the last write left it — set on a failed push, cleared on a landed one. */
     val value: Boolean get() = state.value
 
+    /** Every outcome the submitter recorded, in order — what `tools/prefs.py` would read back. */
+    var recordedOutcomes: List<CloudSaveOutcome> = emptyList()
+        private set
+
     override suspend fun setPushPending(pending: Boolean) {
         state.value = pending
+    }
+
+    /** Mirrors the real store: the marker moves in the same write that records the outcome. */
+    override suspend fun recordPushOutcome(outcome: CloudSaveOutcome) {
+        recordedOutcomes = recordedOutcomes + outcome
+        state.value = !outcome.committed
     }
 }
 
@@ -1029,6 +1120,12 @@ private const val OTHER_DISPLAY_NAME = "Other Player"
 
 /** Bytes that are not a payload at all, so the codec refuses them. */
 private const val NOT_A_PAYLOAD = "{not json"
+
+/** An arbitrary GMS status integer: the submitter must persist whatever the seam reported. */
+private const val REFUSED_STATUS_CODE = 4_002
+
+/** A push the SDK refused at `open`, with a status code — the shape the device pass needs to see. */
+private val REFUSED_OPEN = CloudSaveOutcome(CloudSaveStage.OPEN_FAILED, REFUSED_STATUS_CODE)
 
 /** The remote ladder: far above anything the local fixtures reach, so a regression is visible. */
 private const val REMOTE_LADDER = 50

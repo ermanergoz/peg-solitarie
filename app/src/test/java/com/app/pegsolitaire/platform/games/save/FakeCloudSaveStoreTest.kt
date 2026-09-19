@@ -76,16 +76,22 @@ class FakeCloudSaveStoreTest {
         runTest {
             val store = FakeCloudSaveStore(remote = REMOTE)
 
-            assertThat(store.save(LOCAL, DESCRIPTION, PLAYED_TIME_MS, CONCATENATING_MERGE)).isTrue()
+            val outcome = store.save(LOCAL, DESCRIPTION, PLAYED_TIME_MS, CONCATENATING_MERGE)
+
+            assertThat(outcome).isEqualTo(CloudSaveOutcome(CloudSaveStage.COMMITTED))
             assertThat(store.remote).isEqualTo(REMOTE + LOCAL)
         }
 
     @Test
     fun aFailedSaveLeavesTheRemotePayloadWhereItWas() =
         runTest {
-            val store = FakeCloudSaveStore(remote = REMOTE, saveResult = false)
+            val store = FakeCloudSaveStore(remote = REMOTE, saveOutcome = REFUSED_OPEN)
 
-            assertThat(store.save(LOCAL, DESCRIPTION, PLAYED_TIME_MS, CONCATENATING_MERGE)).isFalse()
+            val outcome = store.save(LOCAL, DESCRIPTION, PLAYED_TIME_MS, CONCATENATING_MERGE)
+
+            // The configured outcome is handed back verbatim, stage and status code both, so a
+            // caller test can prove what it persists came from the seam and not from a default.
+            assertThat(outcome).isEqualTo(REFUSED_OPEN)
             assertThat(store.remote).isEqualTo(REMOTE)
         }
 
@@ -113,6 +119,7 @@ class FakeCloudSaveStoreTest {
         val DESCRIPTION = CloudSaveDescription(ladder = 7, totalStars = 15, classicCleared = 2)
         const val PLAYED_TIME_MS = 4_200L
         const val FAILURE_MESSAGE = "cloud unavailable"
+        val REFUSED_OPEN = CloudSaveOutcome(CloudSaveStage.OPEN_FAILED, statusCode = 4_002)
 
         /**
          * A merge that is trivially order-sensitive, so an assertion can tell "the remote payload was

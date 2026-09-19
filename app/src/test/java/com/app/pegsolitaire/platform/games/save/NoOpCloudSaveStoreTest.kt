@@ -48,7 +48,12 @@ class NoOpCloudSaveStoreTest {
     @Test
     fun saveReportsNothingWasWritten() =
         runTest {
-            assertThat(store.save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS) { _, _ -> ByteArray(0) }).isFalse()
+            val outcome = store.save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS) { _, _ -> ByteArray(0) }
+
+            // Not committed is the contract; FAILED_OTHER with no status code is the honest
+            // label for a stub that never reached any SDK stage at all.
+            assertThat(outcome.committed).isFalse()
+            assertThat(outcome).isEqualTo(CloudSaveOutcome(CloudSaveStage.FAILED_OTHER))
         }
 
     @Test
