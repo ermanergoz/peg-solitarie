@@ -1,5 +1,15 @@
 # Founder questions (newest first)
 
+## Q-001 — Confirm Saved Games is enabled and the Play Games configuration is published   (open)
+Date: 2026-09-20    Asked by: producer
+Context: QA's two-emulator pass found cloud save doing nothing: signed in and online, leaderboard/achievement
+submissions drain but every Saved Games write is refused, so nothing restores (UAT 10-12 blocked, 13 partial).
+That is how 13-OPERATOR-CHECKLIST.md Step 0 says an unset toggle presents; only the founder has Play Console access.
+Options: 1) Step 0 was not done — enable Saved Games, publish the PGS configuration, answer "done" 2) Step 0 was already done and published — answer "already on"; the evidence then becomes an app defect in PlayGamesCloudSaveStore.save
+Recommendation: producer — check the Console first (about a minute); either answer unblocks the next step.
+Blocks: phase-13 close-out (13-11 tasks 2-3), phase-13 review and merge
+Answer:
+
 ## Q-CONCEPT — Adopt the shipped Peg Solitaire concept as Gate 1   (answered)
 Date: 2026-09-20    Asked by: producer
 Context: This repo predates the studio: v1.0 shipped and v1.1 phases 6-12 were built under gsd alone, so

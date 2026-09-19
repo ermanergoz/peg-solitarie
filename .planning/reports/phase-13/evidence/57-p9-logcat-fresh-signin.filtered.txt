@@ -1,0 +1,27 @@
+09-20 02:03:27.925  1539  3255 I GamesConnectBroker: (REDACTED) handling request from %s
+09-20 02:03:27.937  1539  3058 I GamesConnectSrv: (REDACTED) signIn(%s): gamesSignInRequest=%s
+09-20 02:03:27.937  1539  3058 I GamesConnectSrv: (REDACTED) signIn(%s): validatorRequest=%s, signInRequest=%s
+09-20 02:03:27.959  1539  5269 I SignInPerformer-0: Requested scopes is empty. Promoting to `games_lite` & `drive_appfolder`. [CONTEXT service_id=1 ]
+09-20 02:03:27.959  1539  5269 I SignInPerformer-0: (REDACTED) Handling request [%s], isFirstPartyCaller [%s]
+09-20 02:03:27.959  1539  5269 I SignInPerformer-0: (REDACTED) java sdk version: [%s]	unity sdk version: [%s]	native sdk version: [%s]
+09-20 02:03:27.962  1539  5269 I SignInPerformer-1: (REDACTED) Handling request [%s], isFirstPartyCaller [%s]
+09-20 02:03:27.962  1539  5269 I SignInPerformer-1: Successfully brokered first-party unauthenticated GamesService [CONTEXT service_id=1 ]
+09-20 02:03:27.969  1539  5269 I GetGamesServiceV2Op: (REDACTED) Successfully brokered GamesService for request %s
+09-20 02:03:27.994  1539  1612 I SignInPerformer-0: (REDACTED) Successfully resolved account: [%s]
+09-20 02:03:28.012  1539  1612 I SignInPerformer-0: (REDACTED) Successfully authorized %s
+09-20 02:03:28.014  1539  1612 I SignInPerformer-0: (REDACTED) Successfully found player (id [%s], originalId [%s], displayName [%s]) for account [%s]
+09-20 02:03:28.018  1539  1612 I SignInPerformer-0: (REDACTED) Successfully found game: displayName [%s], applicationId [%s], packageName [%s]
+09-20 02:03:28.035  1539  1612 I SignInPerformer-0: (REDACTED) Started a new game run [%s]
+09-20 02:03:28.037  1539  1612 I SignInPerformer-0: Connection from games connect service, returning false for shouldShowWelcomePopup. [CONTEXT service_id=1 ]
+09-20 02:03:28.037  1539  4481 I GamesConnectResMan: (REDACTED) Recorded engagement for game %s
+09-20 02:03:28.038  1539  1612 I GamesConnectSignInOp: (REDACTED) signIn(%s): Returning SUCCESS (%s) for request %s
+09-20 02:03:28.053  1539  5269 I SignInPerformer-2: Requested scopes is empty. Promoting to `games_lite` & `drive_appfolder`. [CONTEXT service_id=1 ]
+09-20 02:03:28.053  1539  5269 I SignInPerformer-2: (REDACTED) Handling request [%s], isFirstPartyCaller [%s]
+09-20 02:03:28.053  1539  5269 I SignInPerformer-2: (REDACTED) java sdk version: [%s]	unity sdk version: [%s]	native sdk version: [%s]
+09-20 02:03:28.054  1539  5269 I SignInPerformer-2: (REDACTED) Found existing game run [%s]
+09-20 02:03:28.056  1539  5269 I SignInPerformer-2: (REDACTED) Successfully resolved account: [%s]
+09-20 02:03:28.061  1539  5269 I SignInPerformer-2: (REDACTED) Successfully authorized %s
+09-20 02:03:28.062  1539  5269 I SignInPerformer-2: (REDACTED) Successfully found player (id [%s], originalId [%s], displayName [%s]) for account [%s]
+09-20 02:03:28.063  1539  5269 I SignInPerformer-2: (REDACTED) Successfully found game: displayName [%s], applicationId [%s], packageName [%s]
+09-20 02:03:28.070  1539  5269 I SignInPerformer-2: (REDACTED) Connection from [%s], returning true for shouldShowWelcomePopup.
+09-20 02:03:28.071  1539  5269 I GetGamesServiceV2Op: (REDACTED) Successfully brokered GamesService for request %s
