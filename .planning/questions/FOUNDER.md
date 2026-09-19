@@ -1,6 +1,6 @@
 # Founder questions (newest first)
 
-## Q-001 — Confirm Saved Games is enabled and the Play Games configuration is published   (open)
+## Q-001 — Confirm Saved Games is enabled and the Play Games configuration is published   (answered)
 Date: 2026-09-20    Asked by: producer
 Context: QA's two-emulator pass found cloud save doing nothing: signed in and online, leaderboard/achievement
 submissions drain but every Saved Games write is refused, so nothing restores (UAT 10-12 blocked, 13 partial).
@@ -8,7 +8,7 @@ That is how 13-OPERATOR-CHECKLIST.md Step 0 says an unset toggle presents; only 
 Options: 1) Step 0 was not done — enable Saved Games, publish the PGS configuration, answer "done" 2) Step 0 was already done and published — answer "already on"; the evidence then becomes an app defect in PlayGamesCloudSaveStore.save
 Recommendation: producer — check the Console first (about a minute); either answer unblocks the next step.
 Blocks: phase-13 close-out (13-11 tasks 2-3), phase-13 review and merge
-Answer:
+Answer: 2 — already on (2026-09-20). Founder read the Play Console properties: Published; Saved games enabled; Firebase not linked. The toggle is not the cause; the refused save goes to the developer, starting with the tech-lead's CloudSaveOutcome reason code.
 
 ## Q-CONCEPT — Adopt the shipped Peg Solitaire concept as Gate 1   (answered)
 Date: 2026-09-20    Asked by: producer

@@ -37,9 +37,9 @@ Work top to bottom.
 
 ## Step 0 — Enable Saved Games
 
-1. [ ] In **Play Console → Play Games Services → this game → Configuration** (the
+1. [x] In **Play Console → Play Games Services → this game → Configuration** (the
        Features / Saved games section), **turn on saved games**.
-2. [ ] **Publish the Play Games Services configuration afterwards.** Publishing is a separate
+2. [x] **Publish the Play Games Services configuration afterwards.** Publishing is a separate
        action from configuring, and the Console will happily leave a configured-but-unpublished
        change sitting there indefinitely. This is the same trap Step 3 of
        `.planning/phases/12-leaderboards-achievements/12-OPERATOR-CHECKLIST.md` documents for the
@@ -53,6 +53,8 @@ Work top to bottom.
 No manifest change accompanies this. The app already declares
 `com.google.android.gms.games.APP_ID`, and the `play-services-games-v2:22.0.0` AAR declares nothing
 snapshot-specific — so there is no code-side counterpart to this step to go looking for.
+
+> Step 0 items 1-2 confirmed by the founder on 2026-09-20 from the Play Console properties panel: "Published", "Saved games enabled" (A6 resolved: the toggle was already on).
 
 ## Step 1 — Confirm the prerequisite chain is still intact
 
