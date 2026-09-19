@@ -22,7 +22,9 @@ import io.mockk.unmockkAll
 import io.mockk.verify
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -568,6 +570,227 @@ class PlayGamesCloudSaveStoreTest {
             assertThat(attempt.exceptionOrNull()).isInstanceOf(CancellationException::class.java)
         }
 
+    // ---- the SDK's real DataOrConflict contract (device diagnosis, plan 13-11) ----------------
+
+    @Test
+    fun theSdkThrowsFromGetConflictWhenThereIsNoConflict() {
+        // Pins the fixture to the pinned SDK (play-services-games-v2 22.0.0), whose bytecode
+        // reads `if (!isConflict()) throw IllegalStateException("getConflict called when there
+        // is no conflict.")`. It never returns null, whatever a nullable-looking getter suggests.
+        val attempt = runCatching { dataResult(snapshot).conflict }
+
+        assertThat(attempt.exceptionOrNull()).isInstanceOf(IllegalStateException::class.java)
+    }
+
+    @Test
+    fun theSdkThrowsFromGetDataWhenThereIsAConflict() {
+        val attempt = runCatching { conflictResult().data }
+
+        assertThat(attempt.exceptionOrNull()).isInstanceOf(IllegalStateException::class.java)
+    }
+
+    @Test
+    fun aPushOnTheNoConflictPathCommits() =
+        runTest(testDispatcher) {
+            val opened = dataResult(snapshot)
+            every { client.open(any<String>(), any(), any()) } returns Tasks.forResult(opened)
+
+            val outcome = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            // The normal path of every push: no conflict, and an SDK value whose `conflict`
+            // getter throws. This is the exact case that ended at FAILED_OTHER on both devices.
+            assertThat(opened.isConflict).isFalse()
+            assertThat(outcome).isEqualTo(CloudSaveOutcome(CloudSaveStage.COMMITTED))
+            verify(exactly = 1) { client.commitAndClose(snapshot, any()) }
+            verify(exactly = 0) { client.discardAndClose(any()) }
+        }
+
+    @Test
+    fun aPullOnTheNoConflictPathReturnsTheBytes() =
+        runTest(testDispatcher) {
+            val opened = dataResult(snapshot)
+            every { client.open(any<String>(), any(), any()) } returns Tasks.forResult(opened)
+
+            val result = store().load(::concat)
+
+            assertThat(opened.isConflict).isFalse()
+            assertThat(result).isEqualTo(REMOTE_BYTES)
+            verify(exactly = 1) { client.discardAndClose(snapshot) }
+        }
+
+    @Test
+    fun aConflictedPushResolvesOnceAndThenCommitsTheResolvedSnapshot() =
+        runTest(testDispatcher) {
+            every { client.open(any<String>(), any(), any()) } returns Tasks.forResult(conflictResult())
+
+            val outcome = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            assertThat(outcome).isEqualTo(CloudSaveOutcome(CloudSaveStage.COMMITTED))
+            verify(exactly = 1) { client.resolveConflict(any(), any(), any(), any()) }
+            verify(exactly = 1) { client.commitAndClose(snapshot, any()) }
+        }
+
+    @Test
+    fun aPushThatGivesUpOnAConflictReportsTheConflictStageAndClosesTheServerVersion() =
+        runTest(testDispatcher) {
+            val server = snapshotOf(SERVER_BYTES)
+            every { client.open(any<String>(), any(), any()) } returns Tasks.forResult(conflictResult(server))
+            every {
+                client.resolveConflict(any(), any(), any(), any())
+            } answers { Tasks.forResult(conflictResult(server)) }
+
+            val outcome = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            assertThat(outcome).isEqualTo(CloudSaveOutcome(CloudSaveStage.CONFLICT_UNRESOLVED))
+            // Pins today's choice for the auditor's F-4: the give-up path gives a terminal call
+            // to the server's version and to nothing else. Whether the modified version needs
+            // one too is not something the SDK's javadoc or bytecode settles.
+            verify(exactly = 1) { client.discardAndClose(any()) }
+            verify(exactly = 1) { client.discardAndClose(server) }
+        }
+
+    // ---- ownership between the open and the caller's try/finally ------------------------------
+
+    @Test
+    fun aServerVersionThatCannotBeReadMidResolutionStillClosesTheConflictHandle() =
+        runTest(testDispatcher) {
+            val server = snapshotOf(SERVER_BYTES)
+            every { server.snapshotContents.readFully() } throws IOException(SDK_FAILURE)
+            every { client.open(any<String>(), any(), any()) } returns Tasks.forResult(conflictResult(server))
+
+            val outcome = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            assertThat(outcome).isEqualTo(CloudSaveOutcome(CloudSaveStage.FAILED_OTHER))
+            // The open succeeded, so a handle exists; a throw before the caller's try/finally
+            // owns anything must not be a licence to leak it (Pitfall 1).
+            verify(exactly = 1) { client.discardAndClose(server) }
+        }
+
+    @Test
+    fun aMergeThatThrowsMidResolutionStillClosesTheConflictHandle() =
+        runTest(testDispatcher) {
+            val server = snapshotOf(SERVER_BYTES)
+            every { client.open(any<String>(), any(), any()) } returns Tasks.forResult(conflictResult(server))
+
+            val result = store().load { _, _ -> error(SDK_FAILURE) }
+
+            assertThat(result).isNull()
+            verify(exactly = 1) { client.discardAndClose(server) }
+        }
+
+    @Test
+    fun aRefusedConflictResolutionStillClosesTheConflictHandle() =
+        runTest(testDispatcher) {
+            val server = snapshotOf(SERVER_BYTES)
+            every { client.open(any<String>(), any(), any()) } returns Tasks.forResult(conflictResult(server))
+            every { client.resolveConflict(any(), any(), any(), any()) } returns Tasks.forException(apiFailure())
+
+            val outcome = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            assertThat(outcome)
+                .isEqualTo(CloudSaveOutcome(CloudSaveStage.CONFLICT_UNRESOLVED, API_STATUS_CODE))
+            verify(exactly = 1) { client.discardAndClose(server) }
+        }
+
+    @Test
+    fun cancellationMidResolutionClosesTheConflictHandleAndStillPropagates() =
+        runTest(testDispatcher) {
+            val server = snapshotOf(SERVER_BYTES)
+            every { client.open(any<String>(), any(), any()) } returns Tasks.forResult(conflictResult(server))
+            every {
+                client.resolveConflict(any(), any(), any(), any())
+            } returns Tasks.forException(CancellationException(CANCELLED))
+
+            val attempt = runCatching { store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat) }
+
+            // Closing the handle must never come at the price of swallowing the cancel (WR-04).
+            assertThat(attempt.exceptionOrNull()).isInstanceOf(CancellationException::class.java)
+            verify(exactly = 1) { client.discardAndClose(server) }
+        }
+
+    // ---- cancellation is never absorbed by a cleanup or a guard ---------------------------------
+
+    @Test
+    fun aPullCancelledWhileItsHandleIsClosingDoesNotReturnNormally() =
+        runTest(testDispatcher) {
+            var returnedNormally = false
+            lateinit var pass: Job
+            every { client.discardAndClose(any()) } answers {
+                pass.cancel()
+                Tasks.forResult(null)
+            }
+
+            pass =
+                launch {
+                    store().load(::concat)
+                    returnedNormally = true
+                }
+            pass.join()
+
+            // The close itself must complete — the handle is real — but a cancelled pass that
+            // then hands bytes to its caller keeps working after it was told to stop.
+            assertThat(returnedNormally).isFalse()
+            verify(exactly = 1) { client.discardAndClose(snapshot) }
+        }
+
+    @Test
+    fun aPushCancelledWhileItsHandleIsClosingDoesNotReturnNormally() =
+        runTest(testDispatcher) {
+            var returnedNormally = false
+            lateinit var pass: Job
+            every { client.getMaxDataSize() } returns Tasks.forResult(TINY_SERVER_CAP_BYTES)
+            every { client.discardAndClose(any()) } answers {
+                pass.cancel()
+                Tasks.forResult(null)
+            }
+
+            pass =
+                launch {
+                    store().save(OVERSIZED_PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+                    returnedNormally = true
+                }
+            pass.join()
+
+            assertThat(returnedNormally).isFalse()
+            verify(exactly = 1) { client.discardAndClose(snapshot) }
+        }
+
+    @Test
+    fun cancellationDuringTheCapQueryPropagatesAndNeverCommits() =
+        runTest(testDispatcher) {
+            every { client.getMaxDataSize() } returns Tasks.forException(CancellationException(CANCELLED))
+
+            val attempt = runCatching { store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat) }
+
+            // "A failed query is not a failed push" covers SDK failures. A cancel is not one: a
+            // guard that absorbed it would go on to commit on behalf of a pass that was stopped.
+            assertThat(attempt.exceptionOrNull()).isInstanceOf(CancellationException::class.java)
+            verify(exactly = 0) { client.commitAndClose(any(), any()) }
+            verify(exactly = 1) { client.discardAndClose(snapshot) }
+        }
+
+    // ---- a close that failed is visible on the next push ---------------------------------------
+
+    @Test
+    fun aPullWhoseCloseFailedLeavesTheNextPushToReportTheRefusedOpen() =
+        runTest(testDispatcher) {
+            val store = store()
+            every { client.discardAndClose(any()) } returns Tasks.forException(apiFailure())
+
+            val pulled = store.load(::concat)
+
+            // The pull itself is still a success: the bytes were read before the close failed.
+            assertThat(pulled).isEqualTo(REMOTE_BYTES)
+
+            // What a leaked handle does next is refuse the open (Pitfall 1). The push must say
+            // exactly that, with the SDK's integer, rather than anything vaguer.
+            every { client.open(any<String>(), any(), any()) } returns Tasks.forException(apiFailure())
+
+            val outcome = store.save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            assertThat(outcome).isEqualTo(CloudSaveOutcome(CloudSaveStage.OPEN_FAILED, API_STATUS_CODE))
+        }
+
     // ---- fixtures ------------------------------------------------------------------------
 
     private fun store() =
@@ -577,33 +800,30 @@ class PlayGamesCloudSaveStoreTest {
             descriptionFormatter = descriptionFormatter,
         )
 
-    /** A non-conflicted open: the SDK hands back one open [Snapshot]. */
-    private fun dataResult(value: Snapshot): SnapshotsClient.DataOrConflict<Snapshot> {
-        val result = mockk<SnapshotsClient.DataOrConflict<Snapshot>>()
-        every { result.isConflict } returns false
-        // `getConflict()` is `@Nullable` and is null exactly when `isConflict()` is false; the
-        // store reads it as the discriminator, so the fixture must model both halves.
-        every { result.conflict } returns null
-        every { result.data } returns value
-        return result
-    }
+    /**
+     * A non-conflicted open: the SDK hands back one open [Snapshot].
+     *
+     * **A real `DataOrConflict`, never a mock.** The class is final with a public constructor, so
+     * the fixture *is* the pinned SDK's behaviour: `getConflict()` on this value throws
+     * `IllegalStateException`, it does not return `null`. A mock stubbed to return `null` here is
+     * what let a store that read `conflict` as a nullable discriminator pass 33 tests and fail
+     * every push and every pull on a device.
+     */
+    private fun dataResult(value: Snapshot): SnapshotsClient.DataOrConflict<Snapshot> = SnapshotsClient.DataOrConflict(value, null)
 
     /**
      * A conflicted open: two versions of the snapshot plus the contents the merge is written
      * into. Built fresh per call so the retry-bound test can hand back a new one every time.
+     * Real SDK value types for the same reason as [dataResult]: `getData()` on this throws.
      */
-    private fun conflictResult(): SnapshotsClient.DataOrConflict<Snapshot> {
-        val conflict = mockk<SnapshotsClient.SnapshotConflict>()
-        every { conflict.snapshot } returns snapshotOf(SERVER_BYTES)
-        every { conflict.conflictingSnapshot } returns snapshotOf(MODIFIED_BYTES)
-        every { conflict.conflictId } returns CONFLICT_ID
-        every { conflict.resolutionSnapshotContents } returns resolutionContents
-
-        val result = mockk<SnapshotsClient.DataOrConflict<Snapshot>>()
-        every { result.isConflict } returns true
-        every { result.conflict } returns conflict
-        return result
-    }
+    private fun conflictResult(
+        server: Snapshot = snapshotOf(SERVER_BYTES),
+        modified: Snapshot = snapshotOf(MODIFIED_BYTES),
+    ): SnapshotsClient.DataOrConflict<Snapshot> =
+        SnapshotsClient.DataOrConflict(
+            null,
+            SnapshotsClient.SnapshotConflict(server, CONFLICT_ID, modified, resolutionContents),
+        )
 
     /**
      * The failure shape GMS reports a refusal in. It carries a message on purpose: the outcome

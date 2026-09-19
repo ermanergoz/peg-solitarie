@@ -2,7 +2,6 @@ package com.app.pegsolitaire.platform.games.save
 
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
-import java.lang.reflect.Modifier
 
 /**
  * Behaviour spec for [CloudSaveOutcome] — the one thing the cloud seam reports about a push
@@ -46,9 +45,11 @@ class CloudSaveOutcomeTest {
     fun anOutcomeCanHoldAStageAndAnIntegerAndNothingElse() {
         val fieldTypes =
             CloudSaveOutcome::class.java.declaredFields
-                // Instance state only: the Compose compiler adds a static `$stable` int to every
-                // class in this module, and a static cannot carry anything about one outcome.
-                .filterNot { it.isSynthetic || Modifier.isStatic(it.modifiers) }
+                // The Compose compiler adds a non-synthetic static `$stable` int to every class
+                // in this module. It is excluded by NAME, not by "is static": a future class-level
+                // holder (`companion object { var lastError: String? }` compiles to a static)
+                // would be exactly the leak this test exists to catch, so statics stay in scope.
+                .filterNot { it.isSynthetic || it.name == COMPOSE_STABILITY_FIELD }
                 .map { it.type }
 
         // No String-typed slot exists, so no SDK message, id, description or payload can ride
@@ -56,3 +57,6 @@ class CloudSaveOutcomeTest {
         assertThat(fieldTypes).containsExactly(CloudSaveStage::class.java, Int::class.javaObjectType)
     }
 }
+
+/** The field `@StabilityInferred` adds to every class the Compose compiler sees. */
+private const val COMPOSE_STABILITY_FIELD = "\$stable"
