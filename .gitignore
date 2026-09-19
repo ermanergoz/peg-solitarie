@@ -40,3 +40,6 @@ keystore.properties
 .claude/settings.local.json
 .claude/worktrees/
 .claude/scheduled_tasks.lock
+
+# QA session artifacts (screenshots, logs) — never committed
+.planning/qa/
