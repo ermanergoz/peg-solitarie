@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
-"""prefs.py <serial> : print the app's play_games_* / challenge_* DataStore entries (debug build, run-as).
-Added by qa-engineer 2026-09-20. Minimal preferences_pb reader: bool, int, long, string values."""
+"""prefs.py <serial|file> : print the app's play_games_* / challenge_* DataStore entries (debug build, run-as).
+Added by qa-engineer 2026-09-20. Minimal preferences_pb reader: bool, int, long, string values.
+android-game-dev 2026-09-20: ints and longs are signed (a negative Play services status code used to print as
+an unsigned 64-bit number), and a path to a pulled preferences_pb is accepted in place of a serial. The cloud
+push diagnostic is play_games_cloud_last_push_stage (a stage name) and play_games_cloud_last_push_status (the
+status integer; absent when the push carried none)."""
 import sys,subprocess,os
 ADB=os.path.expanduser("~/Library/Android/sdk/platform-tools/adb")
-raw=subprocess.run([ADB,"-s",sys.argv[1],"exec-out","run-as","com.erman.pegsolitarie","cat","files/datastore/app_prefs.preferences_pb"],capture_output=True).stdout
+if os.path.isfile(sys.argv[1]): raw=open(sys.argv[1],"rb").read()
+else: raw=subprocess.run([ADB,"-s",sys.argv[1],"exec-out","run-as","com.erman.pegsolitarie","cat","files/datastore/app_prefs.preferences_pb"],capture_output=True).stdout
+def signed(v): return v-(1<<64) if v>=1<<63 else v
 def varint(b,i):
     v=s=0
     while True:
@@ -18,7 +24,7 @@ while i<len(raw):
         if t>>3==1: key=body.decode()
         else:
             k=0; vt,k=varint(body,k); f=vt>>3
-            if vt&7==0: v,k=varint(body,k); val={1:bool(v)}.get(f,v)
+            if vt&7==0: v,k=varint(body,k); val={1:bool(v)}.get(f,signed(v))
             elif vt&7==2: l2,k=varint(body,k); val=body[k:k+l2].decode("utf8","replace")
             else: val="<fixed>"
     if key and (key.startswith("play_games") or key.startswith("challenge")): print(f"{key} = {val}")
