@@ -36,6 +36,19 @@ class CloudPull(
  * expose the other half — `SnapshotMetadata.hasChangePending()`, *"changes pending that have not
  * been uploaded to the server"* — and the next pull is where it can be read.
  *
+ * ## What [changePending] does NOT mean (the negative three reports got wrong)
+ *
+ * `changePending = true` is **not** "this device cannot upload", and it is a far weaker oracle than
+ * the investigation that asked for it assumed. It was measured `true` across three launches on a
+ * device whose payload had demonstrably already reached the other device — because each launch's
+ * push guard produced a *fresh* local commit, so the flag was true about a newer commit than the one
+ * whose content had landed. It is a fact about the snapshot at the moment of the open, not a verdict
+ * about the device.
+ *
+ * The usable signal is the **conjunction**: `changePending = false` **and** [lastModifiedAt] equal
+ * to this device's own last push. Every conclusion the phase records rests on that pair; nothing may
+ * be concluded from the flag alone, in either direction.
+ *
  * ## Why this is not a leak (T-11-04 / T-13-40)
  *
  * The same argument as [CloudSaveOutcome], and again a property of the **type**: a boolean, an
@@ -53,7 +66,8 @@ class CloudPull(
  * worse than a missing one. [lastModifiedAt] carries the usable part of the signal: compared with
  * the time of this device's own last push, it says whether somebody else wrote since.
  *
- * @property changePending whether the opened snapshot still held changes that had not been uploaded.
+ * @property changePending whether the opened snapshot still held changes that had not been uploaded
+ *   — a fact about that snapshot, never about the device. See the negative above before reading it.
  * @property conflictsResolved how many conflicts this pull resolved before the snapshot opened.
  * @property lastModifiedAt the opened snapshot's last-modified time, in epoch millis.
  */
