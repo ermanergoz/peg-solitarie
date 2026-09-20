@@ -16,13 +16,19 @@ on the web), has deterministic and testable core logic, meets the
 accessibility rules of its stack, and passes the engineering, testing, and
 release rules before it ships.
 
-## Three standing rules
+## Four standing rules
 1. No role approves its own work. Reviewers receive the requirements and the
    diff, never the author's reasoning or chat, or the studio log for the task
    under review.
 2. Every role writes a report (rules/reporting.md) before saying "done".
 3. Only the producer talks to the founder, and only at the two gates or when
    an escalation cannot be resolved by staff.
+4. No one oversteps. Every role does only the work its ROLE section names and
+   hands anything else to the producer through its report. The producer
+   dispatches, reads reports and merges; it never implements, tests, runs a
+   device or an emulator, or reviews work itself. A reviewer never fixes what
+   it reviews; a developer never signs off its own work. The urge to "just do
+   it" is the signal to stop and report.
 
 ## The founder never blocks the studio
 Founder questions go to `.planning/questions/FOUNDER.md` (format in
@@ -69,8 +75,10 @@ ESCALATION, PROHIBITED, DEFINITION OF DONE. No personas.
 
 ## Hiring
 A new field (e.g. backend-dev, flutter-dev) is: a new agent file under the
-skeleton, entries in required-skills.json, a README staff row, a line in
-tests/test_agents.sh, and a stack row in rules/stacks.md if it brings a
+skeleton, entries in required-skills.json, a README staff row, a row in the
+group table of `scripts/staff.sh`, the ROLES sets in scripts/memory.sh and
+scripts/check-memory.sh, lines in tests/test_agents.sh and
+tests/test_staff.sh, and a stack row in rules/stacks.md if it brings a
 stack. Proposed by the research-analyst or tech-lead when a product needs
 it; done on a plugin feature branch.
 
@@ -79,5 +87,5 @@ gameplay/scope (games) → game-designer; scope/requirements (apps, web) →
 product-manager; screens/UI/accessibility → ux-designer; architecture/stack/
 code → tech-lead; tests/acceptance → qa-engineer; versioning/branching/store/
 deploy → release-manager; licensing/prior art/competitors/skills →
-research-analyst; the log and the studio memory → producer; taste, money, or
-a gate → founder (queued, never blocking).
+research-analyst; sound and music → sound-designer; the log and the studio
+memory → producer; taste, money, or a gate → founder (queued, never blocking).
