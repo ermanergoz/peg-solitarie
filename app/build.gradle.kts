@@ -1,5 +1,6 @@
 // Explicit import: inside a Gradle Kotlin DSL script the `java` accessor shadows the
 // `java` package, so a fully-qualified `java.util.Properties` does not resolve here.
+import java.io.File
 import java.util.Properties
 
 plugins {
@@ -151,6 +152,42 @@ val releaseGamesIds: Map<String, String> =
         }
     }
 
+// ---- PLAT-08 / D-16: the release signing credentials -------------------------------
+// Until this block existed there was no `signingConfig` in the build at all, deliberately
+// (D-16: "a committed debug-keystore shortcut is exactly the kind of thing that survives to
+// a store upload"), and `assembleRelease` happily emitted `app-release-unsigned.apk`.
+//
+// Third source list in this file and the only one with ONE source: the environment. The ad
+// and Play Games IDs also accept an untracked `local.properties` entry because they ship
+// inside the APK and are not secrets; these four are cryptographic secrets, and the reasoning
+// lives on `SigningKeys`. `providers.environmentVariable` for the same configuration-cache
+// reason as the maps above.
+val signingEnv: Map<String, String> =
+    SigningKeys.ALL
+        .mapNotNull { key -> providers.environmentVariable(key).orNull?.let { key to it } }
+        .toMap()
+
+// Same fail-fast shape as `releaseIds` and `releaseGamesIds`, and for a sharper version of
+// the same reason: an unsigned artifact is not a loud failure, it is a *successful* build
+// whose output is useless — and "a 'successful' unsigned build is precisely what gets
+// mistaken for a release candidate" (14-RELEASE-PLAN.md §4a).
+val releaseSigning: SigningResolutionResult.Resolved? =
+    when (val resolved = SigningResolution.resolve(signingEnv)) {
+        is SigningResolutionResult.Resolved -> resolved
+        is SigningResolutionResult.Failure -> {
+            if (isReleaseInvocation) {
+                throw GradleException(resolved.message)
+            }
+            // Not a release invocation, so configuration must still succeed — and a debug
+            // build, `check`, `test` and IDE sync must never need any of these variables.
+            // `null` here leaves the release variant with NO signing config, exactly as
+            // before this block existed. There is no fallback to the debug keystore, which
+            // is the one substitution D-16 exists to forbid; any invocation the name gate
+            // misses is still caught by `verifyReleaseSigning` below, before packaging.
+            null
+        }
+    }
+
 // Execution-time backstop for the same rule. The task-name gate above is a heuristic —
 // it cannot be proven exhaustive over every invocation form — so the packaging tasks
 // carry a hard dependency that re-runs the identical resolution and fails outright.
@@ -182,9 +219,44 @@ val verifyReleaseGamesIds =
         }
     }
 
-// One hook, two dependencies — both ID domains are checked before anything is packaged.
+// The signing sibling of those two, and it carries a second job they do not have: the four
+// variables being SET is not the same as them being RIGHT. This one opens the keystore the
+// way the signer will and distinguishes a missing file, a wrong store password, an absent
+// alias and a wrong key password — the four mistakes an operator actually makes, each of
+// which AGP's own signer reports as one opaque line, and only after a release variant has
+// already been assembled.
+val verifyReleaseSigning =
+    tasks.register("verifyReleaseSigning") {
+        group = "verification"
+        description = "Fails if a release package would be built without a usable upload keystore."
+        doLast {
+            val credentials =
+                when (val resolved = SigningResolution.resolve(signingEnv)) {
+                    is SigningResolutionResult.Resolved -> resolved
+                    is SigningResolutionResult.Failure -> throw GradleException(resolved.message)
+                }
+            val probed = SigningKeystoreProbe.probe(credentials)
+            if (probed is SigningKeystoreProbeResult.Failure) {
+                throw GradleException(probed.message)
+            }
+        }
+    }
+
+// One hook, three dependencies — both ID domains and the keystore are checked before
+// anything is packaged.
 tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }.configureEach {
-    dependsOn(verifyReleaseAdIds, verifyReleaseGamesIds)
+    dependsOn(verifyReleaseAdIds, verifyReleaseGamesIds, verifyReleaseSigning)
+}
+
+// And a second, tighter hook for the signing check alone. `assembleRelease` is a LIFECYCLE
+// task: a dependency added to it is a sibling of `packageRelease` and Gradle may run the two
+// in either order, so the hook above guarantees the check runs but not that it runs *first*.
+// Signing happens inside the package task, so hanging the check off that is what actually
+// orders it before a byte is signed. Both hooks are kept: `matching {}` is silent when a name
+// does not exist, so if a future AGP renames the package tasks the check still runs (late)
+// rather than vanishing.
+tasks.matching { it.name == "packageRelease" || it.name == "packageReleaseBundle" }.configureEach {
+    dependsOn(verifyReleaseSigning)
 }
 
 android {
@@ -207,6 +279,24 @@ android {
     // field declared below silently generates nothing and `BuildConfig.REWARDED_AD_UNIT_ID`
     // fails to resolve with an "unresolved reference" that survives a clean build — so the
     // flag lands in the same commit as its fields, never after.
+    // PLAT-08 / D-16. Created ONLY when all four variables resolved — `releaseSigning` is
+    // null on every debug build, every `check`, every IDE sync and every fresh clone, and a
+    // config with half its fields filled in is worse than no config at all.
+    //
+    // Note what is NOT here: no `storeFile` default, no `System.getenv(...) ?: "debug.keystore"`,
+    // no committed `.jks`. The release variant is either signed with the founder's upload key
+    // or not signed at all; there is no third state for a mistake to hide in.
+    signingConfigs {
+        releaseSigning?.let { credentials ->
+            create("release") {
+                storeFile = File(credentials.keystorePath)
+                storePassword = credentials.storePassword
+                keyAlias = credentials.keyAlias
+                keyPassword = credentials.keyPassword
+            }
+        }
+    }
+
     buildFeatures {
         buildConfig = true
         // Same story, second flag — and one RESEARCH's Pitfall 1 missed. AGP 9.1.0 also
@@ -297,11 +387,17 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 file("proguard-rules.pro"),
             )
-            // No signing is configured here, deliberately (D-16): real release signing
-            // is Phase 14 scope, and a committed debug-keystore shortcut is exactly the
-            // kind of thing that survives to a store upload. `assembleRelease` therefore
-            // emits `app-release-unsigned.apk`; plan 06-10's launch smoke test signs
-            // that locally with the debug key without committing anything.
+            // PLAT-08, the Phase 14 half of D-16. `findByName` rather than `getByName`:
+            // the config above exists only when all four PLAY_UPLOAD_* variables were
+            // exported, so this is null for every debug build, every `check` and every
+            // fresh clone — and a null `signingConfig` is precisely the pre-Phase-14
+            // behaviour (`app-release-unsigned.apk`), which is what keeps a release-named
+            // invocation the ONLY thing these variables gate.
+            //
+            // A release invocation can never reach this line unsigned: `releaseSigning`
+            // threw at configuration time, and `verifyReleaseSigning` re-checks — and
+            // additionally opens the keystore — before the package task runs.
+            signingConfig = signingConfigs.findByName("release")
 
             // D-08: the real IDs, resolved from an untracked `local.properties` or a
             // same-named CI environment variable — never from a committed file. Reaching
