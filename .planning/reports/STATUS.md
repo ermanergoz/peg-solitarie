@@ -1,7 +1,7 @@
 # STATUS — Peg Solitaire
 
 ## Waiting on founder
-- (after the Play services clear) sign in to Google again on Pixel_9 if the emulator asks
+(none)
 
 ## In flight
 - phase-13 (cloud-save) — feature/phase-13-cloud-save, main checkout; plans 13-01..13-10 done; 13-11 task 1 green, task 2 device pass recorded (3 blocked, 1 partial) and Q-001 answered 'already on' so the refused save is a defect: developer adding the CloudSaveOutcome reason code (review loop 1), then a QA re-run; task 3 pending
@@ -22,3 +22,4 @@
 2026-09-20 | phase-13 experiment E2 (pull probe, picker) | qa-engineer | FAIL for convergence — every open returns the device's own commit with hasChangePending=true, 0 conflicts; push guard, 384 px cover and debug picker verified on device | .planning/reports/phase-13/qa-engineer-e2-probe.md
 2026-09-20 | phase-13 snapshot upload research | research-analyst, producer | documented extras: 24 h activation + Play services cache, publish-after-change, drive.appdata on the consent screen; producer re-read at +9.5 h: still change_pending on both | .planning/reports/phase-13/research-analyst-snapshot-upload.md
 2026-09-20 | Q-002 | founder, producer | answered: consoles already correct; Drive check not done; clearing Play services data on Pixel_9 approved | .planning/questions/FOUNDER.md
+2026-09-20 | phase-13 clean-device finding | producer | BREAKTHROUGH: a fresh AVD restores from the cloud (change_pending=false, server copy from 03:14); both test emulators wedged since ~03:14, right after the only conflict activity | .planning/reports/phase-13/producer-clean-device-finding.md
