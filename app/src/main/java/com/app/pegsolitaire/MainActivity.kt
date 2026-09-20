@@ -1,5 +1,6 @@
 package com.app.pegsolitaire
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -11,6 +12,7 @@ import com.app.pegsolitaire.data.ProgressSubmitter
 import com.app.pegsolitaire.navigation.AppNavHost
 import com.app.pegsolitaire.platform.ads.consent.ConsentGateway
 import com.app.pegsolitaire.platform.games.GamesService
+import com.app.pegsolitaire.platform.games.save.DebugSnapshotPickerEntry
 import com.app.pegsolitaire.ui.theme.AppTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -107,6 +109,18 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var progressSubmitter: ProgressSubmitter
 
+    /**
+     * The QA-only snapshot picker's gate (CLOUD-03 verification).
+     *
+     * **Inert in release**: the entry returns before it reads the intent unless
+     * `BuildConfig.DEBUG` is set, so nothing player-facing is added and D-03's silent cloud
+     * save is unchanged. The decision lives behind the entry, not here, which keeps this an
+     * undecorated one-liner like the three bootstraps — and keeps it testable, since this
+     * class has no JVM-test exposure. See [DebugSnapshotPickerEntry] for the adb command.
+     */
+    @Inject
+    lateinit var debugSnapshotPickerEntry: DebugSnapshotPickerEntry
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // After super.onCreate() is not stylistic: Hilt performs field injection as part of
@@ -124,6 +138,7 @@ class MainActivity : ComponentActivity() {
         consentGateway.bootstrap()
         gamesService.bootstrapIfOptedIn()
         progressSubmitter.start()
+        debugSnapshotPickerEntry.onIntent(intent)
         setContent {
             CompositionLocalProvider(LocalSoundPlayer provides soundPlayer) {
                 AppTheme {
@@ -131,5 +146,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    /** A debug launch that reaches an already-running instance carries the extra here instead. */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        debugSnapshotPickerEntry.onIntent(intent)
     }
 }

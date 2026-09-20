@@ -35,3 +35,4 @@ keystore.properties
 # Play / Firebase config — uncomment when Play Games / AdMob land in Slice 2 (may carry keys)
 # google-services.json
 
+# Studio: QA session artifacts and helper scripts, logs, retro threads — never committed

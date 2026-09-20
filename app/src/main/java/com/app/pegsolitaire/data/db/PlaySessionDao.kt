@@ -71,4 +71,33 @@ interface PlaySessionDao {
         english33Id: String,
         speedLimitMs: Long,
     ): PlaySessionFlags
+
+    /**
+     * D-10's played time: the total wall-clock millis of every **solved** play.
+     *
+     * "Solved plays only" needs no `WHERE` because that is what this table already is by
+     * construction — `recordResult` appends a row only when a level was actually solved.
+     *
+     * The `COALESCE` is what makes the return type non-null on an empty table, matching
+     * [LevelResultDao.totals]' star-sum idiom: a bare `SUM` over no rows yields `NULL`,
+     * and "never played" must read as `0`, not as an absent value the caller has to
+     * invent a zero for.
+     *
+     * This scalar is the only thing `play_session` contributes to the cloud payload — the
+     * rows themselves never leave the device (D-06).
+     */
+    @Query("SELECT COALESCE(SUM($COLUMN_ELAPSED_MS), 0) FROM $TABLE_PLAY_SESSION")
+    suspend fun totalElapsedMs(): Long
+
+    /**
+     * Empties the table.
+     *
+     * **D-14's profile-replace path only** — the telemetry history describes plays made by
+     * the previous account's player on this device. No cloud read or import path may call
+     * it, and no import may *insert* here either (D-06): fabricating rows for plays that
+     * never happened on this device would silently grant the skill achievements [flags]
+     * derives.
+     */
+    @Query("DELETE FROM $TABLE_PLAY_SESSION")
+    suspend fun deleteAll()
 }
