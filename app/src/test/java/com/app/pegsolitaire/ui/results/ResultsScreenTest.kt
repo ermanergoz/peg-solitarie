@@ -204,25 +204,27 @@ class ResultsScreenTest {
      */
     @Test
     fun aTapBehindTheQuiescenceScrimNeverReachesThePrimaryAction() {
-        var tappedNextLevel: Int? = null
-        setResultsContent(state = AD_COMING_STATE, onNextLevel = { tappedNextLevel = it })
+        var nextLevelTaps = 0
+        setResultsContent(state = AD_COMING_STATE, onNextLevel = { nextLevelTaps++ })
 
         composeRule.onNodeWithText(context.getString(R.string.action_next_level)).performClick()
         composeRule.waitForIdle()
 
-        assertThat(tappedNextLevel).isNull()
+        assertThat(nextLevelTaps).isEqualTo(0)
     }
 
     /** The control for [aTapBehindTheQuiescenceScrimNeverReachesThePrimaryAction]. */
     @Test
     fun theSamePrimaryActionTapLandsWhenNoAdIsComing() {
-        var tappedNextLevel: Int? = null
-        setResultsContent(state = SOLVED_CHALLENGE_STATE, onNextLevel = { tappedNextLevel = it })
+        var nextLevelTaps = 0
+        setResultsContent(state = SOLVED_CHALLENGE_STATE, onNextLevel = { nextLevelTaps++ })
 
         composeRule.onNodeWithText(context.getString(R.string.action_next_level)).performClick()
         composeRule.waitForIdle()
 
-        assertThat(tappedNextLevel).isEqualTo(SAMPLE_CHALLENGE_LEVEL + 1)
+        // The tap carries no number: which level comes next is `max(ladder head, N + 1)` and is
+        // resolved by `ResultsViewModel` (D-04a), so all the screen can report is that it happened.
+        assertThat(nextLevelTaps).isEqualTo(1)
     }
 
     private fun assertTextDisplayed(resId: Int) {
@@ -232,7 +234,7 @@ class ResultsScreenTest {
     /** Renders the stateless screen over [state], recording only the callback under test. */
     private fun setResultsContent(
         state: ResultsUiState,
-        onNextLevel: (Int) -> Unit = {},
+        onNextLevel: () -> Unit = {},
     ) {
         composeRule.setContent {
             AppTheme {

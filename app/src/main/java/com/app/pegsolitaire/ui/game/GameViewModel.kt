@@ -143,8 +143,9 @@ class GameViewModel
          *
          * **WARN-03: this MUST be the clamped value.** It is the one Challenge level that
          * escapes this ViewModel — `GameRoute` carries it into the `Results` route, from
-         * where it becomes the database level key and the argument to the "Next level"
-         * action (`onNextLevel(challengeLevel + 1)`). It previously returned the RAW route
+         * where it becomes the database level key and the level the "Next level" action
+         * resolves its destination from (`max(ladder head, N + 1)`, D-04a, in
+         * `ResultsViewModel.onNextLevelTapped`). It previously returned the RAW route
          * arg on the non-restore path while the board actually played was the clamped one,
          * so a forged arg would have recorded a best under a level that was never played
          * and offered a "next" level past the frozen ceiling. Delegating to

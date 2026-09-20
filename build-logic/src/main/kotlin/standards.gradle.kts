@@ -1,3 +1,4 @@
+import dev.detekt.gradle.Detekt
 import dev.detekt.gradle.extensions.DetektExtension
 import org.gradle.api.GradleException
 
@@ -28,6 +29,39 @@ extensions.configure<DetektExtension> {
     parallel.set(true)
     config.setFrom(rootProject.files("config/detekt/detekt.yml"))
 }
+
+// ---- detekt must see the build-type source sets, not just src/main -----------
+// The plain `detekt` task is the ONLY detekt task wired into `check` (below), and its
+// default source is detekt's own `src/main/{java,kotlin}` + `src/test/{java,kotlin}`.
+// Code in a build-type source set (`src/debug`, `src/release`, `src/testDebug`) is
+// therefore invisible to the gate — an undeclared blanket suppression over every file
+// in it, which is exactly what happened when the debug snapshot picker moved out of
+// `src/main`. Verified with a paired probe: an identical `MagicNumber` violation in
+// `src/main` failed `:app:detekt`, the same violation in `src/debug` did not.
+//
+// Why widen this one task instead of `check.dependsOn("detektDebug", "detektRelease")`:
+//  - this convention plugin is applied to `:domain` as well, a plain Kotlin JVM module
+//    where the variant tasks do not exist at all, so a name-based `dependsOn` would have
+//    to become variant-aware — and this plugin deliberately carries no AGP types (see
+//    the dp/sp gate below, same reasoning);
+//  - `detektDebugSourceSet` reports `NO-SOURCE` under AGP 9, so the per-source-set tasks
+//    are not a working substitute either;
+//  - `detektDebug`/`detektRelease` each re-analyse `src/main`, so every main-source
+//    finding would be reported two or three times, and they add type resolution (and a
+//    compile classpath) to what is otherwise a parse-only gate;
+//  - `detektRelease`'s NAME matches `app/build.gradle.kts`'s `contains("elease")` ad-ID
+//    guard, so it cannot be invoked directly without real AdMob IDs.
+// Widening keeps one task, one config, one report, and one name in `check`, and matches
+// every other gate in this file: a list of relative source roots filtered to those that
+// exist. `src/main` and `src/test` are already covered by detekt's defaults; a new
+// build-type or flavour source set must be added to this list.
+val variantSourceRoots =
+    listOf("debug", "release", "testDebug")
+        .flatMap { listOf("src/$it/java", "src/$it/kotlin") }
+        .map { layout.projectDirectory.dir(it).asFile }
+        .filter { it.exists() }
+
+tasks.named<Detekt>("detekt").configure { source(variantSourceRoots) }
 
 // ---- QUAL-03: custom "no raw dp/sp literal" gate -----------------------------
 // Captured at configuration time (the convention plugin has no compose/AGP types,

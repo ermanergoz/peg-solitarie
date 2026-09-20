@@ -3,7 +3,8 @@ package com.app.pegsolitaire.platform.games.save
 /**
  * The Saved Games tokens and bounds [CloudSaveStore]'s implementations must observe: the snapshot's
  * identity, the conflict-retry ceiling, the cover image's raster size, the description's length
- * guard, and the handful of tokens the debug-only snapshot picker needs.
+ * guard, and the launch-intent extra the debug-only snapshot picker is gated behind. The picker's
+ * *own* tokens live in the `debug` source set, beside the picker (`DebugPickerConstants`).
  *
  * Scoped, not global — one object per platform concern, exactly as
  * [com.app.pegsolitaire.platform.games.GamesConstants] is for sign-in and
@@ -78,23 +79,9 @@ object CloudSaveConstants {
      */
     const val DEBUG_PICKER_EXTRA = "com.app.pegsolitaire.debug.SHOW_SNAPSHOT_PICKER"
 
-    /**
-     * The title bar of the debug snapshot picker. A constant and not a `strings.xml` entry on
-     * purpose: no player ever sees it, and a resource would put a QA-only label in front of every
-     * translator.
-     */
-    const val DEBUG_PICKER_TITLE = "Saved games (debug)"
-
-    /** The game owns exactly one snapshot ([SNAPSHOT_NAME]), so the picker lists at most one. */
-    const val DEBUG_PICKER_MAX_SNAPSHOTS = 1
-
-    /** The picker's `startActivityForResult` code; nothing consumes the result. Beside 9003/9004. */
-    const val DEBUG_PICKER_REQUEST_CODE = 9005
-
-    /**
-     * How long the debug picker waits for the session to report signed-in. Longer than
-     * [com.app.pegsolitaire.platform.games.GamesConstants.ACTIVITY_WAIT_MS] because a cold-start
-     * sign-in is a network round trip; bounded because nothing here may wait forever.
-     */
-    const val DEBUG_PICKER_SIGN_IN_WAIT_MS = 30_000L
+    // The picker's own tokens — its title, its one-snapshot bound, its request code and its
+    // sign-in wait — used to live here. They moved to `DebugPickerConstants` in the `debug`
+    // source set together with the picker itself, so a release build carries neither the screen
+    // nor the QA-only label it would have shown (tech-lead L-3). The extra above stays: it is
+    // read by the gate, which ships everywhere precisely so that release ignoring it is tested.
 }

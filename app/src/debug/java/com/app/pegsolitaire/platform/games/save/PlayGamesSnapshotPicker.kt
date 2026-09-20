@@ -17,6 +17,19 @@ import javax.inject.Singleton
  * commit's listing metadata looks like (CLOUD-03), now that the Play Games app has no saves screen
  * and `am start -a com.google.android.gms.games.SHOW_SELECT_SNAPSHOT` does not resolve from a shell.
  *
+ * ## This file is in `src/debug`, and that is the whole of its containment
+ *
+ * "Debug-only" used to mean a constructor-injected `BuildConfig.DEBUG` in [DebugSnapshotPickerEntry]
+ * — correct at runtime, but the class, its title string and its Hilt factory were compiled into the
+ * release APK all the same, which is how a diagnostic surface outlives its investigation
+ * (tech-lead L-3). Living in the `debug` source set makes the release build's inability to open this
+ * screen structural: the class is not compiled, and the release Hilt module hands the gate a no-op
+ * `show`. Do not move it back to `src/main`, and do not let anything in `src/main` reference it.
+ *
+ * It is **kept** rather than deleted because it is the only instrument that can verify CLOUD-03: the
+ * Play Games app has no Saved games screen, so this is what a QA session reads a commit's cover,
+ * description and played time from.
+ *
  * **Nothing player-facing reaches this class.** Its one caller is [DebugSnapshotPickerEntry], which
  * is inert unless the build is debuggable, so D-03's silent design and the "exactly one cloud-save
  * dialog" reservation on [CloudSaveConstants.SNAPSHOT_NAME] are both untouched in what ships.
@@ -45,10 +58,18 @@ class PlayGamesSnapshotPicker
          * frame the sign-in bootstrap is started, so an immediate call would reach the SDK before
          * it knows who the player is and be refused. Both waits are bounded: an unbounded one
          * inside a process-lifetime singleton parks a coroutine for the life of the process
-         * (T-11-06).
+         * (T-11-06). Since L-2 the caller also runs this on the launched Activity's own scope, so
+         * the waits die with that Activity rather than surfacing the picker over a later one — the
+         * timeouts are the second bound, not the only one.
+         *
+         * **Neither wait may throw at the caller.** `withTimeoutOrNull` answers `null` rather than
+         * throwing, but the flow and the Activity await inside them can fail on their own; the
+         * caller's `runCatching` is what keeps such a failure out of a `lifecycleScope` that has no
+         * handler. That guard is in [DebugSnapshotPickerEntry] rather than here, so it also covers
+         * a future second `show` implementation.
          */
         suspend fun show() {
-            withTimeoutOrNull(CloudSaveConstants.DEBUG_PICKER_SIGN_IN_WAIT_MS) {
+            withTimeoutOrNull(DebugPickerConstants.SIGN_IN_WAIT_MS) {
                 gamesService.session.first { it is GamesSignInState.SignedIn }
             } ?: return
             val activity =
@@ -59,13 +80,13 @@ class PlayGamesSnapshotPicker
                     PlayGames
                         .getSnapshotsClient(activity)
                         .getSelectSnapshotIntent(
-                            CloudSaveConstants.DEBUG_PICKER_TITLE,
+                            DebugPickerConstants.PICKER_TITLE,
                             // allowAddButton, then allowDelete: a viewer offers neither.
                             false,
                             false,
-                            CloudSaveConstants.DEBUG_PICKER_MAX_SNAPSHOTS,
+                            DebugPickerConstants.MAX_SNAPSHOTS,
                         ).await()
-                activity.startActivityForResult(intent, CloudSaveConstants.DEBUG_PICKER_REQUEST_CODE)
+                activity.startActivityForResult(intent, DebugPickerConstants.REQUEST_CODE)
             }.onFailure { if (it is CancellationException) throw it }
         }
     }
