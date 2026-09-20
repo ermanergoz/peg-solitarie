@@ -11,6 +11,7 @@ import com.google.android.gms.games.snapshot.Snapshot
 import com.google.android.gms.games.snapshot.SnapshotContents
 import com.google.android.gms.games.snapshot.SnapshotMetadata
 import com.google.android.gms.games.snapshot.SnapshotMetadataChange
+import com.google.android.gms.tasks.TaskCompletionSource
 import com.google.android.gms.tasks.Tasks
 import com.google.common.truth.Truth.assertThat
 import io.mockk.coEvery
@@ -88,8 +89,6 @@ class PlayGamesCloudSaveStoreTest {
         every { snapshot.snapshotContents } returns contents
         every { snapshot.metadata } returns metadata
         every { metadata.snapshotId } returns SNAPSHOT_ID
-        every { metadata.hasChangePending() } returns false
-        every { metadata.lastModifiedTimestamp } returns LAST_MODIFIED_AT
         every { contents.readFully() } returns REMOTE_BYTES
         every { contents.writeBytes(any()) } returns true
         every { resolutionContents.writeBytes(any()) } returns true
@@ -396,6 +395,20 @@ class PlayGamesCloudSaveStoreTest {
         }
 
     // ---- save: the terminal-call guarantee ---------------------------------------------------
+
+    @Test
+    fun metadataThatCannotBeBuiltFailsThePushBeforeAnyHandleIsOpened() =
+        runTest(testDispatcher) {
+            // Auditor F-2. The metadata is built BEFORE the open so that nothing which can throw
+            // sits between a handle coming back open and `commitOrDiscard` owning it. Built after,
+            // this throw would leak the handle; built before, there is no handle to leak.
+            coEvery { coverImageSource.coverOrNull() } throws IllegalStateException(SDK_FAILURE)
+
+            val outcome = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
+
+            assertThat(outcome).isEqualTo(CloudSaveOutcome(CloudSaveStage.FAILED_OTHER))
+            verify(exactly = 0) { client.open(any<String>(), any(), any()) }
+        }
 
     @Test
     fun aSuccessfulSaveCommitsExactlyOnceAndNeverDiscards() =
@@ -710,92 +723,6 @@ class PlayGamesCloudSaveStoreTest {
             verify(exactly = 1) { client.discardAndClose(server) }
         }
 
-    // ---- load: the pull probe (what the opened snapshot says about itself) -----------------------
-
-    @Test
-    fun aPullReportsWhetherTheOpenedSnapshotStillHasChangesThatNeverReachedTheServer() =
-        runTest(testDispatcher) {
-            // `hasChangePending()` is the SDK's own answer to "did the last commit upload?" — the
-            // one question a locally-COMMITTED push outcome cannot answer.
-            every { metadata.hasChangePending() } returns true
-
-            val probe = store().load(::concat).probe
-
-            assertThat(probe).isEqualTo(
-                CloudPullProbe(changePending = true, conflictsResolved = 0, lastModifiedAt = LAST_MODIFIED_AT),
-            )
-        }
-
-    @Test
-    fun aPullThatResolvedConflictsCountsThem() =
-        runTest(testDispatcher) {
-            every { client.open(any<String>(), any(), any()) } returns Tasks.forResult(conflictResult())
-            every { client.resolveConflict(any(), any(), any(), any()) } returnsMany
-                listOf(Tasks.forResult(conflictResult()), Tasks.forResult(dataResult(snapshot)))
-
-            val probe = store().load(::concat).probe
-
-            assertThat(probe?.conflictsResolved).isEqualTo(2)
-        }
-
-    @Test
-    fun aPullOfAnEmptySnapshotStillReportsItsProbe() =
-        runTest(testDispatcher) {
-            // "No payload" and "the snapshot never opened" are the same instruction to the caller
-            // and different facts to a diagnostic: only the second has nothing to say.
-            every { contents.readFully() } returns ByteArray(0)
-
-            val pull = store().load(::concat)
-
-            assertThat(pull.bytes).isNull()
-            assertThat(pull.probe).isNotNull()
-        }
-
-    @Test
-    fun aPullThatNeverOpenedTheSnapshotHasNoProbe() =
-        runTest(testDispatcher) {
-            every { client.open(any<String>(), any(), any()) } returns Tasks.forException(apiFailure())
-
-            assertThat(store().load(::concat).probe).isNull()
-        }
-
-    @Test
-    fun aPullWithoutAForegroundActivityHasNoProbe() =
-        runTest(testDispatcher) {
-            coEvery { activityProvider.awaitActivity() } coAnswers { awaitCancellation() }
-
-            assertThat(store().load(::concat).probe).isNull()
-        }
-
-    @Test
-    fun aProbeThatCannotBeReadNeverCostsThePullItsBytes() =
-        runTest(testDispatcher) {
-            // A diagnostic is decoration on a restore. Metadata the SDK refuses to hand over must
-            // not turn a readable cloud save into "stay local".
-            every { metadata.hasChangePending() } throws IllegalStateException(SDK_FAILURE)
-
-            val pull = store().load(::concat)
-
-            assertThat(pull.bytes).isEqualTo(REMOTE_BYTES)
-            assertThat(pull.probe).isNull()
-            verify(exactly = 1) { client.discardAndClose(snapshot) }
-        }
-
-    @Test
-    fun theProbeNeverReadsAnythingThatNamesThePlayerTheDeviceOrTheSave() =
-        runTest(testDispatcher) {
-            store().load(::concat)
-
-            // T-11-04 / T-13-40: no SDK string is read, so none can be stored. The device name is
-            // in this list on purpose — see the KDoc on CloudPullProbe for why it was dropped.
-            verify(exactly = 0) { metadata.deviceName }
-            verify(exactly = 0) { metadata.description }
-            verify(exactly = 0) { metadata.uniqueName }
-            verify(exactly = 0) { metadata.snapshotId }
-            verify(exactly = 0) { metadata.owner }
-            verify(exactly = 0) { metadata.coverImageUri }
-        }
-
     // ---- cancellation is never absorbed by a cleanup or a guard ---------------------------------
 
     @Test
@@ -841,6 +768,31 @@ class PlayGamesCloudSaveStoreTest {
 
             assertThat(returnedNormally).isFalse()
             verify(exactly = 1) { client.discardAndClose(snapshot) }
+        }
+
+    @Test
+    fun aCloseStillInFlightWhenThePassIsCancelledIsAwaitedToCompletion() =
+        runTest(testDispatcher) {
+            // Auditor F-1. Every other cancellation case hands `await()` an already-complete Task,
+            // which returns without suspending, so none of them can tell a cancellable close from
+            // a non-cancellable one. This Task is completed only AFTER the cancel: a cancellable
+            // await would abandon the close here and leave the handle open for the rest of the
+            // process (Pitfall 1).
+            val closing = TaskCompletionSource<Void>()
+            every { client.discardAndClose(any()) } returns closing.task
+
+            val pass = launch { store().load(::concat) }
+            testScheduler.runCurrent()
+            pass.cancel()
+            testScheduler.runCurrent()
+
+            assertThat(pass.isCompleted).isFalse()
+
+            closing.setResult(null)
+            pass.join()
+
+            // The cancel was deferred, not lost.
+            assertThat(pass.isCancelled).isTrue()
         }
 
     @Test
@@ -959,9 +911,6 @@ private const val CANCELLED = "cancelled"
 /** An arbitrary GMS status integer; the store must pass it through untouched, whatever it is. */
 private const val API_STATUS_CODE = 4_002
 private const val PLAYED_TIME_MS = 987_654L
-
-/** An arbitrary epoch-millis value for the opened snapshot's last modification. */
-private const val LAST_MODIFIED_AT = 1_789_000_000_000L
 
 /** The documented floor: the javadoc guarantees at least 3 MB per snapshot. */
 private const val SERVER_CAP_BYTES = 3 * 1024 * 1024

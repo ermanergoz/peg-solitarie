@@ -21,7 +21,11 @@ class CloudPullProbeTest {
                 .map { it.type }
 
         assertThat(fieldTypes)
-            .containsExactly(Boolean::class.javaPrimitiveType, Int::class.javaPrimitiveType, Long::class.javaPrimitiveType)
+            .containsExactly(
+                Boolean::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType,
+                Long::class.javaPrimitiveType,
+            )
     }
 
     @Test

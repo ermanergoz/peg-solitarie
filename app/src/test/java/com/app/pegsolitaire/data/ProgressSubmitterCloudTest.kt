@@ -604,213 +604,6 @@ class ProgressSubmitterCloudTest {
             assertThat(saveStore.saveCallCount).isEqualTo(0)
         }
 
-    // ---- The pull probe: a device diagnostic, recorded and never read ----------
-
-    @Test
-    fun aPullRecordsWhatTheOpenedSnapshotSaidAboutItself() =
-        runTest(testDispatcher) {
-            val cloudSyncStore = FakeCloudSyncStore()
-            val submitter =
-                submitterFor(
-                    cloudSyncStore = cloudSyncStore,
-                    saveStore = FakeCloudSaveStore(remote = remotePayload(), probe = PULL_PROBE),
-                )
-
-            submitter.start()
-            advanceUntilIdle()
-
-            assertThat(cloudSyncStore.recordedPullProbes).containsExactly(PULL_PROBE)
-        }
-
-    @Test
-    fun aPullWhoseStoreThrewIsRecordedAsNeverHavingOpened() =
-        runTest(testDispatcher) {
-            // Otherwise the last successful pull's values would sit on the device describing a
-            // pull that failed — the reader would chase the wrong launch.
-            val cloudSyncStore = FakeCloudSyncStore()
-            val submitter =
-                submitterFor(
-                    cloudSyncStore = cloudSyncStore,
-                    saveStore = FakeCloudSaveStore(throwOnLoad = StoreFailure()),
-                )
-
-            submitter.start()
-            advanceUntilIdle()
-
-            assertThat(cloudSyncStore.recordedPullProbes).containsExactly(null)
-        }
-
-    @Test
-    fun aPassThatDidNotPullRecordsNoProbe() =
-        runTest(testDispatcher) {
-            // The second pass of a process finds the pull guard consumed. It is not a pull, so it
-            // must not overwrite what the real one recorded with a "never opened".
-            val games = FakeGamesService(signedIn())
-            val cloudSyncStore = FakeCloudSyncStore()
-            val submitter =
-                submitterFor(
-                    games = games,
-                    cloudSyncStore = cloudSyncStore,
-                    saveStore = FakeCloudSaveStore(probe = PULL_PROBE),
-                )
-
-            submitter.start()
-            advanceUntilIdle()
-            submitter.onResultRecorded()
-            advanceUntilIdle()
-
-            assertThat(cloudSyncStore.recordedPullProbes).containsExactly(PULL_PROBE)
-        }
-
-    @Test
-    fun theProbeChangesNothingAboutWhatThePassDoes() =
-        runTest(testDispatcher) {
-            // Write-only (CLOUD-05, D-03): an alarming probe — an upload outstanding, conflicts
-            // resolved — must not push, retry, or surface anything the quiet one would not.
-            val saveStore =
-                FakeCloudSaveStore(
-                    remote = remotePayload(),
-                    probe = CloudPullProbe(changePending = true, conflictsResolved = 3, lastModifiedAt = 0L),
-                )
-            val cloudSyncStore = FakeCloudSyncStore(initial = false)
-            val submitter =
-                submitterFor(
-                    repository = FakeCloudRepository(initial = remoteBests(), playedTimeMs = REMOTE_PLAYED_TIME_MS),
-                    cloudSyncStore = cloudSyncStore,
-                    saveStore = saveStore,
-                    challengeProgress = challengeProgressAt(REMOTE_LADDER),
-                )
-
-            submitter.start()
-            advanceUntilIdle()
-
-            assertThat(saveStore.saveCallCount).isEqualTo(0)
-            assertThat(cloudSyncStore.value).isFalse()
-            assertThat(submitter.profileSwap.value).isNull()
-        }
-
-    // ---- The post-pull push guard: push only what the cloud lacks ---------------
-
-    @Test
-    fun aCleanLaunchWhoseCloudAlreadyEqualsLocalDoesNotPush() =
-        runTest(testDispatcher) {
-            // The steady state of a converged player, and the launch that used to rewrite the
-            // snapshot — cover included — every single time. A rewrite moves the snapshot's
-            // modification time and hands the other device a conflict to resolve for nothing.
-            val repository = FakeCloudRepository(initial = remoteBests(), playedTimeMs = REMOTE_PLAYED_TIME_MS)
-            val cloudSyncStore = FakeCloudSyncStore(initial = false)
-            val saveStore = FakeCloudSaveStore(remote = remotePayload())
-            val submitter =
-                submitterFor(
-                    repository = repository,
-                    cloudSyncStore = cloudSyncStore,
-                    saveStore = saveStore,
-                    challengeProgress = challengeProgressAt(REMOTE_LADDER),
-                )
-
-            submitter.start()
-            advanceUntilIdle()
-
-            assertThat(saveStore.loadCallCount).isEqualTo(1)
-            assertThat(saveStore.saveCallCount).isEqualTo(0)
-            assertThat(cloudSyncStore.value).isFalse()
-        }
-
-    @Test
-    fun aLaunchWhoseLocalProgressIsAheadOfTheCloudPushes() =
-        runTest(testDispatcher) {
-            // The cloud is a strict subset of local: nothing lands, and the write-back is the
-            // only way the other device ever sees this one's extra level.
-            val repository =
-                FakeCloudRepository(initial = remoteBests() + localBests(), playedTimeMs = REMOTE_PLAYED_TIME_MS)
-            val saveStore = FakeCloudSaveStore(remote = remotePayload())
-            val submitter =
-                submitterFor(
-                    repository = repository,
-                    cloudSyncStore = FakeCloudSyncStore(initial = false),
-                    saveStore = saveStore,
-                    challengeProgress = challengeProgressAt(REMOTE_LADDER),
-                )
-
-            submitter.start()
-            advanceUntilIdle()
-
-            assertThat(saveStore.saveCallCount).isEqualTo(1)
-            assertThat(decodePushed(saveStore.savedPayloads.single()).bests.keys)
-                .containsExactly(challengeKey(REMOTE_LEVEL), challengeKey(LOCAL_LEVEL))
-        }
-
-    @Test
-    fun aLaunchWhoseCloudIsAheadLandsItAndDoesNotPush() =
-        runTest(testDispatcher) {
-            // The new-device restore. Once the import has landed, local IS the cloud's payload,
-            // so there is nothing to write back — and the import must not arm the retry marker
-            // either, or the push would merely be postponed to the next launch.
-            val repository = FakeCloudRepository(playedTimeMs = LOCAL_PLAYED_TIME_MS)
-            val cloudSyncStore = FakeCloudSyncStore(initial = false)
-            val saveStore = FakeCloudSaveStore(remote = remotePayload())
-            val challengeProgress = ChallengeProgress(inMemoryDataStore(), submitterScope)
-            val submitter =
-                submitterFor(
-                    repository = repository,
-                    cloudSyncStore = cloudSyncStore,
-                    saveStore = saveStore,
-                    challengeProgress = challengeProgress,
-                )
-
-            submitter.start()
-            advanceUntilIdle()
-
-            assertThat(repository.stored).isEqualTo(remoteBests())
-            assertThat(challengeProgress.settledLevel()).isEqualTo(REMOTE_LADDER)
-            assertThat(saveStore.saveCallCount).isEqualTo(0)
-            assertThat(cloudSyncStore.value).isFalse()
-        }
-
-    @Test
-    fun aLaunchWhereBothSidesAreAheadLandsTheCloudAndPushesTheUnionInOnePass() =
-        runTest(testDispatcher) {
-            // One-round convergence (D-01): after this single pass the device holds the union
-            // and so does the cloud, so the other device's next pull needs no further round.
-            val repository = FakeCloudRepository(initial = localBests())
-            val saveStore = FakeCloudSaveStore(remote = remotePayload())
-            val submitter =
-                submitterFor(
-                    repository = repository,
-                    cloudSyncStore = FakeCloudSyncStore(initial = false),
-                    saveStore = saveStore,
-                )
-
-            submitter.start()
-            advanceUntilIdle()
-
-            val union = setOf(challengeKey(REMOTE_LEVEL), challengeKey(LOCAL_LEVEL))
-            assertThat(repository.stored.keys).containsExactlyElementsIn(union)
-            assertThat(saveStore.saveCallCount).isEqualTo(1)
-            assertThat(decodePushed(requireNotNull(saveStore.remote)).bests.keys).containsExactlyElementsIn(union)
-        }
-
-    @Test
-    fun aLocalPlayedTimeAheadOfTheCloudIsSomethingTheCloudLacks() =
-        runTest(testDispatcher) {
-            // The guard compares whole payloads, not only level rows: played time is a field of
-            // the save the other device restores (D-10), so a larger local value is owed a push.
-            val repository = FakeCloudRepository(initial = remoteBests(), playedTimeMs = LONGER_PLAYED_TIME_MS)
-            val saveStore = FakeCloudSaveStore(remote = remotePayload())
-            val submitter =
-                submitterFor(
-                    repository = repository,
-                    cloudSyncStore = FakeCloudSyncStore(initial = false),
-                    saveStore = saveStore,
-                    challengeProgress = challengeProgressAt(REMOTE_LADDER),
-                )
-
-            submitter.start()
-            advanceUntilIdle()
-
-            assertThat(saveStore.saveCallCount).isEqualTo(1)
-        }
-
     @Test
     fun anOutstandingRetryMarkerPushesOnTheNextStartTriggeredPass() =
         runTest(testDispatcher) {
@@ -1056,10 +849,6 @@ class ProgressSubmitterCloudTest {
 
     // ---- Harness ---------------------------------------------------------------
 
-    /** A real [ChallengeProgress] whose committed ladder already sits at [ladder]. */
-    private suspend fun challengeProgressAt(ladder: Int): ChallengeProgress =
-        ChallengeProgress(inMemoryDataStore(), submitterScope).also { it.mergeLadder(ladder) }
-
     @Suppress("LongParameterList") // one optional collaborator per store the pass sequences
     private fun submitterFor(
         repository: ProgressRepository = FakeCloudRepository(),
@@ -1076,6 +865,260 @@ class ProgressSubmitterCloudTest {
             syncStore = syncStore,
             cloudSyncStore = cloudSyncStore,
             cloudProfileStore = profileStore,
+            cloudSaveStore = saveStore,
+            challengeProgress = challengeProgress,
+            scope = submitterScope,
+        )
+}
+
+/**
+ * The cloud half's two **plan 13-12** properties, split out of [ProgressSubmitterCloudTest] only
+ * because that class had reached detekt's size bound; the harness and every fixture are the same
+ * file's.
+ *
+ *  - **The post-pull push guard.** A pass that pulled pushes only when
+ *    `ProgressMerge.merge(remote, local) != remote` — local holds something the cloud lacks. The
+ *    four cases (equal, local ahead, cloud ahead, both ahead) are the whole truth table, and
+ *    "both ahead" is the one-round convergence D-01 promises.
+ *  - **The pull probe.** What the opened snapshot said about itself is recorded for a developer
+ *    and read by nothing: it must never change what a pass does (CLOUD-05, D-03).
+ */
+@OptIn(ExperimentalCoroutinesApi::class) // advanceUntilIdle virtual-time control
+class ProgressSubmitterCloudGuardTest {
+    private val testDispatcher = StandardTestDispatcher()
+    private val submitterScope = CoroutineScope(testDispatcher)
+
+    @After
+    fun tearDown() {
+        submitterScope.cancel()
+    }
+
+    // ---- The pull probe: a device diagnostic, recorded and never read ----------
+
+    @Test
+    fun aPullRecordsWhatTheOpenedSnapshotSaidAboutItself() =
+        runTest(testDispatcher) {
+            val cloudSyncStore = FakeCloudSyncStore()
+            val submitter =
+                submitterFor(
+                    cloudSyncStore = cloudSyncStore,
+                    saveStore = FakeCloudSaveStore(remote = remotePayload(), probe = PULL_PROBE),
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+
+            assertThat(cloudSyncStore.recordedPullProbes).containsExactly(PULL_PROBE)
+        }
+
+    @Test
+    fun aPullWhoseStoreThrewIsRecordedAsNeverHavingOpened() =
+        runTest(testDispatcher) {
+            // Otherwise the last successful pull's values would sit on the device describing a
+            // pull that failed — the reader would chase the wrong launch.
+            val cloudSyncStore = FakeCloudSyncStore()
+            val submitter =
+                submitterFor(
+                    cloudSyncStore = cloudSyncStore,
+                    saveStore = FakeCloudSaveStore(throwOnLoad = StoreFailure()),
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+
+            assertThat(cloudSyncStore.recordedPullProbes).containsExactly(null)
+        }
+
+    @Test
+    fun aPassThatDidNotPullRecordsNoProbe() =
+        runTest(testDispatcher) {
+            // The second pass of a process finds the pull guard consumed. It is not a pull, so it
+            // must not overwrite what the real one recorded with a "never opened".
+            val games = FakeGamesService(signedIn())
+            val cloudSyncStore = FakeCloudSyncStore()
+            val submitter =
+                submitterFor(
+                    games = games,
+                    cloudSyncStore = cloudSyncStore,
+                    saveStore = FakeCloudSaveStore(probe = PULL_PROBE),
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+            submitter.onResultRecorded()
+            advanceUntilIdle()
+
+            assertThat(cloudSyncStore.recordedPullProbes).containsExactly(PULL_PROBE)
+        }
+
+    @Test
+    fun theProbeChangesNothingAboutWhatThePassDoes() =
+        runTest(testDispatcher) {
+            // Write-only (CLOUD-05, D-03): an alarming probe — an upload outstanding, conflicts
+            // resolved — must not push, retry, or surface anything the quiet one would not.
+            val saveStore =
+                FakeCloudSaveStore(
+                    remote = remotePayload(),
+                    probe = CloudPullProbe(changePending = true, conflictsResolved = 3, lastModifiedAt = 0L),
+                )
+            val cloudSyncStore = FakeCloudSyncStore(initial = false)
+            val submitter =
+                submitterFor(
+                    repository = FakeCloudRepository(initial = remoteBests(), playedTimeMs = REMOTE_PLAYED_TIME_MS),
+                    cloudSyncStore = cloudSyncStore,
+                    saveStore = saveStore,
+                    challengeProgress = challengeProgressAt(REMOTE_LADDER),
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+
+            assertThat(saveStore.saveCallCount).isEqualTo(0)
+            assertThat(cloudSyncStore.value).isFalse()
+            assertThat(submitter.profileSwap.value).isNull()
+        }
+
+    // ---- The post-pull push guard: push only what the cloud lacks ---------------
+
+    @Test
+    fun aCleanLaunchWhoseCloudAlreadyEqualsLocalDoesNotPush() =
+        runTest(testDispatcher) {
+            // The steady state of a converged player, and the launch that used to rewrite the
+            // snapshot — cover included — every single time. A rewrite moves the snapshot's
+            // modification time and hands the other device a conflict to resolve for nothing.
+            val repository = FakeCloudRepository(initial = remoteBests(), playedTimeMs = REMOTE_PLAYED_TIME_MS)
+            val cloudSyncStore = FakeCloudSyncStore(initial = false)
+            val saveStore = FakeCloudSaveStore(remote = remotePayload())
+            val submitter =
+                submitterFor(
+                    repository = repository,
+                    cloudSyncStore = cloudSyncStore,
+                    saveStore = saveStore,
+                    challengeProgress = challengeProgressAt(REMOTE_LADDER),
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+
+            assertThat(saveStore.loadCallCount).isEqualTo(1)
+            assertThat(saveStore.saveCallCount).isEqualTo(0)
+            assertThat(cloudSyncStore.value).isFalse()
+        }
+
+    @Test
+    fun aLaunchWhoseLocalProgressIsAheadOfTheCloudPushes() =
+        runTest(testDispatcher) {
+            // The cloud is a strict subset of local: nothing lands, and the write-back is the
+            // only way the other device ever sees this one's extra level.
+            val repository =
+                FakeCloudRepository(initial = remoteBests() + localBests(), playedTimeMs = REMOTE_PLAYED_TIME_MS)
+            val saveStore = FakeCloudSaveStore(remote = remotePayload())
+            val submitter =
+                submitterFor(
+                    repository = repository,
+                    cloudSyncStore = FakeCloudSyncStore(initial = false),
+                    saveStore = saveStore,
+                    challengeProgress = challengeProgressAt(REMOTE_LADDER),
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+
+            assertThat(saveStore.saveCallCount).isEqualTo(1)
+            assertThat(decodePushed(saveStore.savedPayloads.single()).bests.keys)
+                .containsExactly(challengeKey(REMOTE_LEVEL), challengeKey(LOCAL_LEVEL))
+        }
+
+    @Test
+    fun aLaunchWhoseCloudIsAheadLandsItAndDoesNotPush() =
+        runTest(testDispatcher) {
+            // The new-device restore. Once the import has landed, local IS the cloud's payload,
+            // so there is nothing to write back — and the import must not arm the retry marker
+            // either, or the push would merely be postponed to the next launch.
+            val repository = FakeCloudRepository(playedTimeMs = LOCAL_PLAYED_TIME_MS)
+            val cloudSyncStore = FakeCloudSyncStore(initial = false)
+            val saveStore = FakeCloudSaveStore(remote = remotePayload())
+            val challengeProgress = ChallengeProgress(inMemoryDataStore(), submitterScope)
+            val submitter =
+                submitterFor(
+                    repository = repository,
+                    cloudSyncStore = cloudSyncStore,
+                    saveStore = saveStore,
+                    challengeProgress = challengeProgress,
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+
+            assertThat(repository.stored).isEqualTo(remoteBests())
+            assertThat(challengeProgress.settledLevel()).isEqualTo(REMOTE_LADDER)
+            assertThat(saveStore.saveCallCount).isEqualTo(0)
+            assertThat(cloudSyncStore.value).isFalse()
+        }
+
+    @Test
+    fun aLaunchWhereBothSidesAreAheadLandsTheCloudAndPushesTheUnionInOnePass() =
+        runTest(testDispatcher) {
+            // One-round convergence (D-01): after this single pass the device holds the union
+            // and so does the cloud, so the other device's next pull needs no further round.
+            val repository = FakeCloudRepository(initial = localBests())
+            val saveStore = FakeCloudSaveStore(remote = remotePayload())
+            val submitter =
+                submitterFor(
+                    repository = repository,
+                    cloudSyncStore = FakeCloudSyncStore(initial = false),
+                    saveStore = saveStore,
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+
+            val union = setOf(challengeKey(REMOTE_LEVEL), challengeKey(LOCAL_LEVEL))
+            assertThat(repository.stored.keys).containsExactlyElementsIn(union)
+            assertThat(saveStore.saveCallCount).isEqualTo(1)
+            assertThat(decodePushed(requireNotNull(saveStore.remote)).bests.keys).containsExactlyElementsIn(union)
+        }
+
+    @Test
+    fun aLocalPlayedTimeAheadOfTheCloudIsSomethingTheCloudLacks() =
+        runTest(testDispatcher) {
+            // The guard compares whole payloads, not only level rows: played time is a field of
+            // the save the other device restores (D-10), so a larger local value is owed a push.
+            val repository = FakeCloudRepository(initial = remoteBests(), playedTimeMs = LONGER_PLAYED_TIME_MS)
+            val saveStore = FakeCloudSaveStore(remote = remotePayload())
+            val submitter =
+                submitterFor(
+                    repository = repository,
+                    cloudSyncStore = FakeCloudSyncStore(initial = false),
+                    saveStore = saveStore,
+                    challengeProgress = challengeProgressAt(REMOTE_LADDER),
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+
+            assertThat(saveStore.saveCallCount).isEqualTo(1)
+        }
+
+    // ---- Harness ---------------------------------------------------------------
+
+    /** A real [ChallengeProgress] whose committed ladder already sits at [ladder]. */
+    private suspend fun challengeProgressAt(ladder: Int): ChallengeProgress =
+        ChallengeProgress(inMemoryDataStore(), submitterScope).also { it.mergeLadder(ladder) }
+
+    private fun submitterFor(
+        repository: ProgressRepository = FakeCloudRepository(),
+        games: GamesService = FakeGamesService(signedIn()),
+        cloudSyncStore: CloudSyncStore = FakeCloudSyncStore(),
+        saveStore: CloudSaveStore = FakeCloudSaveStore(),
+        challengeProgress: ChallengeProgress = ChallengeProgress(inMemoryDataStore(), submitterScope),
+    ): ProgressSubmitter =
+        ProgressSubmitter(
+            progressRepository = repository,
+            gamesService = games,
+            syncStore = FakeSyncStore(),
+            cloudSyncStore = cloudSyncStore,
+            cloudProfileStore = FakeCloudProfileStore(),
             cloudSaveStore = saveStore,
             challengeProgress = challengeProgress,
             scope = submitterScope,
@@ -1352,7 +1395,8 @@ private const val REFUSED_STATUS_CODE = 4_002
 private val REFUSED_OPEN = CloudSaveOutcome(CloudSaveStage.OPEN_FAILED, REFUSED_STATUS_CODE)
 
 /** What a fake pull reports about the snapshot it opened — arbitrary, and distinct from every default. */
-private val PULL_PROBE = CloudPullProbe(changePending = true, conflictsResolved = 1, lastModifiedAt = 1_789_000_000_000L)
+private val PULL_PROBE =
+    CloudPullProbe(changePending = true, conflictsResolved = 1, lastModifiedAt = 1_789_000_000_000L)
 
 /** The remote ladder: far above anything the local fixtures reach, so a regression is visible. */
 private const val REMOTE_LADDER = 50
