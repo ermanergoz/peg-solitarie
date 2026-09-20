@@ -1331,10 +1331,12 @@ private class FakeCloudProfileStore(
 /**
  * A [DataStore] that lives entirely in memory and commits on the calling coroutine.
  *
- * Deliberately not `PreferenceDataStoreFactory` over a `TemporaryFolder`, the way
- * `ChallengeProgressTest` does it: that store commits on `Dispatchers.IO`, which
+ * Deliberately not `PreferenceDataStoreFactory` over a `TemporaryFolder`, which is how the
+ * whole suite used to build a store: that store commits on `Dispatchers.IO`, which
  * `advanceUntilIdle()` cannot drive, so a pass's ladder write would land at a moment virtual
- * time knows nothing about. Committing inline keeps every step of a pass inside the one
+ * time knows nothing about. (F-10 has since made that reasoning the rule everywhere — see
+ * [com.app.pegsolitaire.testing.InMemoryPreferencesDataStore], the tested shared double this
+ * predates and should be folded into.) Committing inline keeps every step of a pass inside the one
  * scheduler the assertions advance — while still leaving `currentLevel`'s `stateIn` cache a
  * separate coroutine, which is what makes the `settledLevel()`-versus-`.value` distinction
  * observable here at all.

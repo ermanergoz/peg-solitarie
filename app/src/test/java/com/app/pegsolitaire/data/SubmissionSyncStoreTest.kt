@@ -1,17 +1,15 @@
 package com.app.pegsolitaire.data
 
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import com.app.pegsolitaire.testing.InMemoryPreferencesDataStore
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
-import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.TemporaryFolder
 import java.io.IOException
 
 /**
@@ -19,7 +17,7 @@ import java.io.IOException
  * "submissions pending" backfill.
  *
  * Built from [PlayGamesOptInRepositoryTest]'s harness for the same reason it exists
- * there: a real Preferences store over a temp file proves the default and the round trip,
+ * there: an [InMemoryPreferencesDataStore] proves the default and the round trip,
  * and a deliberately-throwing store proves the read and the write both **fail open**.
  *
  * The fail-open direction here is `false` — "nothing pending" — and that choice is the
@@ -29,13 +27,10 @@ import java.io.IOException
  * says it must not.
  */
 class SubmissionSyncStoreTest {
-    @get:Rule
-    val tempFolder = TemporaryFolder()
-
     @Test
     fun aFreshStoreHasNothingPending() =
         runTest {
-            val store = SubmissionSyncStore(realDataStore())
+            val store = SubmissionSyncStore(InMemoryPreferencesDataStore())
 
             // D-10: a brand-new install makes no submission calls at launch.
             assertThat(store.pending.first()).isFalse()
@@ -44,7 +39,7 @@ class SubmissionSyncStoreTest {
     @Test
     fun settingPendingPersistsTrue() =
         runTest {
-            val store = SubmissionSyncStore(realDataStore())
+            val store = SubmissionSyncStore(InMemoryPreferencesDataStore())
 
             store.setPending(true)
 
@@ -54,7 +49,7 @@ class SubmissionSyncStoreTest {
     @Test
     fun clearingPendingPersistsFalse() =
         runTest {
-            val store = SubmissionSyncStore(realDataStore())
+            val store = SubmissionSyncStore(InMemoryPreferencesDataStore())
             store.setPending(true)
 
             store.setPending(false)
@@ -97,11 +92,6 @@ class SubmissionSyncStoreTest {
             assertThat(thrown).isInstanceOf(CancellationException::class.java)
         }
 
-    private fun realDataStore(): DataStore<Preferences> =
-        PreferenceDataStoreFactory.create(
-            produceFile = { tempFolder.newFile(TEST_STORE_FILE) },
-        )
-
     /** A store that fails every read AND every write with the I/O error DataStore reports. */
     private fun throwingDataStore(): DataStore<Preferences> =
         object : DataStore<Preferences> {
@@ -119,8 +109,4 @@ class SubmissionSyncStoreTest {
             override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
                 throw CancellationException("cancelled underneath the write")
         }
-
-    private companion object {
-        const val TEST_STORE_FILE = "submission_sync_test.preferences_pb"
-    }
 }
