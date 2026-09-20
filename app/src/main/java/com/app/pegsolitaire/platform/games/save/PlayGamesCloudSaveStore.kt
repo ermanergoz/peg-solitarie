@@ -43,10 +43,22 @@ import javax.inject.Singleton
  *
  * ## Every opened handle reaches exactly one terminal call
  *
- * `commitAndClose` is documented to fail *"when called with a snapshot that was not opened or has
- * already been committed/discarded"*, and an open handle that is never closed makes the **next**
- * open fail for the rest of the process. The failure mode is therefore "cloud save works once per
- * app launch and then silently stops" — which looks like flakiness, not like a bug. Ownership
+ * One sentence of this is SDK contract and the rest is reasoning, and the two are kept apart
+ * deliberately — a phase spent arguing from folklore is what taught us to (FU-2).
+ *
+ * **Documented:** `commitAndClose` fails *"when called with a snapshot that was not opened or has
+ * already been committed/discarded"* (22.0.0 javadoc).
+ *
+ * **Not documented, and asserted here as reasoning only:** that an open handle which is never
+ * closed makes the **next** open fail for the rest of the process. That claim comes from the
+ * developer guide and community lore, not from the bundled 22.0.0 javadoc, which was searched for
+ * it and does not contain it; and this phase's UAT cannot confirm or refute it either, because
+ * every abandoned handle in that session was abandoned in a process that then ended. Treat it as
+ * a plausible failure mode, not as a guarantee.
+ *
+ * **The practice is right either way, which is why it is unchanged.** A leaked handle is at best a
+ * leak and at worst "cloud save works once per app launch and then silently stops" — a shape that
+ * reads as flakiness rather than as a bug — and closing exactly once costs nothing. Ownership
  * therefore never has a gap: while a conflict is being resolved the loop owns the handle and
  * closes it if anything throws, and the moment a resolved handle comes back the public method
  * puts it under a `try`/`finally`. Every path — a thrown SDK call, an early return, a caller's
@@ -59,11 +71,12 @@ import javax.inject.Singleton
  * servers. The data is not lost — GMS owns that retry queue, and an app-level retry would only
  * duplicate it (RESEARCH Pitfall 4).
  *
- * This paragraph used to add that the SDK "exposes no API through which an app could observe" the
- * upload. **That was wrong.** `SnapshotMetadata.hasChangePending()` is documented as *"whether or
- * not this snapshot has any changes pending that have not been uploaded to the server"*, and
- * [load] reads it: the next pull's [CloudPullProbe] says whether the last commit left the device.
- * The upload is still not *waited for* or *retried* here — that remains GMS's queue.
+ * The upload **is** observable, contrary to what this paragraph claimed before the convergence
+ * build: `SnapshotMetadata.hasChangePending()` is documented as *"whether or not this snapshot has
+ * any changes pending that have not been uploaded to the server"*, and [load] reads it, so the next
+ * pull's [CloudPullProbe] carries a flag about the last commit. Read [CloudPullProbe]'s KDoc before
+ * drawing a conclusion from it: the field is weaker than it looks in the `true` direction. The
+ * upload is still not *waited for* or *retried* here — that remains GMS's queue.
  *
  * ## Nothing here logs
  *
@@ -302,7 +315,8 @@ class PlayGamesCloudSaveStore
          *
          * 1. **The loop's exit value is an *open* snapshot.** `resolveConflict` has already written
          *    the merged bytes server-side, but the handle it returns still must reach a terminal
-         *    call; leaving it open blocks the next open for the rest of the process (Pitfall 1).
+         *    call; leaving it open leaks it, and plausibly — this is the undocumented half the class
+         *    KDoc separates out — blocks the next open for the rest of the process (Pitfall 1).
          *    Both callers therefore take ownership of it immediately, and until they do the loop
          *    itself closes whatever it is holding when anything throws.
          * 2. **`EMPTY_CHANGE` during resolution, real metadata only at the final commit.** The

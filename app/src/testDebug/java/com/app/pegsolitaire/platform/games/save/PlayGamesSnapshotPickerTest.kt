@@ -35,6 +35,11 @@ import org.junit.Test
  * session can read the cover, the description and the played time (CLOUD-03) and can neither
  * create a second snapshot nor delete the player's only one. Same harness as
  * `PlayGamesCloudSaveStoreTest`.
+ *
+ * This file lives in `src/testDebug` rather than `src/test` because the class under test lives in
+ * `src/debug`: the picker is not compiled into release (tech-lead L-3), so neither is its spec. The
+ * app module has only a `debug` unit-test variant today, so `src/test` would still have compiled —
+ * but by accident, and it would break the day a release unit-test variant appears.
  */
 class PlayGamesSnapshotPickerTest {
     private val testDispatcher = StandardTestDispatcher()
@@ -68,14 +73,14 @@ class PlayGamesSnapshotPickerTest {
             // flipped turns a viewer into a way to lose the player's only save.
             verify(exactly = 1) {
                 client.getSelectSnapshotIntent(
-                    CloudSaveConstants.DEBUG_PICKER_TITLE,
+                    DebugPickerConstants.PICKER_TITLE,
                     false,
                     false,
-                    CloudSaveConstants.DEBUG_PICKER_MAX_SNAPSHOTS,
+                    DebugPickerConstants.MAX_SNAPSHOTS,
                 )
             }
             verify(exactly = 1) {
-                activity.startActivityForResult(pickerIntent, CloudSaveConstants.DEBUG_PICKER_REQUEST_CODE)
+                activity.startActivityForResult(pickerIntent, DebugPickerConstants.REQUEST_CODE)
             }
         }
 

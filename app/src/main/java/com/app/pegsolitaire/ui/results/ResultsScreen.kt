@@ -91,7 +91,8 @@ private var SemanticsPropertyReceiver.earnedStarCountValue by EarnedStarCountKey
  * @param onReplay re-plays the same level (carries `replayId`). Classic only.
  * @param onCatalog pops back to the Classic catalog. Classic only.
  * @param onHome pops back to Home.
- * @param onNextLevel advances a solved Challenge level to N+1 (carries the next level, D-01).
+ * @param onNextLevel reports the solved Challenge continue tap (D-01). It carries no level:
+ *   the next one is `max(ladder head, N + 1)` and is resolved by `ResultsViewModel` (D-04a).
  * @param onRetry reloads the same deterministic Challenge board when stuck (carries N, D-10).
  * @param onNavigateBack leaves the Results screen (top-bar back nav).
  * @param modifier layout modifier for the screen.
@@ -103,7 +104,7 @@ fun ResultsScreen(
     onReplay: (String) -> Unit,
     onCatalog: () -> Unit,
     onHome: () -> Unit,
-    onNextLevel: (Int) -> Unit,
+    onNextLevel: () -> Unit,
     onRetry: (Int) -> Unit,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,

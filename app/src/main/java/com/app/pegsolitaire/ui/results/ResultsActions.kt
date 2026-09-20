@@ -30,9 +30,15 @@ import com.app.pegsolitaire.ui.theme.ctaGradientBrush
  * - Classic ([ResultsUiState.challengeLevel] == null): a gradient Replay (carrying
  *   `replayId`) over quiet Catalog / Home chips — Classic has no "next board".
  * - Challenge solved ([ResultsUiState.showNextLevel], D-01): a gradient "Next level"
- *   advancing to N+1 over a quiet Home. No Replay/Catalog.
+ *   over a quiet Home. No Replay/Catalog.
  * - Challenge stuck (D-10): a gradient "Retry" reloading the same deterministic board (N)
  *   over a quiet Home. "Next level" is absent.
+ *
+ * **"Next level" carries no number, and that is D-04a rather than tidiness.** Which level
+ * comes next is `max(ladder head, N + 1)` — a read of the Challenge ladder, which this
+ * stateless leaf has no access to and must not acquire. It reports the tap and nothing else;
+ * `ResultsViewModel.onNextLevelTapped` resolves the destination. The label is unnumbered too,
+ * so nothing on screen promises the player `N + 1`.
  */
 @Composable
 internal fun ResultsActions(
@@ -40,7 +46,7 @@ internal fun ResultsActions(
     onReplay: (String) -> Unit,
     onCatalog: () -> Unit,
     onHome: () -> Unit,
-    onNextLevel: (Int) -> Unit,
+    onNextLevel: () -> Unit,
     onRetry: (Int) -> Unit,
 ) {
     Column(
@@ -53,7 +59,7 @@ internal fun ResultsActions(
         } else if (state.showNextLevel) {
             PrimaryAction(
                 textRes = R.string.action_next_level,
-                onClick = { onNextLevel(challengeLevel + 1) },
+                onClick = onNextLevel,
             )
         } else {
             PrimaryAction(
