@@ -1,7 +1,6 @@
 package com.app.pegsolitaire.ui.results
 
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.lifecycle.SavedStateHandle
@@ -34,6 +33,7 @@ import com.app.pegsolitaire.platform.games.GamesService
 import com.app.pegsolitaire.platform.games.GamesSignInState
 import com.app.pegsolitaire.platform.games.save.CloudSaveStore
 import com.app.pegsolitaire.platform.games.save.FakeCloudSaveStore
+import com.app.pegsolitaire.testing.InMemoryPreferencesDataStore
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -54,9 +54,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Before
-import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -81,7 +79,7 @@ import java.io.IOException
  * lower half of this file pins that: eligibility, the D-12 preload, the D-10 fast paths,
  * the D-08 quiescence boundary, D-09's ad-then-navigate ordering and D-11's record-only-on-
  * a-real-presentation rule. Those cases run against a **real** `InterstitialCadenceStore`
- * over a temp-file Preferences store (the `ChallengeProgressTest` harness) and a gated
+ * over an [InMemoryPreferencesDataStore] (the `ChallengeProgressTest` harness) and a gated
  * [FakeAdGateway], so no cadence arithmetic is ever restated here.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -102,12 +100,6 @@ class ResultsViewModelTest {
      * default (fully suppressed) store and is exactly what the non-ad cases want.
      */
     private val storeScope = CoroutineScope(testDispatcher)
-
-    /** Keeps every temp store file distinct; `TemporaryFolder.newFile` refuses a repeat name. */
-    private var storeFileCount = 0
-
-    @get:Rule
-    val tempFolder = TemporaryFolder()
 
     @Before
     fun setUp() {
@@ -1610,7 +1602,8 @@ class ResultsViewModelTest {
         )
 
     /** A brand-new install's cadence: `firstSessionComplete` false, so `mayShow` is never true. */
-    private fun freshCadenceStore(): InterstitialCadenceStore = InterstitialCadenceStore(realDataStore(), storeScope)
+    private fun freshCadenceStore(): InterstitialCadenceStore =
+        InterstitialCadenceStore(InMemoryPreferencesDataStore(), storeScope)
 
     /**
      * A cadence store seeded into a fully ad-eligible state, settled before it is returned.
@@ -1627,7 +1620,7 @@ class ResultsViewModelTest {
      * rather than racing the disk.
      */
     private suspend fun eligibleCadenceStore(scope: CoroutineScope): InterstitialCadenceStore {
-        val store = InterstitialCadenceStore(realDataStore(), scope)
+        val store = InterstitialCadenceStore(InMemoryPreferencesDataStore(), scope)
         val now = System.currentTimeMillis()
         repeat(InterstitialCadenceParams.SUPPRESSED_FIRST_LEVELS) { store.recordWin() }
         store.recordForegroundLeft(now - InterstitialCadenceParams.SESSION_GAP_MS - 1)
@@ -1652,12 +1645,6 @@ class ResultsViewModelTest {
         advanceUntilIdle()
         return store.state.value
     }
-
-    /** A real temp-file Preferences store, one per call (the `ChallengeProgressTest` harness). */
-    private fun realDataStore(): DataStore<Preferences> =
-        PreferenceDataStoreFactory.create(
-            produceFile = { tempFolder.newFile("cadence_${storeFileCount++}.preferences_pb") },
-        )
 
     private fun savedStateHandleFor(
         levelId: String,

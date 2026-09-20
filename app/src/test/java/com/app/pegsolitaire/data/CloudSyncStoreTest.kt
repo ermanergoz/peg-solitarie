@@ -1,28 +1,26 @@
 package com.app.pegsolitaire.data
 
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import com.app.pegsolitaire.platform.games.save.CloudPullProbe
 import com.app.pegsolitaire.platform.games.save.CloudSaveOutcome
 import com.app.pegsolitaire.platform.games.save.CloudSaveStage
+import com.app.pegsolitaire.testing.InMemoryPreferencesDataStore
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
-import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.TemporaryFolder
 import java.io.IOException
 
 /**
  * Unit coverage of [CloudSyncStore] — the one persisted boolean behind D-01's cloud-push
  * retry.
  *
- * Built from [SubmissionSyncStoreTest]'s harness, which is the shape this store copies: a
- * real Preferences store over a temp file proves the default and the round trip, and a
+ * Built from [SubmissionSyncStoreTest]'s harness, which is the shape this store copies: an
+ * [InMemoryPreferencesDataStore] proves the default and the round trip, and a
  * deliberately-throwing store proves the read and the write both **fail open**.
  *
  * The last case is the one that justifies this file existing separately at all — the
@@ -30,13 +28,10 @@ import java.io.IOException
  * the leaderboards and fail at the snapshot.
  */
 class CloudSyncStoreTest {
-    @get:Rule
-    val tempFolder = TemporaryFolder()
-
     @Test
     fun aFreshStoreHasNoPushPending() =
         runTest {
-            val store = CloudSyncStore(realDataStore())
+            val store = CloudSyncStore(InMemoryPreferencesDataStore())
 
             // D-01 inherits D-10's "a brand-new install makes no calls at launch".
             assertThat(store.pushPending.first()).isFalse()
@@ -45,7 +40,7 @@ class CloudSyncStoreTest {
     @Test
     fun settingPushPendingPersistsTrue() =
         runTest {
-            val store = CloudSyncStore(realDataStore())
+            val store = CloudSyncStore(InMemoryPreferencesDataStore())
 
             store.setPushPending(true)
 
@@ -55,7 +50,7 @@ class CloudSyncStoreTest {
     @Test
     fun clearingPushPendingPersistsFalse() =
         runTest {
-            val store = CloudSyncStore(realDataStore())
+            val store = CloudSyncStore(InMemoryPreferencesDataStore())
             store.setPushPending(true)
 
             store.setPushPending(false)
@@ -101,7 +96,7 @@ class CloudSyncStoreTest {
     @Test
     fun recordingAFailedPushPersistsTheMarkerTheStageNameAndTheStatusCode() =
         runTest {
-            val dataStore = realDataStore()
+            val dataStore = InMemoryPreferencesDataStore()
             val store = CloudSyncStore(dataStore)
 
             store.recordPushOutcome(CloudSaveOutcome(CloudSaveStage.OPEN_FAILED, STATUS_CODE))
@@ -115,7 +110,7 @@ class CloudSyncStoreTest {
     @Test
     fun recordingACommittedPushClearsTheMarkerAndRemovesAStaleStatusCode() =
         runTest {
-            val dataStore = realDataStore()
+            val dataStore = InMemoryPreferencesDataStore()
             val store = CloudSyncStore(dataStore)
             store.recordPushOutcome(CloudSaveOutcome(CloudSaveStage.OPEN_FAILED, STATUS_CODE))
 
@@ -132,7 +127,7 @@ class CloudSyncStoreTest {
     @Test
     fun anOutcomeIsRecordedInASingleEditSoTheThreeKeysCannotDisagree() =
         runTest {
-            val dataStore = CountingDataStore(realDataStore())
+            val dataStore = CountingDataStore(InMemoryPreferencesDataStore())
             val store = CloudSyncStore(dataStore)
 
             store.recordPushOutcome(CloudSaveOutcome(CloudSaveStage.COMMIT_FAILED, STATUS_CODE))
@@ -178,7 +173,7 @@ class CloudSyncStoreTest {
     @Test
     fun recordingAPullProbePersistsItsThreeValuesAndThatTheSnapshotOpened() =
         runTest {
-            val dataStore = realDataStore()
+            val dataStore = InMemoryPreferencesDataStore()
             val store = CloudSyncStore(dataStore)
 
             store.recordPullProbe(PROBE)
@@ -193,7 +188,7 @@ class CloudSyncStoreTest {
     @Test
     fun recordingAPullThatNeverOpenedRemovesTheStaleValuesOfTheLastOneThatDid() =
         runTest {
-            val dataStore = realDataStore()
+            val dataStore = InMemoryPreferencesDataStore()
             val store = CloudSyncStore(dataStore)
             store.recordPullProbe(PROBE)
 
@@ -211,7 +206,7 @@ class CloudSyncStoreTest {
     @Test
     fun aPullProbeIsRecordedInASingleEditSoItsKeysCannotDisagree() =
         runTest {
-            val dataStore = CountingDataStore(realDataStore())
+            val dataStore = CountingDataStore(InMemoryPreferencesDataStore())
             val store = CloudSyncStore(dataStore)
 
             store.recordPullProbe(PROBE)
@@ -222,7 +217,7 @@ class CloudSyncStoreTest {
     @Test
     fun recordingAPullProbeLeavesThePushMarkerAndThePushDiagnosticAlone() =
         runTest {
-            val dataStore = realDataStore()
+            val dataStore = InMemoryPreferencesDataStore()
             val store = CloudSyncStore(dataStore)
             store.recordPushOutcome(CloudSaveOutcome(CloudSaveStage.OPEN_FAILED, STATUS_CODE))
 
@@ -273,7 +268,7 @@ class CloudSyncStoreTest {
             // The reason this is a sibling store and not a fifth key on SubmissionSyncStore:
             // a pass can fail at the snapshot while every leaderboard submission succeeded,
             // and each outcome has to be recoverable on its own.
-            val dataStore = realDataStore()
+            val dataStore = InMemoryPreferencesDataStore()
             val cloudStore = CloudSyncStore(dataStore)
             val submissionStore = SubmissionSyncStore(dataStore)
 
@@ -287,7 +282,7 @@ class CloudSyncStoreTest {
     fun aPendingSubmissionLeavesTheCloudMarkerAlone() =
         runTest {
             // …and symmetrically: leaderboards can fail while the snapshot landed.
-            val dataStore = realDataStore()
+            val dataStore = InMemoryPreferencesDataStore()
             val cloudStore = CloudSyncStore(dataStore)
             val submissionStore = SubmissionSyncStore(dataStore)
 
@@ -296,11 +291,6 @@ class CloudSyncStoreTest {
             assertThat(submissionStore.pending.first()).isTrue()
             assertThat(cloudStore.pushPending.first()).isFalse()
         }
-
-    private fun realDataStore(): DataStore<Preferences> =
-        PreferenceDataStoreFactory.create(
-            produceFile = { tempFolder.newFile(TEST_STORE_FILE) },
-        )
 
     /** A store that fails every read AND every write with the I/O error DataStore reports. */
     private fun throwingDataStore(): DataStore<Preferences> =
@@ -336,8 +326,6 @@ class CloudSyncStoreTest {
     }
 
     private companion object {
-        const val TEST_STORE_FILE = "cloud_sync_test.preferences_pb"
-
         /** An arbitrary GMS status integer; the store persists whatever it is given. */
         const val STATUS_CODE = 4_002
 

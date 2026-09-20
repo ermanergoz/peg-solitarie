@@ -1,17 +1,15 @@
 package com.app.pegsolitaire.data
 
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import com.app.pegsolitaire.testing.InMemoryPreferencesDataStore
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
-import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.TemporaryFolder
 import java.io.IOException
 
 /**
@@ -27,21 +25,18 @@ import java.io.IOException
  *    every later launch (D-01), whether the player opted in from the prompt (D-18) or
  *    from the Settings row (D-19).
  *
- * Exercised against real and fake [DataStore]s (pure JVM, no Android), mirroring
- * [OnboardingRepositoryTest]: a real Preferences store over a temp file proves the
+ * Exercised against working and hostile [DataStore]s (pure JVM, no Android), mirroring
+ * [OnboardingRepositoryTest]: an [InMemoryPreferencesDataStore] proves the
  * defaults and both writes, and a deliberately-throwing store proves the reads **fail
  * open** to `false`. Failing open is the safe direction here — a damaged store degrades
  * to "never asked, not opted in", which leaves the SDK untouched and at worst re-asks a
  * harmless question. It can never fabricate an opt-in the player did not give.
  */
 class PlayGamesOptInRepositoryTest {
-    @get:Rule
-    val tempFolder = TemporaryFolder()
-
     @Test
     fun bothFlagsDefaultToFalseOnAFreshStore() =
         runTest {
-            val repository = PlayGamesOptInRepository(realDataStore())
+            val repository = PlayGamesOptInRepository(InMemoryPreferencesDataStore())
 
             assertThat(repository.promptAnswered.first()).isFalse()
             assertThat(repository.optedIn.first()).isFalse()
@@ -50,7 +45,7 @@ class PlayGamesOptInRepositoryTest {
     @Test
     fun setNotNowRetiresThePromptWithoutOptingIn() =
         runTest {
-            val repository = PlayGamesOptInRepository(realDataStore())
+            val repository = PlayGamesOptInRepository(InMemoryPreferencesDataStore())
 
             repository.setNotNow()
 
@@ -63,7 +58,7 @@ class PlayGamesOptInRepositoryTest {
     @Test
     fun setOptedInPersistsBothFlags() =
         runTest {
-            val repository = PlayGamesOptInRepository(realDataStore())
+            val repository = PlayGamesOptInRepository(InMemoryPreferencesDataStore())
 
             repository.setOptedIn()
 
@@ -76,7 +71,7 @@ class PlayGamesOptInRepositoryTest {
         runTest {
             // D-19: the Settings row is the declined player's only way back in, and taking
             // it must fully opt them in — not leave them stuck on the earlier "Not now".
-            val repository = PlayGamesOptInRepository(realDataStore())
+            val repository = PlayGamesOptInRepository(InMemoryPreferencesDataStore())
             repository.setNotNow()
 
             repository.setOptedIn()
@@ -123,11 +118,6 @@ class PlayGamesOptInRepositoryTest {
             assertThat(thrown).isInstanceOf(CancellationException::class.java)
         }
 
-    private fun realDataStore(): DataStore<Preferences> =
-        PreferenceDataStoreFactory.create(
-            produceFile = { tempFolder.newFile(TEST_STORE_FILE) },
-        )
-
     /** A store that fails every read AND every write with the I/O error DataStore reports. */
     private fun throwingDataStore(): DataStore<Preferences> =
         object : DataStore<Preferences> {
@@ -145,8 +135,4 @@ class PlayGamesOptInRepositoryTest {
             override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
                 throw CancellationException("cancelled underneath the write")
         }
-
-    private companion object {
-        const val TEST_STORE_FILE = "play_games_opt_in_test.preferences_pb"
-    }
 }
