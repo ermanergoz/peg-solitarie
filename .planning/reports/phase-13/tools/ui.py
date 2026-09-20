@@ -36,6 +36,6 @@ def main():
                 x,y=(b[0]+b[2])//2,(b[1]+b[3])//2; adb(ser,"shell","input","tap",str(x),str(y)); print("tapped",t or d,x,y); return
         print("NOT FOUND",want); sys.exit(1)
     elif cmd=="shot":
-        E=os.path.join(os.path.dirname(S),"evidence"); os.makedirs(E,exist_ok=True); p=f"{E}/{sys.argv[3]}.png"; open(p,"wb").write(adb(ser,"exec-out","screencap","-p").stdout)
+        E=os.environ.get("QA_OUT") or os.path.join(os.path.dirname(S),"evidence"); os.makedirs(E,exist_ok=True); p=f"{E}/{sys.argv[3]}.png"; open(p,"wb").write(adb(ser,"exec-out","screencap","-p").stdout)
         subprocess.run(["sips","-Z","900",p,"--out",p.replace(".png","-s.png")],capture_output=True); print(p.replace(".png","-s.png"))
 main()

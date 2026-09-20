@@ -14,3 +14,5 @@
 2026-09-20 | Q-001 | founder, producer | answered: Saved Games already enabled and published | .planning/questions/FOUNDER.md
 2026-09-20 | phase-13 cloud save outcome code | android-game-dev, code-auditor | PASS | .planning/reports/phase-13/android-game-dev-cloud-save-outcome.md, code-auditor-cloud-save-outcome.md
 2026-09-20 | phase-13 save-reason diagnostic | qa-engineer | FAIL — root cause: getConflict() throws when there is no conflict (PlayGamesCloudSaveStore.kt:296, :316); every push and pull dies on the no-conflict path | .planning/reports/phase-13/qa-engineer-save-reason.md
+2026-09-20 | phase-13 getConflict fix | android-game-dev, code-auditor | PASS (conditional on full check) | .planning/reports/phase-13/android-game-dev-getconflict-fix.md, code-auditor-getconflict-fix.md
+2026-09-20 | phase-13 device pass re-run | qa-engineer | FAIL — fix verified (COMMITTED); 10 fail, 11 fail (D-04 pass), 12 blocked, 13 partial: devices do not converge | .planning/reports/phase-13/qa-engineer-device-pass-rerun.md
