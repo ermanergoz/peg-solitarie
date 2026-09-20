@@ -88,6 +88,8 @@ class PlayGamesCloudSaveStoreTest {
         every { snapshot.snapshotContents } returns contents
         every { snapshot.metadata } returns metadata
         every { metadata.snapshotId } returns SNAPSHOT_ID
+        every { metadata.hasChangePending() } returns false
+        every { metadata.lastModifiedTimestamp } returns LAST_MODIFIED_AT
         every { contents.readFully() } returns REMOTE_BYTES
         every { contents.writeBytes(any()) } returns true
         every { resolutionContents.writeBytes(any()) } returns true
@@ -115,7 +117,7 @@ class PlayGamesCloudSaveStoreTest {
         runTest(testDispatcher) {
             coEvery { activityProvider.awaitActivity() } coAnswers { awaitCancellation() }
 
-            val result = store().load(::concat)
+            val result = store().load(::concat).bytes
 
             assertThat(result).isNull()
             // The bound is what makes this a failed pass rather than a hung singleton: the SDK
@@ -146,7 +148,7 @@ class PlayGamesCloudSaveStoreTest {
     @Test
     fun loadOnANonConflictedOpenReturnsTheSnapshotBytes() =
         runTest(testDispatcher) {
-            val result = store().load(::concat)
+            val result = store().load(::concat).bytes
 
             assertThat(result).isEqualTo(REMOTE_BYTES)
         }
@@ -156,7 +158,7 @@ class PlayGamesCloudSaveStoreTest {
         runTest(testDispatcher) {
             every { contents.readFully() } returns ByteArray(0)
 
-            val result = store().load(::concat)
+            val result = store().load(::concat).bytes
 
             // "There is no payload" and "the payload is empty" must be indistinguishable to the
             // caller: both mean stay local. A caller handed an empty array could reasonably
@@ -225,7 +227,7 @@ class PlayGamesCloudSaveStoreTest {
         runTest(testDispatcher) {
             every { client.open(any<String>(), any(), any()) } returns Tasks.forResult(conflictResult())
 
-            val result = store().load(::concat)
+            val result = store().load(::concat).bytes
 
             assertThat(result).isEqualTo(REMOTE_BYTES)
         }
@@ -236,7 +238,7 @@ class PlayGamesCloudSaveStoreTest {
             every { client.open(any<String>(), any(), any()) } returns Tasks.forResult(conflictResult())
             every { client.resolveConflict(any(), any(), any(), any()) } answers { Tasks.forResult(conflictResult()) }
 
-            val result = store().load(::concat)
+            val result = store().load(::concat).bytes
 
             assertThat(result).isNull()
             // Bounded, not defensive: resolveConflict is documented to be able to produce a
@@ -266,7 +268,7 @@ class PlayGamesCloudSaveStoreTest {
         runTest(testDispatcher) {
             every { contents.readFully() } throws IOException(SDK_FAILURE)
 
-            val result = store().load(::concat)
+            val result = store().load(::concat).bytes
 
             assertThat(result).isNull()
             verify(exactly = 1) { client.discardAndClose(snapshot) }
@@ -279,7 +281,7 @@ class PlayGamesCloudSaveStoreTest {
                 client.open(any<String>(), any(), any())
             } returns Tasks.forException(IllegalStateException(SDK_FAILURE))
 
-            val result = store().load(::concat)
+            val result = store().load(::concat).bytes
 
             assertThat(result).isNull()
             verify(exactly = 0) { client.discardAndClose(any()) }
@@ -555,7 +557,7 @@ class PlayGamesCloudSaveStoreTest {
 
             // `load` shares the open with `save` but deliberately reports nothing further: the
             // push outcome diagnoses the shared open, and "stay local" needs no reason.
-            assertThat(store().load(::concat)).isNull()
+            assertThat(store().load(::concat).bytes).isNull()
         }
 
     @Test
@@ -611,7 +613,7 @@ class PlayGamesCloudSaveStoreTest {
             val opened = dataResult(snapshot)
             every { client.open(any<String>(), any(), any()) } returns Tasks.forResult(opened)
 
-            val result = store().load(::concat)
+            val result = store().load(::concat).bytes
 
             assertThat(opened.isConflict).isFalse()
             assertThat(result).isEqualTo(REMOTE_BYTES)
@@ -672,7 +674,7 @@ class PlayGamesCloudSaveStoreTest {
             val server = snapshotOf(SERVER_BYTES)
             every { client.open(any<String>(), any(), any()) } returns Tasks.forResult(conflictResult(server))
 
-            val result = store().load { _, _ -> error(SDK_FAILURE) }
+            val result = store().load { _, _ -> error(SDK_FAILURE) }.bytes
 
             assertThat(result).isNull()
             verify(exactly = 1) { client.discardAndClose(server) }
@@ -706,6 +708,92 @@ class PlayGamesCloudSaveStoreTest {
             // Closing the handle must never come at the price of swallowing the cancel (WR-04).
             assertThat(attempt.exceptionOrNull()).isInstanceOf(CancellationException::class.java)
             verify(exactly = 1) { client.discardAndClose(server) }
+        }
+
+    // ---- load: the pull probe (what the opened snapshot says about itself) -----------------------
+
+    @Test
+    fun aPullReportsWhetherTheOpenedSnapshotStillHasChangesThatNeverReachedTheServer() =
+        runTest(testDispatcher) {
+            // `hasChangePending()` is the SDK's own answer to "did the last commit upload?" — the
+            // one question a locally-COMMITTED push outcome cannot answer.
+            every { metadata.hasChangePending() } returns true
+
+            val probe = store().load(::concat).probe
+
+            assertThat(probe).isEqualTo(
+                CloudPullProbe(changePending = true, conflictsResolved = 0, lastModifiedAt = LAST_MODIFIED_AT),
+            )
+        }
+
+    @Test
+    fun aPullThatResolvedConflictsCountsThem() =
+        runTest(testDispatcher) {
+            every { client.open(any<String>(), any(), any()) } returns Tasks.forResult(conflictResult())
+            every { client.resolveConflict(any(), any(), any(), any()) } returnsMany
+                listOf(Tasks.forResult(conflictResult()), Tasks.forResult(dataResult(snapshot)))
+
+            val probe = store().load(::concat).probe
+
+            assertThat(probe?.conflictsResolved).isEqualTo(2)
+        }
+
+    @Test
+    fun aPullOfAnEmptySnapshotStillReportsItsProbe() =
+        runTest(testDispatcher) {
+            // "No payload" and "the snapshot never opened" are the same instruction to the caller
+            // and different facts to a diagnostic: only the second has nothing to say.
+            every { contents.readFully() } returns ByteArray(0)
+
+            val pull = store().load(::concat)
+
+            assertThat(pull.bytes).isNull()
+            assertThat(pull.probe).isNotNull()
+        }
+
+    @Test
+    fun aPullThatNeverOpenedTheSnapshotHasNoProbe() =
+        runTest(testDispatcher) {
+            every { client.open(any<String>(), any(), any()) } returns Tasks.forException(apiFailure())
+
+            assertThat(store().load(::concat).probe).isNull()
+        }
+
+    @Test
+    fun aPullWithoutAForegroundActivityHasNoProbe() =
+        runTest(testDispatcher) {
+            coEvery { activityProvider.awaitActivity() } coAnswers { awaitCancellation() }
+
+            assertThat(store().load(::concat).probe).isNull()
+        }
+
+    @Test
+    fun aProbeThatCannotBeReadNeverCostsThePullItsBytes() =
+        runTest(testDispatcher) {
+            // A diagnostic is decoration on a restore. Metadata the SDK refuses to hand over must
+            // not turn a readable cloud save into "stay local".
+            every { metadata.hasChangePending() } throws IllegalStateException(SDK_FAILURE)
+
+            val pull = store().load(::concat)
+
+            assertThat(pull.bytes).isEqualTo(REMOTE_BYTES)
+            assertThat(pull.probe).isNull()
+            verify(exactly = 1) { client.discardAndClose(snapshot) }
+        }
+
+    @Test
+    fun theProbeNeverReadsAnythingThatNamesThePlayerTheDeviceOrTheSave() =
+        runTest(testDispatcher) {
+            store().load(::concat)
+
+            // T-11-04 / T-13-40: no SDK string is read, so none can be stored. The device name is
+            // in this list on purpose — see the KDoc on CloudPullProbe for why it was dropped.
+            verify(exactly = 0) { metadata.deviceName }
+            verify(exactly = 0) { metadata.description }
+            verify(exactly = 0) { metadata.uniqueName }
+            verify(exactly = 0) { metadata.snapshotId }
+            verify(exactly = 0) { metadata.owner }
+            verify(exactly = 0) { metadata.coverImageUri }
         }
 
     // ---- cancellation is never absorbed by a cleanup or a guard ---------------------------------
@@ -777,7 +865,7 @@ class PlayGamesCloudSaveStoreTest {
             val store = store()
             every { client.discardAndClose(any()) } returns Tasks.forException(apiFailure())
 
-            val pulled = store.load(::concat)
+            val pulled = store.load(::concat).bytes
 
             // The pull itself is still a success: the bytes were read before the close failed.
             assertThat(pulled).isEqualTo(REMOTE_BYTES)
@@ -871,6 +959,9 @@ private const val CANCELLED = "cancelled"
 /** An arbitrary GMS status integer; the store must pass it through untouched, whatever it is. */
 private const val API_STATUS_CODE = 4_002
 private const val PLAYED_TIME_MS = 987_654L
+
+/** An arbitrary epoch-millis value for the opened snapshot's last modification. */
+private const val LAST_MODIFIED_AT = 1_789_000_000_000L
 
 /** The documented floor: the javadoc guarantees at least 3 MB per snapshot. */
 private const val SERVER_CAP_BYTES = 3 * 1024 * 1024

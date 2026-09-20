@@ -3,6 +3,7 @@ package com.app.pegsolitaire.data
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import com.app.pegsolitaire.platform.games.save.CloudPullProbe
 import com.app.pegsolitaire.platform.games.save.CloudSaveOutcome
 import com.app.pegsolitaire.platform.games.save.CloudSaveStage
 import com.google.common.truth.Truth.assertThat
@@ -172,6 +173,100 @@ class CloudSyncStoreTest {
             assertThat(thrown).isInstanceOf(CancellationException::class.java)
         }
 
+    // ---- The pull probe ----------------------------------------------------------------
+
+    @Test
+    fun recordingAPullProbePersistsItsThreeValuesAndThatTheSnapshotOpened() =
+        runTest {
+            val dataStore = realDataStore()
+            val store = CloudSyncStore(dataStore)
+
+            store.recordPullProbe(PROBE)
+
+            val stored = dataStore.data.first()
+            assertThat(stored[PlayGamesPreferences.CLOUD_LAST_PULL_OPENED_KEY]).isTrue()
+            assertThat(stored[PlayGamesPreferences.CLOUD_LAST_PULL_CHANGE_PENDING_KEY]).isTrue()
+            assertThat(stored[PlayGamesPreferences.CLOUD_LAST_PULL_CONFLICTS_RESOLVED_KEY]).isEqualTo(CONFLICTS)
+            assertThat(stored[PlayGamesPreferences.CLOUD_LAST_PULL_LAST_MODIFIED_AT_KEY]).isEqualTo(MODIFIED_AT)
+        }
+
+    @Test
+    fun recordingAPullThatNeverOpenedRemovesTheStaleValuesOfTheLastOneThatDid() =
+        runTest {
+            val dataStore = realDataStore()
+            val store = CloudSyncStore(dataStore)
+            store.recordPullProbe(PROBE)
+
+            store.recordPullProbe(null)
+
+            // "Absent when unknown", the status key's rule: values left over from an earlier pull,
+            // sitting beside opened = false, would be read as describing the pull that failed.
+            val stored = dataStore.data.first()
+            assertThat(stored[PlayGamesPreferences.CLOUD_LAST_PULL_OPENED_KEY]).isFalse()
+            assertThat(stored.contains(PlayGamesPreferences.CLOUD_LAST_PULL_CHANGE_PENDING_KEY)).isFalse()
+            assertThat(stored.contains(PlayGamesPreferences.CLOUD_LAST_PULL_CONFLICTS_RESOLVED_KEY)).isFalse()
+            assertThat(stored.contains(PlayGamesPreferences.CLOUD_LAST_PULL_LAST_MODIFIED_AT_KEY)).isFalse()
+        }
+
+    @Test
+    fun aPullProbeIsRecordedInASingleEditSoItsKeysCannotDisagree() =
+        runTest {
+            val dataStore = CountingDataStore(realDataStore())
+            val store = CloudSyncStore(dataStore)
+
+            store.recordPullProbe(PROBE)
+
+            assertThat(dataStore.updateCount).isEqualTo(1)
+        }
+
+    @Test
+    fun recordingAPullProbeLeavesThePushMarkerAndThePushDiagnosticAlone() =
+        runTest {
+            val dataStore = realDataStore()
+            val store = CloudSyncStore(dataStore)
+            store.recordPushOutcome(CloudSaveOutcome(CloudSaveStage.OPEN_FAILED, STATUS_CODE))
+
+            store.recordPullProbe(PROBE)
+
+            val stored = dataStore.data.first()
+            assertThat(store.pushPending.first()).isTrue()
+            assertThat(stored[PlayGamesPreferences.CLOUD_LAST_PUSH_STAGE_KEY]).isEqualTo("OPEN_FAILED")
+            assertThat(stored[PlayGamesPreferences.CLOUD_LAST_PUSH_STATUS_KEY]).isEqualTo(STATUS_CODE)
+        }
+
+    @Test
+    fun thePullProbeKeysKeepTheNamesTheDeviceToolReads() {
+        // `tools/prefs.py` prints every `play_games*` key; QA briefs quote these four literally.
+        assertThat(PlayGamesPreferences.CLOUD_LAST_PULL_OPENED_KEY.name)
+            .isEqualTo("play_games_cloud_last_pull_opened")
+        assertThat(PlayGamesPreferences.CLOUD_LAST_PULL_CHANGE_PENDING_KEY.name)
+            .isEqualTo("play_games_cloud_last_pull_change_pending")
+        assertThat(PlayGamesPreferences.CLOUD_LAST_PULL_CONFLICTS_RESOLVED_KEY.name)
+            .isEqualTo("play_games_cloud_last_pull_conflicts_resolved")
+        assertThat(PlayGamesPreferences.CLOUD_LAST_PULL_LAST_MODIFIED_AT_KEY.name)
+            .isEqualTo("play_games_cloud_last_pull_last_modified_at")
+    }
+
+    @Test
+    fun aFailingPullProbeWriteIsDroppedRatherThanThrown() =
+        runTest {
+            val store = CloudSyncStore(throwingDataStore())
+
+            store.recordPullProbe(PROBE)
+
+            assertThat(store.pushPending.first()).isFalse()
+        }
+
+    @Test
+    fun aCancelledPullProbeWriteStillPropagatesAsCancellation() =
+        runTest {
+            val store = CloudSyncStore(cancellingDataStore())
+
+            val thrown = runCatching { store.recordPullProbe(PROBE) }.exceptionOrNull()
+
+            assertThat(thrown).isInstanceOf(CancellationException::class.java)
+        }
+
     @Test
     fun aPendingCloudPushLeavesTheSubmissionsMarkerAlone() =
         runTest {
@@ -245,5 +340,11 @@ class CloudSyncStoreTest {
 
         /** An arbitrary GMS status integer; the store persists whatever it is given. */
         const val STATUS_CODE = 4_002
+
+        const val CONFLICTS = 2
+        const val MODIFIED_AT = 1_789_000_000_000L
+
+        /** A pull that opened, resolved two conflicts and found an upload still outstanding. */
+        val PROBE = CloudPullProbe(changePending = true, conflictsResolved = CONFLICTS, lastModifiedAt = MODIFIED_AT)
     }
 }

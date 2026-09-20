@@ -24,7 +24,7 @@ class FakeCloudSaveStoreTest {
         runTest {
             val store = FakeCloudSaveStore(remote = REMOTE)
 
-            val loaded = store.load(CONCATENATING_MERGE)
+            val loaded = store.load(CONCATENATING_MERGE).bytes
 
             assertThat(loaded).isEqualTo(REMOTE)
             assertThat(store.loadCallCount).isEqualTo(1)
@@ -35,7 +35,16 @@ class FakeCloudSaveStoreTest {
         runTest {
             val store = FakeCloudSaveStore()
 
-            assertThat(store.load(CONCATENATING_MERGE)).isNull()
+            assertThat(store.load(CONCATENATING_MERGE).bytes).isNull()
+        }
+
+    @Test
+    fun loadHandsBackTheConfiguredProbeBesideTheBytes() =
+        runTest {
+            val probe = CloudPullProbe(changePending = true, conflictsResolved = 1, lastModifiedAt = 1L)
+            val store = FakeCloudSaveStore(remote = REMOTE, probe = probe)
+
+            assertThat(store.load(CONCATENATING_MERGE).probe).isEqualTo(probe)
         }
 
     @Test

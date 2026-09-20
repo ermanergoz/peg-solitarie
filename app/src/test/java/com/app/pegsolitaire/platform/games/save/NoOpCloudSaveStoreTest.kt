@@ -29,7 +29,11 @@ class NoOpCloudSaveStoreTest {
     @Test
     fun loadReportsNoPayloadSoTheCallerStaysLocal() =
         runTest {
-            assertThat(store.load { _, _ -> ByteArray(0) }).isNull()
+            val pull = store.load { _, _ -> ByteArray(0) }
+
+            assertThat(pull.bytes).isNull()
+            // A stub opened no snapshot, so it has nothing to say about one.
+            assertThat(pull.probe).isNull()
         }
 
     @Test

@@ -43,12 +43,15 @@ package com.app.pegsolitaire.platform.games.save
  *   [remote] advances.
  * @param throwOnSave when set, thrown out of [save] instead of returning.
  * @param throwOnLoad when set, thrown out of [load] instead of returning.
+ * @param probe what [load] reports beside the bytes; `null` — the default — is "the snapshot never
+ *   opened", which is also what a store with no diagnostic to offer says.
  */
 class FakeCloudSaveStore(
     var remote: ByteArray? = null,
     var saveOutcome: CloudSaveOutcome = CloudSaveOutcome(CloudSaveStage.COMMITTED),
     var throwOnSave: Throwable? = null,
     var throwOnLoad: Throwable? = null,
+    var probe: CloudPullProbe? = null,
 ) : CloudSaveStore {
     /** How many times [load] was called — proves a pull reached the seam, or proves it did not. */
     var loadCallCount = 0
@@ -76,10 +79,10 @@ class FakeCloudSaveStore(
      * The `mergeRemote` lambda is not invoked: a conflict on a *read* is an SDK-side event this fake
      * has no way to simulate, and the merge itself is already exercised through [save].
      */
-    override suspend fun load(mergeRemote: (ByteArray, ByteArray) -> ByteArray): ByteArray? {
+    override suspend fun load(mergeRemote: (ByteArray, ByteArray) -> ByteArray): CloudPull {
         loadCallCount++
         throwOnLoad?.let { throw it }
-        return remote
+        return CloudPull(bytes = remote, probe = probe)
     }
 
     /**

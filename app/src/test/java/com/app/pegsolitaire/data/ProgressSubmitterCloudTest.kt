@@ -17,6 +17,7 @@ import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import com.app.pegsolitaire.platform.games.FakeGamesService
 import com.app.pegsolitaire.platform.games.GamesService
 import com.app.pegsolitaire.platform.games.GamesSignInState
+import com.app.pegsolitaire.platform.games.save.CloudPullProbe
 import com.app.pegsolitaire.platform.games.save.CloudSaveDescription
 import com.app.pegsolitaire.platform.games.save.CloudSaveOutcome
 import com.app.pegsolitaire.platform.games.save.CloudSaveStage
@@ -603,6 +604,91 @@ class ProgressSubmitterCloudTest {
             assertThat(saveStore.saveCallCount).isEqualTo(0)
         }
 
+    // ---- The pull probe: a device diagnostic, recorded and never read ----------
+
+    @Test
+    fun aPullRecordsWhatTheOpenedSnapshotSaidAboutItself() =
+        runTest(testDispatcher) {
+            val cloudSyncStore = FakeCloudSyncStore()
+            val submitter =
+                submitterFor(
+                    cloudSyncStore = cloudSyncStore,
+                    saveStore = FakeCloudSaveStore(remote = remotePayload(), probe = PULL_PROBE),
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+
+            assertThat(cloudSyncStore.recordedPullProbes).containsExactly(PULL_PROBE)
+        }
+
+    @Test
+    fun aPullWhoseStoreThrewIsRecordedAsNeverHavingOpened() =
+        runTest(testDispatcher) {
+            // Otherwise the last successful pull's values would sit on the device describing a
+            // pull that failed — the reader would chase the wrong launch.
+            val cloudSyncStore = FakeCloudSyncStore()
+            val submitter =
+                submitterFor(
+                    cloudSyncStore = cloudSyncStore,
+                    saveStore = FakeCloudSaveStore(throwOnLoad = StoreFailure()),
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+
+            assertThat(cloudSyncStore.recordedPullProbes).containsExactly(null)
+        }
+
+    @Test
+    fun aPassThatDidNotPullRecordsNoProbe() =
+        runTest(testDispatcher) {
+            // The second pass of a process finds the pull guard consumed. It is not a pull, so it
+            // must not overwrite what the real one recorded with a "never opened".
+            val games = FakeGamesService(signedIn())
+            val cloudSyncStore = FakeCloudSyncStore()
+            val submitter =
+                submitterFor(
+                    games = games,
+                    cloudSyncStore = cloudSyncStore,
+                    saveStore = FakeCloudSaveStore(probe = PULL_PROBE),
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+            submitter.onResultRecorded()
+            advanceUntilIdle()
+
+            assertThat(cloudSyncStore.recordedPullProbes).containsExactly(PULL_PROBE)
+        }
+
+    @Test
+    fun theProbeChangesNothingAboutWhatThePassDoes() =
+        runTest(testDispatcher) {
+            // Write-only (CLOUD-05, D-03): an alarming probe — an upload outstanding, conflicts
+            // resolved — must not push, retry, or surface anything the quiet one would not.
+            val saveStore =
+                FakeCloudSaveStore(
+                    remote = remotePayload(),
+                    probe = CloudPullProbe(changePending = true, conflictsResolved = 3, lastModifiedAt = 0L),
+                )
+            val cloudSyncStore = FakeCloudSyncStore(initial = false)
+            val submitter =
+                submitterFor(
+                    repository = FakeCloudRepository(initial = remoteBests(), playedTimeMs = REMOTE_PLAYED_TIME_MS),
+                    cloudSyncStore = cloudSyncStore,
+                    saveStore = saveStore,
+                    challengeProgress = challengeProgressAt(REMOTE_LADDER),
+                )
+
+            submitter.start()
+            advanceUntilIdle()
+
+            assertThat(saveStore.saveCallCount).isEqualTo(0)
+            assertThat(cloudSyncStore.value).isFalse()
+            assertThat(submitter.profileSwap.value).isNull()
+        }
+
     // ---- The post-pull push guard: push only what the cloud lacks ---------------
 
     @Test
@@ -1159,8 +1245,16 @@ private class FakeCloudSyncStore(
     var recordedOutcomes: List<CloudSaveOutcome> = emptyList()
         private set
 
+    /** Every pull probe the submitter recorded, in order; `null` is a pull that never opened. */
+    var recordedPullProbes: List<CloudPullProbe?> = emptyList()
+        private set
+
     override suspend fun setPushPending(pending: Boolean) {
         state.value = pending
+    }
+
+    override suspend fun recordPullProbe(probe: CloudPullProbe?) {
+        recordedPullProbes = recordedPullProbes + probe
     }
 
     /** Mirrors the real store: the marker moves in the same write that records the outcome. */
@@ -1256,6 +1350,9 @@ private const val REFUSED_STATUS_CODE = 4_002
 
 /** A push the SDK refused at `open`, with a status code — the shape the device pass needs to see. */
 private val REFUSED_OPEN = CloudSaveOutcome(CloudSaveStage.OPEN_FAILED, REFUSED_STATUS_CODE)
+
+/** What a fake pull reports about the snapshot it opened — arbitrary, and distinct from every default. */
+private val PULL_PROBE = CloudPullProbe(changePending = true, conflictsResolved = 1, lastModifiedAt = 1_789_000_000_000L)
 
 /** The remote ladder: far above anything the local fixtures reach, so a regression is visible. */
 private const val REMOTE_LADDER = 50
