@@ -1,6 +1,6 @@
 # Founder questions (newest first)
 
-## Q-002 — Four console checks: why Saved Games snapshots never upload   (open)
+## Q-002 — Four console checks: why Saved Games snapshots never upload   (answered)
 Date: 2026-09-20    Asked by: producer
 Context: On both emulators every save commits locally but never uploads (hasChangePending still true 9.5 h later, online);
 leaderboards and achievements sync fine. The app matches the documented PGS v2 pattern; research found three documented
@@ -13,7 +13,7 @@ Options (answer each, in this order — (a) takes two minutes and says whether a
   e) May QA clear Google Play services data on Pixel_9 only (Google's documented way to refresh a stale Saved Games activation)? It signs that emulator out of Google, so you would need to sign in on it again; Pixel_9a stays untouched as the control.
 Recommendation: producer — answer a-d as found; yes to (e) only if a-d show nothing wrong.
 Blocks: phase-13 close-out (UAT 10-13 re-run), phase-13 sign-off and merge
-Answer:
+Answer: 2026-09-20 — "all set"; clarified: (b)-(d) all already correct, nothing changed (no draft PGS changes, drive.appdata on the consent screen, storage not full); (a) not done — the founder could not find Drive's Settings (direct link given: drive.google.com/drive/settings -> Manage apps), still open as a non-blocking check; (e) YES — QA may clear Google Play services data on Pixel_9 only. Producer re-read at 16:11 after the answer: still change_pending on both devices.
 
 ## Q-001 — Confirm Saved Games is enabled and the Play Games configuration is published   (answered)
 Date: 2026-09-20    Asked by: producer
