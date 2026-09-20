@@ -7,6 +7,7 @@ import com.app.pegsolitaire.domain.achievement.AchievementRules
 import com.app.pegsolitaire.domain.achievement.ClassicBoard
 import com.app.pegsolitaire.domain.achievement.ProgressAggregate
 import com.app.pegsolitaire.domain.progress.CloudProgress
+import com.app.pegsolitaire.domain.progress.ProgressMerge
 import com.app.pegsolitaire.platform.games.GamesIds
 import com.app.pegsolitaire.platform.games.GamesService
 import com.app.pegsolitaire.platform.games.GamesSignInState
@@ -88,10 +89,15 @@ import javax.inject.Singleton
  *  - the **cloud** half does not: a clean launch by a signed-in player now performs one
  *    [CloudSaveStore.load].
  *
- * What a clean launch still does **not** do is push. Step 4's guard requires the trigger to
- * be a solve or a swap resolution, an outstanding retry marker, or a pull that actually
- * brought a payload back — so a signed-in player who opens the app, pulls nothing and
- * closes it again has cost the SDK one read and nothing else.
+ * What a clean launch does **not** do is push for the sake of pushing. Step 4's guard
+ * requires the trigger to be a solve or a swap resolution, an outstanding retry marker, or a
+ * pull that showed this device **holds something the cloud lacks** — the pulled payload
+ * merged with the local export differs from the pulled payload. So a signed-in player who
+ * opens the app and closes it again costs the SDK one read and nothing else, whether the
+ * cloud was empty, identical to local, or ahead of it. (Until plan 13-12 this paragraph
+ * claimed that, while the guard pushed on *every* launch that pulled a decodable payload:
+ * each launch rewrote the snapshot and its cover, moved its modification time and handed the
+ * other device a conflict to resolve for nothing.)
  *
  * ## The dirty flags, and the one case D-10's text does not cover
  *
@@ -369,23 +375,22 @@ open class ProgressSubmitter
                 }
                 val aggregates = PassAggregates(progressRepository)
                 // [2] Pull — own guard, never gated on any dirty flag (D-02).
-                val pulledPayload = pullOnce(session)
+                val pulledRemote = pullOnce(session)
                 // [3] Phase 12 submissions — the one step `onlyIfPending` still gates (A7).
                 if (!onlyIfPending || syncStore.pending.first()) submitPhase12(aggregates)
                 // [4] Cloud push (D-01).
-                pushIfNeeded(onlyIfPending = onlyIfPending, pulledPayload = pulledPayload, aggregates = aggregates)
+                pushIfNeeded(onlyIfPending = onlyIfPending, pulledRemote = pulledRemote, aggregates = aggregates)
             }
 
         /**
-         * The once-per-process pull (D-02), reporting whether it brought a payload back.
+         * The once-per-process pull (D-02), returning the payload it brought back, or `null`.
          *
-         * It reports **`true` for any decodable payload, not only one that changed
-         * something**, and that is the value step 4 treats as "push back in this pass". Both
-         * narrower readings are wrong in a way worth naming. Gating the push on
-         * [ImportOutcome.changed] would skip the write-back whenever the remote was a subset
-         * of local — exactly the case where the *cloud* is the side that is behind. Gating it
-         * on "the pull ran" would make every clean launch push, which is the property the
-         * class KDoc's A7 section promises is preserved.
+         * It returns **any decodable payload, not only one that changed something**, because
+         * step 4 needs the payload itself to decide whether to write back: see
+         * [pushIfNeeded]'s guard. [ImportOutcome.changed] answers a different question — "was
+         * the *device* behind?" — and gating the push on it would skip the write-back whenever
+         * the remote was a subset of local, exactly the case where the *cloud* is the side
+         * that is behind.
          *
          * A `null` from [CloudSaveStore.load] means "stay local" (CLOUD-05), never "the cloud
          * is empty": the two are indistinguishable from here, and pushing a fresh device's
@@ -397,18 +402,18 @@ open class ProgressSubmitter
          * meaningful, and on a fresh install it is the write that turns "merge silently"
          * (D-02) into "this device belongs to this account".
          */
-        private suspend fun pullOnce(session: GamesSignInState.SignedIn): Boolean {
-            if (!pulled.compareAndSet(false, true)) return false
+        private suspend fun pullOnce(session: GamesSignInState.SignedIn): CloudProgress? {
+            if (!pulled.compareAndSet(false, true)) return null
             val bytes = attemptOrNull { cloudSaveStore.load(CloudProgressCodec::mergeBytes) }
             val remote = bytes?.let(CloudProgressCodec::decode)
             if (remote != null) land(remote)
             cloudProfileStore.setMergedPlayerId(session.playerId)
-            return remote != null
+            return remote
         }
 
         /**
-         * Merges one decoded payload into the two local stores, and re-arms both markers when
-         * it changed anything.
+         * Merges one decoded payload into the two local stores, and re-arms the submissions
+         * marker when it changed anything.
          *
          * Two stores, two calls, no transaction spanning them — see
          * [ChallengeProgress.mergeLadder] for why that is accepted rather than overlooked.
@@ -418,13 +423,17 @@ open class ProgressSubmitter
          *
          * Setting [SubmissionSyncStore] here — before step 3 reads it — is what makes a
          * restored player's leaderboards catch up in this pass instead of the next one.
+         *
+         * The **push** marker is deliberately not armed here. An import that changed something
+         * means the *device* was behind, which says nothing about whether the cloud is; that
+         * is [pushIfNeeded]'s question, answered from the payload in the same pass. Arming the
+         * marker here would push after every restore — the write the guard exists to avoid —
+         * and the marker keeps its one meaning: a push was attempted and did not commit.
          */
         private suspend fun land(remote: CloudProgress) {
             val outcome = progressRepository.importProgress(remote, System.currentTimeMillis())
             challengeProgress.mergeLadder(remote.ladder)
-            if (!outcome.changed) return
-            syncStore.setPending(true)
-            cloudSyncStore.setPushPending(true)
+            if (outcome.changed) syncStore.setPending(true)
         }
 
         /** Step 3, unchanged from Phase 12 but for reading its aggregates through [aggregates]. */
@@ -450,11 +459,18 @@ open class ProgressSubmitter
          *
          * Three ways in: the trigger was a solve or a swap resolution ([onlyIfPending] is
          * `false`), a previous push is owed a retry ([CloudSyncStore.pushPending]), or this
-         * pass pulled a payload ([pulledPayload]). The third is what makes two devices
-         * converge in **one** round rather than two: having imported the remote, this device
-         * now holds the union, and writing it back in the same pass means the other device's
-         * next pull already sees everything. Without it the union would only reach the cloud
-         * on this player's next solve.
+         * pass pulled a payload ([pulledRemote]) **that local progress improves on** —
+         * `ProgressMerge.merge(remote, local) != remote`, see [holdsSomethingTheCloudLacks].
+         * The third is what makes two devices converge in **one** round rather than two:
+         * having imported the remote, this device holds the union, and writing it back in the
+         * same pass means the other device's next pull already sees everything.
+         *
+         * The comparison is what keeps that property without paying for it on every launch.
+         * When the union equals the remote — the cloud was identical, or strictly ahead and
+         * has just been landed — a write-back would carry no information; it would only
+         * rewrite the snapshot and its cover, move its modification time and create a
+         * conflict opportunity for the other device. That is the principle
+         * [CloudSaveStore.load] already states for itself: a pull does not write.
          *
          * ## The ladder, and why it is not read from the StateFlow
          *
@@ -483,12 +499,14 @@ open class ProgressSubmitter
          */
         private suspend fun pushIfNeeded(
             onlyIfPending: Boolean,
-            pulledPayload: Boolean,
+            pulledRemote: CloudProgress?,
             aggregates: PassAggregates,
         ) {
-            if (onlyIfPending && !pulledPayload && !cloudSyncStore.pushPending.first()) return
+            val unconditional = !onlyIfPending || cloudSyncStore.pushPending.first()
+            if (!unconditional && pulledRemote == null) return
             val ladder = challengeProgress.settledLevel()
             val progress = progressRepository.exportProgress(ladder)
+            if (!unconditional && !holdsSomethingTheCloudLacks(local = progress, remote = pulledRemote)) return
             val totals = aggregates.read()
             val description =
                 CloudSaveDescription(
@@ -507,6 +525,20 @@ open class ProgressSubmitter
                 }
             cloudSyncStore.recordPushOutcome(outcome)
         }
+
+        /**
+         * Whether [local] carries anything [remote] does not — a level row, a better best, a
+         * higher ladder or more played time.
+         *
+         * The union is `ProgressMerge.merge`, the same join the import and the conflict path
+         * run, so "lacks" means exactly what a push would add. A `null` [remote] is "this pass
+         * pulled nothing", which is never a reason to push: it is indistinguishable from a
+         * failed read, and pushing on that guess is the misreading [pullOnce] warns about.
+         */
+        private fun holdsSomethingTheCloudLacks(
+            local: CloudProgress,
+            remote: CloudProgress?,
+        ): Boolean = remote != null && ProgressMerge.merge(remote, local) != remote
 
         /**
          * Moves the submissions dirty flag to match a completed pass.

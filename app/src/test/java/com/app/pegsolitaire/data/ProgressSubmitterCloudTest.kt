@@ -769,7 +769,8 @@ class ProgressSubmitterCloudTest {
             submitter.start()
             advanceUntilIdle()
 
-            // A pulled payload forces the write-back even on a clean, start-triggered pass.
+            // Local holds a level the pulled payload lacks, so the write-back runs even on a clean,
+            // start-triggered pass.
             assertThat(saveStore.saveCallCount).isEqualTo(1)
             assertThat(repository.exportedLadders).containsExactly(REMOTE_LADDER)
             assertThat(saveStore.lastDescription?.ladder).isEqualTo(REMOTE_LADDER)
