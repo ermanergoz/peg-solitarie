@@ -21,13 +21,13 @@ import java.io.ByteArrayOutputStream
  * The cover art attached to every cloud commit (CLOUD-03, D-09).
  *
  * Robolectric, because what is under test is a real vector inflation followed by a real
- * 512-square draw — the two steps that can actually fail.
+ * [CloudSaveConstants.COVER_PX]-square draw — the two steps that can actually fail.
  *
  * **[GraphicsMode.Mode.NATIVE] is load-bearing and must not be removed.** Robolectric's default
  * LEGACY mode stubs the whole drawing pipeline: every `Canvas` call is a no-op and
  * `Bitmap.compress` writes the raw ARGB buffer instead of encoding. Under LEGACY this file is
  * worse than no test — it was observed reporting an all-zero (fully transparent) bitmap and a
- * "PNG" of 1,049,700 bytes, i.e. exactly 512x512x4 plus a header, which is how both the
+ * "PNG" of 1,049,700 bytes at the former 512 px, i.e. exactly 512x512x4 plus a header, which is how both the
  * not-blank and the under-the-ceiling assertions were caught lying. NATIVE runs the real Skia
  * pipeline, so both now measure the bytes that would actually cross `BitmapTeleporter`.
  *

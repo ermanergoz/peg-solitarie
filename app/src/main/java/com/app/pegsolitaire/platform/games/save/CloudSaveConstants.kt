@@ -49,13 +49,16 @@ object CloudSaveConstants {
     /**
      * The edge length, in pixels, of the square cover image attached to every commit (D-09).
      *
-     * 512 matches the launcher art's native 512-unit design canvas exactly, so plan 13-07 rasterizes
-     * the vectors at 1:1 with no resampling and no filtering artefacts. Play Games guarantees a
-     * cover ceiling of at least 800 KB, which a 512-square PNG of flat board art sits far below — if
-     * UAT test 12's measured cover size ever comes close to that ceiling, **this is the one constant
-     * to lower**, and nothing else in the cover path needs to change.
+     * 384 is set by measurement, not taste. Play Games charges the cover at its **raw**
+     * `ARGB_8888` size — four bytes per pixel — and not at its PNG size: in UAT test 12 GMS logged
+     * `Snapshot cover image is too large. Currently at 1048576 bytes; max is 819200. Image will be
+     * scaled` for the former 512-square cover, on every commit, on both devices. 384 x 384 x 4 is
+     * 589,824 bytes, which fits the documented 800 KB floor (819,200) with room to spare; 448 would
+     * be 802,816 and leave under 2%. `CoverImageSourceTest` pins the product against the ceiling, so
+     * this is still **the one constant to change** and it cannot be raised past the cap unnoticed.
+     * The art is a vector layer-list, so any raster size is drawn natively with no resampling.
      */
-    const val COVER_PX = 512
+    const val COVER_PX = 384
 
     /**
      * The length at which an implementation truncates the description before handing it to

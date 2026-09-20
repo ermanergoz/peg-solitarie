@@ -34,18 +34,19 @@ import javax.inject.Singleton
  * which the platform does but does not *document*. `[ASSUMED]`. The exposure is bounded by
  * design: the failure mode of a bad inflate is a `null` cover, and a `null` cover is already the
  * designed degradation — the commit omits `setCoverImage` and still succeeds. Weighed against
- * blocking the main thread on a 512-square draw, the background hop is the right trade.
+ * blocking the main thread on a [CloudSaveConstants.COVER_PX]-square draw, the background hop is the right trade.
  *
- * ## Why 512 px is safe against the 800 KB ceiling (RESEARCH assumption A1)
+ * ## Why the cover is 384 px (RESEARCH assumption A1, falsified by measurement)
  *
- * A 512x512 `ARGB_8888` bitmap is 1 MB **in memory**, which is not the number that matters:
- * `setCoverImage` transports the bitmap PNG-compressed through a `BitmapTeleporter`, and the
- * 800 KB ceiling applies to those transported bytes. This art — two flat gradients plus 33
- * circles — compresses far below it: `CoverImageSourceTest` measured **35,907 bytes**, 4.4% of
- * the ceiling. `[ASSUMED — the accounting basis is undocumented]`. If UAT test 12's runtime
- * `getMaxCoverImageSize()` measurement ever comes close, lower [CloudSaveConstants.COVER_PX];
- * it is one constant and 512 was chosen only because it is the art's native design canvas, so
- * dropping to 384 or 256 costs nothing but sharpness.
+ * The 800 KB cover ceiling is charged against the bitmap's **raw** `ARGB_8888` size — width x
+ * height x 4 — and not against the PNG bytes that cross the `BitmapTeleporter`. A1 assumed the
+ * opposite and UAT test 12 falsified it: for the former 512-square cover GMS logged `Snapshot
+ * cover image is too large. Currently at 1048576 bytes; max is 819200. Image will be scaled` on
+ * every commit, on both devices. GMS scaled the image and the commit still succeeded, so no save
+ * was ever lost to this, but every commit paid for a rescale and shipped a cover this class did
+ * not draw. At [CloudSaveConstants.COVER_PX] = 384 the raw size is 589,824 bytes, under the cap.
+ * `CoverImageSourceTest` pins that arithmetic, and separately keeps the PNG measurement as a
+ * check on the art itself.
  *
  * ## This class never throws
  *

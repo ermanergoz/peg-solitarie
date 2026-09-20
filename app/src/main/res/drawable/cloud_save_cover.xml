@@ -18,7 +18,7 @@
 
   The first item is the adaptive BACKGROUND vector and deliberately not its "..._legacy"
   sibling: that variant exists to give the API 24-25 square tile its own inset treatment, a
-  launcher-tile concern with no meaning on a 512-square cover.
+  launcher-tile concern with no meaning on a square cover.
 
   The foreground group is scaled 0.55 about centre for the adaptive safe zone, so the board
   occupies the middle ~55% here too. That is intentional: a cover cropped tight to the board
