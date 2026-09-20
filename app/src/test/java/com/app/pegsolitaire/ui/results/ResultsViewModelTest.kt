@@ -2,6 +2,7 @@ package com.app.pegsolitaire.ui.results
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.lifecycle.SavedStateHandle
 import com.app.pegsolitaire.data.ChallengeProgress
 import com.app.pegsolitaire.data.ClassicLevelIds
@@ -39,6 +40,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
@@ -323,8 +325,8 @@ class ResultsViewModelTest {
             val call = repository.recordCalls.single()
             assertThat(call.mode).isEqualTo(ProgressPersistenceKeys.MODE_CHALLENGE)
             assertThat(call.levelId).isEqualTo(GeneratorConstants.MAX_CHALLENGE_LEVEL.toString())
-            // `ResultsActions` computes `onNextLevel(challengeLevel + 1)` off this value,
-            // so clamping it is what stops "Next level" from exceeding the ceiling + 1.
+            // `onNextLevelTapped` resolves the next level off this value (D-04a), so clamping
+            // it is what stops "Next level" from exceeding the ceiling.
             assertThat(viewModel.uiState.value.challengeLevel)
                 .isEqualTo(GeneratorConstants.MAX_CHALLENGE_LEVEL)
         }
@@ -848,7 +850,7 @@ class ResultsViewModelTest {
             assertThat(viewModel.uiState.value.headlineTier).isEqualTo(ResultsHeadlineTier.STUCK)
             assertThat(gateway.preloadCount).isEqualTo(0)
 
-            viewModel.onNextLevelTapped(SAMPLE_CHALLENGE_LEVEL + 1)
+            viewModel.onNextLevelTapped()
             advanceUntilIdle()
 
             assertThat(gateway.showCount).isEqualTo(0)
@@ -1102,11 +1104,11 @@ class ResultsViewModelTest {
                 )
             advanceUntilIdle()
 
-            viewModel.onNextLevelTapped(SAMPLE_CHALLENGE_LEVEL + 1)
+            viewModel.onNextLevelTapped()
             advanceTimeBy(AdConstants.INTERSTITIAL_QUIESCENCE_MS)
             runCurrent()
 
-            viewModel.onNextLevelTapped(SAMPLE_CHALLENGE_LEVEL + 1)
+            viewModel.onNextLevelTapped()
             advanceUntilIdle()
 
             assertThat(gateway.showCount).isEqualTo(1)
@@ -1487,6 +1489,7 @@ class ResultsViewModelTest {
         lastPegOnTarget: Boolean = false,
         repository: ProgressRepository = FakeProgressRepository(),
         progressSubmitter: ProgressSubmitter = recordingSubmitter(),
+        challengeProgress: ChallengeProgress = freshLadder(),
         cadenceStore: InterstitialCadenceStore = freshCadenceStore(),
         adGateway: AdGateway = FakeAdGateway(interstitialReadyInitially = false),
     ): ResultsViewModel =
@@ -1506,6 +1509,7 @@ class ResultsViewModelTest {
                 ),
             progressRepository = repository,
             progressSubmitter = progressSubmitter,
+            challengeProgress = challengeProgress,
             cadenceStore = cadenceStore,
             adGateway = adGateway,
         )
@@ -1523,6 +1527,7 @@ class ResultsViewModelTest {
         handle: SavedStateHandle,
         repository: ProgressRepository,
         progressSubmitter: ProgressSubmitter = recordingSubmitter(),
+        challengeProgress: ChallengeProgress = freshLadder(),
         cadenceStore: InterstitialCadenceStore = freshCadenceStore(),
         adGateway: AdGateway = FakeAdGateway(interstitialReadyInitially = false),
     ): ResultsViewModel =
@@ -1530,9 +1535,20 @@ class ResultsViewModelTest {
             savedStateHandle = handle,
             progressRepository = repository,
             progressSubmitter = progressSubmitter,
+            challengeProgress = challengeProgress,
             cadenceStore = cadenceStore,
             adGateway = adGateway,
         )
+
+    /**
+     * A fresh player's Challenge ladder (level 1), over an in-memory store.
+     *
+     * Every case in this file is about the args, the record, the celebration or the ad — none is
+     * about the ladder, so the default is the identity: with the ladder at 1,
+     * `max(head, N + 1)` is always `N + 1` and the pre-D-04a expectations still hold verbatim.
+     * D-04a's own behaviour is specified in `ChallengeNextLevelTest`.
+     */
+    private fun freshLadder(): ChallengeProgress = ChallengeProgress(inMemoryDataStore(), storeScope)
 
     /**
      * A [RecordingProgressSubmitter] with every constructor argument the real
@@ -1940,6 +1956,26 @@ private class SubmitterFailure : RuntimeException("the seam exploded")
 
 /** The signed-in player id the PGSL-04 fixture carries; no assertion depends on it. */
 private const val SUBMIT_TEST_PLAYER_ID = "results-test-player"
+
+/**
+ * A Preferences [DataStore] that lives entirely in memory and commits on the calling coroutine.
+ *
+ * Deliberately not `PreferenceDataStoreFactory` over a `TemporaryFolder` (the cadence fixtures
+ * above): that store commits on `Dispatchers.IO`, which `advanceUntilIdle()` cannot drive, so a
+ * suspending ladder read would resume at a moment virtual time knows nothing about.
+ */
+private fun inMemoryDataStore(): DataStore<Preferences> =
+    object : DataStore<Preferences> {
+        private val state = MutableStateFlow(emptyPreferences())
+
+        override val data: Flow<Preferences> = state
+
+        override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences {
+            val updated = transform(state.value)
+            state.value = updated
+            return updated
+        }
+    }
 
 /**
  * A [DataStore] that exists only to satisfy the real `SubmissionSyncStore` constructor the

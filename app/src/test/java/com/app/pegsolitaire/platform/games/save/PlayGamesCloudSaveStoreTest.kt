@@ -46,9 +46,10 @@ import java.io.IOException
  * review and would silently delete progress on the one device that hit a conflict, so the open
  * triple is asserted literally (T-13-34).
  *
- * **The second rule: every opened handle reaches exactly one terminal call.** A leaked handle
- * fails the *next* open for the rest of the process — cloud save that works once per launch and
- * then silently stops (RESEARCH Pitfall 1). Each path below asserts the close count, not just
+ * **The second rule: every opened handle reaches exactly one terminal call.** A leaked handle is a leak
+ * for certain and — on the undocumented half of RESEARCH Pitfall 1, kept as reasoning rather than
+ * as SDK contract — plausibly fails the *next* open for the rest of the process, i.e. cloud save
+ * that works once per launch and then silently stops. Each path below asserts the close count, not just
  * the return value, because the return value is identical whether or not the handle leaked.
  *
  * **The third rule: nothing ever throws out of the seam.** No Activity, a thrown SDK call, a
@@ -255,8 +256,8 @@ class PlayGamesCloudSaveStoreTest {
 
             store().load(::concat)
 
-            // Giving up is not a licence to leak: an abandoned handle would fail every later
-            // open for the rest of the process (Pitfall 1).
+            // Giving up is not a licence to leak: an abandoned handle leaks, and plausibly fails
+            // every later open for the rest of the process (Pitfall 1, undocumented half).
             verify(exactly = 1) { client.discardAndClose(any()) }
         }
 
@@ -430,8 +431,8 @@ class PlayGamesCloudSaveStoreTest {
             val outcome = store().save(PAYLOAD, DESCRIPTION, PLAYED_TIME_MS, ::concat)
 
             assertThat(outcome).isEqualTo(CloudSaveOutcome(CloudSaveStage.COMMIT_FAILED))
-            // Exactly one terminal call, never both and never neither: a handle left open would
-            // fail every later open for the rest of the process (Pitfall 1).
+            // Exactly one terminal call, never both and never neither: a handle left open leaks,
+            // and plausibly fails every later open for the process (Pitfall 1, undocumented half).
             verify(exactly = 1) { client.discardAndClose(snapshot) }
         }
 

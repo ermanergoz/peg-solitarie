@@ -537,6 +537,16 @@ open class ProgressSubmitter
          * run, so "lacks" means exactly what a push would add. A `null` [remote] is "this pass
          * pulled nothing", which is never a reason to push: it is indistinguishable from a
          * failed read, and pushing on that guess is the misreading [pullOnce] warns about.
+         *
+         * **[local] here is the *uncapped* export, while the push writes
+         * `CloudProgressCodec.encodeWithinCap(progress)` — the comparison and the payload can
+         * therefore differ (code-auditor I-1).** For a trimmed player the guard would keep
+         * answering `true` and the pass would push on every launch. The arithmetic says that is
+         * unreachable: the trim target is 3 MiB − 256 KiB = 2,883,584 bytes against a measured
+         * ~400 KB for the full 10,000-level ladder — roughly 7× headroom — and the codec
+         * documents `dropLowestChallenge` as expected never to fire. And if it ever did, the
+         * behaviour degrades to the every-launch push that preceded this guard, which is a lost
+         * optimisation and not a regression. Recorded rather than fixed, deliberately.
          */
         private fun holdsSomethingTheCloudLacks(
             local: CloudProgress,
