@@ -40,9 +40,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
  *   the tap goes to `ResultsViewModel.onCatalogTapped` and this lambda is invoked later,
  *   from the navigation effect below, rather than from the button's `onClick`.
  * @param onHome pops back to Home. Direct pass-through — never ad-gated.
- * @param onNextLevel advances a solved Challenge level to N+1 (D-01). Ad-eligible (D-06):
- *   the tap goes to `ResultsViewModel.onNextLevelTapped` and this lambda is invoked later,
- *   from the navigation effect below, rather than from the button's `onClick`.
+ * @param onNextLevel navigates to the next Challenge level (D-01), which is
+ *   `max(ladder head, level just solved + 1)` as resolved by the ViewModel (D-04a) — never an
+ *   arithmetic successor computed by the screen. Ad-eligible (D-06): the tap goes to
+ *   `ResultsViewModel.onNextLevelTapped` and this lambda is invoked later, from the navigation
+ *   effect below, with the resolved level, rather than from the button's `onClick`.
  * @param onRetry reloads the same deterministic Challenge board when stuck (D-10). Direct
  *   pass-through — never ad-gated (INT-03).
  * @param onNavigateBack leaves the Results screen (top-bar back nav). Direct pass-through.

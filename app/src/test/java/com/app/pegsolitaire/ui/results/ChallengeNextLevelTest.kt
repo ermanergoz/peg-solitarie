@@ -87,6 +87,12 @@ class ChallengeNextLevelTest {
     private val testDispatcher = StandardTestDispatcher()
     private val storeScope = CoroutineScope(testDispatcher)
 
+    /**
+     * The app-lifetime scope every [ChallengeProgress] built here runs on — over its **own**
+     * dispatcher, which no test advances. See [ladderAt] for why that is the point.
+     */
+    private val ladderScope = CoroutineScope(StandardTestDispatcher())
+
     @Before
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
@@ -94,6 +100,7 @@ class ChallengeNextLevelTest {
 
     @After
     fun tearDown() {
+        ladderScope.cancel()
         storeScope.cancel()
         Dispatchers.resetMain()
     }
@@ -176,17 +183,18 @@ class ChallengeNextLevelTest {
         runTest(testDispatcher) {
             // The architecture half of the ruling (tech-lead FU-3). `currentLevel` is a
             // `stateIn` cache seeded with the fail-open default and refreshed by a separate
-            // coroutine; `settledLevel()` reads the committed value. A ViewModel built before
-            // that cache has caught up must still see the merged head, which is exactly the
-            // ordering guarantee "read the ladder after advancePast" needs.
+            // coroutine; `settledLevel()` reads what DataStore committed. The cache here is
+            // frozen at the default for the whole test (see `ladderAt`), so a read of
+            // `currentLevel.value` would serve N + 1 and this assertion would fail — which is
+            // exactly the ordering guarantee "read the ladder after advancePast(N)" needs.
             val progress = ladderAt(MERGED_HEAD_LEVEL)
-            assertThat(progress.currentLevel.value)
-                .isEqualTo(ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL)
 
             val viewModel = viewModelFor(challengeLevel = BEHIND_HEAD_LEVEL, challengeProgress = progress)
             viewModel.onNextLevelTapped()
             advanceUntilIdle()
 
+            assertThat(progress.currentLevel.value)
+                .isEqualTo(ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL)
             assertThat(viewModel.uiState.value.pendingNavigation)
                 .isEqualTo(ResultsNavTarget.NextLevel(MERGED_HEAD_LEVEL))
         }
@@ -235,16 +243,23 @@ class ChallengeNextLevelTest {
     /**
      * A [ChallengeProgress] whose committed ladder is [level], over an in-memory store.
      *
-     * Deliberately not `PreferenceDataStoreFactory` over a `TemporaryFolder`: that store
-     * commits on `Dispatchers.IO`, which `advanceUntilIdle()` cannot drive, so the ladder read
-     * would land at a moment virtual time knows nothing about (`ProgressSubmitterCloudTest`
-     * makes the same choice for the same reason). The `stateIn` cache is left deliberately
-     * un-advanced, which is what lets the settled-versus-cached distinction be observable.
+     * Two deliberate choices, both about determinism:
+     *
+     *  - **In-memory, not `PreferenceDataStoreFactory` over a `TemporaryFolder`.** That store
+     *    commits on `Dispatchers.IO`, which `advanceUntilIdle()` cannot drive, so a suspending
+     *    ladder read would resume at a moment virtual time knows nothing about
+     *    (`ProgressSubmitterCloudTest` makes the same choice for the same reason).
+     *  - **A scope this test never advances** ([ladderScope], its own dispatcher). That freezes
+     *    `currentLevel`'s `stateIn` cache at the fail-open default for the whole test while the
+     *    committed value is [level], which is what makes the settled-versus-cached distinction
+     *    *observable* — a ViewModel that read `currentLevel.value` would see 1 and serve
+     *    `N + 1`. Reads through `settledLevel()` are unaffected: that suspend function runs on
+     *    the *caller's* coroutine, which is the `viewModelScope` this test does advance.
      */
     private fun ladderAt(level: Int): ChallengeProgress =
         ChallengeProgress(
             dataStore = inMemoryDataStore(level),
-            scope = storeScope,
+            scope = ladderScope,
         )
 
     private fun viewModelFor(
