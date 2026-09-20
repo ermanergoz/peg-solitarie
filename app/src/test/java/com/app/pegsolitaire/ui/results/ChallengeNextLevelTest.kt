@@ -205,6 +205,14 @@ class ChallengeNextLevelTest {
             // The ceiling case: `N + 1` at the top of the ladder would name a level the
             // generator refuses. The clamp is the same WARN-03 boundary every other level
             // number on this screen passes through, so the action cannot point past MAX.
+            //
+            // Note what this test therefore pins, so nobody reads it as a contradiction of
+            // `nextLevelNeverServesTheLevelJustPlayed`: at MAX the clamp re-serves MAX, so that
+            // invariant holds for `level < MAX` only. Serving the ceiling again is the right
+            // answer for a bound — there is no level above it — and the case is unreachable in
+            // practice, because MAX is `GeneratorConstants.MAX_CHALLENGE_LEVEL` = 10,000, well
+            // above any level a player hand-reaches. If the ceiling is ever lowered to a
+            // reachable number, this expectation is the one to revisit first.
             val progress = ladderAt(ChallengeLevelBounds.MAX)
 
             val viewModel =

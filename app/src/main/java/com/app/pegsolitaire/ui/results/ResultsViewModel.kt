@@ -318,6 +318,16 @@ class ResultsViewModel
          * The result is clamped by [ChallengeLevelBounds], so neither a ladder stored out of
          * range nor `N + 1` at the ceiling can name a level the generator refuses.
          *
+         * **The one exception the `max` does not cover, named on purpose.** Because the clamp
+         * is `coerceIn(MIN, MAX)`, at `N == ChallengeLevelBounds.MAX` it returns `MAX` — so the
+         * "never re-serves the level just played" guarantee above holds for `N < MAX` only, and
+         * the very last level re-serves itself. That is the correct behaviour for a *bound*
+         * (there is no level above the ceiling to serve, and fail-safe clamping beats crashing
+         * — see [ChallengeLevelBounds.clamp]) and it is unreachable in practice: the ceiling is
+         * `GeneratorConstants.MAX_CHALLENGE_LEVEL`, 10,000, chosen to sit well above any level a
+         * player can hand-reach. Anyone tightening the `max` should not treat this as a bug to
+         * fix, and anyone lowering the ceiling to a reachable number must revisit it.
+         *
          * **Nothing is shown for any of this.** D-03 (silent restore) stands unamended and the
          * label carries no number, so no promise of `N + 1` is ever made on screen to be broken.
          *
