@@ -7,12 +7,15 @@ import com.app.pegsolitaire.domain.achievement.AchievementId
 import com.app.pegsolitaire.domain.achievement.AchievementRules
 import com.app.pegsolitaire.domain.achievement.ClassicBoard
 import com.app.pegsolitaire.domain.achievement.ProgressAggregate
+import com.app.pegsolitaire.domain.progress.CloudProgress
 import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import com.app.pegsolitaire.platform.games.FakeGamesService
 import com.app.pegsolitaire.platform.games.GamesIds
 import com.app.pegsolitaire.platform.games.GamesService
 import com.app.pegsolitaire.platform.games.GamesSignInState
+import com.app.pegsolitaire.platform.games.save.CloudSaveOutcome
+import com.app.pegsolitaire.platform.games.save.FakeCloudSaveStore
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -520,6 +523,18 @@ class ProgressSubmitterTest {
 
     // ---- Harness ---------------------------------------------------------------
 
+    /**
+     * The Phase 12 submitter, wired to inert cloud collaborators.
+     *
+     * Phase 13 widened the constructor with the four stores its cloud half sequences, and
+     * this factory supplies the quietest possible version of each: an empty
+     * [FakeCloudSaveStore] (no payload, so nothing is ever imported), both cloud flags
+     * clear, and no stored player id — a fresh install, which by D-12 never raises the
+     * profile-swap dialog. **Every assertion in this file is therefore unchanged**, because
+     * the cloud half of a pass over those fakes is observationally inert with respect to
+     * `GamesService` and the submissions flag. The cloud half's own behaviour is specified
+     * next door, in `ProgressSubmitterCloudTest`.
+     */
     private fun submitterFor(
         repository: ProgressRepository,
         games: GamesService,
@@ -529,6 +544,10 @@ class ProgressSubmitterTest {
             progressRepository = repository,
             gamesService = games,
             syncStore = store,
+            cloudSyncStore = InertCloudSyncStore(),
+            cloudProfileStore = InertCloudProfileStore(),
+            cloudSaveStore = FakeCloudSaveStore(),
+            challengeProgress = ChallengeProgress(unusedDataStore(), submitterScope),
             scope = submitterScope,
         )
 
@@ -626,6 +645,56 @@ private class FakeProgressRepository(
     override suspend fun clearSnapshot(mode: String) = error("the submitter never touches a resume snapshot")
 
     override fun observeResumeModes(): Flow<List<String>> = flowOf(emptyList())
+
+    /**
+     * The payload a push would write — reachable from here, but only ever empty.
+     *
+     * A solve-triggered pass pushes (D-01), so this is called; it is deliberately the
+     * fresh-player shape, since nothing in this file asserts anything about the payload.
+     * What the push actually writes is specified in `ProgressSubmitterCloudTest`.
+     */
+    override suspend fun exportProgress(ladder: Int): CloudProgress = CloudProgress(ladder = ladder)
+
+    /** Unreachable here: the [FakeCloudSaveStore] this file wires in holds no payload to import. */
+    override suspend fun importProgress(
+        remote: CloudProgress,
+        nowMs: Long,
+    ): ImportOutcome = error("the cloud import is specified in ProgressSubmitterCloudTest")
+
+    /** Unreachable here: only an answered profile-swap dialog wipes, and this file raises none. */
+    override suspend fun resetAllProgress() = error("the D-14 wipe is specified in ProgressSubmitterCloudTest")
+}
+
+/**
+ * A [CloudSyncStore] that reports no outstanding push and remembers nothing — the shape that
+ * keeps this file's passes free of the cloud half.
+ *
+ * A subclass over a `MutableStateFlow`, the [FakeSubmissionSyncStore] trick, which is why
+ * plan 13-02 made the class and both its members `open`.
+ */
+private class InertCloudSyncStore : CloudSyncStore(unusedDataStore()) {
+    private val state = MutableStateFlow(false)
+
+    override val pushPending: Flow<Boolean> = state
+
+    override suspend fun setPushPending(pending: Boolean) {
+        state.value = pending
+    }
+
+    override suspend fun recordPushOutcome(outcome: CloudSaveOutcome) {
+        state.value = !outcome.committed
+    }
+}
+
+/** A [CloudProfileStore] stuck on `null` — a fresh install, which by D-12 never shows the dialog. */
+private class InertCloudProfileStore : CloudProfileStore(unusedDataStore()) {
+    private val state = MutableStateFlow<String?>(null)
+
+    override val mergedPlayerId: Flow<String?> = state
+
+    override suspend fun setMergedPlayerId(playerId: String) {
+        state.value = playerId
+    }
 }
 
 /**

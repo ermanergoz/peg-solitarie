@@ -277,4 +277,57 @@
     <string name="settings_play_games_leaderboards_supporting">See how your scores rank</string>
     <string name="settings_play_games_achievements_label">Achievements</string>
     <string name="settings_play_games_achievements_supporting">View the achievements you\'ve earned</string>
+
+    <!-- ====================== Phase-13 cloud-save copy ====================== -->
+    <!--
+      CLOUD-03 / D-11 — the ONE line the player reads under this game's entry in the
+      Play Games saved-games list. It is written into the snapshot's metadata at commit
+      time and therefore follows the DEVICE LOCALE AT THAT MOMENT, by design: a player
+      who changes language sees the new language on their next solve rather than a line
+      frozen in whatever locale first wrote the save. That is why the numbers cross the
+      platform seam as three raw ints (CloudSaveDescription) and the wording lives only
+      here, where a translator can reach it.
+
+      Four positional arguments, in order: the Challenge ladder level, total stars,
+      Classic boards cleared, and the size of the Classic roster. The fourth is supplied
+      from ClassicBoard.entries.size and is NOT a literal 5 anywhere — a sixth Classic
+      board must move this denominator on its own.
+
+      Positional %1$d-style arguments throughout, matching settings_play_games_signed_in_as;
+      a bare %d would be untranslatable the moment a language needs another word order.
+      The separator is a middle dot rather than a comma so the three figures read as
+      peers rather than as a sentence.
+    -->
+    <string name="cloud_save_description">Challenge level %1$d · %2$d stars · %3$d/%4$d Classic boards</string>
+
+    <!--
+      D-12 to D-15 — the ONE dialog the v1.1 requirements reserved. Every other conflict
+      in this phase resolves silently by monotonic merge (CLOUD-02); this one cannot,
+      because merging two different players' progress is not a merge, it is a leak.
+
+      The body is a wipe list, not a warning. D-14 requires the copy to state exactly what
+      "Use their cloud progress" replaces, so it names all four categories the replace path
+      deletes: level results, play history, the Challenge level, and both in-progress
+      games. Any later edit that shortens this sentence must keep all four — a player who
+      could not have known what they were authorising is the failure this copy exists to
+      prevent.
+
+      Two bodies, one wording. profile_swap_body names the arriving account through a
+      positional %1$s; profile_swap_body_unknown_account is the fallback for a display name
+      the SDK could not look up (Phase 11 D-14), which is a degraded name and never a
+      failed sign-in — so it says "this account" rather than leaving a gap or rendering the
+      word null.
+
+      The two labels are account-neutral on purpose. "Keep this device's progress" is the
+      safe answer and carries the gradient CTA; "Use their cloud progress" is the
+      destructive one and is a plain text button. The arriving account is named in the
+      body, where both variants have room, rather than in a label that would need a sixth
+      string to stay readable when the name is unknown.
+    -->
+    <string name="profile_swap_title">Moving to a different account?</string>
+    <string name="profile_swap_body">You\'re signed in as %1$s. Keeping this device\'s progress merges it into their cloud save — nothing is lost on either side. Using their cloud progress instead replaces everything on this device: your level results, your play history, your Challenge level and both in-progress games.</string>
+    <string name="profile_swap_body_unknown_account">You\'re signed in with a different Play Games account. Keeping this device\'s progress merges it into this account\'s cloud save — nothing is lost on either side. Using this account\'s cloud progress instead replaces everything on this device: your level results, your play history, your Challenge level and both in-progress games.</string>
+    <string name="profile_swap_keep">Keep this device\'s progress</string>
+    <string name="profile_swap_use_cloud">Use their cloud progress</string>
+    <!-- ==================== end Phase-13 cloud-save copy ==================== -->
 </resources>

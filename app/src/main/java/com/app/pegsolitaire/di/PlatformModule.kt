@@ -8,6 +8,8 @@ import com.app.pegsolitaire.platform.ads.NoOpAdGateway
 import com.app.pegsolitaire.platform.games.GamesService
 import com.app.pegsolitaire.platform.games.NoOpGamesService
 import com.app.pegsolitaire.platform.games.PlayGamesService
+import com.app.pegsolitaire.platform.games.save.CloudSaveStore
+import com.app.pegsolitaire.platform.games.save.PlayGamesCloudSaveStore
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -18,16 +20,17 @@ import javax.inject.Singleton
  * Hilt bindings for the platform seam (spec §8.4/§8.5). Mirrors `DataModule`'s
  * `@InstallIn(SingletonComponent::class)` + abstract interface-to-impl binding shape.
  *
- * Three bindings, of two different kinds:
+ * Four bindings, of two different kinds:
  *
- * - [AdGateway] and [GamesService] are the **Slice-2 swap points**: replacing a no-op stub
- *   with a real implementation introduces rewarded ads or leaderboards with no gameplay or
- *   UI change (D-11). **Both halves are now delivered.** [AdGateway] binds
- *   [AdMobAdGateway], the Google Mobile Ads Next-Gen rewarded implementation; [GamesService]
- *   binds [PlayGamesService], the Play Games Services v2 sign-in implementation (Phase 11).
- *   Each swap was one line here, because everything above each seam had already been built
- *   and tested against the stub — which is the entire return on having written the stubs
- *   first.
+ * - [AdGateway], [GamesService] and [CloudSaveStore] are the **Slice-2 swap points**:
+ *   replacing a no-op stub with a real implementation introduces rewarded ads,
+ *   leaderboards or cloud save with no gameplay or UI change (D-11). **All three are now
+ *   delivered.** [AdGateway] binds [AdMobAdGateway], the Google Mobile Ads Next-Gen
+ *   rewarded implementation; [GamesService] binds [PlayGamesService], the Play Games
+ *   Services v2 sign-in implementation (Phase 11); [CloudSaveStore] binds
+ *   [PlayGamesCloudSaveStore], the Saved Games implementation (Phase 13). Each swap was
+ *   one line here, because everything above each seam had already been built and tested
+ *   against the stub — which is the entire return on having written the stubs first.
  * - [ForegroundActivityProvider] → [DefaultForegroundActivityProvider] is **not** a swap
  *   point. It is permanent: the Slice-2 implementations are precisely the callers that
  *   need a foreground Activity, so this binding is what makes the swap possible rather
@@ -45,6 +48,13 @@ import javax.inject.Singleton
  * the opposite reason: a missing ad costs the player an assist, a missing leaderboard costs
  * them nothing. `NoOpGamesServiceTest` still pins that contract, which is what keeps the
  * seam's reference behaviour written down somewhere executable.
+ *
+ * **The cloud-save stub stays too, unbound, for the same reason.** Its own contract test is
+ * where [CloudSaveStore]'s fail-quiet behaviour — "no payload" and "nothing was written",
+ * the pessimistic answers that leave a caller's retry bookkeeping honest — stays written
+ * down somewhere executable. It is deliberately not named in this file: an acceptance grep
+ * asserts the name is absent here, so that "which implementation is bound" can only be read
+ * off the binding itself and never inferred from surrounding prose.
  *
  * **Do not add an SDK-typed `@Provides` to this file — or to any other.** The original
  * form of this warning said such a provider merely belongs in a module inside
@@ -112,6 +122,28 @@ abstract class PlatformModule {
     @Binds
     @Singleton
     abstract fun bindGamesService(impl: PlayGamesService): GamesService
+
+    /**
+     * The cloud-save seam, bound to the real Saved Games implementation
+     * (CLOUD-01/02/03/05).
+     *
+     * This is the whole of the cloud swap: one parameter type. The push/pull pass above it was
+     * written, compiled and run green against the stub first — the same order the ad
+     * and sign-in seams were built in, and the reason each of those swaps was a one-line change
+     * too.
+     *
+     * **The bound type must always be the seam — never a gms type, and never a type that exposes
+     * one.** [CloudSaveStore] names only Kotlin/JVM types precisely so that the generated
+     * `DaggerApp_HiltComponents_SingletonC`, which carries a `Provider<T>` field per binding and
+     * which `onlyPlatformDependsOnPlaySdks` inspects at the bytecode level, sees nothing from the
+     * Play SDK package roots. [PlayGamesCloudSaveStore] honours that the same way [PlayGamesService]
+     * and [AdMobAdGateway] do: it constructs its snapshot client per call from an Activity and
+     * stores none, so no SDK type is reachable from the graph. See the class KDoc above before
+     * adding anything to this file.
+     */
+    @Binds
+    @Singleton
+    abstract fun bindCloudSaveStore(impl: PlayGamesCloudSaveStore): CloudSaveStore
 
     @Binds
     @Singleton

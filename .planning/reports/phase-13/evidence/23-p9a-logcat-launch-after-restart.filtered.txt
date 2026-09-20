@@ -1,0 +1,48 @@
+09-20 01:52:44.296  1783  1808 I GamesConnectBroker: (REDACTED) handling request from %s
+09-20 01:52:44.317  1783  1808 I GamesConnectSrv: (REDACTED) signIn(%s): gamesSignInRequest=%s
+09-20 01:52:44.318  1783  1808 I GamesConnectSrv: (REDACTED) signIn(%s): validatorRequest=%s, signInRequest=%s
+09-20 01:52:44.345  1783  5928 I SignInPerformer-2: Requested scopes is empty. Promoting to `games_lite` & `drive_appfolder`. [CONTEXT service_id=1 ]
+09-20 01:52:44.345  1783  5928 I SignInPerformer-2: (REDACTED) Handling request [%s], isFirstPartyCaller [%s]
+09-20 01:52:44.368  1783  5928 I SignInPerformer-2: (REDACTED) java sdk version: [%s]	unity sdk version: [%s]	native sdk version: [%s]
+09-20 01:52:44.408  1783  5928 I SignInPerformer-3: (REDACTED) Handling request [%s], isFirstPartyCaller [%s]
+09-20 01:52:44.410  1783  5928 I SignInPerformer-3: Successfully brokered first-party unauthenticated GamesService [CONTEXT service_id=1 ]
+09-20 01:52:44.412  1783  5928 I GetGamesServiceV2Op: (REDACTED) Successfully brokered GamesService for request %s
+09-20 01:52:44.480  1783  4247 I SignInPerformer-2: (REDACTED) Successfully resolved account: [%s]
+09-20 01:52:44.927  1783  4247 I SignInPerformer-2: (REDACTED) Successfully authorized %s
+09-20 01:52:44.951  1783  4247 I SignInPerformer-2: (REDACTED) Successfully found player (id [%s], originalId [%s], displayName [%s]) for account [%s]
+09-20 01:52:44.966  1783  4247 I SignInPerformer-2: (REDACTED) Successfully found game: displayName [%s], applicationId [%s], packageName [%s]
+09-20 01:52:45.083  1783  4247 I SignInPerformer-2: (REDACTED) Started a new game run [%s]
+09-20 01:52:45.130  1783  2636 I GamesConnectResMan: (REDACTED) Recorded engagement for game %s
+09-20 01:52:45.131  1783  4247 I SignInPerformer-2: Connection from games connect service, returning false for shouldShowWelcomePopup. [CONTEXT service_id=1 ]
+09-20 01:52:45.155  1783  4247 I GamesConnectSignInOp: (REDACTED) signIn(%s): Returning SUCCESS (%s) for request %s
+09-20 01:52:45.343  1783  5928 I SignInPerformer-4: Requested scopes is empty. Promoting to `games_lite` & `drive_appfolder`. [CONTEXT service_id=1 ]
+09-20 01:52:45.343  1783  5928 I SignInPerformer-4: (REDACTED) Handling request [%s], isFirstPartyCaller [%s]
+09-20 01:52:45.344  1783  5928 I SignInPerformer-4: (REDACTED) java sdk version: [%s]	unity sdk version: [%s]	native sdk version: [%s]
+09-20 01:52:45.355  1783  5928 I SignInPerformer-4: (REDACTED) Found existing game run [%s]
+09-20 01:52:45.396  1783  5928 I SignInPerformer-4: (REDACTED) Successfully resolved account: [%s]
+09-20 01:52:45.397  3051  3163 E AuthPII : [RequestTokenManager] getToken() -> NETWORK_ERROR. App: com.erman.pegsolitarie, Service: oauth2:https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/games_lite
+09-20 01:52:45.444  1783  5928 I SignInPerformer-4: (REDACTED) Successfully authorized %s
+09-20 01:52:45.487  1783  5928 I SignInPerformer-4: (REDACTED) Successfully found player (id [%s], originalId [%s], displayName [%s]) for account [%s]
+09-20 01:52:45.489  3051  3163 E AuthPII : [RequestTokenManager] getToken() -> NETWORK_ERROR. App: com.erman.pegsolitarie, Service: oauth2:https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/games_lite
+09-20 01:52:45.499  1783  5928 I SignInPerformer-4: (REDACTED) Successfully found game: displayName [%s], applicationId [%s], packageName [%s]
+09-20 01:52:45.522  1783  5928 I SignInPerformer-4: (REDACTED) Connection from [%s], returning true for shouldShowWelcomePopup.
+09-20 01:52:45.527  1783  5928 I GetGamesServiceV2Op: (REDACTED) Successfully brokered GamesService for request %s
+09-20 01:52:45.546  3051  3163 E AuthPII : [RequestTokenManager] getToken() -> NETWORK_ERROR. App: com.erman.pegsolitarie, Service: oauth2:https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/games_lite
+09-20 01:52:45.551  1783  5974 W PlayGamesServices[GameAgent]: GameNetworkException error when reporting played
+09-20 01:52:45.551  1783  5974 W PlayGamesServices[GameAgent]: m26.hwe: m26.aeaf: UNAVAILABLE: IOException when getting auth token
+09-20 01:52:45.551  1783  5974 W PlayGamesServices[GameAgent]: Caused by: m26.aeaf: UNAVAILABLE: IOException when getting auth token
+09-20 01:52:45.551  1783  5974 W PlayGamesServices[GameAgent]: 	... 1 more
+09-20 01:52:45.551  1783  5974 W PlayGamesServices[GameAgent]: Caused by: m26.buu: java.io.IOException: NetworkError
+09-20 01:52:45.551  1783  5974 W PlayGamesServices[GameAgent]: 	... 3 more
+09-20 01:52:45.551  1783  5974 W PlayGamesServices[GameAgent]: Caused by: java.io.IOException: NetworkError
+09-20 01:52:45.551  1783  5974 W PlayGamesServices[GameAgent]: 	... 5 more
+09-20 01:52:45.871  3051  3163 E AuthPII : [RequestTokenManager] getToken() -> NETWORK_ERROR. App: com.google.android.gms, Service: oauth2:https://www.googleapis.com/auth/games.firstparty
+09-20 01:52:45.878  1783  5992 E PlayGamesServices[GameAgent]: Unable to retrieve 1P application <project-number> from network
+09-20 01:53:05.739  1783  4949 W jrlv    : [{0}] Failed to resolve name. status={1}
+09-20 01:53:45.598  3051  3164 E AuthPII : [RequestTokenManager] getToken() -> NETWORK_ERROR. App: com.android.vending, Service: oauth2:https://www.googleapis.com/auth/googleplay
+09-20 01:53:49.477  1783  4949 W jrlv    : [{0}] Failed to resolve name. status={1}
+09-20 01:53:50.135  3051  3163 E AuthPII : [RequestTokenManager] getToken() -> NETWORK_ERROR. App: com.google.android.apps.photos, Service: oauth2:openid https://www.googleapis.com/auth/mobileapps.native https://www.googleapis.com/auth/photos.native
+09-20 01:53:50.161  3051  3163 E AuthPII : [RequestTokenManager] getToken() -> NETWORK_ERROR. App: com.google.android.apps.photos, Service: oauth2:openid https://www.googleapis.com/auth/mobileapps.native https://www.googleapis.com/auth/photos.native
+09-20 01:53:50.174  3051  3163 E AuthPII : [RequestTokenManager] getToken() -> NETWORK_ERROR. App: com.google.android.apps.photos, Service: oauth2:openid https://www.googleapis.com/auth/mobileapps.native https://www.googleapis.com/auth/photos.native
+09-20 01:53:50.188  3051  3163 E AuthPII : [RequestTokenManager] getToken() -> NETWORK_ERROR. App: com.google.android.apps.photos, Service: oauth2:openid https://www.googleapis.com/auth/mobileapps.native https://www.googleapis.com/auth/photos.native
+09-20 01:53:50.196  3051  3163 E AuthPII : [RequestTokenManager] getToken() -> NETWORK_ERROR. App: com.google.android.apps.photos, Service: oauth2:openid https://www.googleapis.com/auth/mobileapps.native https://www.googleapis.com/auth/photos.native

@@ -14,6 +14,11 @@ import com.app.pegsolitaire.data.resume.SnapshotMapper
 import com.app.pegsolitaire.domain.achievement.AchievementThresholds
 import com.app.pegsolitaire.domain.achievement.ClassicBoard
 import com.app.pegsolitaire.domain.achievement.ProgressAggregate
+import com.app.pegsolitaire.domain.progress.CloudProgress
+import com.app.pegsolitaire.domain.progress.LevelBest
+import com.app.pegsolitaire.domain.progress.LevelKey
+import com.app.pegsolitaire.domain.progress.ProgressMerge
+import com.app.pegsolitaire.domain.progress.ProgressMode
 import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import kotlinx.coroutines.flow.Flow
@@ -152,6 +157,84 @@ interface ProgressRepository {
      * A failing database read degrades to "no modes" — no tiles, never a crash (T-05-10).
      */
     fun observeResumeModes(): Flow<List<String>>
+
+    /**
+     * Everything stored here that follows the player's Play Games account, as the pure
+     * `:domain` payload (CLOUD-01): every level's bests, plus [ladder], plus D-10's played
+     * time.
+     *
+     * [ladder] is a **parameter** rather than a read of `ChallengeProgress`, deliberately:
+     * it keeps this repository free of the DataStore it does not own, and it leaves the
+     * caller (`ProgressSubmitter`) holding the ordering of a sync pass — pull, merge the
+     * ladder, then export the settled value.
+     *
+     * A row whose stored `mode` names neither half of the game is **dropped** from the
+     * payload rather than being fatal to it, the same totality argument
+     * [ClassicBoardIds.boardFor] makes for an unrecognised level id.
+     *
+     * A storage failure degrades to a payload with no bests and no played time. The
+     * supplied [ladder] survives that degradation because it did not come from the store
+     * that failed, and a payload is never a *replacement* for the cloud save — the cloud
+     * side merges it — so an empty-bests payload can only fail to add, never subtract.
+     */
+    suspend fun exportProgress(ladder: Int): CloudProgress
+
+    /**
+     * Merges a decoded cloud payload into local storage and reports whether anything
+     * actually landed (CLOUD-01 / CLOUD-02).
+     *
+     * Every level is merged field by field through the same `ProgressMerge` join
+     * [recordResult] runs, so the operation is **monotonic** (a remote row that is worse
+     * on a field cannot regress that field) and **idempotent** (importing the same payload
+     * twice writes nothing the second time). The union of the two sides becomes visible to
+     * the UI for free, through the [observeResults] Flow that is already collected.
+     *
+     * **It returns [ImportOutcome] and never [NewBests] — that is the CLOUD-04/D-03
+     * guarantee, expressed as a type.** A cloud import is per-merge, not per-play: it must
+     * not fire the "New best!" cue or the Results celebration, and because the only value
+     * that can drive those is a [NewBests] this function cannot produce, the celebration
+     * path is not merely avoided here, it is unreachable.
+     *
+     * **Two things it deliberately does not touch, both requirements:**
+     *  - the resume snapshot (CLOUD-04) — the in-progress board never leaves the device and
+     *    is never destroyed by a cloud event. D-04 is the intended consequence: a merged
+     *    ladder may jump from 10 to 50 while a level-10 game stays resumable underneath it.
+     *  - `play_session` (D-06) — telemetry describes plays that happened *on this device*.
+     *    Fabricating rows for imported progress would silently grant the hint-free, speed
+     *    and centre-finish achievements for plays that never happened.
+     *
+     * It also does not write the Challenge ladder: that lives in DataStore, and the caller
+     * owns the ordering between the two stores (see `ChallengeProgress.mergeLadder`).
+     *
+     * @param nowMs stamped as `completedAt` on a level arriving for the first time. A level
+     *   that already had a row keeps its own stamp — `completedAt` means "last improved on
+     *   this device", so it is neither merged nor synced.
+     *
+     * The write is best-effort and guarded at the **transaction** boundary (T-05-13): a
+     * failing read aborts the entire import rather than degrading to "no local rows", which
+     * would let a stale remote row overwrite better stored bests. Failure reports "nothing
+     * changed" and leaves storage exactly as it was (CLOUD-05).
+     */
+    suspend fun importProgress(
+        remote: CloudProgress,
+        nowMs: Long,
+    ): ImportOutcome
+
+    /**
+     * Empties every table this repository owns: the per-level bests, the telemetry history
+     * and **both** resume snapshots.
+     *
+     * **D-14's profile-replace path only.** Its single caller is `ProgressSubmitter`'s
+     * profile-swap resolution (plan 13-08), reached only when the player answered the one
+     * dialog this milestone reserves with "use the other account's cloud progress". Nothing
+     * else may call it — in particular no import, no conflict resolution and no sign-out.
+     *
+     * It does **not** reset the Challenge ladder, which lives in DataStore rather than in
+     * this database; that same caller resets it through `ChallengeProgress.resetAwaiting()`.
+     *
+     * Best-effort (T-05-13): a storage failure leaves the wipe undone rather than crashing.
+     */
+    suspend fun resetAllProgress()
 }
 
 /**
@@ -165,6 +248,33 @@ data class NewBests(
 ) {
     /** Whether anything at all improved (i.e. whether to show the cue). */
     val any: Boolean get() = stars || time || score
+}
+
+/**
+ * What a cloud import did to local storage: whether anything changed, and how many level
+ * rows were written.
+ *
+ * **This is deliberately not [NewBests], and must never be converted into one or routed to
+ * `ResultsUiState`.** [NewBests] answers "did the play the player just finished beat their
+ * record" and drives the "New best!" cue and the Results celebration; this answers "did a
+ * background merge with another device's progress add anything", which is a silent event by
+ * D-03. Two different questions with the same shape would be one careless `map` away from
+ * congratulating a player for a level they solved last week on another phone — a separate
+ * type is what makes that impossible rather than merely discouraged.
+ *
+ * @property changed `true` when at least one stored row differs from what it was; the
+ *   caller uses it to decide whether the Phase 12 submission pass needs re-firing.
+ * @property rowsWritten How many level rows the merge actually wrote — always `0` when
+ *   [changed] is `false`, since only genuinely improved rows are upserted.
+ */
+data class ImportOutcome(
+    val changed: Boolean,
+    val rowsWritten: Int,
+) {
+    companion object {
+        /** The no-op outcome: a worse-or-equal payload, or a storage failure (CLOUD-05). */
+        val UNCHANGED = ImportOutcome(changed = false, rowsWritten = 0)
+    }
 }
 
 /**
@@ -186,13 +296,30 @@ data class LevelResult(
  * [recordResult] is a read-modify-write inside `withTransaction`: two plays finishing
  * concurrently (a background save racing a Results write) cannot interleave into a lost
  * update, and the "which fields improved" answer is computed against the same row that
- * is then written. The merge itself deliberately lives here rather than in SQL because
- * the DAO cannot report *what* improved (see `LevelResultDao`).
+ * is then written. The read-modify-write deliberately happens in Kotlin rather than in
+ * SQL because the DAO cannot report *what* improved (see `LevelResultDao`).
+ *
+ * The merge it applies is [ProgressMerge], the pure `:domain` join — the very same
+ * function the cloud import and the Saved Games conflict loop run (CLOUD-02). Recording a
+ * solve locally and receiving that solve from another device are therefore the same
+ * operation, proven commutative, associative and idempotent by `ProgressMergeTest`.
  *
  * The resume blob is treated as untrusted on the way in: [loadSnapshot] decodes
  * defensively and additionally refuses a payload whose own `mode` is not the key it was
  * filed under, so a tampered row can only ever cost the player a resume.
+ *
+ * ## Size suppression
+ *
+ * `TooManyFunctions` is suppressed because the count is [ProgressRepository]'s own member
+ * set plus four private helpers, not accreted responsibility: eleven overrides are fixed by
+ * the interface, and the helpers ([recordResultInTransaction], [importInTransaction],
+ * `List<ClassicStanding>.boards` and the two entity mappers) exist so that a rule — the
+ * merge, the transaction boundary, the entity-to-model shape — is stated exactly once
+ * rather than repeated per call site. Splitting the class to satisfy the threshold would
+ * mean a second writer of the same tables, which is the single-source-of-truth property
+ * this repository exists to hold (research Anti-Pattern 2).
  */
+@Suppress("TooManyFunctions") // see "Size suppression" above
 @Singleton
 class DefaultProgressRepository
     @Inject
@@ -234,13 +361,39 @@ class DefaultProgressRepository
                     time = previous == null || timeMs < previous.bestTimeMs,
                     score = previous == null || result.score > previous.bestScore,
                 )
+            val thisPlay =
+                LevelBest(
+                    stars = result.stars,
+                    bestTimeMs = timeMs,
+                    bestScore = result.score,
+                )
+            // The SAME join the cloud import and the Saved Games conflict loop run
+            // (CLOUD-02) — one named merge rather than three hand-written copies free to
+            // drift apart. A first solve is `thisPlay` verbatim rather than a merge
+            // against a fabricated identity row: the two are equal by the identity law,
+            // but not inventing a row keeps the "no previous" case obviously lossless.
+            //
+            // `completedAt` is deliberately NOT merged. It means "last improved on THIS
+            // device", so it has no cross-device meaning and stays out of `LevelBest`
+            // entirely; its expression below is unchanged.
+            val merged =
+                previous?.let { row ->
+                    ProgressMerge.merge(
+                        thisPlay,
+                        LevelBest(
+                            stars = row.stars,
+                            bestTimeMs = row.bestTimeMs,
+                            bestScore = row.bestScore,
+                        ),
+                    )
+                } ?: thisPlay
             levelResultDao.upsert(
                 LevelResultEntity(
                     mode = mode,
                     levelId = levelId,
-                    stars = maxOf(result.stars, previous?.stars ?: ProgressConstants.NO_STARS),
-                    bestTimeMs = minOf(timeMs, previous?.bestTimeMs ?: Long.MAX_VALUE),
-                    bestScore = maxOf(result.score, previous?.bestScore ?: ProgressConstants.NO_SCORE),
+                    stars = merged.stars,
+                    bestTimeMs = merged.bestTimeMs,
+                    bestScore = merged.bestScore,
                     completedAt = if (newBests.any) nowMs else previous?.completedAt ?: nowMs,
                 ),
             )
@@ -263,6 +416,105 @@ class DefaultProgressRepository
                 ),
             )
             return newBests
+        }
+
+        override suspend fun exportProgress(ladder: Int): CloudProgress =
+            // Fails open to "nothing stored" (CLOUD-05), keeping the caller-supplied ladder:
+            // it came from DataStore, not from the database that just failed, and dropping
+            // it would push a level-1 ladder for no reason.
+            storageFailSafe(fallback = CloudProgress(ladder = ladder)) {
+                // Both reads share ONE transaction so the payload is internally consistent:
+                // a solve landing between them cannot produce a payload whose played time
+                // knows about a play its bests do not.
+                database.withTransaction {
+                    CloudProgress(
+                        ladder = ladder,
+                        playedTimeMs = playSessionDao.totalElapsedMs(),
+                        bests =
+                            levelResultDao
+                                .all()
+                                .mapNotNull { row ->
+                                    // A row naming neither mode (legacy or forged) is dropped,
+                                    // never fatal — the same totality ClassicBoardIds.boardFor has.
+                                    ProgressModeIds.domainModeFor(row.mode)?.let { mode ->
+                                        LevelKey(mode, row.levelId) to row.toLevelBest()
+                                    }
+                                }.toMap(),
+                    )
+                }
+            }
+
+        override suspend fun importProgress(
+            remote: CloudProgress,
+            nowMs: Long,
+        ): ImportOutcome =
+            // Best-effort (T-05-13), guarded at the TRANSACTION boundary for the same reason
+            // recordResult is: a throwing `all()` must abort the whole import, because
+            // degrading it to "no local rows" inside the transaction would let every stale
+            // remote row clobber a better stored best (T-13-15/T-13-18).
+            storageFailSafe(fallback = ImportOutcome.UNCHANGED) {
+                database.withTransaction { importInTransaction(remote, nowMs) }
+            }
+
+        /**
+         * One bulk read-merge-write rather than [recordResult]'s per-row read-modify-write.
+         *
+         * The lost-update concern that justifies RMW does not arise here, because the read,
+         * the merge and the write are already inside a single transaction — there is no
+         * window for a concurrent writer to slip between them. What the per-row shape would
+         * cost is real: a full Challenge ladder is ten thousand rows, so it would mean ten
+         * thousand point queries for one sync pass.
+         *
+         * Only rows the merge actually improved are written, which is what makes a replayed
+         * payload cost one read and nothing else.
+         */
+        private suspend fun importInTransaction(
+            remote: CloudProgress,
+            nowMs: Long,
+        ): ImportOutcome {
+            val storedByKey =
+                levelResultDao
+                    .all()
+                    .mapNotNull { row ->
+                        ProgressModeIds.domainModeFor(row.mode)?.let { mode -> LevelKey(mode, row.levelId) to row }
+                    }.toMap()
+            val local = CloudProgress(bests = storedByKey.mapValues { (_, row) -> row.toLevelBest() })
+            // The SAME join `recordResult` runs on a local solve (CLOUD-02): receiving a
+            // solve from another device and recording one here are one operation, proven
+            // commutative, associative and idempotent by ProgressMergeTest. Only `bests` is
+            // taken — the ladder lives in DataStore and is merged by its owner.
+            val merged = ProgressMerge.merge(local, remote).bests
+            val improved = merged.filter { (key, best) -> local.bests[key] != best }
+            if (improved.isEmpty()) {
+                return ImportOutcome.UNCHANGED
+            }
+            levelResultDao.upsertAll(
+                improved.map { (key, best) ->
+                    LevelResultEntity(
+                        mode = ProgressModeIds.storedModeFor(key.mode),
+                        levelId = key.levelId,
+                        stars = best.stars,
+                        bestTimeMs = best.bestTimeMs,
+                        bestScore = best.bestScore,
+                        // "Last improved on THIS device": an existing row keeps its own
+                        // stamp, a newly arriving level is stamped with the import time.
+                        completedAt = storedByKey[key]?.completedAt ?: nowMs,
+                    )
+                },
+            )
+            return ImportOutcome(changed = true, rowsWritten = improved.size)
+        }
+
+        override suspend fun resetAllProgress() {
+            // Best-effort (T-05-13). One transaction so the device never ends up as a
+            // half-replaced hybrid of two accounts' progress.
+            storageFailSafe(fallback = Unit) {
+                database.withTransaction {
+                    levelResultDao.deleteAll()
+                    playSessionDao.deleteAll()
+                    resumeDao.clearAll()
+                }
+            }
         }
 
         override suspend fun aggregate(): ProgressAggregate =
@@ -392,21 +644,69 @@ class DefaultProgressRepository
                 bestScore = bestScore,
                 completedAt = completedAt,
             )
+
+        /**
+         * This row's three merged fields as `:domain` states them. `completedAt` is absent
+         * from [LevelBest] on purpose — it is device-local and is never synced.
+         */
+        private fun LevelResultEntity.toLevelBest(): LevelBest =
+            LevelBest(stars = stars, bestTimeMs = bestTimeMs, bestScore = bestScore)
     }
 
 /**
- * Scoped constants for the progress merge (QUAL-03 — no inline magic numbers in logic).
- * Kept separate from `ProgressPersistenceKeys`, which owns the on-disk *names*.
+ * The single data-boundary translation between the on-disk `mode` column and `:domain`'s
+ * [ProgressMode], in the same shape — and for the same reason — as [ClassicBoardIds].
+ *
+ * It exists because the stored column value, the domain enum and the cloud payload's wire
+ * token are three formats that must be free to change apart: renaming a persistence
+ * constant must not silently orphan every cloud save already written. The payload's half of
+ * that translation lives in `data/cloud/`; this is the database's half.
+ *
+ * The two directions are deliberately asymmetric in their failure mode, exactly as
+ * [ClassicBoardIds]' are.
+ */
+private object ProgressModeIds {
+    /**
+     * The [ProgressMode] a stored `mode` column names, or `null` when it names neither half
+     * of the game.
+     *
+     * `null` is the correct answer rather than an error: a legacy or forged value is simply
+     * "not a mode this build knows", and an export must drop such a row rather than fail the
+     * whole payload over it.
+     */
+    fun domainModeFor(stored: String): ProgressMode? =
+        when (stored) {
+            ProgressPersistenceKeys.MODE_CLASSIC -> ProgressMode.CLASSIC
+            ProgressPersistenceKeys.MODE_CHALLENGE -> ProgressMode.CHALLENGE
+            else -> null
+        }
+
+    /**
+     * The `mode` column value for [mode].
+     *
+     * Deliberately has **no** `else` branch: a third game mode must fail the build here
+     * rather than quietly import as one of the existing two.
+     */
+    fun storedModeFor(mode: ProgressMode): String =
+        when (mode) {
+            ProgressMode.CLASSIC -> ProgressPersistenceKeys.MODE_CLASSIC
+            ProgressMode.CHALLENGE -> ProgressPersistenceKeys.MODE_CHALLENGE
+        }
+}
+
+/**
+ * Scoped constants for this repository's unit conversions and query narrowing (QUAL-03 —
+ * no inline magic numbers in logic). Kept separate from `ProgressPersistenceKeys`, which
+ * owns the on-disk *names*.
+ *
+ * The merge's own floors are **not** here: `NO_STARS`, `NO_SCORE` and `NO_TIME_RECORDED`
+ * moved to `ProgressMergeLimits` in `:domain` when `ProgressMerge` was named, so the
+ * identities of the merge are stated exactly once and the cloud path cannot end up using
+ * a different zero from the local one.
  */
 private object ProgressConstants {
     /** `ScoreResult` reports whole seconds; the stored best time is in milliseconds. */
     const val MILLIS_IN_SECOND = 1_000L
-
-    /** The "no previous row" floor for the max-stars merge. */
-    const val NO_STARS = 0
-
-    /** The "no previous row" floor for the max-score merge. */
-    const val NO_SCORE = 0
 
     /**
      * The "do not narrow by stars" floor for the cleared-boards read: a stored row means

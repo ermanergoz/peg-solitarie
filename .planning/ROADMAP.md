@@ -352,25 +352,25 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 13-01-PLAN.md — CLOUD-02: extract the monotonic merge into pure `:domain` `ProgressMerge` + its algebraic-law tests (the ROADMAP sequencing mandate)
-- [ ] 13-02-PLAN.md — CLOUD-05/D-12: `CloudSyncStore` push-pending marker and `CloudProfileStore` last-merged player id, with argued fail-open defaults
-- [ ] 13-03-PLAN.md — D-16: `13-OPERATOR-CHECKLIST.md` (Enable Saved Games) and 11-HUMAN-UAT tests 10-13 + the profile-swap gap
+- [x] 13-01-PLAN.md — CLOUD-02: extract the monotonic merge into pure `:domain` `ProgressMerge` + its algebraic-law tests (the ROADMAP sequencing mandate)
+- [x] 13-02-PLAN.md — CLOUD-05/D-12: `CloudSyncStore` push-pending marker and `CloudProfileStore` last-merged player id, with argued fail-open defaults
+- [x] 13-03-PLAN.md — D-16: `13-OPERATOR-CHECKLIST.md` (Enable Saved Games) and 11-HUMAN-UAT tests 10-13 + the profile-swap gap
 
 **Wave 2** *(blocked on Wave 1)*
 
-- [ ] 13-04-PLAN.md — CLOUD-01/04, D-05/D-07: `@Serializable` payload DTO, validating decode boundary, encode-measure-trim loop
-- [ ] 13-05-PLAN.md — CLOUD-01/02/04: additive DAO members, awaitable ladder merge, transactional `importProgress`/`exportProgress`/`resetAllProgress`
-- [ ] 13-06-PLAN.md — CLOUD-01/05: `CloudSaveStore` seam (bytes in/out), scoped constants, NoOp stub, recording fake
+- [x] 13-04-PLAN.md — CLOUD-01/04, D-05/D-07: `@Serializable` payload DTO, validating decode boundary, encode-measure-trim loop
+- [x] 13-05-PLAN.md — CLOUD-01/02/04: additive DAO members, awaitable ladder merge, transactional `importProgress`/`exportProgress`/`resetAllProgress`
+- [x] 13-06-PLAN.md — CLOUD-01/05: `CloudSaveStore` seam (bytes in/out), scoped constants, NoOp stub, recording fake
 
 **Wave 3** *(blocked on Wave 2)*
 
-- [ ] 13-07-PLAN.md — CLOUD-03, D-09/D-11: localized capped description and the cover rasterized from the launcher vectors
-- [ ] 13-08-PLAN.md — CLOUD-01/02/03/05, D-01/D-02/D-12/D-14: `ProgressSubmitter` pass — profile gate, pull-once, Phase-12 catch-up, push, swap resolution
+- [x] 13-07-PLAN.md — CLOUD-03, D-09/D-11: localized capped description and the cover rasterized from the launcher vectors
+- [x] 13-08-PLAN.md — CLOUD-01/02/03/05, D-01/D-02/D-12/D-14: `ProgressSubmitter` pass — profile gate, pull-once, Phase-12 catch-up, push, swap resolution
 
 **Wave 4** *(blocked on Wave 3)*
 
-- [ ] 13-09-PLAN.md — CLOUD-01/02/03/05: `SnapshotsClient` plumbing under `RESOLUTION_POLICY_MANUAL`, bounded conflict merge, metadata commit, binding flip
-- [ ] 13-10-PLAN.md — CLOUD-02, D-13/D-14/D-15: Home-only profile-swap dialog, `HomeUiState` peers, never-stacked sequencing
+- [x] 13-09-PLAN.md — CLOUD-01/02/03/05: `SnapshotsClient` plumbing under `RESOLUTION_POLICY_MANUAL`, bounded conflict merge, metadata commit, binding flip
+- [x] 13-10-PLAN.md — CLOUD-02, D-13/D-14/D-15: Home-only profile-swap dialog, `HomeUiState` peers, never-stacked sequencing
 
 **Wave 5** *(blocked on Wave 4)*
 
@@ -416,5 +416,5 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 10. Interstitials | v1.1 | 6/6 | Complete    | 2026-09-03 |
 | 11. Play Games Session | v1.1 | 4/4 | Complete   | 2026-09-03 |
 | 12. Leaderboards & Achievements | v1.1 | 8/8 | Complete   | 2026-09-13 |
-| 13. Cloud Save | v1.1 | 0/TBD | Not started | - |
+| 13. Cloud Save | v1.1 | 10/11 | In Progress|  |
 | 14. Release Readiness | v1.1 | 0/TBD | Not started | - |

@@ -1,0 +1,33 @@
+09-20 01:30:33.128  2647 11301 I GamesConnectBroker: (REDACTED) handling request from %s
+09-20 01:30:33.139  2647 11301 I GamesConnectSrv: (REDACTED) signIn(%s): gamesSignInRequest=%s
+09-20 01:30:33.139  2647 11301 I GamesConnectSrv: (REDACTED) signIn(%s): validatorRequest=%s, signInRequest=%s
+09-20 01:30:33.169  2647 19074 I SignInPerformer-6: Requested scopes is empty. Promoting to `games_lite` & `drive_appfolder`. [CONTEXT service_id=1 ]
+09-20 01:30:33.170  2647 19074 I SignInPerformer-6: (REDACTED) Handling request [%s], isFirstPartyCaller [%s]
+09-20 01:30:33.174  2647 19074 I SignInPerformer-6: (REDACTED) java sdk version: [%s]	unity sdk version: [%s]	native sdk version: [%s]
+09-20 01:30:33.257  2647 19074 I SignInPerformer-6: (REDACTED) Successfully resolved account: [%s]
+09-20 01:30:33.283  2647 19074 W PlayGamesServices[DataBroker]: No player ID found when refreshing
+09-20 01:30:40.729  2647 19074 W PlayGamesServices[DataBroker]: No player ID found when refreshing
+09-20 01:30:41.508  2647 19074 I SignInPerformer-6: (REDACTED) Successfully authorized %s
+09-20 01:30:41.525  2647 19074 W PlayGamesServices[DataBroker]: No player ID found when refreshing
+09-20 01:30:43.408  2647 19074 I SignInPerformer-6: (REDACTED) Successfully found player (id [%s], originalId [%s], displayName [%s]) for account [%s]
+09-20 01:30:46.601  2647 19074 I SignInPerformer-6: (REDACTED) Successfully found game: displayName [%s], applicationId [%s], packageName [%s]
+09-20 01:30:46.856  2647 16726 I SignInPerformer-6: (REDACTED) Started a new game run [%s]
+09-20 01:30:46.949  2647 16726 I SignInPerformer-6: Connection from games connect service, returning false for shouldShowWelcomePopup. [CONTEXT service_id=1 ]
+09-20 01:30:46.952  2647 19319 I GamesConnectResMan: (REDACTED) Recorded engagement for game %s
+09-20 01:30:46.955  2647 16726 I GamesConnectSignInOp: (REDACTED) signIn(%s): Returning SUCCESS (%s) for request %s
+09-20 01:30:47.080  2647 19359 I PlayGamesServices[GamesSyncAdapter]: Starting sync for 2b27bb49
+09-20 01:30:47.279  2647 19359 I PlayGamesServices[GamesSyncAdapter]: Sync duration for 2b27bb49: 191
+09-20 01:30:47.348  2647 19360 I PlayGamesServices[GamesSyncAdapter]: Starting sync for 2b27bb49
+09-20 01:30:47.351  2647 19360 I PlayGamesServices[GamesSyncAdapter]: Sync duration for 2b27bb49: 2
+09-20 01:30:47.356  2647 19074 I SignInPerformer-7: Requested scopes is empty. Promoting to `games_lite` & `drive_appfolder`. [CONTEXT service_id=1 ]
+09-20 01:30:47.372  2647 19074 I SignInPerformer-7: (REDACTED) Handling request [%s], isFirstPartyCaller [%s]
+09-20 01:30:47.372  2647 19074 I SignInPerformer-7: (REDACTED) java sdk version: [%s]	unity sdk version: [%s]	native sdk version: [%s]
+09-20 01:30:47.374  2647 19361 I PlayGamesServices[GamesSyncAdapter]: Starting sync for 2b27bb49
+09-20 01:30:47.386  2647 19074 I SignInPerformer-7: (REDACTED) Found existing game run [%s]
+09-20 01:30:47.409  2647 19074 I SignInPerformer-7: (REDACTED) Successfully resolved account: [%s]
+09-20 01:30:47.464  2647 19074 I SignInPerformer-7: (REDACTED) Successfully authorized %s
+09-20 01:30:47.489  2647 19074 I SignInPerformer-7: (REDACTED) Successfully found player (id [%s], originalId [%s], displayName [%s]) for account [%s]
+09-20 01:30:47.510  2647 19074 I SignInPerformer-7: (REDACTED) Successfully found game: displayName [%s], applicationId [%s], packageName [%s]
+09-20 01:30:47.638  2647 19074 I SignInPerformer-7: (REDACTED) Connection from [%s], returning true for shouldShowWelcomePopup.
+09-20 01:30:47.683  2647 19074 I GetGamesServiceV2Op: (REDACTED) Successfully brokered GamesService for request %s
+09-20 01:30:52.422  2647 19361 I PlayGamesServices[GamesSyncAdapter]: Sync duration for 2b27bb49: 5041

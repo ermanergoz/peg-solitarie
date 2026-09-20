@@ -1,0 +1,14 @@
+## emulator-5554 (Pixel_9a) 2026-09-20 02:16:27
+play_games_prompt_answered = True
+play_games_opted_in = True
+play_games_submissions_pending = False
+challenge_current_level = 5
+play_games_merged_player_id = <player-id>
+play_games_cloud_push_pending = True
+## emulator-5556 (Pixel_9) 2026-09-20 02:16:27
+play_games_prompt_answered = True
+play_games_opted_in = True
+play_games_merged_player_id = <player-id>
+challenge_current_level = 4
+play_games_submissions_pending = False
+play_games_cloud_push_pending = True

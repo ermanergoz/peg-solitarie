@@ -759,9 +759,18 @@ loses network connectivity when calling `commitAndClose()`, Play Games Services 
 locally and syncs upon reconnection."* So an offline push can report success and clear the pending
 marker before anything reaches the server.
 **Why it is fine, and must be documented rather than "fixed":** the data is not lost — GMS owns the
-retry. Adding an app-level "did it really upload" check would duplicate a queue Google already runs,
-and there is no API to observe it. Note it in the KDoc so a future reader does not "fix" it.
-**Warning signs:** none at runtime. A reviewer asking "why don't we verify the upload" is the signal.
+retry. Adding an app-level *retry* would duplicate a queue Google already runs. Note it in the KDoc so
+a future reader does not "fix" it.
+**Correction (2026-09-20, plan 13-12):** this pitfall originally said "there is no API to observe it".
+That is **wrong**. `SnapshotMetadata.hasChangePending()` exists in `play-services-games-v2` 22.0.0 and
+its javadoc reads *"Indicates whether or not this snapshot has any changes pending that have not been
+uploaded to the server. Once all changes have been flushed to the server, this will return false."*
+(verified with `javap` on the AAR's `classes.jar` and against the bundled javadoc jar). The store now
+reads it on every pull and persists it, with the conflict count and the snapshot's last-modified time,
+as `play_games_cloud_last_pull_*` DataStore keys (`CloudPullProbe`). It stays a device diagnostic:
+nothing retries, blocks or surfaces on it (CLOUD-05, D-03).
+**Warning signs:** `play_games_cloud_last_pull_change_pending = True` on a device that has been online
+for minutes after a `COMMITTED` push — the commit never left the device.
 
 ### Pitfall 5: `modifyBytes` leaves trailing garbage
 **What goes wrong:** when the new payload is shorter than the old one (after a trim, or after the
@@ -1218,7 +1227,7 @@ deliberate — it is the only way a JVM test can exercise the conflict merge wit
 
 | # | Claim | Section | Risk if Wrong |
 |---|-------|---------|---------------|
-| A1 | `setCoverImage` accounts a 512×512 ARGB_8888 bitmap against the 800 KB cap by its *PNG-compressed* transported size, not its 1 MB in-memory size | Pattern 5 | Commits could fail with an oversized cover. Mitigation: measure once in UAT test 12 and drop `COVER_PX` to 384/256 — one constant. Low risk: the cover is optional and its omission does not fail the commit. |
+| A1 | **FALSIFIED BY MEASUREMENT (UAT test 12, 2026-09-20).** ~~`setCoverImage` accounts a 512×512 ARGB_8888 bitmap against the 800 KB cap by its *PNG-compressed* transported size, not its 1 MB in-memory size~~ — GMS accounts the **raw** ARGB_8888 size. Measured log line, every commit, both devices: `W/PlayGamesServices[GamesService]: Snapshot cover image is too large. Currently at 1048576 bytes; max is 819200. Image will be scaled`. Cap = 819,200 bytes; the 512×512 cover was accounted at 1,048,576. | Pattern 5 | GMS scaled the cover and the commit succeeded, so no save was lost. Remedy applied: `COVER_PX` 512 → 384 (384² × 4 = 589,824 ≤ 819,200), pinned by `CoverImageSourceTest.theRawArgbCoverFitsThePlayGamesCoverCeiling`. Source: `.planning/reports/phase-13/qa-engineer-device-pass-rerun.md` (test 12). |
 | A2 | No documented maximum length exists for `setDescription` | Pitfall 7 | A long description could be rejected server-side and fail the whole commit. Mitigated unconditionally by capping at 100 chars, which the D-11 one-liner never approaches. |
 | A3 | `Resources.getDrawable` / vector inflation is safe on `Dispatchers.Default` | Pattern 5 | A rare inflation failure → `coverOrNull()` returns null → cover omitted. Already the designed degradation. |
 | A4 | No Play Games guidance exists on cover image aspect ratio; square is fine | Pattern 5 | Cosmetic only — the listing entry could be letterboxed in the Play Games saves UI. |

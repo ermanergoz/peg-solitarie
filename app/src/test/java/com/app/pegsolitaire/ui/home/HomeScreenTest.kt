@@ -117,6 +117,93 @@ class HomeScreenTest {
         composeRule.onNodeWithTag(PLAY_GAMES_PROMPT_DIALOG_TEST_TAG).assertDoesNotExist()
     }
 
+    // ---- The account-switch dialog (CLOUD-02, D-12 to D-15) ------------------
+
+    @Test
+    fun theProfileSwapDialogIsHostedWhenTheStateRaisesIt() {
+        renderHome(state = HomeUiState(profileSwapVisible = true, profileSwapAccountName = ARRIVING_ACCOUNT_NAME))
+
+        composeRule.onNodeWithTag(PROFILE_SWAP_DIALOG_TEST_TAG).assertIsDisplayed()
+    }
+
+    @Test
+    fun theHostedDialogCarriesTheAccountNameTheStateHandsIt() {
+        // The screen never invents the name and never guesses it (the classicResumeLevelId
+        // convention): what the state carries is what the player reads.
+        renderHome(state = HomeUiState(profileSwapVisible = true, profileSwapAccountName = ARRIVING_ACCOUNT_NAME))
+
+        val body = RuntimeEnvironment.getApplication().getString(R.string.profile_swap_body, ARRIVING_ACCOUNT_NAME)
+        composeRule.onNodeWithText(body).assertIsDisplayed()
+    }
+
+    @Test
+    fun noProfileSwapDialogIsHostedWhenNoAccountSwitchIsPending() {
+        // The overwhelmingly common case: one account, nothing to ask.
+        renderHome(state = HomeUiState())
+
+        composeRule.onNodeWithTag(PROFILE_SWAP_DIALOG_TEST_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun theProfileSwapDialogIsNeverStackedOnTheOnboardingOverlay() {
+        // D-15. The ViewModel sequences these, so this state should be unreachable — which
+        // is exactly why it is asserted here too: this test's own KDoc names the trap of a
+        // ViewModel gating a flag perfectly while the screen hosts something else, and this
+        // is its mirror image. The overlay can also be forced open at any time by the
+        // permanent How-to-play affordance (D-15), so the screen is not merely echoing a
+        // guarantee it could take on trust.
+        renderHome(state = HomeUiState(onboardingVisible = true, profileSwapVisible = true))
+
+        composeRule.onNodeWithText(ONBOARDING_DISMISS_LABEL).assertExists()
+        composeRule.onNodeWithTag(PROFILE_SWAP_DIALOG_TEST_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun theProfileSwapDialogIsNeverStackedOnTheOptInPrompt() {
+        // D-15 again, and the more dangerous pairing: two dialogs at once, the lower of
+        // which wipes the device. The opt-in prompt wins — it is the question that decides
+        // whether Play Games is involved at all.
+        renderHome(state = HomeUiState(playGamesPromptVisible = true, profileSwapVisible = true))
+
+        composeRule.onNodeWithTag(PLAY_GAMES_PROMPT_DIALOG_TEST_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(PROFILE_SWAP_DIALOG_TEST_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun keepingThisDevicesProgressReachesTheHostedCallback() {
+        // The invisible-feature trap once more: the dialog could render perfectly and
+        // forward its answer nowhere, leaving the pass blocked on a question the player
+        // believes they have answered (D-15 — no push and no pull until it is answered).
+        var keepCount = 0
+        renderHome(
+            state = HomeUiState(profileSwapVisible = true, profileSwapAccountName = ARRIVING_ACCOUNT_NAME),
+            onKeepDeviceProgress = { keepCount++ },
+        )
+
+        composeRule.onNodeWithText(keepLabel).performClick()
+        composeRule.waitForIdle()
+
+        assertThat(keepCount).isEqualTo(1)
+    }
+
+    @Test
+    fun usingTheCloudProgressReachesItsOwnHostedCallback() {
+        // The two callbacks must not be crossed: this one wipes the device.
+        var keepCount = 0
+        var useCloudCount = 0
+        renderHome(
+            state = HomeUiState(profileSwapVisible = true, profileSwapAccountName = ARRIVING_ACCOUNT_NAME),
+            onKeepDeviceProgress = { keepCount++ },
+            onUseCloudProgress = { useCloudCount++ },
+        )
+
+        composeRule.onNodeWithText(useCloudLabel).performClick()
+        composeRule.waitForIdle()
+
+        assertThat(useCloudCount).isEqualTo(1)
+        assertThat(keepCount).isEqualTo(0)
+    }
+
     @Test
     fun aSignInErrorTickRaisedWhileOnHomeShowsTheSnackbar() {
         // D-18: the error the ViewModel records must actually reach the player. Driven
@@ -135,6 +222,8 @@ class HomeScreenTest {
                 onDismissOnboarding = {},
                 onAcceptPlayGamesPrompt = {},
                 onDeclinePlayGamesPrompt = {},
+                onKeepDeviceProgress = {},
+                onUseCloudProgress = {},
                 onPlayGamesSignInErrorShown = {},
                 onOpenSettings = {},
             )
@@ -179,6 +268,8 @@ class HomeScreenTest {
                     onDismissOnboarding = {},
                     onAcceptPlayGamesPrompt = {},
                     onDeclinePlayGamesPrompt = {},
+                    onKeepDeviceProgress = {},
+                    onUseCloudProgress = {},
                     onPlayGamesSignInErrorShown = {
                         shownCount++
                         state.value = state.value.copy(playGamesSignInErrorTick = 0)
@@ -205,6 +296,8 @@ class HomeScreenTest {
         onPlayChallenge: (Int) -> Unit = {},
         onResumeClassic: (String) -> Unit = {},
         onResumeChallenge: (Int) -> Unit = {},
+        onKeepDeviceProgress: () -> Unit = {},
+        onUseCloudProgress: () -> Unit = {},
     ) {
         composeRule.setContent {
             HomeScreen(
@@ -217,6 +310,8 @@ class HomeScreenTest {
                 onDismissOnboarding = {},
                 onAcceptPlayGamesPrompt = {},
                 onDeclinePlayGamesPrompt = {},
+                onKeepDeviceProgress = onKeepDeviceProgress,
+                onUseCloudProgress = onUseCloudProgress,
                 onPlayGamesSignInErrorShown = {},
                 onOpenSettings = {},
             )
@@ -231,6 +326,13 @@ class HomeScreenTest {
      */
     private val signInErrorMessage: String
         get() = RuntimeEnvironment.getApplication().getString(R.string.play_games_signin_error)
+
+    /** The two answer labels, read from `strings.xml` — the copy is asserted where it is authored. */
+    private val keepLabel: String
+        get() = RuntimeEnvironment.getApplication().getString(R.string.profile_swap_keep)
+
+    private val useCloudLabel: String
+        get() = RuntimeEnvironment.getApplication().getString(R.string.profile_swap_use_cloud)
 }
 
 /** Robolectric has no android-all jar for Android 16 (SDK 36) yet; emulate SDK 34. */
@@ -257,3 +359,9 @@ private const val STAMPED_RESUME_SUPPORTING = "Pick up Level 9 where you left of
 
 /** The first genuine sign-in error of a session — the tick's first meaningful value. */
 private const val FIRST_ERROR_TICK = 1
+
+/** The arriving account's display name for the swap dialog (D-12). */
+private const val ARRIVING_ACCOUNT_NAME = "PegChampion"
+
+/** The onboarding overlay's dismiss label (verbatim from `strings.xml`) — proof it is up. */
+private const val ONBOARDING_DISMISS_LABEL = "Got it"
