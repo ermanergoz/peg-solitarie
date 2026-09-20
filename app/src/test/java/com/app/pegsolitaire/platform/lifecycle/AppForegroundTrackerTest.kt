@@ -1,21 +1,17 @@
 package com.app.pegsolitaire.platform.lifecycle
 
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
-import androidx.datastore.preferences.core.Preferences
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import com.app.pegsolitaire.data.InterstitialCadenceStore
 import com.app.pegsolitaire.domain.ads.InterstitialCadenceParams
+import com.app.pegsolitaire.testing.InMemoryPreferencesDataStore
 import com.google.common.truth.Truth.assertThat
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.TemporaryFolder
 
 /**
  * Behaviour spec for [AppForegroundTracker] — the D-16 session-boundary source.
@@ -28,12 +24,9 @@ import org.junit.rules.TemporaryFolder
  * 10-06, and are not something a JVM unit test can honestly assert.
  *
  * Two halves, deliberately: mocked-store cases pin exactly WHICH call each event makes (and
- * that it makes no other), and real-store cases pin what the resulting session state is.
+ * that it makes no other), and in-memory-store cases pin what the resulting session state is.
  */
 class AppForegroundTrackerTest {
-    @get:Rule
-    val tempFolder = TemporaryFolder()
-
     @Test
     fun onStopStampsTheForegroundExitOnceWithWallClockAndStartsNoSession() {
         val store = mockk<InterstitialCadenceStore>(relaxed = true)
@@ -71,7 +64,7 @@ class AppForegroundTrackerTest {
     @Test
     fun onStopPersistsTheStampSoASecondHolderReadsItBack() =
         runTest {
-            val dataStore = realDataStore()
+            val dataStore = InMemoryPreferencesDataStore()
             val store = InterstitialCadenceStore(dataStore, backgroundScope)
 
             val before = System.currentTimeMillis()
@@ -85,7 +78,7 @@ class AppForegroundTrackerTest {
     @Test
     fun onStartAfterTheFullBackgroundGapOpensANewSession() =
         runTest {
-            val store = InterstitialCadenceStore(realDataStore(), backgroundScope)
+            val store = InterstitialCadenceStore(InMemoryPreferencesDataStore(), backgroundScope)
             val tracker = AppForegroundTracker(store)
             store.recordInterstitialShown(System.currentTimeMillis())
             store.state.first { it.interstitialsThisSession == ONE }
@@ -103,7 +96,7 @@ class AppForegroundTrackerTest {
     @Test
     fun onStartInsideTheGapContinuesTheSameSession() =
         runTest {
-            val store = InterstitialCadenceStore(realDataStore(), backgroundScope)
+            val store = InterstitialCadenceStore(InMemoryPreferencesDataStore(), backgroundScope)
             val tracker = AppForegroundTracker(store)
             store.recordInterstitialShown(System.currentTimeMillis())
             store.state.first { it.interstitialsThisSession == ONE }
@@ -126,7 +119,7 @@ class AppForegroundTrackerTest {
         runTest {
             // Launch one has no prior foreground stamp, so it closes no session — otherwise
             // D-03's suppression would be deleted on install day.
-            val store = InterstitialCadenceStore(realDataStore(), backgroundScope)
+            val store = InterstitialCadenceStore(InMemoryPreferencesDataStore(), backgroundScope)
 
             AppForegroundTracker(store).onStart(StubOwner)
             store.recordWin()
@@ -135,11 +128,6 @@ class AppForegroundTrackerTest {
             assertThat(after.firstSessionComplete).isFalse()
         }
 
-    private fun realDataStore(): DataStore<Preferences> =
-        PreferenceDataStoreFactory.create(
-            produceFile = { tempFolder.newFile(TEST_STORE_FILE) },
-        )
-
     /** The tracker never reads its owner — the event itself is the whole input. */
     private object StubOwner : LifecycleOwner {
         override val lifecycle: Lifecycle
@@ -147,7 +135,6 @@ class AppForegroundTrackerTest {
     }
 
     private companion object {
-        const val TEST_STORE_FILE = "app_foreground_tracker_test.preferences_pb"
         const val NONE = 0
         const val ONE = 1
 

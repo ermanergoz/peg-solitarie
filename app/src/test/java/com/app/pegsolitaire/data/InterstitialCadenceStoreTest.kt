@@ -1,12 +1,12 @@
 package com.app.pegsolitaire.data
 
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import com.app.pegsolitaire.domain.ads.InterstitialCadenceParams
 import com.app.pegsolitaire.domain.ads.InterstitialCadenceState
+import com.app.pegsolitaire.testing.InMemoryPreferencesDataStore
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -14,9 +14,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.TemporaryFolder
 import java.io.IOException
 
 /**
@@ -29,23 +27,20 @@ import java.io.IOException
  * per-session count must come back as zero on that second holder while everything else comes
  * back intact.
  *
- * Runs on the JVM against a real temp-file Preferences store; two hostile doubles (every read
+ * Runs on the JVM against an [InMemoryPreferencesDataStore]; two hostile doubles (every read
  * throws / every write throws) prove the store fails open to "no interstitial" and never
  * propagates a storage failure onto the app-lifetime scope (T-10-01 / T-10-10).
  *
  * Where a test asserts that a call did NOT change anything, it first issues a LATER write and
- * awaits that one. `DataStore` serialises `updateData`, so observing the later write is proof
- * the earlier call has already been applied — without it the assertion could pass simply by
- * running before the write it is meant to rule out.
+ * awaits that one. `updateData` is serialised — by the real store and by the double alike — so
+ * observing the later write is proof the earlier call has already been applied; without it the
+ * assertion could pass simply by running before the write it is meant to rule out.
  */
 class InterstitialCadenceStoreTest {
-    @get:Rule
-    val tempFolder = TemporaryFolder()
-
     @Test
     fun aFreshStoreYieldsTheDefaultStateAndShowsNoInterstitial() =
         runTest {
-            val store = InterstitialCadenceStore(realDataStore(), backgroundScope)
+            val store = InterstitialCadenceStore(InMemoryPreferencesDataStore(), backgroundScope)
 
             // Fail-safe direction: the default state is the one that authorises nothing.
             assertThat(store.state.value).isEqualTo(InterstitialCadenceState())
@@ -56,7 +51,7 @@ class InterstitialCadenceStoreTest {
     fun recordWinPersistsSoASecondHolderOverTheSameStoreReadsItBack() =
         runTest {
             // INT-02: the frequency cap must survive the app being killed.
-            val dataStore = realDataStore()
+            val dataStore = InMemoryPreferencesDataStore()
             val store = InterstitialCadenceStore(dataStore, backgroundScope)
 
             store.recordWin()
@@ -70,7 +65,7 @@ class InterstitialCadenceStoreTest {
     @Test
     fun recordInterstitialShownRestartsTheWinsStampsTheAdAndRaisesTheSessionCount() =
         runTest {
-            val store = InterstitialCadenceStore(realDataStore(), backgroundScope)
+            val store = InterstitialCadenceStore(InMemoryPreferencesDataStore(), backgroundScope)
             store.recordWin()
             store.state.first { it.winsSinceLastInterstitial == ONE }
 
@@ -86,7 +81,7 @@ class InterstitialCadenceStoreTest {
         runTest {
             // D-15: a rewarded ad opens the same 90s cooldown but is not charged to the
             // interstitial budget — the player opted into it.
-            val store = InterstitialCadenceStore(realDataStore(), backgroundScope)
+            val store = InterstitialCadenceStore(InMemoryPreferencesDataStore(), backgroundScope)
             store.recordWin()
             store.state.first { it.winsSinceLastInterstitial == ONE }
 
@@ -101,7 +96,7 @@ class InterstitialCadenceStoreTest {
     fun theSessionCountIsInMemoryOnlySoASecondHolderReadsItBackAsZero() =
         runTest {
             // D-13: everything else survives a relaunch; this one deliberately does not.
-            val dataStore = realDataStore()
+            val dataStore = InMemoryPreferencesDataStore()
             val store = InterstitialCadenceStore(dataStore, backgroundScope)
 
             store.recordInterstitialShown(NOW_MS)
@@ -151,7 +146,7 @@ class InterstitialCadenceStoreTest {
     fun forgedOutOfRangePersistedValuesAreNormalisedOnTheWayOut() =
         runTest {
             // T-10-01: the read path is the only validation point, so assert the READ result.
-            val dataStore = realDataStore()
+            val dataStore = InMemoryPreferencesDataStore()
             dataStore.edit {
                 it[InterstitialCadencePreferences.WINS_SINCE_LAST_KEY] = FORGED_NEGATIVE_WINS
                 it[InterstitialCadencePreferences.LAST_FULLSCREEN_AD_AT_KEY] = Long.MAX_VALUE
@@ -171,7 +166,7 @@ class InterstitialCadenceStoreTest {
     @Test
     fun recordForegroundLeftPersistsTheStampAcrossARestart() =
         runTest {
-            val dataStore = realDataStore()
+            val dataStore = InMemoryPreferencesDataStore()
             val store = InterstitialCadenceStore(dataStore, backgroundScope)
 
             store.recordForegroundLeft(NOW_MS)
@@ -184,7 +179,7 @@ class InterstitialCadenceStoreTest {
     @Test
     fun startSessionIfGapElapsedOpensANewSessionAfterTheFullBackgroundGap() =
         runTest {
-            val store = InterstitialCadenceStore(realDataStore(), backgroundScope)
+            val store = InterstitialCadenceStore(InMemoryPreferencesDataStore(), backgroundScope)
             store.recordInterstitialShown(NOW_MS)
             store.state.first { it.interstitialsThisSession == ONE }
             val leftAt = NOW_MS - InterstitialCadenceParams.SESSION_GAP_MS
@@ -201,7 +196,7 @@ class InterstitialCadenceStoreTest {
     @Test
     fun startSessionIfGapElapsedInsideTheGapContinuesTheSameSession() =
         runTest {
-            val store = InterstitialCadenceStore(realDataStore(), backgroundScope)
+            val store = InterstitialCadenceStore(InMemoryPreferencesDataStore(), backgroundScope)
             store.recordInterstitialShown(NOW_MS)
             store.state.first { it.interstitialsThisSession == ONE }
             val leftAt = NOW_MS - InterstitialCadenceParams.SESSION_GAP_MS + ONE_MS
@@ -221,7 +216,7 @@ class InterstitialCadenceStoreTest {
         runTest {
             // Without the NEVER_FOREGROUNDED guard this would end D-03's suppression on
             // install day — the one window the phase most needs to hold.
-            val store = InterstitialCadenceStore(realDataStore(), backgroundScope)
+            val store = InterstitialCadenceStore(InMemoryPreferencesDataStore(), backgroundScope)
 
             store.startSessionIfGapElapsed(NOW_MS)
             store.recordWin()
@@ -229,11 +224,6 @@ class InterstitialCadenceStoreTest {
             val after = store.state.first { it.winsSinceLastInterstitial == ONE }
             assertThat(after.firstSessionComplete).isFalse()
         }
-
-    private fun realDataStore(): DataStore<Preferences> =
-        PreferenceDataStoreFactory.create(
-            produceFile = { tempFolder.newFile(TEST_STORE_FILE) },
-        )
 
     /** Every read fails like a corrupt store (T-10-01). */
     private fun throwingDataStore(): DataStore<Preferences> =
@@ -254,8 +244,6 @@ class InterstitialCadenceStoreTest {
         }
 
     private companion object {
-        const val TEST_STORE_FILE = "interstitial_cadence_test.preferences_pb"
-
         /** An arbitrary wall-clock instant; the policy's thresholds are read from the params. */
         const val NOW_MS = 1_700_000_000_000L
         const val NONE = 0
