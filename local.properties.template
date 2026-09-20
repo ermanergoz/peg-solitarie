@@ -19,6 +19,9 @@
 # configuration time with a message naming the exact key that is missing.
 #
 # A value that is absent, blank, or still prefixed `REPLACE_ME` all count as "not set".
+#
+# THE RELEASE SIGNING CREDENTIALS ARE NOT IN THIS FILE AND MUST NEVER BE — see the block
+# at the bottom, which lists them and has nothing to copy.
 
 # AdMob application ID — the `ca-app-pub-…~…` form (tilde, not slash).
 ADMOB_APP_ID=REPLACE_ME_ADMOB_APP_ID
@@ -144,3 +147,38 @@ PGS_ACH_GRAND_TOUR=REPLACE_ME_PGS_ACH_GRAND_TOUR
 
 # "Perfectionist" — every Classic board's best is at that board's minimum-peg finish.
 PGS_ACH_PERFECTIONIST=REPLACE_ME_PGS_ACH_PERFECTIONIST
+
+# =============================================================================
+# Release signing — ENVIRONMENT ONLY. Nothing below is a key you copy into
+# `local.properties`. There is deliberately no `=` on any of these lines.
+# =============================================================================
+#
+# A release package is signed with the Play upload key, and the build reads its four
+# credentials from the environment of the shell that runs it:
+#
+#   PLAY_UPLOAD_KEYSTORE        absolute path to the keystore, which lives OUTSIDE this repo
+#   PLAY_UPLOAD_KEY_ALIAS       the alias of the upload key inside it
+#   PLAY_UPLOAD_KEY_PASSWORD    the password that opens that key
+#   PLAY_UPLOAD_STORE_PASSWORD  the password that opens the keystore
+#
+# Unlike every key above, these ARE cryptographic secrets. The IDs above ship inside the
+# APK and anyone can read them out of a published build; these four are what makes an
+# upload provably yours, and one of them in a file is one `git add -f`, one editor backup
+# or one cloud-synced folder away from being someone else's. So there is no
+# `local.properties` source for them at all — `SigningResolution` reads the environment
+# and nothing else, and `.gitignore` blocks `*.jks`, `*.keystore` and `keystore.properties`
+# so the keystore itself cannot be committed either.
+#
+# Export them in the shell that runs the build, and only there:
+#
+#   export PLAY_UPLOAD_KEYSTORE=/absolute/path/outside/this/repo/upload.jks
+#   export PLAY_UPLOAD_KEY_ALIAS=…
+#   export PLAY_UPLOAD_KEY_PASSWORD=…
+#   export PLAY_UPLOAD_STORE_PASSWORD=…
+#
+# A DEBUG BUILD NEEDS NONE OF THEM: `assembleDebug`, `check`, `test` and IDE sync are
+# signed with AGP's own debug keystore and never consult these. A release invocation with
+# any of them unset fails at configuration time with a message naming the exact variable;
+# a release invocation whose keystore is missing, whose alias is absent or whose passwords
+# are wrong fails before packaging, with a message saying which — never an unsigned or
+# half-signed artifact. See `14-OPERATOR-CHECKLIST.md` Step 7.
