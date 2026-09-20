@@ -140,24 +140,6 @@ class PlayGamesCloudSaveStore
         }
 
         /**
-         * What [opened] says about itself, or `null` if the SDK would not say.
-         *
-         * Three reads and no others. In particular **not** `getDeviceName()`, `getDescription()`,
-         * `getUniqueName()`, `getSnapshotId()`, `getOwner()` or the cover URI: each is a string
-         * tied to a player or a device, and the probe type has no slot for one (T-13-40). See
-         * [CloudPullProbe] for why the device name specifically was specified and then dropped.
-         */
-        private fun probeOf(opened: OpenedSnapshot): CloudPullProbe? =
-            runCatching {
-                val metadata = opened.snapshot.metadata
-                CloudPullProbe(
-                    changePending = metadata.hasChangePending(),
-                    conflictsResolved = opened.conflictsResolved,
-                    lastModifiedAt = metadata.lastModifiedTimestamp,
-                )
-            }.getOrNull()
-
-        /**
          * Writes [bytes] as the player's cloud payload together with the listing metadata that
          * makes the save legible in the Play Games saves UI (CLOUD-03), reporting whether the SDK
          * accepted the commit and, when it did not, the stage that ended the push.
@@ -478,17 +460,6 @@ class PlayGamesCloudSaveStore
         }
 
         /**
-         * An **open** handle plus how many conflicts it took to get it — what [openResolved] yields.
-         *
-         * Private, never stored in a field and never returned across the seam: it holds an SDK
-         * type, and only the count ever leaves this file, inside a [CloudPullProbe].
-         */
-        private class OpenedSnapshot(
-            val snapshot: Snapshot,
-            val conflictsResolved: Int,
-        )
-
-        /**
          * A failed SDK await, reduced to the [CloudSaveOutcome] it should be reported as.
          *
          * Private to this file and caught only by [save]; on the read path [load]'s own
@@ -505,3 +476,33 @@ class PlayGamesCloudSaveStore
  * SDK failure. File-level because it reads no state of the store at all.
  */
 private fun statusCodeOf(failure: Throwable): Int? = (failure as? ApiException)?.statusCode
+
+/**
+ * An **open** handle plus how many conflicts it took to get it — what `openResolved` yields.
+ *
+ * File-private, never stored in a field and never returned across the seam: it holds an SDK type,
+ * and only the count ever leaves this file, inside a [CloudPullProbe].
+ */
+private class OpenedSnapshot(
+    val snapshot: Snapshot,
+    val conflictsResolved: Int,
+)
+
+/**
+ * What [opened] says about itself, or `null` if the SDK would not say.
+ *
+ * Three reads and no others. In particular **not** `getDeviceName()`, `getDescription()`,
+ * `getUniqueName()`, `getSnapshotId()`, `getOwner()` or the cover URI: each is a string tied to a
+ * player or a device, and the probe type has no slot for one (T-13-40). See [CloudPullProbe] for
+ * why the device name specifically was specified and then dropped. File-level, like [statusCodeOf],
+ * because it reads no state of the store.
+ */
+private fun probeOf(opened: OpenedSnapshot): CloudPullProbe? =
+    runCatching {
+        val metadata = opened.snapshot.metadata
+        CloudPullProbe(
+            changePending = metadata.hasChangePending(),
+            conflictsResolved = opened.conflictsResolved,
+            lastModifiedAt = metadata.lastModifiedTimestamp,
+        )
+    }.getOrNull()
