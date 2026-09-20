@@ -5,6 +5,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
 import com.app.pegsolitaire.audio.LocalSoundPlayer
 import com.app.pegsolitaire.audio.SoundPlayer
@@ -112,11 +113,18 @@ class MainActivity : ComponentActivity() {
     /**
      * The QA-only snapshot picker's gate (CLOUD-03 verification).
      *
-     * **Inert in release**: the entry returns before it reads the intent unless
-     * `BuildConfig.DEBUG` is set, so nothing player-facing is added and D-03's silent cloud
-     * save is unchanged. The decision lives behind the entry, not here, which keeps this an
-     * undecorated one-liner like the three bootstraps — and keeps it testable, since this
-     * class has no JVM-test exposure. See [DebugSnapshotPickerEntry] for the adb command.
+     * **Inert in release, twice over**: the entry returns before it reads the intent unless
+     * `BuildConfig.DEBUG` is set, *and* the picker it would launch lives in the `debug` source
+     * set, so the release variant binds a no-op `show` and compiles no picker at all. Nothing
+     * player-facing is added and D-03's silent cloud save is unchanged. The decision lives
+     * behind the entry, not here, which keeps this an undecorated one-liner like the three
+     * bootstraps — and keeps it testable, since this class has no JVM-test exposure. See
+     * [DebugSnapshotPickerEntry] for the adb command.
+     *
+     * The one thing this class must supply is the **scope**: the entry's wait belongs to the
+     * Activity that was launched with the extra, so both call sites below hand it
+     * [lifecycleScope]. On the process-lifetime scope it used to hold, a 30-second sign-in wait
+     * could outlive this Activity and surface the picker over a later one.
      */
     @Inject
     lateinit var debugSnapshotPickerEntry: DebugSnapshotPickerEntry
@@ -138,7 +146,7 @@ class MainActivity : ComponentActivity() {
         consentGateway.bootstrap()
         gamesService.bootstrapIfOptedIn()
         progressSubmitter.start()
-        debugSnapshotPickerEntry.onIntent(intent)
+        debugSnapshotPickerEntry.onIntent(intent, lifecycleScope)
         setContent {
             CompositionLocalProvider(LocalSoundPlayer provides soundPlayer) {
                 AppTheme {
@@ -151,6 +159,6 @@ class MainActivity : ComponentActivity() {
     /** A debug launch that reaches an already-running instance carries the extra here instead. */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        debugSnapshotPickerEntry.onIntent(intent)
+        debugSnapshotPickerEntry.onIntent(intent, lifecycleScope)
     }
 }
