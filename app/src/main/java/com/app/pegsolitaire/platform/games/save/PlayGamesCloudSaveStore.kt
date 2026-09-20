@@ -56,16 +56,19 @@ import javax.inject.Singleton
  *
  * Play Games caches a `commitAndClose` locally when the device has no connectivity and syncs it on
  * reconnection, so [save] can legitimately report a commit before anything has reached Google's
- * servers. The data is not lost — GMS owns that retry queue and exposes no API through which an
- * app could observe its state. An app-level "did it really upload" check would therefore duplicate
- * a queue Google already runs while being unable to see the thing it claims to verify. A reviewer
- * asking why the upload is not verified is the signal this paragraph exists for (RESEARCH
- * Pitfall 4).
+ * servers. The data is not lost — GMS owns that retry queue, and an app-level retry would only
+ * duplicate it (RESEARCH Pitfall 4).
+ *
+ * This paragraph used to add that the SDK "exposes no API through which an app could observe" the
+ * upload. **That was wrong.** `SnapshotMetadata.hasChangePending()` is documented as *"whether or
+ * not this snapshot has any changes pending that have not been uploaded to the server"*, and
+ * [load] reads it: the next pull's [CloudPullProbe] says whether the last commit left the device.
+ * The upload is still not *waited for* or *retried* here — that remains GMS's queue.
  *
  * ## Nothing here logs
  *
  * The payload, the description and any SDK exception message are all tied to a signed-in player
- * (T-13-40 / T-11-04, ASVS V7). Every failed read becomes `null` and nothing else, matching
+ * (T-13-40 / T-11-04, ASVS V7). Every failed read becomes [CloudPull.NOTHING] and nothing else, matching
  * [com.app.pegsolitaire.platform.games.PlayGamesService] and
  * [com.app.pegsolitaire.platform.ads.RewardedAdSlot]. The absence is enforced by a grep gate
  * rather than by review, which is why this paragraph names no logging API.
@@ -88,7 +91,8 @@ class PlayGamesCloudSaveStore
         private val descriptionFormatter: CloudSaveDescriptionFormatter,
     ) : CloudSaveStore {
         /**
-         * Reads the player's cloud payload, or `null` for every "nothing was read" cause.
+         * Reads the player's cloud payload — `null` bytes for every "nothing was read" cause —
+         * and, whenever a snapshot opened, the [CloudPullProbe] read off its metadata.
          *
          * **The read path discards, never commits.** A pull that changed nothing must not rewrite
          * the snapshot and move the server's `lastModifiedTimestamp` — doing so would make a
@@ -104,30 +108,54 @@ class PlayGamesCloudSaveStore
          * anything other than the caller's real merge — "take the newest", "take mine" — would
          * discard one device's progress during what the player experiences as a restore, which is
          * precisely the data loss CLOUD-02 forbids.
+         *
+         * **The probe is read after the bytes and can never cost them.** It is metadata the SDK
+         * already parcelled with the open — no further call, no network — but a diagnostic that
+         * could turn a readable save into "stay local" would be a worse bug than the one it helps
+         * find, so its failure is its own `null`.
          */
-        override suspend fun load(mergeRemote: (ByteArray, ByteArray) -> ByteArray): ByteArray? {
-            val activity = awaitForegroundActivity() ?: return null
+        override suspend fun load(mergeRemote: (ByteArray, ByteArray) -> ByteArray): CloudPull {
+            val activity = awaitForegroundActivity() ?: return CloudPull.NOTHING
 
             return runCatching {
                 val client = PlayGames.getSnapshotsClient(activity)
-                val snapshot = openResolved(client, mergeRemote) ?: return@runCatching null
+                val opened = openResolved(client, mergeRemote) ?: return@runCatching CloudPull.NOTHING
 
                 // One terminal call, in one place: the read path only ever discards, so the
                 // `finally` IS the close and there is no second site to double it (Pitfall 2).
-                val bytes =
+                val pull =
                     try {
-                        snapshot.snapshotContents.readFully()
+                        val bytes = opened.snapshot.snapshotContents.readFully()
+                        CloudPull(bytes = bytes.takeIf { it.isNotEmpty() }, probe = probeOf(opened))
                     } finally {
-                        discardQuietly(client, snapshot)
+                        discardQuietly(client, opened.snapshot)
                     }
 
                 // The close is non-cancellable on purpose, so a cancel that arrived during it is
                 // honoured here instead: a stopped pass must not hand bytes on to its caller.
                 currentCoroutineContext().ensureActive()
-                bytes.takeIf { it.isNotEmpty() }
+                pull
             }.onFailure { if (it is CancellationException) throw it }
-                .getOrNull()
+                .getOrDefault(CloudPull.NOTHING)
         }
+
+        /**
+         * What [opened] says about itself, or `null` if the SDK would not say.
+         *
+         * Three reads and no others. In particular **not** `getDeviceName()`, `getDescription()`,
+         * `getUniqueName()`, `getSnapshotId()`, `getOwner()` or the cover URI: each is a string
+         * tied to a player or a device, and the probe type has no slot for one (T-13-40). See
+         * [CloudPullProbe] for why the device name specifically was specified and then dropped.
+         */
+        private fun probeOf(opened: OpenedSnapshot): CloudPullProbe? =
+            runCatching {
+                val metadata = opened.snapshot.metadata
+                CloudPullProbe(
+                    changePending = metadata.hasChangePending(),
+                    conflictsResolved = opened.conflictsResolved,
+                    lastModifiedAt = metadata.lastModifiedTimestamp,
+                )
+            }.getOrNull()
 
         /**
          * Writes [bytes] as the player's cloud payload together with the listing metadata that
@@ -164,11 +192,11 @@ class PlayGamesCloudSaveStore
                 // cover raster can both throw, and nothing that can throw may sit between a handle
                 // coming back open and [commitOrDiscard] taking ownership of it.
                 val change = metadataChangeFor(description, playedTimeMs)
-                val snapshot =
+                val opened =
                     openResolved(client, mergeRemote)
                         ?: return@runCatching CloudSaveOutcome(CloudSaveStage.CONFLICT_UNRESOLVED)
 
-                val outcome = commitOrDiscard(client, snapshot, bytes, change, mergeRemote)
+                val outcome = commitOrDiscard(client, opened.snapshot, bytes, change, mergeRemote)
 
                 // See [load]: the close cannot be cancelled, so the cancel is honoured after it.
                 currentCoroutineContext().ensureActive()
@@ -266,7 +294,7 @@ class PlayGamesCloudSaveStore
         private suspend fun openResolved(
             client: SnapshotsClient,
             mergeRemote: (ByteArray, ByteArray) -> ByteArray,
-        ): Snapshot? {
+        ): OpenedSnapshot? {
             val opened =
                 awaitStage(CloudSaveStage.OPEN_FAILED) {
                     client
@@ -314,7 +342,7 @@ class PlayGamesCloudSaveStore
             client: SnapshotsClient,
             initial: SnapshotsClient.DataOrConflict<Snapshot>,
             mergeRemote: (ByteArray, ByteArray) -> ByteArray,
-        ): Snapshot? {
+        ): OpenedSnapshot? {
             var result = initial
             var attempts = 0
 
@@ -347,7 +375,9 @@ class PlayGamesCloudSaveStore
                 }
             }
 
-            return result.data
+            // `attempts` counts resolutions that were *started*, and every one that reaches this
+            // line also finished: a resolution that failed threw out of the loop above.
+            return result.data?.let { OpenedSnapshot(snapshot = it, conflictsResolved = attempts) }
         }
 
         /** One pass of the conflict loop: merge both sides and hand the result to the SDK. */
@@ -446,6 +476,17 @@ class PlayGamesCloudSaveStore
                 runCatching { client.discardAndClose(snapshot).await() }
             }
         }
+
+        /**
+         * An **open** handle plus how many conflicts it took to get it — what [openResolved] yields.
+         *
+         * Private, never stored in a field and never returned across the seam: it holds an SDK
+         * type, and only the count ever leaves this file, inside a [CloudPullProbe].
+         */
+        private class OpenedSnapshot(
+            val snapshot: Snapshot,
+            val conflictsResolved: Int,
+        )
 
         /**
          * A failed SDK await, reduced to the [CloudSaveOutcome] it should be reported as.

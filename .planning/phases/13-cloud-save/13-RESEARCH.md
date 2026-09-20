@@ -759,9 +759,18 @@ loses network connectivity when calling `commitAndClose()`, Play Games Services 
 locally and syncs upon reconnection."* So an offline push can report success and clear the pending
 marker before anything reaches the server.
 **Why it is fine, and must be documented rather than "fixed":** the data is not lost — GMS owns the
-retry. Adding an app-level "did it really upload" check would duplicate a queue Google already runs,
-and there is no API to observe it. Note it in the KDoc so a future reader does not "fix" it.
-**Warning signs:** none at runtime. A reviewer asking "why don't we verify the upload" is the signal.
+retry. Adding an app-level *retry* would duplicate a queue Google already runs. Note it in the KDoc so
+a future reader does not "fix" it.
+**Correction (2026-09-20, plan 13-12):** this pitfall originally said "there is no API to observe it".
+That is **wrong**. `SnapshotMetadata.hasChangePending()` exists in `play-services-games-v2` 22.0.0 and
+its javadoc reads *"Indicates whether or not this snapshot has any changes pending that have not been
+uploaded to the server. Once all changes have been flushed to the server, this will return false."*
+(verified with `javap` on the AAR's `classes.jar` and against the bundled javadoc jar). The store now
+reads it on every pull and persists it, with the conflict count and the snapshot's last-modified time,
+as `play_games_cloud_last_pull_*` DataStore keys (`CloudPullProbe`). It stays a device diagnostic:
+nothing retries, blocks or surfaces on it (CLOUD-05, D-03).
+**Warning signs:** `play_games_cloud_last_pull_change_pending = True` on a device that has been online
+for minutes after a `COMMITTED` push — the commit never left the device.
 
 ### Pitfall 5: `modifyBytes` leaves trailing garbage
 **What goes wrong:** when the new payload is shorter than the old one (after a trim, or after the

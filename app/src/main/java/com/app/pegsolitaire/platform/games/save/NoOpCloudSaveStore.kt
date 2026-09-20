@@ -27,10 +27,11 @@ class NoOpCloudSaveStore
     @Inject
     constructor() : CloudSaveStore {
         /**
-         * `null`: no payload was read, so the caller should stay local — never read as "the player
-         * has no cloud progress". [mergeRemote] is not invoked; a stub reaches no conflict.
+         * [CloudPull.NOTHING]: no payload was read, so the caller should stay local — never read as
+         * "the player has no cloud progress" — and no snapshot was opened, so there is no probe.
+         * [mergeRemote] is not invoked; a stub reaches no conflict.
          */
-        override suspend fun load(mergeRemote: (ByteArray, ByteArray) -> ByteArray): ByteArray? = null
+        override suspend fun load(mergeRemote: (ByteArray, ByteArray) -> ByteArray): CloudPull = CloudPull.NOTHING
 
         /**
          * Uncommitted: nothing was written, and a caller's retry bookkeeping should say so.

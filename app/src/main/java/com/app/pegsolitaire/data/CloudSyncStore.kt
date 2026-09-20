@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import com.app.pegsolitaire.platform.games.save.CloudPullProbe
 import com.app.pegsolitaire.platform.games.save.CloudSaveOutcome
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
@@ -45,10 +46,11 @@ import javax.inject.Singleton
  * CLOUD-02), so a stored record of what was pending could only ever go stale against the
  * database it would then be checked against.
  *
- * ## The two diagnostic keys beside it
+ * ## The diagnostic keys beside it
  *
- * [recordPushOutcome] also writes the stage and the status code of the last attempted push.
- * They are **write-only from the app's point of view**: nothing here exposes them as a
+ * [recordPushOutcome] also writes the stage and the status code of the last attempted push,
+ * and [recordPullProbe] writes what the last pull's opened snapshot said about itself. All of
+ * them are **write-only from the app's point of view**: nothing here exposes them as a
  * `Flow`, deliberately, so no behaviour and no UI can come to depend on them (CLOUD-05,
  * D-03). They are for a developer reading a debuggable device.
  *
@@ -124,6 +126,37 @@ open class CloudSyncStore
                         prefs.remove(PlayGamesPreferences.CLOUD_LAST_PUSH_STATUS_KEY)
                     } else {
                         prefs[PlayGamesPreferences.CLOUD_LAST_PUSH_STATUS_KEY] = statusCode
+                    }
+                }
+            }.onFailure { if (it is CancellationException) throw it }
+        }
+
+        /**
+         * Records what one **pull** observed, in a single edit; `null` is a pull that never
+         * opened a snapshot.
+         *
+         * One edit for the reason [recordPushOutcome] gives: the keys describe one event, and a
+         * process death between separate writes would leave half of this pull beside half of
+         * the last one. A `null` [probe] writes `opened = false` and **removes** the other
+         * three, so values from an earlier pull can never be read as describing a failed one.
+         *
+         * The push marker and the push diagnostic are not touched: a pull is not a push, and
+         * nothing about a probe — not even an upload still outstanding — changes what is owed.
+         * Failure handling is [setPushPending]'s: a failed write is dropped, cancellation is
+         * rethrown.
+         */
+        open suspend fun recordPullProbe(probe: CloudPullProbe?) {
+            runCatching {
+                dataStore.edit { prefs ->
+                    prefs[PlayGamesPreferences.CLOUD_LAST_PULL_OPENED_KEY] = probe != null
+                    if (probe == null) {
+                        prefs.remove(PlayGamesPreferences.CLOUD_LAST_PULL_CHANGE_PENDING_KEY)
+                        prefs.remove(PlayGamesPreferences.CLOUD_LAST_PULL_CONFLICTS_RESOLVED_KEY)
+                        prefs.remove(PlayGamesPreferences.CLOUD_LAST_PULL_LAST_MODIFIED_AT_KEY)
+                    } else {
+                        prefs[PlayGamesPreferences.CLOUD_LAST_PULL_CHANGE_PENDING_KEY] = probe.changePending
+                        prefs[PlayGamesPreferences.CLOUD_LAST_PULL_CONFLICTS_RESOLVED_KEY] = probe.conflictsResolved
+                        prefs[PlayGamesPreferences.CLOUD_LAST_PULL_LAST_MODIFIED_AT_KEY] = probe.lastModifiedAt
                     }
                 }
             }.onFailure { if (it is CancellationException) throw it }

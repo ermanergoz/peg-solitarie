@@ -13,7 +13,8 @@ package com.app.pegsolitaire.platform.games.save
  * entire phase keeping minimal.
  *
  * **Bytes in, bytes out.** Every signature below names only Kotlin/JVM types: `ByteArray`, `Long`,
- * and two local `data class`es — three `Int`s going in, an enum and a nullable `Int` coming out.
+ * and this package's own small value types — three `Int`s going in; an enum and a nullable `Int`
+ * coming out of a push; the bytes beside a boolean, an `Int` and a `Long` coming out of a pull.
  * Nothing `Snapshot`-shaped, no
  * `SnapshotsClient`, and — exactly as on the games seam — **no Activity type and no Play Games SDK
  * type in any signature**, so no ViewModel and no repository can obtain one through it. That is not
@@ -49,14 +50,20 @@ package com.app.pegsolitaire.platform.games.save
  *
  * Play Games Services caches a `commitAndClose` locally when the device has no connectivity and
  * syncs it on reconnection, so [save] can legitimately report a commit before anything has reached
- * Google's servers. The data is not lost — GMS owns that retry queue, and the SDK exposes no API
- * through which an app could observe its state. An app-level "did it really upload" check would
- * therefore duplicate a queue Google already runs while being unable to see the thing it claims to
- * verify. This paragraph exists so a future reader does not "fix" it.
+ * Google's servers. The data is not lost — GMS owns that retry queue, and an app-level retry would
+ * only duplicate it. This paragraph exists so a future reader does not "fix" it.
+ *
+ * **The upload is observable, though, and an earlier version of this paragraph said it was not.**
+ * `SnapshotMetadata.hasChangePending()` is documented as *"whether or not this snapshot has any
+ * changes pending that have not been uploaded to the server"*. [load] reads it off the snapshot it
+ * opens and reports it in [CloudPullProbe], so the *next* pull says whether the *last* commit ever
+ * left the device. It is a diagnostic and stays one: nothing retries, blocks or tells the player
+ * anything because of it (CLOUD-05, D-03).
  */
 interface CloudSaveStore {
     /**
-     * Reads the player's cloud payload, or `null` when there is none or it could not be read.
+     * Reads the player's cloud payload — [CloudPull.bytes], `null` when there is none or it could
+     * not be read.
      *
      * **`null` means "stay local" (CLOUD-05), not "the player has no progress."** The two are
      * indistinguishable from here and must therefore be treated as the same instruction: leave the
@@ -66,16 +73,17 @@ interface CloudSaveStore {
      *
      * **Never throws.** Offline, opted out, signed out, no foreground Activity, a Play Console
      * project with Saved Games disabled, and the SDK's own contents-unavailable failure all collapse
-     * to `null`. An implementation classifies inside `platform/` and reports nothing further from
-     * a read; the one thing the seam does report is [save]'s [CloudSaveOutcome]. `open` is shared by
-     * both methods, so a push outcome diagnoses a failing pull as well.
+     * to [CloudPull.NOTHING]. An implementation classifies inside `platform/`; *why* a read failed is
+     * still not reported — `open` is shared by both methods, so [save]'s [CloudSaveOutcome] diagnoses
+     * a failing pull as well. What a read that **did** open reports is its [CloudPullProbe].
      *
      * @param mergeRemote resolves a conflict encountered while opening: given the two conflicting
      *   payloads' bytes it returns the merged bytes, which are written back to the server as part of
      *   resolving. See the class KDoc for why a read needs a merge at all.
-     * @return the payload bytes, or `null`.
+     * @return the payload bytes, or `null`, beside the probe of the snapshot they were read from,
+     *   or `null` when none opened. See [CloudPull].
      */
-    suspend fun load(mergeRemote: (ByteArray, ByteArray) -> ByteArray): ByteArray?
+    suspend fun load(mergeRemote: (ByteArray, ByteArray) -> ByteArray): CloudPull
 
     /**
      * Writes [bytes] as the player's cloud payload, along with the listing metadata that makes the

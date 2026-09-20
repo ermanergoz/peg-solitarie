@@ -404,8 +404,11 @@ open class ProgressSubmitter
          */
         private suspend fun pullOnce(session: GamesSignInState.SignedIn): CloudProgress? {
             if (!pulled.compareAndSet(false, true)) return null
-            val bytes = attemptOrNull { cloudSaveStore.load(CloudProgressCodec::mergeBytes) }
-            val remote = bytes?.let(CloudProgressCodec::decode)
+            val pull = attemptOrNull { cloudSaveStore.load(CloudProgressCodec::mergeBytes) }
+            // A device diagnostic, written and never read back (CLOUD-05, D-03). A store that
+            // threw is recorded as "never opened", like one that said so itself.
+            cloudSyncStore.recordPullProbe(pull?.probe)
+            val remote = pull?.bytes?.let(CloudProgressCodec::decode)
             if (remote != null) land(remote)
             cloudProfileStore.setMergedPlayerId(session.playerId)
             return remote
@@ -640,8 +643,9 @@ open class ProgressSubmitter
                 .getOrDefault(CloudSaveOutcome(CloudSaveStage.FAILED_OTHER))
 
         /**
-         * [attempt]'s sibling for the one seam call whose failure value is `null` rather than
-         * `false` — [CloudSaveStore.load].
+         * [attempt]'s sibling for the one seam call whose failure is "nothing at all" rather
+         * than `false` — [CloudSaveStore.load], whose thrown failure becomes `null` here and is
+         * read exactly as [com.app.pegsolitaire.platform.games.save.CloudPull.NOTHING] would be.
          *
          * A separate three-line function rather than a generic bending of [attempt], because
          * the two differ in the thing that matters: what "it failed" *is*. Collapsing them

@@ -4,7 +4,11 @@ Added by qa-engineer 2026-09-20. Minimal preferences_pb reader: bool, int, long,
 android-game-dev 2026-09-20: ints and longs are signed (a negative Play services status code used to print as
 an unsigned 64-bit number), and a path to a pulled preferences_pb is accepted in place of a serial. The cloud
 push diagnostic is play_games_cloud_last_push_stage (a stage name) and play_games_cloud_last_push_status (the
-status integer; absent when the push carried none)."""
+status integer; absent when the push carried none).
+android-game-dev 2026-09-20 (13-12): the cloud pull diagnostic needs no reader change, since every play_games* key
+is printed. play_games_cloud_last_pull_opened (bool; False means the three below are absent),
+play_games_cloud_last_pull_change_pending (bool, SnapshotMetadata.hasChangePending()),
+play_games_cloud_last_pull_conflicts_resolved (int) and play_games_cloud_last_pull_last_modified_at (epoch millis)."""
 import sys,subprocess,os
 ADB=os.path.expanduser("~/Library/Android/sdk/platform-tools/adb")
 if os.path.isfile(sys.argv[1]): raw=open(sys.argv[1],"rb").read()

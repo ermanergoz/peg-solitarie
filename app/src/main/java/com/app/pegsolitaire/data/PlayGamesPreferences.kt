@@ -2,6 +2,7 @@ package com.app.pegsolitaire.data
 
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 
 /**
@@ -116,6 +117,43 @@ internal object PlayGamesPreferences {
      * stored (T-11-04 / T-13-40).
      */
     val CLOUD_LAST_PUSH_STATUS_KEY = intPreferencesKey("play_games_cloud_last_push_status")
+
+    /**
+     * Whether the most recent cloud **pull** got as far as an opened snapshot.
+     *
+     * The first of four `play_games_cloud_last_pull_*` keys, written together in one edit by
+     * [CloudSyncStore.recordPullProbe] from a
+     * [com.app.pegsolitaire.platform.games.save.CloudPullProbe]. They are the read path's
+     * counterpart to [CLOUD_LAST_PUSH_STAGE_KEY] and carry the same contract: a device
+     * diagnostic, **read by nothing in the app**, changing no behaviour and reaching no UI
+     * (CLOUD-05, D-03), readable through `run-as` on a debuggable build only.
+     *
+     * `false` means the other three are **absent**, not zero — the pull failed before any
+     * snapshot opened, so there was nothing to read them from. Why it failed is the push
+     * diagnostic's job: `open` is shared.
+     *
+     * None of the four is player data: a boolean, a boolean, a count and a timestamp. No SDK
+     * string — no device name, snapshot id, description or payload — is ever stored.
+     */
+    val CLOUD_LAST_PULL_OPENED_KEY = booleanPreferencesKey("play_games_cloud_last_pull_opened")
+
+    /**
+     * `SnapshotMetadata.hasChangePending()` as the last pull read it: whether the snapshot still
+     * held changes that had **not been uploaded**. The datum a locally-`COMMITTED` push cannot
+     * supply — `true` here, on a device that has been online for minutes, is a commit that never
+     * left it.
+     */
+    val CLOUD_LAST_PULL_CHANGE_PENDING_KEY = booleanPreferencesKey("play_games_cloud_last_pull_change_pending")
+
+    /** How many conflicts the last pull resolved before its snapshot opened; `0` is the quiet case. */
+    val CLOUD_LAST_PULL_CONFLICTS_RESOLVED_KEY = intPreferencesKey("play_games_cloud_last_pull_conflicts_resolved")
+
+    /**
+     * The opened snapshot's last-modified time, epoch millis, as the SDK reported it. Set against
+     * the time of this device's own last push it answers "has anyone else written since?" — the
+     * question a device-name comparison was meant to answer and could not reliably.
+     */
+    val CLOUD_LAST_PULL_LAST_MODIFIED_AT_KEY = longPreferencesKey("play_games_cloud_last_pull_last_modified_at")
 
     /**
      * The Play Games player id this device's local progress was last merged with — D-12's
