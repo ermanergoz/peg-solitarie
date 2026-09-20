@@ -1,5 +1,20 @@
 # Founder questions (newest first)
 
+## Q-002 — Four console checks: why Saved Games snapshots never upload   (open)
+Date: 2026-09-20    Asked by: producer
+Context: On both emulators every save commits locally but never uploads (hasChangePending still true 9.5 h later, online);
+leaderboards and achievements sync fine. The app matches the documented PGS v2 pattern; research found three documented
+requirements beyond the toggle. Evidence: .planning/reports/phase-13/qa-engineer-e2-probe.md, research-analyst-snapshot-upload.md.
+Options (answer each, in this order — (a) takes two minutes and says whether anything ever reached Google):
+  a) drive.google.com (tester account) -> Settings -> Manage apps: is "Peg Solitaire" listed, and with a "hidden app data" size?
+  b) Play Console -> Play Games Services -> Configuration: any unpublished / draft changes pending? When was Saved Games switched on (before or after the project was created on 2026-09-15)?
+  c) Google Cloud Console (the project linked to the game) -> OAuth consent screen -> Data access / scopes: is `drive.appdata` in the list next to `games` and `games_lite`?
+  d) one.google.com/storage for the tester account: is storage full?
+  e) May QA clear Google Play services data on Pixel_9 only (Google's documented way to refresh a stale Saved Games activation)? It signs that emulator out of Google, so you would need to sign in on it again; Pixel_9a stays untouched as the control.
+Recommendation: producer — answer a-d as found; yes to (e) only if a-d show nothing wrong.
+Blocks: phase-13 close-out (UAT 10-13 re-run), phase-13 sign-off and merge
+Answer:
+
 ## Q-001 — Confirm Saved Games is enabled and the Play Games configuration is published   (answered)
 Date: 2026-09-20    Asked by: producer
 Context: QA's two-emulator pass found cloud save doing nothing: signed in and online, leaderboard/achievement
