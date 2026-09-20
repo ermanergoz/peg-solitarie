@@ -90,6 +90,24 @@ class CoverImageSourceTest {
                 .isLessThan(MAX_COVER_BYTES)
         }
 
+    /**
+     * The accounting Play Games actually applies, measured on two devices in UAT test 12: the cover
+     * is charged at its **raw** `ARGB_8888` size, not its PNG size. GMS logged `Snapshot cover image
+     * is too large. Currently at 1048576 bytes; max is 819200. Image will be scaled` for the old
+     * 512-square cover on every commit. No rasterization is needed to check this, so it is pure
+     * arithmetic over the constant: raising [CloudSaveConstants.COVER_PX] past the cap fails here.
+     */
+    @Test
+    fun theRawArgbCoverFitsThePlayGamesCoverCeiling() {
+        val rawBytes = CloudSaveConstants.COVER_PX * CloudSaveConstants.COVER_PX * BYTES_PER_ARGB_8888_PIXEL
+
+        assertWithMessage(
+            "a ${CloudSaveConstants.COVER_PX}-square ARGB_8888 cover is $rawBytes raw bytes against a " +
+                "$MAX_COVER_BYTES byte ceiling — lower CloudSaveConstants.COVER_PX",
+        ).that(rawBytes)
+            .isAtMost(MAX_COVER_BYTES)
+    }
+
     @Test
     fun anUnresolvableDrawableYieldsNoCoverRatherThanAnException() =
         runTest {
@@ -124,12 +142,15 @@ private const val COVER_ROBOLECTRIC_SDK = 34
 /** Lossless, so the measurement below is the worst case rather than a flattering one. */
 private const val PNG_QUALITY_LOSSLESS = 100
 
+/** `Bitmap.Config.ARGB_8888` stores four bytes per pixel, which is the size GMS charges the cover at. */
+private const val BYTES_PER_ARGB_8888_PIXEL = 4
+
 /**
- * The Play Games cover ceiling, in bytes. Play Games guarantees at least 800 KB; the runtime
- * `getMaxCoverImageSize()` cross-check is UAT test 12's measurement ask (RESEARCH A1).
+ * The Play Games cover ceiling, in bytes. Play Games guarantees at least 800 KB, and UAT test 12
+ * measured exactly that (819,200) as the cap on both test devices (RESEARCH A1, falsified).
  *
- * Measured on this art at `COVER_PX = 512`: **35,907 bytes**, 4.4% of the ceiling. Recorded so
- * that a future failure here reads as "the art changed" rather than "the number was always
- * marginal" — there are four and a half doublings of headroom.
+ * Two budgets are held against it. The binding one is the **raw** `ARGB_8888` size, because that
+ * is what GMS accounts. The PNG size is kept as a second, much looser check on the art itself: it
+ * was 35,907 bytes at the former `COVER_PX = 512`, so a failure there reads as "the art changed".
  */
 private const val MAX_COVER_BYTES = 800 * 1024
