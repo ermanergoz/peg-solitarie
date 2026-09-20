@@ -88,8 +88,10 @@ import kotlinx.coroutines.flow.first
  * Once onboarding is behind the player and the Play Games question is still unanswered,
  * [HomeUiState.playGamesPromptVisible] raises the [PlayGamesPromptDialog] (PGS-01, D-15).
  * The two first-run surfaces are sequenced by the ViewModel, not guarded here, so these
- * stay two plain independent conditionals. Home also owns its first [ClaySnackbarHost] —
- * the D-18 sign-in error is the only message it has ever needed to show.
+ * stay two plain independent conditionals. Behind both of them sits the account-switch
+ * [ProfileSwapDialog] (CLOUD-02, D-12 to D-15) — Home is its only host anywhere in the app.
+ * Home also owns its first [ClaySnackbarHost] — the D-18 sign-in error is the only message
+ * it has ever needed to show.
  *
  * @param state the immutable Home UI state (the onboarding gate + the persisted level).
  * @param onPlayClassic navigates to the Classic catalog (the screen's primary affordance).
@@ -104,6 +106,11 @@ import kotlinx.coroutines.flow.first
  * @param onAcceptPlayGamesPrompt the player chose to sign in to Play Games (D-18).
  * @param onDeclinePlayGamesPrompt the player chose "Not now", tapped outside the prompt,
  *   or pressed back (D-16) — all one answer, and a permanent one (D-17).
+ * @param onKeepDeviceProgress the player kept this device's progress on the account-switch
+ *   dialog (D-13) — and also what a tap outside it or a back press means, since
+ *   [ProfileSwapDialog] routes its own dismissal here.
+ * @param onUseCloudProgress the player chose the arriving account's cloud progress (D-14),
+ *   the deliberate, destructive answer.
  * @param onPlayGamesSignInErrorShown the D-18 error snackbar has been raised for the
  *   current [HomeUiState.playGamesSignInErrorTick]; the ViewModel consumes the ordinal so a
  *   later re-entry to Home does not replay it (CR-01).
@@ -123,6 +130,8 @@ fun HomeScreen(
     onDismissOnboarding: () -> Unit,
     onAcceptPlayGamesPrompt: () -> Unit,
     onDeclinePlayGamesPrompt: () -> Unit,
+    onKeepDeviceProgress: () -> Unit,
+    onUseCloudProgress: () -> Unit,
     onPlayGamesSignInErrorShown: () -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
@@ -173,6 +182,24 @@ fun HomeScreen(
         PlayGamesPromptDialog(
             onAccept = onAcceptPlayGamesPrompt,
             onDecline = onDeclinePlayGamesPrompt,
+        )
+    }
+
+    // A third sibling conditional, for the reason the second one is — but with a narrower
+    // condition, and that difference is deliberate rather than an oversight. HomeViewModel
+    // already sequences this behind both surfaces above (D-15), so the extra clauses can
+    // never change the outcome of a state it produced. They exist because this is the only
+    // dialog whose lower option is irreversible, and because onboardingVisible has a SECOND
+    // writer the ViewModel's sequencing does not cover: the permanent How-to-play
+    // affordance forces it true at any time (D-15). The guard can therefore only ever
+    // withhold the wipe question, never raise one — the safe direction for the two
+    // expressions to disagree in, and the screen half of the never-stacked rule the tests
+    // assert on both sides.
+    if (state.profileSwapVisible && !state.onboardingVisible && !state.playGamesPromptVisible) {
+        ProfileSwapDialog(
+            accountName = state.profileSwapAccountName,
+            onKeepLocal = onKeepDeviceProgress,
+            onUseCloud = onUseCloudProgress,
         )
     }
 }
