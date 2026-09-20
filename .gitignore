@@ -40,3 +40,8 @@ keystore.properties
 .claude/settings.local.json
 .claude/worktrees/
 .claude/scheduled_tasks.lock
+.planning/log/*
+!.planning/log/README.md
+.planning/retro/*/thread.md
+.planning/qa/
+.planning/audio-inbox/

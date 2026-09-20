@@ -2,23 +2,23 @@
 
 ## What is logged
 One JSON line per event, written by the plugin hook `hooks/studio-log.sh`:
-`session.start`, `session.end`, `founder.prompt`, `dispatch` (description,
-prompt, reply), `agent.start`, `agent.stop` (last message, transcript pointer,
-tool-count digest), `skill`, `founder.ask`, `message`, `bash` (command, 1 KB of
-output head and tail, exit code), `file` (Write/Edit path, size, hash),
-`tool.error`, `gate.block` (a command stopped by publish-gate or branch-guard).
+`session.start`, `session.end`, `founder.prompt`, `dispatch` (description, prompt, reply),
+`agent.start`, `agent.stop` (last message, transcript pointer, tool-count digest), `skill`,
+`founder.ask`, `message`, `bash` (command, 1 KB of output head and tail, exit code when the
+tool reports one, and no output at all when the command names a never-log path),
+`file` (Write/Edit path, size, hash), `tool.error`, `gate.block` (a command stopped by a gate).
 
 ## Where
-`.planning/log/<YYYY-MM-DD>.jsonl` in the product repo, one file per UTC day.
-It is LOCAL: `.planning/log/*` is git-ignored (only its README is tracked), and so
-is the retrospective's `.planning/retro/<X.Y.Z>/thread.md` log excerpt; nothing
-commits them, and they never leave the founder's machine. `.planning/log/ERRORS`
-lists dropped events: health, not content; empty is healthy.
+`.planning/log/<YYYY-MM-DD>.jsonl` in the product repo, one file per UTC day. It is LOCAL:
+`.planning/log/*` is git-ignored (only its README is tracked), and so is the retrospective's
+`.planning/retro/<X.Y.Z>/thread.md` log excerpt; nothing commits them, and they never leave
+the founder's machine. `.planning/log/ERRORS` lists dropped events: health, not content.
 
 ## Who reads it
-The log is a record, not an input. The founder reads it live with the absolute command
-that `hooks/session-start.sh` prints at session start, in a second terminal:
-`bash <plugin root>/scripts/log-view.sh --follow` (numbers: `scripts/log-stats.sh`).
+The log is a record, not an input. The founder reads it live with the absolute command that
+`hooks/session-start.sh` prints at session start, in a second terminal (the log directory is
+part of it): `bash <plugin root>/scripts/log-view.sh --follow <product root>/.planning/log`
+(numbers: `scripts/log-stats.sh`; both take `--since`).
 The retrospective (`/ergoz-soft:retro`) reads it for a closed version. Nobody else:
 working roles and reviewers never receive a log path and never read `.planning/log/`
 for the task under review (rules/studio.md, standing rule 1); the producer reads only the

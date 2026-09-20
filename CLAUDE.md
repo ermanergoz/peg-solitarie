@@ -200,3 +200,4 @@ Do not make direct repo edits outside a GSD workflow unless the user explicitly 
 @.claude/rules/kotlin-android.md
 @.claude/rules/compose.md
 @.claude/rules/lessons.md
+@.claude/rules/audio.md

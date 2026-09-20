@@ -3,7 +3,7 @@
 Toolchain (pinned in the templates): Gradle 9.6.0, AGP 9.4.0 (built-in
 Kotlin: never apply `org.jetbrains.kotlin.android`), Kotlin 2.4.20, Compose
 BOM 2026.09.00, Material 3, Hilt 2.60.1 via KSP 2.3.12, JDK 17, compileSdk
-36, targetSdk 36, minSdk 26.
+37, targetSdk 36, minSdk 26.
 
 Modules:
 - Game template: `:game-core` (pure Kotlin JVM, no Android; GameState, Move,
