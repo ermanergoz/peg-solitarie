@@ -1,10 +1,10 @@
 package com.app.pegsolitaire.data
 
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import com.app.pegsolitaire.domain.progress.ProgressMergeLimits
+import com.app.pegsolitaire.testing.InMemoryPreferencesDataStore
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -12,9 +12,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.TemporaryFolder
 import java.io.IOException
 
 /**
@@ -32,17 +30,14 @@ import java.io.IOException
  * only difference is that they return once the write has committed, which is what lets a
  * cloud push read back the ladder a cloud pull just imported (D-08).
  *
- * Runs on the JVM against a real temp-file Preferences store (the same style as
+ * Runs on the JVM against an [InMemoryPreferencesDataStore] (the same style as
  * [SettingsRepositoryTest]); a deliberately-throwing store proves the fail-open default.
  */
 class ChallengeProgressTest {
-    @get:Rule
-    val tempFolder = TemporaryFolder()
-
     @Test
     fun challengeProgressStartsAtLevelOne() =
         runTest {
-            val progress = ChallengeProgress(realDataStore(), backgroundScope)
+            val progress = ChallengeProgress(InMemoryPreferencesDataStore(), backgroundScope)
 
             // D-04: a fresh install starts Challenge at level 1, readable synchronously.
             assertThat(progress.currentLevel.value).isEqualTo(FIRST_LEVEL)
@@ -52,7 +47,7 @@ class ChallengeProgressTest {
     @Test
     fun advancePastPersistsSoAFreshInstanceResumesAtTheNextLevel() =
         runTest {
-            val store = realDataStore()
+            val store = InMemoryPreferencesDataStore()
             val progress = ChallengeProgress(store, backgroundScope)
 
             progress.advancePast(FIRST_LEVEL)
@@ -66,7 +61,7 @@ class ChallengeProgressTest {
     @Test
     fun advancingPastConsecutiveSolvedLevelsReachesLevelThree() =
         runTest {
-            val progress = ChallengeProgress(realDataStore(), backgroundScope)
+            val progress = ChallengeProgress(InMemoryPreferencesDataStore(), backgroundScope)
 
             progress.advancePast(FIRST_LEVEL)
             assertThat(progress.currentLevel.first { it == SECOND_LEVEL }).isEqualTo(SECOND_LEVEL)
@@ -80,7 +75,7 @@ class ChallengeProgressTest {
         runTest {
             // CR-02: re-solving the same board (back from Results → undo → re-jump) fires
             // a second advance for the SAME level — the ladder must not skip a level.
-            val progress = ChallengeProgress(realDataStore(), backgroundScope)
+            val progress = ChallengeProgress(InMemoryPreferencesDataStore(), backgroundScope)
 
             progress.advancePast(FIRST_LEVEL)
             progress.advancePast(FIRST_LEVEL)
@@ -92,7 +87,7 @@ class ChallengeProgressTest {
     fun advancingPastAnOlderLevelNeverMovesTheLadderBackwards() =
         runTest {
             // Solving a level below the ladder (a stale resumed board) keeps the maximum.
-            val progress = ChallengeProgress(realDataStore(), backgroundScope)
+            val progress = ChallengeProgress(InMemoryPreferencesDataStore(), backgroundScope)
             progress.advancePast(FIRST_LEVEL)
             progress.advancePast(SECOND_LEVEL)
             progress.currentLevel.first { it == THIRD_LEVEL }
@@ -105,7 +100,7 @@ class ChallengeProgressTest {
     @Test
     fun resetPersistsAReturnToLevelOne() =
         runTest {
-            val store = realDataStore()
+            val store = InMemoryPreferencesDataStore()
             val progress = ChallengeProgress(store, backgroundScope)
             progress.advancePast(FIRST_LEVEL)
             progress.advancePast(SECOND_LEVEL)
@@ -157,7 +152,7 @@ class ChallengeProgressTest {
     @Test
     fun mergeLadderSettlesAHigherLevelAndTheFlowCatchesUp() =
         runTest {
-            val progress = ChallengeProgress(realDataStore(), backgroundScope)
+            val progress = ChallengeProgress(InMemoryPreferencesDataStore(), backgroundScope)
             progress.mergeLadder(TENTH_LEVEL)
 
             progress.mergeLadder(FIFTIETH_LEVEL)
@@ -171,7 +166,7 @@ class ChallengeProgressTest {
         runTest {
             // CLOUD-02: an arriving cloud ladder BELOW this device's is a no-op, the same
             // way re-solving an older board is. The merge is `max`, computed in the write.
-            val progress = ChallengeProgress(realDataStore(), backgroundScope)
+            val progress = ChallengeProgress(InMemoryPreferencesDataStore(), backgroundScope)
             progress.mergeLadder(TENTH_LEVEL)
 
             progress.mergeLadder(FIFTH_LEVEL)
@@ -185,7 +180,7 @@ class ChallengeProgressTest {
             // The whole point of the suspend variant (D-08): the push that follows a pull
             // in the same ProgressSubmitter pass must read a SETTLED ladder, never the
             // StateFlow's pre-merge cache. A brand-new holder reads only what is on disk.
-            val store = realDataStore()
+            val store = InMemoryPreferencesDataStore()
             val progress = ChallengeProgress(store, backgroundScope)
 
             progress.mergeLadder(FIFTIETH_LEVEL)
@@ -196,7 +191,7 @@ class ChallengeProgressTest {
     @Test
     fun settledLevelOnAFreshStoreIsTheFirstLevel() =
         runTest {
-            val progress = ChallengeProgress(realDataStore(), backgroundScope)
+            val progress = ChallengeProgress(InMemoryPreferencesDataStore(), backgroundScope)
 
             assertThat(progress.settledLevel()).isEqualTo(FIRST_LEVEL)
         }
@@ -206,7 +201,7 @@ class ChallengeProgressTest {
         runTest {
             // The `+ 1` moved to the call boundary when advancePast was reduced to
             // mergeLadder; the ladder it produces must be byte-for-byte what it always was.
-            val progress = ChallengeProgress(realDataStore(), backgroundScope)
+            val progress = ChallengeProgress(InMemoryPreferencesDataStore(), backgroundScope)
 
             progress.advancePast(NINTH_LEVEL)
 
@@ -217,7 +212,7 @@ class ChallengeProgressTest {
     fun resetAwaitingSettlesTheLadderBackAtTheFirstLevel() =
         runTest {
             // D-14's replace path resets the ladder awaitably, beside resetAllProgress().
-            val progress = ChallengeProgress(realDataStore(), backgroundScope)
+            val progress = ChallengeProgress(InMemoryPreferencesDataStore(), backgroundScope)
             progress.mergeLadder(FIFTIETH_LEVEL)
 
             progress.resetAwaiting()
@@ -264,11 +259,6 @@ class ChallengeProgressTest {
             .isEqualTo(ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL)
     }
 
-    private fun realDataStore(): DataStore<Preferences> =
-        PreferenceDataStoreFactory.create(
-            produceFile = { tempFolder.newFile(TEST_STORE_FILE) },
-        )
-
     private fun throwingDataStore(): DataStore<Preferences> =
         object : DataStore<Preferences> {
             override val data: Flow<Preferences> = flow { throw IOException("corrupt store") }
@@ -287,7 +277,6 @@ class ChallengeProgressTest {
         }
 
     private companion object {
-        const val TEST_STORE_FILE = "challenge_progress_test.preferences_pb"
         const val FIRST_LEVEL = 1
         const val SECOND_LEVEL = 2
         const val THIRD_LEVEL = 3

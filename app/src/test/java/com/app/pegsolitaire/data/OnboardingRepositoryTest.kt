@@ -1,25 +1,23 @@
 package com.app.pegsolitaire.data
 
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
+import com.app.pegsolitaire.testing.InMemoryPreferencesDataStore
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
-import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.TemporaryFolder
 import java.io.IOException
 
 /**
  * Unit coverage of [OnboardingRepository]'s DataStore-backed `onboardingSeen` flag
  * and its D-16 fail-open contract.
  *
- * Two paths are exercised against real and fake [DataStore]s (pure JVM, no Android):
- *  - a real Preferences store over a temp file proves the default is `false` (fresh
- *    install) and that [OnboardingRepository.markSeen] flips it to `true`;
+ * Two paths are exercised against working and hostile [DataStore]s (pure JVM, no Android):
+ *  - an [InMemoryPreferencesDataStore] proves the default is `false` (fresh install)
+ *    and that [OnboardingRepository.markSeen] flips it to `true`;
  *  - a deliberately-throwing store proves the read **fails open** — a corrupt/IO
  *    error degrades to "not seen" (`false`) rather than crashing (T-02-08-DS).
  *
@@ -27,13 +25,10 @@ import java.io.IOException
  * Hilt `@Inject` constructor delegates to it over the app's real Preferences file.
  */
 class OnboardingRepositoryTest {
-    @get:Rule
-    val tempFolder = TemporaryFolder()
-
     @Test
     fun onboardingSeenDefaultsToFalseOnAFreshStore() =
         runTest {
-            val repository = OnboardingRepository(realDataStore())
+            val repository = OnboardingRepository(InMemoryPreferencesDataStore())
 
             assertThat(repository.onboardingSeen.first()).isFalse()
         }
@@ -41,7 +36,7 @@ class OnboardingRepositoryTest {
     @Test
     fun markSeenPersistsTrue() =
         runTest {
-            val repository = OnboardingRepository(realDataStore())
+            val repository = OnboardingRepository(InMemoryPreferencesDataStore())
 
             repository.markSeen()
 
@@ -69,11 +64,6 @@ class OnboardingRepositoryTest {
             assertThat(repository.onboardingSeen.first()).isFalse()
         }
 
-    private fun realDataStore(): DataStore<Preferences> =
-        PreferenceDataStoreFactory.create(
-            produceFile = { tempFolder.newFile(TEST_STORE_FILE) },
-        )
-
     private fun throwingDataStore(): DataStore<Preferences> =
         object : DataStore<Preferences> {
             override val data: Flow<Preferences> = flow { throw IOException("corrupt store") }
@@ -81,8 +71,4 @@ class OnboardingRepositoryTest {
             override suspend fun updateData(transform: suspend (t: Preferences) -> Preferences): Preferences =
                 throw IOException("disk full")
         }
-
-    private companion object {
-        const val TEST_STORE_FILE = "onboarding_test.preferences_pb"
-    }
 }
