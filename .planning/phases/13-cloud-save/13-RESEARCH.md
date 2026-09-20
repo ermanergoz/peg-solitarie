@@ -727,12 +727,22 @@ v1.0 and has been exercised by every solve the app has ever recorded.
 
 ## Common Pitfalls
 
-### Pitfall 1: A snapshot left open blocks every later open
-**What goes wrong:** an exception between `open` and `commitAndClose` leaks the open snapshot; the
-next `open` on the same name fails, so cloud save dies for the rest of the process.
+### Pitfall 1: A snapshot left open leaks, and may block every later open
+**CORRECTED 2026-09-20 (phase-14 FU-2).** This pitfall was written as SDK behaviour and is not: the
+sentence *"the next `open` on the same name fails, so cloud save dies for the rest of the process"*
+does not appear in the bundled `play-services-games-v2` 22.0.0 javadoc, which was searched for it. It
+comes from the developer guide or community lore. Phase 13's UAT neither confirms nor refutes it —
+every abandoned handle in that session was abandoned in a process that then ended, so the
+intra-process claim was never exercised. What IS documented is Pitfall 2's sentence: `commitAndClose`
+fails when called with a snapshot that was not opened or has already been committed/discarded.
+
+**What goes wrong:** an exception between `open` and `commitAndClose` leaks the open snapshot. It is a
+leak for certain, and *possibly* also a process-lifetime block on the next `open` of that name.
 **Why it happens:** `commitAndClose` is on the happy path and the failure path just returns `false`.
-**How to avoid:** a `try/finally` around every opened snapshot where the `finally` calls
-`discardAndClose` unless a commit already succeeded. Track with a local `var committed = false`.
+**How to avoid — unchanged, and right either way:** a `try/finally` around every opened snapshot where
+the `finally` calls `discardAndClose` unless a commit already succeeded. Track with a local
+`var committed = false`. The practice costs nothing and covers the documented failure as well as the
+undocumented one; only the *justification* was overstated.
 **Warning signs:** cloud save works once per app launch and silently stops.
 
 ### Pitfall 2: `commitAndClose` on an already-closed snapshot fails the Task
@@ -1219,7 +1229,7 @@ deliberate — it is the only way a JVM test can exercise the conflict merge wit
 | Oversized payload rejected by the server, push silently never succeeds | DoS | Trim against `getMaxDataSize()` minus margin, with a tested bound (D-05) |
 | Progress figures / player id leaked to logcat | Information Disclosure | T-11-04 grep gate over `platform/games/` **and** the new `data/cloud/` |
 | Unbounded conflict loop spins on the SDK | DoS | `MAX_CONFLICT_RETRIES = 10`, then a clean `false` and a retained pending marker |
-| Leaked open snapshot disables cloud save for the process | DoS | `try/finally` with `discardAndClose` (Pitfall 1) |
+| Leaked open snapshot leaks, and may disable cloud save for the process (undocumented — see the corrected Pitfall 1) | DoS | `try/finally` with `discardAndClose` (Pitfall 1) |
 
 ---
 
@@ -1227,7 +1237,7 @@ deliberate — it is the only way a JVM test can exercise the conflict merge wit
 
 | # | Claim | Section | Risk if Wrong |
 |---|-------|---------|---------------|
-| A1 | **FALSIFIED BY MEASUREMENT (UAT test 12, 2026-09-20).** ~~`setCoverImage` accounts a 512×512 ARGB_8888 bitmap against the 800 KB cap by its *PNG-compressed* transported size, not its 1 MB in-memory size~~ — GMS accounts the **raw** ARGB_8888 size. Measured log line, every commit, both devices: `W/PlayGamesServices[GamesService]: Snapshot cover image is too large. Currently at 1048576 bytes; max is 819200. Image will be scaled`. Cap = 819,200 bytes; the 512×512 cover was accounted at 1,048,576. | Pattern 5 | GMS scaled the cover and the commit succeeded, so no save was lost. Remedy applied: `COVER_PX` 512 → 384 (384² × 4 = 589,824 ≤ 819,200), pinned by `CoverImageSourceTest.theRawArgbCoverFitsThePlayGamesCoverCeiling`. Source: `.planning/reports/phase-13/qa-engineer-device-pass-rerun.md` (test 12). |
+| A1 | **FALSIFIED BY MEASUREMENT (UAT test 12, 2026-09-20).** ~~`setCoverImage` accounts a 512×512 ARGB_8888 bitmap against the 800 KB cap by its *PNG-compressed* transported size, not its 1 MB in-memory size~~ — GMS accounts the **raw** ARGB_8888 size. Measured log line, every commit, both devices: `W/PlayGamesServices[GamesService]: Snapshot cover image is too large. Currently at 1048576 bytes; max is 819200. Image will be scaled`. Cap = 819,200 bytes; the 512×512 cover was accounted at 1,048,576. | Pattern 5 | GMS scaled the cover and the commit succeeded, so no save was lost. Remedy applied: `COVER_PX` 512 → 384 (384² × 4 = 589,824 ≤ 819,200), pinned by `CoverImageSourceTest.theRawArgbCoverFitsThePlayGamesCoverCeiling`. Source: `.planning/reports/phase-13/qa-engineer-device-pass-rerun.md` (test 12). **Read the later clean-device session correctly (clarified 2026-09-20, phase-14 FU-2):** it logged the warning zero times, and that is the *predicted* result of the remedy, not evidence against the measurement — the build under test carries `COVER_PX = 384` and is arithmetically incapable of emitting it. Those sessions are silent on A1 in either direction. A1 itself does not rest on version-dependent inference: it rests on a logged pair of exact integers, and 1,048,576 is 512 × 512 × 4 exactly. `COVER_PX = 384` stands. |
 | A2 | No documented maximum length exists for `setDescription` | Pitfall 7 | A long description could be rejected server-side and fail the whole commit. Mitigated unconditionally by capping at 100 chars, which the D-11 one-liner never approaches. |
 | A3 | `Resources.getDrawable` / vector inflation is safe on `Dispatchers.Default` | Pattern 5 | A rare inflation failure → `coverOrNull()` returns null → cover omitted. Already the designed degradation. |
 | A4 | No Play Games guidance exists on cover image aspect ratio; square is fine | Pattern 5 | Cosmetic only — the listing entry could be letterboxed in the Play Games saves UI. |

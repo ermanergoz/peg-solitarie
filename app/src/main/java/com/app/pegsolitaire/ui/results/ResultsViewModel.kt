@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import com.app.pegsolitaire.data.ChallengeProgress
 import com.app.pegsolitaire.data.InterstitialCadenceStore
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
@@ -75,8 +76,8 @@ import javax.inject.Inject
  *    `challengeLevel` arg is untrusted in its own right rather than merely downstream of
  *    `GameViewModel`'s clamp. It is coerced once into the `:domain`
  *    [ChallengeLevelBounds] range and every read below — the headline tier, the exposed
- *    [ResultsUiState.challengeLevel] that drives `onNextLevel(challengeLevel + 1)`, the
- *    mode branch, and the database level key — uses that one value. A forged or
+ *    [ResultsUiState.challengeLevel], the level [onNextLevelTapped] resolves the next one
+ *    from, the mode branch, and the database level key — uses that one value. A forged or
  *    out-of-range arg therefore cannot reach the stored key or the "Next level" action.
  *  - **The solve telemetry is clamped at the same boundary (D-08/D-09, T-12-23).** The
  *    three `Results` telemetry args pass through [SolveTelemetry.coerced] exactly once
@@ -106,6 +107,10 @@ import javax.inject.Inject
  * (D-09). That is the structural reason an interstitial can never appear over a fresh
  * board — the next `GameViewModel` is not constructed until the route consumes that field.
  *
+ * The *destination* of the Challenge continue action lives here for the same reason
+ * (**D-04a**, see [onNextLevelTapped]): it is a read of the ladder, and a stateless leaf
+ * composable has no business holding one.
+ *
  * @param savedStateHandle carries the typed `Results(...)` route args and the
  *   already-recorded guard.
  * @param progressRepository the single source of truth for per-level bests.
@@ -113,6 +118,9 @@ import javax.inject.Inject
  *   after [progressRepository] because it is that call's consequence, and reached through
  *   exactly one fire-and-forget line. Nothing here ever names a leaderboard or achievement
  *   ID; the submitter resolves every one of them behind this seam.
+ * @param challengeProgress the Challenge ladder, read — never written — by
+ *   [onNextLevelTapped] (D-04a). The write for this solve is `GameViewModel`'s
+ *   `advancePast(N)`; this screen only asks where the ladder now stands.
  * @param cadenceStore the memory of the interstitial cadence (INT-02) — banks the win and
  *   records a presentation; it never decides anything, [InterstitialCadenceState] does.
  * @param adGateway the ad seam: readiness to decide with, a warm-up to call at eligibility
@@ -125,6 +133,7 @@ class ResultsViewModel
         private val savedStateHandle: SavedStateHandle,
         private val progressRepository: ProgressRepository,
         private val progressSubmitter: ProgressSubmitter,
+        private val challengeProgress: ChallengeProgress,
         private val cadenceStore: InterstitialCadenceStore,
         private val adGateway: AdGateway,
     ) : ViewModel() {
@@ -274,18 +283,71 @@ class ResultsViewModel
         }
 
         /**
-         * Challenge "Next level" — one of the two D-06 forward-moving win actions.
+         * Challenge "Next level" — one of the two D-06 forward-moving win actions — which
+         * serves **`max(ladder head, N + 1)`** and takes no number from the screen (**D-04a**).
          *
-         * [nextLevel] comes from the screen, which computes it off the clamped
-         * [ResultsUiState.challengeLevel], so the WARN-03 boundary still holds.
+         * ## Why the ladder decides, and not `N + 1`
+         *
+         * D-04 deliberately keeps a stale in-progress Challenge game when a merged cloud save
+         * moves the ladder ahead of it, so `N` can be *behind* the head: resumed level 11 under
+         * a merged head of 13. `N + 1` then points at a level the player already completed on
+         * the other device, and every "Next level" after it points at another one — `head − N − 1`
+         * consecutive replays, each ending on a Results screen that can award no new star and
+         * move no ladder (D-04's own worked example is a head of 50 under a resumed level 10).
+         * The ladder head *is* the Challenge navigation: it is what the Home tile shows and what
+         * Continue resumes, so a forward action that disagrees with it is the one thing the mode
+         * cannot do.
+         *
+         * ## Why `N + 1` stays inside the `max`
+         *
+         * Serving the head alone would make "the player loops forever on one board" reachable:
+         * if the ladder read landed before `GameViewModel.advancePast(N)` committed, the head
+         * would still be `N` and the tap would re-serve the level just finished. The `max` makes
+         * that state unreachable by construction rather than unlikely — and this repo already
+         * carries a documented ladder/load-window race (WR-01), so the guarantee is worth having
+         * even though the read below is ordered.
+         *
+         * ## Why the read is [ChallengeProgress.settledLevel] and not `currentLevel.value`
+         *
+         * `currentLevel` is a `stateIn` cache refreshed by a separate coroutine, so its `.value`
+         * can still hold the pre-solve ladder at the moment of the tap; `settledLevel()` reads
+         * what DataStore has committed. That is what orders this read *after* the solve's
+         * `advancePast(N)` rather than after whenever the cache happens to re-emit — the same
+         * distinction, and the same reason, as `ProgressSubmitter`'s push.
+         *
+         * The result is clamped by [ChallengeLevelBounds], so neither a ladder stored out of
+         * range nor `N + 1` at the ceiling can name a level the generator refuses.
+         *
+         * **The one exception the `max` does not cover, named on purpose.** Because the clamp
+         * is `coerceIn(MIN, MAX)`, at `N == ChallengeLevelBounds.MAX` it returns `MAX` — so the
+         * "never re-serves the level just played" guarantee above holds for `N < MAX` only, and
+         * the very last level re-serves itself. That is the correct behaviour for a *bound*
+         * (there is no level above the ceiling to serve, and fail-safe clamping beats crashing
+         * — see [ChallengeLevelBounds.clamp]) and it is unreachable in practice: the ceiling is
+         * `GeneratorConstants.MAX_CHALLENGE_LEVEL`, 10,000, chosen to sit well above any level a
+         * player can hand-reach. Anyone tightening the `max` should not treat this as a bug to
+         * fix, and anyone lowering the ceiling to a reachable number must revisit it.
+         *
+         * **Nothing is shown for any of this.** D-03 (silent restore) stands unamended and the
+         * label carries no number, so no promise of `N + 1` is ever made on screen to be broken.
+         *
+         * Classic reaches this only by a bug — the action is not rendered — and answers with
+         * nothing rather than inventing Challenge level 1.
          */
-        fun onNextLevelTapped(nextLevel: Int) {
-            continueWith(ResultsNavTarget.NextLevel(nextLevel))
+        fun onNextLevelTapped() {
+            val solvedLevel = challengeLevel ?: return
+            if (!claimContinue()) return
+            viewModelScope.launch {
+                val ladderHead = challengeProgress.settledLevel()
+                val nextLevel = ChallengeLevelBounds.clamp(maxOf(ladderHead, solvedLevel + 1))
+                dispatchContinue(ResultsNavTarget.NextLevel(nextLevel))
+            }
         }
 
         /** Classic "Catalog" after a win — the other D-06 forward-moving win action. */
         fun onCatalogTapped() {
-            continueWith(ResultsNavTarget.Catalog)
+            if (!claimContinue()) return
+            dispatchContinue(ResultsNavTarget.Catalog)
         }
 
         /**
@@ -299,7 +361,22 @@ class ResultsViewModel
         }
 
         /**
-         * Accepts a continue tap and routes it down one of exactly two paths.
+         * Claims this Results entry's single continue tap, answering whether the caller owns it.
+         *
+         * A second tap on a screen that is already leaving must do nothing (D-09 — the tap's
+         * intent is honoured exactly once), and the claim is taken **synchronously on the tap**
+         * rather than inside the coroutine that resolves the destination: the Challenge path
+         * suspends on a ladder read, and a claim behind that suspension would let two taps in
+         * the same frame both pass.
+         */
+        private fun claimContinue(): Boolean {
+            if (continueClaimed) return false
+            continueClaimed = true
+            return true
+        }
+
+        /**
+         * Routes an already-claimed continue tap down one of exactly two paths.
          *
          * The fast path (D-10) publishes [ResultsUiState.pendingNavigation] on the same turn
          * as the tap, with no scrim and no delay: the quiescence pause is part of
@@ -307,10 +384,7 @@ class ResultsViewModel
          * is a player who is never delayed. The ad path defers both to
          * [presentThenNavigate].
          */
-        private fun continueWith(target: ResultsNavTarget) {
-            if (continueClaimed) return
-            continueClaimed = true
-
+        private fun dispatchContinue(target: ResultsNavTarget) {
             if (shouldShowInterstitial()) {
                 viewModelScope.launch { presentThenNavigate(target) }
             } else {

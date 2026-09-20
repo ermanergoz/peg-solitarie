@@ -1,15 +1,12 @@
 package com.app.pegsolitaire.platform.games.save
 
 import android.content.Intent
-import com.app.pegsolitaire.BuildConfig
-import com.app.pegsolitaire.di.ApplicationScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /**
- * The gate in front of [PlayGamesSnapshotPicker]: a launch-intent extra that a **debuggable** build
+ * The gate in front of the QA-only snapshot picker: a launch-intent extra that a **debuggable** build
  * honours and every other build ignores.
  *
  *     adb shell am start -n com.erman.pegsolitarie/com.app.pegsolitaire.MainActivity \
@@ -17,43 +14,58 @@ import javax.inject.Singleton
  *
  * ## Why an intent extra, and why it is safe on an exported Activity
  *
- * There is no `debug` source set in this module, so "debug-only" cannot be "not compiled into
- * release"; it is `BuildConfig.DEBUG`, a compile-time `false` in release that leaves [onIntent]
- * returning on its first line — before the extra is even read. `MainActivity` is exported (it is
- * the launcher), so any app could send this extra; on a release build that does nothing, and on a
- * debug build it opens a read-only Google screen showing the signed-in tester their own save.
+ * `MainActivity` is exported (it is the launcher), so any app could send this extra. On a debug build
+ * it opens a read-only Google screen showing the signed-in tester their own save; on a release build
+ * it does nothing, for **two independent reasons**:
+ *
+ *  1. [debugBuild] is `BuildConfig.DEBUG`, a compile-time `false` in release, so [onIntent] returns
+ *     on its first line — before the extra is even read.
+ *  2. `PlayGamesSnapshotPicker` lives in the `debug` source set and is not compiled into release at
+ *     all; the release Hilt module builds this gate with a **no-op** [show] (tech-lead L-3).
+ *
+ * This class itself stays in `src/main` on purpose. The release build's *ignoring* of the extra is
+ * then a behaviour with a test (`DebugSnapshotPickerEntryTest`), rather than an absence nothing
+ * asserts.
  *
  * ## Why the gate is a constructor argument
  *
  * `BuildConfig.DEBUG` is `true` in the unit-test variant, so a gate read inside the method could
- * never be tested closed. The `@Inject` constructor pins it to the build; the primary one lets
+ * never be tested closed. Taking it as a constructor argument is what lets
  * `DebugSnapshotPickerEntryTest` prove a release configuration ignores the extra.
  *
  * @param debugBuild whether this build honours the extra at all.
- * @param scope where the picker is shown from: the call site is `Activity.onCreate`, which must
- *   not be blocked on a sign-in that may take seconds.
- * @param show shows the picker. A function rather than the class so the gate is testable without
- *   the SDK.
+ * @param show shows the picker. A function rather than the class so the gate is testable without the
+ *   SDK — and so the release variant can bind an empty one without the picker existing.
  */
-@Singleton
-class DebugSnapshotPickerEntry internal constructor(
+class DebugSnapshotPickerEntry(
     private val debugBuild: Boolean,
-    private val scope: CoroutineScope,
     private val show: suspend () -> Unit,
 ) {
-    @Inject
-    constructor(
-        @ApplicationScope scope: CoroutineScope,
-        picker: PlayGamesSnapshotPicker,
-    ) : this(debugBuild = BuildConfig.DEBUG, scope = scope, show = picker::show)
-
     /**
      * Shows the snapshot picker if, and only if, this is a debug build and [intent] carries
      * [CloudSaveConstants.DEBUG_PICKER_EXTRA] set to `true`.
+     *
+     * **[scope] is the caller's, and it must be the launched Activity's** (`lifecycleScope`), never
+     * the process-lifetime `@ApplicationScope` this used to hold (convergence L-2). [show] waits up
+     * to 30 seconds for sign-in, and on a process-lifetime scope that wait outlives the Activity
+     * that carried the extra — so the picker could surface over a *later* one, which reads as
+     * flakiness in a QA session rather than as the bug it is. Bound to the Activity's scope, the
+     * wait dies with the Activity.
+     *
+     * **The launch body cannot throw into [scope].** An Activity's `lifecycleScope` has no exception
+     * handler and its job is the screen's, so an escaping failure would cancel the scope — a debug
+     * extra taking down the Activity it was sent to. `runCatching` therefore wraps the whole of
+     * [show], including the two bounded waits that sit outside the picker's own guard, and
+     * cancellation alone is rethrown so the scope's own teardown is not swallowed.
      */
-    fun onIntent(intent: Intent?) {
+    fun onIntent(
+        intent: Intent?,
+        scope: CoroutineScope,
+    ) {
         if (!debugBuild) return
         if (intent?.getBooleanExtra(CloudSaveConstants.DEBUG_PICKER_EXTRA, false) != true) return
-        scope.launch { show() }
+        scope.launch {
+            runCatching { show() }.onFailure { if (it is CancellationException) throw it }
+        }
     }
 }
