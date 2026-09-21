@@ -4,8 +4,7 @@
 (none)
 
 ## Waiting on founder (open)
-- Q-901 — Home hero art direction (Blocks: nothing; default 1 specified)
-- Q-902 — do the in-game actions move to the bottom? (Blocks: nothing; default "split" specified)
+(none — Q-901 and Q-902 both answered 2026-09-21, both on their defaults)
 - app-ads.txt / REL-03: **unblocked, awaiting crawl.** Founder set the Website field and the listing is published — the row is live on the public page as `https://ermanergoz.github.io` (observed 2026-09-21T01:29:28Z), which 301s to the correct file on the canonical host; Google documents cross-domain redirects as valid. Clock: re-read AdMob status after **2026-09-22T01:29Z**; if still unverified at **2026-09-23T01:29Z**, switch the field to `https://ermanergoz.com` and check the AdMob app entry is linked to the Play listing. Do not edit the field before then — every edit restarts the 24 h clock.
 
 ## In flight

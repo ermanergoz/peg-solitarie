@@ -1,6 +1,6 @@
 # Founder questions (newest first)
 
-## Q-902 — Do the in-game actions move to the bottom?   (open)
+## Q-902 — Do the in-game actions move to the bottom?   (answered)
 Date: 2026-09-21    Asked by: ux-designer
 Context: You said "redesign the icons on the top" and "remove toolbar from the game" in one breath.
 The code says those are one surface: `GameScreen.kt:502` is a single `TopAppBar` holding the back
@@ -12,9 +12,9 @@ Recommendation: ux-designer picks 1 — rules/compose.md requires primary action
 zone of a 6.7-inch phone, and Undo (the control a peg-solitaire player uses most) is currently in
 the worst-reachable corner. Choosing 2 swaps §4.3 and §4.4 of docs/ux-spec.md and changes nothing else.
 Blocks: nothing (default 1 is specified and buildable)
-Answer:
+Answer: 1 — the split (2026-09-21). Founder confirmed: status strip on top (back, title, timer), four actions in a thumb-zone dock at the bottom.
 
-## Q-901 — Home hero art direction   (open)
+## Q-901 — Home hero art direction   (answered)
 Date: 2026-09-21    Asked by: ux-designer
 Context: Home gains a titled hero band to fill the emptiness you named. Three treatments are
 equally buildable; this is taste, and cold start is a measured gate (≤ 950 ms, PLAT-08 C1).
@@ -25,7 +25,7 @@ tiles, and adds nothing to the cold-start critical path. Option 2 competes with 
 already drifting there and puts a running animation on that path. Option 3 is also step 3 of the
 spec's degradation path, so if the cold-start measurement forces it, that answer is already built.
 Blocks: nothing (default 1 is specified and buildable)
-Answer:
+Answer: 1 — static decorative peg cluster (2026-09-21). Founder confirmed the default; no drifting mini-board, no title-only treatment.
 
 ## Q-002 — Four console checks: why Saved Games snapshots never upload   (answered)
 Date: 2026-09-20    Asked by: producer
