@@ -1,5 +1,32 @@
 # Founder questions (newest first)
 
+## Q-902 — Do the in-game actions move to the bottom?   (open)
+Date: 2026-09-21    Asked by: ux-designer
+Context: You said "redesign the icons on the top" and "remove toolbar from the game" in one breath.
+The code says those are one surface: `GameScreen.kt:502` is a single `TopAppBar` holding the back
+arrow, the title and all five controls. So the spec reads it as one change and splits it.
+Options: 1) Split — read-only status (back, title, timer) stays top, the four actions (Undo, Hint,
+Show-moves, Restart) move to a thumb-zone dock at the bottom 2) Keep all four icons visually on
+top, redrawn as a clay cluster
+Recommendation: ux-designer picks 1 — rules/compose.md requires primary actions in the lower thumb
+zone of a 6.7-inch phone, and Undo (the control a peg-solitaire player uses most) is currently in
+the worst-reachable corner. Choosing 2 swaps §4.3 and §4.4 of docs/ux-spec.md and changes nothing else.
+Blocks: nothing (default 1 is specified and buildable)
+Answer:
+
+## Q-901 — Home hero art direction   (open)
+Date: 2026-09-21    Asked by: ux-designer
+Context: Home gains a titled hero band to fill the emptiness you named. Three treatments are
+equally buildable; this is taste, and cold start is a measured gate (≤ 950 ms, PLAT-08 C1).
+Options: 1) A static decorative peg cluster in Candy Clay 2) A slowly drifting mini board idling
+behind the title 3) No art — a larger gradient title alone
+Recommendation: ux-designer picks 1 — it costs no asset licence, cannot distract from the two mode
+tiles, and adds nothing to the cold-start critical path. Option 2 competes with the two `HomeBlobs`
+already drifting there and puts a running animation on that path. Option 3 is also step 3 of the
+spec's degradation path, so if the cold-start measurement forces it, that answer is already built.
+Blocks: nothing (default 1 is specified and buildable)
+Answer:
+
 ## Q-002 — Four console checks: why Saved Games snapshots never upload   (answered)
 Date: 2026-09-20    Asked by: producer
 Context: On both emulators every save commits locally but never uploads (hasChangePending still true 9.5 h later, online);
