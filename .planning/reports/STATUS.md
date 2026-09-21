@@ -6,7 +6,7 @@
 ## Waiting on founder (open)
 - Q-901 — Home hero art direction (Blocks: nothing; default 1 specified)
 - Q-902 — do the in-game actions move to the bottom? (Blocks: nothing; default "split" specified)
-- app-ads.txt / REL-03: **founder action, not a question** — the Play listing's Contact details → Website field is empty (proven from the public listing page), so AdMob has no hostname to crawl. Set it to `https://ermanergoz.com`, then ≤ 24 h crawl. Do not touch the website; the file has been correct and live since 2026-09-02.
+- app-ads.txt / REL-03: **unblocked, awaiting crawl.** Founder set the Website field and the listing is published — the row is live on the public page as `https://ermanergoz.github.io` (observed 2026-09-21T01:29:28Z), which 301s to the correct file on the canonical host; Google documents cross-domain redirects as valid. Clock: re-read AdMob status after **2026-09-22T01:29Z**; if still unverified at **2026-09-23T01:29Z**, switch the field to `https://ermanergoz.com` and check the AdMob app entry is linked to the Play listing. Do not edit the field before then — every edit restarts the 24 h clock.
 
 ## In flight
 - phase-14 (release-readiness) — primary checkout on feature/phase-14-release-plan, plus worktrees PegSolitarie-r1 (feature/phase-14-gate-scope) and PegSolitarie-r5 (feature/phase-14-release-docs); external track (developer website, app-ads.txt, privacy policy, Console declarations) and the fuzz/coverage gate outstanding
