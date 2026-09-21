@@ -47,9 +47,9 @@ import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.audio.JumpSoundEffect
 import com.app.pegsolitaire.audio.LocalSoundPlayer
 import com.app.pegsolitaire.audio.SoundCue
-import com.app.pegsolitaire.audio.SoundParams
 import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Position
@@ -59,7 +59,6 @@ import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.ctaGradientBrush
 import com.app.pegsolitaire.ui.theme.withTabularFigures
-import kotlinx.coroutines.delay
 
 /** Test tag of the board-state node carrying the [PegCountKey]/[GameStatusKey]/[LegalTargetCountKey] semantics. */
 const val GAME_STATE_TEST_TAG = "game_state"
@@ -155,7 +154,7 @@ fun GameScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     JumpHaptic(animatingMoveId = state.animating?.id, hapticsOn = state.hapticsOn)
-    JumpSound(transition = state.animating)
+    JumpSoundEffect(transition = state.animating)
     SelectionSound(selectionTick = state.selectionTick)
     DeselectionSound(deselectionTick = state.deselectionTick)
     UndoSound(undoTick = state.undoTick)
@@ -290,41 +289,6 @@ private fun JumpHaptic(
     LaunchedEffect(animatingMoveId) {
         if (animatingMoveId != null && hapticsOn) {
             haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
-        }
-    }
-}
-
-/**
- * Plays the pitched jump cue as each jump lands, then layers the peg-removal cue under it
- * (SOUND-01/SOUND-02).
- *
- * Keyed on [MoveTransition.id] — the same move ordinal [JumpHaptic] uses — so it fires
- * exactly once per jump rather than once per recomposition. The pitch comes from
- * [MoveTransition.runIndex], the same-peg ladder step (D-05/D-06); because that index is
- * derived from the move history rather than stored, undoing and replaying a jump replays
- * its original pitch (D-08) with nothing to keep in sync here.
- *
- * Every jump removes exactly one peg, so the two cues always co-occur; the removal trails
- * by [SoundParams.REMOVAL_LAYER_DELAY_MS] so it reads as a texture layer beneath the pitched
- * pop instead of a second competing hit.
- *
- * **The seven sound cues take no enable/disable gate parameter, and that asymmetry with
- * [JumpHaptic] is deliberate.** `hapticsOn` is carried in [GameUiState] because a haptic can
- * only ever be blocked *before* it fires. Audio cannot: SOUND-05 requires silencing one-shots
- * that are already in flight, which only the object holding the live stream ids can do. The
- * audio gate therefore lives inside the player implementation, which subscribes to the
- * persisted setting itself. Do not "fix" this by copying the `hapticsOn` plumbing — a UI-state
- * flag can block future calls and nothing else, and adding one would give the mute two
- * disagreeing sources of truth.
- */
-@Composable
-private fun JumpSound(transition: MoveTransition?) {
-    val sound = LocalSoundPlayer.current
-    LaunchedEffect(transition?.id) {
-        if (transition != null) {
-            sound.playJump(runIndex = transition.runIndex)
-            delay(SoundParams.REMOVAL_LAYER_DELAY_MS.toLong())
-            sound.play(SoundCue.PegRemove)
         }
     }
 }
