@@ -1082,13 +1082,29 @@ Column names are the entity's field names (`LevelResultEntity.kt:27-37`); the mo
 git checkout develop        # arm A;  git checkout feature/phase-15-ux-refresh for arm B
 ANDROID_HOME=$HOME/Library/Android/sdk ./gradlew :app:installDebug
 # re-seed (Step 0) after every install — a fresh install clears app data
+
+# The launch COMPONENT, asked of the device rather than hard-coded (ux-spec.md §6.5):
+# `$APP/.MainActivity` would expand the shorthand against the launch package and so name
+# `com.erman.pegsolitarie.MainActivity`, a class that does not exist — `applicationId` is
+# `com.erman.pegsolitarie` (app/build.gradle.kts:279, "-arie") while `namespace` is
+# `com.app.pegsolitaire` (:263, "-aire") and the manifest declares the one activity
+# relatively (AndroidManifest.xml:33). A wrong id makes `am start -W` print an error instead
+# of a TotalTime, so the phase would close with NO measurement rather than a bad one.
+COMPONENT="$(adb shell cmd package resolve-activity --brief "$APP" | tail -1 | tr -d '\r')"
+echo "$COMPONENT"   # expect com.erman.pegsolitarie/com.app.pegsolitaire.MainActivity
+
 for i in $(seq 1 10); do
-  adb shell am force-stop com.erman.pegsolitarie
+  adb shell am force-stop "$APP"          # force-stop takes the applicationId alone
   sleep 2
-  adb shell am start -W -n com.erman.pegsolitarie/.MainActivity | grep TotalTime
+  adb shell am start -W -n "$COMPONENT" | grep TotalTime
 done
 # discard sample 1 as warm-up; record min / median / max of the remaining 9
 ```
+
+*(Corrected 2026-09-21 by the developer executing S5–S8: the line above previously read
+`am start -W -n com.erman.pegsolitarie/.MainActivity`, which names a class that does not
+exist here. Criterion 15e's `am start -W` means the resolved-component form, as
+`docs/ux-spec.md` §6.5 already spells out. `$APP` is set in Step 0.)*
 
 ### 11.2 Pass condition — both parts must hold
 
