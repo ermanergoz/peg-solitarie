@@ -267,10 +267,17 @@ android {
         // https://play.google.com/store/apps/details?id=com.erman.pegsolitarie
         // The id must match the published app exactly (note the "-arie" spelling) and the
         // versionCode must exceed the published versionCode 2 (versionName "2.0").
+        //
+        // The code encodes the name: major * 10_000 + minor * 100 + patch, so "3.0.0" is
+        // 30_000 and a later "3.1.2" would be 30_102. Chosen by the founder on 2026-09-21
+        // over a plain increment, because the code is then readable back as the name and
+        // leaves room between releases. It is a one-way door — Play rejects any upload
+        // whose code does not exceed the last one — so every future release must follow
+        // the same formula rather than reverting to counting.
         // The `namespace` (code packages, BuildConfig) deliberately stays
         // com.app.pegsolitaire — only the store identity changes.
         applicationId = "com.erman.pegsolitarie"
-        versionCode = 3
+        versionCode = 30_000
         versionName = "3.0.0"
     }
 
