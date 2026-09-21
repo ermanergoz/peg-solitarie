@@ -53,6 +53,24 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > Consequences that follow from the rulings but were not themselves proposed as a diff — the
 > tutorial's negative contract in §5.1, the tutorial's audio decision, and the §14 criteria the
 > new boards and the new gate make wrong or unverifiable — are applied here too.
+>
+> **Second revision — 2026-09-21 (audio).** `.planning/reports/phase-15/qa-engineer-tutorial-audio.md`
+> — the qa-engineer, standing in as the owner of tests and acceptance because no sound-designer is
+> staffed for phase 15 (the recusal is recorded in that report) — reviewed **D-01h** and returned
+> **FAIL**. The ruling is folded in here as **D-01i**: the tutorial is *not* silent end to end. A
+> completed tutorial jump plays the game's own jump pair, because
+> `.planning/REQUIREMENTS.md:38` (SOUND-01, marked Complete) says the player hears a jump sound on
+> **every** peg jump and D-01h narrowed that requirement without amending it or recording the
+> narrowing anywhere. Silence is upheld for everything else on the board and for the completion
+> star, and the gap D-01h left — the completion CTA's and `Skip`'s press cues — is now ruled
+> explicitly. The edits reach D-01h (pointer), **D-01i** (new), §4.1, §4.4, §5, §5.1 (clarified,
+> not relaxed), §9, §13, §14 (7c replaced, 7d/7e new) and §16, which gains its first SOUND-nn
+> rows so this class of contradiction is visible next time.
+>
+> Out of scope here and **not** absorbed into this document: rules/audio.md makes
+> `docs/audio-spec.md` the cue list of record and that file has never existed on any branch. The
+> gap predates phase 15, belongs to the sound-designer, and the producer is tracking it
+> separately. This spec names cues per screen; it does not stand in for that file.
 
 ---
 
@@ -190,7 +208,11 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   — Hosting is the tech-lead's authority and this spec routed it there; what comes back into this
   document is only what the player can see or lose.
 
-- **D-01h** *(2026-09-21 — UX decision)*: **the tutorial is silent, end to end.** No cue at all
+- **D-01h** *(2026-09-21 — UX decision)* — ⚠️ **AMENDED THE SAME DAY: read D-01i first.** Its
+  opening clause is **no longer true**: the jump cue *does* fire in the tutorial. Everything else
+  this decision silenced is **upheld**, and the completion CTA it left unruled is ruled in D-01i.
+  The text below is kept verbatim as the record of what was decided and why it was overturned; it
+  is not the contract. — **the tutorial is silent, end to end.** No cue at all
   plays anywhere on the tutorial screen — not `Select`, `Deselect`, `Jump`, `PegRemove`,
   `InvalidTap` or `Undo` on the board, and not `StarPop` or `Win` on the completion star — and no
   cue is added to `BoardCanvas`. The only sound in the whole tutorial flow is the
@@ -207,6 +229,94 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   first jump of their first **real** board, which is the right moment for it. §4.4's tutorial
   wrong-tap rows and §9's audio row are amended to match. Revisiting this is the sound-designer's
   to propose and mine to rule on; it is not a founder question.
+
+- **D-01i** *(2026-09-21 — UX ruling, amending D-01h; from the qa-engineer's D-01h review,
+  standing in for the unstaffed sound-designer — `.planning/reports/phase-15/qa-engineer-tutorial-audio.md`)*:
+  **the tutorial is not silent end to end. A completed jump sounds; nothing else on the board
+  does; and the two ways out speak the app's own press vocabulary.**
+
+  | Event on the tutorial screen | Cue | Ruling |
+  |---|---|---|
+  | A peg **completes** a jump | `SoundCue.Jump`, pitched by `playJump(runIndex)`, with `SoundCue.PegRemove` layered `SoundParams.REMOVAL_LAYER_DELAY_MS` beneath it — the same pair, the same levels, the same pitch ladder as the real game | **Fires** |
+  | A peg is selected / put back down | `Select`, `Deselect` | **Silent** — D-01h upheld |
+  | A peg with no legal jump is tapped; an illegal destination is tapped | `InvalidTap` | **Silent** — D-01h upheld |
+  | Undo | `Undo` | **Silent** — there is no Undo in the tutorial at all (§5) |
+  | A hint is revealed | `Hint` | **Silent** — `showHints` is forced on (D-01b), so nothing is ever *revealed* and `hintSource` never transitions |
+  | The completion star, end of T3 | `StarPop`, `Win` | **Silent** — D-01h upheld; a tutorial is not a victory and D-14's two-beat celebration belongs to a real solve |
+  | The completion CTA ("Got it") | `SoundCue.ButtonForward` | **Fires** — the gap D-01h left, now ruled |
+  | `Skip`, on any step | `SoundCue.ButtonDismiss` | **Fires** — same ruling |
+  | System back | — | **Silent**: there is no button press to sound. It is the same exit path (D-01d), not the same event. |
+
+  **Why the jump cue fires.** The decisive reason is not taste: `.planning/REQUIREMENTS.md:38`
+  (SOUND-01) reads "Player hears a jump sound on **every** peg jump, pitch-varied so repeated
+  jumps do not fatigue", and it is marked **Complete** (`:165`). The tutorial's jumps are real
+  jumps on the real rules engine (D-01a). D-01h therefore made the tutorial the single place in
+  the shipped product where a peg jump produces no jump sound — without amending SOUND-01,
+  without scoping it, and without registering the narrowing anywhere, since §16 carried **no
+  SOUND-nn row at all**. A UX decision may not narrow a Complete requirement invisibly. §16 now
+  carries SOUND-01 and SOUND-04.
+
+  Two design reasons agree with it. **Fidelity is the tutorial's whole premise** — D-01/D-01a
+  stake the design on the real canvas and the real engine, "what the player learns is literally
+  the mechanic they will use", and the tutorial already reproduces the selection ring, the
+  destination dots, the jump slide and the removal fade; audio would have been the sole
+  deliberate divergence, teaching for thirty seconds that a jump is a silent event and then
+  contradicting that at the first real board. And **D-01c has stripped every other consequence
+  from the screen** — no score, no failure, no retry count, no red, no modal — which is exactly
+  why the completed jump is the tutorial's only moment of positive consequence; removing its one
+  audible confirmation leaves the payoff thinner than the teaching needs.
+
+  **What D-01h got right, and keeps.** Its `InvalidTap` reasoning is the load-bearing one and is
+  upheld without reservation: a rejection sound is the one channel that would make a wrong tap
+  feel like a failure, which D-01c forbids. Its other two reasons — that rules/audio.md permits
+  an unnamed cue to be absent, and that every tutorial event already carries visual feedback —
+  establish that silence is *permitted* and that either choice is legal. Neither is an argument
+  that silence is *right*, and the decision rested on them.
+
+  **Cost, and the shape the developer must use.** One lifted composable and one call site.
+  `JumpSound` is `private fun JumpSound(transition: MoveTransition?)` at `GameScreen.kt:320-330`;
+  it takes a `MoveTransition?` and reads `LocalSoundPlayer`, and touches no `GameViewModel`, no
+  repository and no navigation. Lifting it to a shared `internal` composable that both screens
+  call keeps §5.1's four prohibitions intact (see the note under §5.1) and keeps §5's "no
+  `SoundCue` reference added to `BoardCanvas`" intact, because the effect lives *beside* the
+  screen and never inside the canvas. The state it needs is already there: `BoardCanvas` draws
+  the jump slide from `state.animating` (`BoardCanvas.kt:115`), so a tutorial that shows the
+  slide D-01a promises has already populated the very field the cue is keyed on.
+  **Re-implementing the effect inside the tutorial instead of lifting it is a defect** — the
+  `REMOVAL_LAYER_DELAY_MS` layering and the `runIndex` pitch ladder would be duplicated and would
+  drift. The reviewer insists on the lift, not the copy.
+
+  **The completion CTA and `Skip`.** D-01h's blanket "no cue at all plays anywhere on the
+  tutorial screen" collided with three things in this same document and repo: §4.1's full-width
+  `CtaGradient` completion button, SOUND-04 ("Player hears button-press feedback on primary UI
+  actions", `.planning/REQUIREMENTS.md:41`, also Complete) and D-11's forward/dismiss split
+  (`SoundCue.kt:70-74`). §5's enumerated prohibition named only board and completion cues, so a
+  developer building the CTA with the house idiom — `withClickSound(SoundCue.ButtonForward, …)`,
+  as at `HomeScreen.kt:447` and `:581` — would have violated a spec sentence that no grep and no
+  test could catch, while a developer omitting it would have violated SOUND-04. Ruled: **both
+  press cues fire, with the app's standard cues.** They are *exit* actions and belong to the
+  navigation vocabulary the rest of the app already speaks; neither can be mistaken for a verdict
+  on the player's tapping, which is the only thing D-01c actually protects. §5's list now names
+  `ButtonForward` and `ButtonDismiss` explicitly, so the ruling is checkable either way.
+
+  **No new asset and no new licence row.** `Jump` → `R.raw.sfx_jump` (`SoundCue.kt:30`),
+  `PegRemove` → `R.raw.sfx_peg_remove` (`SoundCue.kt:33`), `ButtonForward`/`ButtonDismiss`
+  (`SoundCue.kt:70-74`) all ship today and are credited CC0 1.0 in `docs/audio/CREDITS.md`. §5's
+  "No new audio asset" stands unamended, and §9's row is updated only to say which cues the
+  tutorial now uses.
+
+  **One thing this ruling cannot prove by reading, so QA checks it.** `JumpSound` consults no
+  animation flag of any kind (`GameScreen.kt:320-330`), and the project's precedent is that cues
+  survive reduced motion (`StarPopSounds` reads `rememberAnimationsEnabled()` only to change the
+  stagger, `ResultsCelebration.kt:104-106`). But with OS animations off `runJumpAnimation` takes
+  the snap path and calls `onAnimationFinished()` immediately (`BoardCanvas.kt:298-304`), so
+  `animating` is set and cleared inside a very short window; whether the keyed effect always wins
+  that race is a **device check, not a reading**. Criterion 7c therefore requires one pass with
+  OS animations off.
+
+  **Not in scope here.** rules/audio.md names `docs/audio-spec.md` as the cue list of record and
+  that file does not exist on any branch. Writing it is the sound-designer's work and the
+  producer is tracking it; this spec names cues per screen and does not substitute for it.
 
 ### The info button (NAV-01, D-15 superseded)
 
@@ -484,17 +594,32 @@ from the current `TutorialBoards` footprint. `GameUiState` here is a **UI model*
 that the game's own state holder is involved; D-01a's "a real `GameUiState` and the real rules
 engine" means exactly that and nothing more (D-01g, §5.1).
 
+**The jump the player hears.** A **completed** jump plays the game's own jump pair — the pitched
+`SoundCue.Jump` with `SoundCue.PegRemove` layered beneath it — on every step, including each of
+T3's four jumps, and with the same pitch ladder when the same peg jumps twice in a row (D-01i,
+SOUND-01). It is the same effect the gameplay screen uses, lifted to a shared composable rather
+than re-implemented (`GameScreen.kt:320-330`), and it is keyed on the same `state.animating` the
+canvas already draws the slide from (`BoardCanvas.kt:115`). **That is the only sound the board
+makes:** selection, deselection, a tap with no legal jump, a tap on an illegal destination and
+the completion star are all silent (D-01i, §4.4, §5). The contrast is the point — the one thing
+the tutorial rewards audibly is the thing it is teaching.
+
 **Completion.** After T3: the caption becomes `tutorial_done_caption`, a single gold star pops in
 reusing the Results star vocabulary (`ClayAnim.STAR_POP_MS`, `goldGradientFill()`), and the footer
 raises one full-width `CtaGradient` button labelled with the **existing** `onboarding_got_it`
-("Got it"). Tapping it persists `markSeen()` and leaves. **The star pops silently:** neither
-`SoundCue.Win` nor `SoundCue.StarPop` plays (D-01h) — a tutorial is not a victory, and D-14's
+("Got it"). Tapping it plays `SoundCue.ButtonForward` — the same press cue every other primary
+CTA in the app plays, via the house `withClickSound` idiom (D-01i, D-11, SOUND-04) — then
+persists `markSeen()` and leaves. **The star itself pops silently:** neither `SoundCue.Win` nor
+`SoundCue.StarPop` plays (D-01h, upheld by D-01i) — a tutorial is not a victory, and D-14's
 two-beat celebration belongs to a real solve. `ClayAnim.STAR_POP_MS` is borrowed as a *duration*,
 not as a cue. Nor is a star banked, a resume snapshot cleared or the Challenge ladder advanced:
 the gold star on this screen is an animation and nothing behind it moves (§5.1, D-01g).
 
 **Exit.** `Skip` (every step), system back and the completion CTA are **one exit path with three
-callers** (D-01d, D-01g). It persists `markSeen()` first and pops only then, so Home can never
+callers** (D-01d, D-01g). The two that are button presses sound like button presses: `Skip` plays
+`SoundCue.ButtonDismiss` and the CTA plays `SoundCue.ButtonForward` (D-01i, D-11). System back is
+silent — there is no press to sound, and it is the same exit path, not the same event. The path
+persists `markSeen()` first and pops only then, so Home can never
 re-open the tutorial on the frame after the player left it; a second exit is a latched no-op.
 Popping returns the player exactly where they came from — Home on first run, Settings on replay —
 and a replay always restarts at T1, because the step state is scoped to the destination and dies
@@ -642,8 +767,8 @@ never correction:
 
 | Class | Answer |
 |-------|--------|
-| Tapped a peg with no legal jump | The peg selects and draws zero destination dots. After `TutorialAnim.NUDGE_DELAY_MS` with no progress, the coachable peg's ring re-pulses. **Silent** (D-01h) — the ring and the absent dots are the whole answer. |
-| Tapped an illegal destination while a peg is selected | The legal dots re-pop and the selection is kept. Nothing is lost, nothing is announced as wrong. **Silent** (D-01h): the in-game `InvalidTap` cue is deliberately *not* carried into the tutorial, because a rejection sound is the one channel that would make a wrong tap feel like a failure — which D-01c forbids. |
+| Tapped a peg with no legal jump | The peg selects and draws zero destination dots. After `TutorialAnim.NUDGE_DELAY_MS` with no progress, the coachable peg's ring re-pulses. **Silent** (D-01h, upheld by D-01i) — the ring and the absent dots are the whole answer, and no `Select` cue fires either. |
+| Tapped an illegal destination while a peg is selected | The legal dots re-pop and the selection is kept. Nothing is lost, nothing is announced as wrong. **Silent** (D-01h, upheld by D-01i): the in-game `InvalidTap` cue is deliberately *not* carried into the tutorial, because a rejection sound is the one channel that would make a wrong tap feel like a failure — which D-01c forbids. This is the one reason in D-01h that carried its own weight, and D-01i upholds it without reservation. |
 | Three consecutive non-progressing taps in a step | The coach escalates once: the source ring pulses **and** the destination dot brightens **and** the caption re-shows the step's own caption. It never escalates past this, it never blocks, and **it never mentions Undo** — no tutorial board can box the player in, so there is nothing to be rescued from, and promising a rescue from an impossible failure teaches the player to expect failure. |
 
 Expect class 1 to fire on T2 and T3 in normal use: T2's middle peg, and **three of T3's five
@@ -651,6 +776,11 @@ pegs** — (1,0), (1,1) and (1,2), since all three of T3's legal openings start 
 have no legal jump at the start. That is unavoidable in any peg-solitaire opening (a peg with no
 hole two cells beyond a neighbour cannot move), so it is a case QA should see rather than a
 defect; §14 criterion 3 names the tap to check.
+
+**Every wrong tap in the table is silent; a *completed* jump is not** (D-01i, §4.1). That
+asymmetry is deliberate and is the tutorial's whole audio design: the one sound on the screen
+marks the one thing the player got right. It is also why the silences above are checkable
+criteria (7d) and owed tests (§13) rather than an absence nobody asserts.
 
 During normal gameplay (outside the tutorial) wrong-tap handling is **unchanged** — the existing
 `rejectedTapTick` → `InvalidTap` path (`GameScreen.kt:393-398`), cue included.
@@ -692,10 +822,18 @@ Things a reader might expect from this spec and will not find, each on purpose:
   `SavedStateHandle` step cursor**, which would survive process death and resume at T2, silently
   contradicting D-01e. Forbidding the cursor is D-01g's clause; the decision it protects is
   D-01e's.
-- **No sound anywhere in the tutorial** (D-01h). No board cue (`Select`, `Deselect`, `Jump`,
-  `PegRemove`, `InvalidTap`, `Undo`), **no completion cue** (`StarPop`, `Win`), and **no
-  `SoundCue` reference added to `BoardCanvas`** — that file has none today and gaining one would
-  put audio on the shared board component for every screen at once.
+- **No sound in the tutorial beyond the jump pair and the two exit presses** (D-01h as amended by
+  D-01i). The enumerated contract, both halves, because only an enumerated one is checkable:
+  - **Plays:** `SoundCue.Jump` (pitched by `playJump(runIndex)`) with `SoundCue.PegRemove`
+    layered under it, on a **completed** jump; `SoundCue.ButtonForward` on the completion CTA;
+    `SoundCue.ButtonDismiss` on `Skip`.
+  - **Never plays:** `Select`, `Deselect`, `InvalidTap`, `Undo`, `Hint` on the board, and
+    `StarPop` and `Win` on the completion star — at any point, on any step, on either entry path.
+    System back is silent too.
+  - **No `SoundCue` reference is added to `BoardCanvas`** — that file has none today and gaining
+    one would put audio on the shared board component for every screen at once. The jump effect
+    is a composable declared *beside* the screen and lifted from `GameScreen.kt:320-330`, never
+    moved into the canvas.
 - **No Undo control, and no copy naming Undo, anywhere in the tutorial** (§4.1, §4.4). The
   tutorial's bands are Header / Board / Caption / Footer; there is no dock to hold one, the
   boards make being stuck impossible, and Undo is met in the real game where it is genuinely
@@ -722,6 +860,20 @@ checkable by one grep over `app/src/main/.../ui/onboarding/`.
 
 A tutorial that trips any of these looks correct on screen and is wrong in the database. That is
 the failure class this section exists to name.
+
+**What these four do not forbid — clarified 2026-09-21, not relaxed (D-01i).** They bind **where
+the tutorial's screen and its state holder come from**, not **where a `@Composable` effect is
+declared**. `JumpSound` (`GameScreen.kt:320-330`) takes a `MoveTransition?` and reads
+`LocalSoundPlayer`; it touches no `GameViewModel`, no repository, no navigation and no
+persistence. Calling a shared `internal` copy of it from the tutorial leaves all four intact: the
+tutorial still hosts `BoardCanvas` and never `GameScreen` (1), still runs `TutorialViewModel` and
+never `GameViewModel` (2), still writes no `LevelResult`, clears no snapshot and advances no
+ladder (3), and still has `popBackStack()` as its only outbound edge (4). Prohibition 1's stated
+reason — that hosting `GameScreen` would drag the dock, the banner, the dialogs and `SoundCue.Win`
+into a teaching screen — is unchanged and unweakened by this; **lifting one effect out of that
+file is not licence to host the file**, and the grep gate over
+`app/src/main/.../ui/onboarding/` still applies verbatim, now reading "references no `SoundCue`
+the spec does not name" (§13) rather than "references no `SoundCue`".
 
 ---
 
@@ -977,7 +1129,9 @@ Every asset this refresh needs, with its licence. **No third-party asset is intr
 | **`HintIcon`** (lightbulb) | vector | **new, in-house** — core set has no lightbulb and the extended set is banned | project-owned |
 | **`ShowMovesIcon`** (peg + two dots) | vector | **new, in-house** — core set has no visibility glyph | project-owned |
 | Hero / tile / thumbnail board art | drawn | `BoardCanvas` primitives, no asset file | project-owned |
-| `SoundCue.Select`, `Deselect`, `Jump`, `PegRemove`, `Undo`, `InvalidTap`, `Hint`, `StarPop`, `ButtonForward`, `ButtonDismiss` | audio | already in `res/raw`, credited in `docs/audio/CREDITS.md` — **none of them is used by the tutorial**, which is silent by D-01h; the only cue this refresh newly *places* is `ButtonForward` on the Settings "How to play" row (§4.5) | CC0 1.0 (as recorded) |
+| `SoundCue.Jump` (`R.raw.sfx_jump`, `SoundCue.kt:30`) + `SoundCue.PegRemove` (`R.raw.sfx_peg_remove`, `:33`) | audio | already in `res/raw`, credited in `docs/audio/CREDITS.md` — **newly placed on the tutorial screen** by D-01i, as the existing pair at existing levels; no asset, no volume and no pitch value changes | CC0 1.0 (as recorded) |
+| `SoundCue.ButtonForward`, `SoundCue.ButtonDismiss` (`SoundCue.kt:70-74`) | audio | already in `res/raw`, credited — newly placed on the Settings "How to play" row (§4.5, `ButtonForward`), the tutorial's completion CTA (`ButtonForward`) and `Skip` (`ButtonDismiss`), all by the existing `withClickSound` idiom (D-01i, D-11) | CC0 1.0 (as recorded) |
+| `SoundCue.Select`, `Deselect`, `Undo`, `InvalidTap`, `Hint`, `Win`, `StarPop` | audio | already in `res/raw`, credited — **unchanged, and explicitly never played on the tutorial screen** (D-01h as amended by D-01i, §5) | CC0 1.0 (as recorded) |
 | Fredoka, Nunito | font | downloadable Google Fonts, already wired | OFL (already shipped) |
 
 Both new vectors follow the `UndoIcon.kt` / `ModeGlyphs.kt` precedent: a 24-unit viewport, filled
@@ -1015,6 +1169,13 @@ All new motion reuses the Candy Clay vocabulary; nothing invents a curve.
   make the tutorial swap boards under the player's finger.
 - The board's own jump/removal already resolve instantly in this mode
   (`BoardCanvas.kt:298-304`), so the tutorial inherits correct behaviour without a second gate.
+- **Sound is not motion and is not gated on it.** The tutorial's jump pair (D-01i) still plays
+  with animations off: `JumpSound` reads no animation flag (`GameScreen.kt:320-330`), and the
+  project's precedent is that cues survive reduced motion (`ResultsCelebration.kt:104-106`
+  consults `rememberAnimationsEnabled()` only to change the star stagger and still plays every
+  cue). The one thing reading cannot prove is whether the keyed effect wins the race against the
+  snap path at `BoardCanvas.kt:298-304`, which sets and clears `animating` in a very short
+  window — so criterion 7c is exercised once with OS animations off, on a device.
 
 ---
 
@@ -1074,10 +1235,14 @@ Home order: title → gear → ribbon pills → Continue chips → mode tiles. T
 jump has the slide and the removal; selection has the ring and the pulse; the invalid tap has the
 dots staying put; Undo has the board stepping back; the completion cue has the star and the
 caption. The dock's two silent controls (Show-moves, Restart) are silent by contract (D-09) and
-both give immediate visual feedback. **The tutorial is silent throughout** (D-01h), which passes
-this rule by construction — every tutorial event carries visual feedback on its own — and QA
-should read the absence of jump, select and invalid-tap cues there as the design, not a defect
-(§14).
+both give immediate visual feedback. **The tutorial passes this rule twice over** (D-01h as
+amended by D-01i): its one board cue — the jump pair on a completed jump — is paired with the
+slide and the removal fade exactly as in the real game, and every event it deliberately leaves
+silent (select, deselect, invalid tap, the completion star) carries visual feedback on its own,
+so no information there is audio-only. Note the direction of the rule: it forbids sound as the
+*sole* channel; it never requires silence. QA should read the absent select, deselect and
+invalid-tap cues as the design and the present jump cue as required by SOUND-01 (§14, criteria
+7c/7d/7e).
 
 **One-handed use.** The four in-game actions and both Home mode tiles sit in the lower half of a
 6.7-inch phone. This is the reach problem D-04 exists to fix.
@@ -1148,6 +1313,28 @@ to the two gaps above)*:
 - A placeholder test that a ribbon pill with no value yet shows "—", and a repository test that a
   failed read degrades to unknown rather than to `0` (D-03h).
 
+**Four audio tests** *(2026-09-21 — added with D-01i; the list above carried none, and criterion
+7c had a device check and nothing else)*. The project's own rule is that a named silence is only
+a real property when both halves are asserted — `ButtonSoundTest.kt:41-46`: "Selectivity is only
+a real property if both halves are asserted, so the negative cases here are first-class tests
+rather than afterthoughts … without them a future 'simplification' that folds the cue into the
+shared `Modifier.claySquish()` would pass every positive test while making exactly the excluded
+controls noisy." The infrastructure exists and the tests are cheap: `FakeSoundPlayer`
+(`FakeSoundPlayer.kt:25-48`) records every cue in order and at pitch, installed through
+`CompositionLocalProvider(LocalSoundPlayer provides …)`, and `GameScreenSoundTest` is the
+template — `aJumpPlaysTheJumpCueThenLayersTheRemovalCueUnderIt` (`:76-87`) and
+`aFreshlyComposedScreenMakesNoSoundAtAll` (`:186-194`) are the two shapes needed.
+
+- `TutorialSoundTest.aCompletedTutorialJumpPlaysTheJumpCueThenLayersTheRemovalCueUnderIt`
+- `TutorialSoundTest.theTutorialPlaysNoSelectDeselectInvalidTapOrUndoCueOnAnyStep`
+- `TutorialSoundTest.theCompletionStarPopsWithoutTheWinOrStarPopCue`
+- a grep-shaped guard that `app/src/main/java/com/app/pegsolitaire/ui/onboarding/` references no
+  `SoundCue` the spec does not name — the shape the tech-lead already proposes, now with a
+  non-empty allow-list (`Jump`, `PegRemove`, `ButtonForward`, `ButtonDismiss`).
+
+Without these, the tutorial's audio contract is an assertion in a document rather than a property
+of the build, and the first refactor that folds a cue into a shared modifier breaks it silently.
+
 **Closed — the screenshot-suite question.** The first edition raised the absence of any
 screenshot infrastructure (no Roborazzi, no Paparazzi, no `screenshotTest` source set, no
 `androidTest` directory) as a gap against the stack CLAUDE.md names. **Ruled 2026-09-21
@@ -1193,8 +1380,25 @@ Observable truths a QA engineer can check on a device, in the roadmap's house ph
     (D-01g, §5.1, D-03f)
 7b. Opening Settings › How to play after skipping mid-tutorial starts again at **step 1**, on the
     first board, every time. (D-01g)
-7c. The tutorial plays **no sound at all** — no select, jump, removal, invalid-tap or completion
-    cue — and every event in it is still legible from the screen alone. (D-01h, rules/audio.md)
+7c. Each completed jump in the tutorial plays the **same jump cue as the real game** — the pitched
+    jump with the peg-removal layer under it — on every step, including each of T3's four jumps,
+    and with the game's own pitch ladder when the same peg jumps twice in a row. **Check this
+    once more with OS animations off** (Developer options → Animator duration scale: off): with
+    animations disabled the jump takes the snap path (`BoardCanvas.kt:298-304`), so `animating`
+    is set and cleared inside a very short window, and whether the cue still fires in that window
+    can only be settled on a device — it is not provable by reading the code.
+    (SOUND-01, D-01h as amended by D-01i)
+
+7d. **Nothing else on the tutorial screen makes a sound.** Tapping a peg, re-tapping to put it
+    back, tapping a peg with no legal jump, tapping an illegal destination, and the completion
+    star are all **silent** — no select, deselect, invalid-tap, undo, hint, star-pop or win cue
+    at any point, on any step, on either entry path. (D-01c, D-01h as amended by D-01i,
+    rules/audio.md)
+
+7e. The tutorial's completion button plays the same press cue as every other primary button in
+    the app, and `Skip` plays the app's dismiss press cue; neither adds any other sound, and both
+    behave the same on the first-run path and on the Settings › How to play replay.
+    (SOUND-04, D-11, D-01i)
 
 **Info button (D-02)**
 
@@ -1273,7 +1477,9 @@ blocks tests 10/11/13 in `11-HUMAN-UAT.md`, not just the look of the screen.
 
 25. With OS animations turned off, every screen in this refresh is fully usable, nothing is stuck
     mid-animation, and the tutorial still pauses long enough after a jump for the player to see it
-    resolve. (rules/compose.md, §10)
+    resolve. **Sound is unaffected by this switch** — run criterion 7c's animations-off pass at
+    the same sitting; a jump that loses its cue when animations are off is a 7c failure, not an
+    expected consequence of reduced motion. (rules/compose.md, §10, §14 7c)
 26. Every new interactive element is at least 48dp, at least 8dp from its neighbours, and reachable
     by TalkBack with a meaningful label, in both light and dark. (rules/compose.md, §11)
 27. Every text and glyph pair introduced by this refresh meets 4.5:1 / 3:1 contrast in both light
@@ -1320,6 +1526,9 @@ is currently in the worst-reachable corner of the screen. If the founder wants t
 | SCOR-02 | §4.3 timer pill, `elapsed_time` preserved |
 | ASST-01 | §4.4 Hint action, new glyph, thinking state unchanged |
 | ASST-02 | §4.4 Undo action, new position, `canUndo` unchanged |
+| SOUND-01 | §4.1 "The jump the player hears" + D-01i — a completed tutorial jump plays the game's own pitched jump with the removal layer under it, so the requirement's "**every** peg jump" holds on the tutorial's real jumps too; criterion 7c (including one pass with OS animations off); §13 `TutorialSoundTest`. **Added 2026-09-21:** §16 carried no SOUND-nn row, which is how D-01h narrowed a Complete requirement invisibly. |
+| SOUND-02/03 | §4.1, §5, criterion 7d — the tutorial deliberately plays **none** of `Select`, `Deselect`, `InvalidTap`, `Undo`, `Hint`, `Win`, `StarPop`; gameplay and Results are untouched, so the requirements are unnarrowed. The exclusion is a stated, tested property (§13), not an absence. |
+| SOUND-04 | §4.1 Completion/Exit and §4.5 — the tutorial's completion CTA plays `ButtonForward` and `Skip` plays `ButtonDismiss` via the house `withClickSound` idiom (D-01i, D-11), and the Settings "How to play" row plays `ButtonForward`; criterion 7e |
 | SET-02 | Untouched — haptics gate is unchanged |
 | ADS-01/02 | §5 — no allowance surface added; dialog unchanged |
 | CLAS-01 | §4.2.1 — Classic catalogue and its per-board star pips untouched; one tap from Home; §5 / criterion 13b — `TutorialBoards` never joins `Boards.CLASSIC_SPECS`, so the catalogue and the Boards-pill denominator are unchanged |
