@@ -29,8 +29,15 @@ D-01h narrowed it invisibly because §16 carried no SOUND-nn row at all. §16 no
   with a closing note on the deliberate asymmetry; §5's negative contract is now an enumerated
   two-sided list (what plays / what never plays / nothing added to `BoardCanvas`); §5.1 gains a
   "what these four do not forbid" note; §9's audio rows are split by what the tutorial uses;
-  §10's reduced-motion list says sound is not gated on motion; §13 gains four audio tests; §14
-  replaces 7c and adds 7d/7e; §16 gains SOUND-01, SOUND-02/03 and SOUND-04 rows.
+  §10's reduced-motion list says sound is not gated on motion; §11's "sound is never the only
+  feedback" paragraph no longer claims the tutorial is silent throughout; §13 gains four audio
+  tests; §14 replaces 7c and adds 7d/7e and points criterion 25 at 7c; §16 gains SOUND-01,
+  SOUND-02/03 and SOUND-04 rows. A second commit carries three consistency follow-ups the first
+  pass left: §2's Gameplay row now names the `JumpSound` extraction as the only gameplay-side
+  change, and §13's breaking-test row for
+  `theHomeTopBarHowToPlayAndSettingsIconsMakeNoSound` is corrected (it must be **narrowed**, not
+  retargeted at the Settings row, which deliberately *plays* `ButtonForward` — the old fix line
+  would have asserted the opposite of §4.5's contract).
 - `.planning/reports/phase-15/ux-designer-audio-amendment.md` — this report. The two earlier
   ux-designer reports in this directory were not touched.
 
@@ -122,9 +129,16 @@ Every item from the task, applied or escalated, with what it was verified agains
   unchanged tree. The branch's green baseline is the tech-lead's recorded run on this same tree
   (`ANDROID_HOME=$HOME/Library/Android/sdk ./gradlew check --offline` — BUILD SUCCESSFUL,
   `tech-lead-architecture.md:480`).
-- Spec self-consistency after the edits — pass. §4.1 (screen contract), §4.4 (wrong-tap rows),
-  §5 (negative contract), §5.1, §9, §13, §14 and §16 all state the same cue set: jump pair +
-  two press cues audible, everything else silent.
+- Spec self-consistency after the edits — pass, after a full case-insensitive sweep of the file
+  for `D-01h`, `silen`, `sound`, `cue`, `SOUND-0` and `audio` (every match read, not sampled).
+  §2, §4.1, §4.4, §4.5, §5, §5.1, §9, §10, §11, §13, §14 and §16 now state the same cue set: the
+  jump pair plus the two press cues audible, everything else silent. The sweep caught three
+  places the first pass had left inconsistent and all three are fixed: §11 still said "the
+  tutorial is silent throughout"; §2's Gameplay row did not name the `JumpSound` extraction; and
+  §13's retarget line for `theHomeTopBarHowToPlayAndSettingsIconsMakeNoSound` pointed a
+  makes-no-sound assertion at the Settings row that §4.5 makes deliberately noisy — a
+  pre-existing first-edition error in my own audio domain, corrected here rather than left for
+  the developer to discover at compile time.
 
 ## Open issues / risks
 

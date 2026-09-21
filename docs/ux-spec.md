@@ -98,7 +98,7 @@ The founder's words, verbatim:
 |---|--------|---------------------|-------|
 | 1 | **Tutorial** | **Rewritten.** Was a static illustrated sheet; becomes an interactive coached micro-board flow. Promoted from "a scrim+sheet over Home" to a screen in its own right — and, since D-01g, to a nav destination of its own. | `ui/onboarding/OnboardingOverlay.kt` (replaced), new `ui/onboarding/Tutorial*.kt` incl. `TutorialViewModel`, a `Tutorial` entry in `Routes.kt` + `AppNavHost.kt`, and `object TutorialBoards` in `:domain` |
 | 2 | **Home** | **Recomposed.** Top bar deleted; hero, progress ribbon and tile art added; mode tiles unchanged in behaviour. | `ui/home/HomeScreen.kt`, `ui/home/ModeGlyphs.kt` |
-| 3 | **Gameplay** | **Chrome replaced.** `TopAppBar` deleted; a status strip and an action dock take its place. Board, rules, animation, dialogs, banner, snackbar all unchanged. | `ui/game/GameScreen.kt`, `ui/game/{Hint,HintToggle,Undo,Restart}Control.kt` |
+| 3 | **Gameplay** | **Chrome replaced.** `TopAppBar` deleted; a status strip and an action dock take its place. Board, rules, animation, dialogs, banner, snackbar all unchanged. One **mechanical** extraction only, no behaviour change: the private `JumpSound` effect (`GameScreen.kt:320-330`) is lifted to a shared `internal` composable so the tutorial can call the same one (D-01i) — gameplay's own audio is byte-for-byte the same cue, level and pitch ladder it plays today. | `ui/game/GameScreen.kt`, `ui/game/{Hint,HintToggle,Undo,Restart}Control.kt` |
 | 4 | **Settings** | **One row added** (How to play) + one stale supporting line fixed. | `ui/settings/SettingsScreen.kt` |
 | 5 | Classic catalog | **Unchanged.** | — |
 | 6 | Results | **Unchanged.** | — |
@@ -1269,7 +1269,7 @@ Existing tests this refresh **will** break, with the fix:
 
 | Test | Why it breaks | Fix |
 |------|---------------|-----|
-| `ButtonSoundTest.kt:105-123` `theHomeTopBarHowToPlayAndSettingsIconsMakeNoSound` | Clicks `R.string.how_to_play` by content description; that button and that string are deleted (D-02) | Retarget to the Settings row; the gear half of the assertion stays valid |
+| `ButtonSoundTest.kt:105-123` `theHomeTopBarHowToPlayAndSettingsIconsMakeNoSound` | Clicks `R.string.how_to_play` by content description; that button and that string are deleted (D-02) | Retarget **narrowed, not moved**: keep the gear half (still silent, still on Home) and **drop** the how-to-play half rather than pointing it at the Settings row — that row is a navigational CTA and deliberately **plays** `SoundCue.ButtonForward` (§4.5, D-09), so re-aiming a *makes-no-sound* assertion at it would assert the opposite of the contract. The row's cue is covered positively by criterion 9 and by SOUND-04 (§16). |
 | `HomeScreenTest.kt:148-159` `theProfileSwapDialogIsNeverStackedOnTheOnboardingOverlay` | Locates the overlay by the hardcoded literal `"Got it"` (`:367`) and the overlay stops being hosted by Home (D-01f/D-01g) | **Retarget, never delete:** `theProfileSwapDialogIsNeverRaisedWhileTheTutorialIsStillPending`, finding the dialog by `PROFILE_SWAP_DIALOG_TEST_TAG` as today and the pending state by the state field — never by button copy |
 | `ButtonSoundTest.kt:226-244` | Clicks `navigate_back` and `show_moves_on` on the game screen | **Passes unchanged** — both content descriptions are deliberately preserved (D-05b, §4.4) |
 | `GameFlowTest.kt:129` | Finds the timer by `elapsed_time` | **Passes unchanged** — deliberately preserved (§4.3) |
