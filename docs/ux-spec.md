@@ -1,0 +1,1050 @@
+---
+role: ux-designer
+phase: 15
+slug: ux-refresh
+status: draft
+created: 2026-09-21
+stack: android-compose-game
+design-system: docs/ui/DESIGN-SYSTEM.md
+---
+
+# Peg Solitaire — UX Specification
+
+> The studio's UX contract for Peg Solitaire (rules/studio.md: the ux-designer owns screen
+> inventory, layout, interaction model, feedback, theme and accessibility). This first edition
+> is written for the **phase-15 five-part UX refresh** the founder asked for; it specifies the
+> surfaces that refresh touches completely and references — never re-specifies — everything
+> Phases 1–14 already locked.
+>
+> **The design system of record is `docs/ui/DESIGN-SYSTEM.md` ("Candy Clay").** Nothing here
+> introduces a second visual language. Every colour is an M3 role or a `LocalClayColors`
+> gradient; every fixed dp lands in `res/values/dimens.xml` as its own named token; every
+> duration/ratio lands in a scoped constants object (`ClayAnim`, `GameAnim`, `BoardMetrics`, or a
+> new `TutorialAnim`); every string lands in `res/values/strings.xml`. The `dpSpLiteralCheck`
+> gate fails the build on a raw `.dp`/`.sp` literal in a composable
+> (`app/src/main/res/values/dimens.xml:2-9`).
+>
+> **Format note.** The house convention for a *phase* contract is
+> `.planning/phases/<NN>-<slug>/<NN>-UI-SPEC.md` (the `09-UI-SPEC.md` template). This document
+> lives at `docs/ux-spec.md` because rules/reporting.md and the ux-designer role definition name
+> that path as the role's durable output, and because this refresh spans five screens rather
+> than one phase's deltas. It follows the `09-UI-SPEC.md` section order so a reader moving
+> between the two is never surprised. If the producer wants a phase-scoped copy, this file is
+> the source and `15-UI-SPEC.md` is a pointer to it — not a fork.
+
+---
+
+## 1. The founder's five asks, and what each became
+
+The founder's words, verbatim:
+
+> "make the tutorial more interactive. remove the info button that starts the tutorial. Homepage
+> could be fancier it looks empty with just 2 buttons. Also during the game, redesign the icons
+> on the top. remove toolbar from the game"
+
+| Ask | Decision | Verdict |
+|-----|----------|---------|
+| Make the tutorial more interactive | **D-01** | The tutorial becomes three micro-puzzles the player actually plays on a live board. No step is advanced by a Next button. |
+| Remove the info button that starts the tutorial | **D-02** | `HomeScreen.kt:348-354` is deleted. The replay path moves to a Settings › General row; first-run auto-start is unchanged. |
+| Homepage looks empty with just 2 buttons | **D-03** | Home gains a hero block, a three-pill progress ribbon and board art on its tiles. The two mode tiles stay primary and stay in the thumb zone. **Bounded by two hard constraints: three existing readouts are device-test oracles that must stay visible on first paint (D-03f), and Home is on the measured ≤ 950 ms cold-start gate (D-03g).** |
+| Redesign the in-game icons on the top | **D-04** | The five controls are re-glyphed, re-grouped and re-homed. Two real accessibility defects are fixed in the process. |
+| Remove the toolbar from the game | **D-05** | The `TopAppBar` at `GameScreen.kt:502` is deleted. It is the **same surface** as the "icons on the top", so D-04 and D-05 are one change — see §5. |
+
+---
+
+## 2. Screen inventory
+
+| # | Screen | Status this refresh | Files |
+|---|--------|---------------------|-------|
+| 1 | **Tutorial** | **Rewritten.** Was a static illustrated sheet; becomes an interactive coached micro-board flow. Promoted from "a scrim+sheet over Home" to a screen in its own right. | `ui/onboarding/OnboardingOverlay.kt` (replaced), new `ui/onboarding/Tutorial*.kt` |
+| 2 | **Home** | **Recomposed.** Top bar deleted; hero, progress ribbon and tile art added; mode tiles unchanged in behaviour. | `ui/home/HomeScreen.kt`, `ui/home/ModeGlyphs.kt` |
+| 3 | **Gameplay** | **Chrome replaced.** `TopAppBar` deleted; a status strip and an action dock take its place. Board, rules, animation, dialogs, banner, snackbar all unchanged. | `ui/game/GameScreen.kt`, `ui/game/{Hint,HintToggle,Undo,Restart}Control.kt` |
+| 4 | **Settings** | **One row added** (How to play) + one stale supporting line fixed. | `ui/settings/SettingsScreen.kt` |
+| 5 | Classic catalog | **Unchanged.** | — |
+| 6 | Results | **Unchanged.** | — |
+
+**Deliberately unchanged:** every rule, every board footprint, the scoring/star model, the
+jump/removal animation, the rescue banner, the ad-offer dialog, the restart confirm dialog, the
+Play Games opt-in prompt, and the profile-swap dialog. This refresh is a presentation change.
+
+---
+
+## 3. Decisions
+
+House style per `.planning/phases/*/[0-9]*-CONTEXT.md`: `- **D-nn:** <ruling> — <rationale>.`
+Decisions are never rewritten in place; a later ruling is filed as `D-nna` with its date.
+
+### Tutorial (ONB-01, proposed UX-01)
+
+- **D-01:** The tutorial teaches by **making the player perform the jump**, not by describing it.
+  Three micro-puzzles run in sequence on a live, tappable board; a step advances **only when the
+  player completes it**, never on a Next button. — rules/puzzle-design.md requires the first
+  puzzles to "teach without text, the way a level layout teaches", and the current sheet is the
+  exact anti-pattern it names: three static `BoardPreview` illustrations plus three sentences of
+  prose behind one "Got it" button (`OnboardingOverlay.kt:96-131`, `:179-184`). A player can
+  dismiss it today without ever having jumped a peg.
+
+- **D-01a:** The tutorial board is the **real `BoardCanvas` in `interactive = true` mode**, driven
+  by a real `GameUiState` and the real rules engine — not a bespoke illustration. — `BoardCanvas`
+  already takes a whole `GameUiState` and emits bounds-checked taps
+  (`BoardCanvas.kt:87-93`, `:205-212`), so the tutorial inherits selection rings, the breathing
+  pulse, legal-destination dots, the jump slide and the removal fade for free, and what the player
+  learns is literally the mechanic they will use. The current sheet cannot do this: it routes
+  through `BoardPreview`, which hard-codes `interactive = false` (`BoardPreview.kt:86`) and
+  overrides its caller's size with `catalog_preview_size` 96dp (`BoardPreview.kt:79`) — which is
+  why the `onboarding_illustration_size` 160dp token the overlay passes at
+  `OnboardingOverlay.kt:144` has never had any effect on screen.
+
+- **D-01b:** Steps are **T1 one jump → T2 the other axis → T3 clear it**, in that order, each with
+  exactly one lesson. `showHints` is forced **on** inside the tutorial regardless of the persisted
+  setting, so legal destinations are always visible. — One lesson per step is what makes a step
+  completable without reading; forcing the dots on removes the only way a step could become a
+  guessing game, which rules/puzzle-design.md forbids ("all needed information visible").
+
+- **D-01c:** **A wrong tap is never a failure.** There is no error state, no red, no modal, no
+  retry count, no score. The three wrong-tap classes are answered by escalating *assistance*, not
+  by correction — see §4.4. — rules/puzzle-design.md: "first failure impossible before puzzle 5".
+  The tutorial is puzzle 0; it must not be losable.
+
+- **D-01d:** **Skip is available on every step** as a labelled text action, and exits immediately.
+  System back does exactly what Skip does. Both persist `markSeen()`. — A tutorial the player
+  cannot leave is worse than no tutorial. Routing back to the same answer as Skip follows the
+  precedent already set for `ProfileSwapDialog`, whose back press is documented as one of three
+  spellings of a single answer (`HomeScreen.kt:108-111`). The alternative — back exits without
+  marking seen — re-forces the tutorial on the next launch for a player who deliberately left,
+  which is the worse of the two failures.
+
+- **D-01e:** There is **no cross-process resume.** `markSeen()` is written on completion or on an
+  explicit Skip/back only; a process death mid-tutorial leaves the flag false, so the tutorial
+  offers itself again from T1. Within a session, rotation keeps the current step. — Three micro-
+  steps are under a minute of play; a persisted step cursor would cost a DataStore key, a
+  migration and a test matrix to save a player fifteen seconds.
+
+- **D-01f:** The tutorial is a **screen, not a dialog over another screen**. It owns the full
+  viewport, its own state holder and its own back handling. — Screen inventory is this role's
+  call. It now has multi-step state, a live board and two entry points; hosting that inside
+  `HomeScreen`'s composition (as `OnboardingOverlay.kt` is hosted at `HomeScreen.kt:174-176`)
+  would put a playable board inside the screen whose own job is mode selection. **The hosting
+  mechanism — a `@Serializable` nav destination versus a full-screen composable switched above
+  the `NavHost` — is the tech-lead's call, not mine**; §4.1 specifies what the player sees either
+  way, and §8 lists the one sequencing invariant the mechanism must preserve.
+
+### The info button (NAV-01, D-15 superseded)
+
+- **D-02:** **Delete the Home top bar's How-to-play `IconButton`** — `HomeScreen.kt:348-354`, the
+  `Icons.Rounded.Info` action whose `contentDescription` is `R.string.how_to_play`
+  (`strings.xml:62`). Its `onShowHowToPlay` parameter (`HomeScreen.kt:129`, passed to `HomeTopBar`
+  at `:151`, wired at `HomeRoute.kt:48`) leaves `HomeScreen` entirely. — The founder asked for it,
+  and it is also the weaker of the two affordances it competes with: it is icon-only, it sits in
+  the hardest-to-reach corner of the screen, and it reuses `Icons.Rounded.Info` — the *same glyph*
+  the in-game show-moves toggle uses for a completely unrelated meaning
+  (`HintToggleControl.kt:5`, `:42`). This deletion also removes half of that collision.
+
+- **D-02a:** The replay path is a **Settings › General row, "How to play"**, and that is the only
+  permanent entry. First-run auto-start is **unchanged**. — Both routes are required and they
+  answer different needs. First-run auto-start (today: `onboardingSeen == false` →
+  `onboardingVisible = true`, `HomeViewModel.kt:99-103`) is how a new player meets the game and
+  costs a returning player nothing, because `OnboardingRepository.onboardingSeen`
+  (`OnboardingRepository.kt:48-51`) is already persisted and fails open to `false` — so a
+  returning player is never re-taught and a player whose store read fails is re-offered the
+  tutorial rather than silently denied it. The Settings row is where a casual-game player looks
+  for "how does this work again", it is a labelled row rather than a bare icon, and
+  `SettingsLinkRow` (`SettingsScreen.kt:599`) already supports exactly this shape. Home keeps
+  zero tutorial chrome, which is what the founder asked for.
+
+- **D-02b:** `HomeViewModel.onShowHowToPlay()` (`HomeViewModel.kt:227-229`) is **retired** as a
+  Home concern. `onDismissOnboarding()`/`markSeen()` (`:232-235`) survive as the tutorial's own
+  completion path. — Once Home has no affordance, a Home handler that forces `onboardingVisible`
+  true has no caller; leaving it would leave a second writer of the flag that
+  `HomeScreen.kt:192-198`'s guard exists to defend against, with nothing writing it.
+
+### Home (NAV-01, PERS-03, CHAL-05, proposed UX-02)
+
+- **D-03:** Home is composed of **five stacked bands** — hero, progress ribbon, Continue chips,
+  mode tiles, footer — inside one scrolling column capped at `content_max_width`. The two mode
+  tiles remain the primary actions and are **bottom-weighted into the thumb zone**. — The founder
+  is right that two tiles on an empty field reads as unfinished, and the fix is not more buttons:
+  it is giving the player something about *their own* game to look at. Everything added is either
+  the game's own board art or a number the player earned.
+
+- **D-03a:** The Home `TopAppBar` (`HomeScreen.kt:340-363`) is **deleted**; its gradient title
+  moves into the hero band and the Settings gear becomes a clay circular chip at the hero's
+  top-end. — With the info button gone (D-02) the bar holds one icon and a title, which is chrome
+  around a single control. The gradient Fredoka title is the brand moment and deserves display
+  scale, not `titleLarge` in a 56dp bar.
+
+- **D-03b:** The hero carries **decorative board art**, not a logo or an illustration. — The
+  studio ships no logo, and rules/ip-policy.md means any sourced art needs a licence row. The
+  game's own candy pegs and dimples are already an `ImageVector`-free, hex-free, licence-free
+  visual language (`BoardCanvas.kt:480-522`); using them costs nothing and cannot be an IP
+  problem. Art direction between two equally valid treatments is queued as **Q-901** (§15) with a
+  default chosen so nothing blocks.
+
+- **D-03c:** The progress ribbon shows **three pills: Stars · Boards · Level**, and each pill
+  renders a neutral em-dash placeholder when its value is not yet known. — Three is the most the
+  ribbon can hold at 200% font scale without wrapping into a second row, and the placeholder rule
+  is what makes the band shippable before its data lands: the developer can build the ribbon in
+  one plan and fill the two derived numbers in another without a half-drawn screen in between.
+
+- **D-03d:** **No number on Home requires a new table, column or DataStore key.** Stars and Boards
+  are folded client-side from `ProgressRepository.observeResults(mode)`
+  (`ProgressRepository.kt:83`), which already streams `stars`, `bestTimeMs` and `bestScore` per
+  level (`ProgressRepository.kt:284-291`); `HomeViewModel` already injects `ProgressRepository`
+  (`HomeViewModel.kt:86`) and simply never reads it for stars. Level is
+  `HomeUiState.challengeCurrentLevel`, which exists today (`HomeUiState.kt:72`). — This was
+  checked against the data layer before the band was designed, per the brief. The
+  `suspend fun aggregate()` path (`ProgressRepository.kt:115`) is deliberately **not** used: it is
+  a one-shot, not a flow, so a Home band built on it would go stale the moment the player
+  finished a level, and its `totalStars` is a deliberate both-modes sum with no `WHERE`
+  (`LevelResultDao.kt:66`) that cannot answer "Classic boards cleared". §7 lists the exact
+  requirement.
+
+- **D-03e:** Home **does not** show Play Games sign-in state. — The flow exists
+  (`GamesService.session`, `GamesService.kt:69`; `GamesSignInState.SignedIn.displayName`,
+  `GamesSignInState.kt:63-66`) but only Settings collects it
+  (`SettingsViewModel.kt:110-111`), and Settings already renders it well
+  (`SettingsScreen.kt:289-330`). Putting an account chip on Home would duplicate a surface, add a
+  third `Unknown`-state flicker to the start destination, and spend the player's first screen on
+  something that is not playing the game. It would also put a Play Games SDK-backed flow on the
+  cold-start critical path (D-03g), which is the second and harder reason.
+
+- **D-03f:** **Three existing readouts are device-test oracles and are load-bearing, not
+  decoration.** The Challenge ladder position, the Classic per-board stars and the Continue/resume
+  affordance must remain visible, un-collapsed and un-deferred. Nothing in this refresh may hide
+  any of them behind a tap, a expander, a scroll, or a later screen. — This is a release-manager
+  ruling, not a preference: the cloud-save device checklist (`11-HUMAN-UAT.md`, tests 10/11/13)
+  reads its pass/fail off exactly these three, so hiding one does not merely degrade the screen —
+  it makes cloud save **unverifiable on a device**. §4.2.1 states where each one lives and what
+  "survives" means for it, because two of the three are easy to break by accident and one of them
+  does not live on Home at all.
+
+- **D-03g:** **Home's first frame must add no blocking read, no image decode and no asset load.**
+  Every visual this refresh adds to Home is vector or `Canvas` geometry drawn from state the app
+  already holds; the one genuinely new data read (the progress ribbon, §7 R-1/R-2) paints
+  placeholders immediately and fills on its first emission, so it can never hold up first paint. —
+  PLAT-08 criterion C1 is a measured pass/fail at **≤ 950 ms cold start**, and a fuller Home is
+  first-frame work by definition: every band added here is on that critical path. A "fancier"
+  Home that misses C1 has failed, so the budget is designed in rather than discovered at the gate.
+  §6.5 states the budget, the risk and the ordered degradation path if measurement shows a
+  regression.
+
+### In-game controls (ASST-01, ASST-02, CLAS-02, SCOR-02, proposed UX-03)
+
+- **D-04:** The five controls are kept, **re-glyphed, re-grouped and re-homed**: read-only status
+  (back, title, timer) stays at the top in a chrome-free strip; the four *actions* (Undo, Hint,
+  Show-moves, Restart) move into a clay dock at the bottom, in the thumb zone. — Five 48dp actions
+  plus a timer label plus a title currently share one `TopAppBar` actions row
+  (`GameScreen.kt:519-525`). Four targets at `top_bar_touch_target` 48dp (`dimens.xml:110`) is
+  192dp before the timer, on a 360dp-wide phone — the title is already squeezed at default font
+  scale and collides at large scale. Splitting by *kind* fixes the crowding and the reach problem
+  at once: rules/compose.md requires primary actions in the lower thumb zone of a 6.7-inch phone,
+  and Undo — the most-used control in peg solitaire, since backtracking *is* the game — is
+  currently in the single worst-reachable corner. The strip that remains carries exactly one icon,
+  redrawn in Candy Clay.
+
+- **D-04a:** **Hint stops using `Icons.Rounded.Search`.** A new in-house `HintIcon` (a lightbulb)
+  replaces it. — A magnifying glass reads as "search" or "zoom", not "show me a winning move"
+  (`HintControl.kt:5`, `:69`). The core icon set has no lightbulb and the extended set is banned,
+  so the glyph is authored locally exactly as `UndoIcon.kt` and `ModeGlyphs.kt` already are.
+
+- **D-04b:** **Show-moves stops using `Icons.Rounded.Info` and stops conveying its state by tint
+  alone.** A new in-house `ShowMovesIcon` (a peg with two trailing destination dots — literally
+  what the feature draws) replaces the glyph, and the ON state adds a filled `primaryContainer`
+  pill behind it. — Two defects in one control. The glyph collides with the Home info button's
+  meaning (`HintToggleControl.kt:5` vs `HomeScreen.kt:23`), and the on/off state is carried by
+  `primary` vs `onSurfaceVariant` tint and nothing else (`HintToggleControl.kt:45-51`), which
+  breaks rules/compose.md's "never colour alone (shape, pattern, label)". The content description
+  already switches correctly (`show_moves_on`/`show_moves_off`, `strings.xml:90-91`) — the defect
+  is purely visual, and a filled-vs-unfilled pill fixes it without new copy.
+
+- **D-04c:** Undo and Hint are **visually louder than** Show-moves and Restart, by fill and not by
+  size. All four targets are the same `game_action_button_size`. — Hierarchy has to be legible,
+  but four different button sizes in one row reads as a mistake, and unequal targets invite the
+  smaller ones to drop under 48dp at some font scale. Fill is the safer channel.
+
+- **D-04d:** The Hint "thinking" state keeps its current behaviour exactly — spinner in place of
+  the glyph, `enabled = false`, `hint_thinking` description (`HintControl.kt:47-62`). Undo keeps
+  `enabled = canUndo`. — These are correct today, including the TalkBack "disabled" reporting that
+  `enabled = false` gives for free; the redesign is a reskin of them, not a rewrite.
+
+### The toolbar (D-05 — and its reconciliation with D-04)
+
+- **D-05:** **The "toolbar" and the "icons on the top" are one surface, not two.** The code is
+  unambiguous: `GameScreen.kt:171-187` gives its `Scaffold` a single `topBar`, which is
+  `GameTopBar` (`:490-527`), which is a single M3 `TopAppBar` (`:502`) whose three slots are the
+  back arrow (`:503-517`), the title (`:518`) and the five actions (`:519-525`). There is no
+  second control row anywhere on the screen. So "remove toolbar" and "redesign the icons on the
+  top" cannot be satisfied independently, and this spec treats them as **one change with one
+  replacement**.
+
+- **D-05a:** **What goes:** the `TopAppBar` composable itself, the `Scaffold`'s `topBar` slot, the
+  bar's surface/elevation/inset chrome, and `GameTopBar` as a function. **What stays:** all five
+  controls, the context-aware title logic (`GameTopBarTitle`, `:537-552`), the timer label
+  (`ElapsedTimeLabel`, `:563-574`), and every handler signature `GameScreen` already takes. —
+  Nothing the player can *use* is being removed. What is being removed is the Material chrome
+  wrapped around it, which is the only reading of "remove toolbar" that does not also delete
+  functionality the game needs.
+
+- **D-05b:** **Back-navigation survives as a visible, labelled control** — a 48dp clay circular
+  back chip at the status strip's leading edge, keeping
+  `Icons.AutoMirrored.Rounded.ArrowBack` and the `R.string.navigate_back` content description
+  unchanged. — This is non-negotiable and needs stating plainly, because the top bar is currently
+  the *only* visible way out of a game: `onNavigateBack` is a bare `navController.popBackStack()`
+  (`AppNavHost.kt:131`) and there is no `BackHandler` on the gameplay destination — the only one
+  in the codebase is `AdQuiescenceScrim.kt:61`. System back therefore still works after the bar
+  is deleted, but system back alone is not an acceptable exit: it is invisible, and on
+  gesture-navigation devices it is a discoverability failure for exactly the casual player this
+  game is for. Keeping the same glyph and the same content description also keeps
+  `ButtonSoundTest.kt:226-244` — which finds this control by `R.string.navigate_back` — passing
+  unchanged.
+
+- **D-05c:** The status strip is **not** an M3 `TopAppBar`, `CenterAlignedTopAppBar`, or any
+  `*TopAppBar`, and the action dock is **not** an M3 `BottomAppBar` or `NavigationBar`. Both are
+  plain `Row`s inside the screen's own layout. — Re-adding a Material bar under a different name
+  would re-introduce the chrome the founder asked to remove, and `NavigationBar` in particular
+  carries destination semantics that would announce four in-game actions to TalkBack as
+  navigation targets, which they are not.
+
+---
+
+## 4. Interaction contract — new surfaces (Phase 15)
+
+### 4.1 Tutorial — `TutorialScreen.kt` (ONB-01, D-01/D-01a–f, D-02a)
+
+**Purpose.** Teach the orthogonal jump and the goal by having the player do both, once, in under
+a minute, without reading.
+
+**Layout**, top → bottom, full viewport, `background` with the Home blobs reused:
+
+| Band | Content | Notes |
+|------|---------|-------|
+| Header | Step pips (leading) · `Skip` text button (trailing) | Pips are the only progress signal; no title bar |
+| Board | The live `BoardCanvas`, `interactive = true`, on a `surfaceContainerHigh` clay slab (`shapes.extraLarge`, `clayShadow(elevation_card)`), square, `tutorial_board_size` | The one interactive element |
+| Caption | One line, `bodyMedium`, `onSurfaceVariant`, centred, reserved at `tutorial_caption_min_height` | Reserved height so a 1↔2-line swap never reflows the board |
+| Footer | Empty until T3 completes, then the completion CTA | Keeps the board optically centred during play |
+
+**Step pips.** Three pips, `tutorial_step_pip_size`. Done = solid `GoldGradient` disc; current =
+outlined disc with a `primary` ring; upcoming = outlined disc, `outlineVariant`. Filled-vs-outlined
+carries the state, so colour is not the only channel. The row is one semantics node via
+`clearAndSetSemantics` announcing `tutorial_step_progress` ("Step 2 of 3") — the same idiom
+`EarnedStarPips` already uses (`BoardPreview.kt:100-104`).
+
+**The three steps.**
+
+| Step | Teaches | Footprint (default — see below) | Completes when |
+|------|---------|--------------------------------|----------------|
+| **T1** | Tap a peg, tap a hole two cells away; the middle peg goes | 1×3 strip: pegs at (0,0),(0,1), hole at (0,2) — exactly one legal move | the jump lands |
+| **T2** | Jumps work on the other axis too; diagonals are never offered | 5-cell plus: in-play (0,1),(1,0),(1,1),(1,2),(2,1); pegs at (0,1),(1,1),(1,0); holes at (2,1),(1,2) — two legal moves, both correct | **any** legal jump lands |
+| **T3** | The goal is to leave one peg, and Undo exists | a small footprint whose every legal line reaches one peg | one peg remains |
+
+> **Board content is the game-designer's call, not mine.** T1 is safe to fix here because it is the
+> footprint already in the codebase (`OnboardingOverlay.kt:156-165`) and is trivially correct.
+> **T2 and T3's footprints are a game-designer input requirement** (§7, R-4): they must be verified
+> one-peg-reachable-from-every-legal-line by the Solver so D-01c holds structurally rather than by
+> hope. The footprints above are the *defaults* so nothing blocks; a game-designer ruling replaces
+> them without touching anything else in this section.
+
+**Advance.** On completion the caption swaps, the pip advances, and the next footprint installs
+after one beat (`TutorialAnim.STEP_ADVANCE_DELAY_MS`) so the player sees their own jump land
+before the board changes. No button, no tap-to-continue.
+
+**Completion.** After T3: the caption becomes `tutorial_done_caption`, a single gold star pops in
+reusing the Results star vocabulary (`ClayAnim.STAR_POP_MS`, `goldGradientFill()`), and the footer
+raises one full-width `CtaGradient` button labelled with the **existing** `onboarding_got_it`
+("Got it"). Tapping it persists `markSeen()` and leaves. `SoundCue.Win` is **not** played — a
+tutorial is not a victory, and D-14's two-beat celebration belongs to a real solve.
+
+**Exit.** `Skip` (every step) and system back both persist `markSeen()` and leave, identically
+(D-01d). Leaving returns the player wherever they came from: Home on first run, Settings on replay.
+
+### 4.2 Home — `HomeScreen.kt` (NAV-01, PERS-03, CHAL-05, D-03/D-03a–e)
+
+Single `verticalScroll` column, `widthIn(max = content_max_width)`, five bands:
+
+**1 — Hero.** `home_hero_min_height`. The app title in `displaySmall` (Fredoka) filled with
+`ctaGradientBrush()`, and decorative board art at `home_hero_art_size`. The Settings gear is a
+48dp clay circular chip at the band's top-end, keeping `Icons.Rounded.Settings` and the
+`settings_action` content description. The art is `contentDescription = null` and is fully static
+when animations are off. **No info button (D-02).**
+
+**2 — Progress ribbon.** One `Row`, three equal-weight clay pills, `home_stat_pill_min_height`,
+`spacing_sm` between them, each a `surfaceContainerHigh` `shapes.medium` surface with
+`clayShadow(elevation_card)`:
+
+| Pill | Glyph | Value | Source |
+|------|-------|-------|--------|
+| Stars | `Icons.Filled.Star` + `goldGradientFill()` | total stars earned | folded from `observeResults` (§7 R-1) |
+| Boards | existing `rememberClassicGlyph()` | Classic boards cleared `/ 5` | folded from `observeResults` (§7 R-2) |
+| Level | existing `rememberChallengeGlyph()` | the Challenge ladder position | `challengeCurrentLevel` — **exists today** |
+
+Each pill is one merged semantics node reading label-then-value ("Stars, 7"), never a bare number.
+A pill with no value yet renders `stat_value_unknown` ("—") and announces
+`stat_value_unknown_desc` ("not yet available"). The pills are **not** tappable — they are status,
+and making them navigate would put three more competing targets on the screen the founder already
+finds busy.
+
+> The Level pill shows `challengeCurrentLevel`, which is the **next** level to play and is
+> off-by-one from the highest level banked, by design (`ProgressRepository.kt:107-113`,
+> `ChallengeProgress.kt:64-74`). The copy is therefore "Level N" — the level the Challenge tile
+> will enter — and never "highest" or "best". Do not "reconcile" the two numbers.
+
+**3 — Continue chips.** Behaviour, ordering and data unchanged (`HomeScreen.kt:293-318`). One
+visual addition: the Classic chip's trailing accent becomes a `home_resume_thumb_size` board
+thumbnail of the saved board instead of a generic play arrow, since
+`classicResumeLevelId` already identifies the board and the catalogue is static — no new data.
+The Challenge chip keeps the play arrow (a procedural level has no memorable footprint).
+
+**4 — Mode tiles.** `ClassicTile` and `ChallengeTile` keep their containers, glyph badges, titles,
+supporting slots, entrance stagger, squish, `ButtonForward` cue and every callback
+(`HomeScreen.kt:498-560`). Each gains trailing board art at `home_tile_art_size` — a real footprint
+for Classic, the bolt for Challenge. Classic's supporting line stays `classic_tile_supporting`
+("5 boards").
+
+**5 — Footer.** Empty. Reserved, specified as empty so a later phase does not read the gap as an
+invitation.
+
+**Thumb zone.** A weighted spacer sits between bands 2 and 3, so on a tall phone the slack goes
+*above* the Continue chips and the mode tiles stay in the lower half. When content exceeds the
+viewport the column scrolls instead of compressing. Home does not scroll today
+(`HomeScreen.kt:285-292` is a plain `Column`) and at 200% font scale with two Continue chips
+present it already overflows — adding `verticalScroll` is part of this change, not optional
+polish.
+
+**First-paint rule (D-03f).** Scrolling exists for the overflow case, not as a place to put
+things. At **default font scale on a 360×640dp phone with both Continue chips present**, bands 3
+and 4 — the Continue chips and both mode tiles — must be **fully within the first viewport with no
+scrolling**. The hero is the band that yields: `home_hero_min_height` is a *minimum*, and the hero
+must be allowed to compress toward it (art first, then title scale) before anything below it
+leaves the fold. A Continue chip that is only reachable by scrolling is a broken oracle, not a
+layout compromise.
+
+#### 4.2.1 Load-bearing readouts — do not hide these (D-03f)
+
+Three readouts are the pass/fail oracles of the cloud-save device checklist
+(`11-HUMAN-UAT.md`, tests 10/11/13). They are listed here so the developer and QA both treat them
+as contract rather than decoration. **None may be moved behind a tap, an expander, a scroll
+position, an animation, or a later screen.**
+
+| # | Oracle | Where it lives after this refresh | What "survives" means |
+|---|--------|-----------------------------------|------------------------|
+| 1 | **Challenge ladder position** | The Challenge tile's level chip (`challenge_tile_continue`, "Continue — Level N", `HomeScreen.kt:544-558`) — unchanged — **and** additionally the ribbon's Level pill | The tile chip is the oracle and stays exactly as it is. The Level pill is **additive**; if the two ever disagree the tile is right. Both read the same `challengeCurrentLevel`, so they cannot diverge by construction. |
+| 2 | **Classic per-board stars** | The **Classic catalog**, as gold pips under each board preview (`BoardPreview.kt:100-123`, `ClassicBoardUiState.earnedStars`) — this refresh does not touch that screen | Per-board stars have never been on Home and are not being moved there. What must survive is the **path**: the Classic tile remains a single tap from Home to the catalog, and the catalog's pips are untouched. The ribbon's **Stars pill is an aggregate total and is explicitly NOT a replacement for the per-board pips** — do not "simplify" the catalog by pointing at it. |
+| 3 | **Continue / resume affordance** | Home band 3, up to two gold chips — behaviour, data and ordering unchanged (`HomeScreen.kt:293-318`) | Visible on first paint without scrolling (first-paint rule above). The added board thumbnail is cosmetic; the chip's presence, its title, its supporting line and its resume target are the oracle. |
+
+**Considered and rejected**, so the trade-off is visible rather than lost:
+
+- *Collapsing the Continue chips into a single "Continue" button that asks which mode.* Rejected:
+  it costs a tap, it hides which modes actually have a saved game, and it destroys oracle 3 — the
+  device test needs to see *that* a Classic resume and a Challenge resume exist independently,
+  which a merged button cannot show.
+- *Moving the Challenge level from the tile chip into the ribbon pill only.* Rejected under D-03f:
+  the tile chip is the oracle, so the pill is additive and the chip stays.
+- *Putting per-board star pips on the Home Classic tile.* Rejected: it needs the same per-board
+  fold as the catalog on the cold-start path (D-03g) for information the catalog already shows
+  one tap away, and it would create a second place for per-board stars to be wrong.
+- *A "recent activity" or "last played" band.* Rejected: it is the Continue chip with worse copy,
+  and it needs `completedAt` ordering — a new read on the cold-start path for no new information.
+
+### 4.3 Gameplay status strip — `GameStatusStrip.kt` (CLAS-02, SCOR-02, D-04/D-05a/D-05b)
+
+Replaces `GameTopBar` (`GameScreen.kt:490-527`). A plain `Row`, `game_status_strip_height`,
+transparent, `statusBarsPadding()`, `spacing_md` horizontal padding, `CenterVertically`:
+
+| Slot | Content |
+|------|---------|
+| Leading | Back: `game_status_back_size` clay circular chip, `surfaceContainerHigh`, `clayShadow(elevation_pressed)`, `claySquish()`, `Icons.AutoMirrored.Rounded.ArrowBack` at `top_bar_icon_size`, `contentDescription = navigate_back`, **silent** (D-09) |
+| Centre | The context title — `GameTopBarTitle` logic verbatim: `challenge_level_indicator` + its `_desc` for Challenge, `app_name` for Classic (`GameScreen.kt:537-552`). `titleMedium`, `onSurface`, `maxLines = 1`, `weight(1f)`, `semantics { heading() }` |
+| Trailing | Timer pill: `game_timer_pill_height`, `surfaceContainerHigh`, `shapes.small`, `GameTimerFormat.format()` in `titleMedium.withTabularFigures()`, `contentDescription = elapsed_time` |
+
+> `elapsed_time` must stay the timer's content description: `GameFlowTest.kt:129` locates it by
+> that string.
+
+No actions live here. The strip is status only, which is what lets it be this quiet.
+
+### 4.4 Gameplay action dock — `GameActionDock.kt` (ASST-01, ASST-02, D-04/D-04a–d)
+
+A single clay slab below the board, in the thumb zone: `surfaceContainerHigh`, `shapes.large`,
+`clayShadow(elevation_card)`, `game_action_dock_height`, `navigationBarsPadding()`, holding four
+targets in a `SpaceEvenly` `Row`, each `game_action_button_size` (56dp) with a minimum
+`spacing_sm` gap:
+
+| Order | Control | Glyph | Resting | State channel | Cue |
+|-------|---------|-------|---------|---------------|-----|
+| 1 | **Undo** | local `UndoIcon` (unchanged) | `primaryContainer` fill, `onPrimaryContainer` glyph | `enabled = canUndo`; disabled → flat `surfaceVariant` fill + `onSurfaceVariant` glyph | `SoundCue.Undo` (existing, ASST-02) |
+| 2 | **Hint** | new local `HintIcon` (lightbulb) | `primaryContainer` fill, `onPrimaryContainer` glyph | `solverThinking` → spinner in place of glyph + `enabled = false` + `hint_thinking` | `SoundCue.Hint` (existing) |
+| 3 | **Show moves** | new local `ShowMovesIcon` (peg + two dots) | transparent, `outline` border, `onSurfaceVariant` glyph | **ON → filled `primaryContainer` pill + `primary` glyph; OFF → outlined + `onSurfaceVariant`.** Fill, not tint alone (D-04b) | **silent** (D-09: toggles stay quiet) |
+| 4 | **Restart** | `Icons.Rounded.Refresh` (unchanged) | transparent, `outline` border, `onSurfaceVariant` glyph | — | **silent** (D-09) |
+
+Every glyph renders at `game_action_glyph_size`. Every content description is the existing string —
+`undo_action`, `hint_action`/`hint_thinking`, `show_moves_on`/`show_moves_off`, `restart_board`
+(`strings.xml:84-91`, `:14`). **No new copy for the dock.**
+
+> `show_moves_on` must stay the toggle's ON content description: `ButtonSoundTest.kt:226-244`
+> locates it by that string.
+
+**The dock never shows an allowance count.** No badge, no "×3", no ad glyph, no allowance-driven
+disable. That negative contract is inherited verbatim from D-05 / `GameUiState.kt:131-135` and this
+refresh does not relax it.
+
+**Wrong-tap handling on the board — tutorial only (D-01c).** Three classes, escalating assistance,
+never correction:
+
+| Class | Answer |
+|-------|--------|
+| Tapped a peg with no legal jump | The peg selects and draws zero destination dots. After `TutorialAnim.NUDGE_DELAY_MS` with no progress, the coachable peg's ring re-pulses. No sound beyond the existing `Select`. |
+| Tapped an illegal destination while a peg is selected | The existing quiet `InvalidTap` cue (`rejectedTapTick`). The legal dots re-pop. Nothing is lost. |
+| Three consecutive non-progressing taps in a step | The coach escalates once: the source ring pulses **and** the destination dot brightens **and** the caption swaps to the step's explicit one-liner. It never escalates past this, and it never blocks. |
+
+During normal gameplay (outside the tutorial) wrong-tap handling is **unchanged** — the existing
+`rejectedTapTick` → `InvalidTap` path (`GameScreen.kt:393-398`).
+
+### 4.5 Settings — one row added (D-02a)
+
+A `SettingsLinkRow` in `GeneralSection` (`SettingsScreen.kt:193-218`), **above** the Sound toggle:
+label `settings_how_to_play_label` ("How to play"), supporting
+`settings_how_to_play_supporting` ("Replay the tutorial"), `onClick` → the tutorial,
+`SoundCue.ButtonForward` (D-09: a navigational CTA). Full-row target, ≥ `settings_row_min_height`
+72dp.
+
+Two mechanical notes for the developer: the section's entrance-order constants are positional, so
+inserting a row means renumbering the cascade; and `settings_sound_supporting` is stale copy
+("Saved for the upcoming sound effects", `strings.xml:143`) — sound shipped in Phase 7, and this
+refresh should fix it to describe what the toggle now does.
+
+---
+
+## 5. Deliberate non-UI (negative contract)
+
+Things a reader might expect from this spec and will not find, each on purpose:
+
+- **No second control surface on the gameplay screen.** One status strip, one action dock, nothing
+  else. The rescue banner, the ad-offer dialog, the restart confirm and the snackbar are the
+  screen's only other surfaces and all four are unchanged.
+- **No M3 `TopAppBar`, `BottomAppBar` or `NavigationBar` anywhere in this refresh** (D-05c).
+- **No confirm-quit sheet on gameplay back.** Progress is already snapshotted for resume
+  (PERS-03), so leaving loses nothing, and there is no `BackHandler` on gameplay to hang one from.
+- **No allowance counters, badges or ad affordances** on the dock (§4.4).
+- **No Play Games chip on Home** (D-03e).
+- **No tappable progress pills** (§4.2).
+- **No loading state, skeleton or spinner on Home.** The ribbon paints placeholders and fills;
+  first paint never waits (D-03g, §6.5).
+- **No per-board star pips on Home.** They stay on the Classic catalog, untouched (§4.2.1).
+- **Nothing on Home collapsed behind a tap or an expander.** All three device-test oracles are
+  visible on first paint (D-03f).
+- **No tutorial step persisted across process death** (D-01e).
+- **No new audio asset.** Every cue this refresh needs already exists in `SoundCue` (§9).
+- **No third-party art, font or icon asset** (§9).
+- **No change to any rule, footprint, star band, score formula or generator.** Board *content* for
+  T2/T3 is a game-designer input (§7 R-4), not a UX decision.
+
+---
+
+## 6. Design tokens
+
+### 6.1 New `dimens.xml` tokens
+
+Following the file's own one-token-per-owner convention (`dimens.xml:113-132`), each new token is
+declared even where an existing token shares its value. All multiples of 4.
+
+| Token | Value | Owner |
+|-------|-------|-------|
+| `tutorial_board_size` | 280dp | The tutorial's interactive board slab |
+| `tutorial_caption_min_height` | 48dp | Reserved caption height (1↔2 line swap must not reflow the board) |
+| `tutorial_step_pip_size` | 12dp | One progress pip |
+| `game_status_strip_height` | 56dp | The gameplay status strip |
+| `game_status_back_size` | 48dp | The status strip's back chip |
+| `game_timer_pill_height` | 32dp | The status strip's timer pill |
+| `game_action_dock_height` | 72dp | The gameplay action dock slab |
+| `game_action_button_size` | 56dp | One dock action target |
+| `game_action_glyph_size` | 28dp | One dock action glyph |
+| `home_hero_min_height` | 160dp | The Home hero band |
+| `home_hero_art_size` | 120dp | The Home hero's decorative board art |
+| `home_stat_pill_min_height` | 64dp | One progress-ribbon pill |
+| `home_stat_pill_glyph_size` | 20dp | One progress-ribbon pill glyph |
+| `home_resume_thumb_size` | 40dp | The Classic Continue chip's board thumbnail |
+| `home_tile_art_size` | 56dp | A mode tile's trailing board art |
+
+**Reused unchanged:** `spacing_xs/sm/md/lg/xl`, `content_max_width`, `mode_tile_min_height`,
+`resume_tile_min_height`, `settings_row_min_height`, `settings_row_icon_size`, `top_bar_icon_size`,
+`elevation_card`, `elevation_pressed`, `elevation_dialog`, `entrance_slide_distance`,
+`mode_glyph_size`, `blob_size`, `blob_drift_range`, `peg_selected_ring_width`, all five
+`shape_corner_*`.
+
+**Retired:** `top_bar_touch_target` (48dp) and `onboarding_illustration_size` (160dp) lose their
+last callers. `onboarding_illustration_size` never took effect in the first place
+(`BoardPreview.kt:79` overrides it) — deleting it removes a token that has been lying about the
+layout since Phase 2.
+
+### 6.2 Colour
+
+**No new colour, no new gradient, no hex.** Every surface here maps to a role already in
+`docs/ui/DESIGN-SYSTEM.md`:
+
+| Surface | Light / Dark role |
+|---------|-------------------|
+| Status strip, action dock, stat pill, tutorial slab | `surfaceContainerHigh` on `background` |
+| Dock loud actions (Undo, Hint) | `primaryContainer` / `onPrimaryContainer` |
+| Dock quiet actions (Show-moves OFF, Restart) | transparent + `outline` border, `onSurfaceVariant` glyph |
+| Show-moves ON | `primaryContainer` fill + `primary` glyph |
+| Disabled Undo | `surfaceVariant` fill + `onSurfaceVariant` glyph |
+| Hero title, tutorial CTA | `ctaGradientBrush()` with `onPrimary` label |
+| Stars pill glyph, done pips, completion star | `goldGradientFill()` — `tertiary` stays reserved for hint/reward semantics |
+| Tutorial coach ring | `primary` (the existing selection-ring role) |
+| Captions, supporting lines | `onSurfaceVariant` |
+
+### 6.3 Typography
+
+M3 roles only, per the Fredoka/Nunito mapping in the design system. Home title `displaySmall`;
+gameplay title and timer `titleMedium`; stat-pill values `titleMedium`; stat-pill labels
+`labelMedium`; tutorial caption `bodyMedium`; all button labels `labelLarge`. Timer and every
+numeric stat value use `withTabularFigures()` so digits never shift width.
+
+### 6.4 Motion
+
+New constants go in a scoped `TutorialAnim` object (unitless ms/floats, so not `dimens.xml`):
+`STEP_ADVANCE_DELAY_MS`, `NUDGE_DELAY_MS`, `COACH_PULSE_MS`. Everything else reuses `ClayAnim` and
+`GameAnim` unchanged. See §10.
+
+### 6.5 Cold-start budget for Home (D-03g)
+
+**PLAT-08 C1 is a measured pass/fail at ≤ 950 ms cold start, and Home is the start destination**
+— so everything added to Home in §4.2 is on the critical path. The budget below is part of the
+design, not a review note.
+
+**Hard rules for Home's first frame.** No blocking read. No image decode. No asset load. No
+bitmap. No new SDK call. Every visual this refresh adds is one of:
+
+| Added element | First-frame cost | Verdict |
+|---------------|------------------|---------|
+| Hero title (gradient text) | Brush + existing `displaySmall` role | Negligible — replaces a `TopAppBar` title that is itself being deleted |
+| Hero board art | One `BoardCanvas` draw of a static footprint — vector geometry, no decode | Low |
+| Ribbon pills (3) | Three `Surface`s + existing `ImageVector` glyphs | Negligible |
+| Ribbon **values** | **A new Room-backed `Flow` collector** (§7 R-1/R-2) | **The one real risk — see below** |
+| Continue chip thumbnail | One `BoardCanvas` draw, only when a Classic resume exists | Low, and conditional |
+| Mode tile art (2) | Two `BoardCanvas` draws | Low |
+| `verticalScroll` on the column | Scroll state allocation | Negligible |
+
+Net: Home's first frame gains up to **four `BoardCanvas` draws** (hero, thumbnail, two tiles) of
+static geometry, and **one new Room query** behind a Flow.
+
+**The one real risk, and its mitigation.** R-1/R-2 add a `LevelResult` read to app start.
+**D-03c's placeholder rule is the mitigation, and it is mandatory, not cosmetic:** the ribbon
+paints `stat_value_unknown` ("—") on the first frame and fills on the collector's first emission.
+The developer must **not** gate first paint on the query, must not `runBlocking` it, and must not
+introduce a Home-wide loading state to accommodate it — a spinner on the start destination would
+trade a measured gate for a worse one. The pills are sized from their labels, not their values, so
+the fill causes no reflow.
+
+**Ordered degradation path if measurement shows a C1 regression.** Drop in this order, stopping as
+soon as C1 passes; each step is a visual loss only and costs no oracle (§4.2.1) and no function:
+
+1. **Mode tile art** (2 draws) — the tiles already have glyph badges and read fine without it.
+2. **Continue chip thumbnail** (1 conditional draw) — reverts to the existing play-arrow accent.
+3. **Hero board art** (1 draw) — reverts to Q-901 option 3, the gradient title alone.
+4. **Ribbon values** — the pills stay and show "—" permanently until a later phase moves the fold
+   off the start path. Do **not** delete the ribbon; the Level pill costs nothing (`HomeUiState`
+   already carries it) and the band is what answers the founder's "looks empty".
+
+**Nothing in the degradation path touches the Challenge tile chip, the Continue chips themselves,
+or the Classic catalog** — those are D-03f oracles and are not available to trade.
+
+**Handoff:** this is a design budget, not a measurement. The developer measures C1 with the fuller
+Home before the phase closes; the qa-engineer checks the number at the gate.
+
+---
+
+## 7. Data requirements (for the tech-lead and developer)
+
+Nothing here needs a schema change, a migration, a new DataStore key or a DI change.
+
+| # | Requirement | Why it is cheap |
+|---|-------------|-----------------|
+| **R-1** ⚠️ | `HomeUiState` gains `totalStars: Int?`. `HomeViewModel` folds `ProgressRepository.observeResults(mode)` over both modes and sums `LevelResult.stars`. | `observeResults` is already a `Flow` (`ProgressRepository.kt:83`) carrying `stars` (`:284-291`); `ProgressRepository` is already injected (`HomeViewModel.kt:86`). `null` until the first emission → the pill shows "—" (D-03c). **⚠️ COLD-START RISK (D-03g):** this is the only new read on the start destination. Nullable-and-placeholder is mandatory — first paint must not wait on it, and there must be no `runBlocking` and no Home-wide loading state. Measure C1 (§6.5). |
+| **R-2** ⚠️ | `HomeUiState` gains `classicBoardsCleared: Int?`. Same fold over `MODE_CLASSIC`, counting rows with `stars >= 1`. Denominator is the 5 `ClassicBoard` enum values. | Same flow, same collector — fold both pills from one collection, do not add a second. **Must not** use `aggregate().totalStars` — that sum is deliberately both-modes with no `WHERE` (`LevelResultDao.kt:66`) and cannot answer this, and it is a `suspend` one-shot that would go stale after every solve. **⚠️ Same cold-start risk as R-1.** |
+| **R-3** | `HomeScreen` loses the `onShowHowToPlay` parameter; `SettingsScreen` gains an `onShowHowToPlay` parameter; `AppNavHost` routes the tutorial from Settings and from first run. | Mechanical. `HomeRoute.kt:48` moves to the Settings route. |
+| **R-4** | **Game-designer input:** T2 and T3 board footprints, Solver-verified one-peg-reachable from every legal line, so D-01c holds structurally. | Non-blocking — §4.1's defaults ship if no ruling arrives. |
+| **R-5** | Tutorial step state lives in a state holder surviving configuration change, not in the composable. | D-01e; `SavedStateHandle` or a ViewModel, tech-lead's call. |
+
+**Invariant the hosting mechanism must preserve (D-01f).** `HomeViewModel` sequences three
+first-run surfaces — onboarding, then the Play Games opt-in prompt, then the profile-swap dialog —
+and the latter two are gated on the **persisted** `onboardingSeen` flag, not on overlay visibility
+(`HomeViewModel.kt:119-128`, `:145-160`). Moving the tutorial off Home therefore preserves the
+sequencing by construction, **provided `markSeen()` is still written before the player returns to
+Home**. `HomeScreen.kt:198`'s `!state.onboardingVisible` guard loses its meaning once Home hosts no
+overlay; whatever replaces it must keep the same one-way safety — the wipe question may be
+withheld, never raised early.
+
+---
+
+## 8. Copywriting contract
+
+### New strings
+
+| Name | Value | Where |
+|------|-------|-------|
+| `tutorial_step_progress` | `Step %1$d of %2$d` | Pip row content description |
+| `tutorial_step_1_caption` | `Tap a peg, then tap the empty hole two cells away.` | T1 |
+| `tutorial_step_2_caption` | `Jumps work up, down, left and right — never diagonally.` | T2 |
+| `tutorial_step_3_caption` | `Keep jumping. Clear the board down to one peg.` | T3 |
+| `tutorial_done_caption` | `That's the whole game. Go clear a board.` | Completion |
+| `tutorial_undo_nudge` | `Boxed in? Undo takes your last jump back.` | T3 escalation only |
+| `settings_how_to_play_label` | `How to play` | Settings row |
+| `settings_how_to_play_supporting` | `Replay the tutorial` | Settings row |
+| `stat_value_unknown` | `—` | A ribbon pill with no value yet |
+| `stat_value_unknown_desc` | `not yet available` | Its announcement |
+| `home_stat_stars_label` | `Stars` | Ribbon pill label |
+| `home_stat_boards_label` | `Boards` | Ribbon pill label |
+| `home_stat_level_label` | `Level` | Ribbon pill label |
+| `home_stat_boards_value` | `%1$d/%2$d` | Boards pill value |
+
+The three new tutorial captions are **rewrites** of `onboarding_step_1/2/3`
+(`strings.xml:161-163`) shortened to one line each, because the player is now doing the thing the
+sentence used to describe.
+
+### Reused unchanged
+
+`onboarding_got_it` (the completion CTA), `onboarding_skip` (the Skip action), `app_name`,
+`navigate_back`, `elapsed_time`, `challenge_level_indicator`, `challenge_level_indicator_desc`,
+`loading_level`, `undo_action`, `hint_action`, `hint_thinking`, `show_moves_on`, `show_moves_off`,
+`restart_board`, `classic_tile_title`, `classic_tile_supporting`, `challenge_tile_title`,
+`challenge_tile_continue`, `resume_classic_title`, `resume_classic_supporting`,
+`resume_challenge_title`, `resume_challenge_supporting`, `settings_action`, `catalog_stars_earned`.
+
+### Deleted
+
+`how_to_play` (`strings.xml:62`) — its only caller is the deleted info button. Removing it is what
+makes D-02 complete rather than cosmetic.
+
+### Fixed
+
+`settings_sound_supporting` — "Saved for the upcoming sound effects" is stale since Phase 7.
+
+---
+
+## 9. Assets and licences
+
+Every asset this refresh needs, with its licence. **No third-party asset is introduced, so no new
+`THIRD_PARTY.md` or `docs/audio/CREDITS.md` row is required.**
+
+| Asset | Kind | Source | Licence |
+|-------|------|--------|---------|
+| `Icons.AutoMirrored.Rounded.ArrowBack` | vector | `material-icons-core`, already a dependency | Apache-2.0 (notice already shipped) |
+| `Icons.Rounded.Refresh` | vector | `material-icons-core` | Apache-2.0 |
+| `Icons.Rounded.Settings` | vector | `material-icons-core` | Apache-2.0 |
+| `Icons.Filled.Star` | vector | `material-icons-core` | Apache-2.0 |
+| `UndoIcon` | vector | in-house, `ui/game/UndoIcon.kt` (existing) | project-owned |
+| `rememberClassicGlyph`, `rememberChallengeGlyph` | vector | in-house, `ui/home/ModeGlyphs.kt` (existing) | project-owned |
+| **`HintIcon`** (lightbulb) | vector | **new, in-house** — core set has no lightbulb and the extended set is banned | project-owned |
+| **`ShowMovesIcon`** (peg + two dots) | vector | **new, in-house** — core set has no visibility glyph | project-owned |
+| Hero / tile / thumbnail board art | drawn | `BoardCanvas` primitives, no asset file | project-owned |
+| `SoundCue.Select`, `Deselect`, `Jump`, `PegRemove`, `Undo`, `InvalidTap`, `Hint`, `StarPop`, `ButtonForward`, `ButtonDismiss` | audio | already in `res/raw`, credited in `docs/audio/CREDITS.md` | CC0 1.0 (as recorded) |
+| Fredoka, Nunito | font | downloadable Google Fonts, already wired | OFL (already shipped) |
+
+Both new vectors follow the `UndoIcon.kt` / `ModeGlyphs.kt` precedent: a 24-unit viewport, filled
+opaque black, recoloured by the host `Icon`'s tint, `@Suppress("MagicNumber")` on the path data
+with the same justification comment the existing two carry.
+
+---
+
+## 10. Animation and motion
+
+All new motion reuses the Candy Clay vocabulary; nothing invents a curve.
+
+| Moment | Motion |
+|--------|--------|
+| Any tappable clay surface pressed | `Modifier.claySquish()` — unchanged |
+| Home bands entering | `Modifier.clayEntrance(order)`, 40ms stagger: hero 0, ribbon 1, Continue chips 2..3, tiles next |
+| Dock entering with the board | `clayEntrance` after the board slab |
+| Show-moves toggling ON/OFF | pill fill cross-fades over `ClayAnim.PRESS_IN_MS` |
+| Tutorial coach ring | the **existing** selection pulse (`BoardMetrics.PULSE_MAX_SCALE`, `GameAnim.PULSE_MS`, reverse-repeat) — the tutorial reuses the board's own idiom rather than adding a highlight |
+| Tutorial step advance | caption cross-fade + pip fill, then the next footprint after `TutorialAnim.STEP_ADVANCE_DELAY_MS` |
+| Tutorial nudge escalation | one `TutorialAnim.COACH_PULSE_MS` pulse, `TutorialAnim.NUDGE_DELAY_MS` after the last non-progressing tap |
+| Tutorial completion star | `ClayAnim.STAR_POP_MS` + `overshootSpring()` + `goldGradientFill()` |
+| Hero board art | idle — no ambient motion of its own; the two existing `HomeBlobs` remain the only drifting elements |
+
+**Reduced motion is a hard requirement.** Every decorative animation above is gated on
+`rememberAnimationsEnabled()` (`Clay.kt:209-218`), which reads
+`Settings.Global.ANIMATOR_DURATION_SCALE`. When it returns `false`:
+
+- `claySquish` is already a no-op (`Clay.kt:152-153`) and `clayEntrance` already settles instantly
+  (`Clay.kt:185`) — inherited, nothing to add.
+- The tutorial coach pulse, the star pop, the caption cross-fade and the pill cross-fade **do not
+  run**; the ring, the star, the caption and the fill appear settled.
+- `TutorialAnim.STEP_ADVANCE_DELAY_MS` still applies. It is a **functional** beat — the player must
+  see their jump resolve before the board is replaced — not decoration, and collapsing it would
+  make the tutorial swap boards under the player's finger.
+- The board's own jump/removal already resolve instantly in this mode
+  (`BoardCanvas.kt:298-304`), so the tutorial inherits correct behaviour without a second gate.
+
+---
+
+## 11. Accessibility
+
+Checklist for `android-compose-game` (rules/compose.md + the android-accessibility audit), stated
+so QA can check each line on a device.
+
+**Touch targets.** Every interactive element ≥ 48dp with ≥ 8dp spacing. Dock actions are 56dp
+(`game_action_button_size`) with ≥ `spacing_sm` gaps — the largest targets in the app, deliberately,
+because they sit under the thumb during play. The back chip is 48dp
+(`game_status_back_size`). `Skip` is a `TextButton`, which applies
+`minimumInteractiveComponentSize()`. Settings rows are full-width at ≥ 72dp. Mode tiles are ≥ 96dp
+and tappable across their whole surface. The board's own hit-testing is unchanged
+(`board_min_touch_target`).
+
+**Labels.** Every interactive element carries a `contentDescription` or a text label; every
+decorative element carries `contentDescription = null`. Decorative: the hero board art, the tile
+art, the Continue thumbnail, the ribbon pill glyphs (the pill speaks as one node), the individual
+step pips (the row speaks as one node), the completion star. Labelled: back, Settings gear, all
+four dock actions, Skip, the completion CTA, the Settings row, both mode tiles, both Continue
+chips, the timer.
+
+**State, not just colour.** No control conveys state by hue alone.
+
+| Control | Channels |
+|---------|----------|
+| Show-moves ON/OFF | **fill** (filled pill vs outlined) + tint + `show_moves_on`/`show_moves_off` |
+| Undo enabled/disabled | `enabled` (TalkBack announces "disabled") + fill + tint |
+| Hint idle/thinking | glyph→spinner swap + `enabled` + `hint_action`/`hint_thinking` |
+| Step pips | **filled vs outlined** + `tutorial_step_progress` |
+| Ribbon pill known/unknown | value text ("7" vs "—") + `stat_value_unknown_desc` |
+
+This is a fix, not a restatement: `HintToggleControl.kt:45-51` carries its state in tint alone
+today.
+
+**Contrast.** ≥ 4.5:1 for all body and label text and ≥ 3:1 for glyphs and boundaries, in **both**
+light and dark. The pairs in use are all from the design system's verified set. Two to check
+explicitly on device because they are new pairings: `onPrimaryContainer` glyph on
+`primaryContainer` fill (dock loud actions), and `onSurfaceVariant` glyph on `surfaceVariant` fill
+(disabled Undo — perceivable even though WCAG exempts disabled controls). The gradient CTA label
+sits on the gradient's dark half by construction (`Clay.kt:91-103`).
+
+**Text scaling.** Every size is an M3 type role, so all text scales with the system font size.
+Three layouts must be verified at 200%: the Home column (scrolls — §4.2), the three-pill ribbon
+(each pill wraps its label under its value rather than truncating), and the gameplay status strip
+(the title is `maxLines = 1` with `weight(1f)` and truncates before it can push the timer pill off
+screen — the timer must never be clipped, since it is the only place elapsed time appears).
+
+**Screen-reader traversal.** Tutorial order: pips → Skip → board → caption → CTA. Gameplay order:
+back → title → timer → board → dock (Undo → Hint → Show-moves → Restart) → any raised banner.
+Home order: title → gear → ribbon pills → Continue chips → mode tiles. Titles carry
+`semantics { heading() }` so a screen-reader user can jump bands.
+
+**Sound is never the only feedback** (rules/audio.md). Every cue in this refresh is paired: the
+jump has the slide and the removal; selection has the ring and the pulse; the invalid tap has the
+dots staying put; Undo has the board stepping back; the completion cue has the star and the
+caption. The dock's two silent controls (Show-moves, Restart) are silent by contract (D-09) and
+both give immediate visual feedback.
+
+**One-handed use.** The four in-game actions and both Home mode tiles sit in the lower half of a
+6.7-inch phone. This is the reach problem D-04 exists to fix.
+
+---
+
+## 12. Responsiveness
+
+| Case | Behaviour |
+|------|-----------|
+| Narrow phone (≤ 360dp) | Home column scrolls; ribbon pills shrink to equal weights, never wrap to two rows; gameplay title truncates before the timer clips |
+| Tall phone (6.7") | Home's weighted spacer pushes slack above the Continue chips so mode tiles stay low; the gameplay board centres between strip and dock |
+| Short phone / 200% font | Home scrolls; the tutorial column scrolls with the board keeping its aspect ratio; the dock stays pinned below the board |
+| Tablet / large | Content capped at `content_max_width` 480dp and centred — unchanged; board capped at `board_max_size` 480dp — unchanged |
+| Landscape | Not a supported orientation change in this refresh; existing behaviour preserved. Flagged to the tech-lead if the manifest does not lock orientation. |
+| RTL | The back arrow and `UndoIcon` are already auto-mirrored (`UndoIcon.kt:29`); the status strip and dock are `Row`s and mirror by default; nothing uses absolute left/right padding |
+| Dark theme | Every role above has a dark variant in the design system; both themes are in scope for every new composable's `@Preview` pair |
+
+---
+
+## 13. Test impact (read this before writing code)
+
+Existing tests this refresh **will** break, with the fix:
+
+| Test | Why it breaks | Fix |
+|------|---------------|-----|
+| `ButtonSoundTest.kt:105-123` `theHomeTopBarHowToPlayAndSettingsIconsMakeNoSound` | Clicks `R.string.how_to_play` by content description; that button and that string are deleted (D-02) | Retarget to the Settings row; the gear half of the assertion stays valid |
+| `HomeScreenTest.kt:148-159` `theProfileSwapDialogIsNeverStackedOnTheOnboardingOverlay` | Locates the overlay by the hardcoded literal `"Got it"` (`:367`) and the overlay stops being hosted by Home (D-01f) | Re-express against whatever replaces `HomeScreen.kt:198`'s guard; the invariant in §7 still needs a test |
+| `ButtonSoundTest.kt:226-244` | Clicks `navigate_back` and `show_moves_on` on the game screen | **Passes unchanged** — both content descriptions are deliberately preserved (D-05b, §4.4) |
+| `GameFlowTest.kt:129` | Finds the timer by `elapsed_time` | **Passes unchanged** — deliberately preserved (§4.3) |
+
+**Device checklist that must keep working.** `11-HUMAN-UAT.md` tests 10, 11 and 13 read their
+pass/fail off the three Home readouts in §4.2.1. This refresh is designed so those tests run
+**unchanged** — the Challenge tile chip, the Continue chips and the Classic catalogue's star pips
+are all untouched in behaviour. If a plan proposes changing any of the three, it is changing a
+test oracle and the qa-engineer and release-manager need to know before, not after.
+
+Two gaps QA should close rather than inherit:
+
+- **The tutorial has no test of its own.** There is no `OnboardingOverlayTest.kt`; the only
+  assertion that touches it is the incidental one above, and the captions, the skip action and the
+  illustrations are asserted nowhere. An interactive tutorial needs a real Compose UI test per
+  rules/testing.md ("one UI test per screen covering its main flow").
+- **The overlay carries no `testTag`**, unlike `PROFILE_SWAP_DIALOG_TEST_TAG` and
+  `PLAY_GAMES_PROMPT_DIALOG_TEST_TAG`. The replacement should carry one so no future test has to
+  find a screen by its button copy.
+
+**Risk worth naming.** There are **no screenshot tests in this project** — no Roborazzi, no
+Paparazzi, no `screenshotTest` source set, and no `androidTest` directory at all; every UI test is
+a Robolectric JVM test under `app/src/test`. The stack document in CLAUDE.md names Roborazzi as
+the "primary screenshot tool", so this is a gap against the intended stack, and it matters more
+for this phase than most: a five-screen visual refresh is precisely the change a golden-image
+suite would protect. This is the tech-lead's and qa-engineer's call, not mine; I raise it because
+the refresh is what exposes it.
+
+---
+
+## 14. Candidate acceptance criteria
+
+Observable truths a QA engineer can check on a device, in the roadmap's house phrasing.
+
+**Tutorial (D-01)**
+
+1. On a first launch, the player reaches a tutorial that requires them to **complete a real jump**
+   before it advances; no step can be advanced by a Next or Continue button. (ONB-01, D-01)
+2. The player performs at least one horizontal jump and at least one jump on the other axis, on a
+   live board, before the tutorial ends. (ONB-01, D-01b)
+3. Tapping a peg that cannot move, or an empty hole that is not a legal destination, produces no
+   error, no red, no dialog and no lost progress — and after a pause the tutorial highlights a peg
+   that can move. (D-01c)
+4. Three consecutive taps that make no progress cause the tutorial to show more help, not less,
+   and the player is never blocked from continuing. (D-01c)
+5. `Skip` is reachable on every step and exits immediately; pressing system back does the same
+   thing; after either, the tutorial does not appear again on the next launch. (D-01d)
+6. Rotating the device mid-tutorial keeps the player on the same step with the same board.
+   (D-01e)
+7. Completing the final step shows a single primary button that returns the player to where they
+   started, and the tutorial does not appear again on the next launch. (D-01)
+
+**Info button (D-02)**
+
+8. There is **no** information or help icon anywhere on the Home screen. (D-02)
+9. Settings › General has a "How to play" row that opens the tutorial, and it works for a player
+   who has already finished it. (D-02a)
+10. A returning player who has seen the tutorial launches straight into Home and is never shown
+    it again unless they ask from Settings. (D-02a)
+
+**Home (D-03)**
+
+11. Home shows more than the two mode tiles: a titled hero band, three progress pills
+    (Stars · Boards · Level) and board art on the mode tiles. (D-03)
+12. The Level pill and the Challenge tile show the **same** level number, and tapping the tile
+    enters that level. (CHAL-05, D-03c)
+13. A pill whose value is not yet known shows "—" rather than 0 or a blank, and a screen reader
+    announces it as not yet available. (D-03c)
+14. With the system font size at maximum and both Continue chips present, the whole Home screen is
+    reachable by scrolling and nothing is clipped. (D-03)
+15. On a 6.7-inch phone the two mode tiles sit in the lower half of the screen. (D-03)
+
+**Home load-bearing readouts (D-03f)** — these are the cloud-save device oracles; a failure here
+blocks tests 10/11/13 in `11-HUMAN-UAT.md`, not just the look of the screen.
+
+15a. On a 360×640dp phone at default font scale, with **both** a Classic and a Challenge game
+     saved, the Continue chips **and** both mode tiles are fully visible on Home without
+     scrolling. (D-03f, PERS-03)
+15b. The Challenge tile still shows the ladder position on its own face ("Continue — Level N"),
+     and it shows the same number as the ribbon's Level pill. (D-03f, CHAL-05)
+15c. Tapping the Classic tile reaches the catalogue in one tap, and each board card there still
+     shows its earned-star pips. The Home Stars pill is a total and has not replaced them.
+     (D-03f, CLAS-01)
+15d. No readout on Home is behind a tap, an expander, a "show more", or a scroll position.
+     (D-03f)
+
+**Home cold start (D-03g, PLAT-08 C1)**
+
+15e. Cold start to an interactive Home is **≤ 950 ms** on the reference device with the fuller
+     Home in place. (PLAT-08 C1)
+15f. On first paint, before any progress data has loaded, Home shows the ribbon with "—"
+     placeholders — never a spinner, never a blank band, never a blocked screen — and the values
+     fill in without the layout shifting. (D-03c, D-03g)
+
+**In-game controls (D-04) and the toolbar (D-05)**
+
+16. The gameplay screen has **no Material top app bar**: no bar background, no bar elevation, no
+    bar title row. (D-05)
+17. A visible, labelled back control remains on the gameplay screen and returns the player to
+    where they came from; system back does the same. (D-05b)
+18. The elapsed timer is still visible during play and is still announced as the elapsed time.
+    (SCOR-02, D-05a)
+19. Undo, Hint, Show-moves and Restart are all still reachable, all still work, and all four sit in
+    the lower half of the screen. (ASST-01, ASST-02, D-04)
+20. The Hint control does not use a magnifying-glass glyph, and the Show-moves control does not use
+    the same glyph as any other control in the app. (D-04a, D-04b)
+21. Turning Show-moves on and off changes the control's **fill**, not only its colour, and a
+    screen reader announces which state it is in. (D-04b)
+22. With no moves made, Undo is visibly and announced-as disabled; after one jump it is enabled.
+    (ASST-02, D-04d)
+23. Requesting a hint shows a spinner in place of the glyph, the control reports as disabled while
+    thinking, and a second tap cannot start a second search. (ASST-01, D-04d)
+24. No control anywhere shows a hint or undo allowance count, badge or ad glyph. (§5)
+
+**Cross-cutting**
+
+25. With OS animations turned off, every screen in this refresh is fully usable, nothing is stuck
+    mid-animation, and the tutorial still pauses long enough after a jump for the player to see it
+    resolve. (rules/compose.md, §10)
+26. Every new interactive element is at least 48dp, at least 8dp from its neighbours, and reachable
+    by TalkBack with a meaningful label, in both light and dark. (rules/compose.md, §11)
+27. Every text and glyph pair introduced by this refresh meets 4.5:1 / 3:1 contrast in both light
+    and dark. (§11)
+28. No screen in this refresh plays a sound as its only feedback for an event. (rules/audio.md)
+
+---
+
+## 15. Open questions for the founder (non-blocking)
+
+Both are art direction between equals, which rules/studio.md routes to the founder. Both have a
+default decided so no work waits.
+
+**Q-901 — Home hero treatment.** Options: (1) a **static** decorative peg cluster in Candy Clay;
+(2) a **slowly drifting** mini board that idles behind the title; (3) no art — a larger gradient
+title alone. **Recommendation and default: (1).** It fills the emptiness the founder named, costs
+no asset licence, cannot distract from the two tiles, and adds no battery cost on the app's first
+screen. Option 2 competes with the two `HomeBlobs` that already drift there, and it would put a
+running animation on the cold-start critical path (D-03g). Option 3 is also step 3 of the §6.5
+degradation path, so if C1 measurement forces it, the founder's answer is already implemented.
+**Blocks: nothing.**
+
+**Q-902 — Do the in-game actions move to the bottom?** The founder said "redesign the icons on the
+top" and "remove toolbar from the game" in the same breath. This spec reads that as one surface
+(D-05) and splits it: read-only status stays top, the four actions move to a thumb-zone dock.
+The alternative reading is to keep all four icons at the top, redrawn as a clay cluster.
+**Recommendation and default: the split**, because rules/compose.md requires primary actions in
+the lower thumb zone of a 6.7-inch phone and Undo — the control a peg-solitaire player uses most —
+is currently in the worst-reachable corner of the screen. If the founder wants the icons visually
+"on the top", §4.3 and §4.4 swap places and nothing else in this spec changes.
+**Blocks: nothing.**
+
+---
+
+## 16. Traceability
+
+| Requirement | Surface in this contract |
+|-------------|--------------------------|
+| ONB-01 | §4.1 Tutorial (rewritten); §4.5 Settings replay row |
+| NAV-01 | §4.2 Home recomposition; §4.2 top bar deleted |
+| PERS-03 | §4.2 Continue chips — behaviour unchanged, thumbnail added |
+| CHAL-05 | §4.2 Level pill + Challenge tile, same number, same entry level |
+| CLAS-02 | §4.3 status strip — title and timer preserved |
+| SCOR-02 | §4.3 timer pill, `elapsed_time` preserved |
+| ASST-01 | §4.4 Hint action, new glyph, thinking state unchanged |
+| ASST-02 | §4.4 Undo action, new position, `canUndo` unchanged |
+| SET-02 | Untouched — haptics gate is unchanged |
+| ADS-01/02 | §5 — no allowance surface added; dialog unchanged |
+| CLAS-01 | §4.2.1 — Classic catalogue and its per-board star pips untouched; one tap from Home |
+| PLAT-08 (C1) | §6.5 cold-start budget; §7 R-1/R-2 flagged; criteria 15e/15f |
+| QUAL-03 | §6.1 every new dp is a named token; §6.2 no hex; §6.4 durations in scoped objects |
+| Proposed UX-01 | §4.1 — interactive tutorial (registry entry is the producer's to confirm) |
+| Proposed UX-02 | §4.2 — Home composition |
+| Proposed UX-03 | §4.3/§4.4 — gameplay chrome replacement |
+
+---
+
+## 17. Checker sign-off
+
+- [ ] Dimension 1 Copywriting: PASS
+- [ ] Dimension 2 Visuals: PASS
+- [ ] Dimension 3 Color: PASS
+- [ ] Dimension 4 Typography: PASS
+- [ ] Dimension 5 Spacing: PASS
+- [ ] Dimension 6 Accessibility: PASS
+- [ ] Dimension 7 Registry Safety: not applicable (native Android; no component registry)
+
+**Approval:** pending
