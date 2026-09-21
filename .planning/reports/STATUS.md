@@ -6,12 +6,13 @@
 ## Waiting on founder (open)
 - Q-901 — Home hero art direction (Blocks: nothing; default 1 specified)
 - Q-902 — do the in-game actions move to the bottom? (Blocks: nothing; default "split" specified)
-- app-ads.txt: only the founder can read the Play listing's Contact details → Website field; diagnosis in flight
+- app-ads.txt / REL-03: **founder action, not a question** — the Play listing's Contact details → Website field is empty (proven from the public listing page), so AdMob has no hostname to crawl. Set it to `https://ermanergoz.com`, then ≤ 24 h crawl. Do not touch the website; the file has been correct and live since 2026-09-02.
 
 ## In flight
 - phase-14 (release-readiness) — primary checkout on feature/phase-14-release-plan, plus worktrees PegSolitarie-r1 (feature/phase-14-gate-scope) and PegSolitarie-r5 (feature/phase-14-release-docs); external track (developer website, app-ads.txt, privacy policy, Console declarations) and the fuzz/coverage gate outstanding
 - phase-15 (ux-refresh) — feature/phase-15-ux-refresh in worktree PegSolitarie-p15; design done, roadmap entry written, not yet planned or built; founder request of 2026-09-21
-- phase-15 app-ads.txt diagnosis — release-manager verifying both hosts live (REL-03, blocks phase-14 criterion 2)
+- phase-15 decisions out to game-designer (tutorial board footprints, §7 R-4) and tech-lead (D-01f hosting, R-1/R-2 data, §6.5 cold-start, §13 screenshot-test gap)
+- **producer follow-up owed:** apply the corrected Step 0 item 4 to `14-OPERATOR-CHECKLIST.md` on `feature/phase-14-release-plan` (the diff is in the app-ads diagnosis report; the current text tells the founder to do something GitHub Pages forbids)
 
 ## Done
 2026-09-20 | adopt-studio | producer | done | rules snapshot v0.1.0, VERSION, STATUS.md, FOUNDER.md (repo predates the studio; phases 1-12 were built under gsd alone)
@@ -37,6 +38,7 @@
 2026-09-20 | phase-13 sign-off | tech-lead | HOLD on gate evidence only, no code change: H-1 full check at HEAD, H-2 assembleRelease + missing_rules, H-3 auditor approval of 3 suppressions and a sweep of plans 13-01..13-10; confirmed the producer's A1 read and QA's misreading | .planning/reports/phase-13/tech-lead-signoff.md
 2026-09-20 | phase-13 sweep (H-3) | code-auditor | PASS — 5 suppressions approved (3 in main, 2 in tests the tech-lead's grep missed); no merge blocker; F-1 latent data loss on a future schema bump must be written into D-07 | .planning/reports/phase-13/code-auditor-phase-sweep.md
 2026-09-20 | phase-13 gate re-run (H-1, H-2) | producer | GREEN at e15db2f — full check exit 0 (0 skipped, 0 failures), assembleRelease exit 0, no missing_rules.txt so A5 confirmed by measurement; closes the gap that my earlier gate predated the convergence build | .planning/reports/phase-13/producer-gate-evidence.md
+2026-09-21 | REL-03 app-ads.txt diagnosis | release-manager | ROOT CAUSE: the Play listing has no Website URL, so the crawler never ran. File proven correct and live since 2026-09-02 (200, 0 redirects, text/plain, right publisher). Two repo beliefs corrected: the github.io 301 was never the fault (AdMob allows cross-domain redirects), and Step 0's "serve it on both hosts" is impossible under a GitHub Pages CNAME. | .planning/reports/phase-15/release-manager-app-ads-diagnosis.md
 2026-09-21 | phase-15 UX design (founder's five asks) | ux-designer | done — D-01..D-05, 34 acceptance criteria; key finding: "top icons" and "toolbar" are ONE surface (GameScreen.kt:502) | docs/ux-spec.md, .planning/reports/phase-15/ux-designer.md
 2026-09-21 | phase-15 release sequencing | release-manager | ruled: lands BEFORE the release cut, ships inside 3.0.0; docs/store/ is empty on every branch so no screenshots are invalidated; branch must not touch root VERSION | .planning/reports/phase-15/release-manager-sequencing.md
 2026-09-20 | QA helper scripts untracked | producer | rules v0.5.1 testing.md forbids committing any QA helper script; moved .planning/reports/phase-13/tools/ -> .planning/qa/tools/ (git-ignored, still on disk). Reports that cite the old path refer to these four scripts. | rules/testing.md
