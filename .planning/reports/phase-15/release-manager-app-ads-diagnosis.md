@@ -16,6 +16,13 @@ redirects, `text/plain`, no BOM, and exactly one correct record for the publishe
 crawler never issues a request, and no amount of work on the file can change the status. This is
 proven from the public listing and from Google's own documented confirmation method, not inferred.
 
+> **Update 2026-09-21T01:29:28Z — the field is now set and live on the public page.** The founder
+> filled it, the Website row is rendering in all three locales, and it names
+> `https://ermanergoz.github.io` rather than the `https://ermanergoz.com` this report recommended.
+> That value is within Google's documented rules and is expected to verify via the 301; the crawl
+> clock has started. See "Follow-up" at the end of this report for the evidence, the one flagged
+> mismatch and the timing baseline. The diagnosis above is left as written.
+
 ## Ruling
 
 ### The single cause (proven)
@@ -253,10 +260,134 @@ tag or store asset was touched.
       Blocks: REL-03 and ROADMAP success criterion 2 (non-blocking for every other phase-15 task).
       Answer:
 
+---
+
+# Follow-up — 2026-09-21T01:29:28Z: the Website field is live, clock started
+
+Appended after the founder reported "i added the website to the play console". They did not say
+which value they entered or whether the listing change had been published, so both were measured
+rather than assumed. Nothing above this line was rewritten.
+
+## What changed
+**The App support → Website row now exists on the public Play page, in all three locales.** The
+exact value, read from the anchor's `href` and corroborated by its accessible name:
+
+    href="https://ermanergoz.github.io"
+    aria-label="Website https://ermanergoz.github.io will open in a new window or tab."
+
+The support block now renders four rows — `public / Website`, `email / Support email`, the privacy
+policy link, and About the developer — where two hours ago it rendered two and the word `Website`
+appeared zero times on the page. Turkish locale shows the same row as `Web sitesi`. The listing
+update is therefore **published, not saved-but-unsubmitted and not in review**: Step 3 of the
+coordinator's instruction (the "row not yet present" branch) does not apply.
+
+By Google's own confirmation test — *"check that the Developer Website URL is linked in the 'app
+support' of your Android app page"* — the field has taken effect and AdMob now has a hostname to
+derive an `app-ads.txt` URL from. **The blocking condition identified in the original diagnosis is
+cleared.**
+
+## The one mismatch, flagged now rather than in 24 hours
+The value is `https://ermanergoz.github.io`, **not** the `https://ermanergoz.com` recommended in
+step 1 of the fix list. Assessed against the four failure shapes worth shouting about:
+
+| Trap | Present? |
+|---|---|
+| `http://` instead of `https://` | No — it is `https` |
+| Trailing path or page | No — bare host, no path |
+| `www.` form | No |
+| The `github.io` host | **Yes — this is the one** |
+
+**This is very probably fine, and it should not be changed right now.** The crawler will construct
+`https://ermanergoz.github.io/app-ads.txt`, receive the GitHub Pages custom-domain `301`, follow it
+to `https://ermanergoz.com/app-ads.txt` and read the correct record — re-measured just now and
+unchanged. Google documents exactly this as supported: under "Web server redirects", *"Another
+domain, including multiple subdomains"* is listed among valid redirect destinations. Changing the
+field again would restart the ≤ 24 h clock for no proven gain, so the right move is to wait.
+
+The residual risk is narrow and worth stating precisely, because it is the reason
+`https://ermanergoz.com` was recommended in the first place. Google's crawler *"probe[s] up to one
+subdomain level from the developer website"*. One level up from `ermanergoz.github.io` is
+`github.io`, and `https://github.io/app-ads.txt` was measured just now: it returns **`200` after a
+redirect to `https://pages.github.com/`, `text/html`** — GitHub's own marketing page, not an
+ads.txt file and not under the founder's control. Per the documented probe order the host itself is
+tried first and a successful fetch ends the walk, so this fallback should never be reached. But if
+the status has not flipped at the 48-hour mark, switching the field to `https://ermanergoz.com` —
+a host with no subdomain, serving the file with a direct `200` and zero redirects — removes the
+ambiguity entirely and is the cheapest remaining change. That now becomes fix-list step 3a, ahead
+of the AdMob account checks.
+
+## Timing baseline (14-OPERATOR-CHECKLIST.md Step 0 item 6)
+All from `date -u`, not estimated. The founder's Console edit happened shortly *before* the
+observation, so these are conservative — the real clock is, if anything, already a little further on.
+
+| Marker | UTC | Local (+03) |
+|---|---|---|
+| Website row observed live on the public listing | **2026-09-21T01:29:28Z** | 2026-09-21 04:29 |
+| ≤ 24 h crawl checkpoint — re-read the AdMob status | **2026-09-22T01:29:28Z** | 2026-09-22 04:29 |
+| 48 h escalation — fix-list steps 3a, 3 and 4 apply | **2026-09-23T01:29:28Z** | 2026-09-23 04:29 |
+
+Step 0 item 6 also asks for the date the file was published: **2026-09-02** (deployed commit
+`baccd92`, 02:10 +03), established in the original Checks section. The date the AdMob status flips
+is still to be recorded and only the founder can observe it.
+
+Do not edit the Website field during this window. Every change to it restarts the 24-hour clock
+from zero, which is the one way to turn a 24-hour wait into a 72-hour one.
+
+## Revised verdict on REL-03
+
+**Proven, and now closed:**
+- The `app-ads.txt` file is correct, live since 2026-09-02, unchanged, and served with a direct
+  `200 text/plain` on the canonical host (re-verified at the follow-up timestamp).
+- The original cause — an empty developer-website field on the Play listing — was real and is
+  **resolved**. The row is on the public page.
+- The listing change is published, not pending review.
+- The value chosen resolves, through one documented-valid redirect, to the correct file.
+
+**Pending, and not observable from this machine:**
+- AdMob's own status for the app. Only the founder can read
+  AdMob → Apps → this app → App settings → `app-ads.txt`, and not before the checkpoint above.
+- Alternative cause 1 (the AdMob app entry not being linked to the Play listing) remains untested
+  and would still produce a permanent "not found" even with the field correctly set.
+
+**REL-03 state: unblocked, awaiting crawl.** It cannot be ticked, and ROADMAP success criterion 2
+cannot be met, until AdMob itself reports the app as authorised. Everything the studio can do for
+it is done; what remains is a wait and one founder observation.
+
+## Follow-up checks
+Run 2026-09-21T01:29–01:31Z. Same three locales as the original pass, so the before/after is
+like-for-like.
+
+- `date -u '+%Y-%m-%dT%H:%M:%SZ'` — pass (`2026-09-21T01:29:28Z`; the baseline all timings above derive from)
+- `curl -sS -A '<desktop UA>' -o play2 -w '%{http_code}' -L 'https://play.google.com/store/apps/details?id=com.erman.pegsolitarie&hl=en&gl=US'` — pass (`200`, 1 084 665 bytes) — **`Website` label hits: 2, up from 0**; support block rows now `public / Website / email / Support email / …`
+- Same fetch with `hl=tr&gl=TR` — pass (`200`; `Web sitesi` hits: 2, up from 0 — the row is real, not an en-US rendering artefact)
+- Same fetch with `hl=en&gl=TR` — pass (`200`; `Website` hits: 2)
+- Anchor extraction over the App support block — pass, and it is the decisive value: `href="https://ermanergoz.github.io"`, `aria-label="Website https://ermanergoz.github.io will open in a new window or tab."` — **`github.io`, not the recommended canonical domain**
+- `curl -sS -o /dev/null -w '%{http_code} %{num_redirects} %{url_effective} %{content_type}\n' https://ermanergoz.github.io/app-ads.txt` — pass (`301 0 … text/html` — unchanged; the host named on the listing redirects rather than serving)
+- `curl -sS -o /dev/null -w '…' -L https://ermanergoz.github.io/app-ads.txt` — pass (`200 1 https://ermanergoz.com/app-ads.txt text/plain; charset=utf-8` — one documented-valid redirect to the correct file)
+- `curl -sSL https://ermanergoz.github.io/app-ads.txt` — pass (body is the single correct record for the publisher from `local.properties`; what the crawler will read)
+- `curl -sS -o /dev/null -w '…' https://ermanergoz.com/app-ads.txt` and `curl -sS https://ermanergoz.com/app-ads.txt` — pass (`200 0 … text/plain`, same one-line body — nothing on the website changed between the two passes)
+- `curl -sS -o /dev/null -w '…' -L https://github.io/app-ads.txt` — pass, and this is the risk measurement: **`200 1 https://pages.github.com/ text/html`** — the one-subdomain-up fallback resolves to GitHub's marketing page, which is why `ermanergoz.com` is the safer field value if the 48 h mark passes
+- `curl -sS -o /dev/null -w '…' -L https://ermanergoz.github.io` — pass (`200 1 https://ermanergoz.com/` — the listed URL itself reaches the developer site, so the listing link is not broken for players either)
+
+Not run: `./gradlew check` — the follow-up changed no product code, only this report.
+
 ## Handoff
-Next: **producer** — this needs no developer and no code. Hand the founder the five-step fix list
-above (step 1 is the whole fix; steps 2–5 are confirmation and fallbacks) and, separately, hand the
-proposed Step 0 item 4 diff to whoever owns `feature/phase-14-release-plan`, because the checklist
-currently sends the founder after a redirect that Google documents as fine and toward a
-both-hosts fix that GitHub Pages cannot perform. REL-03 cannot be ticked until AdMob itself reports
-the app as authorised; nothing in the repo can substitute for that observation.
+Next: **producer** — this needs no developer and no code, and as of the follow-up it needs almost
+nothing from the founder either. Fix-list step 1 is **done**: the Website field is set and live.
+What remains is one diary entry and one observation:
+
+1. Tell the founder to **leave the Website field alone** until 2026-09-22T01:29Z and then read
+   AdMob → Apps → this app → App settings → `app-ads.txt`. Record the date it flips (Step 0
+   item 6).
+2. If it has not flipped by 2026-09-23T01:29Z, work fix-list steps **3a** (switch the field to
+   `https://ermanergoz.com` — a fresh 24 h clock, but it removes the `github.io` subdomain-probe
+   ambiguity), then **3** (confirm the AdMob app entry is linked to the Play listing) and **4**
+   (confirm the account's publisher ID).
+3. Separately, hand the proposed Step 0 item 4 diff to whoever owns
+   `feature/phase-14-release-plan`. It is now doubly out of date: it still calls the listing's
+   website field "unverified", and it still recommends a both-hosts fix that GitHub Pages cannot
+   perform. The diff already carries the corrected text.
+
+REL-03 stays open but is **unblocked**; it cannot be ticked, and ROADMAP success criterion 2 cannot
+be met, until AdMob itself reports the app as authorised. Nothing in the repo can substitute for
+that observation.
