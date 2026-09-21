@@ -99,4 +99,15 @@ skipped: 0
 
 ## Gaps
 
-- **The profile-swap dialog (D-12 to D-15) — not exercisable on this setup.** The one dialog this milestone reserves (shown when `session` resolves to a **different** player id than the one local progress was last merged with, offering "Keep this device's progress" vs "Use [account]'s cloud progress") cannot be produced here: it needs a **second Google account on the device that has never authorised the game**, and one does not exist. Same root cause as Phase 11 test 2 — one account, already authorised for the game, so neither the chooser path nor the alternate-player path can be reached. Covered instead by JVM tests over `FakeGamesService.emitSession(SignedIn(playerId = "other"))` in plans 13-08 and 13-10, which exercise the dialog's state, the dismissal-means-keep default (D-13) and the replace path's wipe (D-14) without a device. Recorded rather than dropped: if a second account ever exists, this is the test to run.
+- **The profile-swap dialog (D-12 to D-15) — CLOSED 2026-09-21, and the premise below was wrong.**
+  It was exercised in full on `Pixel_9b_clean` with a second Google account: the dialog was raised 5 times,
+  dismissal kept local progress every way the platform allows, the replace path wiped and re-imported correctly,
+  and D-03 held throughout. See `.planning/reports/phase-14/qa-engineer-account-swap.md`.
+  The lever is not the app and not the Play Games app (which is not even installed on that AVD): it is GMS's own
+  settings surface, `am start -n com.google.android.gms/.games.ui.settingsv2.GamesSettingsActivity` -> Sign In
+  Management -> "Change the account by game" -> this game -> "Ask each time". Changing the *default* games
+  account does nothing; the per-game binding is what the game resolves through. The same lever also unblocks
+  Phase 11 test 2, blocked since 2026-09-15. The original text is kept below because its reasoning was the
+  reason the gap stood for six days.
+
+  Original note — **not exercisable on this setup.** The one dialog this milestone reserves (shown when `session` resolves to a **different** player id than the one local progress was last merged with, offering "Keep this device's progress" vs "Use [account]'s cloud progress") cannot be produced here: it needs a **second Google account on the device that has never authorised the game**, and one does not exist. Same root cause as Phase 11 test 2 — one account, already authorised for the game, so neither the chooser path nor the alternate-player path can be reached. Covered instead by JVM tests over `FakeGamesService.emitSession(SignedIn(playerId = "other"))` in plans 13-08 and 13-10, which exercise the dialog's state, the dismissal-means-keep default (D-13) and the replace path's wipe (D-14) without a device. Recorded rather than dropped: if a second account ever exists, this is the test to run.
