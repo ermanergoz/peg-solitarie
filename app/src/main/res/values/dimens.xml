@@ -51,6 +51,26 @@
     <dimen name="onboarding_illustration_size">160dp</dimen>
 
     <!--
+      ================= Phase-15 tokens: the interactive tutorial =================
+      ux-spec §6.1. All multiples of 4, one token per owner even where an existing token
+      shares the value (this file's own convention).
+    -->
+    <!--
+      Square edge of the tutorial's interactive board slab. The largest tutorial footprint
+      is 3x3, so this gives ~93dp cells — comfortably above the 48dp touch-target floor,
+      which is why no Classic footprint could serve here (the smallest is 33 holes in a 7x7
+      box, i.e. 40dp cells at this size).
+    -->
+    <dimen name="tutorial_board_size">280dp</dimen>
+    <!--
+      Reserved caption height. Reserved rather than wrapped so a 1-to-2-line caption swap
+      between steps never reflows the board the player is mid-tap on.
+    -->
+    <dimen name="tutorial_caption_min_height">48dp</dimen>
+    <!-- One step progress pip. The row is decorative; it speaks once as a single node. -->
+    <dimen name="tutorial_step_pip_size">12dp</dimen>
+
+    <!--
       Phase-4 token: min height of the inline no-win/stuck rescue banner (multiple of 4)
       so its three actions (Undo · Restart · Home) stay tap-reachable (UI-SPEC §4).
     -->

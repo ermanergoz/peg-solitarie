@@ -224,6 +224,75 @@ class NavFlowTest {
     }
 
     @Test
+    fun theTutorialDestinationPopsBackToWhereItWasEnteredFrom() {
+        composeRule.setContent {
+            navController = rememberNavController()
+            AppNavHost(
+                navController = navController,
+                homeContent = { _, _, _, _, onOpenSettings -> StubDestination(HOME_TAG) { onOpenSettings() } },
+                catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
+                gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
+                resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
+                settingsContent = { _ -> StubDestination(SETTINGS_TAG) {} },
+                tutorialContent = { onExit -> StubDestination(TUTORIAL_TAG) { onExit() } },
+            )
+        }
+
+        // Entered from Home (the first-run auto-start path) → pops back to Home.
+        composeRule.waitForIdle()
+        openTutorial()
+        assertThat(currentRoute()).contains(TUTORIAL_ROUTE)
+        composeRule.onNodeWithTag(TUTORIAL_TAG).performClick()
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(HOME_ROUTE)
+
+        // Entered from Settings (the D-02a replay path) → pops back to SETTINGS, not Home.
+        composeRule.onNodeWithTag(HOME_TAG).performClick()
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(SETTINGS_ROUTE)
+        openTutorial()
+        assertThat(currentRoute()).contains(TUTORIAL_ROUTE)
+        composeRule.onNodeWithTag(TUTORIAL_TAG).performClick()
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(SETTINGS_ROUTE)
+    }
+
+    @Test
+    fun theTutorialDestinationsOnlyOutboundEdgeIsAPopBackToItsEntryPoint() {
+        composeRule.setContent {
+            navController = rememberNavController()
+            AppNavHost(
+                navController = navController,
+                homeContent = { _, _, _, _, _ -> StubDestination(HOME_TAG) {} },
+                catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
+                gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
+                resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
+                settingsContent = { _ -> StubDestination(SETTINGS_TAG) {} },
+                tutorialContent = { onExit -> StubDestination(TUTORIAL_TAG) { onExit() } },
+            )
+        }
+
+        composeRule.waitForIdle()
+        openTutorial()
+
+        // §5.1 prohibition 4: the destination's ONE action is the exit, and firing it lands
+        // on the entry point — never on Results, Gameplay or the catalogue. A tutorial that
+        // could reach Results could bank a star, and a banked tutorial star corrupts the
+        // Home Stars pill on the player's very first launch.
+        composeRule.onNodeWithTag(TUTORIAL_TAG).performClick()
+        composeRule.waitForIdle()
+
+        val route = currentRoute()
+        assertThat(route).contains(HOME_ROUTE)
+        listOf(RESULTS_ROUTE, GAMEPLAY_ROUTE, CATALOG_ROUTE).forEach { forbidden ->
+            assertThat(route).doesNotContain(forbidden)
+        }
+        // And the tutorial entry is genuinely off the stack, not merely covered.
+        assertThat(navController.currentBackStack.value.mapNotNull { it.destination.route })
+            .doesNotContain(TUTORIAL_ROUTE)
+    }
+
+    @Test
     fun challengeRetryReloadsSameBoardWithoutGrowingBackStack() {
         composeRule.setContent {
             navController = rememberNavController()
@@ -373,6 +442,19 @@ class NavFlowTest {
     /** The current destination's serialized route pattern (its `@Serializable` qualified name). */
     private fun currentRoute(): String = navController.currentDestination?.route.orEmpty()
 
+    /**
+     * Pushes the Tutorial destination from whatever is currently on top.
+     *
+     * Driven from the test rather than from a production affordance on purpose: the two
+     * `navigate(Tutorial)` call sites (Home's first-run auto-start and the Settings row) land
+     * in the entry-point slice. What this slice owns — and what these two tests are about — is
+     * the destination itself and its single outbound edge.
+     */
+    private fun openTutorial() {
+        composeRule.runOnUiThread { navController.navigate(Tutorial) }
+        composeRule.waitForIdle()
+    }
+
     /** The route pattern one entry down — where system Back from the current screen lands. */
     private fun previousRoute(): String =
         navController.previousBackStackEntry
@@ -444,6 +526,9 @@ private const val GAMEPLAY_TAG = "stub_gameplay"
 private const val RESULTS_TAG = "stub_results"
 private const val SETTINGS_TAG = "stub_settings"
 
+/** The Tutorial stand-in destination's tag; its one action is the exit (D-01g). */
+private const val TUTORIAL_TAG = "stub_tutorial"
+
 // Each route's serialized pattern is its fully-qualified class name; the simple name is
 // a stable, unambiguous substring of `currentDestination.route` for the reachability check.
 private const val HOME_ROUTE = "Home"
@@ -451,6 +536,9 @@ private const val CATALOG_ROUTE = "ClassicCatalog"
 private const val GAMEPLAY_ROUTE = "Gameplay"
 private const val RESULTS_ROUTE = "Results"
 private const val SETTINGS_ROUTE = "Settings"
+
+/** The Tutorial route's serial name fragment. */
+private const val TUTORIAL_ROUTE = "Tutorial"
 
 /** A real catalog id, proving navigation carries the selected board through the graph. */
 private val SELECTED_LEVEL_ID = ClassicLevelIds.EUROPEAN37

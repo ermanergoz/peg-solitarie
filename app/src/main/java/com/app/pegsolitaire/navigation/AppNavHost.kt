@@ -9,6 +9,7 @@ import androidx.navigation.compose.rememberNavController
 import com.app.pegsolitaire.ui.classic.ClassicCatalogRoute
 import com.app.pegsolitaire.ui.game.GameRoute
 import com.app.pegsolitaire.ui.home.HomeRoute
+import com.app.pegsolitaire.ui.onboarding.TutorialRoute
 import com.app.pegsolitaire.ui.results.ResultsRoute
 import com.app.pegsolitaire.ui.settings.SettingsRoute
 
@@ -62,6 +63,7 @@ private typealias ResultsContent =
  * @param gameplayContent the Gameplay destination body (defaults to [GameRoute]).
  * @param resultsContent the Results destination body (defaults to [ResultsRoute]).
  * @param settingsContent the Settings destination body (defaults to [SettingsRoute], D-14).
+ * @param tutorialContent the Tutorial destination body (defaults to [TutorialRoute], D-01g).
  */
 @Composable
 fun AppNavHost(
@@ -97,6 +99,9 @@ fun AppNavHost(
     settingsContent: @Composable (onBack: () -> Unit) -> Unit = { onBack ->
         SettingsRoute(onBack = onBack)
     },
+    tutorialContent: @Composable (onExit: () -> Unit) -> Unit = { onExit ->
+        TutorialRoute(onExit = onExit)
+    },
 ) {
     NavHost(navController = navController, startDestination = Home) {
         composable<Home> {
@@ -116,6 +121,14 @@ fun AppNavHost(
         composable<Settings> {
             // settingsContent slot: onBack (pops back to Home, D-14)
             settingsContent { navController.popBackStack() }
+        }
+        composable<Tutorial> {
+            // tutorialContent slot: onExit — and NOTHING else. `popBackStack()` is the
+            // destination's only outbound edge (§5.1 prohibition 4), which lands the player
+            // back where they entered from: Home on first run, Settings on a replay. Any
+            // forward navigation call added here would give the tutorial a route to a screen
+            // that can bank a star, so the grep gate over this block must stay at zero.
+            tutorialContent { navController.popBackStack() }
         }
         composable<ClassicCatalog> {
             // catalogContent slot: onSelect, onNavigateBack
