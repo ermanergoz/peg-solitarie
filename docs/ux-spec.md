@@ -83,6 +83,24 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > The new-strings table is untouched at thirteen rows, and no count in this document states a
 > different number.
 >
+> **Third revision — 2026-09-21 (tutorial tap semantics; one false reason retired).** Two items the
+> developer's S1–S4 build surfaced (`.planning/reports/phase-15/android-game-dev-s1-s4.md`,
+> Deviation 3 and its "Noted tension"). **(1)** §4.1 now rules an interaction this document had
+> never specified — a tap on a **second** peg while one is already selected — and rules it to
+> **match the gameplay board**: the held peg stays held and the tap is non-progressing, because the
+> tutorial's premise is fidelity to the real mechanic and a tap rule *is* the mechanic. §4.4's
+> escalation gains the one clause that makes that ruling actionable (it releases a held peg that
+> cannot move), classes 1 and 2 are widened to say so, and §14 gains criterion **3a** plus a clause
+> in criterion 3. **This differs from what S4 built**, which re-selects the second peg; the change
+> is the developer's to make and the producer's to route. **(2)** D-01i's stated reason for the
+> silent `Hint` cue was **factually wrong** — it rested on "`hintSource` never transitions", and
+> §4.4's escalation transitions exactly that field by design
+> (`TutorialViewModel.kt:270-279`). **The audio ruling itself is untouched and still tested**; only
+> the reason is replaced with the true one (no `Hint` cue effect is hosted on the screen at all).
+> Checked while there: the false premise appears in exactly one sentence in this document, and
+> D-01b's own "`showHints` is forced on" (§3, §4.1) is true and makes no claim about `hintSource`.
+> No other decision is reopened; §5.1 and the audio ruling's substance are not touched.
+>
 > Out of scope here and **not** absorbed into this document: rules/audio.md makes
 > `docs/audio-spec.md` the cue list of record and that file has never existed on any branch. The
 > gap predates phase 15, belongs to the sound-designer, and the producer is tracking it
@@ -257,11 +275,40 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   | A peg is selected / put back down | `Select`, `Deselect` | **Silent** — D-01h upheld |
   | A peg with no legal jump is tapped; an illegal destination is tapped | `InvalidTap` | **Silent** — D-01h upheld |
   | Undo | `Undo` | **Silent** — there is no Undo in the tutorial at all (§5) |
-  | A hint is revealed | `Hint` | **Silent** — `showHints` is forced on (D-01b), so nothing is ever *revealed* and `hintSource` never transitions |
+  | A hint is revealed | `Hint` | **Silent** — the tutorial hosts **no `Hint` cue effect at all**: `HintSound` is private to `GameScreen` (`GameScreen.kt:372-377`, called at `:162`), which §5.1 forbids the tutorial from hosting, and §5's allow-list for this screen is `Jump`, `PegRemove`, `ButtonForward`, `ButtonDismiss` and nothing else. There is also no Hint control for a player to press (§4.1 — the tutorial has no dock). *(Reason corrected 2026-09-21 — see the note below the table; the verdict is unchanged.)* |
   | The completion star, end of T3 | `StarPop`, `Win` | **Silent** — D-01h upheld; a tutorial is not a victory and D-14's two-beat celebration belongs to a real solve |
   | The completion CTA ("Got it") | `SoundCue.ButtonForward` | **Fires** — the gap D-01h left, now ruled |
   | `Skip`, on any step | `SoundCue.ButtonDismiss` | **Fires** — same ruling |
   | System back | — | **Silent**: there is no button press to sound. It is the same exit path (D-01d), not the same event. |
+
+  **Why the `Hint` row's reason changed — corrected 2026-09-21, verdict untouched.** The row's
+  first wording gave the reason as "`showHints` is forced on (D-01b), so nothing is ever *revealed*
+  and `hintSource` never transitions". Both halves are false on this screen, and the second is
+  false in the code. §4.4's escalation is required to make "the source ring pulse **and** the
+  destination dot brighten", and §10 requires it to do that with the board's **own** highlight
+  idiom rather than a new one — which is `hintSource`/`hintTarget`. The tutorial's state holder
+  therefore sets both, by design (`TutorialViewModel.kt:270-279`, the update at `:276`; cleared
+  again on the next jump at `:200`). The escalation is also a *reveal* in the only sense that
+  matters here: it shows a move for a peg the player has **not** selected, which forced-on
+  `showHints` never draws — forcing the dots on draws the destinations of the *selected* peg and
+  says nothing about any other.
+
+  **The ruling is unchanged, and it is the ruling the tests already pin**
+  (`theTutorialPlaysNoSelectDeselectInvalidTapOrUndoCueOnAnyStep` asserts `Hint`'s absence
+  directly, §13). What changes is only the reason, because the silence never rested on the state at
+  all — it rests on **where the cue effects live**. Five of the six board cue effects, `HintSound`
+  among them, are still `private` to `GameScreen.kt` (`:310-394`); the single one lifted is the jump
+  pair, called once from the tutorial (`TutorialScreen.kt:105`). A screen that hosts no `Hint`
+  effect cannot play `Hint` however its state moves.
+
+  Two consequences worth keeping, which the false reason hid. **First, the silence is one lift
+  away from breaking:** `HintSound` is keyed on `hintSource` and plays on any transition to
+  non-null (`GameScreen.kt:374-375`), so lifting *it* the way the jump effect was lifted would make
+  the coach audible the same day — which is exactly why §13's allow-list grep and criterion 7d are
+  the guards, and not this paragraph. **Second, a reason that is wrong is worse than no reason:** it
+  invites the next reader to re-derive the ruling from a premise the code contradicts, find the
+  contradiction, and conclude the *ruling* is stale. The developer who built S4 hit precisely that
+  and flagged it (`.planning/reports/phase-15/android-game-dev-s1-s4.md`, "Noted tension").
 
   **Why the jump cue fires.** The decisive reason is not taste: `.planning/REQUIREMENTS.md:38`
   (SOUND-01) reads "Player hears a jump sound on **every** peg jump, pitch-varied so repeated
@@ -610,6 +657,55 @@ from the current `TutorialBoards` footprint. `GameUiState` here is a **UI model*
 that the game's own state holder is involved; D-01a's "a real `GameUiState` and the real rules
 engine" means exactly that and nothing more (D-01g, §5.1).
 
+**Tap semantics — identical to the real game** *(ruled 2026-09-21; the first edition left the
+fourth row below unspecified)*. The board answers five tap kinds, and it answers them exactly as
+the gameplay board does, in the gameplay board's own branch order
+(`GameViewModel.kt:788-796` documents the rule, `:797-825` is the code):
+
+| The player taps | Answer |
+|---|---|
+| the selected peg again | it is put back down — **the only deselect** |
+| a legal destination dot | the jump runs |
+| any peg while **nothing** is selected | it selects and its legal destinations draw — zero of them if it cannot move (§4.4 class 1) |
+| **a different peg while one is already selected** | **nothing changes.** The held peg stays held, no dots move, and the tap is a non-progressing tap (§4.4 class 2) that feeds the escalation. It does **not** move the selection. |
+| anything else — a hole that is not a legal destination, an out-of-play cell | nothing changes; non-progressing (§4.4 class 2) |
+
+The fourth row is the ruling, and it is ruled **to match gameplay rather than to be friendlier
+than gameplay**. `GameViewModel.onCellTap` selects only while nothing is selected
+(`GameViewModel.kt:817`) and answers every other tap with the no-op that the quiet invalid-tap
+ordinal records (`:823`); its own KDoc states the rule in full — "re-tapping the selected peg is
+the ONLY way to deselect, and tapping a DIFFERENT peg while one is selected is a no-op"
+(`:788-796`) — which is the tap rule quick task `260628-n4f` locked. Three reasons the tutorial
+does not get a gentler rule of its own:
+
+1. **Fidelity is the premise, and a tap rule is the mechanic, not the chrome.** D-01/D-01a stake
+   the design on the real canvas and the real engine so that "what the player learns is literally
+   the mechanic they will use", and D-01i refused to let audio be "the sole deliberate
+   divergence". Re-selection would be a stronger divergence than any cue: it is a **gesture the
+   tutorial would teach and the game would then refuse**.
+2. **The divergence would bite immediately, not rarely.** A peg with no hole two cells past a
+   neighbour cannot move, so "the peg I tapped cannot move" is the *ordinary* case on a full
+   board — §4.4 already notes it fires on T2's middle peg and on three of T3's five, and on
+   English-33's opening most of the 32 pegs are that peg. A graduate who was taught "tap another
+   peg to switch" therefore meets the refusal within their first few taps of their first real
+   board, where it also plays the `InvalidTap` cue the tutorial withholds.
+3. **Matching costs nothing.** Recovery is one tap — put the held peg down, then pick the other
+   one — and that recovery *is* the game's, so the extra tap teaches the deselect gesture rather
+   than hiding it. Nothing is lost, no progress is undone, and §4.4's escalation exists for the
+   player who does not find it on their own; it now carries the one clause (the release) that
+   makes it actionable while a peg is held.
+
+**Consequence for the build.** `TutorialViewModel.onCellTap` currently takes the other branch —
+"any other peg SELECTS, including while another peg is already held"
+(`TutorialViewModel.kt:119-136`, the branch at `:133`) — a decision the developer had to make at
+the keyboard because this document had no line to consult
+(`.planning/reports/phase-15/android-game-dev-s1-s4.md`, Deviation 3). The report is right about
+the situation it names and wrong about the remedy: the player holding an immovable peg is freed by
+the coach's release (§4.4), not by the board reinterpreting their next tap. This ruling supersedes
+that choice and the branch comes out; the tutorial's non-progressing answer stays **silent**, as
+§4.4 class 2 requires — matching the game's *semantics* never means importing its `InvalidTap`
+cue (D-01i).
+
 **The jump the player hears.** A **completed** jump plays the game's own jump pair — the pitched
 `SoundCue.Jump` with `SoundCue.PegRemove` layered beneath it — on every step, including each of
 T3's four jumps, and with the same pitch ladder when the same peg jumps twice in a row (D-01i,
@@ -783,9 +879,27 @@ never correction:
 
 | Class | Answer |
 |-------|--------|
-| Tapped a peg with no legal jump | The peg selects and draws zero destination dots. After `TutorialAnim.NUDGE_DELAY_MS` with no progress, the coachable peg's ring re-pulses. **Silent** (D-01h, upheld by D-01i) — the ring and the absent dots are the whole answer, and no `Select` cue fires either. |
-| Tapped an illegal destination while a peg is selected | The legal dots re-pop and the selection is kept. Nothing is lost, nothing is announced as wrong. **Silent** (D-01h, upheld by D-01i): the in-game `InvalidTap` cue is deliberately *not* carried into the tutorial, because a rejection sound is the one channel that would make a wrong tap feel like a failure — which D-01c forbids. This is the one reason in D-01h that carried its own weight, and D-01i upholds it without reservation. |
-| Three consecutive non-progressing taps in a step | The coach escalates once: the source ring pulses **and** the destination dot brightens **and** the caption re-shows the step's own caption. It never escalates past this, it never blocks, and **it never mentions Undo** — no tutorial board can box the player in, so there is nothing to be rescued from, and promising a rescue from an impossible failure teaches the player to expect failure. |
+| Tapped a peg with no legal jump | The peg selects and draws zero destination dots. After `TutorialAnim.NUDGE_DELAY_MS` with no progress, the coachable peg's ring re-pulses — and if the immovable peg is **still held** at that moment, the escalation puts it back down first (the release clause in class 3 below), so the peg the coach points at can be tapped straight away. **That release, not a second tap rule, is how a player holding an immovable peg is freed** (§4.1 "Tap semantics"). **Silent** (D-01h, upheld by D-01i) — the ring and the absent dots are the whole answer, and no `Select` or `Deselect` cue fires either. |
+| Tapped anything that is not a legal destination while a peg is selected — an illegal hole, an out-of-play cell, **or another peg** | The legal dots re-pop and the selection is kept. Nothing is lost, nothing is announced as wrong. **Another peg belongs to this class and is not a re-selection** (§4.1 "Tap semantics", ruled 2026-09-21): the held peg stays held, exactly as on the gameplay board (`GameViewModel.kt:788-796`, `:817`, `:823`), and recovery is the game's own — re-tap the held peg to put it down, then tap the other. **Silent** (D-01h, upheld by D-01i): the in-game `InvalidTap` cue is deliberately *not* carried into the tutorial, because a rejection sound is the one channel that would make a wrong tap feel like a failure — which D-01c forbids. This is the one reason in D-01h that carried its own weight, and D-01i upholds it without reservation. |
+| Three consecutive non-progressing taps in a step (`TutorialAnim.NON_PROGRESSING_TAPS_BEFORE_COACH`), or `TutorialAnim.NUDGE_DELAY_MS` of idleness | The coach escalates once: the source ring pulses **and** the destination dot brightens **and** the caption re-shows the step's own caption. It never escalates past this, it never blocks, and **it never mentions Undo** — no tutorial board can box the player in, so there is nothing to be rescued from, and promising a rescue from an impossible failure teaches the player to expect failure. |
+
+**The release clause** *(ruled 2026-09-21, with §4.1's tap semantics)*. **When the escalation fires
+while a peg is held that is *not* the peg the coach is about to point at, the escalation puts that
+peg back down**, silently, in the same state change that raises the ring — and it applies to both
+triggers above, the tap count and the idle nudge alike.
+
+Without it the help is unreachable rather than merely slow: while a peg is held, a tap on the
+pulsing peg is class 2 above and changes nothing, so the coach would be pointing at a peg the
+player cannot pick up, and every further tap would re-escalate onto the same unreachable
+suggestion. Releasing is "more help, never less", which is what class 3 already promises. The one
+case it must **not** release is when the held peg *is* the coached source — the player has already
+selected correctly and only needs to find the dot — because letting go there would undo a correct
+selection and make the help worse.
+
+This diverges from nothing: escalating assistance is tutorial-only — the gameplay board's
+equivalent is the dock's Hint control, specified earlier in this section — so unlike a tap rule it
+has no gameplay counterpart it could contradict. It is also silent: no `Deselect` cue and no `Hint`
+cue exist on this screen to fire (§5, D-01i).
 
 Expect class 1 to fire on T2 and T3 in normal use: T2's middle peg, and **three of T3's five
 pegs** — (1,0), (1,1) and (1,2), since all three of T3's legal openings start at (0,0) or (0,1) —
@@ -1407,8 +1521,17 @@ Observable truths a QA engineer can check on a device, in the roadmap's house ph
    the tutorial without both. (ONB-01, D-01b)
 3. On **T2**, tapping the middle peg — which has no legal jump — selects it, draws no destination
    dots, and produces no error, no red, no dialog and no lost progress; after a pause the tutorial
-   re-pulses a peg that *can* move. (D-01c) *(The same holds for three of T3's five pegs — the
-   whole middle row; this is normal peg solitaire, not a defect.)*
+   re-pulses a peg that *can* move **and puts the tapped peg back down**, so the pulsing peg can be
+   tapped straight away rather than through a peg the player is still holding. (D-01c, §4.4 release
+   clause) *(The same holds for three of T3's five pegs — the whole middle row; this is normal peg
+   solitaire, not a defect.)*
+
+3a. With a peg already selected on **T2** or **T3**, tapping a **different** peg changes nothing:
+    the first peg stays selected, its dots (if any) stay as they were, and no error, no red and no
+    sound appear. Re-tapping the held peg puts it down, and the other peg then selects normally.
+    **This is the gameplay board's behaviour, checked the same way on both screens** — on a real
+    game, select a peg and tap another one: the selection does not move there either. (§4.1 "Tap
+    semantics", §4.4 class 2, D-01a)
 4. Three consecutive taps that make no progress cause the tutorial to show more help, not less;
    the player is never blocked from continuing; and the help **never mentions Undo** or tells the
    player they are stuck. (D-01c, §4.4)
