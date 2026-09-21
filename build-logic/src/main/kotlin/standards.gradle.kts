@@ -48,9 +48,12 @@ extensions.configure<DetektExtension> {
 //    are not a working substitute either;
 //  - `detektDebug`/`detektRelease` each re-analyse `src/main`, so every main-source
 //    finding would be reported two or three times, and they add type resolution (and a
-//    compile classpath) to what is otherwise a parse-only gate;
-//  - `detektRelease`'s NAME matches `app/build.gradle.kts`'s `contains("elease")` ad-ID
-//    guard, so it cannot be invoked directly without real AdMob IDs.
+//    compile classpath) to what is otherwise a parse-only gate.
+// A fourth reason used to be listed here and is now FALSE, recorded so it is not
+// rediscovered as a fact: `detektRelease`'s name once matched `app/build.gradle.kts`'s
+// `contains("elease")` release gate, so it could not be invoked without real AdMob IDs.
+// That gate is now a packaging-verb test (`ReleaseInvocation`), `detektRelease` is
+// directly invocable, and reason 1 above was decisive on its own anyway.
 // Widening keeps one task, one config, one report, and one name in `check`, and matches
 // every other gate in this file: a list of relative source roots filtered to those that
 // exist. `src/main` and `src/test` are already covered by detekt's defaults; a new
