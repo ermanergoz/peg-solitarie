@@ -4,6 +4,7 @@ phase: 15
 slug: ux-refresh
 status: draft
 created: 2026-09-21
+revised: 2026-09-21
 stack: android-compose-game
 design-system: docs/ui/DESIGN-SYSTEM.md
 ---
@@ -11,8 +12,8 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 # Peg Solitaire — UX Specification
 
 > The studio's UX contract for Peg Solitaire (rules/studio.md: the ux-designer owns screen
-> inventory, layout, interaction model, feedback, theme and accessibility). This first edition
-> is written for the **phase-15 five-part UX refresh** the founder asked for; it specifies the
+> inventory, layout, interaction model, feedback, theme and accessibility). It is written for the
+> **phase-15 five-part UX refresh** the founder asked for; it specifies the
 > surfaces that refresh touches completely and references — never re-specifies — everything
 > Phases 1–14 already locked.
 >
@@ -31,6 +32,23 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > than one phase's deltas. It follows the `09-UI-SPEC.md` section order so a reader moving
 > between the two is never surprised. If the producer wants a phase-scoped copy, this file is
 > the source and `15-UI-SPEC.md` is a pointer to it — not a fork.
+>
+> **Amendments — revised 2026-09-21.** This edition folds in two rulings the first edition had
+> deliberately routed out of its own authority:
+>
+> - `.planning/reports/phase-15/game-designer-tutorial-boards.md` — the tutorial's board content
+>   (§7 R-4), now closed: three boards proven dead-end-free to one peg by exhaustive enumeration.
+> - `.planning/reports/phase-15/tech-lead-architecture.md` — four architecture rulings: how the
+>   tutorial is hosted (D-01f/R-5), how the Home progress values are read (§7 R-1/R-2), how the
+>   cold-start gate is measured (§6.5, criterion 15e), and the screenshot-suite question (§13).
+>
+> Each ruling is authoritative in its own domain and is **integrated, not re-argued**; where one
+> forced a change to a screen, the screen's answer is this role's and is stated here. Per the
+> house style in §3, no earlier decision is rewritten in place: the new rulings are filed as
+> **D-01g, D-01h and D-03h** with their date, and the decisions they amend carry a one-line
+> pointer. Consequences that follow from the rulings but were not themselves proposed as a diff
+> — the tutorial's negative contract in §5.1, the tutorial's audio decision, and the §14 criteria
+> the new boards and the new gate make wrong or unverifiable — are applied here too.
 
 ---
 
@@ -56,7 +74,7 @@ The founder's words, verbatim:
 
 | # | Screen | Status this refresh | Files |
 |---|--------|---------------------|-------|
-| 1 | **Tutorial** | **Rewritten.** Was a static illustrated sheet; becomes an interactive coached micro-board flow. Promoted from "a scrim+sheet over Home" to a screen in its own right. | `ui/onboarding/OnboardingOverlay.kt` (replaced), new `ui/onboarding/Tutorial*.kt` |
+| 1 | **Tutorial** | **Rewritten.** Was a static illustrated sheet; becomes an interactive coached micro-board flow. Promoted from "a scrim+sheet over Home" to a screen in its own right — and, since D-01g, to a nav destination of its own. | `ui/onboarding/OnboardingOverlay.kt` (replaced), new `ui/onboarding/Tutorial*.kt` incl. `TutorialViewModel`, a `Tutorial` entry in `Routes.kt` + `AppNavHost.kt`, and `object TutorialBoards` in `:domain` |
 | 2 | **Home** | **Recomposed.** Top bar deleted; hero, progress ribbon and tile art added; mode tiles unchanged in behaviour. | `ui/home/HomeScreen.kt`, `ui/home/ModeGlyphs.kt` |
 | 3 | **Gameplay** | **Chrome replaced.** `TopAppBar` deleted; a status strip and an action dock take its place. Board, rules, animation, dialogs, banner, snackbar all unchanged. | `ui/game/GameScreen.kt`, `ui/game/{Hint,HintToggle,Undo,Restart}Control.kt` |
 | 4 | **Settings** | **One row added** (How to play) + one stale supporting line fixed. | `ui/settings/SettingsScreen.kt` |
@@ -94,6 +112,9 @@ Decisions are never rewritten in place; a later ruling is filed as `D-nna` with 
   overrides its caller's size with `catalog_preview_size` 96dp (`BoardPreview.kt:79`) — which is
   why the `onboarding_illustration_size` 160dp token the overlay passes at
   `OnboardingOverlay.kt:144` has never had any effect on screen.
+  *(Clarified 2026-09-21 — see D-01g and §4.1 "The board the tutorial drives": the `GameUiState`
+  this ruling names is a **UI model assembled by `TutorialViewModel`**. It is not licence to host
+  `GameScreen` or to reach for `GameViewModel`, both of which §5.1 forbids.)*
 
 - **D-01b:** Steps are **T1 one jump → T2 the other axis → T3 clear it**, in that order, each with
   exactly one lesson. `showHints` is forced **on** inside the tutorial regardless of the persisted
@@ -127,7 +148,48 @@ Decisions are never rewritten in place; a later ruling is filed as `D-nna` with 
   would put a playable board inside the screen whose own job is mode selection. **The hosting
   mechanism — a `@Serializable` nav destination versus a full-screen composable switched above
   the `NavHost` — is the tech-lead's call, not mine**; §4.1 specifies what the player sees either
-  way, and §8 lists the one sequencing invariant the mechanism must preserve.
+  way, and §7 lists the one sequencing invariant the mechanism must preserve.
+  *(Answered 2026-09-21 — see D-01g. The player-facing contract in §4.1 is unchanged by the
+  answer; D-01a's board contract is clarified there.)*
+
+- **D-01g** *(2026-09-21 — tech-lead ruling, `tech-lead-architecture.md` §1/§1a, folded in)*: the
+  tutorial is a **`@Serializable` nav destination** (`composable<Tutorial>` in `AppNavHost`) with
+  a `@HiltViewModel` **`TutorialViewModel`** scoped to that destination; step state lives in a
+  plain `MutableStateFlow` and **not** in `SavedStateHandle`. Three player-visible consequences
+  are now contract rather than mechanism, and §4.1 and §14 state them:
+  1. **A replay from Settings always starts at T1.** A destination-scoped ViewModel is cleared on
+     pop, so a player who skipped at T2 and later taps Settings › How to play gets a fresh T1 —
+     the bug an Activity-scoped holder would have shipped.
+  2. **The exit persists before it leaves.** `markSeen()` is awaited — on the application scope,
+     so a cancelled screen cannot drop it — and only then does the screen pop. Skip, system back
+     and the completion CTA are one function with three callers, latched so a double exit is a
+     no-op. Without this, Home re-pushes the tutorial the moment it recomposes, and the player is
+     in a loop; that loop is a UX failure, which is why it is restated here and not only in §7.
+  3. **The tutorial never runs the game's own screen or state holder.** It hosts `BoardCanvas`
+     and never `GameScreen`; its state holder is `TutorialViewModel` and never `GameViewModel`.
+     This is a **hard contract**, stated as a prohibition in §5.1 — not a preference — because
+     `GameViewModel`'s `Won` path clears the mode's resume snapshot and advances the Challenge
+     ladder (`GameViewModel.kt:956-975`: `clearSnapshot()` at `:963`,
+     `challengeProgress.advancePast(...)` at `:973`). Every tutorial step ends on one peg, so a
+     tutorial routed through `GameViewModel` would fire that path **three times per run** and
+     destroy two of the three cloud-save device oracles §4.2.1 exists to protect.
+  — Hosting is the tech-lead's authority and this spec routed it there; what comes back into this
+  document is only what the player can see or lose.
+
+- **D-01h** *(2026-09-21 — UX decision)*: **the tutorial board is silent.** No `Select`, `Jump`,
+  `PegRemove`, `InvalidTap` or `Undo` cue plays anywhere in the tutorial, and no cue is added to
+  `BoardCanvas`. — Every sound cue in the game is played by a private effect in `GameScreen`
+  (`GameScreen.kt:327-428`); `BoardCanvas` contains no `SoundCue` reference at all, so a tutorial
+  hosting the canvas is silent unless a second screen re-implements those effects. Three reasons
+  to take the silence deliberately rather than inherit it: rules/audio.md says nothing plays that
+  the spec does not name, so silence is compliant; every tutorial event already carries visual
+  feedback (the selection ring, the legal-destination dots, the jump slide, the removal fade), so
+  the "sound is never the only feedback" rule is satisfied with room to spare; and an `InvalidTap`
+  cue would contradict D-01c, which says a wrong tap is never a failure — a rejection sound is the
+  one channel that would make it feel like one. The first sound the player hears is therefore the
+  first jump of their first **real** board, which is the right moment for it. §4.4's tutorial
+  wrong-tap rows and §9's audio row are amended to match. Revisiting this is the sound-designer's
+  to propose and mine to rule on; it is not a founder question.
 
 ### The info button (NAV-01, D-15 superseded)
 
@@ -198,6 +260,8 @@ Decisions are never rewritten in place; a later ruling is filed as `D-nna` with 
   finished a level, and its `totalStars` is a deliberate both-modes sum with no `WHERE`
   (`LevelResultDao.kt:66`) that cannot answer "Classic boards cleared". §7 lists the exact
   requirement.
+  *(Amended 2026-09-21 — see D-03h. Every conclusion above stands, including the refusal of
+  `aggregate()`; only the read **mechanism** — a client-side fold — is superseded.)*
 
 - **D-03e:** Home **does not** show Play Games sign-in state. — The flow exists
   (`GamesService.session`, `GamesService.kt:69`; `GamesSignInState.SignedIn.displayName`,
@@ -227,6 +291,25 @@ Decisions are never rewritten in place; a later ruling is filed as `D-nna` with 
   Home that misses C1 has failed, so the budget is designed in rather than discovered at the gate.
   §6.5 states the budget, the risk and the ordered degradation path if measurement shows a
   regression.
+
+- **D-03h** *(2026-09-21 — tech-lead ruling, `tech-lead-architecture.md` §2/§3, folded in)*: the
+  two derived ribbon values come from **one `Flow`-returning SQL aggregate**
+  (`ProgressRepository.observeHomeProgress()` over `LevelResultDao.observeHomeProgress`), not from
+  a client-side fold over `observeResults`. D-03d's conclusions are unchanged — no schema change,
+  no migration, no new column, no new DataStore key, no `aggregate()`, one collection for both
+  pills, placeholder-first — and so is every pixel of §4.2. Two things it changes are mine, which
+  is why it is recorded on this side of the wall and not only in the report:
+  1. **The placeholder rule gets stronger, not weaker.** A failed read must render `—`, never
+     `0`: the new repository member carries the same fail-degraded `.catch { … }` contract
+     `observeResults` has, so "database unavailable" and "no stars yet" stay distinguishable on
+     screen. A `0` shown to a player who has earned forty stars is a lie about their own progress
+     on the first screen they see. §14 gains a criterion for it.
+  2. **The cold-start risk §6.5 named is the one that retires.** The fold's cost grew with the
+     player's Challenge history — invisible on a fresh install, worst on the most engaged player.
+     The aggregate is one row regardless of the ladder's length. §6.5's ordered degradation path
+     is otherwise unchanged and still ends at "the pills stay and show —".
+  — Data-layer mechanism is the tech-lead's authority; what this spec owns is what the player sees
+  while the read is slow, empty or broken, and that is stated above and in §4.2.
 
 ### In-game controls (ASST-01, ASST-02, CLAS-02, SCOR-02, proposed UX-03)
 
@@ -331,31 +414,61 @@ carries the state, so colour is not the only channel. The row is one semantics n
 
 **The three steps.**
 
-| Step | Teaches | Footprint (default — see below) | Completes when |
-|------|---------|--------------------------------|----------------|
-| **T1** | Tap a peg, tap a hole two cells away; the middle peg goes | 1×3 strip: pegs at (0,0),(0,1), hole at (0,2) — exactly one legal move | the jump lands |
-| **T2** | Jumps work on the other axis too; diagonals are never offered | 5-cell plus: in-play (0,1),(1,0),(1,1),(1,2),(2,1); pegs at (0,1),(1,1),(1,0); holes at (2,1),(1,2) — two legal moves, both correct | **any** legal jump lands |
-| **T3** | The goal is to leave one peg, and Undo exists | a small footprint whose every legal line reaches one peg | one peg remains |
+| Step | Teaches | Footprint | Completes when |
+|------|---------|-----------|----------------|
+| **T1** | Tap a peg, tap a hole two cells away; the middle peg goes | 1×3 strip: in-play (0,0),(0,1),(0,2); pegs at (0,0),(0,1); hole at (0,2) — exactly one legal move, horizontal | one peg remains (1 move) |
+| **T2** | The same jump works on the other axis, and the destination is two cells away — never the hole next door, never a diagonal | full 3×3: all nine cells in play; pegs at (0,1),(1,1); the other seven are holes — exactly one legal move, vertical | one peg remains (1 move) |
+| **T3** | The goal is to leave one peg | full 3×3: pegs at (0,0),(0,1),(1,0),(1,1),(1,2); holes at (0,2),(2,0),(2,1),(2,2) — three legal openings, every line wins | one peg remains (4 moves) |
 
-> **Board content is the game-designer's call, not mine.** T1 is safe to fix here because it is the
-> footprint already in the codebase (`OnboardingOverlay.kt:156-165`) and is trivially correct.
-> **T2 and T3's footprints are a game-designer input requirement** (§7, R-4): they must be verified
-> one-peg-reachable-from-every-legal-line by the Solver so D-01c holds structurally rather than by
-> hope. The footprints above are the *defaults* so nothing blocks; a game-designer ruling replaces
-> them without touching anything else in this section.
+> **Board content is the game-designer's ruling** (R-4, closed 2026-09-21 —
+> `.planning/reports/phase-15/game-designer-tutorial-boards.md`). All three footprints are proven
+> dead-end-free to one peg by exhaustive enumeration of every reachable position, so D-01c holds
+> **structurally**: no sequence of taps can strand the player above the target, and the tutorial
+> cannot be lost by anyone. T1 is unchanged from `OnboardingOverlay.kt:155-171`. The
+> step-completion predicate is therefore **the same for all three steps — "the board holds one
+> peg"** — so no step needs a bespoke completion rule.
+>
+> Two consequences for the screen, both this role's to state. **First, the footprints fit:** the
+> largest is 3×3, which inside `tutorial_board_size` 280dp gives ≈93dp cells — comfortably above
+> §11's 48dp floor, so no token changes (§6.1 stands). **Second, T1 and T2 each have exactly one
+> legal move.** That is deliberate — a step teaching one mechanic pays nothing for ambiguity — but
+> it means the coach must never read as a puzzle refusing the player: with `showHints` forced on
+> (D-01b), selecting the only movable peg draws exactly one destination dot, and §4.4's escalation
+> is assistance toward that dot, never correction.
+>
+> **The boards live in `object TutorialBoards` in `:domain` and are never added to
+> `Boards.CLASSIC_SPECS`** (§5, §7 R-4). That list is the Classic catalogue and the denominator of
+> the Home "Boards" pill (§7 R-2); adding a teaching board to it would change a number the player
+> reads on Home and put three miniatures on the catalogue screen.
 
 **Advance.** On completion the caption swaps, the pip advances, and the next footprint installs
 after one beat (`TutorialAnim.STEP_ADVANCE_DELAY_MS`) so the player sees their own jump land
-before the board changes. No button, no tap-to-continue.
+before the board changes. No button, no tap-to-continue. A step is complete when its board holds
+exactly one peg — the same test for all three steps, evaluated as `board.pegCount == 1` on the
+tutorial's **own** state. Not `GameStatus`, not a `minimumPegs` comparison: reaching for the
+game's status type is the first step down the path that ends at `GameViewModel`, which §5.1
+forbids outright (D-01g).
+
+**The board the tutorial drives.** `BoardCanvas` takes a whole `GameUiState`
+(`BoardCanvas.kt:87-93`), and that stays true — but the value is assembled by `TutorialViewModel`
+from the current `TutorialBoards` footprint. `GameUiState` here is a **UI model**, not evidence
+that the game's own state holder is involved; D-01a's "a real `GameUiState` and the real rules
+engine" means exactly that and nothing more (D-01g, §5.1).
 
 **Completion.** After T3: the caption becomes `tutorial_done_caption`, a single gold star pops in
 reusing the Results star vocabulary (`ClayAnim.STAR_POP_MS`, `goldGradientFill()`), and the footer
 raises one full-width `CtaGradient` button labelled with the **existing** `onboarding_got_it`
 ("Got it"). Tapping it persists `markSeen()` and leaves. `SoundCue.Win` is **not** played — a
-tutorial is not a victory, and D-14's two-beat celebration belongs to a real solve.
+tutorial is not a victory, and D-14's two-beat celebration belongs to a real solve. Nor is a star
+banked, a resume snapshot cleared or the Challenge ladder advanced: the gold star on this screen
+is an animation and nothing behind it moves (§5.1, D-01g).
 
-**Exit.** `Skip` (every step) and system back both persist `markSeen()` and leave, identically
-(D-01d). Leaving returns the player wherever they came from: Home on first run, Settings on replay.
+**Exit.** `Skip` (every step), system back and the completion CTA are **one exit path with three
+callers** (D-01d, D-01g). It persists `markSeen()` first and pops only then, so Home can never
+re-open the tutorial on the frame after the player left it; a second exit is a latched no-op.
+Popping returns the player exactly where they came from — Home on first run, Settings on replay —
+and a replay always restarts at T1, because the step state is scoped to the destination and dies
+with it.
 
 ### 4.2 Home — `HomeScreen.kt` (NAV-01, PERS-03, CHAL-05, D-03/D-03a–e)
 
@@ -373,13 +486,15 @@ when animations are off. **No info button (D-02).**
 
 | Pill | Glyph | Value | Source |
 |------|-------|-------|--------|
-| Stars | `Icons.Filled.Star` + `goldGradientFill()` | total stars earned | folded from `observeResults` (§7 R-1) |
-| Boards | existing `rememberClassicGlyph()` | Classic boards cleared `/ 5` | folded from `observeResults` (§7 R-2) |
+| Stars | `Icons.Filled.Star` + `goldGradientFill()` | total stars earned, both modes | `observeHomeProgress()` — one row, one collector (§7 R-1, D-03h) |
+| Boards | existing `rememberClassicGlyph()` | Classic boards cleared `/ 5` | the same row, same collector (§7 R-2, D-03h) |
 | Level | existing `rememberChallengeGlyph()` | the Challenge ladder position | `challengeCurrentLevel` — **exists today** |
 
 Each pill is one merged semantics node reading label-then-value ("Stars, 7"), never a bare number.
 A pill with no value yet renders `stat_value_unknown` ("—") and announces
-`stat_value_unknown_desc` ("not yet available"). The pills are **not** tappable — they are status,
+`stat_value_unknown_desc` ("not yet available"). **"Not yet" and "the read failed" render
+identically, and neither ever renders as `0`** (D-03h): a pill shows a number only once a real
+value has arrived for it. The pills are **not** tappable — they are status,
 and making them navigate would put three more competing targets on the screen the founder already
 finds busy.
 
@@ -423,7 +538,9 @@ layout compromise.
 Three readouts are the pass/fail oracles of the cloud-save device checklist
 (`11-HUMAN-UAT.md`, tests 10/11/13). They are listed here so the developer and QA both treat them
 as contract rather than decoration. **None may be moved behind a tap, an expander, a scroll
-position, an animation, or a later screen.**
+position, an animation, or a later screen** — and, since 2026-09-21, none may be *written* by the
+tutorial either: oracles 1 and 3 are exactly what `GameViewModel`'s `Won` path rewrites, which is
+why §5.1 forbids the tutorial from going near it.
 
 | # | Oracle | Where it lives after this refresh | What "survives" means |
 |---|--------|-----------------------------------|------------------------|
@@ -491,12 +608,16 @@ never correction:
 
 | Class | Answer |
 |-------|--------|
-| Tapped a peg with no legal jump | The peg selects and draws zero destination dots. After `TutorialAnim.NUDGE_DELAY_MS` with no progress, the coachable peg's ring re-pulses. No sound beyond the existing `Select`. |
-| Tapped an illegal destination while a peg is selected | The existing quiet `InvalidTap` cue (`rejectedTapTick`). The legal dots re-pop. Nothing is lost. |
-| Three consecutive non-progressing taps in a step | The coach escalates once: the source ring pulses **and** the destination dot brightens **and** the caption swaps to the step's explicit one-liner. It never escalates past this, and it never blocks. |
+| Tapped a peg with no legal jump | The peg selects and draws zero destination dots. After `TutorialAnim.NUDGE_DELAY_MS` with no progress, the coachable peg's ring re-pulses. **Silent** (D-01h) — the ring and the absent dots are the whole answer. |
+| Tapped an illegal destination while a peg is selected | The legal dots re-pop and the selection is kept. Nothing is lost, nothing is announced as wrong. **Silent** (D-01h): the in-game `InvalidTap` cue is deliberately *not* carried into the tutorial, because a rejection sound is the one channel that would make a wrong tap feel like a failure — which D-01c forbids. |
+| Three consecutive non-progressing taps in a step | The coach escalates once: the source ring pulses **and** the destination dot brightens **and** the caption re-shows the step's own caption. It never escalates past this, it never blocks, and **it never mentions Undo** — no tutorial board can box the player in, so there is nothing to be rescued from, and promising a rescue from an impossible failure teaches the player to expect failure. |
+
+Expect class 1 to fire on T2 and T3 in normal use: T2's middle peg and two of T3's five pegs have
+no legal jump at the start, which is unavoidable in any peg-solitaire opening (the jumped-over peg
+can never itself jump). It is a case QA should see, not a defect — §14 criterion 3 names the tap.
 
 During normal gameplay (outside the tutorial) wrong-tap handling is **unchanged** — the existing
-`rejectedTapTick` → `InvalidTap` path (`GameScreen.kt:393-398`).
+`rejectedTapTick` → `InvalidTap` path (`GameScreen.kt:393-398`), cue included.
 
 ### 4.5 Settings — one row added (D-02a)
 
@@ -531,11 +652,38 @@ Things a reader might expect from this spec and will not find, each on purpose:
 - **No per-board star pips on Home.** They stay on the Classic catalog, untouched (§4.2.1).
 - **Nothing on Home collapsed behind a tap or an expander.** All three device-test oracles are
   visible on first paint (D-03f).
-- **No tutorial step persisted across process death** (D-01e).
+- **No tutorial step persisted across process death** (D-01e) — and specifically **no
+  `SavedStateHandle` step cursor**, which would survive process death and resume at T2, silently
+  contradicting a decision this spec already took (D-01g).
+- **No sound anywhere in the tutorial** (D-01h). No `Select`, `Jump`, `PegRemove`, `InvalidTap`
+  or `Undo` cue, and **no `SoundCue` reference added to `BoardCanvas`** — that file has none
+  today and gaining one would put audio on the shared board component for every screen at once.
+- **No Undo control, and no copy naming Undo, anywhere in the tutorial** (§4.1, §4.4). The
+  tutorial's bands are Header / Board / Caption / Footer; there is no dock to hold one, the
+  boards make being stuck impossible, and Undo is met in the real game where it is genuinely
+  useful.
 - **No new audio asset.** Every cue this refresh needs already exists in `SoundCue` (§9).
 - **No third-party art, font or icon asset** (§9).
 - **No change to any rule, footprint, star band, score formula or generator.** Board *content* for
-  T2/T3 is a game-designer input (§7 R-4), not a UX decision.
+  all three tutorial steps is the game-designer's ruling (§4.1, §7 R-4), not a UX decision, and
+  **`TutorialBoards` is never added to `Boards.CLASSIC_SPECS`** — that list is the Classic
+  catalogue and the denominator of the Home Boards pill.
+
+### 5.1 The tutorial's hard prohibitions (D-01g) — requirements, not inferences
+
+These four are stated as a contract because the failure they prevent is silent, expensive and
+**not** recoverable by the player. They bind the developer and the reviewer equally; each is
+checkable by one grep over `app/src/main/.../ui/onboarding/`.
+
+| # | Prohibition | Why it is a contract and not a preference |
+|---|-------------|-------------------------------------------|
+| 1 | The tutorial hosts **`BoardCanvas`** and **never `GameScreen`** | `GameScreen` owns every sound cue (`GameScreen.kt:327-428`) and the whole gameplay chrome; hosting it would drag the dock, the banner, the dialogs and `SoundCue.Win` into a teaching screen. |
+| 2 | The tutorial's state holder is **`TutorialViewModel`** and **never `GameViewModel`** | `GameViewModel`'s `Won` path does three irreversible things: it emits `finished` → Results, it **clears the mode's resume snapshot** (`GameViewModel.kt:963`) and it **advances the Challenge ladder** (`:973`). Every tutorial step ends on exactly one peg, so the path would fire **three times per run**. |
+| 3 | The tutorial writes **no `LevelResult`**, clears **no resume snapshot** and calls **no ladder advance** | This is prohibition 2's consequence, stated separately because it is the damage: a first-run tutorial on a player who already has a saved Challenge game would delete their Continue chip and push their level counter forward three times. Two of the three §4.2.1 device oracles are written on that path, so the loss is not only the player's — it makes `11-HUMAN-UAT.md` tests 10/11/13 **unverifiable**, and §4.2.1 exists precisely to keep them verifiable. |
+| 4 | The tutorial has **no route to Results** | Its only outbound edge is `popBackStack()` (D-01g). A tutorial that can reach the Results screen can bank a star, and a banked tutorial star corrupts the Home Stars pill (§4.2) on the player's very first launch. |
+
+A tutorial that trips any of these looks correct on screen and is wrong in the database. That is
+the failure class this section exists to name.
 
 ---
 
@@ -548,7 +696,7 @@ declared even where an existing token shares its value. All multiples of 4.
 
 | Token | Value | Owner |
 |-------|-------|-------|
-| `tutorial_board_size` | 280dp | The tutorial's interactive board slab |
+| `tutorial_board_size` | 280dp | The tutorial's interactive board slab — the largest footprint is 3×3, so ≈93dp cells, well above §11's 48dp floor |
 | `tutorial_caption_min_height` | 48dp | Reserved caption height (1↔2 line swap must not reflow the board) |
 | `tutorial_step_pip_size` | 12dp | One progress pip |
 | `game_status_strip_height` | 56dp | The gameplay status strip |
@@ -619,21 +767,26 @@ bitmap. No new SDK call. Every visual this refresh adds is one of:
 | Hero title (gradient text) | Brush + existing `displaySmall` role | Negligible — replaces a `TopAppBar` title that is itself being deleted |
 | Hero board art | One `BoardCanvas` draw of a static footprint — vector geometry, no decode | Low |
 | Ribbon pills (3) | Three `Surface`s + existing `ImageVector` glyphs | Negligible |
-| Ribbon **values** | **A new Room-backed `Flow` collector** (§7 R-1/R-2) | **The one real risk — see below** |
+| Ribbon **values** | **One single-row SQL aggregate behind a `Flow`** (§7 R-1/R-2, D-03h) | **The one remaining risk — see below** |
 | Continue chip thumbnail | One `BoardCanvas` draw, only when a Classic resume exists | Low, and conditional |
 | Mode tile art (2) | Two `BoardCanvas` draws | Low |
 | `verticalScroll` on the column | Scroll state allocation | Negligible |
 
 Net: Home's first frame gains up to **four `BoardCanvas` draws** (hero, thumbnail, two tiles) of
-static geometry, and **one new Room query** behind a Flow.
+static geometry, and **one new single-row Room query** behind a Flow.
 
-**The one real risk, and its mitigation.** R-1/R-2 add a `LevelResult` read to app start.
+**The one remaining risk, and its mitigation.** R-1/R-2 add a `level_result` read to app start.
 **D-03c's placeholder rule is the mitigation, and it is mandatory, not cosmetic:** the ribbon
 paints `stat_value_unknown` ("—") on the first frame and fills on the collector's first emission.
-The developer must **not** gate first paint on the query, must not `runBlocking` it, and must not
-introduce a Home-wide loading state to accommodate it — a spinner on the start destination would
-trade a measured gate for a worse one. The pills are sized from their labels, not their values, so
-the fill causes no reflow.
+The developer must **not** gate first paint on the query, must not `runBlocking` it, must not
+`first()` it on the start path, and must not introduce a Home-wide loading state to accommodate it
+— a spinner on the start destination would trade a measured gate for a worse one. The pills are
+sized from their labels, not their values, so the fill causes no reflow.
+
+The *unbounded* version of this risk is retired by D-03h: the read is one aggregated row whatever
+the player's Challenge history, so it can no longer be cheap in the lab and expensive on the
+players who have played most. What remains is an ordinary asynchronous query, and the placeholder
+rule is what keeps it off the first frame.
 
 **Ordered degradation path if measurement shows a C1 regression.** Drop in this order, stopping as
 soon as C1 passes; each step is a visual loss only and costs no oracle (§4.2.1) and no function:
@@ -641,7 +794,7 @@ soon as C1 passes; each step is a visual loss only and costs no oracle (§4.2.1)
 1. **Mode tile art** (2 draws) — the tiles already have glyph badges and read fine without it.
 2. **Continue chip thumbnail** (1 conditional draw) — reverts to the existing play-arrow accent.
 3. **Hero board art** (1 draw) — reverts to Q-901 option 3, the gradient title alone.
-4. **Ribbon values** — the pills stay and show "—" permanently until a later phase moves the fold
+4. **Ribbon values** — the pills stay and show "—" permanently until a later phase moves the read
    off the start path. Do **not** delete the ribbon; the Level pill costs nothing (`HomeUiState`
    already carries it) and the band is what answers the founder's "looks empty".
 
@@ -649,21 +802,53 @@ soon as C1 passes; each step is a visual loss only and costs no oracle (§4.2.1)
 or the Classic catalog** — those are D-03f oracles and are not available to trade.
 
 **Handoff:** this is a design budget, not a measurement. The developer measures C1 with the fuller
-Home before the phase closes; the qa-engineer checks the number at the gate.
+Home before the phase closes; the qa-engineer checks the numbers at the gate.
+
+**How C1 is measured for this phase** *(2026-09-21 — tech-lead ruling,
+`tech-lead-architecture.md` §3, folded in)*. The Phase-6 reference of 633 ms is **pre-SDK**: UMP,
+AdMob, Play Games, leaderboards and cloud save all landed after it, so a Phase-15 developer who
+compared against it would be charging five phases of SDK cost to a UX refresh. Phase 15's own gate
+is therefore a **two-arm delta**, and the absolute ≤ 950 ms stays PLAT-08's:
+
+- **Two arms, same AVD, same host, same sitting, back to back:** arm A = `develop` (control),
+  arm B = `feature/phase-15-ux-refresh`. Phase 6's instrument exactly — AVD `Pixel_9a` API 36,
+  **debug** variant, `am start -W` TotalTime, 10 samples, first discarded as warm-up, re-install
+  between arms so neither benefits from the other's warm ART state.
+- **The player state is identical across arms and deliberately non-trivial:** seed a Challenge
+  ladder of at least ~200 banked levels, or the one read this phase adds is measured on an empty
+  table and proves nothing about a real player.
+- **Pass condition, both parts:** (1) after-median ≤ **950 ms**, and (2)
+  (after-median − before-median) ≤ **50 ms**. 50 ms is this instrument's noise floor on this AVD,
+  not a guess — Phase 6's nine samples spanned 603–649 ms around a 633 ms median.
+- **If (2) fails**, walk the ordered degradation path above and re-measure after each step,
+  stopping at the first pass. **If (1) fails while (2) passes**, the regression is not this
+  refresh's: it escalates to the producer as PLAT-08/Phase-14 work rather than being paid for out
+  of this phase's visual budget.
+- **Where the numbers go:** `.planning/phases/15-ux-refresh/15-BUILD-EVIDENCE.md`, section
+  `## Cold-start measurement`, one table per arm in the identical field shape as
+  `06-BUILD-EVIDENCE.md:315-323`, plus the seeded-ladder row and the same precision caveat. The
+  phase does not close without both tables. Criterion 15f (placeholders, no spinner, no reflow) is
+  a separate visual check at the same sitting — the timing number does not cover it.
 
 ---
 
 ## 7. Data requirements (for the tech-lead and developer)
 
-Nothing here needs a schema change, a migration, a new DataStore key or a DI change.
+Nothing here needs a schema change, a migration, a new DataStore key or a DI change. That sentence
+survives D-03h unchanged — a new `SELECT` over existing columns is not a schema change, and the
+exported Room schema and its version are untouched. What D-03h does cost, stated so the planner is
+not surprised by it: one new `@Query`, one two-field projection, one new `ProgressRepository`
+member — and therefore a one-line override in each of the repository's test doubles, of which the
+tech-lead counted 16. That cost is mechanical and the compiler names every site.
 
 | # | Requirement | Why it is cheap |
 |---|-------------|-----------------|
-| **R-1** ⚠️ | `HomeUiState` gains `totalStars: Int?`. `HomeViewModel` folds `ProgressRepository.observeResults(mode)` over both modes and sums `LevelResult.stars`. | `observeResults` is already a `Flow` (`ProgressRepository.kt:83`) carrying `stars` (`:284-291`); `ProgressRepository` is already injected (`HomeViewModel.kt:86`). `null` until the first emission → the pill shows "—" (D-03c). **⚠️ COLD-START RISK (D-03g):** this is the only new read on the start destination. Nullable-and-placeholder is mandatory — first paint must not wait on it, and there must be no `runBlocking` and no Home-wide loading state. Measure C1 (§6.5). |
-| **R-2** ⚠️ | `HomeUiState` gains `classicBoardsCleared: Int?`. Same fold over `MODE_CLASSIC`, counting rows with `stars >= 1`. Denominator is the 5 `ClassicBoard` enum values. | Same flow, same collector — fold both pills from one collection, do not add a second. **Must not** use `aggregate().totalStars` — that sum is deliberately both-modes with no `WHERE` (`LevelResultDao.kt:66`) and cannot answer this, and it is a `suspend` one-shot that would go stale after every solve. **⚠️ Same cold-start risk as R-1.** |
+| **R-1** ⚠️ | `HomeUiState` gains `totalStars: Int?`. `HomeViewModel` reads `ProgressRepository.observeHomeProgress()` — a `Flow` over **one** SQL aggregate (`LevelResultDao.observeHomeProgress`) that computes both ribbon values in a single row. | `ProgressRepository` is already injected (`HomeViewModel.kt:86`); the aggregate is the `Flow` sibling of the existing `totals()` shape. `null` until the first emission → the pill shows "—" (D-03c), and a **failed** read also emits unknown, so the pill never shows `0` for a broken read (D-03h). **⚠️ COLD-START (D-03g):** this is the only new read on the start destination. Nullable-and-placeholder is mandatory — no `runBlocking`, no `first()` on the start path, no Home-wide loading state. Measure C1 per §6.5. |
+| **R-2** ⚠️ | `HomeUiState` gains `classicBoardsCleared: Int?`, from the **same single query**, whose `classicBoardsCleared` field is mode-filtered and counts rows with `stars >= ProgressConstants.ANY_STARS`. Denominator is the 5 `ClassicBoard` enum values / `Boards.CLASSIC_SPECS.size` — never a stored count. | One query, two fields, one collector: do not add a second collection for the second pill. **Must not** be a Kotlin fold over `observeResults` — over `MODE_CHALLENGE` that is the whole unbounded ladder in memory on the start destination, which `LevelResultDao.kt:41-47` already rules out for a *background* submitter (D-03h). **Must not** use `aggregate().totalStars` — deliberately both-modes with no `WHERE` (`LevelResultDao.kt:66`) and a `suspend` one-shot that goes stale after every solve. **⚠️ Same cold-start note as R-1.** |
 | **R-3** | `HomeScreen` loses the `onShowHowToPlay` parameter; `SettingsScreen` gains an `onShowHowToPlay` parameter; `AppNavHost` routes the tutorial from Settings and from first run. | Mechanical. `HomeRoute.kt:48` moves to the Settings route. |
-| **R-4** | **Game-designer input:** T2 and T3 board footprints, Solver-verified one-peg-reachable from every legal line, so D-01c holds structurally. | Non-blocking — §4.1's defaults ship if no ruling arrives. |
-| **R-5** | Tutorial step state lives in a state holder surviving configuration change, not in the composable. | D-01e; `SavedStateHandle` or a ViewModel, tech-lead's call. |
+| **R-4** | **Closed 2026-09-21** (game-designer ruling). All three footprints are fixed in §4.1 and proven dead-end-free to one peg. They live in a new `object TutorialBoards` in `:domain` beside `Boards.kt` and **must not** join `Boards.CLASSIC_SPECS`. | The proof is exhaustive enumeration over the product's own `RulesEngine`; the invariant is guarded by a permanent `:domain` test, not by a report (§13). |
+| **R-5** | **Resolved 2026-09-21** (tech-lead ruling): a Hilt `TutorialViewModel` scoped to the `Tutorial` nav destination; step state in a plain `MutableStateFlow`, **not** `SavedStateHandle`. | A saved cursor would survive process death and resume at T2, contradicting D-01e. Destination scoping is also what makes a Settings replay restart at T1 (§4.1, D-01g). |
+| **R-6** | The two derived pill values reach the UI as a UI-layer read model, the way `LevelResult` does today — no Room type reaches a ViewModel. | Stated so the ribbon's contract survives a refactor of the query behind it. |
 
 **Invariant the hosting mechanism must preserve (D-01f).** `HomeViewModel` sequences three
 first-run surfaces — onboarding, then the Play Games opt-in prompt, then the profile-swap dialog —
@@ -673,6 +858,15 @@ sequencing by construction, **provided `markSeen()` is still written before the 
 Home**. `HomeScreen.kt:198`'s `!state.onboardingVisible` guard loses its meaning once Home hosts no
 overlay; whatever replaces it must keep the same one-way safety — the wipe question may be
 withheld, never raised early.
+
+**Resolved** *(2026-09-21 — tech-lead ruling)*: the tutorial is a `@Serializable` nav destination;
+`markSeen()` is **awaited before the pop**, issued on the application scope so a cancelled screen
+cannot drop it; and the guard survives in shape as a standing boolean on `HomeUiState`
+(`!state.tutorialPending`, the mirror of `!seen`). The player-visible reason this ordering is
+binding is in D-01g: a fire-and-forget write that loses its race leaves `tutorialPending` true, so
+Home re-pushes the tutorial on the next composition and the player cannot get out — and on the
+launch after a dropped write, both the Play Games opt-in and the profile-swap question are
+withheld for an extra launch.
 
 ---
 
@@ -687,10 +881,9 @@ withheld, never raised early.
 | `tutorial_step_2_caption` | `Jumps work up, down, left and right — never diagonally.` | T2 |
 | `tutorial_step_3_caption` | `Keep jumping. Clear the board down to one peg.` | T3 |
 | `tutorial_done_caption` | `That's the whole game. Go clear a board.` | Completion |
-| `tutorial_undo_nudge` | `Boxed in? Undo takes your last jump back.` | T3 escalation only |
 | `settings_how_to_play_label` | `How to play` | Settings row |
 | `settings_how_to_play_supporting` | `Replay the tutorial` | Settings row |
-| `stat_value_unknown` | `—` | A ribbon pill with no value yet |
+| `stat_value_unknown` | `—` | A ribbon pill with no value yet — or whose read failed (D-03h); the two render identically and neither ever renders `0` |
 | `stat_value_unknown_desc` | `not yet available` | Its announcement |
 | `home_stat_stars_label` | `Stars` | Ribbon pill label |
 | `home_stat_boards_label` | `Boards` | Ribbon pill label |
@@ -699,7 +892,16 @@ withheld, never raised early.
 
 The three new tutorial captions are **rewrites** of `onboarding_step_1/2/3`
 (`strings.xml:161-163`) shortened to one line each, because the player is now doing the thing the
-sentence used to describe.
+sentence used to describe. `tutorial_step_2_caption` ("never diagonally") is **earned** by T2's
+footprint: the full 3×3 puts four diagonal holes and two adjacent holes visibly in play and gives
+none of them a destination dot, so the sentence describes something the player can see withheld.
+
+**Retired before it shipped.** `tutorial_undo_nudge` ("Boxed in? Undo takes your last jump back.")
+was in the first edition's table and is **gone** — the tutorial has no Undo control to point at,
+and the game-designer's boards make being boxed in impossible, so the line named a control the
+player cannot see and a situation that cannot occur. The escalation re-shows the step's own
+caption instead (§4.4), so the copy contract carries one string fewer and needs no per-step
+escalation line.
 
 ### Reused unchanged
 
@@ -737,7 +939,7 @@ Every asset this refresh needs, with its licence. **No third-party asset is intr
 | **`HintIcon`** (lightbulb) | vector | **new, in-house** — core set has no lightbulb and the extended set is banned | project-owned |
 | **`ShowMovesIcon`** (peg + two dots) | vector | **new, in-house** — core set has no visibility glyph | project-owned |
 | Hero / tile / thumbnail board art | drawn | `BoardCanvas` primitives, no asset file | project-owned |
-| `SoundCue.Select`, `Deselect`, `Jump`, `PegRemove`, `Undo`, `InvalidTap`, `Hint`, `StarPop`, `ButtonForward`, `ButtonDismiss` | audio | already in `res/raw`, credited in `docs/audio/CREDITS.md` | CC0 1.0 (as recorded) |
+| `SoundCue.Select`, `Deselect`, `Jump`, `PegRemove`, `Undo`, `InvalidTap`, `Hint`, `StarPop`, `ButtonForward`, `ButtonDismiss` | audio | already in `res/raw`, credited in `docs/audio/CREDITS.md` — **none of them is used by the tutorial**, which is silent by D-01h; the only cue this refresh newly *places* is `ButtonForward` on the Settings "How to play" row (§4.5) | CC0 1.0 (as recorded) |
 | Fredoka, Nunito | font | downloadable Google Fonts, already wired | OFL (already shipped) |
 
 Both new vectors follow the `UndoIcon.kt` / `ModeGlyphs.kt` precedent: a 24-unit viewport, filled
@@ -833,7 +1035,10 @@ Home order: title → gear → ribbon pills → Continue chips → mode tiles. T
 jump has the slide and the removal; selection has the ring and the pulse; the invalid tap has the
 dots staying put; Undo has the board stepping back; the completion cue has the star and the
 caption. The dock's two silent controls (Show-moves, Restart) are silent by contract (D-09) and
-both give immediate visual feedback.
+both give immediate visual feedback. **The tutorial is silent throughout** (D-01h), which passes
+this rule by construction — every tutorial event carries visual feedback on its own — and QA
+should read the absence of jump, select and invalid-tap cues there as the design, not a defect
+(§14).
 
 **One-handed use.** The four in-game actions and both Home mode tiles sit in the lower half of a
 6.7-inch phone. This is the reach problem D-04 exists to fix.
@@ -861,7 +1066,7 @@ Existing tests this refresh **will** break, with the fix:
 | Test | Why it breaks | Fix |
 |------|---------------|-----|
 | `ButtonSoundTest.kt:105-123` `theHomeTopBarHowToPlayAndSettingsIconsMakeNoSound` | Clicks `R.string.how_to_play` by content description; that button and that string are deleted (D-02) | Retarget to the Settings row; the gear half of the assertion stays valid |
-| `HomeScreenTest.kt:148-159` `theProfileSwapDialogIsNeverStackedOnTheOnboardingOverlay` | Locates the overlay by the hardcoded literal `"Got it"` (`:367`) and the overlay stops being hosted by Home (D-01f) | Re-express against whatever replaces `HomeScreen.kt:198`'s guard; the invariant in §7 still needs a test |
+| `HomeScreenTest.kt:148-159` `theProfileSwapDialogIsNeverStackedOnTheOnboardingOverlay` | Locates the overlay by the hardcoded literal `"Got it"` (`:367`) and the overlay stops being hosted by Home (D-01f/D-01g) | **Retarget, never delete:** `theProfileSwapDialogIsNeverRaisedWhileTheTutorialIsStillPending`, finding the dialog by `PROFILE_SWAP_DIALOG_TEST_TAG` as today and the pending state by the state field — never by button copy |
 | `ButtonSoundTest.kt:226-244` | Clicks `navigate_back` and `show_moves_on` on the game screen | **Passes unchanged** — both content descriptions are deliberately preserved (D-05b, §4.4) |
 | `GameFlowTest.kt:129` | Finds the timer by `elapsed_time` | **Passes unchanged** — deliberately preserved (§4.3) |
 
@@ -869,7 +1074,10 @@ Existing tests this refresh **will** break, with the fix:
 pass/fail off the three Home readouts in §4.2.1. This refresh is designed so those tests run
 **unchanged** — the Challenge tile chip, the Continue chips and the Classic catalogue's star pips
 are all untouched in behaviour. If a plan proposes changing any of the three, it is changing a
-test oracle and the qa-engineer and release-manager need to know before, not after.
+test oracle and the qa-engineer and release-manager need to know before, not after. The other way
+those three tests can break is not a layout change at all: a tutorial routed through
+`GameViewModel` would rewrite two of them from underneath. §5.1 is why that is a prohibition, and
+criterion 7a is the device check for it.
 
 Two gaps QA should close rather than inherit:
 
@@ -881,13 +1089,34 @@ Two gaps QA should close rather than inherit:
   `PLAY_GAMES_PROMPT_DIALOG_TEST_TAG`. The replacement should carry one so no future test has to
   find a screen by its button copy.
 
-**Risk worth naming.** There are **no screenshot tests in this project** — no Roborazzi, no
-Paparazzi, no `screenshotTest` source set, and no `androidTest` directory at all; every UI test is
-a Robolectric JVM test under `app/src/test`. The stack document in CLAUDE.md names Roborazzi as
-the "primary screenshot tool", so this is a gap against the intended stack, and it matters more
-for this phase than most: a five-screen visual refresh is precisely the change a golden-image
-suite would protect. This is the tech-lead's and qa-engineer's call, not mine; I raise it because
-the refresh is what exposes it.
+**What this refresh owes in tests, beyond the two retargets** *(2026-09-21 — tech-lead and
+game-designer rulings, folded in; the list is theirs, it is repeated here because it is the answer
+to the two gaps above)*:
+
+- Every new or replaced surface carries a `testTag` constant — `TUTORIAL_SCREEN_TEST_TAG`,
+  `HOME_PROGRESS_RIBBON_TEST_TAG`, `GAME_STATUS_STRIP_TEST_TAG`, `GAME_ACTION_DOCK_TEST_TAG` — in
+  the same idiom as the two existing dialog tags. This is what stops the next test finding a
+  screen by its copy.
+- The two breaking tests are **retargeted, never deleted and never `@Ignore`d**.
+- One Compose UI test per changed screen's main flow, the tutorial included.
+- A `:domain` test that every legal line of every tutorial board ends on exactly one peg, over
+  `TutorialBoards.ALL`, plus the two axis guards (T1 horizontal-only, T2 vertical-only) — these
+  are the unit-level guard for §14 criterion 2, which otherwise has only a device check.
+- The ordering test for the exit path (the seen flag is persisted *before* the exit signal) and
+  the "every exit route persists exactly once" test — criterion 5's real teeth.
+- A denominator guard that the Boards pill's denominator is the Classic catalogue size (5), so a
+  tutorial board joining `CLASSIC_SPECS` cannot change a shipped number silently.
+- A placeholder test that a ribbon pill with no value yet shows "—", and a repository test that a
+  failed read degrades to unknown rather than to `0` (D-03h).
+
+**Closed — the screenshot-suite question.** The first edition raised the absence of any
+screenshot infrastructure (no Roborazzi, no Paparazzi, no `screenshotTest` source set, no
+`androidTest` directory) as a gap against the stack CLAUDE.md names. **Ruled 2026-09-21
+(tech-lead): no golden-image suite in Phase 15; filed as a post-v1.1 follow-up.** The reasoning I
+accept and will not reopen: every pixel on all five screens is intentionally changing, so goldens
+recorded during this phase would be images of the implementation under review rather than of the
+contract — and recording them *after* the refresh captures the design the studio intends to keep.
+What Phase 15 owes instead is the list above, which is binding rather than advisory.
 
 ---
 
@@ -900,18 +1129,33 @@ Observable truths a QA engineer can check on a device, in the roadmap's house ph
 1. On a first launch, the player reaches a tutorial that requires them to **complete a real jump**
    before it advances; no step can be advanced by a Next or Continue button. (ONB-01, D-01)
 2. The player performs at least one horizontal jump and at least one jump on the other axis, on a
-   live board, before the tutorial ends. (ONB-01, D-01b)
-3. Tapping a peg that cannot move, or an empty hole that is not a legal destination, produces no
-   error, no red, no dialog and no lost progress — and after a pause the tutorial highlights a peg
-   that can move. (D-01c)
-4. Three consecutive taps that make no progress cause the tutorial to show more help, not less,
-   and the player is never blocked from continuing. (D-01c)
+   live board, before the tutorial ends — **structurally**: T1 offers exactly one legal move and
+   it is horizontal, T2 offers exactly one and it is vertical, so no sequence of taps can finish
+   the tutorial without both. (ONB-01, D-01b)
+3. On **T2**, tapping the middle peg — which has no legal jump — selects it, draws no destination
+   dots, and produces no error, no red, no dialog and no lost progress; after a pause the tutorial
+   re-pulses a peg that *can* move. (D-01c) *(The same holds for two of T3's five pegs; this is
+   normal peg solitaire, not a defect.)*
+4. Three consecutive taps that make no progress cause the tutorial to show more help, not less;
+   the player is never blocked from continuing; and the help **never mentions Undo** or tells the
+   player they are stuck. (D-01c, §4.4)
 5. `Skip` is reachable on every step and exits immediately; pressing system back does the same
-   thing; after either, the tutorial does not appear again on the next launch. (D-01d)
+   thing; after either, the player lands where they came from, Home does **not** immediately
+   re-open the tutorial, and the tutorial does not appear again on the next launch. (D-01d,
+   D-01g)
 6. Rotating the device mid-tutorial keeps the player on the same step with the same board.
    (D-01e)
 7. Completing the final step shows a single primary button that returns the player to where they
    started, and the tutorial does not appear again on the next launch. (D-01)
+7a. **Nothing behind the tutorial moves.** On a player who has a saved Challenge game and existing
+    stars, running the tutorial end to end — or skipping it — leaves the Home Stars pill, both
+    Continue chips and the Challenge tile's level **exactly as they were**: no star banked, no
+    resume snapshot cleared, no ladder advance, and the Results screen is never reached.
+    (D-01g, §5.1, D-03f)
+7b. Opening Settings › How to play after skipping mid-tutorial starts again at **step 1**, on the
+    first board, every time. (D-01g)
+7c. The tutorial plays **no sound at all** — no select, jump, removal, invalid-tap or completion
+    cue — and every event in it is still legible from the screen alone. (D-01h, rules/audio.md)
 
 **Info button (D-02)**
 
@@ -929,6 +1173,10 @@ Observable truths a QA engineer can check on a device, in the roadmap's house ph
     enters that level. (CHAL-05, D-03c)
 13. A pill whose value is not yet known shows "—" rather than 0 or a blank, and a screen reader
     announces it as not yet available. (D-03c)
+13a. A pill whose underlying read **fails** shows "—" as well — never `0`. A player with stars
+     already earned never sees their total reported as zero. (D-03h)
+13b. The Boards pill's denominator is the Classic catalogue size (5), and the Classic catalogue
+     screen still lists exactly those five boards — no tutorial board appears on it. (D-03c, §5)
 14. With the system font size at maximum and both Continue chips present, the whole Home screen is
     reachable by scrolling and nothing is clipped. (D-03)
 15. On a 6.7-inch phone the two mode tiles sit in the lower half of the screen. (D-03)
@@ -949,8 +1197,15 @@ blocks tests 10/11/13 in `11-HUMAN-UAT.md`, not just the look of the screen.
 
 **Home cold start (D-03g, PLAT-08 C1)**
 
-15e. Cold start to an interactive Home is **≤ 950 ms** on the reference device with the fuller
-     Home in place. (PLAT-08 C1)
+15e. Cold start is measured as a **two-arm delta**, not as a single absolute number: arm A =
+     `develop`, arm B = this branch, same AVD (`Pixel_9a`, API 36), same host, same sitting,
+     debug variant, 10 `am start -W` samples per arm with the first discarded, re-installed
+     between arms, on a device seeded with ~200 banked Challenge levels. **Both must hold:**
+     (1) after-median **≤ 950 ms**, and (2) (after-median − before-median) **≤ 50 ms**. Both
+     arms' tables are recorded in `15-BUILD-EVIDENCE.md` and the phase does not close without
+     them. If (2) fails, §6.5's degradation path is walked and re-measured after each step; if
+     (1) fails while (2) passes, the regression belongs to PLAT-08/Phase 14 and escalates to the
+     producer rather than being paid for out of this refresh. (PLAT-08 C1, §6.5)
 15f. On first paint, before any progress data has loaded, Home shows the ribbon with "—"
      placeholders — never a spinner, never a blank band, never a blocked screen — and the values
      fill in without the layout shifting. (D-03c, D-03g)
@@ -1018,18 +1273,18 @@ is currently in the worst-reachable corner of the screen. If the founder wants t
 
 | Requirement | Surface in this contract |
 |-------------|--------------------------|
-| ONB-01 | §4.1 Tutorial (rewritten); §4.5 Settings replay row |
-| NAV-01 | §4.2 Home recomposition; §4.2 top bar deleted |
-| PERS-03 | §4.2 Continue chips — behaviour unchanged, thumbnail added |
-| CHAL-05 | §4.2 Level pill + Challenge tile, same number, same entry level |
+| ONB-01 | §4.1 Tutorial (rewritten, boards fixed by the R-4 ruling); §4.5 Settings replay row; §5.1 the tutorial's hard prohibitions |
+| NAV-01 | §4.2 Home recomposition; §4.2 top bar deleted; D-01g the Tutorial nav destination |
+| PERS-03 | §4.2 Continue chips — behaviour unchanged, thumbnail added; §5.1 #2/#3 — the tutorial may not clear a resume snapshot |
+| CHAL-05 | §4.2 Level pill + Challenge tile, same number, same entry level; §5.1 #2/#3 — the tutorial may not advance the ladder |
 | CLAS-02 | §4.3 status strip — title and timer preserved |
 | SCOR-02 | §4.3 timer pill, `elapsed_time` preserved |
 | ASST-01 | §4.4 Hint action, new glyph, thinking state unchanged |
 | ASST-02 | §4.4 Undo action, new position, `canUndo` unchanged |
 | SET-02 | Untouched — haptics gate is unchanged |
 | ADS-01/02 | §5 — no allowance surface added; dialog unchanged |
-| CLAS-01 | §4.2.1 — Classic catalogue and its per-board star pips untouched; one tap from Home |
-| PLAT-08 (C1) | §6.5 cold-start budget; §7 R-1/R-2 flagged; criteria 15e/15f |
+| CLAS-01 | §4.2.1 — Classic catalogue and its per-board star pips untouched; one tap from Home; §5 / criterion 13b — `TutorialBoards` never joins `Boards.CLASSIC_SPECS`, so the catalogue and the Boards-pill denominator are unchanged |
+| PLAT-08 (C1) | §6.5 cold-start budget **and** the two-arm measurement contract; §7 R-1/R-2 (one aggregate, D-03h); criteria 15e (delta gate) / 15f |
 | QUAL-03 | §6.1 every new dp is a named token; §6.2 no hex; §6.4 durations in scoped objects |
 | Proposed UX-01 | §4.1 — interactive tutorial (registry entry is the producer's to confirm) |
 | Proposed UX-02 | §4.2 — Home composition |
