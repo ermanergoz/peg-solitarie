@@ -1,13 +1,21 @@
 package com.app.pegsolitaire.ui.home
 
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.domain.model.Boards
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
@@ -47,7 +55,7 @@ class HomeScreenTest {
         composeRule.onNodeWithText(CONTINUE_LABEL).assertExists()
 
         // ...and tapping it enters Challenge at that same level, not a hardcoded 1.
-        composeRule.onNodeWithText(CONTINUE_LABEL).performClick()
+        composeRule.onNodeWithText(CONTINUE_LABEL).performScrollTo().performClick()
         composeRule.waitForIdle()
         assertThat(enteredLevel).isEqualTo(PERSISTED_LEVEL)
     }
@@ -68,7 +76,7 @@ class HomeScreenTest {
             onResumeClassic = { levelId -> resumedBoard = levelId },
         )
 
-        composeRule.onNodeWithText(RESUME_CLASSIC_LABEL).performClick()
+        composeRule.onNodeWithText(RESUME_CLASSIC_LABEL).performScrollTo().performClick()
         composeRule.waitForIdle()
 
         assertThat(resumedBoard).isEqualTo(RESUMABLE_LEVEL_ID)
@@ -95,9 +103,134 @@ class HomeScreenTest {
         composeRule.onNodeWithText(RESUME_CHALLENGE_LABEL).assertExists()
         composeRule.onNodeWithText(STAMPED_RESUME_SUPPORTING).assertExists()
 
-        composeRule.onNodeWithText(RESUME_CHALLENGE_LABEL).performClick()
+        composeRule.onNodeWithText(RESUME_CHALLENGE_LABEL).performScrollTo().performClick()
         composeRule.waitForIdle()
         assertThat(resumedLevel).isEqualTo(STAMPED_RESUME_LEVEL)
+    }
+
+    // ---- The progress ribbon (D-03c/D-03h, §4.2 band 2) ----------------------
+
+    @Test
+    fun aRibbonPillWithNoValueYetShowsTheUnknownPlaceholder() {
+        // Criterion 13, both halves: Home paints before any read lands, so the ribbon's first
+        // frame shows "—" — never 0, never blank, never a spinner — and announces it as "not
+        // yet available" rather than reading an em dash out as punctuation.
+        renderHome(state = HomeUiState())
+
+        assertThat(renderedValues()).contains(unknownValue)
+        assertThat(pillDescriptions(STARS_PILL)).containsExactly(announcement(starsLabel, unknownDescription))
+        assertThat(pillDescriptions(BOARDS_PILL)).containsExactly(announcement(boardsLabel, unknownDescription))
+    }
+
+    @Test
+    fun aRibbonPillWhoseReadFailedAlsoShowsThePlaceholderAndNeverZero() {
+        // Criterion 13a, and the half that carries the weight: a player with stars already
+        // earned must never be told their total is zero because a read threw. The ViewModel
+        // maps a failed read to the same `null` "not yet" carries, so the two are
+        // indistinguishable on screen BY CONSTRUCTION — which is only safe because zero and
+        // unknown stay distinguishable from each other, asserted here in both directions and
+        // across one live recomposition, which is how the real fill arrives.
+        val state = mutableStateOf(HomeUiState())
+        renderHome(state = state)
+
+        assertThat(renderedValues()).contains(unknownValue)
+        assertThat(renderedValues()).doesNotContain(ZERO_VALUE)
+
+        // A brand-new player genuinely has zero, and that IS a number, spoken as one.
+        state.value = HomeUiState(totalStars = 0, classicBoardsCleared = 0)
+        composeRule.waitForIdle()
+
+        assertThat(renderedValues()).contains(ZERO_VALUE)
+        assertThat(renderedValues()).doesNotContain(unknownValue)
+        assertThat(pillDescriptions(STARS_PILL)).containsExactly(announcement(starsLabel, ZERO_VALUE))
+    }
+
+    @Test
+    fun theBoardsPillDenominatorIsTheClassicCatalogueSize() {
+        // Criterion 13b, and prohibition 5's Home half: the denominator is a compile-time
+        // fact, so no stored row — and no tutorial board joining CLASSIC_SPECS — can change
+        // a shipped number. The expected text is built from the catalogue itself, so this
+        // test tracks a sixth board instead of pinning a stale 5.
+        renderHome(state = HomeUiState(classicBoardsCleared = CLEARED_BOARDS))
+
+        val expected =
+            RuntimeEnvironment.getApplication().getString(
+                R.string.home_stat_boards_value,
+                CLEARED_BOARDS,
+                Boards.CLASSIC_SPECS.size,
+            )
+        assertThat(renderedValues()).contains(expected)
+        assertThat(pillDescriptions(BOARDS_PILL)).containsExactly(announcement(boardsLabel, expected))
+        assertThat(Boards.CLASSIC_SPECS).hasSize(CLASSIC_CATALOGUE_SIZE)
+    }
+
+    @Test
+    fun theLevelPillAndTheChallengeTileShowTheSameNumber() {
+        // Criteria 12 / 15b. Both read `challengeCurrentLevel`, so they cannot diverge by
+        // construction; what this pins is that both are WIRED to it. The tile chip is the
+        // cloud-save oracle and the pill is additive — if they ever disagree the tile is right.
+        renderHome(state = HomeUiState(challengeCurrentLevel = PERSISTED_LEVEL))
+
+        assertThat(renderedValues()).contains(PERSISTED_LEVEL.toString())
+        assertThat(pillDescriptions(LEVEL_PILL))
+            .containsExactly(announcement(levelLabel, PERSISTED_LEVEL.toString()))
+        composeRule.onNodeWithText(CONTINUE_LABEL).assertExists()
+    }
+
+    @Test
+    fun eachRibbonPillSpeaksAsOneNodeSayingItsLabelThenItsValue() {
+        // "Stars, 7", never a bare number: each pill announces once, label first, and the
+        // ribbon is three nodes rather than nine. Asserted as the exact spoken string, so a
+        // future refactor that merged descendants instead — and thereby dropped the label from
+        // TalkBack's reading — fails here rather than only on a device.
+        renderHome(
+            state =
+                HomeUiState(
+                    totalStars = EARNED_STARS,
+                    classicBoardsCleared = CLEARED_BOARDS,
+                    challengeCurrentLevel = PERSISTED_LEVEL,
+                ),
+        )
+
+        assertThat(ribbonPillCount()).isEqualTo(RIBBON_PILLS)
+        assertThat(pillDescriptions(STARS_PILL))
+            .containsExactly(announcement(starsLabel, EARNED_STARS.toString()))
+        assertThat(pillDescriptions(LEVEL_PILL))
+            .containsExactly(announcement(levelLabel, PERSISTED_LEVEL.toString()))
+    }
+
+    @Test
+    fun theProgressPillsAreNotTappable() {
+        // §5's negative contract. The pills are status, not navigation: three more competing
+        // targets is the opposite of what the founder asked for, and a tappable pill would
+        // also make the ribbon a fourth thing to reason about on the busiest screen.
+        renderHome(state = HomeUiState(totalStars = EARNED_STARS))
+
+        repeat(RIBBON_PILLS) { index ->
+            assertThat(pillClickAction(index)).isNull()
+        }
+    }
+
+    @Test
+    fun bothContinueChipsAndBothModeTilesRenderWhenBothResumesExist() {
+        // The D-03f oracle-3 guard at unit level: the busiest legitimate Home — two Continue
+        // chips AND two mode tiles — renders all four. Whether all four are within the first
+        // viewport at default font scale on a 360x640dp phone is criterion 15a, a DEVICE
+        // check: this rule's viewport is 320x470px, so it can prove presence and not the fold.
+        renderHome(
+            state =
+                HomeUiState(
+                    challengeCurrentLevel = PERSISTED_LEVEL,
+                    classicResumeLevelId = RESUMABLE_LEVEL_ID,
+                    classicResumeBoard = Boards.european37Initial,
+                    challengeResumeLevel = STAMPED_RESUME_LEVEL,
+                ),
+        )
+
+        composeRule.onNodeWithText(RESUME_CLASSIC_LABEL).assertExists()
+        composeRule.onNodeWithText(RESUME_CHALLENGE_LABEL).assertExists()
+        composeRule.onNodeWithText(classicTileTitle).assertExists()
+        composeRule.onNodeWithText(challengeTileTitle).assertExists()
     }
 
     // ---- Play Games opt-in surfaces (PGS-01, D-15/D-18) ----------------------
@@ -314,10 +447,31 @@ class HomeScreenTest {
         onResumeChallenge: (Int) -> Unit = {},
         onKeepDeviceProgress: () -> Unit = {},
         onUseCloudProgress: () -> Unit = {},
+    ) = renderHome(
+        state = mutableStateOf(state),
+        onPlayChallenge = onPlayChallenge,
+        onResumeClassic = onResumeClassic,
+        onResumeChallenge = onResumeChallenge,
+        onKeepDeviceProgress = onKeepDeviceProgress,
+        onUseCloudProgress = onUseCloudProgress,
+    )
+
+    /**
+     * The settable overload, for the tests that need a live recomposition — Home fills the
+     * ribbon *after* first paint, so "shows the placeholder, then the value" is only honest
+     * when it is asserted across one state change rather than across two compositions.
+     */
+    private fun renderHome(
+        state: MutableState<HomeUiState>,
+        onPlayChallenge: (Int) -> Unit = {},
+        onResumeClassic: (String) -> Unit = {},
+        onResumeChallenge: (Int) -> Unit = {},
+        onKeepDeviceProgress: () -> Unit = {},
+        onUseCloudProgress: () -> Unit = {},
     ) {
         composeRule.setContent {
             HomeScreen(
-                state = state,
+                state = state.value,
                 onPlayClassic = {},
                 onPlayChallenge = onPlayChallenge,
                 onResumeClassic = onResumeClassic,
@@ -332,6 +486,75 @@ class HomeScreenTest {
         }
         composeRule.waitForIdle()
     }
+
+    // ---- Ribbon helpers ------------------------------------------------------
+
+    /**
+     * The three pills are the ribbon node's children, located through
+     * [HOME_PROGRESS_RIBBON_TEST_TAG] rather than by their copy — the rule §13 sets after the
+     * retired overlay was found by its "Got it" label.
+     */
+    private fun pill(index: Int) = ribbon().onChildren()[index]
+
+    private fun ribbonPillCount(): Int = ribbon().fetchSemanticsNode().children.size
+
+    private fun ribbon() = composeRule.onNodeWithTag(HOME_PROGRESS_RIBBON_TEST_TAG)
+
+    /**
+     * Every value string the ribbon actually **renders**, read from the unmerged tree.
+     *
+     * The pills clear and set one description each, so their child `Text`s are invisible to the
+     * merged tree by design — which is the point of the announcement assertions. What a player
+     * *sees* therefore has to be read past that, and this is where "—" versus "0" is checked.
+     */
+    private fun renderedValues(): List<String> =
+        composeRule
+            .onNode(hasTestTag(HOME_PROGRESS_RIBBON_TEST_TAG), useUnmergedTree = true)
+            .fetchSemanticsNode()
+            .textsIn()
+
+    private fun androidx.compose.ui.semantics.SemanticsNode.textsIn(): List<String> =
+        config.getOrNull(SemanticsProperties.Text).orEmpty().map { it.text } +
+            children.flatMap { it.textsIn() }
+
+    /** The exact string a pill announces — "Stars, 7" — built from the shipped format. */
+    private fun announcement(
+        label: String,
+        value: String,
+    ): String = RuntimeEnvironment.getApplication().getString(R.string.home_stat_pill_desc, label, value)
+
+    /** Every `contentDescription` on a pill's node — the whole announcement, and only one. */
+    private fun pillDescriptions(index: Int): List<String> =
+        pill(index)
+            .fetchSemanticsNode()
+            .config
+            .getOrNull(SemanticsProperties.ContentDescription)
+            .orEmpty()
+
+    /** A pill's click action, which must be absent: the pills are status, not navigation. */
+    private fun pillClickAction(index: Int) =
+        pill(index).fetchSemanticsNode().config.getOrNull(SemanticsActions.OnClick)
+
+    private val starsLabel: String
+        get() = RuntimeEnvironment.getApplication().getString(R.string.home_stat_stars_label)
+
+    private val boardsLabel: String
+        get() = RuntimeEnvironment.getApplication().getString(R.string.home_stat_boards_label)
+
+    private val levelLabel: String
+        get() = RuntimeEnvironment.getApplication().getString(R.string.home_stat_level_label)
+
+    private val unknownValue: String
+        get() = RuntimeEnvironment.getApplication().getString(R.string.stat_value_unknown)
+
+    private val unknownDescription: String
+        get() = RuntimeEnvironment.getApplication().getString(R.string.stat_value_unknown_desc)
+
+    private val classicTileTitle: String
+        get() = RuntimeEnvironment.getApplication().getString(R.string.classic_tile_title)
+
+    private val challengeTileTitle: String
+        get() = RuntimeEnvironment.getApplication().getString(R.string.challenge_tile_title)
 
     /**
      * The D-18 failure copy, read from `strings.xml` rather than retyped: this test's claim
@@ -376,3 +599,23 @@ private const val FIRST_ERROR_TICK = 1
 
 /** The arriving account's display name for the swap dialog (D-12). */
 private const val ARRIVING_ACCOUNT_NAME = "PegChampion"
+
+/** Ribbon pill positions, left to right (§4.2 band 2). */
+private const val STARS_PILL = 0
+private const val BOARDS_PILL = 1
+private const val LEVEL_PILL = 2
+
+/** Three pills, and exactly three: the ribbon is not a place to add a fourth thing. */
+private const val RIBBON_PILLS = 3
+
+/** A stars total past zero, so a placeholder cannot pass for a real value. */
+private const val EARNED_STARS = 7
+
+/** Cleared Classic boards — deliberately neither 0 nor the catalogue size. */
+private const val CLEARED_BOARDS = 3
+
+/** The shipped Classic catalogue size, asserted against `Boards.CLASSIC_SPECS` itself. */
+private const val CLASSIC_CATALOGUE_SIZE = 5
+
+/** What a genuinely-zero pill renders — a real answer, and never the placeholder. */
+private const val ZERO_VALUE = "0"

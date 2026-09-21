@@ -3,6 +3,7 @@ package com.app.pegsolitaire.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.app.pegsolitaire.data.ChallengeProgress
+import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.HomeProgress
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.OnboardingRepository
@@ -207,9 +208,9 @@ class HomeViewModel
             // before it may be offered (CR-01) — a stale id is purged, never navigated.
             viewModelScope.launch {
                 progressRepository.observeResumeModes().collect { modes ->
-                    val classicLevelId =
+                    val classicResume =
                         if (ProgressPersistenceKeys.MODE_CLASSIC in modes) {
-                            resumableClassicLevelId(progressRepository, levelRepository)
+                            resumableClassicBoard(progressRepository, levelRepository)
                         } else {
                             null
                         }
@@ -229,7 +230,8 @@ class HomeViewModel
                         }
                     _uiState.update {
                         it.copy(
-                            classicResumeLevelId = classicLevelId,
+                            classicResumeLevelId = classicResume?.id,
+                            classicResumeBoard = classicResume?.previewBoard,
                             challengeResumeLevel = challengeResumeLevel,
                         )
                     }
@@ -238,21 +240,28 @@ class HomeViewModel
         }
 
         /**
-         * The Classic board id a Continue may safely resume into, or `null` when the stored
-         * snapshot is absent, unreadable, or points at a board the catalog no longer knows
-         * (CR-01). A decodable blob with an unknown id is affirmatively stale — the row is
-         * purged so the phantom Continue cannot come back on the next emission.
+         * The Classic catalogue **descriptor** a Continue may safely resume into, or `null`
+         * when the stored snapshot is absent, unreadable, or points at a board the catalog no
+         * longer knows (CR-01). A decodable blob with an unknown id is affirmatively stale —
+         * the row is purged so the phantom Continue cannot come back on the next emission.
+         *
+         * It returns the descriptor rather than the bare id because the catalogue lookup that
+         * validates the id already has the board in hand, and Phase 15's Continue chip renders
+         * that board as its thumbnail (§4.2 band 3). Reaching for the id alone and mapping it
+         * back to a board in the UI would be a **second** id-to-board translation, in the
+         * layer QUAL-01 keeps id strings out of — and would read the static catalogue twice on
+         * the start destination for a value this call already knows (D-03g).
          */
-        private suspend fun resumableClassicLevelId(
+        private suspend fun resumableClassicBoard(
             progressRepository: ProgressRepository,
             levelRepository: LevelRepository,
-        ): String? {
+        ): ClassicLevelDescriptor? {
             val storedLevelId =
                 progressRepository.loadSnapshot(ProgressPersistenceKeys.MODE_CLASSIC)?.levelId
                     ?: return null
-            val known = levelRepository.classicCatalog().any { it.id == storedLevelId }
-            if (!known) progressRepository.clearSnapshot(ProgressPersistenceKeys.MODE_CLASSIC)
-            return storedLevelId.takeIf { known }
+            val descriptor = levelRepository.classicCatalog().firstOrNull { it.id == storedLevelId }
+            if (descriptor == null) progressRepository.clearSnapshot(ProgressPersistenceKeys.MODE_CLASSIC)
+            return descriptor
         }
 
         /**

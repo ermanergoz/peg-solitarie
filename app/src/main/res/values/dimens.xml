@@ -71,6 +71,34 @@
     <dimen name="tutorial_step_pip_size">12dp</dimen>
 
     <!--
+      ================ Phase-15 tokens: the Home recomposition ====================
+      ux-spec §4.2, §6.1. One token per owner even where an existing token shares the value.
+    -->
+    <!--
+      MINIMUM height of the hero band, not a fixed one: the hero is the band that yields (art
+      first, then title scale) so bands 3 and 4 — the Continue chips and both mode tiles —
+      stay inside the first viewport at default font scale on a 360x640dp phone (D-03f).
+    -->
+    <dimen name="home_hero_min_height">160dp</dimen>
+    <!--
+      The hero's decorative peg cluster (Q-901 option 1, answered): static, contentDescription
+      null, and drawn from BoardCanvas primitives, so it is vector geometry with no asset
+      decode on the cold-start critical path (D-03g).
+    -->
+    <dimen name="home_hero_art_size">120dp</dimen>
+    <!-- One progress-ribbon pill. Three of them share the row at equal weight. -->
+    <dimen name="home_stat_pill_min_height">64dp</dimen>
+    <!-- One progress-ribbon pill glyph. Decorative: the pill speaks as one node. -->
+    <dimen name="home_stat_pill_glyph_size">20dp</dimen>
+    <!--
+      The Classic Continue chip's board thumbnail — the saved board's own footprint in place
+      of the generic play arrow. Only ever drawn when a Classic resume exists.
+    -->
+    <dimen name="home_resume_thumb_size">40dp</dimen>
+    <!-- A mode tile's trailing art: the Classic footprint / the Challenge bolt. -->
+    <dimen name="home_tile_art_size">56dp</dimen>
+
+    <!--
       Phase-4 token: min height of the inline no-win/stuck rescue banner (multiple of 4)
       so its three actions (Undo · Restart · Home) stay tap-reachable (UI-SPEC §4).
     -->

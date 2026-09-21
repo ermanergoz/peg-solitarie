@@ -70,7 +70,7 @@ class ButtonSoundTest {
         var played = false
         renderHome(onPlayClassic = { played = true })
 
-        clickText(R.string.classic_tile_title)
+        clickHomeText(R.string.classic_tile_title)
 
         assertThat(sounds.cues).containsExactly(SoundCue.ButtonForward)
         assertThat(played).isTrue()
@@ -84,7 +84,7 @@ class ButtonSoundTest {
             onPlayChallenge = { level -> enteredLevel = level },
         )
 
-        clickText(R.string.challenge_tile_title)
+        clickHomeText(R.string.challenge_tile_title)
 
         assertThat(sounds.cues).containsExactly(SoundCue.ButtonForward)
         assertThat(enteredLevel).isEqualTo(PERSISTED_LEVEL)
@@ -98,7 +98,7 @@ class ButtonSoundTest {
             onResumeClassic = { levelId -> resumedBoard = levelId },
         )
 
-        clickText(R.string.resume_classic_title)
+        clickHomeText(R.string.resume_classic_title)
 
         assertThat(sounds.cues).containsExactly(SoundCue.ButtonForward)
         assertThat(resumedBoard).isEqualTo(ClassicLevelIds.EUROPEAN37)
@@ -289,6 +289,13 @@ class ButtonSoundTest {
         composeRule.onNodeWithText(context.getString(resId)).performClick()
         composeRule.waitForIdle()
     }
+
+    /**
+     * Home scrolls since Phase 15 (§4.2), and this rule's viewport is 320x470px, so its lower
+     * bands sit below the fold here — scroll, then click. On a real 360x640dp phone at default
+     * font scale they are all above it, which is criterion 15a and a device check.
+     */
+    private fun clickHomeText(resId: Int) = clickSettingsRow(resId)
 
     /** Settings scrolls too, and the default Robolectric viewport is short — scroll, then click. */
     private fun clickSettingsRow(resId: Int) {

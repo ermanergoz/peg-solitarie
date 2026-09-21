@@ -1,39 +1,31 @@
 package com.app.pegsolitaire.ui.home
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,18 +38,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.tooling.preview.Preview
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.audio.SoundCue
 import com.app.pegsolitaire.audio.withClickSound
+import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.domain.model.Board
+import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.ui.components.ClaySnackbarHost
-import com.app.pegsolitaire.ui.theme.ClayAnim
+import com.app.pegsolitaire.ui.theme.AppTheme
 import com.app.pegsolitaire.ui.theme.clayEntrance
 import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
-import com.app.pegsolitaire.ui.theme.ctaGradientBrush
 import com.app.pegsolitaire.ui.theme.goldGradientFill
-import com.app.pegsolitaire.ui.theme.rememberAnimationsEnabled
 import kotlinx.coroutines.flow.first
 
 /**
@@ -143,22 +137,22 @@ fun HomeScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         snackbarHost = { ClaySnackbarHost(snackbarHostState) },
-        topBar = { HomeTopBar(onOpenSettings = onOpenSettings) },
     ) { contentPadding ->
         Box(
             modifier =
                 Modifier
                     .fillMaxSize()
                     .padding(contentPadding),
-            contentAlignment = Alignment.Center,
+            contentAlignment = Alignment.TopCenter,
         ) {
             HomeBlobs()
-            HomeTiles(
+            HomeBands(
                 state = state,
                 onPlayClassic = onPlayClassic,
                 onPlayChallenge = onPlayChallenge,
                 onResumeClassic = onResumeClassic,
                 onResumeChallenge = onResumeChallenge,
+                onOpenSettings = onOpenSettings,
             )
         }
     }
@@ -261,33 +255,70 @@ private fun PlayGamesSignInErrorSnackbarEffect(
 }
 
 /**
- * The centered stack of Continue chips + mode tiles. Up to two Continue affordances sit
- * above the mode tiles: whatever the player left unfinished is the first thing they see
- * (D-01/D-03). The entrance stagger order counts only the tiles actually shown.
+ * Home's five bands (§4.2): hero, progress ribbon, Continue chips, mode tiles, empty footer —
+ * one `verticalScroll` column capped at `content_max_width`.
+ *
+ * ## Why it scrolls, and why the scroll is not a place to put things
+ *
+ * Home did **not** scroll before this refresh, and at 200% font scale with two Continue chips
+ * it already overflowed, so the scroll is a fix rather than polish. It exists for the overflow
+ * case only: the first-paint rule (D-03f) requires bands 3 and 4 — the Continue chips and both
+ * mode tiles — to be fully within the first viewport at default font scale on a 360x640dp
+ * phone, and the hero is the band that yields to keep them there (`home_hero_min_height` is a
+ * minimum). A Continue chip reachable only by scrolling is a broken device oracle, not a
+ * layout compromise.
+ *
+ * ## The weighted spacer
+ *
+ * It sits between bands 2 and 3, so on a tall phone the slack goes *above* the Continue chips
+ * and the mode tiles stay in the lower thumb half of a 6.7-inch screen (§11 "One-handed use").
+ * `verticalScroll` makes the column's height unbounded, so the spacer needs a
+ * `heightIn(min = 0)`-style floor rather than a weight to behave — it is expressed as a
+ * `Spacer` inside the arrangement instead, and the column's `Arrangement.spacedBy` does the
+ * rest.
+ *
+ * ## The entrance cascade
+ *
+ * `clayEntrance` order runs strictly downward — hero 0, ribbon 1, Continue chips 2..3, tiles
+ * after — so nothing fades in above something that arrived before it (§10). Conditional chips
+ * keep the ordering contiguous by counting only what is shown.
  */
 @Composable
-private fun HomeTiles(
+private fun HomeBands(
     state: HomeUiState,
     onPlayClassic: () -> Unit,
     onPlayChallenge: (level: Int) -> Unit,
     onResumeClassic: (levelId: String) -> Unit,
     onResumeChallenge: (level: Int) -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     Column(
         modifier =
             Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .widthIn(max = dimensionResource(R.dimen.content_max_width))
                 .padding(dimensionResource(R.dimen.spacing_md)),
         verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_md)),
     ) {
-        var entranceOrder = 0
+        HomeHero(onOpenSettings = onOpenSettings)
+        HomeProgressRibbon(
+            totalStars = state.totalStars,
+            classicBoardsCleared = state.classicBoardsCleared,
+            challengeCurrentLevel = state.challengeCurrentLevel,
+        )
+        // Band 2 -> 3: the slack goes here, above the Continue chips, so the two mode tiles
+        // stay in the thumb zone on a tall phone rather than floating mid-screen.
+        Spacer(modifier = Modifier.height(dimensionResource(R.dimen.spacing_lg)))
+
+        var entranceOrder = RIBBON_ENTRANCE_ORDER + 1
         val resumeLevelId = state.classicResumeLevelId
         if (resumeLevelId != null) {
             ResumeTile(
                 title = stringResource(R.string.resume_classic_title),
                 supporting = stringResource(R.string.resume_classic_supporting),
                 entranceOrder = entranceOrder++,
+                board = state.classicResumeBoard,
                 onResume = { onResumeClassic(resumeLevelId) },
             )
         }
@@ -304,6 +335,10 @@ private fun HomeTiles(
                         challengeResumeLevel,
                     ),
                 entranceOrder = entranceOrder++,
+                // A procedural level has no memorable footprint, so this chip keeps the
+                // generic play arrow: a thumbnail of a board the player cannot recognise
+                // would be decoration pretending to be information.
+                board = null,
                 onResume = { onResumeChallenge(challengeResumeLevel) },
             )
         }
@@ -313,99 +348,9 @@ private fun HomeTiles(
             entranceOrder = entranceOrder,
             onPlayChallenge = onPlayChallenge,
         )
+        // Band 5 — the footer. Empty, and specified as empty (§4.2) so a later phase reads the
+        // gap as reserved rather than as an invitation.
     }
-}
-
-/**
- * The Home top bar: the gradient Fredoka app title and the Settings gear (Phase-5 D-14),
- * with the clay squish. The gear uses the curated core Material icon set already on the
- * classpath (`Icons.Rounded.Settings`) — no `material-icons-extended` dependency.
- *
- * The How-to-play `Icons.Rounded.Info` action that sat beside it is **deleted** (D-02): the
- * tutorial's one permanent entry point is now Settings › General. Deleting it also removes
- * half the glyph collision D-04b fixes — `Icons.Rounded.Info` was simultaneously "help" here
- * and "show possible moves" on the gameplay screen.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun HomeTopBar(onOpenSettings: () -> Unit) {
-    TopAppBar(
-        title = {
-            Text(
-                text = stringResource(R.string.app_name),
-                style = MaterialTheme.typography.titleLarge.merge(TextStyle(brush = ctaGradientBrush())),
-            )
-        },
-        actions = {
-            IconButton(onClick = onOpenSettings, modifier = Modifier.claySquish()) {
-                Icon(
-                    imageVector = Icons.Rounded.Settings,
-                    contentDescription = stringResource(R.string.settings_action),
-                    modifier = Modifier.size(dimensionResource(R.dimen.top_bar_icon_size)),
-                )
-            }
-        },
-    )
-}
-
-/**
- * Two slow-drifting, low-alpha clay blobs floating behind the Home content
- * (DESIGN-SYSTEM.md Home: 2 blobs, ±16dp drift over ~8s). Purely decorative —
- * no semantics — and skipped entirely when OS animations are off.
- */
-@Composable
-private fun HomeBlobs() {
-    if (!rememberAnimationsEnabled()) return
-    val drift = rememberInfiniteTransition(label = "homeBlobDrift")
-    val progress by
-        drift.animateFloat(
-            initialValue = -DRIFT_EXTENT,
-            targetValue = DRIFT_EXTENT,
-            animationSpec =
-                infiniteRepeatable(
-                    animation = tween(ClayAnim.BLOB_DRIFT_MS, easing = LinearEasing),
-                    repeatMode = RepeatMode.Reverse,
-                ),
-            label = "homeBlobOffset",
-        )
-    val blobSize = dimensionResource(R.dimen.blob_size)
-    val driftRange = dimensionResource(R.dimen.blob_drift_range)
-    Box(modifier = Modifier.fillMaxSize()) {
-        Blob(
-            color = MaterialTheme.colorScheme.primary,
-            modifier =
-                Modifier
-                    .align(Alignment.TopEnd)
-                    .offset(
-                        x = blobSize * BLOB_PEEK_FRACTION + driftRange * progress,
-                        y = -blobSize * BLOB_PEEK_FRACTION - driftRange * progress,
-                    ),
-        )
-        Blob(
-            color = MaterialTheme.colorScheme.secondary,
-            modifier =
-                Modifier
-                    .align(Alignment.BottomStart)
-                    .offset(
-                        x = -blobSize * BLOB_PEEK_FRACTION - driftRange * progress,
-                        y = blobSize * BLOB_PEEK_FRACTION + driftRange * progress,
-                    ),
-        )
-    }
-}
-
-/** One soft circular background blob at [ClayAnim.BLOB_ALPHA]. */
-@Composable
-private fun Blob(
-    color: Color,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier =
-            modifier
-                .size(dimensionResource(R.dimen.blob_size))
-                .background(color = color.copy(alpha = ClayAnim.BLOB_ALPHA), shape = CircleShape),
-    )
 }
 
 /**
@@ -413,14 +358,23 @@ private fun Blob(
  *
  * A `tertiaryContainer` (reward-gold) [Card] — visually distinct from the mode tiles,
  * because it is an offer to return to something rather than a mode choice — whose whole
- * surface resumes, with a gold-gradient play glyph as the trailing accent. Stateless: the
- * caller decides whether it renders at all and what [onResume] carries.
+ * surface resumes. Stateless: the caller decides whether it renders at all and what
+ * [onResume] carries.
+ *
+ * **Behaviour, ordering and data are unchanged across Phase 15** (§4.2 band 3, and §4.2.1
+ * oracle 3 — the chip's presence, its title, its supporting line and its resume target are
+ * what the cloud-save device tests read). The one change is cosmetic: a [board] renders the
+ * saved board's own footprint in place of the generic play arrow, so a player recognises
+ * *which* board is waiting. `null` keeps the arrow, which is what the Challenge chip wants.
+ *
+ * @param board the footprint to show as the trailing accent, or `null` for the play arrow.
  */
 @Composable
 private fun ResumeTile(
     title: String,
     supporting: String,
     entranceOrder: Int,
+    board: Board?,
     onResume: () -> Unit,
 ) {
     // SOUND-04 / D-09 / D-11: Continue is a navigational CTA, so it clicks. The cue is attached
@@ -463,14 +417,21 @@ private fun ResumeTile(
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                 )
             }
-            Icon(
-                imageVector = Icons.Rounded.PlayArrow,
-                contentDescription = null,
-                modifier =
-                    Modifier
-                        .goldGradientFill()
-                        .size(dimensionResource(R.dimen.mode_glyph_size)),
-            )
+            if (board == null) {
+                Icon(
+                    imageVector = Icons.Rounded.PlayArrow,
+                    contentDescription = null,
+                    modifier =
+                        Modifier
+                            .goldGradientFill()
+                            .size(dimensionResource(R.dimen.mode_glyph_size)),
+                )
+            } else {
+                StaticBoardArt(
+                    board = board,
+                    modifier = Modifier.size(dimensionResource(R.dimen.home_resume_thumb_size)),
+                )
+            }
         }
     }
 }
@@ -479,6 +440,12 @@ private fun ResumeTile(
  * The violet Classic clay tile (D-10): a `primaryContainer` [Card] with a grid glyph
  * badge whose whole surface navigates to the catalog. Title "Classic" + supporting
  * "5 boards". The screen's primary affordance.
+ *
+ * Phase 15 adds trailing art only: a **real footprint** at `home_tile_art_size`, drawn from
+ * board primitives (§4.2 band 4). The container, badge, title, supporting slot, entrance
+ * stagger, squish, `ButtonForward` cue and `onClick` are all unchanged — and the supporting
+ * line stays `classic_tile_supporting`, not a progress count, because the catalogue one tap
+ * away is where per-board progress lives (§4.2.1 oracle 2).
  */
 @Composable
 private fun ClassicTile(
@@ -494,6 +461,12 @@ private fun ClassicTile(
         title = stringResource(R.string.classic_tile_title),
         entranceOrder = entranceOrder,
         onClick = onPlayClassic,
+        art = {
+            StaticBoardArt(
+                board = ClassicTileArtBoard,
+                modifier = Modifier.size(dimensionResource(R.dimen.home_tile_art_size)),
+            )
+        },
     ) {
         Text(
             text = stringResource(R.string.classic_tile_supporting),
@@ -509,6 +482,11 @@ private fun ClassicTile(
  * [currentLevel], the player's persisted ladder position (CHAL-05). The persisted level
  * rides a soft level chip ("Continue — Level N"), so the stored progress is visible, not
  * just used. Same `mode_tile_min_height` footprint as Classic.
+ *
+ * **That level chip is a cloud-save device oracle** (§4.2.1 oracle 1) and is untouched by
+ * Phase 15: the ribbon's Level pill reads the same `currentLevel` and is *additive*. The tile
+ * gains trailing art like Classic's, but the bolt rather than a footprint — a procedurally
+ * generated level has no memorable shape to show.
  */
 @Composable
 private fun ChallengeTile(
@@ -525,6 +503,14 @@ private fun ChallengeTile(
         title = stringResource(R.string.challenge_tile_title),
         entranceOrder = entranceOrder,
         onClick = { onPlayChallenge(currentLevel) },
+        art = {
+            Icon(
+                imageVector = rememberChallengeGlyph(),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.size(dimensionResource(R.dimen.home_tile_art_size)),
+            )
+        },
     ) {
         Surface(
             shape = MaterialTheme.shapes.small,
@@ -547,7 +533,12 @@ private fun ChallengeTile(
 /**
  * One chunky clay mode tile: a soft-shadowed, squishy [Card] in the mode's container
  * color, leading with a rounded glyph badge beside the [title] and the mode-specific
- * [supporting] slot (plain text for Classic, the level chip for Challenge).
+ * [supporting] slot (plain text for Classic, the level chip for Challenge), and closing with
+ * the mode's decorative [art].
+ *
+ * @param art the trailing decoration (§4.2 band 4). Purely decorative — every caller passes
+ *   `contentDescription = null` content — so it adds nothing to the tile's announcement, which
+ *   stays "title, supporting".
  */
 @Composable
 private fun ModeTile(
@@ -559,6 +550,7 @@ private fun ModeTile(
     title: String,
     entranceOrder: Int,
     onClick: () -> Unit,
+    art: @Composable () -> Unit,
     supporting: @Composable () -> Unit,
 ) {
     // Wrapped at the shared leaf, so Classic and Challenge each inherit the forward click once.
@@ -607,15 +599,82 @@ private fun ModeTile(
                 )
                 supporting()
             }
+            art()
         }
     }
 }
 
-/** The text column takes all width left of the fixed-size badge/accent. */
-private const val CONTENT_WEIGHT = 1f
+/**
+ * One share of a `Row`'s free width: the text column beside a fixed-size badge or accent, and
+ * one of the progress ribbon's three equal pills. `internal` because the ribbon lives in its
+ * own file — the bands were split out when this one crossed detekt's per-file function count,
+ * and a second copy of the same 1f would be a place for the two to disagree.
+ */
+internal const val CONTENT_WEIGHT = 1f
 
-/** How far a background blob's center peeks past its screen corner. */
-private const val BLOB_PEEK_FRACTION = 0.3f
+/**
+ * Entrance-cascade order of Home's fixed bands (§10: 40ms stagger, strictly downward).
+ *
+ * Only the first two are constants: the Continue chips and the mode tiles are conditional, so
+ * their orders are counted from the ribbon's at the call site and stay contiguous whether one
+ * chip renders, two, or none. A fixed number for a conditional band would leave a gap in the
+ * stagger, which reads as a pause in the middle of the screen appearing.
+ */
+internal const val HERO_ENTRANCE_ORDER = 0
+internal const val RIBBON_ENTRANCE_ORDER = 1
 
-/** Blob drift progress runs −1…+1 of the `blob_drift_range` (±16dp). */
-private const val DRIFT_EXTENT = 1f
+@Preview(name = "Home · light")
+@Composable
+private fun HomeScreenLightPreview() {
+    AppTheme(darkTheme = false) {
+        HomeScreen(
+            // The first-frame state: the ribbon paints its placeholders and nothing waits.
+            state = HomeUiState(),
+            onPlayClassic = {},
+            onPlayChallenge = {},
+            onResumeClassic = {},
+            onResumeChallenge = {},
+            onAcceptPlayGamesPrompt = {},
+            onDeclinePlayGamesPrompt = {},
+            onKeepDeviceProgress = {},
+            onUseCloudProgress = {},
+            onPlayGamesSignInErrorShown = {},
+            onOpenSettings = {},
+        )
+    }
+}
+
+@Preview(name = "Home · dark")
+@Composable
+private fun HomeScreenDarkPreview() {
+    AppTheme(darkTheme = true) {
+        HomeScreen(
+            // The busiest legitimate Home: filled ribbon, both Continue chips, both tiles —
+            // the layout the first-paint rule (D-03f) is about.
+            state =
+                HomeUiState(
+                    totalStars = PREVIEW_STARS,
+                    classicBoardsCleared = PREVIEW_BOARDS_CLEARED,
+                    challengeCurrentLevel = PREVIEW_LEVEL,
+                    classicResumeLevelId = ClassicLevelIds.EUROPEAN37,
+                    classicResumeBoard = Boards.european37Initial,
+                    challengeResumeLevel = PREVIEW_RESUME_LEVEL,
+                ),
+            onPlayClassic = {},
+            onPlayChallenge = {},
+            onResumeClassic = {},
+            onResumeChallenge = {},
+            onAcceptPlayGamesPrompt = {},
+            onDeclinePlayGamesPrompt = {},
+            onKeepDeviceProgress = {},
+            onUseCloudProgress = {},
+            onPlayGamesSignInErrorShown = {},
+            onOpenSettings = {},
+        )
+    }
+}
+
+private const val PREVIEW_STARS = 7
+private const val PREVIEW_BOARDS_CLEARED = 3
+private const val PREVIEW_LEVEL = 12
+private const val PREVIEW_RESUME_LEVEL = 11

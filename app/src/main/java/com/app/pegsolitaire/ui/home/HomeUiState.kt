@@ -2,6 +2,7 @@ package com.app.pegsolitaire.ui.home
 
 import androidx.compose.runtime.Immutable
 import com.app.pegsolitaire.data.ChallengeProgressPreferences
+import com.app.pegsolitaire.domain.model.Board
 
 /**
  * The single immutable UI state for the Home mode-select screen (NAV-01, ONB-01).
@@ -29,6 +30,13 @@ import com.app.pegsolitaire.data.ChallengeProgressPreferences
  *   what an unreadable snapshot degrades to, so a corrupt blob simply hides the
  *   affordance instead of surfacing an error (T-05-03). Doubles as the board the
  *   Continue affordance resumes into: the screen carries the id, the host never guesses.
+ * @property classicResumeBoard the footprint of that same saved Classic board, for the
+ *   Continue chip's thumbnail (§4.2 band 3) — `null` under exactly the conditions
+ *   [classicResumeLevelId] is, and never set without it. It is resolved by the ViewModel from
+ *   the **static catalogue read it already performs** to validate the stored id (CR-01), so
+ *   the thumbnail costs no new read on the start destination (D-03g) and the screen needs no
+ *   second id-to-board mapping of its own — `:app`'s level source stays the one place a level
+ *   id becomes a board (QUAL-01).
  * @property challengeResumeLevel the level of the saved in-progress Challenge game
  *   (PERS-03), read from the snapshot's own provenance stamp — or `null` when there is
  *   nothing usable to continue. Independent of [classicResumeLevelId] — a Classic and a
@@ -91,6 +99,7 @@ data class HomeUiState(
     val classicBoardsCleared: Int? = null,
     val challengeCurrentLevel: Int = ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL,
     val classicResumeLevelId: String? = null,
+    val classicResumeBoard: Board? = null,
     val challengeResumeLevel: Int? = null,
     val playGamesPromptVisible: Boolean = false,
     val profileSwapVisible: Boolean = false,

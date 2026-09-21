@@ -159,6 +159,37 @@
     <string name="settings_how_to_play_supporting">Replay the tutorial</string>
 
     <!--
+      Phase-15: the Home progress ribbon (NAV-01/PERS-03/CHAL-05, D-03/D-03c/D-03h;
+      ux-spec §4.2, §8).
+
+      `stat_value_unknown` is an em dash, and it is what a pill shows both before the first
+      read lands AND when the read failed — the two are deliberately indistinguishable, and
+      neither is ever rendered as `0`, because zero is a real answer for a brand-new player
+      and reporting it for a broken read would lie to an experienced one (D-03h).
+      `stat_value_unknown_desc` is what a screen reader says in its place, so the em dash is
+      never spoken as punctuation.
+
+      The Boards pill's denominator is a FORMAT ARGUMENT, never a literal: it is supplied at
+      the call site from the Classic catalogue's own size, so a stored row cannot change a
+      shipped number and a sixth board would move it without a copy edit.
+    -->
+    <string name="stat_value_unknown">—</string>
+    <string name="stat_value_unknown_desc">not yet available</string>
+    <!--
+      A pill's whole announcement, label then value: "Stars, 7" — or "Stars, not yet
+      available" when the value is unknown. It is a format rather than a bare comma joined in
+      code because the separator between a label and its value is locale-specific, and because
+      a merged semantics node that carried both a contentDescription and its children's text
+      would be read as the description ALONE by TalkBack, silently dropping the label. This is
+      the string ux-spec §8's table does not list; see the report's Deviations.
+    -->
+    <string name="home_stat_pill_desc">%1$s, %2$s</string>
+    <string name="home_stat_stars_label">Stars</string>
+    <string name="home_stat_boards_label">Boards</string>
+    <string name="home_stat_level_label">Level</string>
+    <string name="home_stat_boards_value">%1$d/%2$d</string>
+
+    <!--
       Home "Continue" affordances for a saved in-progress game (PERS-03, D-01/D-03). Each
       mode has its own tile and they can appear together, so the titles name the mode
       rather than relying on position. The supporting lines say what is actually being
