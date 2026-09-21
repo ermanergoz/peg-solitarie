@@ -115,6 +115,22 @@ class TutorialViewModel
          * Handles a tap on [position]. Selection, deselection and the jump — and nothing
          * else: there is no error state, no red, no retry count and no score (D-01c), so a
          * tap that changes nothing simply escalates *assistance*.
+         *
+         * ## The branch order is the gameplay board's, deliberately (§4.1 "Tap semantics")
+         *
+         * A tap rule is the mechanic this screen exists to teach, so it is the *game's* rule:
+         * `GameViewModel.onCellTap` selects only while **nothing** is selected
+         * (`GameViewModel.kt:817`) and answers every other tap with the quiet no-op (`:823`),
+         * which its own KDoc states outright — re-tapping the selected peg is the only
+         * deselect, and tapping a different peg while one is held changes nothing
+         * (`GameViewModel.kt:788-796`). A tutorial that re-selected instead would teach a
+         * gesture the real board then refuses, and it would refuse within a graduate's first
+         * few taps, because "the peg I tapped cannot move" is the ordinary case on a full
+         * board rather than a corner case.
+         *
+         * A player left holding an immovable peg is freed by [escalateCoach]'s release clause,
+         * which is tutorial-only assistance and so diverges from nothing — **not** by the
+         * board reinterpreting their next tap.
          */
         fun onCellTap(position: Position) {
             val state = _uiState.value
@@ -126,11 +142,8 @@ class TutorialViewModel
                 // A re-tap puts the peg back down; a tap on a legal dot jumps.
                 selected == position -> deselect()
                 selected != null && position in state.board.legalTargets -> jump(from = selected, to = position)
-                // Any other peg SELECTS, including while another peg is already held. That
-                // matters on T2 and T3, where some pegs have no legal jump at all (§4.4
-                // class 1): a player who taps one must be able to pick a movable peg
-                // straight afterwards rather than having to put the first one down.
-                board.cellAt(position) == Cell.Peg -> select(position)
+                // A peg selects only while NOTHING is held — the game's rule, above.
+                selected == null && board.cellAt(position) == Cell.Peg -> select(position)
                 else -> registerNonProgressingTap()
             }
         }
@@ -266,15 +279,40 @@ class TutorialViewModel
          * It escalates once, never blocks, and never offers to take a move back — no tutorial
          * board can box the player in, so there is nothing to be rescued from, and promising a
          * rescue from an impossible failure teaches the player to expect failure.
+         *
+         * ## The release clause (§4.4, ruled 2026-09-21) — do not drop this half
+         *
+         * When the escalation fires while a peg is held that is **not** the peg it is about to
+         * point at, it puts that peg back down, silently, in the same state change that raises
+         * the ring — on both triggers, [registerNonProgressingTap]'s count and [armNudge]'s
+         * idleness alike. Without it, matching the gameplay board's tap rule (see [onCellTap])
+         * would make this help *unreachable* rather than merely slow: while a peg is held, a
+         * tap on the pulsing peg is itself a non-progressing no-op, so the coach would point at
+         * a peg the player cannot pick up and every further tap would re-escalate onto the same
+         * unreachable suggestion.
+         *
+         * It deliberately does **not** release when the held peg *is* the coached source: the
+         * player has already selected correctly and only needs to find the dot, so letting go
+         * there would undo a correct selection and make the help worse.
+         *
+         * The release is silent because this screen hosts no cue that could sound it — the
+         * `Deselect` and `Hint` effects both stay private to the gameplay screen (§5, D-01i).
          */
         private fun escalateCoach() {
             nudgeJob?.cancel()
             nonProgressingTaps = 0
             val hint = RulesEngine.legalMoves(_uiState.value.board.board).firstOrNull() ?: return
             _uiState.update {
+                val releaseHeldPeg = it.board.selected != null && it.board.selected != hint.from
                 it
-                    .withBoard(it.board.copy(hintSource = hint.from, hintTarget = hint.to))
-                    .copy(coachTick = it.coachTick + 1)
+                    .withBoard(
+                        it.board.copy(
+                            hintSource = hint.from,
+                            hintTarget = hint.to,
+                            selected = if (releaseHeldPeg) null else it.board.selected,
+                            legalTargets = if (releaseHeldPeg) emptyList() else it.board.legalTargets,
+                        ),
+                    ).copy(coachTick = it.coachTick + 1)
             }
         }
 

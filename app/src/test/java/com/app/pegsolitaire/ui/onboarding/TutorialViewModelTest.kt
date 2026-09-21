@@ -224,24 +224,143 @@ class TutorialViewModelTest {
             settleStepAdvance()
 
             // T2's middle peg (1,1) has no legal jump: it selects and offers nothing.
-            viewModel.onCellTap(Position(row = 1, col = 1))
+            viewModel.onCellTap(T2_IMMOVABLE_PEG)
             runCurrent()
-            assertThat(viewModel.uiState.value.board.selected).isEqualTo(Position(row = 1, col = 1))
+            assertThat(viewModel.uiState.value.board.selected).isEqualTo(T2_IMMOVABLE_PEG)
             assertThat(viewModel.uiState.value.board.legalTargets).isEmpty()
 
-            // Tapping an illegal destination while a movable peg is selected KEEPS the
-            // selection — nothing is lost and nothing is announced as wrong.
-            viewModel.onCellTap(Position(row = 0, col = 1))
+            // Tapping an illegal destination while a peg is held KEEPS the selection —
+            // nothing is lost and nothing is announced as wrong.
+            viewModel.onCellTap(T2_ILLEGAL_HOLE)
             runCurrent()
-            viewModel.onCellTap(Position(row = 2, col = 2))
-            runCurrent()
-            assertThat(viewModel.uiState.value.board.selected).isEqualTo(Position(row = 0, col = 1))
+            assertThat(viewModel.uiState.value.board.selected).isEqualTo(T2_IMMOVABLE_PEG)
             assertThat(viewModel.uiState.value.board.board).isEqualTo(TutorialBoards.T2)
 
             // And there is no error field to set in the first place (D-01c), which is the
             // half a behavioural assertion cannot reach.
             val fields = TutorialUiState::class.java.declaredFields.map { it.name.lowercase() }
             assertThat(fields.none { FORBIDDEN_STATE_WORDS.any(it::contains) }).isTrue()
+        }
+
+    /**
+     * Criterion 3a's cheap half (§4.1 "Tap semantics", ruled 2026-09-21).
+     *
+     * The tutorial teaches a tap rule, so it must be the *game's* tap rule:
+     * `GameViewModel.onCellTap` selects only while nothing is selected (`GameViewModel.kt:817`)
+     * and answers a tap on a different peg with the quiet no-op (`:823`), a rule its own KDoc
+     * states outright (`:788-796`). A tutorial that re-selected would teach a gesture the real
+     * board refuses within a graduate's first few taps. The expensive half — performing the
+     * same tap on both screens and comparing — is a device check.
+     */
+    @Test
+    fun aTapOnADifferentPegWhileOneIsHeldChangesNothingExactlyAsTheGameplayBoardDoes() =
+        runTest(testDispatcher) {
+            val viewModel = viewModelFor()
+            runCurrent()
+            playTheOnlyMove(viewModel)
+            settleStepAdvance()
+
+            // Hold T2's movable peg, which offers exactly one destination.
+            viewModel.onCellTap(T2_MOVABLE_PEG)
+            runCurrent()
+            assertThat(viewModel.uiState.value.board.selected).isEqualTo(T2_MOVABLE_PEG)
+            val heldTargets = viewModel.uiState.value.board.legalTargets
+
+            // Now tap the OTHER peg. The selection does not move there, and its dots stand.
+            viewModel.onCellTap(T2_IMMOVABLE_PEG)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.board.selected).isEqualTo(T2_MOVABLE_PEG)
+            assertThat(viewModel.uiState.value.board.legalTargets).isEqualTo(heldTargets)
+            assertThat(viewModel.uiState.value.board.board).isEqualTo(TutorialBoards.T2)
+
+            // Re-tapping the held peg is still the one deselect, and the other peg then
+            // selects normally — the recovery is one tap, and it is the game's own.
+            viewModel.onCellTap(T2_MOVABLE_PEG)
+            runCurrent()
+            assertThat(viewModel.uiState.value.board.selected).isNull()
+            viewModel.onCellTap(T2_IMMOVABLE_PEG)
+            runCurrent()
+            assertThat(viewModel.uiState.value.board.selected).isEqualTo(T2_IMMOVABLE_PEG)
+        }
+
+    /**
+     * The release clause (§4.4, criterion 3): the escalation puts down a held peg it is **not**
+     * pointing at, in the same state change that raises the ring.
+     *
+     * Without it, matching the game's tap rule would make the help *unreachable* rather than
+     * merely slow — while a peg is held, a tap on the pulsing peg is a class-2 no-op, so the
+     * coach would point at a peg the player cannot pick up and every further tap would
+     * re-escalate onto the same unreachable suggestion.
+     */
+    @Test
+    fun theCoachEscalationPutsDownAHeldPegItIsNotPointingAt() =
+        runTest(testDispatcher) {
+            val viewModel = viewModelFor()
+            runCurrent()
+            playTheOnlyMove(viewModel)
+            settleStepAdvance()
+
+            viewModel.onCellTap(T2_IMMOVABLE_PEG)
+            runCurrent()
+            assertThat(viewModel.uiState.value.board.selected).isEqualTo(T2_IMMOVABLE_PEG)
+
+            // Three taps that change nothing — the tap-count trigger.
+            T2_EMPTY_HOLES.forEach { hole ->
+                viewModel.onCellTap(hole)
+                runCurrent()
+            }
+
+            assertThat(viewModel.uiState.value.coachTick).isEqualTo(FIRST_ESCALATION)
+            assertThat(viewModel.uiState.value.board.hintSource).isEqualTo(T2_MOVABLE_PEG)
+            // Released: the coached peg can be tapped straight away.
+            assertThat(viewModel.uiState.value.board.selected).isNull()
+            assertThat(viewModel.uiState.value.board.legalTargets).isEmpty()
+        }
+
+    /** The same release on the other trigger — idleness, with no taps at all (§4.4). */
+    @Test
+    fun theIdleNudgeAlsoPutsDownAHeldPegTheCoachIsNotPointingAt() =
+        runTest(testDispatcher) {
+            val viewModel = viewModelFor()
+            runCurrent()
+            playTheOnlyMove(viewModel)
+            settleStepAdvance()
+
+            viewModel.onCellTap(T2_IMMOVABLE_PEG)
+            runCurrent()
+            assertThat(viewModel.uiState.value.board.selected).isEqualTo(T2_IMMOVABLE_PEG)
+
+            settleIdleNudge()
+
+            assertThat(viewModel.uiState.value.coachTick).isEqualTo(FIRST_ESCALATION)
+            assertThat(viewModel.uiState.value.board.selected).isNull()
+        }
+
+    /**
+     * The one case the release must **not** fire (§4.4): the held peg *is* the coached source.
+     *
+     * The player has already selected correctly and only needs to find the dot, so letting go
+     * there would undo a correct selection and make the help worse rather than better.
+     */
+    @Test
+    fun theCoachEscalationKeepsAHeldPegThatIsItsOwnCoachedSource() =
+        runTest(testDispatcher) {
+            val viewModel = viewModelFor()
+            runCurrent()
+            playTheOnlyMove(viewModel)
+            settleStepAdvance()
+
+            viewModel.onCellTap(T2_MOVABLE_PEG)
+            runCurrent()
+            val heldTargets = viewModel.uiState.value.board.legalTargets
+
+            settleIdleNudge()
+
+            assertThat(viewModel.uiState.value.coachTick).isEqualTo(FIRST_ESCALATION)
+            assertThat(viewModel.uiState.value.board.hintSource).isEqualTo(T2_MOVABLE_PEG)
+            assertThat(viewModel.uiState.value.board.selected).isEqualTo(T2_MOVABLE_PEG)
+            assertThat(viewModel.uiState.value.board.legalTargets).isEqualTo(heldTargets)
         }
 
     @Test
@@ -270,6 +389,12 @@ class TutorialViewModelTest {
         runCurrent()
     }
 
+    /** Lets the idle nudge fire — the second of the escalation's two triggers (§4.4). */
+    private fun TestScope.settleIdleNudge() {
+        advanceTimeBy(TutorialAnim.NUDGE_DELAY_MS.toLong() + 1)
+        runCurrent()
+    }
+
     private fun TestScope.viewModelFor(
         repository: OnboardingRepository = GatedOnboardingRepository(),
     ): TutorialViewModel = TutorialViewModel(repository, backgroundScope)
@@ -280,6 +405,26 @@ class TutorialViewModelTest {
         const val THIRD_STEP = 2
         const val T1_START_PEGS = 2
         const val ONE_PEG = 1
+
+        /** The coach escalates **once**; this is that one escalation's ordinal. */
+        const val FIRST_ESCALATION = 1
+
+        /** T2's only movable peg — the source of its single legal move, so the coached one. */
+        val T2_MOVABLE_PEG = Position(row = 0, col = 1)
+
+        /** T2's middle peg: in play, holds a peg, and has no legal jump (§4.4 class 1). */
+        val T2_IMMOVABLE_PEG = Position(row = 1, col = 1)
+
+        /** An in-play empty hole on T2 that is never a legal destination. */
+        val T2_ILLEGAL_HOLE = Position(row = 2, col = 2)
+
+        /** Three in-play empty holes on T2 — enough taps to reach the coach (§4.4 class 3). */
+        val T2_EMPTY_HOLES =
+            listOf(
+                Position(row = 0, col = 0),
+                Position(row = 0, col = 2),
+                Position(row = 2, col = 0),
+            )
 
         /**
          * A full four-move winning line for T3, source then destination per move. The last
