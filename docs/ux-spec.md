@@ -67,6 +67,22 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > not relaxed), §9, §13, §14 (7c replaced, 7d/7e new) and §16, which gains its first SOUND-nn
 > rows so this class of contradiction is visible next time.
 >
+> **Correction pass — 2026-09-21 (measurement identity, orphaned strings).** Two items the
+> developer's planning pass returned (`.planning/reports/phase-15/android-game-dev-plan.md`, Open
+> issues 2–3), both corrections of fact rather than design changes; no decision is reopened.
+> **(1)** §6.5 now states the **launch identity** the two cold-start arms are started with. The
+> `applicationId` is `com.erman.pegsolitarie` (`app/build.gradle.kts:279`, "-arie") while the code
+> `namespace` is `com.app.pegsolitaire` (`:263`, "-aire") — deliberately different strings since
+> the v1.1 store decision — so the launch component is neither one alone. An `am start -W` against
+> the wrong one prints an error instead of a `TotalTime`, which means criterion 15e would have
+> produced **no measurement at all** rather than a failing one. This document never printed a
+> package id itself; the wrong id is in `tech-lead-architecture.md:360-362`, another role's report
+> and not this role's to edit, so the correction here is to put the right identity where the
+> procedure lives and to flag the report back to the producer. **(2)** §8's Deleted list now rules
+> on `onboarding_step_1/2/3`, orphaned by D-02: they are deleted, verified to have no other caller.
+> The new-strings table is untouched at thirteen rows, and no count in this document states a
+> different number.
+>
 > Out of scope here and **not** absorbed into this document: rules/audio.md makes
 > `docs/audio-spec.md` the cue list of record and that file has never existed on any branch. The
 > gap predates phase 15, belongs to the sound-designer, and the producer is tracking it
@@ -1004,6 +1020,22 @@ is therefore a **two-arm delta**, and the absolute ≤ 950 ms stays PLAT-08's:
   arm B = `feature/phase-15-ux-refresh`. Phase 6's instrument exactly — AVD `Pixel_9a` API 36,
   **debug** variant, `am start -W` TotalTime, 10 samples, first discarded as warm-up, re-install
   between arms so neither benefits from the other's warm ART state.
+- **The identity the arms are started with** *(correction 2026-09-21 — this spec never named it,
+  and the id in `tech-lead-architecture.md:360-362` is the wrong one)*: the launch package is the
+  **`applicationId` `com.erman.pegsolitarie`** (`app/build.gradle.kts:279` — note "-arie"), and the
+  activity class is **`com.app.pegsolitaire.MainActivity`** (`MainActivity.kt:1` and `:47`), because
+  the code `namespace` (`app/build.gradle.kts:263` — "-aire") is deliberately a different string
+  from the store identity and the manifest declares the activity relatively (`AndroidManifest.xml:33`,
+  the one `<activity>`, no alias, no `applicationIdSuffix`). The component is therefore
+  **`com.erman.pegsolitarie/com.app.pegsolitaire.MainActivity`**, spelled out on *both* sides; the
+  `/.MainActivity` shorthand expands against the launch package and so names a class that does not
+  exist here. `am force-stop` takes the `applicationId` alone. This is the one failure mode that
+  costs the gate its evidence rather than its pass: a wrong id makes `am start -W` print an error
+  instead of a `TotalTime`, so the phase closes with **no measurement** rather than with a bad one.
+  The form that cannot rot, and the one to prefer:
+  `adb shell am start -W -n "$(adb shell cmd package resolve-activity --brief com.erman.pegsolitarie | tail -1)"`
+  — it asks the device for the launcher component instead of hard-coding it. Criterion 15e's
+  `am start -W` means this command.
 - **The player state is identical across arms and deliberately non-trivial:** seed a Challenge
   ladder of at least ~200 banked levels, or the one read this phase adds is measured on an empty
   table and proves nothing about a real player.
@@ -1106,6 +1138,21 @@ escalation line.
 
 `how_to_play` (`strings.xml:62`) — its only caller is the deleted info button. Removing it is what
 makes D-02 complete rather than cosmetic.
+
+`onboarding_step_1`, `onboarding_step_2`, `onboarding_step_3` (`strings.xml:161-163`) — deleted in
+the same slice that deletes `OnboardingOverlay.kt`, on the same precedent as `how_to_play`: a
+string with no referent does not stay in the file. Their only caller is
+`OnboardingOverlay.kt:181-183`, which D-01/D-01g replace, and the three `tutorial_step_*_caption`
+rows above are their rewrites, so nothing re-reads them. *(Verified 2026-09-21 by grep over
+`*.kt`/`*.xml`: the three names appear at `strings.xml:161-163` and
+`OnboardingOverlay.kt:181-183` and nowhere else in the app — no other layout, screen, test or
+resource references them. Recorded here so the deletion is a ruling of the copy contract rather
+than a discovery at review; the first edition's "rewrites" note above implied replacement without
+saying what happened to the originals.)*
+
+**Not deleted with them:** `onboarding_got_it` and `onboarding_skip` keep their names and their
+values and move to the new tutorial (Reused unchanged, above). The shared `onboarding_` prefix is
+not a licence to sweep the group.
 
 ### Fixed
 
