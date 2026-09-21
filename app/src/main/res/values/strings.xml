@@ -59,7 +59,12 @@
     <!-- The Challenge tile's supporting line: the player's persisted ladder position (CHAL-05). -->
     <string name="challenge_tile_continue">Continue — Level %1$d</string>
     <string name="coming_soon">Coming soon</string>
-    <string name="how_to_play">How to play</string>
+    <!--
+      `how_to_play` was deleted in Phase 15 (ux-spec §8 Deleted): its only caller was Home's
+      information icon, which D-02 removes. The tutorial's one permanent entry point is now
+      the Settings › General row below, which carries its own label.
+    -->
+
 
     <!-- Classic catalog. -->
     <string name="catalog_title">Classic</string>
@@ -132,17 +137,26 @@
 
     <!--
       ============================ Phase-5 copy ============================
-      Settings (SET-01/SET-02, D-14..D-17). The sound supporting line states the
-      honest Phase-5 truth — the choice is saved now and consumed when the audio
-      pass lands (D-16) — while haptics describes the feedback that fires today
-      (D-15). settings_action is the Home gear's content description.
+      Settings (SET-01/SET-02, D-14..D-17). Both supporting lines describe feedback that
+      fires today: haptics has since Phase 5 (D-15), and sound since Phase 7 — its line
+      said "Saved for the upcoming sound effects" until Phase 15 corrected it (ux-spec §8
+      Fixed), which was honest when it was written and stale for eight phases after.
+      settings_action is the Home gear's content description.
     -->
     <string name="settings_title">Settings</string>
     <string name="settings_action">Settings</string>
     <string name="settings_sound_label">Sound</string>
-    <string name="settings_sound_supporting">Saved for the upcoming sound effects</string>
+    <string name="settings_sound_supporting">Play the jump, button and celebration sounds</string>
     <string name="settings_haptics_label">Haptics</string>
     <string name="settings_haptics_supporting">Vibrate lightly on each jump</string>
+
+    <!--
+      Phase-15: the tutorial's one permanent entry point (ONB-01, D-02a; ux-spec §4.5, §8).
+      "Replay" is deliberate — a first-run player meets the tutorial automatically and never
+      reads this line first, so the row only ever describes going back to it.
+    -->
+    <string name="settings_how_to_play_label">How to play</string>
+    <string name="settings_how_to_play_supporting">Replay the tutorial</string>
 
     <!--
       Home "Continue" affordances for a saved in-progress game (PERS-03, D-01/D-03). Each
@@ -177,12 +191,19 @@
     <!-- Shown with the completion star and the CTA, once T3 is cleared. -->
     <string name="tutorial_done_caption">That\'s the whole game. Go clear a board.</string>
 
-    <!-- Onboarding overlay (first-run how-to-play of the orthogonal jump). -->
+    <!--
+      The two action labels the retired first-run overlay authored, now the interactive
+      tutorial's completion CTA and Skip action. They keep their names and their values
+      (ux-spec §8 "Reused unchanged"): the shared `onboarding_` prefix is not a licence to
+      sweep the group.
+
+      `onboarding_step_1/2/3` were deleted with the retired first-run sheet in Phase 15 (§8
+      Deleted, verified by grep as having no other caller) — the three
+      `tutorial_step_*_caption` lines above are their rewrites, shortened to one line each
+      because the player is now doing the thing the sentence used to describe.
+    -->
     <string name="onboarding_got_it">Got it</string>
     <string name="onboarding_skip">Skip tutorial</string>
-    <string name="onboarding_step_1">Tap a peg, then tap an empty hole two cells away.</string>
-    <string name="onboarding_step_2">The peg jumps straight over its neighbor — only up, down, left, or right.</string>
-    <string name="onboarding_step_3">The jumped peg is removed. Clear the board down to one peg.</string>
 
     <!--
       ============================ Phase-9 copy ============================

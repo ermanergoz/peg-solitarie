@@ -15,8 +15,12 @@ import com.app.pegsolitaire.ui.settings.SettingsRoute
 
 /**
  * The Home actions, hoisted so [AppNavHost]'s content is test-injectable: the two mode
- * entries, the two PERS-03 Continue entries (each carrying what its resume needs), and the
- * Settings gear.
+ * entries, the two PERS-03 Continue entries (each carrying what its resume needs), the
+ * Settings gear, and the first-run tutorial auto-start (D-02a).
+ *
+ * `onStartTutorial` is the only one of the six the player cannot press: Home carries no
+ * tutorial affordance (D-02), so the route fires it from its own effect while the standing
+ * flag says the tutorial is still owed.
  */
 private typealias HomeContent =
     @Composable (
@@ -25,6 +29,7 @@ private typealias HomeContent =
         onResumeClassic: (levelId: String) -> Unit,
         onResumeChallenge: (level: Int) -> Unit,
         onOpenSettings: () -> Unit,
+        onStartTutorial: () -> Unit,
     ) -> Unit
 
 /** The Results actions, hoisted so [AppNavHost]'s content is test-injectable. */
@@ -69,13 +74,14 @@ private typealias ResultsContent =
 fun AppNavHost(
     navController: NavHostController = rememberNavController(),
     homeContent: HomeContent =
-        { onPlayClassic, onPlayChallenge, onResumeClassic, onResumeChallenge, onOpenSettings ->
+        { onPlayClassic, onPlayChallenge, onResumeClassic, onResumeChallenge, onOpenSettings, onStartTutorial ->
             HomeRoute(
                 onPlayClassic = onPlayClassic,
                 onPlayChallenge = onPlayChallenge,
                 onResumeClassic = onResumeClassic,
                 onResumeChallenge = onResumeChallenge,
                 onOpenSettings = onOpenSettings,
+                onStartTutorial = onStartTutorial,
             )
         },
     catalogContent: @Composable (onSelect: (String) -> Unit, onNavigateBack: () -> Unit) -> Unit =
@@ -96,9 +102,10 @@ fun AppNavHost(
             onNavigateBack = onNavigateBack,
         )
     },
-    settingsContent: @Composable (onBack: () -> Unit) -> Unit = { onBack ->
-        SettingsRoute(onBack = onBack)
-    },
+    settingsContent: @Composable (onBack: () -> Unit, onShowHowToPlay: () -> Unit) -> Unit =
+        { onBack, onShowHowToPlay ->
+            SettingsRoute(onBack = onBack, onShowHowToPlay = onShowHowToPlay)
+        },
     tutorialContent: @Composable (onExit: () -> Unit) -> Unit = { onExit ->
         TutorialRoute(onExit = onExit)
     },
@@ -106,7 +113,8 @@ fun AppNavHost(
     NavHost(navController = navController, startDestination = Home) {
         composable<Home> {
             // homeContent slot: onPlayClassic, onPlayChallenge(level),
-            // onResumeClassic(levelId), onResumeChallenge(level), onOpenSettings.
+            // onResumeClassic(levelId), onResumeChallenge(level), onOpenSettings,
+            // onStartTutorial.
             // Every value comes from Home's UiState (the persisted ChallengeProgress level,
             // CHAL-05; the stored snapshot's board id, PERS-03) — the host carries what it
             // is handed, it never picks a level or a board itself.
@@ -116,11 +124,13 @@ fun AppNavHost(
                 { levelId -> navController.navigate(Gameplay(levelId = levelId, resume = true)) },
                 { level -> navController.toChallengeBoard(level, resume = true) },
                 { navController.navigate(Settings) },
+                { navController.toTutorial() },
             )
         }
         composable<Settings> {
-            // settingsContent slot: onBack (pops back to Home, D-14)
-            settingsContent { navController.popBackStack() }
+            // settingsContent slot: onBack (pops back to Home, D-14), onShowHowToPlay
+            // (the D-02a replay entry point — the tutorial's only permanent affordance).
+            settingsContent({ navController.popBackStack() }, { navController.toTutorial() })
         }
         composable<Tutorial> {
             // tutorialContent slot: onExit — and NOTHING else. `popBackStack()` is the
@@ -156,6 +166,23 @@ fun AppNavHost(
             )
         }
     }
+}
+
+/**
+ * Pushes the [Tutorial] destination (ONB-01, D-01g/D-02a) — the **one** helper both entry
+ * points share: Home's first-run auto-start and the Settings › How to play row.
+ *
+ * `launchSingleTop` is defensive rather than load-bearing: the auto-start effect fires once
+ * per transition into "pending", and the Settings row cannot be tapped while the tutorial is
+ * already on top. It costs nothing and it makes a double push structurally impossible, which
+ * matters because the tutorial's exit pops exactly one entry.
+ *
+ * Deliberately **no** `popUpTo`. The destination's whole navigation contract is that it pops
+ * back to wherever it was entered from (§5.1 prohibition 4) — Home on first run, Settings on
+ * a replay — and any pop target here would break the second case.
+ */
+private fun NavHostController.toTutorial() {
+    navigate(Tutorial) { launchSingleTop = true }
 }
 
 /**

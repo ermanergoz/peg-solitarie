@@ -144,18 +144,38 @@ class HomeScreenTest {
         composeRule.onNodeWithTag(PROFILE_SWAP_DIALOG_TEST_TAG).assertDoesNotExist()
     }
 
+    /**
+     * The retarget of the never-stacked test that used to locate the retired first-run sheet by
+     * its "Got it" button copy (ux-spec §13; the old name is in this commit's diff).
+     *
+     * D-15's rule is unchanged — the wipe question may be **withheld**, never raised early —
+     * but the surface it is sequenced behind is now a destination rather than an overlay Home
+     * hosts, so the screen has nothing of the tutorial's to find. The pending state is read
+     * from the **state field** [HomeUiState.tutorialPending], and the dialog from its
+     * `PROFILE_SWAP_DIALOG_TEST_TAG`: the old test located the tutorial by the literal
+     * "Got it", which is exactly the find-a-screen-by-its-copy defect this retarget removes
+     * rather than preserves.
+     */
     @Test
-    fun theProfileSwapDialogIsNeverStackedOnTheOnboardingOverlay() {
-        // D-15. The ViewModel sequences these, so this state should be unreachable — which
-        // is exactly why it is asserted here too: this test's own KDoc names the trap of a
-        // ViewModel gating a flag perfectly while the screen hosts something else, and this
-        // is its mirror image. The overlay can also be forced open at any time by the
-        // permanent How-to-play affordance (D-15), so the screen is not merely echoing a
-        // guarantee it could take on trust.
-        renderHome(state = HomeUiState(onboardingVisible = true, profileSwapVisible = true))
+    fun theProfileSwapDialogIsNeverRaisedWhileTheTutorialIsStillPending() {
+        renderHome(state = HomeUiState(tutorialPending = true, profileSwapVisible = true))
 
-        composeRule.onNodeWithText(ONBOARDING_DISMISS_LABEL).assertExists()
         composeRule.onNodeWithTag(PROFILE_SWAP_DIALOG_TEST_TAG).assertDoesNotExist()
+    }
+
+    /** The other side of the same guard: once the tutorial is behind the player, it is raised. */
+    @Test
+    fun theProfileSwapDialogIsRaisedOnceTheTutorialIsNoLongerPending() {
+        renderHome(
+            state =
+                HomeUiState(
+                    tutorialPending = false,
+                    profileSwapVisible = true,
+                    profileSwapAccountName = ARRIVING_ACCOUNT_NAME,
+                ),
+        )
+
+        composeRule.onNodeWithTag(PROFILE_SWAP_DIALOG_TEST_TAG).assertIsDisplayed()
     }
 
     @Test
@@ -218,8 +238,6 @@ class HomeScreenTest {
                 onPlayChallenge = {},
                 onResumeClassic = {},
                 onResumeChallenge = {},
-                onShowHowToPlay = {},
-                onDismissOnboarding = {},
                 onAcceptPlayGamesPrompt = {},
                 onDeclinePlayGamesPrompt = {},
                 onKeepDeviceProgress = {},
@@ -264,8 +282,6 @@ class HomeScreenTest {
                     onPlayChallenge = {},
                     onResumeClassic = {},
                     onResumeChallenge = {},
-                    onShowHowToPlay = {},
-                    onDismissOnboarding = {},
                     onAcceptPlayGamesPrompt = {},
                     onDeclinePlayGamesPrompt = {},
                     onKeepDeviceProgress = {},
@@ -306,8 +322,6 @@ class HomeScreenTest {
                 onPlayChallenge = onPlayChallenge,
                 onResumeClassic = onResumeClassic,
                 onResumeChallenge = onResumeChallenge,
-                onShowHowToPlay = {},
-                onDismissOnboarding = {},
                 onAcceptPlayGamesPrompt = {},
                 onDeclinePlayGamesPrompt = {},
                 onKeepDeviceProgress = onKeepDeviceProgress,
@@ -362,6 +376,3 @@ private const val FIRST_ERROR_TICK = 1
 
 /** The arriving account's display name for the swap dialog (D-12). */
 private const val ARRIVING_ACCOUNT_NAME = "PegChampion"
-
-/** The onboarding overlay's dismiss label (verbatim from `strings.xml`) — proof it is up. */
-private const val ONBOARDING_DISMISS_LABEL = "Got it"

@@ -24,6 +24,8 @@ import com.app.pegsolitaire.ui.home.HomeUiState
 import com.app.pegsolitaire.ui.results.ResultsHeadlineTier
 import com.app.pegsolitaire.ui.results.ResultsScreen
 import com.app.pegsolitaire.ui.results.ResultsUiState
+import com.app.pegsolitaire.ui.settings.SettingsScreen
+import com.app.pegsolitaire.ui.settings.SettingsUiState
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
@@ -102,23 +104,61 @@ class ButtonSoundTest {
         assertThat(resumedBoard).isEqualTo(ClassicLevelIds.EUROPEAN37)
     }
 
-    // ---- NEGATIVE: the Home top-bar icons stay silent (D-09) -----------------
+    // ---- NEGATIVE: the Home Settings gear stays silent (D-09) -----------------
 
+    /**
+     * The surviving half of the retired `theHomeTopBarHowToPlayAndSettingsIconsMakeNoSound`
+     * (ux-spec §13): Home's How-to-play icon and its `how_to_play` string are both deleted by
+     * D-02, so the assertion is **narrowed**, not re-aimed. It is deliberately not pointed at
+     * the new Settings row, which is a navigational CTA and therefore *plays* — see
+     * [theSettingsHowToPlayRowPlaysTheForwardCueAndOpensTheTutorial] for that half.
+     *
+     * `settings_action` is preserved on purpose, so this keeps passing after the gear moves
+     * from the bar into the Home hero.
+     */
     @Test
-    fun theHomeTopBarHowToPlayAndSettingsIconsMakeNoSound() {
-        var howToPlayOpened = false
+    fun theHomeSettingsGearMakesNoSound() {
         var settingsOpened = false
-        renderHome(
-            onShowHowToPlay = { howToPlayOpened = true },
-            onOpenSettings = { settingsOpened = true },
-        )
+        renderHome(onOpenSettings = { settingsOpened = true })
 
-        clickIcon(R.string.how_to_play)
         clickIcon(R.string.settings_action)
 
-        // Both are back-nav-class affordances under D-09: they act, and they say nothing.
-        assertThat(howToPlayOpened).isTrue()
+        // A back-nav-class affordance under D-09: it acts, and it says nothing.
         assertThat(settingsOpened).isTrue()
+        assertThat(sounds.cues).isEmpty()
+    }
+
+    // ---- The Settings "How to play" row is a navigational CTA (D-09, §4.5) ----
+
+    /**
+     * The positive half the retarget owes (§4.5, D-09, SOUND-04): the tutorial's entry point
+     * moved from a silent Home icon to a Settings row, and a row that navigates speaks the
+     * forward press cue like every other navigational CTA in the app.
+     */
+    @Test
+    fun theSettingsHowToPlayRowPlaysTheForwardCueAndOpensTheTutorial() {
+        var tutorialOpened = false
+        renderSettings(onShowHowToPlay = { tutorialOpened = true })
+
+        clickSettingsRow(R.string.settings_how_to_play_label)
+
+        assertThat(sounds.cues).containsExactly(SoundCue.ButtonForward)
+        assertThat(tutorialOpened).isTrue()
+    }
+
+    /** The Settings toggles stay silent (D-09) — the row above them is the only speaking one. */
+    @Test
+    fun theSettingsSoundToggleMakesNoSound() {
+        var toggled: Boolean? = null
+        renderSettings(onToggleSound = { toggled = it })
+
+        composeRule
+            .onNodeWithContentDescription(context.getString(R.string.settings_sound_label))
+            .performScrollTo()
+            .performClick()
+        composeRule.waitForIdle()
+
+        assertThat(toggled).isNotNull()
         assertThat(sounds.cues).isEmpty()
     }
 
@@ -250,6 +290,12 @@ class ButtonSoundTest {
         composeRule.waitForIdle()
     }
 
+    /** Settings scrolls too, and the default Robolectric viewport is short — scroll, then click. */
+    private fun clickSettingsRow(resId: Int) {
+        composeRule.onNodeWithText(context.getString(resId)).performScrollTo().performClick()
+        composeRule.waitForIdle()
+    }
+
     /** Results is the one screen whose content column scrolls, so its CTAs are scrolled to first. */
     private fun clickResultsAction(resId: Int) {
         composeRule.onNodeWithText(context.getString(resId)).performScrollTo().performClick()
@@ -266,7 +312,6 @@ class ButtonSoundTest {
         onPlayClassic: () -> Unit = {},
         onPlayChallenge: (Int) -> Unit = {},
         onResumeClassic: (String) -> Unit = {},
-        onShowHowToPlay: () -> Unit = {},
         onOpenSettings: () -> Unit = {},
     ) = render {
         HomeScreen(
@@ -275,8 +320,6 @@ class ButtonSoundTest {
             onPlayChallenge = onPlayChallenge,
             onResumeClassic = onResumeClassic,
             onResumeChallenge = {},
-            onShowHowToPlay = onShowHowToPlay,
-            onDismissOnboarding = {},
             // Not exercised here: the opt-in prompt's own cues are asserted where the
             // dialog is (PlayGamesPromptDialogTest); this helper renders Home's body.
             onAcceptPlayGamesPrompt = {},
@@ -287,6 +330,25 @@ class ButtonSoundTest {
             onUseCloudProgress = {},
             onPlayGamesSignInErrorShown = {},
             onOpenSettings = onOpenSettings,
+        )
+    }
+
+    /** The Settings screen, stateless with hoisted handlers — the D-02a tutorial entry point. */
+    private fun renderSettings(
+        onShowHowToPlay: () -> Unit = {},
+        onToggleSound: (Boolean) -> Unit = {},
+    ) = render {
+        SettingsScreen(
+            state = SettingsUiState(),
+            onToggleSound = onToggleSound,
+            onToggleHaptics = {},
+            onShowHowToPlay = onShowHowToPlay,
+            onSignInToPlayGames = {},
+            onShowLeaderboards = {},
+            onShowAchievements = {},
+            onPlayGamesSignInErrorShown = {},
+            onManagePrivacyChoices = {},
+            onBack = {},
         )
     }
 

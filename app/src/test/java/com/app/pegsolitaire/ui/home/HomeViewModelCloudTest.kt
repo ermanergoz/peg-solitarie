@@ -135,7 +135,7 @@ class HomeViewModelCloudTest {
     // ---- Never stacked with the two first-run surfaces (D-15) -----------------
 
     @Test
-    fun aSwapIsNotAskedWhileTheOnboardingOverlayIsUp() =
+    fun aSwapIsNotAskedWhileTheTutorialIsStillPending() =
         runTest(testDispatcher) {
             // A brand-new player must not be asked to choose between two accounts' progress
             // before they have seen how the game is played.
@@ -147,7 +147,7 @@ class HomeViewModelCloudTest {
                 )
             runCurrent()
 
-            assertThat(viewModel.uiState.value.onboardingVisible).isTrue()
+            assertThat(viewModel.uiState.value.tutorialPending).isTrue()
             assertThat(viewModel.uiState.value.profileSwapVisible).isFalse()
         }
 
@@ -180,10 +180,11 @@ class HomeViewModelCloudTest {
             runCurrent()
             assertThat(viewModel.uiState.value.profileSwapVisible).isFalse()
 
-            viewModel.onDismissOnboarding()
+            // The tutorial's own write, which is the only writer of the flag after D-02b.
+            onboarding.markSeen()
             runCurrent()
 
-            assertThat(viewModel.uiState.value.onboardingVisible).isFalse()
+            assertThat(viewModel.uiState.value.tutorialPending).isFalse()
             assertThat(viewModel.uiState.value.profileSwapVisible).isTrue()
         }
 

@@ -10,9 +10,15 @@ import com.app.pegsolitaire.data.ChallengeProgressPreferences
  * stateless render of this object (state hoisting — the same UDF convention as
  * `GameUiState`).
  *
- * @property onboardingVisible whether the first-run how-to-play overlay is showing —
- *   `true` on first launch while `onboardingSeen == false` (D-14) and whenever the
- *   permanent How-to-play affordance forces it open (D-15); `false` once seen/dismissed.
+ * @property tutorialPending whether the interactive tutorial is still owed to this player —
+ *   the mirror of `!onboardingSeen` (D-01f/D-02b), `true` on a first launch (or a fail-open
+ *   corrupt read) and `false` from the moment the tutorial persists the flag. It is a
+ *   **standing** flag rather than a visibility one: since D-02 the tutorial is a nav
+ *   destination, not an overlay Home hosts, so Home reads this to auto-start the destination
+ *   once and to withhold the two questions sequenced behind it. It has exactly one writer —
+ *   the persisted flag. The deleted How-to-play affordance was a second one, and Settings ›
+ *   How to play deliberately does not replace it: that row navigates, so a replay never
+ *   re-raises the wipe question (§7 D-01f).
  * @property challengeCurrentLevel the player's persisted Challenge level (CHAL-05 /
  *   PERS-02), collected from `ChallengeProgress.currentLevel`. It labels the Challenge
  *   tile ("Continue — Level N") and is the level the tile enters — never a hardcoded 1.
@@ -31,14 +37,14 @@ import com.app.pegsolitaire.data.ChallengeProgressPreferences
  *   can still be at its fail-open initial value while the stamp always names the level
  *   the snapshot actually holds, so the tile labels — and resumes into — the real one.
  * @property playGamesPromptVisible whether the one-time Play Games opt-in prompt is
- *   showing (PGS-01, D-15). A peer of [onboardingVisible] rather than a mode of it: the
+ *   showing (PGS-01, D-15). A peer of [tutorialPending] rather than a mode of it: the
  *   two first-run surfaces are sequenced, never stacked — this is `true` only once
  *   onboarding has been seen AND the question is still unanswered, and it is `false`
  *   forever after either answer (D-17). Nothing sets it back to `true`; there is no
  *   per-session re-ask.
  * @property profileSwapVisible whether the account-switch dialog is showing (CLOUD-02,
  *   D-12/D-15) — the one dialog this milestone reserved, and the only route to the only
- *   destructive path in the app. A **third peer** of [onboardingVisible] and
+ *   destructive path in the app. A **third peer** of [tutorialPending] and
  *   [playGamesPromptVisible] rather than a mode of either: the three surfaces are
  *   sequenced, never stacked, so this is `true` only once onboarding has been seen AND
  *   the opt-in question has been answered AND the data layer has a pending swap. Unlike
@@ -80,7 +86,7 @@ import com.app.pegsolitaire.data.ChallengeProgressPreferences
  */
 @Immutable
 data class HomeUiState(
-    val onboardingVisible: Boolean = false,
+    val tutorialPending: Boolean = false,
     val totalStars: Int? = null,
     val classicBoardsCleared: Int? = null,
     val challengeCurrentLevel: Int = ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL,

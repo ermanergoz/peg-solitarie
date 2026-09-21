@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Card
@@ -52,7 +51,6 @@ import com.app.pegsolitaire.R
 import com.app.pegsolitaire.audio.SoundCue
 import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.ui.components.ClaySnackbarHost
-import com.app.pegsolitaire.ui.onboarding.OnboardingOverlay
 import com.app.pegsolitaire.ui.theme.ClayAnim
 import com.app.pegsolitaire.ui.theme.clayEntrance
 import com.app.pegsolitaire.ui.theme.clayShadow
@@ -67,33 +65,36 @@ import kotlinx.coroutines.flow.first
  * Candy-Clay skin (DESIGN-SYSTEM.md Home).
  *
  * Renders [state] and forwards events; owns no logic (state hoisting). An M3
- * [Scaffold] hosts a [TopAppBar] (gradient Fredoka title, a trailing How-to-play
- * affordance — D-15 — and a Settings gear opening the Settings destination, Phase-5
- * D-14) over a centered column, capped at `content_max_width`, of two chunky clay
+ * [Scaffold] hosts a [TopAppBar] (gradient Fredoka title and a Settings gear opening
+ * the Settings destination, Phase-5 D-14) over a centered column, capped at
+ * `content_max_width`, of two chunky clay
  * mode tiles: a violet Classic tile whose whole surface navigates to the catalog
  * ([onPlayClassic]) and a pink Challenge tile (with its persisted-level chip) whose
  * whole surface enters Challenge ([onPlayChallenge]) at the player's persisted
  * [HomeUiState.challengeCurrentLevel] (CHAL-05). Two slow-drifting low-alpha blobs
  * float behind the content (skipped when OS animations are off), the tiles enter
- * with a 40ms stagger, and everything tappable squishes. While
- * [HomeUiState.onboardingVisible], the [OnboardingOverlay] is hosted over the body
- * (first-run, D-14, or the help affordance, D-15); dismissing it calls
- * [onDismissOnboarding] (which `markSeen()`s, D-13).
+ * with a 40ms stagger, and everything tappable squishes.
+ *
+ * **Home carries no tutorial chrome at all** (Phase 15, D-02). There is no information or
+ * help icon anywhere on this screen, and no overlay: the tutorial is the `Tutorial` nav
+ * destination, auto-started once by `HomeRoute` while [HomeUiState.tutorialPending] stands
+ * and reachable afterwards only from Settings › How to play (D-02a). The flag reaches this
+ * screen for exactly one purpose — withholding the account-switch question below.
  *
  * Above the mode tiles sit up to two gold "Continue" chips (PERS-03, D-01/D-03) — one per
  * mode holding a saved in-progress game. They are independent: a Classic and a Challenge
  * game can both be waiting, and each carries what its resume needs (the stored board id /
  * the persisted level) so the host never has to guess.
  *
- * Once onboarding is behind the player and the Play Games question is still unanswered,
+ * Once the tutorial is behind the player and the Play Games question is still unanswered,
  * [HomeUiState.playGamesPromptVisible] raises the [PlayGamesPromptDialog] (PGS-01, D-15).
- * The two first-run surfaces are sequenced by the ViewModel, not guarded here, so these
- * stay two plain independent conditionals. Behind both of them sits the account-switch
+ * The first-run surfaces are sequenced by the ViewModel, not guarded here, so this stays a
+ * plain independent conditional. Behind it sits the account-switch
  * [ProfileSwapDialog] (CLOUD-02, D-12 to D-15) — Home is its only host anywhere in the app.
  * Home also owns its first [ClaySnackbarHost] — the D-18 sign-in error is the only message
  * it has ever needed to show.
  *
- * @param state the immutable Home UI state (the onboarding gate + the persisted level).
+ * @param state the immutable Home UI state (the standing tutorial flag + the persisted level).
  * @param onPlayClassic navigates to the Classic catalog (the screen's primary affordance).
  * @param onPlayChallenge enters Challenge at the level it is handed — the persisted
  *   [HomeUiState.challengeCurrentLevel] (CHAL-05); the screen never invents the level.
@@ -101,8 +102,6 @@ import kotlinx.coroutines.flow.first
  *   [HomeUiState.classicResumeLevelId], the board the snapshot was taken on (PERS-03).
  * @param onResumeChallenge continues the saved Challenge game at the snapshot's own
  *   stamped level ([HomeUiState.challengeResumeLevel], WR-03) — never the ladder level.
- * @param onShowHowToPlay re-opens the onboarding overlay any time (D-15).
- * @param onDismissOnboarding dismisses + persists the onboarding (D-13).
  * @param onAcceptPlayGamesPrompt the player chose to sign in to Play Games (D-18).
  * @param onDeclinePlayGamesPrompt the player chose "Not now", tapped outside the prompt,
  *   or pressed back (D-16) — all one answer, and a permanent one (D-17).
@@ -126,8 +125,6 @@ fun HomeScreen(
     onPlayChallenge: (level: Int) -> Unit,
     onResumeClassic: (levelId: String) -> Unit,
     onResumeChallenge: (level: Int) -> Unit,
-    onShowHowToPlay: () -> Unit,
-    onDismissOnboarding: () -> Unit,
     onAcceptPlayGamesPrompt: () -> Unit,
     onDeclinePlayGamesPrompt: () -> Unit,
     onKeepDeviceProgress: () -> Unit,
@@ -146,12 +143,7 @@ fun HomeScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         snackbarHost = { ClaySnackbarHost(snackbarHostState) },
-        topBar = {
-            HomeTopBar(
-                onShowHowToPlay = onShowHowToPlay,
-                onOpenSettings = onOpenSettings,
-            )
-        },
+        topBar = { HomeTopBar(onOpenSettings = onOpenSettings) },
     ) { contentPadding ->
         Box(
             modifier =
@@ -171,13 +163,9 @@ fun HomeScreen(
         }
     }
 
-    if (state.onboardingVisible) {
-        OnboardingOverlay(onDismiss = onDismissOnboarding)
-    }
-
-    // A second, independent conditional rather than an else-branch: HomeViewModel already
-    // guarantees the two are never true at once (D-15), and expressing that guarantee a
-    // second time here would create a place for the two copies to disagree.
+    // An independent conditional rather than an else-branch: HomeViewModel already guarantees
+    // the two dialogs are never true at once (D-15), and expressing that guarantee a second
+    // time here would create a place for the two copies to disagree.
     if (state.playGamesPromptVisible) {
         PlayGamesPromptDialog(
             onAccept = onAcceptPlayGamesPrompt,
@@ -185,17 +173,20 @@ fun HomeScreen(
         )
     }
 
-    // A third sibling conditional, for the reason the second one is — but with a narrower
-    // condition, and that difference is deliberate rather than an oversight. HomeViewModel
-    // already sequences this behind both surfaces above (D-15), so the extra clauses can
-    // never change the outcome of a state it produced. They exist because this is the only
-    // dialog whose lower option is irreversible, and because onboardingVisible has a SECOND
-    // writer the ViewModel's sequencing does not cover: the permanent How-to-play
-    // affordance forces it true at any time (D-15). The guard can therefore only ever
-    // withhold the wipe question, never raise one — the safe direction for the two
-    // expressions to disagree in, and the screen half of the never-stacked rule the tests
-    // assert on both sides.
-    if (state.profileSwapVisible && !state.onboardingVisible && !state.playGamesPromptVisible) {
+    // A sibling conditional, for the reason the one above is — but with a narrower condition,
+    // and that difference is deliberate rather than an oversight. HomeViewModel already
+    // sequences this behind both surfaces ahead of it (D-15), so the extra clauses can never
+    // change the outcome of a state it produced. They exist because this is the only dialog
+    // whose lower option is irreversible, so the screen keeps its own one-way safety over it.
+    //
+    // The guard SURVIVES IN SHAPE across Phase 15 (§7 D-01f): what it reads is now the
+    // standing `tutorialPending` flag rather than the retired overlay's visibility. Its
+    // second writer — the permanent How-to-play affordance that could force the old flag
+    // true at any time — is deleted by D-02b, so the guard is strictly safer than before: it
+    // can only ever withhold the wipe question while the tutorial is still owed, never raise
+    // one early. That is the safe direction for the two expressions to disagree in, and the
+    // screen half of the never-stacked rule the tests assert on both sides.
+    if (state.profileSwapVisible && !state.tutorialPending && !state.playGamesPromptVisible) {
         ProfileSwapDialog(
             accountName = state.profileSwapAccountName,
             onKeepLocal = onKeepDeviceProgress,
@@ -326,17 +317,18 @@ private fun HomeTiles(
 }
 
 /**
- * The Home top bar: the gradient Fredoka app title, the permanent How-to-play
- * affordance (D-15) and the Settings gear (Phase-5 D-14) — both with the clay squish.
- * The gear uses the curated core Material icon set already on the classpath
- * (`Icons.Rounded.Settings`) — no `material-icons-extended` dependency.
+ * The Home top bar: the gradient Fredoka app title and the Settings gear (Phase-5 D-14),
+ * with the clay squish. The gear uses the curated core Material icon set already on the
+ * classpath (`Icons.Rounded.Settings`) — no `material-icons-extended` dependency.
+ *
+ * The How-to-play `Icons.Rounded.Info` action that sat beside it is **deleted** (D-02): the
+ * tutorial's one permanent entry point is now Settings › General. Deleting it also removes
+ * half the glyph collision D-04b fixes — `Icons.Rounded.Info` was simultaneously "help" here
+ * and "show possible moves" on the gameplay screen.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HomeTopBar(
-    onShowHowToPlay: () -> Unit,
-    onOpenSettings: () -> Unit,
-) {
+private fun HomeTopBar(onOpenSettings: () -> Unit) {
     TopAppBar(
         title = {
             Text(
@@ -345,13 +337,6 @@ private fun HomeTopBar(
             )
         },
         actions = {
-            IconButton(onClick = onShowHowToPlay, modifier = Modifier.claySquish()) {
-                Icon(
-                    imageVector = Icons.Rounded.Info,
-                    contentDescription = stringResource(R.string.how_to_play),
-                    modifier = Modifier.size(dimensionResource(R.dimen.top_bar_icon_size)),
-                )
-            }
             IconButton(onClick = onOpenSettings, modifier = Modifier.claySquish()) {
                 Icon(
                     imageVector = Icons.Rounded.Settings,

@@ -58,7 +58,7 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { onPlayClassic, _, _, _, _ -> StubDestination(HOME_TAG, onPlayClassic) },
+                homeContent = { onPlayClassic, _, _, _, _, _ -> StubDestination(HOME_TAG, onPlayClassic) },
                 catalogContent = { onSelect, _ -> StubDestination(CATALOG_TAG) { onSelect(SELECTED_LEVEL_ID) } },
                 gameplayContent = { onFinished, _ -> StubDestination(GAMEPLAY_TAG) { onFinished(sampleResults()) } },
                 resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
@@ -98,7 +98,7 @@ class NavFlowTest {
                 // The Home tile supplies the level from its UiState (the persisted
                 // ChallengeProgress.currentLevel) — the host must carry it through, not
                 // substitute a hardcoded entry level (CHAL-05).
-                homeContent = { _, onPlayChallenge, _, _, _ ->
+                homeContent = { _, onPlayChallenge, _, _, _, _ ->
                     StubDestination(HOME_TAG) { onPlayChallenge(PERSISTED_CHALLENGE_LEVEL) }
                 },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
@@ -127,7 +127,7 @@ class NavFlowTest {
                 // The Continue affordance carries the board its snapshot was taken on
                 // (PERS-03); the host must route to THAT board with resume = true, never
                 // to a fresh start.
-                homeContent = { _, _, onResumeClassic, _, _ ->
+                homeContent = { _, _, onResumeClassic, _, _, _ ->
                     StubDestination(HOME_TAG) { onResumeClassic(SELECTED_LEVEL_ID) }
                 },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
@@ -152,7 +152,7 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { _, _, _, onResumeChallenge, _ ->
+                homeContent = { _, _, _, onResumeChallenge, _, _ ->
                     StubDestination(HOME_TAG) { onResumeChallenge(PERSISTED_CHALLENGE_LEVEL) }
                 },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
@@ -179,7 +179,7 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { _, onPlayChallenge, _, _, _ ->
+                homeContent = { _, onPlayChallenge, _, _, _, _ ->
                     StubDestination(HOME_TAG) { onPlayChallenge(PERSISTED_CHALLENGE_LEVEL) }
                 },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
@@ -201,11 +201,11 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { _, _, _, _, onOpenSettings -> StubDestination(HOME_TAG) { onOpenSettings() } },
+                homeContent = { _, _, _, _, onOpenSettings, _ -> StubDestination(HOME_TAG) { onOpenSettings() } },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
                 gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
                 resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
-                settingsContent = { onBack -> StubDestination(SETTINGS_TAG) { onBack() } },
+                settingsContent = { onBack, _ -> StubDestination(SETTINGS_TAG) { onBack() } },
             )
         }
 
@@ -229,11 +229,11 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { _, _, _, _, onOpenSettings -> StubDestination(HOME_TAG) { onOpenSettings() } },
+                homeContent = { _, _, _, _, onOpenSettings, _ -> StubDestination(HOME_TAG) { onOpenSettings() } },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
                 gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
                 resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
-                settingsContent = { _ -> StubDestination(SETTINGS_TAG) {} },
+                settingsContent = { _, _ -> StubDestination(SETTINGS_TAG) {} },
                 tutorialContent = { onExit -> StubDestination(TUTORIAL_TAG) { onExit() } },
             )
         }
@@ -257,17 +257,71 @@ class NavFlowTest {
         assertThat(currentRoute()).contains(SETTINGS_ROUTE)
     }
 
+    /**
+     * The two **production** routes into the tutorial (D-02a): Home's first-run auto-start and
+     * the Settings › How to play row. The two tests above drive the destination from the test
+     * body on purpose — they are about the destination and its single outbound edge — so
+     * without this one the two `navigate(Tutorial)` call sites this host owns would be
+     * untested, which is the invisible-feature trap: the tutorial could exist, pop correctly
+     * and never be reachable by a player at all.
+     *
+     * Each stub fires the slot it is given, so what is asserted is the lambda `AppNavHost`
+     * supplies rather than a navigation the test performed itself.
+     */
+    @Test
+    fun bothProductionEntryPointsPushTheTutorialAndItPopsBackToEachOne() {
+        composeRule.setContent {
+            navController = rememberNavController()
+            AppNavHost(
+                navController = navController,
+                // The Home stub's tap stands in for the auto-start effect, which in production
+                // fires from HomeRoute while `tutorialPending` stands rather than from a
+                // control — Home has no tutorial affordance (D-02).
+                homeContent = { _, _, _, _, _, onStartTutorial ->
+                    StubDestination(HOME_TAG) { onStartTutorial() }
+                },
+                catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
+                gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
+                resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
+                settingsContent = { _, onShowHowToPlay ->
+                    StubDestination(SETTINGS_TAG) { onShowHowToPlay() }
+                },
+                tutorialContent = { onExit -> StubDestination(TUTORIAL_TAG) { onExit() } },
+            )
+        }
+
+        // First run: Home's auto-start pushes the tutorial, and the exit lands back on Home.
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(HOME_TAG).performClick()
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(TUTORIAL_ROUTE)
+        composeRule.onNodeWithTag(TUTORIAL_TAG).performClick()
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(HOME_ROUTE)
+
+        // The replay path needs Settings on top first, which the Home stub can no longer
+        // reach (its one action is the auto-start), so the gear is driven directly.
+        composeRule.runOnUiThread { navController.navigate(Settings) }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(SETTINGS_TAG).performClick()
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(TUTORIAL_ROUTE)
+        composeRule.onNodeWithTag(TUTORIAL_TAG).performClick()
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(SETTINGS_ROUTE)
+    }
+
     @Test
     fun theTutorialDestinationsOnlyOutboundEdgeIsAPopBackToItsEntryPoint() {
         composeRule.setContent {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { _, _, _, _, _ -> StubDestination(HOME_TAG) {} },
+                homeContent = { _, _, _, _, _, _ -> StubDestination(HOME_TAG) {} },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
                 gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
                 resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
-                settingsContent = { _ -> StubDestination(SETTINGS_TAG) {} },
+                settingsContent = { _, _ -> StubDestination(SETTINGS_TAG) {} },
                 tutorialContent = { onExit -> StubDestination(TUTORIAL_TAG) { onExit() } },
             )
         }
@@ -298,7 +352,7 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { _, onPlayChallenge, _, _, _ ->
+                homeContent = { _, onPlayChallenge, _, _, _, _ ->
                     StubDestination(HOME_TAG) { onPlayChallenge(PERSISTED_CHALLENGE_LEVEL) }
                 },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
@@ -337,7 +391,7 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { onPlayClassic, _, _, _, _ -> StubDestination(HOME_TAG, onPlayClassic) },
+                homeContent = { onPlayClassic, _, _, _, _, _ -> StubDestination(HOME_TAG, onPlayClassic) },
                 catalogContent = { onSelect, _ -> StubDestination(CATALOG_TAG) { onSelect(SELECTED_LEVEL_ID) } },
                 gameplayContent = { onFinished, _ -> StubDestination(GAMEPLAY_TAG) { onFinished(sampleResults()) } },
                 resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
@@ -364,7 +418,7 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { _, onPlayChallenge, _, _, _ ->
+                homeContent = { _, onPlayChallenge, _, _, _, _ ->
                     StubDestination(HOME_TAG) { onPlayChallenge(PERSISTED_CHALLENGE_LEVEL) }
                 },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
@@ -396,7 +450,7 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { _, _, onResumeClassic, _, _ ->
+                homeContent = { _, _, onResumeClassic, _, _, _ ->
                     StubDestination(HOME_TAG) { onResumeClassic(SELECTED_LEVEL_ID) }
                 },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },

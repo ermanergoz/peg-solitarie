@@ -16,11 +16,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
  * so the screen never touches a `NavController`.
  *
  * @param onBack leaves Settings (supplied by `AppNavHost`).
+ * @param onShowHowToPlay opens the tutorial destination (supplied by `AppNavHost`, D-02a).
  * @param modifier layout modifier forwarded to [SettingsScreen].
  */
 @Composable
 fun SettingsRoute(
     onBack: () -> Unit,
+    onShowHowToPlay: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val viewModel: SettingsViewModel = hiltViewModel()
@@ -30,6 +32,7 @@ fun SettingsRoute(
         state = state,
         onToggleSound = viewModel::onToggleSound,
         onToggleHaptics = viewModel::onToggleHaptics,
+        onShowHowToPlay = onShowHowToPlay,
         onSignInToPlayGames = viewModel::onSignInToPlayGames,
         onShowLeaderboards = viewModel::onShowLeaderboards,
         onShowAchievements = viewModel::onShowAchievements,

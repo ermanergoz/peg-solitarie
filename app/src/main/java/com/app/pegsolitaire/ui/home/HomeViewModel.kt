@@ -23,14 +23,19 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * Drives the Home mode-select screen and gates the first-run onboarding overlay
+ * Drives the Home mode-select screen and carries the standing first-run tutorial flag
  * (NAV-01, ONB-01) over an immutable [StateFlow]<[HomeUiState]>.
  *
- * It collects [OnboardingRepository.onboardingSeen]: while the flag is `false` (first
- * launch, or a fail-open corrupt read — D-16) the overlay is visible (D-14). The
- * permanent How-to-play affordance ([onShowHowToPlay]) forces it visible again at any
- * time independent of the flag (D-15); dismissing it ([onDismissOnboarding]) persists
- * `markSeen()` and hides it (D-13).
+ * It collects [OnboardingRepository.onboardingSeen] into [HomeUiState.tutorialPending]:
+ * while the flag is `false` (first launch, or a fail-open corrupt read — D-16) the tutorial
+ * is still owed, and `HomeRoute` auto-starts the `Tutorial` destination once (D-02a).
+ *
+ * **This ViewModel no longer writes that flag** (Phase 15, D-01f/D-02b). The tutorial is a
+ * nav destination with its own state holder, and `TutorialViewModel` persists `markSeen()`
+ * — awaited, on the application scope — before it emits its exit signal. Home therefore has
+ * exactly one reader and no writer, which is the property the Phase-15 guard rests on: the
+ * profile-swap question can be *withheld* by a pending tutorial but can never be raised
+ * early by one, because nothing here can flip the flag back.
  *
  * It also mirrors [ChallengeProgress.currentLevel] into
  * [HomeUiState.challengeCurrentLevel] (CHAL-05 / PERS-02): the Challenge tile is labelled
@@ -81,7 +86,7 @@ import javax.inject.Inject
 class HomeViewModel
     @Inject
     constructor(
-        private val onboardingRepository: OnboardingRepository,
+        onboardingRepository: OnboardingRepository,
         challengeProgress: ChallengeProgress,
         progressRepository: ProgressRepository,
         levelRepository: LevelRepository,
@@ -95,11 +100,12 @@ class HomeViewModel
         val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
         init {
-            // First-launch gate (D-14): mirror the persisted flag into visibility. Once
-            // markSeen() flips it true, the overlay hides; until then it shows.
+            // First-launch gate (D-14, D-02a): mirror the persisted flag. Once the tutorial's
+            // own markSeen() flips it true, nothing is owed; until then the destination is
+            // auto-started once and the two questions behind it are withheld.
             viewModelScope.launch {
                 onboardingRepository.onboardingSeen.collect { seen ->
-                    _uiState.update { it.copy(onboardingVisible = !seen) }
+                    _uiState.update { it.copy(tutorialPending = !seen) }
                 }
             }
             // The one-time Play Games opt-in prompt (D-15). Its visibility is a pure
@@ -247,17 +253,6 @@ class HomeViewModel
             val known = levelRepository.classicCatalog().any { it.id == storedLevelId }
             if (!known) progressRepository.clearSnapshot(ProgressPersistenceKeys.MODE_CLASSIC)
             return storedLevelId.takeIf { known }
-        }
-
-        /** Re-opens the how-to-play overlay any time, independent of the seen flag (D-15). */
-        fun onShowHowToPlay() {
-            _uiState.update { it.copy(onboardingVisible = true) }
-        }
-
-        /** Dismisses the overlay: persists that it has been seen and hides it (D-13). */
-        fun onDismissOnboarding() {
-            viewModelScope.launch { onboardingRepository.markSeen() }
-            _uiState.update { it.copy(onboardingVisible = false) }
         }
 
         /**
