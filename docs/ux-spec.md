@@ -44,11 +44,15 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 >
 > Each ruling is authoritative in its own domain and is **integrated, not re-argued**; where one
 > forced a change to a screen, the screen's answer is this role's and is stated here. Per the
-> house style in §3, no earlier decision is rewritten in place: the new rulings are filed as
-> **D-01g, D-01h and D-03h** with their date, and the decisions they amend carry a one-line
-> pointer. Consequences that follow from the rulings but were not themselves proposed as a diff
-> — the tutorial's negative contract in §5.1, the tutorial's audio decision, and the §14 criteria
-> the new boards and the new gate make wrong or unverifiable — are applied here too.
+> house style in §3, no earlier decision is rewritten in place: three of the rulings are filed as
+> new decisions — **D-01g** (hosting), **D-01h** (the tutorial's audio) and **D-03h** (the Home
+> progress read) — and the fourth, the cold-start **measurement contract**, is a named subsection
+> of §6.5 rather than a decision, because it is a gate procedure and not a design choice. Every
+> decision they amend carries a one-line pointer (D-01a, D-01f, D-03d, D-03g).
+>
+> Consequences that follow from the rulings but were not themselves proposed as a diff — the
+> tutorial's negative contract in §5.1, the tutorial's audio decision, and the §14 criteria the
+> new boards and the new gate make wrong or unverifiable — are applied here too.
 
 ---
 
@@ -66,7 +70,7 @@ The founder's words, verbatim:
 | Remove the info button that starts the tutorial | **D-02** | `HomeScreen.kt:348-354` is deleted. The replay path moves to a Settings › General row; first-run auto-start is unchanged. |
 | Homepage looks empty with just 2 buttons | **D-03** | Home gains a hero block, a three-pill progress ribbon and board art on its tiles. The two mode tiles stay primary and stay in the thumb zone. **Bounded by two hard constraints: three existing readouts are device-test oracles that must stay visible on first paint (D-03f), and Home is on the measured ≤ 950 ms cold-start gate (D-03g).** |
 | Redesign the in-game icons on the top | **D-04** | The five controls are re-glyphed, re-grouped and re-homed. Two real accessibility defects are fixed in the process. |
-| Remove the toolbar from the game | **D-05** | The `TopAppBar` at `GameScreen.kt:502` is deleted. It is the **same surface** as the "icons on the top", so D-04 and D-05 are one change — see §5. |
+| Remove the toolbar from the game | **D-05** | The `TopAppBar` at `GameScreen.kt:502` is deleted. It is the **same surface** as the "icons on the top", so D-04 and D-05 are one change — see D-05 in §3. |
 
 ---
 
@@ -81,16 +85,26 @@ The founder's words, verbatim:
 | 5 | Classic catalog | **Unchanged.** | — |
 | 6 | Results | **Unchanged.** | — |
 
-**Deliberately unchanged:** every rule, every board footprint, the scoring/star model, the
-jump/removal animation, the rescue banner, the ad-offer dialog, the restart confirm dialog, the
-Play Games opt-in prompt, and the profile-swap dialog. This refresh is a presentation change.
+**Deliberately unchanged:** every rule, every **shipped** board footprint, the scoring/star model,
+the jump/removal animation, the rescue banner, the ad-offer dialog, the restart confirm dialog,
+the Play Games opt-in prompt, and the profile-swap dialog. This refresh is a presentation change
+everywhere except one place: the tutorial gains three **new** teaching miniatures
+(`object TutorialBoards`, §4.1), which live outside `Boards.CLASSIC_SPECS` and change no existing
+board, no catalogue entry and no number the player has already earned.
 
 ---
 
 ## 3. Decisions
 
 House style per `.planning/phases/*/[0-9]*-CONTEXT.md`: `- **D-nn:** <ruling> — <rationale>.`
-Decisions are never rewritten in place; a later ruling is filed as `D-nna` with its date.
+Decisions are never rewritten in place; a later ruling is filed as `D-nna` with its date, and the
+decision it amends gains a one-line pointer to it.
+
+**One warning about ids.** `D-01`…`D-05` and their letters belong to *this* document. Where a
+section cites a decision id that is **not** in the list below — the audio `D-09`, the win
+celebration's `D-14`, the info button's `D-15`, and the ad-allowance `D-05` the code records at
+`GameUiState.kt:131-135` — it is naming an **earlier phase's** ruling, not one of these. The
+ad-allowance id is the one genuine collision, and §4.4 qualifies it where it appears.
 
 ### Tutorial (ONB-01, proposed UX-01)
 
@@ -176,9 +190,12 @@ Decisions are never rewritten in place; a later ruling is filed as `D-nna` with 
   — Hosting is the tech-lead's authority and this spec routed it there; what comes back into this
   document is only what the player can see or lose.
 
-- **D-01h** *(2026-09-21 — UX decision)*: **the tutorial board is silent.** No `Select`, `Jump`,
-  `PegRemove`, `InvalidTap` or `Undo` cue plays anywhere in the tutorial, and no cue is added to
-  `BoardCanvas`. — Every sound cue in the game is played by a private effect in `GameScreen`
+- **D-01h** *(2026-09-21 — UX decision)*: **the tutorial is silent, end to end.** No cue at all
+  plays anywhere on the tutorial screen — not `Select`, `Deselect`, `Jump`, `PegRemove`,
+  `InvalidTap` or `Undo` on the board, and not `StarPop` or `Win` on the completion star — and no
+  cue is added to `BoardCanvas`. The only sound in the whole tutorial flow is the
+  `SoundCue.ButtonForward` that the **Settings row** plays on the way in (§4.5), which belongs to
+  Settings and not to this screen. — Every sound cue in the game is played by a private effect in `GameScreen`
   (`GameScreen.kt:327-428`); `BoardCanvas` contains no `SoundCue` reference at all, so a tutorial
   hosting the canvas is silent unless a second screen re-implements those effects. Three reasons
   to take the silence deliberately rather than inherit it: rules/audio.md says nothing plays that
@@ -291,6 +308,10 @@ Decisions are never rewritten in place; a later ruling is filed as `D-nna` with 
   Home that misses C1 has failed, so the budget is designed in rather than discovered at the gate.
   §6.5 states the budget, the risk and the ordered degradation path if measurement shows a
   regression.
+  *(Amended 2026-09-21 — the ruling stands, but **how** C1 is checked for this phase changed: it
+  is a two-arm delta against `develop`, not a single absolute number against the pre-SDK 633 ms
+  reference. The procedure is §6.5 "How C1 is measured for this phase" and the gate is criterion
+  15e.)*
 
 - **D-03h** *(2026-09-21 — tech-lead ruling, `tech-lead-architecture.md` §2/§3, folded in)*: the
   two derived ribbon values come from **one `Flow`-returning SQL aggregate**
@@ -392,7 +413,7 @@ Decisions are never rewritten in place; a later ruling is filed as `D-nna` with 
 
 ## 4. Interaction contract — new surfaces (Phase 15)
 
-### 4.1 Tutorial — `TutorialScreen.kt` (ONB-01, D-01/D-01a–f, D-02a)
+### 4.1 Tutorial — `TutorialScreen.kt` (ONB-01, D-01/D-01a–h, D-02a)
 
 **Purpose.** Teach the orthogonal jump and the goal by having the player do both, once, in under
 a minute, without reading.
@@ -405,6 +426,14 @@ a minute, without reading.
 | Board | The live `BoardCanvas`, `interactive = true`, on a `surfaceContainerHigh` clay slab (`shapes.extraLarge`, `clayShadow(elevation_card)`), square, `tutorial_board_size` | The one interactive element |
 | Caption | One line, `bodyMedium`, `onSurfaceVariant`, centred, reserved at `tutorial_caption_min_height` | Reserved height so a 1↔2-line swap never reflows the board |
 | Footer | Empty until T3 completes, then the completion CTA | Keeps the board optically centred during play |
+
+**The four bands sit in a `verticalScroll` column**, exactly as Home does (§4.2) and as §12
+already assumes. Scrolling is for the overflow case only: at default font scale on a 360×640dp
+phone all four bands fit with no scrolling, and the board keeps `tutorial_board_size` and its
+square aspect at every scale rather than shrinking — a 3×3 board there is ≈93dp per cell, and
+compressing the one interactive element to win vertical space is the wrong trade. What yields at
+200% font scale is the caption's growth pushing the footer below the fold, which is harmless
+because the footer is empty until T3 completes.
 
 **Step pips.** Three pips, `tutorial_step_pip_size`. Done = solid `GoldGradient` disc; current =
 outlined disc with a `primary` ring; upcoming = outlined disc, `outlineVariant`. Filled-vs-outlined
@@ -458,10 +487,11 @@ engine" means exactly that and nothing more (D-01g, §5.1).
 **Completion.** After T3: the caption becomes `tutorial_done_caption`, a single gold star pops in
 reusing the Results star vocabulary (`ClayAnim.STAR_POP_MS`, `goldGradientFill()`), and the footer
 raises one full-width `CtaGradient` button labelled with the **existing** `onboarding_got_it`
-("Got it"). Tapping it persists `markSeen()` and leaves. `SoundCue.Win` is **not** played — a
-tutorial is not a victory, and D-14's two-beat celebration belongs to a real solve. Nor is a star
-banked, a resume snapshot cleared or the Challenge ladder advanced: the gold star on this screen
-is an animation and nothing behind it moves (§5.1, D-01g).
+("Got it"). Tapping it persists `markSeen()` and leaves. **The star pops silently:** neither
+`SoundCue.Win` nor `SoundCue.StarPop` plays (D-01h) — a tutorial is not a victory, and D-14's
+two-beat celebration belongs to a real solve. `ClayAnim.STAR_POP_MS` is borrowed as a *duration*,
+not as a cue. Nor is a star banked, a resume snapshot cleared or the Challenge ladder advanced:
+the gold star on this screen is an animation and nothing behind it moves (§5.1, D-01g).
 
 **Exit.** `Skip` (every step), system back and the completion CTA are **one exit path with three
 callers** (D-01d, D-01g). It persists `markSeen()` first and pops only then, so Home can never
@@ -470,7 +500,7 @@ Popping returns the player exactly where they came from — Home on first run, S
 and a replay always restarts at T1, because the step state is scoped to the destination and dies
 with it.
 
-### 4.2 Home — `HomeScreen.kt` (NAV-01, PERS-03, CHAL-05, D-03/D-03a–e)
+### 4.2 Home — `HomeScreen.kt` (NAV-01, PERS-03, CHAL-05, D-03/D-03a–h)
 
 Single `verticalScroll` column, `widthIn(max = content_max_width)`, five bands:
 
@@ -578,7 +608,10 @@ transparent, `statusBarsPadding()`, `spacing_md` horizontal padding, `CenterVert
 
 No actions live here. The strip is status only, which is what lets it be this quiet.
 
-### 4.4 Gameplay action dock — `GameActionDock.kt` (ASST-01, ASST-02, D-04/D-04a–d)
+### 4.4 Gameplay action dock — `GameActionDock.kt` (ASST-01, ASST-02, D-04/D-04a–d), and the tutorial's wrong-tap contract (D-01c, D-01h)
+
+> Two unrelated surfaces share this section because the second is a single table: the dock below,
+> then the tutorial-only wrong-tap answers at the end. The tutorial has **no dock** (§4.1).
 
 A single clay slab below the board, in the thumb zone: `surfaceContainerHigh`, `shapes.large`,
 `clayShadow(elevation_card)`, `game_action_dock_height`, `navigationBarsPadding()`, holding four
@@ -600,8 +633,9 @@ Every glyph renders at `game_action_glyph_size`. Every content description is th
 > locates it by that string.
 
 **The dock never shows an allowance count.** No badge, no "×3", no ad glyph, no allowance-driven
-disable. That negative contract is inherited verbatim from D-05 / `GameUiState.kt:131-135` and this
-refresh does not relax it.
+disable. That negative contract is inherited verbatim from the **ad-allowance ruling the code
+records at `GameUiState.kt:131-135`** — an earlier phase's `D-05`, not this document's toolbar
+D-05 (§3) — and this refresh does not relax it.
 
 **Wrong-tap handling on the board — tutorial only (D-01c).** Three classes, escalating assistance,
 never correction:
@@ -612,9 +646,11 @@ never correction:
 | Tapped an illegal destination while a peg is selected | The legal dots re-pop and the selection is kept. Nothing is lost, nothing is announced as wrong. **Silent** (D-01h): the in-game `InvalidTap` cue is deliberately *not* carried into the tutorial, because a rejection sound is the one channel that would make a wrong tap feel like a failure — which D-01c forbids. |
 | Three consecutive non-progressing taps in a step | The coach escalates once: the source ring pulses **and** the destination dot brightens **and** the caption re-shows the step's own caption. It never escalates past this, it never blocks, and **it never mentions Undo** — no tutorial board can box the player in, so there is nothing to be rescued from, and promising a rescue from an impossible failure teaches the player to expect failure. |
 
-Expect class 1 to fire on T2 and T3 in normal use: T2's middle peg and two of T3's five pegs have
-no legal jump at the start, which is unavoidable in any peg-solitaire opening (the jumped-over peg
-can never itself jump). It is a case QA should see, not a defect — §14 criterion 3 names the tap.
+Expect class 1 to fire on T2 and T3 in normal use: T2's middle peg, and **three of T3's five
+pegs** — (1,0), (1,1) and (1,2), since all three of T3's legal openings start at (0,0) or (0,1) —
+have no legal jump at the start. That is unavoidable in any peg-solitaire opening (a peg with no
+hole two cells beyond a neighbour cannot move), so it is a case QA should see rather than a
+defect; §14 criterion 3 names the tap to check.
 
 During normal gameplay (outside the tutorial) wrong-tap handling is **unchanged** — the existing
 `rejectedTapTick` → `InvalidTap` path (`GameScreen.kt:393-398`), cue included.
@@ -654,10 +690,12 @@ Things a reader might expect from this spec and will not find, each on purpose:
   visible on first paint (D-03f).
 - **No tutorial step persisted across process death** (D-01e) — and specifically **no
   `SavedStateHandle` step cursor**, which would survive process death and resume at T2, silently
-  contradicting a decision this spec already took (D-01g).
-- **No sound anywhere in the tutorial** (D-01h). No `Select`, `Jump`, `PegRemove`, `InvalidTap`
-  or `Undo` cue, and **no `SoundCue` reference added to `BoardCanvas`** — that file has none
-  today and gaining one would put audio on the shared board component for every screen at once.
+  contradicting D-01e. Forbidding the cursor is D-01g's clause; the decision it protects is
+  D-01e's.
+- **No sound anywhere in the tutorial** (D-01h). No board cue (`Select`, `Deselect`, `Jump`,
+  `PegRemove`, `InvalidTap`, `Undo`), **no completion cue** (`StarPop`, `Win`), and **no
+  `SoundCue` reference added to `BoardCanvas`** — that file has none today and gaining one would
+  put audio on the shared board component for every screen at once.
 - **No Undo control, and no copy naming Undo, anywhere in the tutorial** (§4.1, §4.4). The
   tutorial's bands are Header / Board / Caption / Footer; there is no dock to hold one, the
   boards make being stuck impossible, and Undo is met in the real game where it is genuinely
@@ -1021,7 +1059,8 @@ explicitly on device because they are new pairings: `onPrimaryContainer` glyph o
 sits on the gradient's dark half by construction (`Clay.kt:91-103`).
 
 **Text scaling.** Every size is an M3 type role, so all text scales with the system font size.
-Three layouts must be verified at 200%: the Home column (scrolls — §4.2), the three-pill ribbon
+Four layouts must be verified at 200%: the Home column (scrolls — §4.2), the tutorial column
+(also scrolls, board unshrunk — §4.1), the three-pill ribbon
 (each pill wraps its label under its value rather than truncating), and the gameplay status strip
 (the title is `maxLines = 1` with `weight(1f)` and truncates before it can push the timer pill off
 screen — the timer must never be clipped, since it is the only place elapsed time appears).
@@ -1051,7 +1090,7 @@ should read the absence of jump, select and invalid-tap cues there as the design
 |------|-----------|
 | Narrow phone (≤ 360dp) | Home column scrolls; ribbon pills shrink to equal weights, never wrap to two rows; gameplay title truncates before the timer clips |
 | Tall phone (6.7") | Home's weighted spacer pushes slack above the Continue chips so mode tiles stay low; the gameplay board centres between strip and dock |
-| Short phone / 200% font | Home scrolls; the tutorial column scrolls with the board keeping its aspect ratio; the dock stays pinned below the board |
+| Short phone / 200% font | Home scrolls; the tutorial column scrolls with the board keeping `tutorial_board_size` and its aspect ratio (§4.1) — the caption grows and the empty footer leaves the fold, the board does not shrink; the dock stays pinned below the board |
 | Tablet / large | Content capped at `content_max_width` 480dp and centred — unchanged; board capped at `board_max_size` 480dp — unchanged |
 | Landscape | Not a supported orientation change in this refresh; existing behaviour preserved. Flagged to the tech-lead if the manifest does not lock orientation. |
 | RTL | The back arrow and `UndoIcon` are already auto-mirrored (`UndoIcon.kt:29`); the status strip and dock are `Row`s and mirror by default; nothing uses absolute left/right padding |
@@ -1134,8 +1173,8 @@ Observable truths a QA engineer can check on a device, in the roadmap's house ph
    the tutorial without both. (ONB-01, D-01b)
 3. On **T2**, tapping the middle peg — which has no legal jump — selects it, draws no destination
    dots, and produces no error, no red, no dialog and no lost progress; after a pause the tutorial
-   re-pulses a peg that *can* move. (D-01c) *(The same holds for two of T3's five pegs; this is
-   normal peg solitaire, not a defect.)*
+   re-pulses a peg that *can* move. (D-01c) *(The same holds for three of T3's five pegs — the
+   whole middle row; this is normal peg solitaire, not a defect.)*
 4. Three consecutive taps that make no progress cause the tutorial to show more help, not less;
    the player is never blocked from continuing; and the help **never mentions Undo** or tells the
    player they are stuck. (D-01c, §4.4)

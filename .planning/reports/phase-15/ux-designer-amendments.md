@@ -1,7 +1,8 @@
 # ux-designer report — phase-15 ux-spec amendments (game-designer + tech-lead rulings)
 
 Date: 2026-09-21
-Branch: feature/phase-15-ux-refresh (966b404..this commit — one `docs(15):` commit)
+Branch: feature/phase-15-ux-refresh (966b404..this commit — two `docs(15):` commits: c802908 the
+amendment, then the internal-consistency pass it exposed)
 Skills loaded: ergoz-soft:standards (role: ux-designer), compose-skill
 Rules loaded: studio.md, reporting.md, gitflow.md, skills-policy.md, logging.md, memory.md,
 puzzle-design.md, play-store.md, kotlin-android.md, compose.md, audio.md, lessons.md
@@ -22,12 +23,13 @@ recorded as a UX decision, and one conflict for the producer is in Open issues.
 
 ## Outputs
 - `docs/ux-spec.md` — amended in place: header Amendments note; §2 tutorial row; new D-01g,
-  D-01h, D-03h and pointers on D-01f and D-03d; §4.1 step table, block-quote, Advance,
+  D-01h, D-03h and amendment pointers on D-01a, D-01f, D-03d and D-03g; §4.1 step table, block-quote, Advance,
   Completion and Exit; §4.2 ribbon source + placeholder rule; §4.4 wrong-tap table; **new §5.1
   "The tutorial's hard prohibitions"**; §6.1 token note; §6.5 risk paragraph + measurement
   contract; §7 opening, R-1/R-2/R-4/R-5, new R-6, invariant resolution; §8 string table (one
   string retired); §9 audio row; §11 sound paragraph; §13 test bill + screenshot question
-  closed; §14 criteria; §16 traceability.
+  closed; §14 criteria; §16 traceability. Second commit: the fourteen consistency fixes listed
+  below, including the tutorial's scroll behaviour (§4.1/§11/§12) and the corrected T3 peg count.
 - `.planning/reports/phase-15/ux-designer-amendments.md` — this report. The first edition's
   report `ux-designer.md` is untouched.
 - No file under `app/`, `domain/`, `docs/ui/` or `.planning/{ROADMAP,questions,reports/STATUS}`
@@ -110,8 +112,44 @@ Criteria 1, 6, 7, 8–15d, 15f and 16–28 are unchanged and still hold.
 - `OnboardingOverlay.kt:144` — the overlay passes `onboarding_illustration_size` to
   `BoardPreview`, which is the dead token §6.1 retires. Unchanged by this amendment.
 
+### Internal-consistency pass over the amended document
+
+A full read-through of the amended spec was run against nine consistency questions (stale
+"fold"/"default"/"undecided" claims, cue claims contradicting D-01h, malformed tables, duplicate
+decision or requirement ids, §14 numbering, dangling cross-references). It reported **clean** on
+the amendment's own targets — no surviving `tutorial_undo_nudge`, no surviving client-side-fold
+claim, no surviving "T2/T3 footprints are defaults", no undecided-hosting claim without a
+pointer, every table well-formed, no duplicate ids, §14 numbering sound and every criterion
+cross-reference resolving. It found fourteen other defects, all fixed in the second commit:
+
+- **One factual error, mine, and it is the one worth naming.** §4.4 and criterion 3 said "two of
+  T3's five pegs" have no legal jump at the start. I re-derived it from the ruling's footprint
+  (pegs (0,0),(0,1),(1,0),(1,1),(1,2); holes (0,2),(2,0),(2,1),(2,2)): all three legal openings
+  start at (0,0) or (0,1), so the pegs with no move are (1,0),(1,1),(1,2) — **three**, the whole
+  middle row. Corrected in both places, with the reason stated so QA can check it.
+- **One real contradiction between two sections, mine to resolve.** §12 said the tutorial column
+  scrolls at 200% font; §4.1 specified a fixed four-band full-viewport layout with no scroll
+  container. Resolved in §4.1's favour of scrolling, with the board explicitly **not** shrinking
+  (compressing the one interactive element to win vertical space is the wrong trade at 200%);
+  §12's row and §11's text-scaling list now match.
+- **One gap in D-01h that criterion 7c had already assumed.** The decision enumerated board cues
+  only; criterion 7c required "no completion cue". §4.1's completion borrows
+  `ClayAnim.STAR_POP_MS`, which is a duration and not a cue, but nothing said `SoundCue.StarPop`
+  was excluded. D-01h now names the completion cues too, and §4.1 says the star pops silently.
+- **A decision-id collision worth a standing warning.** This document's `D-05` is the toolbar
+  deletion; §4.4 also cited an earlier phase's `D-05` (the ad allowance at
+  `GameUiState.kt:131-135`), and `D-09`/`D-14`/`D-15` are likewise earlier phases'. §3's preamble
+  now warns about it once and §4.4 qualifies the one genuine collision.
+- **Housekeeping:** D-03g gained the amendment pointer the house style requires (its gate is now
+  the two-arm delta); the preamble's ruling count was short by one and now says why the
+  measurement contract is a §6.5 subsection rather than a decision; §4.1/§4.2/§4.4's heading
+  scopes were stale (`D-01a–f`, `D-03a–e`); §5's `SavedStateHandle` bullet cited D-01g where the
+  decision it protects is D-01e; §1 pointed at §5 for an argument that lives in §3's D-05; §2 and
+  §5 claimed "no change to any board footprint" while the refresh adds three new tutorial
+  miniatures; and D-01f's "§8 lists the invariant" was a pre-existing typo for §7.
+
 ### Not run
-- `./gradlew check` — **not run.** This task edits one Markdown file and no source, so the build
+- `./gradlew check` — **not run.** This task edits two Markdown files and no source, so the build
   tree is byte-identical to the branch point apart from `docs/ux-spec.md` and this report. The
   tech-lead's report records `ANDROID_HOME=… ./gradlew check --offline` green at 11m10s on this
   worktree as the pre-refresh baseline, taken at the same commit.
