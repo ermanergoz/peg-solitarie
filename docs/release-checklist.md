@@ -17,6 +17,11 @@ someone else has to trust. Tick an item only after observing its evidence, and r
 Conventions: **[S]** studio-verifiable, **[F]** founder-only, **[S→F]** the studio prepares it and
 the founder acts on it.
 
+**Before anyone runs a release build that carries the real ad IDs, read
+`docs/ad-testing-safety.md`.** It is binding, not advisory: it decides what QA and the founder may
+tap, and §5 below cannot be started until its §3 (test-device registration) is done. Its one rule
+is short enough to put here — **never tap an ad that does not carry the "Test Ad" label.**
+
 ---
 
 ## 1. Before the branch is cut
@@ -70,6 +75,7 @@ is re-cut.
 | # | Item | Who | Evidence |
 |---|---|---|---|
 | 4.1 | [ ] Real ad-unit and Play Games identifiers are in place | **[F]** | operator checklist Step 6 — `./gradlew :app:verifyReleaseAdIds :app:verifyReleaseGamesIds` exits 0. **Test identifiers are not a substitute**; an artifact built with them is not a release candidate and must not be uploaded |
+| 4.1a | [ ] The three ad IDs in the built artifact are the **right** ones — read out of the artifact and compared, character by character, against the app's ad units in the AdMob Console | [S] reads them out of the bundle, **[F]** supplies the Console comparand | `docs/ad-testing-safety.md` §6. This is the one ad check that a test-mode pass cannot cover: test mode serves happily for a valid-but-wrong unit. Done by reading, never by clicking. No ID value is written into this file, a report, or any tracked file |
 | 4.2 | [ ] The upload keystore is reachable through the four `PLAY_UPLOAD_*` environment variables, and nowhere else | **[F]** | operator checklist Step 7. No value of any of the four appears in any file, in this checklist, or in any report |
 | 4.3 | [ ] The release bundle builds | [S] | the Build command in `CLAUDE.md`; record the exit code |
 | 4.4 | [ ] The bundle is signed with the **upload** certificate, not the debug key | [S] verifies, **[F]** supplies the comparand | `jarsigner -verify -verbose:summary -certs <aab>`; the SHA-1 must equal the upload key certificate in the Console (read by the founder) |
@@ -90,16 +96,24 @@ The point of the whole exercise. A locally built artifact carries the upload cer
 tester downloads carries the **app signing** certificate, and only the second is what a real
 player's Play Games sign-in is checked against. Everything below is void unless 5.1 passes.
 
+This is the **only** step in the whole release that can reach the founder's live AdMob account, and
+5.0 is what stops it from doing so. Ads are verified in **test mode on the real ad unit IDs**, which
+verifies more than live ads do — reasoning, policy text and sources in `docs/ad-testing-safety.md`
+§6. Live ads are never used for verification.
+
 | # | Item | Who |
 |---|---|---|
+| 5.0 | [ ] **Gate, before the build is installed:** the test phone's advertising ID is registered under AdMob → Settings → Test devices, registered **≥ 24 h** ago, and the first ad seen in the app carries the **"Test Ad"** label | **[F]** registers; qa-engineer confirms the label | `docs/ad-testing-safety.md` §3. No label ⇒ not in test mode ⇒ **stop, tap nothing, back out.** 5.6–5.8 must not be attempted until the label is observed. Leave the device registered afterwards — removal also takes up to 24 h and resumes live ads |
 | 5.1 | [ ] **Gate:** the installed build is the store copy — installer is the Play Store package, and the versionCode and versionName are this release's | [S] runs, **[F]** provides the installed build |
 | 5.2 | [ ] Play Games sign-in works on the app signing certificate | qa-engineer |
 | 5.3 | [ ] Leaderboard submissions appear on the server-side ladders, not merely "no error in app" | qa-engineer |
 | 5.4 | [ ] An achievement unlocks and its popup renders; one incremental tier ticks | qa-engineer |
 | 5.5 | [ ] Cloud save produces the union across two devices, with the device's own commit as the oracle | qa-engineer |
 | 5.6 | [ ] The consent form appears before any ad request, on a real ad configuration | qa-engineer |
-| 5.7 | [ ] A **real** rewarded unit loads, grants on completion, grants nothing on early dismissal — and the fail-open path still hands over the assist on a no-fill | qa-engineer |
-| 5.8 | [ ] A **real** interstitial appears only after Continue, never on loss or restart, with the clock paused | qa-engineer |
+| 5.7 | [ ] The **real** rewarded unit — in test mode, per 5.0 — loads, grants on completion, grants nothing on early dismissal, and the fail-open path still hands over the assist on a no-fill | qa-engineer |
+| 5.8 | [ ] The **real** interstitial unit — in test mode, per 5.0 — appears only after Continue, never on loss or restart, with the clock paused | qa-engineer |
+| 5.8a | [ ] Ad inspector was opened on the test device and shows both real units requesting and filling — it launches only on a registered test device, so 5.0 is its prerequisite (`ad-testing-safety.md` §6) | qa-engineer |
+| 5.8b | [ ] No ad was tapped that did not carry the "Test Ad" label; if one was, `docs/ad-testing-safety.md` §5 was followed and the incident is recorded as a `result:` line in the UAT sheet | qa-engineer, **[F]** for his own device |
 | 5.9 | [ ] Sound, hints from the opening book, resume, and the downloadable fonts all survive the shrink **on the store copy** | qa-engineer |
 | 5.10 | [ ] The account-swap wipe: keep-local preserves, replace-with-cloud replaces, and every walk-away route keeps | qa-engineer, needs **[F]** second account |
 
