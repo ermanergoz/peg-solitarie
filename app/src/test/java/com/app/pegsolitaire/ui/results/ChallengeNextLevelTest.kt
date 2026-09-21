@@ -10,6 +10,7 @@ import com.app.pegsolitaire.data.ChallengeProgressPreferences
 import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.data.CloudProfileStore
 import com.app.pegsolitaire.data.CloudSyncStore
+import com.app.pegsolitaire.data.HomeProgress
 import com.app.pegsolitaire.data.ImportOutcome
 import com.app.pegsolitaire.data.InterstitialCadenceStore
 import com.app.pegsolitaire.data.LevelResult
@@ -363,6 +364,8 @@ private class NoBestsProgressRepository : ProgressRepository {
     override suspend fun aggregate(): ProgressAggregate = ProgressAggregate()
 
     override suspend fun classicBests(): Map<ClassicBoard, Int> = emptyMap()
+
+    override fun observeHomeProgress(): Flow<HomeProgress> = flowOf(HomeProgress.UNKNOWN)
 
     override fun observeResults(mode: String): Flow<List<LevelResult>> = flowOf(emptyList())
 

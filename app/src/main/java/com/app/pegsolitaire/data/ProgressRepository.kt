@@ -35,7 +35,20 @@ import javax.inject.Singleton
  * It hands out app-layer models only ([LevelResult], [NewBests], [ResumeSnapshotDto]) —
  * Room entities never leave the data layer, so a schema change cannot ripple into the
  * UI. Mirrors [SettingsRepository]'s interface + `Impl` + `@Binds` shape.
+ *
+ * ## Size suppression
+ *
+ * `TooManyFunctions` is suppressed here for the **same, already-documented reason it is
+ * suppressed on [DefaultProgressRepository] below** (see that class's "Size suppression"
+ * section): the member set is this store's fixed vocabulary, not accreted responsibility.
+ * The impl crossed the threshold first and carried the suppression alone while the
+ * interface sat at eleven members; `observeHomeProgress` — the Home ribbon's single
+ * aggregate — is the twelfth, so the declaration the impl's justification was already
+ * reasoning about now crosses it too. Splitting this interface to satisfy a counter would
+ * mean a second declared owner of the same tables, which is the single-source-of-truth
+ * property this repository exists to hold (research Anti-Pattern 2).
  */
+@Suppress("TooManyFunctions") // see "Size suppression" above
 interface ProgressRepository {
     /**
      * Merges a solved play into the stored bests for `(mode, levelId)` and reports which
@@ -81,6 +94,22 @@ interface ProgressRepository {
      * (T-05-10): the catalog renders as unplayed rather than crashing.
      */
     fun observeResults(mode: String): Flow<List<LevelResult>>
+
+    /**
+     * The Home progress ribbon's two values, from ONE SQL aggregate, re-emitted on change
+     * (§7 R-1/R-2, D-03c).
+     *
+     * Both values come from a single row so the two pills structurally cannot disagree, and
+     * from SQL rather than a Kotlin fold over [observeResults] because folding
+     * `MODE_CHALLENGE` would load the unbounded ladder into memory **on the start
+     * destination** — the fold `LevelResultDao.totals`' KDoc already refuses for a
+     * background submitter.
+     *
+     * A failing read degrades to [HomeProgress.UNKNOWN] (T-05-10, D-03h): the pills paint
+     * "—", never `0`. That direction is the whole point — a player with stars already
+     * earned must never be told their total is zero on the first screen they see.
+     */
+    fun observeHomeProgress(): Flow<HomeProgress>
 
     /**
      * The whole stored-progress snapshot the achievement rules consume, computed entirely
@@ -291,6 +320,40 @@ data class LevelResult(
 )
 
 /**
+ * The Home progress ribbon's two derived values, as the UI layer sees them — a plain read
+ * model mapped from `HomeProgressTotals` so no Room type reaches a ViewModel, exactly as
+ * [LevelResult] does (§7 R-6).
+ *
+ * @property totalStars stars earned across BOTH modes — the "Stars" pill is a total.
+ * @property classicBoardsCleared how many of the Classic catalogue's boards have been
+ *   cleared. The pill's **denominator** is deliberately not here: it is the catalogue size
+ *   (`Boards.CLASSIC_SPECS.size`), a compile-time fact, and reading it from storage would
+ *   let a stored row change a shipped number.
+ */
+data class HomeProgress(
+    val totalStars: Int,
+    val classicBoardsCleared: Int,
+) {
+    companion object {
+        /**
+         * "Not yet known" — what a **failed** read degrades to (T-05-10, D-03h), so the
+         * pills paint the "—" placeholder.
+         *
+         * Both fields are `-1` rather than `0` precisely so this value can never be
+         * mistaken for a real reading: `0` is a legitimate answer for a brand-new player,
+         * and a player with forty stars being told they have none is the failure this
+         * exists to prevent. Callers must test against this value, never against the
+         * fields — which is why the screen's own placeholder rule is a `null` in
+         * `HomeUiState` and this never reaches it verbatim.
+         */
+        val UNKNOWN = HomeProgress(totalStars = UNKNOWN_VALUE, classicBoardsCleared = UNKNOWN_VALUE)
+
+        /** The out-of-range sentinel behind [UNKNOWN]; no real count can ever be negative. */
+        private const val UNKNOWN_VALUE = -1
+    }
+}
+
+/**
  * Room-backed [ProgressRepository].
  *
  * [recordResult] is a read-modify-write inside `withTransaction`: two plays finishing
@@ -311,7 +374,7 @@ data class LevelResult(
  * ## Size suppression
  *
  * `TooManyFunctions` is suppressed because the count is [ProgressRepository]'s own member
- * set plus four private helpers, not accreted responsibility: eleven overrides are fixed by
+ * set plus four private helpers, not accreted responsibility: twelve overrides are fixed by
  * the interface, and the helpers ([recordResultInTransaction], [importInTransaction],
  * `List<ClassicStanding>.boards` and the two entity mappers) exist so that a rule — the
  * merge, the transaction boundary, the entity-to-model shape — is stated exactly once
@@ -584,6 +647,17 @@ class DefaultProgressRepository
                 // A read that fails at the database (corrupt file, disk I/O) renders as
                 // "nothing solved yet" instead of crashing the catalog (T-05-10).
                 .catch { emit(emptyList()) }
+
+        override fun observeHomeProgress(): Flow<HomeProgress> =
+            levelResultDao
+                .observeHomeProgress(
+                    classicMode = ProgressPersistenceKeys.MODE_CLASSIC,
+                    minStars = ProgressConstants.ANY_STARS,
+                ).map { HomeProgress(totalStars = it.totalStars, classicBoardsCleared = it.classicBoardsCleared) }
+                // A failing read renders as "not yet known" — the "—" placeholder — and
+                // never as `0` (T-05-10, D-03h). Zero is a real answer for a new player,
+                // so reporting it for a failed read would lie to an experienced one.
+                .catch { emit(HomeProgress.UNKNOWN) }
 
         override suspend fun saveSnapshot(
             dto: ResumeSnapshotDto,

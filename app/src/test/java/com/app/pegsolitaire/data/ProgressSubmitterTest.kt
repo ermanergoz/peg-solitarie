@@ -2,6 +2,7 @@ package com.app.pegsolitaire.data
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import com.app.pegsolitaire.data.HomeProgress
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
 import com.app.pegsolitaire.domain.achievement.AchievementId
 import com.app.pegsolitaire.domain.achievement.AchievementRules
@@ -631,6 +632,8 @@ private class FakeProgressRepository(
         telemetry: SolveTelemetry,
         nowMs: Long,
     ): NewBests = error("the submitter never records a result")
+
+    override fun observeHomeProgress(): Flow<HomeProgress> = flowOf(HomeProgress.UNKNOWN)
 
     override fun observeResults(mode: String): Flow<List<LevelResult>> = flowOf(emptyList())
 

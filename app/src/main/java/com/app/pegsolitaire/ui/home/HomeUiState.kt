@@ -65,10 +65,24 @@ import com.app.pegsolitaire.data.ChallengeProgressPreferences
  *   distinguishable state trace. Deliberately NOT raised by a plain chooser dismissal:
  *   `signIn()` returning `false` is a player's own cancel and stays silent (D-10 parity).
  *   Starts at 0, which the screen reads as "nothing to show".
+ * @property totalStars stars earned across both modes, for the progress ribbon's Stars pill
+ *   (§7 R-1) — or `null` when the value is **not yet known**, which is both "the database
+ *   has not answered yet" and "the read failed" (D-03c/D-03h). The pill paints
+ *   `stat_value_unknown` ("—") for `null`, never `0` and never a blank: zero is a real
+ *   answer for a brand-new player, so the two must stay distinguishable. `null` is the
+ *   default because Home paints before any read lands — the ribbon is placeholder-first and
+ *   the first frame never waits on disk (D-03g).
+ * @property classicBoardsCleared how many Classic boards have been cleared, the numerator
+ *   of the Boards pill (§7 R-2) — `null` under exactly the same two conditions as
+ *   [totalStars], and from the same single aggregate row, so the two pills cannot disagree.
+ *   The pill's **denominator** is the Classic catalogue size, a compile-time fact, and is
+ *   deliberately absent from this state: a stored row must never be able to change it.
  */
 @Immutable
 data class HomeUiState(
     val onboardingVisible: Boolean = false,
+    val totalStars: Int? = null,
+    val classicBoardsCleared: Int? = null,
     val challengeCurrentLevel: Int = ChallengeProgressPreferences.DEFAULT_CURRENT_LEVEL,
     val classicResumeLevelId: String? = null,
     val challengeResumeLevel: Int? = null,

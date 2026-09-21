@@ -8,6 +8,7 @@ import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.data.FakePlayGamesOptInRepository
 import com.app.pegsolitaire.data.FakeProgressSubmitter
+import com.app.pegsolitaire.data.HomeProgress
 import com.app.pegsolitaire.data.ImportOutcome
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
@@ -33,6 +34,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
@@ -128,6 +130,33 @@ class HomeViewModelTest {
             assertThat(viewModel.uiState.value.onboardingVisible).isFalse()
             assertThat(repository.markSeenCount).isEqualTo(1)
             assertThat(repository.seen.value).isTrue()
+        }
+
+    // ---- The Home progress ribbon (§7 R-1/R-2, D-03c) ----------------------
+
+    @Test
+    fun theRibbonValuesAreNullUntilTheFirstProgressEmission() =
+        runTest(testDispatcher) {
+            val progress = FakeResumeProgressRepository()
+            val viewModel =
+                viewModelFor(FakeOnboardingRepository(initiallySeen = true), progress = progress)
+
+            viewModel.uiState.test {
+                // D-03c as an assertion rather than a paragraph: the pills paint "—"
+                // before the database has answered, and Home never waits on the read.
+                val initial = awaitItem()
+                assertThat(initial.totalStars).isNull()
+                assertThat(initial.classicBoardsCleared).isNull()
+
+                runCurrent()
+                progress.emitHomeProgress(HomeProgress(totalStars = RIBBON_STARS, classicBoardsCleared = RIBBON_BOARDS))
+                runCurrent()
+
+                val filled = expectMostRecentItem()
+                assertThat(filled.totalStars).isEqualTo(RIBBON_STARS)
+                assertThat(filled.classicBoardsCleared).isEqualTo(RIBBON_BOARDS)
+                cancelAndIgnoreRemainingEvents()
+            }
         }
 
     // ---- Persisted Challenge level (CHAL-05 / PERS-02) ----------------------
@@ -633,6 +662,18 @@ private class FakeResumeProgressRepository : ProgressRepository {
 
     override fun observeResults(mode: String): Flow<List<LevelResult>> = flowOf(emptyList())
 
+    /**
+     * The Home ribbon aggregate, settable so a test can drive the placeholder → value
+     * transition. Starts at [HomeProgress.UNKNOWN]'s absence: nothing emitted yet.
+     */
+    private val homeProgress = MutableSharedFlow<HomeProgress>(replay = 1)
+
+    fun emitHomeProgress(progress: HomeProgress) {
+        homeProgress.tryEmit(progress)
+    }
+
+    override fun observeHomeProgress(): Flow<HomeProgress> = homeProgress
+
     override suspend fun saveSnapshot(
         dto: ResumeSnapshotDto,
         nowMs: Long,
@@ -675,6 +716,12 @@ private class FakeResumeProgressRepository : ProgressRepository {
             elapsedMs = 0L,
         )
 }
+
+/** The ribbon's star total once the aggregate answers — distinct from every other fixture number. */
+private const val RIBBON_STARS = 41
+
+/** The ribbon's cleared-board count once the aggregate answers. */
+private const val RIBBON_BOARDS = 3
 
 /** A persisted level well past the on-ramp, so "continues at the stored level" is unambiguous. */
 private const val PERSISTED_LEVEL = 7

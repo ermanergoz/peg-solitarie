@@ -75,6 +75,40 @@ interface LevelResultDao {
     ): LevelResultTotals
 
     /**
+     * The Home progress ribbon's two derived values in ONE row, re-emitted on any change
+     * (§7 R-1/R-2, D-03c).
+     *
+     * The `Flow` sibling of [totals], narrowed to the two numbers Home needs and answering
+     * the one thing [totals] structurally cannot: its star sum carries no `WHERE`, so it
+     * cannot also count Classic boards. Same `FROM`-less correlated-subquery shape, so it
+     * always returns exactly one row and the return type is non-null; same `COALESCE` on
+     * the only nullable aggregate.
+     *
+     * **A `Flow`, not a `suspend` one-shot, and not a Kotlin fold.** Room invalidates the
+     * stream on any write to the table, so the ribbon cannot show a stale total after a
+     * solve. Folding [observe] in Kotlin instead would load the whole Challenge ladder —
+     * one row per level ever solved, unbounded — into memory **on the start destination**,
+     * which is the fold [totals]' own KDoc already refuses for a background submitter.
+     *
+     * @param classicMode bound `ProgressPersistenceKeys.MODE_CLASSIC`.
+     * @param minStars bound `ProgressConstants.ANY_STARS` — the same "a stored row means
+     *   cleared" floor the achievement aggregate's cleared set uses. No magic number.
+     */
+    @Query(
+        """
+        SELECT
+          (SELECT COALESCE(SUM($COLUMN_STARS), 0) FROM $TABLE_LEVEL_RESULT) AS totalStars,
+          (SELECT COUNT(*) FROM $TABLE_LEVEL_RESULT
+             WHERE $COLUMN_MODE = :classicMode AND $COLUMN_STARS >= :minStars)
+            AS classicBoardsCleared
+        """,
+    )
+    fun observeHomeProgress(
+        classicMode: String,
+        minStars: Int,
+    ): Flow<HomeProgressTotals>
+
+    /**
      * Every stored Classic board's standing — the ONE read behind THREE answers: the
      * cleared set, the perfect set, and the per-board best scores of PGSL-03.
      *

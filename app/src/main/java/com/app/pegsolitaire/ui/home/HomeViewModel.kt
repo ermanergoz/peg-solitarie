@@ -3,6 +3,7 @@ package com.app.pegsolitaire.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.app.pegsolitaire.data.ChallengeProgress
+import com.app.pegsolitaire.data.HomeProgress
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.OnboardingRepository
 import com.app.pegsolitaire.data.PlayGamesOptInRepository
@@ -164,6 +165,31 @@ class HomeViewModel
             viewModelScope.launch {
                 challengeProgress.currentLevel.collect { level ->
                     _uiState.update { it.copy(challengeCurrentLevel = level) }
+                }
+            }
+            // The progress ribbon's two values (§7 R-1/R-2, D-03c). ONE collector over ONE
+            // aggregated row: the Stars and Boards pills read the same emission, so they
+            // structurally cannot disagree, and there is no second query for the second pill.
+            //
+            // A SIXTH INDEPENDENT collector, deliberately — not a `combine` over all inputs.
+            // `combine` emits nothing until every input has emitted once, which would make
+            // the whole Home state wait on a database round trip and would destroy the
+            // placeholder rule structurally rather than merely in practice. The independent
+            // collectors over one MutableStateFlow(HomeUiState()) are what make "the ribbon
+            // paints '—' and fills in" true by construction (D-03g).
+            //
+            // The values stay `null` until this emits; a FAILED read arrives as
+            // HomeProgress.UNKNOWN and is mapped back to `null` here, so "not yet" and "the
+            // read failed" are indistinguishable on screen and neither renders as 0 (D-03h).
+            viewModelScope.launch {
+                progressRepository.observeHomeProgress().collect { progress ->
+                    val known = progress != HomeProgress.UNKNOWN
+                    _uiState.update {
+                        it.copy(
+                            totalStars = progress.totalStars.takeIf { known },
+                            classicBoardsCleared = progress.classicBoardsCleared.takeIf { known },
+                        )
+                    }
                 }
             }
             // Which modes can be continued (PERS-03, D-01/D-03). Collecting the mode list —
