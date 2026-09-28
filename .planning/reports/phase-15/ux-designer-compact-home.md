@@ -102,7 +102,7 @@ exactly `M docs/ux-spec.md` and nothing else.
   (`HomeProgressRibbon.kt:145`) inside a `clearAndSetSemantics` node (`:136`), so it carries no
   information at all. — **pass; this is where the ribbon's +52dp starts and it is the yield D-03k
   spends.**
-- **The post-yield arithmetic that forces the criterion change** (`docs/ux-spec.md:1421-1447`):
+- **The post-yield arithmetic that forces the criterion change** (`docs/ux-spec.md:1440-1462`):
   72 (hero row) + 56 (compact ribbon target) + 216 (two chips) + 224 (two tiles) + 72 (gaps +
   padding) = **≈640dp** against **568dp** → **72dp over**, with a band-by-band table of why each
   remaining dp may not yield (48dp gear + never-scaled title; oracle 3; §11's 96dp tile floor ×2
@@ -116,7 +116,7 @@ exactly `M docs/ux-spec.md` and nothing else.
   out); the Challenge tile's level chip, both Continue chips and the one-tap path to the Classic
   catalogue's pips are **not** put behind a tap, an expander or a state change (`:1070-1090`,
   criterion 15d's pointer at `:2545`); the 48dp gear survives as the only route to Settings and so
-  to How to play (`:1421` table row); **no content band is weighted** — D-03i clause 4 is untouched
+  to How to play (`:1458` table row); **no content band is weighted** — D-03i clause 4 is untouched
   and restated as still binding (`:629-635`, `:1375-1383`). — **pass.**
 - **`file:line` of everything I touched.** One file, `docs/ux-spec.md`; sites verified by grep
   against a hash-stable snapshot of the committed bytes (file is 2856 lines):
