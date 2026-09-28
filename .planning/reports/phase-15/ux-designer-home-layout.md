@@ -87,8 +87,12 @@ developer's reasoning, which I did not read except for the two findings I was as
   exactly its share, so a weighted hero would be measured at 0 the moment the fixed bands exceed the
   viewport. §4.2.2 clause 4 forbids it and criterion 15i re-checks 14 on both baselines.
 - **Criterion 15** (`:1595`, tiles in the lower half of a 6.7-inch phone) — **at risk on the build,
-  and left textually untouched.** Measured 36–54% with ~45% below; my model of the built layout
-  reproduces it (fixed bands ≈540dp of an ≈843dp content area in the fresh-install state). D-03i's
+  and left textually untouched.** Measured 36–54% with ~45% below. Reading the built column back
+  from the tokens gives ≈548dp of fixed bands in the fresh-install state (padding 32 + four 16dp
+  gaps + hero ≈172 + ribbon 64 + spacer 24 + tiles 192): that is 38–63% of an 843dp content area
+  and 32–53% with ~45% below on a ~1000dp one — the model reproduces the finding, and the exact
+  percentages tracking the device's height is the point, since one fixed number cannot land on the
+  thumb zone across devices. D-03i's
   3:1 split puts the first tile's top at 62–68% in both states, and the worst case at the threshold
   (fresh install at exactly 720dp) is 405dp against a 360dp midpoint. 15g is the both-sizes
   restatement; criterion 15's own wording is **not** reworded — the layout was wrong, not the words.
