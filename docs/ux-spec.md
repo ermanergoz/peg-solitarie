@@ -4,7 +4,7 @@ phase: 15
 slug: ux-refresh
 status: draft
 created: 2026-09-21
-revised: 2026-09-21
+revised: 2026-09-28
 stack: android-compose-game
 design-system: docs/ui/DESIGN-SYSTEM.md
 ---
@@ -100,6 +100,27 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > Checked while there: the false premise appears in exactly one sentence in this document, and
 > D-01b's own "`showHints` is forced on" (§3, §4.1) is true and makes no claim about `hintSource`.
 > No other decision is reopened; §5.1 and the audio ruling's substance are not touched.
+>
+> **Fourth revision — 2026-09-28 (Home's vertical slack; the split semantics nodes).** Two rulings
+> that **postdate the build now under audit** and change nothing a reviewer is currently judging.
+> `.planning/reports/phase-15/android-game-dev-s5-s8.md` reports that §4.2's weighted spacer could
+> not be built as written — `weight` does not distribute inside a `verticalScroll` column, which is
+> correct — and that the fixed `Spacer` which went in instead (`HomeScreen.kt:311-313`) leaves the
+> mode tiles at roughly **36–54% of screen height with ~45% dead space below them** on a device.
+> That is the founder's original complaint reappearing at the bottom of the screen instead of in
+> the middle of it, so the mechanism is ruled here: **D-03i** (§3, specified in **§4.2.2**) replaces
+> the fixed spacer with two weighted spacers that work, and rules what yields on a short screen so
+> that criteria 15 and 15a can both hold at once. Criterion 15 and §4.2's "Thumb zone" paragraph are
+> **left exactly as they read** — they are what the audited build was built against — and each gains
+> a one-line pointer; the new, both-sizes criteria are **15g–15j** and they apply to the follow-up
+> change, not to the build. §6.1 gains two tokens and §12 a correction of fact about the same
+> modifier chain.
+>
+> The second ruling answers the accessibility finding in that same report (the clickable node and
+> the labelled node being separate in a `uiautomator` dump): **§11 gains a dated note and §14
+> criterion 26a the bright line.** The verdict is that this is **not** a defect and needs **no code
+> change** — the unmerged tree is not the tree the contract is written against — while the TalkBack
+> pass criterion 26 always required stays owed.
 >
 > Out of scope here and **not** absorbed into this document: rules/audio.md makes
 > `docs/audio-spec.md` the cue list of record and that file has never existed on any branch. The
@@ -418,6 +439,9 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   is right that two tiles on an empty field reads as unfinished, and the fix is not more buttons:
   it is giving the player something about *their own* game to look at. Everything added is either
   the game's own board art or a number the player earned.
+  *(Amended 2026-09-28 — see D-03i and §4.2.2. The five bands, the cap and the bottom-weighting all
+  stand; what is added is the mechanism that actually distributes the vertical slack, and the band
+  set a screen too short to seat all five gets.)*
 
 - **D-03a:** The Home `TopAppBar` (`HomeScreen.kt:340-363`) is **deleted**; its gradient title
   moves into the hero band and the Settings gear becomes a clay circular chip at the hero's
@@ -504,6 +528,24 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
      is otherwise unchanged and still ends at "the pills stay and show —".
   — Data-layer mechanism is the tech-lead's authority; what this spec owns is what the player sees
   while the read is slow, empty or broken, and that is stated above and in §4.2.
+
+- **D-03i** *(2026-09-28 — UX ruling. It **postdates the build under audit** and applies to a
+  follow-up change; nothing above it is rewritten.)*: Home's vertical slack is distributed by **two
+  weighted `Spacer`s inside a scrolled column whose minimum height is the viewport** — the one thing
+  that makes a `weight` work where `verticalScroll` has made the column unbounded — and **the hero is
+  the band that yields on a short screen**, by dropping its decorative art and taking a compact band
+  set below `home_compact_threshold_height`. The layout contract, the arithmetic for both baselines,
+  the ordered yield and what may never yield are **§4.2.2**; the criteria are 15g–15j.
+  — A fixed `Spacer` cannot be right on two screen sizes at once, and the 24dp that shipped is right
+  on neither: measured, the mode tiles sit at 36–54% of screen height with ~45% dead space below
+  them on a 6.7-inch phone (`android-game-dev-s5-s8.md`), which is the "looks empty" the phase was
+  commissioned to fix, moved rather than removed. The same arithmetic shows the other half of the
+  problem is **not** caused by pushing content down: with the full band set, criterion 15a was
+  already unreachable on its own baseline — hero 172dp as built + ribbon 64dp + the four oracle
+  bands' 336dp + seven 16dp gaps + 32dp of padding is **≈716dp**, against a 360×640dp window that
+  can offer at most 640dp and in practice ~568dp. Two tiles low on a tall phone and four oracles
+  above the fold on a short one are therefore not a trade to be split down the middle with one
+  number; they need a mechanism that reads the space it has, which is what §4.2.2 specifies.
 
 ### In-game controls (ASST-01, ASST-02, CLAS-02, SCOR-02, proposed UX-03)
 
@@ -792,6 +834,14 @@ viewport the column scrolls instead of compressing. Home does not scroll today
 present it already overflows — adding `verticalScroll` is part of this change, not optional
 polish.
 
+> *(Amended 2026-09-28 — see §4.2.2 and D-03i.)* The paragraph above stands as the intent and is
+> **left as it reads**: it is what the audited build was built against. What it does not say is how
+> a weight distributes inside a scrolling column — it does not, and the fixed `Spacer` that
+> replaced it (`HomeScreen.kt:311-313`) is right on no screen size. §4.2.2 specifies the mechanism,
+> the ordered yield for a screen too short to seat all five bands, and the arithmetic for both
+> baselines. The band order, the cap, the scroll-for-overflow rule and the first-paint rule above
+> are unchanged by it.
+
 **First-paint rule (D-03f).** Scrolling exists for the overflow case, not as a place to put
 things. At **default font scale on a 360×640dp phone with both Continue chips present**, bands 3
 and 4 — the Continue chips and both mode tiles — must be **fully within the first viewport with no
@@ -828,6 +878,161 @@ why §5.1 forbids the tutorial from going near it.
   one tap away, and it would create a second place for per-board stars to be wrong.
 - *A "recent activity" or "last played" band.* Rejected: it is the Continue chip with worse copy,
   and it needs `completedAt` ordering — a new read on the cold-start path for no new information.
+
+#### 4.2.2 Vertical slack, and the band set a short screen gets (D-03i — added 2026-09-28)
+
+> **Status, before anything else.** This subsection **postdates the build under audit**. §4.2's
+> "Thumb zone" paragraph, the first-paint rule, §4.2.1 and criterion 15 are left exactly as they
+> read. What is here is the mechanism that replaces the fixed `Spacer` at `HomeScreen.kt:311-313`,
+> and it is checked by the new criteria 15g–15j rather than by any criterion the build was measured
+> against. A developer picks this up as a follow-up change; a reviewer reads it as what the screen
+> is *going* to be, not as a goalpost moved under the diff in front of them.
+
+**Why a fixed spacer cannot be the answer, in numbers.** Every band is a *minimum* height, so the
+table is a floor, not a prediction. Available height = what is left inside the `Scaffold`'s content
+padding, which is why a tall navigation bar makes a device behave as the shorter device it
+effectively is.
+
+| At default font scale | Full band set | Compact band set (below the threshold) |
+|---|---|---|
+| Column padding, top + bottom | `spacing_md` ×2 = **32** | `spacing_sm` ×2 = **16** |
+| Gaps between children (7 with both chips) | `spacing_md` ×7 = **112** | `spacing_sm` ×7 = **56** |
+| 1 Hero | ≥ 160; **≈172 as built** (art 120 + `spacing_sm` + `displaySmall`) | ≥ **72**, no art |
+| 2 Ribbon | ≥ 64 | ≥ 64 — it cannot yield (see below) |
+| 3 Continue chips, both present | 72 + 72 | 72 + 72 |
+| 4 Mode tiles | 96 + 96 | 96 + 96 |
+| **Total with both chips, zero slack** | **≈ 716** | **≈ 544** |
+| **Total with no chip, zero slack** | **≈ 540** | **≈ 384** |
+
+Against those two totals: a 360×640dp window offers at most 640dp and in practice ~568dp (24dp
+status + 48dp navigation). **The full set therefore cannot satisfy criterion 15a on its own
+baseline — it is ~148dp over — and no value of a fixed spacer changes that, including zero.** A
+6.7-inch phone (412×915dp → ~843dp) has 127dp of slack in the both-chips state and 303dp in the
+fresh-install state, and a fixed 24dp spends 24dp of it wherever the state happens to be. That is
+the measured 45% dead space, and it is also why the spacer's real cost is **40dp** rather than 24:
+as a child of `Arrangement.spacedBy(spacing_md)` it brings a second 16dp gap with it, 16dp of which
+expresses no intent at all.
+
+**The mechanism.** One `BoxWithConstraints` and two empty `Spacer`s.
+
+1. **`HomeBands`' root becomes a `BoxWithConstraints`** filling the screen `Box` that already
+   applies `padding(contentPadding)` (`HomeScreen.kt:142-148`) — **`fillMaxSize()` belongs here, and
+   only here**, which is also where the one removed from the column chain goes. Its `maxHeight` is
+   "the available height" everywhere in this subsection, so the threshold and the slack are both
+   measured **after** the system-bar insets the `Scaffold` has already subtracted. `HomeBlobs` stays
+   its **sibling**, behind it and outside the band column, exactly as today (`HomeScreen.kt:149`).
+2. **The band column's modifier order is part of the contract**, in this order:
+   `align(Alignment.TopCenter)` → `verticalScroll(rememberScrollState())` →
+   `heightIn(min = <the available height>)` → `widthIn(max = content_max_width)` →
+   `padding(<the set's spacing>)`.
+   - `heightIn(min = …)` **is the whole mechanism.** `verticalScroll` measures its content with an
+     unbounded maximum height, and a `Column` distributes weight over its maximum height only while
+     that is finite — over its **minimum** when it is not. Setting the minimum to the available
+     height therefore hands the weighted children exactly the slack between the viewport and the
+     fixed bands, and hands them **nothing** once the fixed bands exceed it, which is precisely when
+     the column must scroll instead. No other modifier in the chain may set a height.
+     The **behaviour** is the contract and the mechanism is how it is reached: slack distributed
+     3 : 1 when there is slack, a scrolling column when there is not. If the pinned Compose BOM
+     turns out not to distribute this way, the finding goes back to the producer with the
+     measurement — **the fixed `Spacer` is not the fallback**, and neither is weighting a content
+     band (clause 4).
+   - **`fillMaxSize()` comes out of that chain and does not come back.** Ahead of `verticalScroll`
+     it fixes the content's width to the window's, which makes the `widthIn(max = …)` that follows
+     it a no-op and leaves the column hugging the leading edge on any window wider than 480dp —
+     so §12's "capped at `content_max_width` and centred" row is not true of the audited build
+     (`HomeScreen.kt:296-303`). Restoring the cap and the centring is part of this ruling because
+     it is the same chain; criterion 15j checks it.
+3. **Two weighted `Spacer`s, and only those two.** One between bands 2 and 3 — where §4.2 always
+   put the slack, so the tiles stay low — and one **as band 5**: the footer stops being a comment
+   (`HomeScreen.kt:352-353`) and becomes the slack it was reserved for, still empty of content. The
+   ratio is **3 : 1** (above : below), named as two constants in the home package beside
+   `CONTENT_WEIGHT` (`HomeScreen.kt:611-614`) and never by reusing `CONTENT_WEIGHT` — that file's
+   own convention is that a shared literal is a place for two owners to disagree. 3 : 1 keeps the
+   first mode tile's **top** edge at or below the midpoint in every state on every device at or
+   above the threshold (worst case, fresh install at exactly 720dp: tile top 405dp against a 360dp
+   midpoint) while leaving the tiles a visible margin above the navigation bar instead of sitting
+   on it.
+4. **No content band may be weighted.** A weighted child with `fill = true` is measured at exactly
+   its share, so a weighted hero would be measured at exactly **0** the moment the fixed bands
+   exceed the viewport — clipped to nothing at 200% font scale, which criterion 14 forbids. This is
+   why the hero does not simply grow to absorb the slack, and it is not available as a later
+   "simplification". Empty `Spacer`s are the only safe weight holders on this screen.
+5. **The spacers are not bands.** No `clayEntrance`, no `claySquish`, no semantics, no test tag,
+   no background. §10's entrance cascade is unchanged and the chips and tiles keep the orders they
+   are counted into today (`HomeScreen.kt:315-351`).
+6. **The slack never goes between bands 3 and 4, or inside band 4.** The Continue chips and the two
+   mode tiles stay one contiguous group; a gap opening between a Continue chip and the tiles would
+   read as two unrelated regions and would push band 4 off a short screen again.
+
+**What yields on a short screen, in order.** Below `home_compact_threshold_height` of available
+height, Home takes the **compact band set** — all three of these together, never partially:
+
+1. **The hero's decorative art is not composed at all** (`HomeHeroArt`, `home_hero_art_size`).
+   §6.5's degradation path already ranks this art as the cheapest thing on Home to lose — step 3 of
+   4 — so spending it for space is the budget the spec already set, merely spent on a different
+   scarcity. Q-901's answered option 1 is unaffected: the art is what a screen with room for it
+   shows.
+2. **The hero's minimum becomes `home_hero_compact_min_height` (72dp) and the band becomes one
+   row**: the `ctaGradientBrush()` `displaySmall` title, then the 48dp Settings gear chip at the
+   trailing edge, `CenterVertically`. The title is **never truncated and never scaled down** — if
+   the font scale makes it wrap, the band grows and the column scrolls (criterion 14). **This is
+   not a top bar**: no surface, no elevation, no window insets of its own, it scrolls with the
+   content and the title keeps display scale. D-03a deleted Home's bar and §5's "no M3
+   `TopAppBar` anywhere" is untouched; what the compact hero shares with the deleted bar is one
+   row's geometry, which is not a component.
+3. **Band spacing and the column's padding drop from `spacing_md` to `spacing_sm`** — the 64dp that
+   closes the remaining gap.
+
+The threshold is **720dp**: the full set's own both-chips requirement (≈716dp) rounded up onto the
+grid. Its consequence, stated rather than discovered: a device around 360×780dp takes the compact
+set even though the full set would fit its *fresh-install* state. That is deliberate — the
+alternative is a screen whose hero changes shape the first time the player leaves a game unfinished,
+and a layout that reshuffles when a Continue chip appears is worse than one that is stable per
+device. For the same reason the threshold reads **available height only and never the font scale**:
+at 200% on a tall phone the set stays full and the column scrolls (criterion 15i).
+
+**What never yields**, on any screen size, because each is a readout, a target, or a route:
+
+- The **Settings gear**. It is the only route to Settings, and since D-02a Settings is the only
+  permanent route to the tutorial; dropping it to save 48dp would strand How to play and the sound
+  settings behind nothing.
+- The **ribbon**: three pills, their labels and their semantics. It also cannot yield arithmetically
+  — value (`titleMedium`) + `spacing_xs` + label (`labelMedium`) + `spacing_sm` padding is ~60dp
+  inside a 64dp minimum, so a smaller token would buy 4dp and lie about the layout.
+- The **Continue chips**: both, independent, 72dp, present whenever a snapshot exists (§4.2.1
+  oracle 3).
+- The **mode tiles**: 96dp each (§11's tile floor), and the Challenge tile's level chip (oracle 1).
+- Any **touch target**: ≥ 48dp with ≥ 8dp spacing (§11).
+- **None of §4.2.1's four rejected simplifications may be reached for here.** The compact set does
+  not merge the two Continue chips into one button, does not move the ladder level off the tile chip
+  into the pill, does not put per-board pips on Home, and does not add a recent-activity band. It
+  removes one decorative drawing and 64dp of whitespace; it removes no readout, no control and no
+  band, and it collapses nothing behind a tap (criterion 15d).
+
+**If the compact set still does not fit** on a real 360×640dp device with both chips at default
+font scale — the headroom is ~24dp on the worst inset case and every number above is a minimum —
+**stop and report the measured numbers to the producer.** The next candidate to yield is a readout
+or a target, and that is a design change I will make against measured numbers rather than guess at
+here.
+
+**Cold start (D-03g, criterion 15e).** The mechanism adds no read, no image decode, no asset load
+and no SDK call; its cost is one `SubcomposeLayout` for the band column and two zero-content
+`Spacer`s, and the compact set *removes* one `BoardCanvas` draw on the devices that take it. It is
+still a change to the start destination's layout, so **15e's two-arm measurement is taken on the
+branch that lands it**, by §6.5's procedure verbatim: a cold-start number measured against a layout
+that has since changed is not evidence.
+
+**What this owes in tests** (deterministic, JVM, no device — the harness is the developer's and the
+qa-engineer's; the properties are this document's):
+
+- At a tall-phone window qualifier, the **top** edge of the first mode tile is at or below half the
+  Home content height — asserted in both the no-chip and the both-chips state (criterion 15g).
+- At a 360×640dp qualifier with both chips at default font scale, each Continue chip and both mode
+  tiles are **fully inside** the viewport, and the hero art is absent (criterion 15h).
+- At the same qualifier with font scale 2.0, the column scrolls and every band is reachable, with no
+  band dropped (criteria 14, 15i).
+- Neither spacer is a clickable or focusable node, and the content column is capped at 480dp and
+  centred on a window wider than that (criterion 15j).
 
 ### 4.3 Gameplay status strip — `GameStatusStrip.kt` (CLAS-02, SCOR-02, D-04/D-05a/D-05b)
 
@@ -1031,6 +1236,8 @@ declared even where an existing token shares its value. All multiples of 4.
 | `home_stat_pill_glyph_size` | 20dp | One progress-ribbon pill glyph |
 | `home_resume_thumb_size` | 40dp | The Classic Continue chip's board thumbnail |
 | `home_tile_art_size` | 56dp | A mode tile's trailing board art |
+| `home_hero_compact_min_height` | 72dp | **(D-03i, added 2026-09-28)** The hero's minimum in the compact band set — one row holding the gradient title and the 48dp Settings gear, no art (§4.2.2) |
+| `home_compact_threshold_height` | 720dp | **(D-03i, added 2026-09-28)** The available height below which Home takes the compact band set. It is the full set's own both-chips requirement (≈716dp) rounded onto the grid, and it is compared against available height only — never against the font scale (§4.2.2) |
 
 **Reused unchanged:** `spacing_xs/sm/md/lg/xl`, `content_max_width`, `mode_tile_min_height`,
 `resume_tile_min_height`, `settings_row_min_height`, `settings_row_icon_size`, `top_bar_icon_size`,
@@ -1360,6 +1567,39 @@ step pips (the row speaks as one node), the completion star. Labelled: back, Set
 four dock actions, Skip, the completion CTA, the Settings row, both mode tiles, both Continue
 chips, the timer.
 
+**The unmerged tree is not the contract** *(ruled 2026-09-28, from the finding in
+`.planning/reports/phase-15/android-game-dev-s5-s8.md:213-220`; no code change follows from it)*.
+Every labelled icon control in this app is Material 3's own
+`IconButton { Icon(contentDescription = …) }` — the click on the button node, the label on the glyph
+inside it: the four dock actions (`UndoControl.kt:48-59`, `HintControl.kt:66-76`,
+`HintToggleControl.kt:50-62`, `RestartControl.kt:39-47`), the status strip's back chip
+(`GameStatusStrip.kt:105-125`), the Home hero's gear (`HomeHero.kt:78-83`) and four screens this
+refresh does not touch (`ClassicCatalogScreen.kt:102-110`, `SettingsScreen.kt:500`,
+`ResultsScreen.kt:173`). In a `uiautomator` projection those read as two nodes, the outer, clickable
+one unlabelled. **That is not the tree this checklist is written against, and it is not a defect.**
+`Modifier.clickable` merges its descendants' semantics, which is why every existing test finds and
+clicks these controls by description through the **merged** tree (`ButtonSoundTest.kt:312-315`) and
+why TalkBack announces label and role together, on the 56dp target. Three consequences, so this is
+settled rather than re-litigated at every review:
+
+1. **Phase 15 neither introduced nor worsened it.** The shape predates the refresh on screens it
+   does not touch, and the one dimension the refresh did change moved the right way: a dock action's
+   clickable target grew from the retired 48dp top-bar token to `game_action_button_size` 56dp
+   (`dimens.xml:113-118`). A larger target is strictly better for touch and neutral for TalkBack.
+2. **It is not to be "fixed" by collapsing the nodes.** `clearAndSetSemantics` or a merge on the
+   dock chips would drop the `Role.Button` and the `enabled = false` "disabled" announcement that
+   `IconButton` gives for free — which D-04d relies on for Undo and for Hint's thinking state — and
+   would break the helper that reads the fill marker and the description off different nodes on
+   purpose (`GameScreenChromeTest.kt:164-172`). The one sanctioned variant is `HintControl`'s
+   thinking branch, which puts the description on the clickable node **because** its only child is a
+   decorative spinner with no label of its own (`HintControl.kt:50-64`): a reason, not a style to
+   copy across the dock.
+3. **What is still owed is the device pass, and it was always owed.** The dump settled nothing in
+   either direction; criterion 26 is a TalkBack check and criterion 26a now states its pass/fail
+   line. If that pass finds an unlabelled focus stop, a label that cannot be activated, or two focus
+   stops for one control, *that* is a defect and it is this refresh's to fix — on the control the
+   pass names, not across the app.
+
 **State, not just colour.** No control conveys state by hue alone.
 
 | Control | Channels |
@@ -1421,6 +1661,16 @@ invalid-tap cues as the design and the present jump cue as required by SOUND-01 
 | Landscape | Not a supported orientation change in this refresh; existing behaviour preserved. Flagged to the tech-lead if the manifest does not lock orientation. |
 | RTL | The back arrow and `UndoIcon` are already auto-mirrored (`UndoIcon.kt:29`); the status strip and dock are `Row`s and mirror by default; nothing uses absolute left/right padding |
 | Dark theme | Every role above has a dark variant in the design system; both themes are in scope for every new composable's `@Preview` pair |
+
+*(Added 2026-09-28, D-03i.)* The rows above stand; §4.2.2 is where the first three are specified
+mechanically for Home — the "Tall phone" row's slack, the "Short phone / 200% font" row's scroll,
+and a **compact band set** the "Narrow phone" row did not anticipate for a *short* narrow phone.
+§4.2.2 also corrects the **"Tablet / large"** row against the audited build rather than changing it:
+`HomeScreen.kt:296-303` applies `fillMaxSize()` ahead of `verticalScroll`, which fixes the content's
+width to the window's and makes the `widthIn(max = content_max_width)` after it a no-op, so Home's
+column is today neither capped nor centred on a window wider than 480dp. The cap and the centring
+are contract and have been since Phase 2; §4.2.2 specifies the modifier order that restores them and
+criterion 15j checks it.
 
 ---
 
@@ -1623,6 +1873,33 @@ blocks tests 10/11/13 in `11-HUMAN-UAT.md`, not just the look of the screen.
      placeholders — never a spinner, never a blank band, never a blocked screen — and the values
      fill in without the layout shifting. (D-03c, D-03g)
 
+**Home vertical slack (D-03i, §4.2.2 — added 2026-09-28)** — these four check the change D-03i
+requires and **not** the build measured before it. Criteria 14, 15, 15a and 15d above are unchanged
+and stay the record of what that build was judged against; 15g and 15h are the same two intents
+stated so that a tall phone and a short one can both pass, which one fixed spacer value cannot
+deliver.
+
+15g. On a 6.7-inch phone, in **both** states — a fresh install with no Continue chip, and a player
+     with both — the **top** edge of the first mode tile is at or below the vertical midpoint of
+     Home's content area, and the empty space left below the second mode tile is no more than a
+     third of the screen's unused space. No band is pinned to the bottom edge and no single gap on
+     the screen is larger than the space the tiles occupy. (D-03i, D-03, criterion 15)
+
+15h. On a 360×640dp phone at default font scale with **both** a Classic and a Challenge game saved,
+     Home shows — **without scrolling** — both Continue chips and both mode tiles, and the hero
+     shows its gradient title and its Settings gear with no decorative art. Scrolling reveals
+     nothing that was hidden, and the Challenge tile's level chip is on screen with the rest.
+     (D-03i, criterion 15a, D-03f)
+
+15i. At 200% font scale on **both** baselines the slack is what disappears, not the content: Home
+     scrolls, every band is reachable, nothing is clipped, no band has been dropped or collapsed,
+     and the hero's title is neither truncated nor shrunk. (D-03i, criteria 14, 26)
+
+15j. The slack is empty space and not a control: nothing between the ribbon and the Continue chips,
+     and nothing below the mode tiles, is tappable, focusable by TalkBack, or announced at all. On a
+     window wider than 480dp the content column is still capped at `content_max_width` and
+     **centred**, not pushed against one edge. (D-03i, §12, §4.2)
+
 **In-game controls (D-04) and the toolbar (D-05)**
 
 16. The gameplay screen has **no Material top app bar**: no bar background, no bar elevation, no
@@ -1652,6 +1929,19 @@ blocks tests 10/11/13 in `11-HUMAN-UAT.md`, not just the look of the screen.
     expected consequence of reduced motion. (rules/compose.md, §10, §14 7c)
 26. Every new interactive element is at least 48dp, at least 8dp from its neighbours, and reachable
     by TalkBack with a meaningful label, in both light and dark. (rules/compose.md, §11)
+
+26a. **How 26 is checked, and what does not count as failing it** *(added 2026-09-28, §11 "The
+     unmerged tree is not the contract")*. Criterion 26 is checked with **TalkBack running on a
+     device**, on the merged semantics tree TalkBack consumes — never off a `uiautomator` XML dump.
+     A control **passes** when swiping to it yields **one** focus stop that announces its label and
+     its role, when activating that focus stop performs the action, and when the focus rectangle is
+     ≥ 48dp. A control **fails** when a focus stop announces no label, when the label sits on
+     something that cannot be activated, or when one control yields two focus stops. An
+     `IconButton { Icon(contentDescription = …) }` showing up in an *unmerged* projection as a
+     labelled child inside an unlabelled clickable parent is **not** a failure and is not to be
+     "fixed" (§11, reason 2). Run the pass over one untouched control as the control case — the
+     Classic catalogue's back arrow (`ClassicCatalogScreen.kt:102-110`) — so a finding can be told
+     apart from this app's baseline. (rules/compose.md, §11)
 27. Every text and glyph pair introduced by this refresh meets 4.5:1 / 3:1 contrast in both light
     and dark. (§11)
 28. No screen in this refresh plays a sound as its only feedback for an event. (rules/audio.md)
@@ -1707,6 +1997,13 @@ is currently in the worst-reachable corner of the screen. If the founder wants t
 | Proposed UX-01 | §4.1 — interactive tutorial (registry entry is the producer's to confirm) |
 | Proposed UX-02 | §4.2 — Home composition |
 | Proposed UX-03 | §4.3/§4.4 — gameplay chrome replacement |
+
+*(Added 2026-09-28, D-03i.)* Three rows above gain a surface without changing what they trace to:
+**PERS-03** and **CHAL-05** are now also checked on a *short* screen by criterion 15h (§4.2.2 —
+both Continue chips, both tiles and the level chip on screen without scrolling on 360×640dp), and
+**PLAT-08 (C1)** carries one more obligation — §6.5's two-arm measurement is taken on the branch
+that lands the §4.2.2 layout, because a number measured against a layout that has since changed is
+not evidence.
 
 ---
 
