@@ -1,6 +1,36 @@
 # Founder questions (newest first)
 
-## Q-003 — Fable credits are exhausted and the whole phase-15 review chain is staffed on Fable   (open)
+## Q-005 — Home hero: how should the top of Home fill the screen?   (open)
+Date: 2026-09-28    Asked by: ux-designer
+Context: Per your Q-004 answer the peg-cross logo goes, the title is re-seated, and the empty band
+between the stats and the cards must go. A default is specified and will be built (docs/ux-spec.md
+§4.2.4, D-03l); this only asks whether you prefer another direction. Stats, cards and colours stay.
+Options: 1) Board stage — the title sits left-aligned beside the gear on one line; the space below
+it holds a large clay board showing a game in progress, which grows or shrinks with the screen (not
+drawn on small phones) 2) No art, one block — no picture anywhere; the title sits right on the stats,
+and title + stats + Continue + mode cards form one block in the lower part of the screen, with only
+the gear and the soft background blobs above 3) Bigger cards — no picture; title line as in 1; on
+taller phones the mode cards and Continue chips grow taller (bigger art, bigger tap areas) to take
+the space — this changes the mode cards you said you like
+Recommendation: ux-designer picks 1 — it removes the gap on every phone without moving the mode
+cards out of thumb reach, shows the actual game instead of a logo, and costs nothing at cold start
+(one drawing, replacing the logo's). 2 leaves the top third of a tall phone empty, which is the
+original "looks empty" complaint; 3 spends the space on the part you asked to keep.
+Blocks: nothing (default 1 is specified and buildable)
+Answer:
+
+## Q-004 — What bothers you about the new Home screen?   (answered)
+Date: 2026-09-28    Asked by: producer
+Context: Founder reviewed the phase-15 build on the emulator and said "I don't really like this
+screen" (Home), plus two gameplay notes: the dock icons do not show whether they are on or off, and
+the gameplay title and elapsed time are too small.
+Options: 1) Empty middle gap 2) Stats ribbon 3) Mode cards 4) Overall look (multi-select)
+Recommendation: none — taste; asked to scope the ux-designer's rework.
+Blocks: nothing
+Answer: Empty middle gap, the peg-cross logo, and how the title sits (2026-09-28). Stats ribbon,
+mode cards and the overall palette/style were not selected — keep them.
+
+## Q-003 — Fable credits are exhausted and the whole phase-15 review chain is staffed on Fable   (answered)
 Date: 2026-09-28    Asked by: producer
 Context: Phase 15 is code-complete (S1–S8 committed, each on a green `check`). Both reviewers died
 on HTTP 429 "You've reached your Fable limit": code-auditor `req_011CfVursaCjxSYYoSr3Cco1`,
