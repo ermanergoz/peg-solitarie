@@ -68,7 +68,7 @@ class UndoControlTest {
      * disabled case is announced rather than merely drawn.
      *
      * Added with Phase 15 rather than rewritten: the control moved from the top bar into the
-     * action dock and grew from `top_bar_touch_target` to `game_action_button_size`, but what it
+     * action dock and grew to `game_action_button_size` from the retired top-bar token, but what it
      * promises the player did not change, so the two tests above stand unedited and this one
      * covers the channel the reskin could silently have dropped.
      */

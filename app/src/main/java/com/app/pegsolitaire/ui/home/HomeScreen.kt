@@ -59,15 +59,16 @@ import kotlinx.coroutines.flow.first
  * Candy-Clay skin (DESIGN-SYSTEM.md Home).
  *
  * Renders [state] and forwards events; owns no logic (state hoisting). An M3
- * [Scaffold] hosts a [TopAppBar] (gradient Fredoka title and a Settings gear opening
- * the Settings destination, Phase-5 D-14) over a centered column, capped at
- * `content_max_width`, of two chunky clay
- * mode tiles: a violet Classic tile whose whole surface navigates to the catalog
- * ([onPlayClassic]) and a pink Challenge tile (with its persisted-level chip) whose
- * whole surface enters Challenge ([onPlayChallenge]) at the player's persisted
- * [HomeUiState.challengeCurrentLevel] (CHAL-05). Two slow-drifting low-alpha blobs
- * float behind the content (skipped when OS animations are off), the tiles enter
- * with a 40ms stagger, and everything tappable squishes.
+ * [Scaffold] with **no top bar at all** (Phase 15, D-03/D-05c) hosts the five scrolling
+ * bands of [HomeBands], capped at `content_max_width`: the hero (the gradient Fredoka
+ * title, its decorative peg cluster and the Settings gear that opens the Settings
+ * destination, Phase-5 D-14), the read-only progress ribbon, up to two Continue chips,
+ * the two chunky clay mode tiles — a violet Classic tile whose whole surface navigates to
+ * the catalog ([onPlayClassic]) and a pink Challenge tile (with its persisted-level chip)
+ * whose whole surface enters Challenge ([onPlayChallenge]) at the player's persisted
+ * [HomeUiState.challengeCurrentLevel] (CHAL-05) — and an empty footer. Two slow-drifting
+ * low-alpha blobs float behind the content (skipped when OS animations are off), the bands
+ * enter with a stagger, and everything tappable squishes.
  *
  * **Home carries no tutorial chrome at all** (Phase 15, D-02). There is no information or
  * help icon anywhere on this screen, and no overlay: the tutorial is the `Tutorial` nav

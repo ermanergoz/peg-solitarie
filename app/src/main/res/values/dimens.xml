@@ -47,8 +47,6 @@
     <dimen name="results_star_size">48dp</dimen>
     <!-- Diameter of the soft gold glow disc behind an earned Results star. -->
     <dimen name="results_star_glow_size">56dp</dimen>
-    <!-- Square edge of each onboarding step's jump illustration. -->
-    <dimen name="onboarding_illustration_size">160dp</dimen>
 
     <!--
       ================= Phase-15 tokens: the interactive tutorial =================
@@ -114,8 +112,8 @@
     <dimen name="game_action_dock_height">72dp</dimen>
     <!--
       One dock action target: 56dp, above the 48dp floor on purpose (§11). This is the token
-      that replaces `top_bar_touch_target` at all five of its former call sites, which is what
-      lets that token be retired.
+      that replaces the retired 48dp top-bar tap-target token at all five of its former call
+      sites, which is what let that token be deleted in the same phase.
     -->
     <dimen name="game_action_button_size">56dp</dimen>
     <!-- One dock action glyph, sized up from `top_bar_icon_size` to match the larger target. -->
@@ -176,9 +174,6 @@
     <!-- Ambient Home background blobs: diameter + drift amplitude (±16dp, ~8s). -->
     <dimen name="blob_size">240dp</dimen>
     <dimen name="blob_drift_range">16dp</dimen>
-
-    <!-- Min tap target of a gameplay top-bar icon control (DESIGN-SYSTEM.md Gameplay). -->
-    <dimen name="top_bar_touch_target">48dp</dimen>
 
     <!--
       Phase-9 token: the gold reward glyph at the top of the rewarded-ad opt-in dialog
