@@ -119,7 +119,8 @@ internal fun GameActionDock(
 
 /**
  * The shared backing of one dock control: a circular clay disc drawn from [look]'s recipe — its
- * fill, its ring, its shadow and whether it squishes under a press.
+ * fill, its ring, its shadow, its on mark and whether it squishes under a press. (The glyph is
+ * the control's own, drawn from the same recipe by the control.)
  *
  * One composable rather than four copies, because the recipe *is* the accessibility contract
  * (§11 "State, not just colour"): four copies of a contract are four places for it to drift, and
@@ -149,6 +150,7 @@ internal fun DockActionChip(
         modifier =
             Modifier
                 .then(if (recipe.respondsToPress) Modifier.claySquish() else Modifier)
+                .onMark(showing = recipe.onMark)
                 .clayShadow(dimensionResource(R.dimen.elevation_pressed) * lift, CircleShape),
         content = content,
     )

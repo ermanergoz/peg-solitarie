@@ -1,6 +1,9 @@
 package com.app.pegsolitaire.ui.game
 
 import android.content.res.Configuration
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
@@ -15,19 +18,24 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.ui.theme.ClayAnim
+import com.app.pegsolitaire.ui.theme.rememberAnimationsEnabled
 
 /**
  * The "Show possible moves" toggle — [GameActionDock]'s one **toggle**, and the only control in
  * the dock ever drawn on or off (D-04b, D-04e).
  *
- * A stateless 56dp switch on a [DockActionChip], showing the local [ShowMovesIcon] at
- * `game_action_glyph_size`. It stays a pure render gate for the dots and is deliberately distinct
- * from the separate winning-move [HintControl] (D-02); the persisted flip lives in the ViewModel.
+ * A stateless 56dp switch on a [DockActionChip], showing the local [ShowMovesIcon] — or, while
+ * Off, [ShowMovesOffIcon] — at `game_action_glyph_size`. It stays a pure render gate for the dots
+ * and is deliberately distinct from the separate winning-move [HintControl] (D-02); the persisted
+ * flip lives in the ViewModel.
  *
  * ## On and Off, and nothing that could be mistaken for them (D-04e, §4.4.1)
  *
- * [DockLook.On] is the dock's only strong disc; [DockLook.Off] its only ring. No action ever wears
- * either, so the pair can mean nothing but this control's state.
+ * [DockLook.On] is a strong `primary` disc with the on mark on its rim and the plain glyph;
+ * [DockLook.Off] an empty ring with the slashed glyph. They differ in all five channels the dock
+ * has, and no action ever wears any of the four that are theirs alone — strong fill, ring, on mark,
+ * slash — so the pair can mean nothing but this control's state (criterion 21e).
  *
  * ## A switch with one name (criterion 21d)
  *
@@ -66,12 +74,20 @@ fun HintToggleControl(
                     .dockLook(look),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                imageVector = ShowMovesIcon,
-                contentDescription = null,
-                tint = animatedDockGlyphColor(look),
-                modifier = Modifier.size(dimensionResource(R.dimen.game_action_glyph_size)),
-            )
+            // The glyph cross-fades to its other variant with the disc (§4.4.1 "Transitions"):
+            // each side of the fade draws its own look's glyph in its own look's colour.
+            Crossfade(
+                targetState = look,
+                animationSpec = if (rememberAnimationsEnabled()) tween(ClayAnim.PRESS_IN_MS) else snap(),
+                label = "showMovesGlyph",
+            ) { shown ->
+                Icon(
+                    imageVector = if (shown.recipe.glyph == DockGlyph.Slashed) ShowMovesOffIcon else ShowMovesIcon,
+                    contentDescription = null,
+                    tint = dockGlyphColor(shown),
+                    modifier = Modifier.size(dimensionResource(R.dimen.game_action_glyph_size)),
+                )
+            }
         }
     }
 }

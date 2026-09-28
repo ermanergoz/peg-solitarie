@@ -163,6 +163,14 @@
       its own so the dock stops borrowing the board's ring width.
     -->
     <dimen name="game_action_ring_width">2dp</dimen>
+    <!--
+      D-04e / ux-spec §4.4.1. The on mark on Show-moves On: an onPrimary circle with a primary
+      border and check, centred on the disc's rim at its top-end 45° point. It is drawn, never
+      composed, and it stays inside the 72dp slab (its outer edge ~4dp below the slab's top).
+    -->
+    <dimen name="game_action_mark_size">24dp</dimen>
+    <!-- The check inside the on mark. -->
+    <dimen name="game_action_mark_glyph_size">16dp</dimen>
 
     <!--
       Phase-4 token: min height of the inline no-win/stuck rescue banner (multiple of 4)

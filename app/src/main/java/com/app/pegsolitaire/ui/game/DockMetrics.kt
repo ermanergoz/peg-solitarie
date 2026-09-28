@@ -14,4 +14,10 @@ internal object DockMetrics {
      * not rely on it alone, since the disc also loses its fill and its shadow (§4.4.1 "Contrast").
      */
     const val UNAVAILABLE_GLYPH_ALPHA = 0.38f
+
+    /**
+     * Where the on mark sits on its disc: centred on the rim, this many degrees up from the
+     * horizontal on the end side — the top-end 45° point §4.4.1 names.
+     */
+    const val ON_MARK_RIM_ANGLE_DEGREES = 45.0
 }
