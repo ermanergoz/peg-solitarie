@@ -145,8 +145,14 @@
     <dimen name="game_status_strip_height">56dp</dimen>
     <!-- The strip's back chip. 48dp is the accessibility floor, and the strip is status-only. -->
     <dimen name="game_status_back_size">48dp</dimen>
-    <!-- The timer pill. Short, because the elapsed time is a reading rather than a control. -->
-    <dimen name="game_timer_pill_height">32dp</dimen>
+    <!--
+      The timer pill's MINIMUM height (D-05d / ux-spec §4.3.1, raised from a fixed 32dp): applied as
+      heightIn, so at a large font scale the pill grows to hold its headlineSmall digits instead of
+      clipping them — the timer is the one reading on this screen that must never be cut.
+    -->
+    <dimen name="game_timer_pill_height">40dp</dimen>
+    <!-- D-05d / ux-spec §4.3.1. Horizontal padding inside the timer pill, either side of the digits. -->
+    <dimen name="game_timer_pill_padding">12dp</dimen>
     <!-- The action dock slab below the board, in the thumb zone. -->
     <dimen name="game_action_dock_height">72dp</dimen>
     <!--

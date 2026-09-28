@@ -35,6 +35,16 @@ import androidx.core.view.WindowInsetsCompat
  * as a real status and navigation bar's would, and an M3 `Scaffold` above the content subtracts
  * them into its `contentPadding` the way it does on glass.
  *
+ * ## Each bar reported as its own type
+ *
+ * The status bar is dispatched as `statusBars()` with a top inset only and the navigation bar as
+ * `navigationBars()` with a bottom inset only, exactly as a phone reports them. Their union is the
+ * `systemBars()` (and `safeDrawing`) inset a `Scaffold` or `safeDrawingPadding()` reads, so a screen
+ * that consumes the union sees what it always saw. What changes is the per-type read: an earlier
+ * version set both values on the combined `systemBars()` type, which the platform stores on every
+ * type in the mask — so `statusBarsPadding()` also received the navigation bar's bottom inset, and
+ * a screen applying a bar twice (ux-spec §4.3.1, criterion 18b) measured a defect no device shows.
+ *
  * Written for `TutorialScreenTest` in the phase's F-1 slice and lifted here the moment a second
  * screen needed it, rather than copied — two copies of an inset harness are two places for the
  * dispatched type or the listener target to drift.
@@ -49,10 +59,9 @@ fun ComposeContentTestRule.applySystemBarInsets(
     val insets =
         WindowInsetsCompat
             .Builder()
-            .setInsets(
-                WindowInsetsCompat.Type.systemBars(),
-                Insets.of(0, insetPx(top), 0, insetPx(bottom)),
-            ).setVisible(WindowInsetsCompat.Type.systemBars(), true)
+            .setInsets(WindowInsetsCompat.Type.statusBars(), Insets.of(0, insetPx(top), 0, 0))
+            .setInsets(WindowInsetsCompat.Type.navigationBars(), Insets.of(0, 0, 0, insetPx(bottom)))
+            .setVisible(WindowInsetsCompat.Type.systemBars(), true)
             .build()
     ViewCompat.dispatchApplyWindowInsets(composeHost(), insets)
     waitForIdle()

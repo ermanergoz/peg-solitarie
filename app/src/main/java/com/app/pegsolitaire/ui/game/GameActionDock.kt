@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
@@ -55,6 +54,13 @@ const val GAME_ACTION_DOCK_TEST_TAG = "game_action_dock"
  * Restart outlined *by importance* — the on/off vocabulary — so the founder read two controls on
  * and two off while three of the four have no on/off at all.
  *
+ * ## The navigation bar is not applied here (D-05d)
+ *
+ * The gameplay `Scaffold`'s content padding already holds the navigation bar, and `GameScreen`
+ * applies it once to the column this dock closes. The dock used to add `navigationBarsPadding()`
+ * on top, riding a second navigation inset — which, with the strip's matching second status
+ * inset, took 72dp from the board on a 360x640dp phone (§4.3.1).
+ *
  * ## Not a Material bar (D-05c)
  *
  * It is deliberately **not** a `BottomAppBar` or a `NavigationBar`. A `NavigationBar` in
@@ -93,7 +99,6 @@ internal fun GameActionDock(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier =
             modifier
-                .navigationBarsPadding()
                 .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.large)
                 .fillMaxWidth()
                 .testTag(GAME_ACTION_DOCK_TEST_TAG),

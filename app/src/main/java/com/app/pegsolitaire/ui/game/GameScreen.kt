@@ -50,6 +50,13 @@ import com.app.pegsolitaire.ui.theme.ctaGradientBrush
 /** Test tag of the board-state node carrying the [PegCountKey]/[GameStatusKey]/[LegalTargetCountKey] semantics. */
 const val GAME_STATE_TEST_TAG = "game_state"
 
+/**
+ * Test tag of the board's clay slab — the surface whose edge the board keeps once each system bar
+ * is applied once (ux-spec §4.3.1, criterion 18c). A tag, not a description: the slab announces
+ * nothing.
+ */
+const val GAME_BOARD_SLAB_TEST_TAG = "game_board_slab"
+
 /** Semantics: pegs currently on the board — lets the flow test assert a jump removed one peg. */
 val PegCountKey = SemanticsPropertyKey<Int>("PegCount")
 
@@ -76,6 +83,11 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  * [GameActionDock] (Undo · Hint · Show-moves · Restart) pinned below it in the thumb zone. The
  * board takes the space the two leave, so the dock is on screen at every viewport height and
  * font scale — a dock the player has to scroll to would be worse than the bar it replaced.
+ *
+ * **Each system bar is applied exactly once** (D-05d, ux-spec §4.3.1, criterion 18b): by the
+ * `Scaffold`'s content padding, which this column applies. Neither the strip nor the dock applies
+ * an inset of its own — both used to, which hung an empty status-bar-tall band above the strip and
+ * took 72dp from the board on a 360x640dp phone.
  *
  * Nothing the player can *use* was removed: all five controls, the context-aware title, the
  * timer label and every handler signature this composable takes are the ones it had. Reaching a
@@ -208,7 +220,8 @@ fun GameScreen(
                                     MaterialTheme.shapes.extraLarge,
                                 ).widthIn(max = dimensionResource(R.dimen.board_max_size))
                                 .fillMaxWidth()
-                                .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO),
+                                .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO)
+                                .testTag(GAME_BOARD_SLAB_TEST_TAG),
                     ) {
                         BoardCanvas(
                             state = state,
