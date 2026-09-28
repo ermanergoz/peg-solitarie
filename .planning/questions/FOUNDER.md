@@ -1,5 +1,36 @@
 # Founder questions (newest first)
 
+## Q-003 — Fable credits are exhausted and the whole phase-15 review chain is staffed on Fable   (open)
+Date: 2026-09-28    Asked by: producer
+Context: Phase 15 is code-complete (S1–S8 committed, each on a green `check`). Both reviewers died
+on HTTP 429 "You've reached your Fable limit": code-auditor `req_011CfVursaCjxSYYoSr3Cco1`,
+qa-engineer `req_011CfVutjoBky6dChQ5jGKZa`. Per the plugin's agent definitions, code-auditor,
+qa-engineer, tech-lead and ux-designer are all `model: fable`, while android-game-dev is
+`model: opus` — that split is what makes the audit independent of the author. Nothing merges to
+develop without code-auditor PASS, qa-engineer PASS and tech-lead sign-off (rules/gitflow.md), so
+the phase cannot close until this is resolved. Only the founder can buy credits.
+Options:
+  1) Top up Fable (`/usage-credits`) and re-dispatch the chain as staffed — no deviation.
+  2) Substitute **Sonnet** for the three review roles on this phase. Independence from the author is
+     preserved (Sonnet ≠ the developer's Opus), recorded as a deviation in each report and here.
+  3) Wait for the Fable allowance to reset before reviewing.
+Recommendation: producer — 1 if the spend is acceptable, because the code-auditor is the phase's most
+consequential gate and it is deliberately staffed on a stronger reviewer; otherwise 2, which keeps
+the property that actually matters (a different model from the one that wrote the code) and lets the
+device session happen now. Never substitute **Opus** for the reviewers: that is the developer's own
+model and would make the audit self-review in all but name.
+Blocks: phase-15 review, tech-lead sign-off and the merge to develop. Phase-15 implementation is done
+and committed, so nothing is lost by waiting.
+Answer: **Use Opus for the review** (2026-09-28). The founder chose Opus after the producer's
+recommendation against it was stated in this question, and reaffirmed it in a second message.
+Recorded as a **deviation from studio staffing**: the reviewers now run on the same model as the
+author (android-game-dev is `model: opus`), so rules/studio.md standing rule 1 is upheld only by its
+other mechanisms — a freshly spawned agent per reviewer, receiving the requirements and the diff and
+explicitly barred from the developer's reports, its reasoning and the studio log. Every phase-15
+review report must carry this deviation. Mitigations applied by the producer: reviewers instructed to
+run the Check command and the §10 prohibition commands themselves rather than trusting recorded
+results, and to hunt specifically for assertions that cannot fail.
+
 ## Q-902 — Do the in-game actions move to the bottom?   (answered)
 Date: 2026-09-21    Asked by: ux-designer
 Context: You said "redesign the icons on the top" and "remove toolbar from the game" in one breath.
