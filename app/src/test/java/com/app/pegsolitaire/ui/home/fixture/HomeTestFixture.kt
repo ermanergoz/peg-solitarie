@@ -79,15 +79,34 @@ internal const val DOUBLE_FONT_SCALE = 2f
 internal const val DEFAULT_FONT_SCALE = 1f
 
 /** The busiest legitimate Home: a filled ribbon, both Continue chips, both mode tiles. */
-internal fun bothResumesState(): HomeUiState =
+internal fun bothResumesState(): HomeUiState = chipsState(classic = true, challenge = true)
+
+/**
+ * A filled ribbon and the Continue chips asked for — the four chip states criterion 15p walks
+ * (none, Classic only, Challenge only, both), from one builder so they differ in the chips alone.
+ */
+internal fun chipsState(
+    classic: Boolean,
+    challenge: Boolean,
+): HomeUiState =
     HomeUiState(
         totalStars = EARNED_STARS,
         classicBoardsCleared = CLEARED_BOARDS,
         challengeCurrentLevel = PERSISTED_LEVEL,
-        classicResumeLevelId = RESUMABLE_LEVEL_ID,
-        classicResumeBoard = Boards.european37Initial,
-        challengeResumeLevel = STAMPED_RESUME_LEVEL,
+        classicResumeLevelId = RESUMABLE_LEVEL_ID.takeIf { classic },
+        classicResumeBoard = Boards.european37Initial.takeIf { classic },
+        challengeResumeLevel = STAMPED_RESUME_LEVEL.takeIf { challenge },
     )
+
+/** Every chip state, in 15p's order: none, Classic only, Challenge only, both. */
+internal val EVERY_CHIP_STATE: List<HomeUiState>
+    get() =
+        listOf(
+            chipsState(classic = false, challenge = false),
+            chipsState(classic = true, challenge = false),
+            chipsState(classic = false, challenge = true),
+            chipsState(classic = true, challenge = true),
+        )
 
 internal fun ComposeContentTestRule.renderHome(
     state: HomeUiState,

@@ -134,6 +134,14 @@
       (criteria 14, 15m).
     -->
     <dimen name="home_stat_pill_compact_min_height">40dp</dimen>
+    <!--
+      D-03l / ux-spec §4.2.4. The smallest stage-art edge Home draws; below it the stage is plain
+      slack. It is what bounds the largest blank Home can show at 48dp + the two band gaps around
+      the stage — under 80dp in the full set, under 64dp in the compact one (criterion 15p).
+    -->
+    <dimen name="home_stage_art_min_size">48dp</dimen>
+    <!-- D-03l. The largest stage-art edge; with more slack than this the art is centred in it. -->
+    <dimen name="home_stage_art_max_size">320dp</dimen>
 
     <!--
       ============ Phase-15 tokens: the gameplay status strip and action dock ============

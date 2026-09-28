@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -28,6 +29,9 @@ import com.app.pegsolitaire.ui.theme.clayEntrance
 import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.ctaGradientBrush
+
+/** Semantics tag of the hero row — a tag the layout tests measure, never announced (§13). */
+const val HOME_HERO_TEST_TAG = "home_hero"
 
 /**
  * Band 1 — the hero: the gradient Fredoka title, the static peg-cluster art, and the Settings
@@ -74,7 +78,8 @@ private fun FullHero(onOpenSettings: () -> Unit) {
             Modifier
                 .clayEntrance(HERO_ENTRANCE_ORDER)
                 .fillMaxWidth()
-                .heightIn(min = dimensionResource(R.dimen.home_hero_min_height)),
+                .heightIn(min = dimensionResource(R.dimen.home_hero_min_height))
+                .testTag(HOME_HERO_TEST_TAG),
     ) {
         Column(
             modifier = Modifier.align(Alignment.Center),
@@ -110,7 +115,8 @@ private fun CompactHero(onOpenSettings: () -> Unit) {
             Modifier
                 .clayEntrance(HERO_ENTRANCE_ORDER)
                 .fillMaxWidth()
-                .heightIn(min = dimensionResource(R.dimen.home_hero_compact_min_height)),
+                .heightIn(min = dimensionResource(R.dimen.home_hero_compact_min_height))
+                .testTag(HOME_HERO_TEST_TAG),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         HeroTitle(modifier = Modifier.weight(CONTENT_WEIGHT))

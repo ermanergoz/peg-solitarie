@@ -275,22 +275,25 @@ private fun PlayGamesSignInErrorSnackbarEffect(
  * phone, and on that window the **compact band set** below is what keeps them there. A
  * Continue chip reachable only by scrolling is a broken device oracle, not a layout compromise.
  *
- * ## The slack: two weighted spacers, 3 : 1
+ * ## The slack: the stage and the footer, 3 : 1
  *
- * One between bands 2 and 3 and one **as** band 5, so on a tall phone most of the slack goes
- * *above* the Continue chips and the mode tiles stay in the lower thumb half of a 6.7-inch
- * screen (§11 "One-handed use"), with a visible margin left below them rather than the tiles
- * sitting on the navigation bar.
+ * The larger share is the [HomeStage], directly beneath the hero row, and the smaller one an
+ * empty `Spacer` **as** band 5. So on a tall phone most of the slack goes *above* the ribbon, the
+ * Continue chips and the mode tiles, which stay one contiguous group in the lower thumb half of a
+ * 6.7-inch screen (§11 "One-handed use") with a visible margin left below them rather than the
+ * tiles sitting on the navigation bar — and that share is a clay board showing a game in progress
+ * rather than a hole (§4.2.4, D-03l). No slack sits between the ribbon and the chips any more:
+ * that is where the founder's ≈172dp of blank was.
  *
  * **`heightIn(min = available)` is the whole mechanism, and the modifier order is contract.**
  * `verticalScroll` measures its content with an unbounded maximum height, and a `Column`
  * distributes weight over its maximum main-axis size only while that is finite — over its
  * **minimum** once it is not. Setting the minimum to the available height therefore hands the
- * two spacers exactly the slack between the viewport and the fixed bands, and hands them
+ * stage and the footer exactly the slack between the viewport and the fixed bands, and hands them
  * **nothing** the moment the fixed bands exceed it, which is precisely when the column must
  * scroll instead. No other modifier in the chain may set a height. (Verified on the pinned
  * Compose BOM: at 411x915dp the tiles take the slack, and with a band taller than the viewport
- * the spacers measure 0 and the column scrolls.)
+ * the weighted children measure 0 and the column scrolls.)
  *
  * The **previous** shape — one fixed `Spacer(spacing_lg)` — is what put the founder's empty
  * space at the bottom of the screen instead of the middle: a top-aligned column in a
@@ -300,8 +303,10 @@ private fun PlayGamesSignInErrorSnackbarEffect(
  * **No content band may be weighted** (§4.2.2 clause 4). A weighted child with `fill = true`
  * is measured at exactly its share, so a weighted hero would be measured at **0** the moment
  * the fixed bands exceed the viewport — clipped to nothing at 200% font scale, which criterion
- * 14 forbids. Empty `Spacer`s are the only safe weight holders here, and they are not bands:
- * no entrance, no squish, no semantics, no test tag, no background.
+ * 14 forbids. The weight holders are therefore the footer `Spacer` and the stage, whose one
+ * drawing is decoration for which 0 is the right size on a short screen — the single exception
+ * clause 4 makes (§4.2.4). Neither is a band: no entrance order of its own, no squish, nothing
+ * tappable, focusable or announced.
  *
  * ## `fillMaxSize()` belongs on the Box and nowhere else
  *
@@ -384,18 +389,18 @@ private fun HomeBands(
             verticalArrangement = Arrangement.spacedBy(bandSpacing),
         ) {
             HomeHero(compact = bandSet.compact, onOpenSettings = onOpenSettings)
+            // The stage: most of the slack, directly beneath the hero row (§4.2.4 clause 3), so
+            // the ribbon, the chips and the tiles form one contiguous lower group in the thumb
+            // zone and the slack reads as the game's own board instead of a hole. It is the one
+            // weighted child allowed to hold anything, because 0 is its correct size when the
+            // column overflows (clause 4's single exception).
+            HomeStage(modifier = Modifier.weight(STAGE_WEIGHT))
             HomeProgressRibbon(
                 compact = bandSet.compactPills,
                 totalStars = state.totalStars,
                 classicBoardsCleared = state.classicBoardsCleared,
                 challengeCurrentLevel = state.challengeCurrentLevel,
             )
-            // Band 2 -> 3: most of the slack goes here, above the Continue chips, so the two
-            // mode tiles stay in the thumb zone on a tall phone rather than floating
-            // mid-screen. It never goes between bands 3 and 4 or inside band 4: the chips and
-            // the tiles are one contiguous group, and a gap between them would read as two
-            // unrelated regions and push band 4 off a short screen again.
-            Spacer(modifier = Modifier.weight(SLACK_ABOVE_CHIPS_WEIGHT))
 
             var entranceOrder = RIBBON_ENTRANCE_ORDER + 1
             val resumeLevelId = state.classicResumeLevelId
@@ -702,21 +707,24 @@ private fun ModeTile(
 internal const val CONTENT_WEIGHT = 1f
 
 /**
- * How Home's vertical slack is split between the two empty `Spacer`s — above band 3 and as
- * band 5 — when there is any slack to split (§4.2.2 clause 3, D-03i).
+ * How Home's vertical slack is split — the stage beneath the hero row and the empty footer
+ * `Spacer` as band 5 — when there is any slack to split (§4.2.2 clause 3, D-03i, D-03l).
  *
  * 3 : 1 keeps the first mode tile's **top** edge at or below the midpoint in every state on
  * every device at or above `home_compact_threshold_height` (worst case, a fresh install at
  * exactly 720dp: tile top 405dp against a 360dp midpoint) while still leaving the tiles a
- * visible margin above the navigation bar instead of sitting on it.
+ * visible margin above the navigation bar instead of sitting on it. D-03l moved the upper share
+ * from between bands 2 and 3 to the stage and left its value alone — the constant is renamed for
+ * its new owner, not re-tuned.
  *
  * Deliberately **not** [CONTENT_WEIGHT], even though the denominator is a 1f: that constant is
  * one share of a `Row`'s free *width* beside a fixed accent, and this file's own convention is
  * that a shared literal is a place for two owners to disagree. These two are the only weights
  * on the vertical axis, and no content band may ever join them (clause 4 — a weighted content
- * band measures at exactly its share, so it measures 0 the moment the fixed bands overflow).
+ * band measures at exactly its share, so it measures 0 the moment the fixed bands overflow; the
+ * stage may hold the weight only because it is decoration, for which 0 is the right size).
  */
-private const val SLACK_ABOVE_CHIPS_WEIGHT = 3f
+private const val STAGE_WEIGHT = 3f
 private const val SLACK_BELOW_TILES_WEIGHT = 1f
 
 /**
