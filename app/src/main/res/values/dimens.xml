@@ -107,8 +107,33 @@
       set. It is the full set's own both-chips requirement (~716dp) rounded onto the 4dp grid,
       and it is compared against AVAILABLE HEIGHT ONLY — never against the font scale, so a
       tall phone at 200% keeps the full set and scrolls instead of reshaping.
+
+      Since D-03k this threshold applies only at an available WIDTH of
+      home_compact_threshold_width or more; the narrow class uses the token below it.
     -->
     <dimen name="home_compact_threshold_height">720dp</dimen>
+    <!--
+      D-03k / ux-spec §4.2.3. The available WIDTH below which the compact threshold is the
+      narrow one. 360dp is the narrowest supported window and the next common width is the
+      412dp class, so no shipping device sits on this boundary — it is not a judgement about a
+      real phone.
+    -->
+    <dimen name="home_compact_threshold_width">400dp</dimen>
+    <!--
+      D-03k / ux-spec §4.2.3. The compact threshold at an available width below
+      home_compact_threshold_width: the full set's own both-chips height AT 360dp WIDTH, where
+      the bands wrap (~872dp), rounded onto the 4dp grid. Its consequence is deliberate — at
+      360dp width Home is always compact, because the bands wrap at that width whatever the
+      height, so a 360x800dp phone needs the compact set exactly as much as a 360x640dp one.
+    -->
+    <dimen name="home_compact_threshold_height_narrow">880dp</dimen>
+    <!--
+      D-03k / ux-spec §4.2.3. One progress pill in the compact-narrow ribbon: spacing_sm + one
+      titleMedium line + spacing_sm, with the label BESIDE the value and no decorative glyph.
+      A FLOOR, not a height — the label wraps and the band grows before either text truncates
+      (criteria 14, 15m).
+    -->
+    <dimen name="home_stat_pill_compact_min_height">40dp</dimen>
 
     <!--
       ============ Phase-15 tokens: the gameplay status strip and action dock ============

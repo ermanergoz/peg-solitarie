@@ -1,5 +1,6 @@
 package com.app.pegsolitaire.ui.home
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -70,8 +71,10 @@ import kotlinx.coroutines.flow.first
  * [HomeUiState.challengeCurrentLevel] (CHAL-05) — and an empty footer, which is the smaller
  * share of that slack. Two slow-drifting low-alpha blobs float behind the content (skipped
  * when OS animations are off), the bands enter with a stagger, and everything tappable
- * squishes. Below `home_compact_threshold_height` of available height the hero drops its art
- * and becomes one row; no readout, control or band is ever dropped.
+ * squishes. Below the compact threshold of available height — which reads the available
+ * **width** as well, since D-03k — the hero drops its art and becomes one row, and on the
+ * narrow class each progress pill drops its decorative glyph and puts its label beside its
+ * value; no readout, control or band is ever dropped.
  *
  * **Home carries no tutorial chrome at all** (Phase 15, D-02). There is no information or
  * help icon anywhere on this screen, and no overlay: the tutorial is the `Tutorial` nav
@@ -310,15 +313,43 @@ private fun PlayGamesSignInErrorSnackbarEffect(
  *
  * ## What a short screen gets
  *
- * Below `home_compact_threshold_height` of **available** height — after the `Scaffold` has
- * subtracted the system-bar insets, so a tall navigation bar makes a device behave as the
- * shorter device it effectively is — Home takes the compact band set, all of it or none:
- * the hero composes no art and becomes one row at `home_hero_compact_min_height`, and the
- * band spacing and the column's padding drop to `spacing_sm`. It is read against available
- * height **only, never the font scale**, so a tall phone at 200% keeps the full set and
- * scrolls rather than changing shape (criterion 15i). Nothing else yields: not the gear (the
- * only route to Settings and so to How to play), not the ribbon, not a chip, not a tile, not
- * a touch target.
+ * Below the compact threshold of **available** height — after the `Scaffold` has subtracted the
+ * system-bar insets, so a tall navigation bar makes a device behave as the shorter device it
+ * effectively is — Home takes the compact band set, all of it or none: the hero composes no art
+ * and becomes one row at `home_hero_compact_min_height`, the band spacing and the column's
+ * padding drop to `spacing_sm`, and on the narrow class each progress pill drops its decorative
+ * glyph and puts its label beside its value. It is read against available height and width
+ * **never the font scale**, so a tall phone at 200% keeps the full set and scrolls rather than
+ * changing shape (criterion 15i). Nothing else yields: not the gear (the only route to Settings
+ * and so to How to play), not a pill, not a label, not a value, not a chip, not a tile, not a
+ * touch target.
+ *
+ * ## Why the threshold reads width as well as height (§4.2.3, D-03k)
+ *
+ * §4.2.2's first arithmetic summed band **minimums** and put the compact set at ≈544dp; measured
+ * at 360dp width the bands stand ≈156dp above their floors, because they **wrap**. The error was
+ * wrap at narrow width and not height at all, so a threshold that reads height alone measures the
+ * wrong axis. Below `home_compact_threshold_width` the threshold is therefore
+ * `home_compact_threshold_height_narrow`, derived exactly as the 720dp one is — the full set's own
+ * both-chips requirement **at this width** (≈872dp), rounded onto the grid. At or above 400dp
+ * nothing D-03k added changes anything at all.
+ *
+ * Its consequence is stated rather than discovered: **at 360dp width Home is always compact**, and
+ * that is the intent. A 360x800dp phone needs the compact set exactly as much as a 360x640dp one —
+ * the full set is ≈872dp against its ~728dp of usable height, while the compact set fits with
+ * slack. 400dp is the boundary because 360dp is the narrowest supported window and the next common
+ * width is the 412dp class, so no shipping device sits on it.
+ *
+ * ## What the narrow class still does not fit, and why the criterion says so
+ *
+ * After every yield that costs no readout the compact-narrow set is ≈640dp against the **568dp** a
+ * 360x640dp phone offers (640 less a 24dp status bar and a 48dp three-button navigation bar), so
+ * it is ~72dp over and **the screen scrolls**. Criterion 15h asserted a no-scroll fit and is
+ * retired as false; 15k requires what is achievable and measurable instead — the hero row, the
+ * whole ribbon, both Continue chips and the first mode tile complete in the first viewport, the
+ * second mode tile **breaking the fold** so there is no false bottom, and the rest one plain
+ * scroll of ≤ 120dp away. Every one of the remaining 72dp is a readout, a target or a route
+ * (§4.2.3's table), so there is nothing left to take at a price this screen is willing to pay.
  *
  * ## The entrance cascade
  *
@@ -337,9 +368,11 @@ private fun HomeBands(
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         val availableHeight = maxHeight
-        val compact = availableHeight < dimensionResource(R.dimen.home_compact_threshold_height)
+        // `maxWidth` is a second READ of a value this BoxWithConstraints has already measured,
+        // not a second measuring pass, so the width term costs nothing (§4.2.3 part 1).
+        val bandSet = homeBandSetFor(availableWidth = maxWidth, availableHeight = availableHeight)
         val bandSpacing =
-            dimensionResource(if (compact) R.dimen.spacing_sm else R.dimen.spacing_md)
+            dimensionResource(if (bandSet.compact) R.dimen.spacing_sm else R.dimen.spacing_md)
         Column(
             modifier =
                 Modifier
@@ -350,8 +383,9 @@ private fun HomeBands(
                     .padding(bandSpacing),
             verticalArrangement = Arrangement.spacedBy(bandSpacing),
         ) {
-            HomeHero(compact = compact, onOpenSettings = onOpenSettings)
+            HomeHero(compact = bandSet.compact, onOpenSettings = onOpenSettings)
             HomeProgressRibbon(
+                compact = bandSet.compactPills,
                 totalStars = state.totalStars,
                 classicBoardsCleared = state.classicBoardsCleared,
                 challengeCurrentLevel = state.challengeCurrentLevel,
@@ -748,14 +782,32 @@ private fun HomeScreenDarkPreview() {
 }
 
 /**
- * The compact band set (§4.2.2), which is otherwise only visible on a short device: the same
- * busiest state as the dark preview, on a window below `home_compact_threshold_height`. The
- * hero should be one row with no art, and both tiles should be on screen.
+ * The compact-narrow band set (§4.2.2, §4.2.3), which is otherwise only visible on a short
+ * narrow device: the same busiest state as the dark preview, on the design baseline's own
+ * 360x640dp window. The hero should be one row with no art, each progress pill should read
+ * "label value" on one line with no glyph, and the Challenge tile should be cut by the bottom
+ * edge rather than sitting below it — that fold is criterion 15k part 2, not a clipping bug.
+ *
+ * In **both** themes, per rules/compose.md: the compact band set is the one a 360dp-wide phone
+ * always gets (§4.2.3), so it is not a variant that only needs checking in one of them.
  */
-@Preview(name = "Home · compact", widthDp = PREVIEW_COMPACT_WIDTH_DP, heightDp = PREVIEW_COMPACT_HEIGHT_DP)
+@Preview(
+    name = "Home · compact · light",
+    widthDp = PREVIEW_COMPACT_WIDTH_DP,
+    heightDp = PREVIEW_COMPACT_HEIGHT_DP,
+)
+@Preview(
+    name = "Home · compact · dark",
+    widthDp = PREVIEW_COMPACT_WIDTH_DP,
+    heightDp = PREVIEW_COMPACT_HEIGHT_DP,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
 @Composable
 private fun HomeScreenCompactPreview() {
-    AppTheme(darkTheme = true) {
+    // Two annotations on one function rather than two functions: `AppTheme` defaults
+    // `darkTheme` to `isSystemInDarkTheme()`, so `uiMode` selects the theme and the two
+    // renders cannot drift in their state or their window.
+    AppTheme {
         HomeScreen(
             state =
                 HomeUiState(
