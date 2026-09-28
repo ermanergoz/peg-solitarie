@@ -26,12 +26,14 @@ carries `<!-- L-NNNN -->`). `retired` adds a `Retired:` line; nothing is ever de
 A lesson cites ≥ 1 finding id (`F-nn` from the retro's findings.md) and ≥ 1 `.planning/`
 path; a proposal lacking either is rejected. A promotion is a lesson too: filed with its
 own `L-NNNN` and a `Promote to:` target, it also becomes one line in an agent, rule,
-skill step or template ending with `<!-- L-NNNN -->`; never a hook or a gate step.
+skill step or template ending with `<!-- L-NNNN -->`; never code, a hook or a gate
+step.
 
 ## Governance
 The research-analyst establishes the facts (findings) and, like every other role,
-proposes only in its own domain; the code-auditor accepts, merges or rejects on a
-different model and proposes nothing; the tech-lead applies promotions and the
+proposes only in its own domain; the code-auditor accepts, merges or rejects as a
+fresh fable agent that did not write the proposal (rules/studio.md, Model and
+effort) and proposes nothing; the tech-lead applies promotions and the
 code-auditor reviews that diff. No role reviews its own proposal, substitutes
 included: the qa-engineer stands in on the auditor's own file, a third role that
 authored neither stands in for it, and the recusal goes in the report. The producer

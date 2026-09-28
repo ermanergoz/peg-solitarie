@@ -2,7 +2,7 @@
 
 Product: game
 Stack: android-compose-game
-Studio plugin: ergoz-soft v0.1.0 (rules snapshot in .claude/rules/, refresh with /ergoz-soft:status)
+Studio plugin: ergoz-soft v0.6.2 (rules snapshot in .claude/rules/; a session refreshes it with "${CLAUDE_PLUGIN_ROOT}/scripts/sync-rules.sh" . --type <type> --stack <stack>, the founder with /ergoz-soft:status)
 Check command: ./gradlew check
 Build command: ./gradlew :app:assembleRelease
 Version file: VERSION (semver; publish approval is .planning/approvals/publish-<VERSION>.approved)

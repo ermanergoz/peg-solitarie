@@ -17,6 +17,11 @@ kmp-app → kmp-app; web-app and website → web-app.
 | libgdx | none yet | Code-first 2D on the JVM | Mature, less momentum than Godot in 2026 | game-engine-dev | kotlin-specialist |
 | web-twa | none yet | Reuse a web game/app on Play | Allowed only as a TWA over a real PWA (HTTPS, service worker, offline basics, Lighthouse ≥ 80) that passes the minimum-functionality policy; raw WebView wrappers are rejected | web-dev | react-expert, typescript-pro |
 
+The Developer column is also the executor gsd routes each plan to:
+`agent_hint: ergoz-<developer>` (scripts/gsd-route-plans.sh), a generated agent
+(scripts/gsd-agents.sh) that runs the developer's standards under gsd's
+executor contract.
+
 Rules:
 - A stack without a template cannot start phase 1. The tech lead escalates to
   the producer, who schedules `feature/template-<stack>` in the plugin

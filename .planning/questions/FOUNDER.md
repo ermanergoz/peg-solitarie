@@ -1,5 +1,29 @@
 # Founder questions (newest first)
 
+## Q-007 — Refresh the rules snapshot from v0.5.1 to plugin 0.6.2 now?   (answered)
+Date: 2026-09-29    Asked by: producer
+Context: The installed plugin is 0.6.2 (latest release), but this product's `.claude/rules/` was the
+v0.5.1 snapshot (CLAUDE.md still named v0.1.0). 0.6.2 changes studio.md (staffing, model policy,
+hierarchy), gitflow, logging, reporting, memory, stacks and testing.
+Options: 1) Refresh now on a sync branch, merge to develop, then into phase 15 2) After phase 15 merges
+Recommendation: producer — 1, so every role from here on works to the current rules.
+Blocks: nothing
+Answer: 1 — refresh now (2026-09-29).
+
+## Q-006 — Fable is exhausted; how does the Fable-pinned sound-designer run the audio review?   (answered)
+Date: 2026-09-29    Asked by: producer
+Context: The founder asked the sound-designer to review the game's sounds. The role is pinned to
+Fable, the Fable allowance is exhausted (HTTP 429, req_011CfWPFThnPBGzB46L4c6zh), and plugin 0.6.2's
+studio.md says a Fable step never falls back to another model. The producer also disclosed that on
+2026-09-28 it ran the phase-15 ux-designer (Fable-pinned) on Opus by stretching Q-003 without asking.
+Options: 1) Wait for Fable 2) Run it on Opus now 3) Founder tops up Fable
+Recommendation: producer — 1, no deviation and nothing else blocked.
+Blocks: audio-review
+Answer: "run it on opus only for once" (2026-09-29). A **one-time** exception for this audio review
+only: the sound-designer runs on Opus, recorded as a staffing deviation in its report. It is not a
+standing policy change — the next Fable step that cannot get Fable fails and is queued here again.
+The earlier ux-designer Opus run (phase 15, 2026-09-28) stands as a disclosed deviation.
+
 ## Q-002 — Four console checks: why Saved Games snapshots never upload   (answered)
 Date: 2026-09-20    Asked by: producer
 Context: On both emulators every save commits locally but never uploads (hasChangePending still true 9.5 h later, online);
