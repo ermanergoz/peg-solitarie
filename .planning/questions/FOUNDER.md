@@ -1,6 +1,6 @@
 # Founder questions (newest first)
 
-## Q-005 — Home hero: how should the top of Home fill the screen?   (open)
+## Q-005 — Home hero: how should the top of Home fill the screen?   (answered)
 Date: 2026-09-28    Asked by: ux-designer
 Context: Per your Q-004 answer the peg-cross logo goes, the title is re-seated, and the empty band
 between the stats and the cards must go. A default is specified and will be built (docs/ux-spec.md
@@ -17,7 +17,7 @@ cards out of thumb reach, shows the actual game instead of a logo, and costs not
 (one drawing, replacing the logo's). 2 leaves the top third of a tall phone empty, which is the
 original "looks empty" complaint; 3 spends the space on the part you asked to keep.
 Blocks: nothing (default 1 is specified and buildable)
-Answer:
+Answer: 1 — board stage (2026-09-29). Founder confirmed the ux-designer's default (D-03l, §4.2.4).
 
 ## Q-004 — What bothers you about the new Home screen?   (answered)
 Date: 2026-09-28    Asked by: producer
