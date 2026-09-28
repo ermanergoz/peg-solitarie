@@ -91,9 +91,11 @@
     <string name="hint_action">Hint</string>
     <!-- Announced while the Solver computes a hint; the control is disabled (D-10). -->
     <string name="hint_thinking">Finding a move</string>
-    <!-- Show-possible-moves toggle (icon-only; content description reflects the on/off state, D-02). -->
+    <!--
+      Show-possible-moves switch (icon-only, D-02). Its ONE constant name in both states: the state
+      is announced by the switch role, never by swapping the name (D-04e, ux-spec §4.4.1).
+    -->
     <string name="show_moves_on">Show possible moves</string>
-    <string name="show_moves_off">Hide possible moves</string>
     <!-- Shown while a Challenge board is generated off the main thread (CR-01). -->
     <string name="loading_level">Loading level</string>
 

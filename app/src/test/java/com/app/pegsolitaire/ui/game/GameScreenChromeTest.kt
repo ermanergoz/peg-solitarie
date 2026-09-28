@@ -2,10 +2,14 @@ package com.app.pegsolitaire.ui.game
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -87,22 +91,40 @@ class GameScreenChromeTest {
     }
 
     /**
-     * Criterion 21 and D-04b, and this is a **fix rather than a restatement**: the toggle
-     * carried its state in `primary` versus `onSurfaceVariant` tint and nothing else, which
-     * breaks rules/compose.md's "never colour alone".
+     * Criterion 21d, and criterion 21 as D-04e restates it. Retargeted — never deleted — from
+     * `showMovesCarriesItsStateByFillAndNotByTintAlone` (ux-spec §13's founder-feedback table):
+     * that test read a filled/outlined flag and a pair of descriptions swapped with the state, and
+     * both were the defect. The fill it trusted measured ≈1.04:1 against the slab, and the pair was
+     * two imperatives ("Show…"/"Hide possible moves") each naming the *opposite* of what the next
+     * tap does.
      *
-     * The fill is reported through [DockActionFilledKey] — the same custom-semantics idiom
-     * `GameScreen`'s `PegCountKey` uses — so "fill, not tint" is a property the build re-proves
-     * rather than a claim a screenshot would have to settle. The two content descriptions are
-     * asserted alongside it, because a third channel is the point.
+     * What it proves now, on the one node TalkBack reaches: the toggle is a **switch** whose state
+     * is announced by the role, under **one constant name** in both states; and it is drawn On or
+     * Off — the strong disc with the on mark, or the empty ring with the slashed glyph — which is
+     * [DockLookKey]'s look resolved through the recipe every dock control draws from. The name is
+     * the lookup in both states, so a description that drifted back to "Hide" fails to be found.
      */
     @Test
-    fun showMovesCarriesItsStateByFillAndNotByTintAlone() {
+    fun showMovesCarriesItsStateByFillRingMarkAndSwitchStateNeverByTint() {
         renderGame(showHints = true)
-        assertThat(filledState(description(R.string.show_moves_on))).isTrue()
+        val on = showMovesToggle()
+        assertThat(on.config[DockLookKey]).isEqualTo(DockLook.On)
+        assertThat(on.config[DockLookKey].recipe.fill).isEqualTo(DockFill.Strong)
+        assertThat(on.config[DockLookKey].recipe.onMark).isTrue()
+        assertThat(on.config[SemanticsProperties.Role]).isEqualTo(Role.Switch)
+        assertThat(on.config[SemanticsProperties.ToggleableState]).isEqualTo(ToggleableState.On)
+        assertThat(on.config[SemanticsProperties.ContentDescription])
+            .containsExactly(description(R.string.show_moves_on))
 
         setShowHints(false)
-        assertThat(filledState(description(R.string.show_moves_off))).isFalse()
+        val off = showMovesToggle()
+        assertThat(off.config[DockLookKey]).isEqualTo(DockLook.Off)
+        assertThat(off.config[DockLookKey].recipe.ring).isTrue()
+        assertThat(off.config[DockLookKey].recipe.glyph).isEqualTo(DockGlyph.Slashed)
+        assertThat(off.config[SemanticsProperties.Role]).isEqualTo(Role.Switch)
+        assertThat(off.config[SemanticsProperties.ToggleableState]).isEqualTo(ToggleableState.Off)
+        assertThat(off.config[SemanticsProperties.ContentDescription])
+            .containsExactly(description(R.string.show_moves_on))
     }
 
     /**
@@ -142,13 +164,16 @@ class GameScreenChromeTest {
             .descriptionsIn()
             .contains(contentDescription)
 
-    private fun filledState(contentDescription: String): Boolean? =
+    /**
+     * The Show-moves toggle's own node: the one dock node carrying both its constant name and a
+     * look. Found by the name in **both** states, which is half of what criterion 21d asserts.
+     */
+    private fun showMovesToggle(): SemanticsNode =
         composeRule
-            .onNodeWithTag(GAME_ACTION_DOCK_TEST_TAG, useUnmergedTree = true)
-            .fetchSemanticsNode()
-            .firstWith(contentDescription)
-            ?.config
-            ?.getOrNull(DockActionFilledKey)
+            .onNode(
+                hasContentDescription(description(R.string.show_moves_on)) and
+                    SemanticsMatcher.keyIsDefined(DockLookKey),
+            ).fetchSemanticsNode()
 
     private fun SemanticsNode.descriptionsIn(): List<String> =
         config.getOrNull(SemanticsProperties.ContentDescription).orEmpty() +
@@ -157,21 +182,6 @@ class GameScreenChromeTest {
     private fun SemanticsNode.textsIn(): List<String> =
         config.getOrNull(SemanticsProperties.Text).orEmpty().map { it.text } +
             children.flatMap { it.textsIn() }
-
-    /**
-     * The nearest node in this subtree that carries [contentDescription] **and** the fill
-     * marker — the control's own node rather than the glyph inside it, since the description
-     * sits on one and the marker on its container.
-     */
-    private fun SemanticsNode.firstWith(contentDescription: String): SemanticsNode? {
-        if (
-            config.getOrNull(DockActionFilledKey) != null &&
-            descriptionsIn().contains(contentDescription)
-        ) {
-            return this
-        }
-        return children.firstNotNullOfOrNull { it.firstWith(contentDescription) }
-    }
 
     /**
      * The toggle's ON/OFF state, hoisted **outside** the composition and written only from the

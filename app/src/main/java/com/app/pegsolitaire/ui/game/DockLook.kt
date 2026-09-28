@@ -1,6 +1,10 @@
 package com.app.pegsolitaire.ui.game
 
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsPropertyKey
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.semantics.semantics
 
 /**
  * The five looks a gameplay dock control can take (ux-spec §4.4.1, D-04e): **one look, one
@@ -152,3 +156,22 @@ private val OFF_RECIPE =
         faded = false,
         respondsToPress = true,
     )
+
+/**
+ * Semantics: the [DockLook] a dock control is drawn in (ux-spec §4.4.1, "Test hook").
+ *
+ * It replaces the retired `DockActionFilledKey`, a `Boolean` that could express filled or outlined
+ * and therefore could not express five looks. The same custom-semantics idiom `GameScreen`'s
+ * `PegCountKey` uses, for the same reason: a look is a pixel fact no ordinary assertion can reach,
+ * and this makes every row of §4.4.1's table decidable without a screenshot. TalkBack does not
+ * read it — the control's name, role and state are what it announces.
+ */
+val DockLookKey = SemanticsPropertyKey<DockLook>("DockLook")
+
+private var SemanticsPropertyReceiver.dockLookValue by DockLookKey
+
+/**
+ * Reports [look] on the control's own node — the one that carries its name, role and enabled
+ * state — so a test reads all four off one node, exactly as TalkBack reaches it.
+ */
+fun Modifier.dockLook(look: DockLook): Modifier = semantics { dockLookValue = look }

@@ -157,6 +157,12 @@
     <dimen name="game_action_button_size">56dp</dimen>
     <!-- One dock action glyph, sized up from `top_bar_icon_size` to match the larger target. -->
     <dimen name="game_action_glyph_size">28dp</dimen>
+    <!--
+      D-04e / ux-spec §4.4.1. The Off ring around Show-moves, and the on mark's border. A sub-4dp
+      stroke — the same documented exception as `peg_selected_ring_width` below — and a token of
+      its own so the dock stops borrowing the board's ring width.
+    -->
+    <dimen name="game_action_ring_width">2dp</dimen>
 
     <!--
       Phase-4 token: min height of the inline no-win/stuck rescue banner (multiple of 4)
