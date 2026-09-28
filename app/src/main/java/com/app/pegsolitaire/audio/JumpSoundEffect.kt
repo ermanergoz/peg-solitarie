@@ -2,8 +2,10 @@ package com.app.pegsolitaire.audio
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import com.app.pegsolitaire.ui.game.MoveTransition
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * Plays the pitched jump cue as each jump lands, then layers the peg-removal cue under it
@@ -17,7 +19,9 @@ import kotlinx.coroutines.delay
  *
  * Every jump removes exactly one peg, so the two cues always co-occur; the removal trails
  * by [SoundParams.REMOVAL_LAYER_DELAY_MS] so it reads as a texture layer beneath the pitched
- * pop instead of a second competing hit.
+ * pop instead of a second competing hit. That trailing cue is launched on the **composition**
+ * scope rather than inside the keyed effect, so it survives `animating` being cleared while it
+ * waits — see the comment at the call.
  *
  * **Shared by the gameplay screen and the tutorial screen** (D-01i), because SOUND-01 says
  * *every* peg jump sounds and both screens jump real pegs on the real rules engine. It was
@@ -43,11 +47,38 @@ import kotlinx.coroutines.delay
 @Composable
 internal fun JumpSoundEffect(transition: MoveTransition?) {
     val sound = LocalSoundPlayer.current
+
+    // The removal layer runs on the composition scope, NOT inside the keyed effect below —
+    // the same reason, and the same shape, as `BoardCanvas`' landing squash
+    // (`BoardCanvas.kt:129-134`).
+    //
+    // `onAnimationFinished()` clears `animating`, which changes this effect's key to null and
+    // cancels its coroutine. With OS animations ON that happens after the ~200ms slide, long
+    // past the 60ms this cue waits, so the pair sounded. With animations OFF `runJumpAnimation`
+    // takes the snap path and clears `animating` in the same frame, cancelling the effect
+    // INSIDE its delay: the pitched pop played and the removal layer never did. Measured on
+    // device as one audio event per jump instead of two, on the tutorial and on a real board
+    // (qa-engineer F-2, criteria 7c/25 — "sound is unaffected by this switch").
+    //
+    // Only the DELAYED cue moves. The key stays `transition?.id` and the jump still plays
+    // inside the keyed effect, because the null gap between two jumps is load-bearing: the id
+    // is the move ordinal and RECYCLES after an undo, so a replayed jump carries an id this
+    // effect has already seen and is re-fired only by the key having passed through null in
+    // between. Latching the last non-null transition would survive the snap path and silence
+    // the replay instead — which is why
+    // `GameScreenSoundTest.aJumpReplayedAfterAnUndoSoundsAgainEvenThoughItsMoveIdIsReused`
+    // exists.
+    //
+    // The scope dies with the composition, so leaving the screen inside those 60ms still
+    // drops the layer — the one case where dropping it is right.
+    val layerScope = rememberCoroutineScope()
     LaunchedEffect(transition?.id) {
         if (transition != null) {
             sound.playJump(runIndex = transition.runIndex)
-            delay(SoundParams.REMOVAL_LAYER_DELAY_MS.toLong())
-            sound.play(SoundCue.PegRemove)
+            layerScope.launch {
+                delay(SoundParams.REMOVAL_LAYER_DELAY_MS.toLong())
+                sound.play(SoundCue.PegRemove)
+            }
         }
     }
 }

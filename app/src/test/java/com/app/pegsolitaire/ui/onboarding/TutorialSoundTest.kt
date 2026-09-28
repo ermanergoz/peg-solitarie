@@ -1,5 +1,6 @@
 package com.app.pegsolitaire.ui.onboarding
 
+import android.provider.Settings
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -60,6 +61,37 @@ class TutorialSoundTest {
 
         assertThat(sounds.cues).containsExactly(SoundCue.Jump, SoundCue.PegRemove).inOrder()
         // The game's own pitch, from the game's own effect: the first hop of a run is rung 0.
+        val jump = sounds.events.first { it.cue == SoundCue.Jump }
+        assertThat(jump.rate).isEqualTo(SoundParams.jumpRate(FIRST_RUNG))
+    }
+
+    /**
+     * Criterion 7c's own named failure mode: the same pair **with OS animations off**.
+     *
+     * The device reading was one audio event per jump instead of two, on five separate
+     * tutorial jumps and on a real Challenge board (`qa-engineer.md` F-2) — the shared
+     * effect's coroutine cancelled inside the 60 ms removal delay by the snap path clearing
+     * `animating`. The gameplay half of this guard is
+     * `GameScreenSoundTest.aJumpStillLayersTheRemovalCueWhenTheOsAnimationScaleIsZero`; both
+     * exist because the effect is shared and a guard on one screen says nothing about the
+     * other's call site.
+     *
+     * Criterion 25 forecloses the "expected consequence of reduced motion" reading in so many
+     * words: sound is unaffected by that switch.
+     */
+    @Test
+    fun aCompletedJumpStillLayersTheRemovalCueWhenTheOsAnimationScaleIsZero() {
+        disableOsAnimations()
+        val viewModel = startTutorial()
+
+        val move = RulesEngine.legalMoves(viewModel.uiState.value.board.board).single()
+        tapCell(move.from)
+        sounds.clear()
+
+        tapCell(move.to)
+        settleRemovalLayer()
+
+        assertThat(sounds.cues).containsExactly(SoundCue.Jump, SoundCue.PegRemove).inOrder()
         val jump = sounds.events.first { it.cue == SoundCue.Jump }
         assertThat(jump.rate).isEqualTo(SoundParams.jumpRate(FIRST_RUNG))
     }
@@ -163,6 +195,20 @@ class TutorialSoundTest {
         composeRule.waitForIdle()
     }
 
+    /**
+     * Turns the OS animator scale off, the way a player with reduced motion has it — the same
+     * `Settings.Global` value `rememberAnimationsEnabled()` reads, so the board takes its real
+     * snap path rather than a mocked approximation. Set **before** the composition, because
+     * that read is `remember`ed per context.
+     */
+    private fun disableOsAnimations() {
+        Settings.Global.putFloat(
+            RuntimeEnvironment.getApplication().contentResolver,
+            Settings.Global.ANIMATOR_DURATION_SCALE,
+            ANIMATIONS_OFF,
+        )
+    }
+
     /** Lets the removal cue's deliberate lag past the jump cue elapse before an assertion reads. */
     private fun settleRemovalLayer() {
         composeRule.mainClock.advanceTimeBy(REMOVAL_SETTLE_MS)
@@ -180,6 +226,9 @@ class TutorialSoundTest {
 
         /** Comfortably past `SoundParams.REMOVAL_LAYER_DELAY_MS`. */
         const val REMOVAL_SETTLE_MS = 500L
+
+        /** The OS animator duration scale a player with reduced motion has set (criterion 25). */
+        const val ANIMATIONS_OFF = 0f
     }
 }
 
