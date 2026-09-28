@@ -1,18 +1,27 @@
 package com.app.pegsolitaire.ui.home
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onChildren
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.domain.model.Boards
@@ -233,6 +242,141 @@ class HomeScreenTest {
         composeRule.onNodeWithText(challengeTileTitle).assertExists()
     }
 
+    // ---- Home's vertical slack (D-03i, §4.2.2, criteria 15g-15j) -------------
+
+    /**
+     * Criterion 15g, the fresh-install state — the player the refresh is for, and the state
+     * the device session failed on.
+     *
+     * With a fixed `Spacer` in a top-aligned scroll column all the slack falls to the *bottom*:
+     * QA measured the Classic tile's centre at 1173 px against a 1212 px midline with the
+     * bottom 34% of the screen empty, so criterion 15 held only for a player who happened to
+     * have both Continue chips. The weighted pair puts the slack above band 3 instead, and the
+     * assertion is on the tile's **top** edge, because a tile whose top is below the midpoint
+     * is wholly in the lower half however tall it grows.
+     *
+     * The window is the reference 6.7-inch phone. Robolectric reports zero window insets, so
+     * the root's height *is* the available content height the `Scaffold` hands `HomeBands` —
+     * which is what "half the Home content height" means in §4.2.2's owed tests.
+     */
+    @Test
+    @Config(qualifiers = TALL_PHONE_QUALIFIER)
+    fun theFirstModeTileStartsBelowTheMidpointOnAFreshInstall() {
+        renderHome(state = HomeUiState(challengeCurrentLevel = PERSISTED_LEVEL))
+
+        assertThat(topOf(classicTileTitle)).isAtLeast(midpointOfContent())
+    }
+
+    /** Criterion 15g's other half: the busiest legitimate Home must hold the same line. */
+    @Test
+    @Config(qualifiers = TALL_PHONE_QUALIFIER)
+    fun theFirstModeTileStartsBelowTheMidpointWithBothContinueChips() {
+        renderHome(state = bothResumesState())
+
+        assertThat(topOf(classicTileTitle)).isAtLeast(midpointOfContent())
+    }
+
+    /**
+     * Criterion 15h — the compact band set, on the small baseline with both chips.
+     *
+     * 15a failed on this window before the refresh and after it: the full set needs ~716dp
+     * against ~640dp, so no value of a spacer could fit it and the band set itself has to
+     * change (§4.2.2). Below `home_compact_threshold_height` the hero drops its art and
+     * becomes one row, and the spacing drops to `spacing_sm`.
+     *
+     * "Fully inside the viewport" is asserted as the bottom edge of the **last** band, since
+     * the four are laid out in order: if the Challenge tile's bottom is inside, everything
+     * above it is too, and each node is asserted displayed as well so nothing is merely
+     * *measured* inside.
+     */
+    @Test
+    @Config(qualifiers = SHORT_PHONE_QUALIFIER)
+    fun bothChipsAndBothTilesAreInsideTheViewportOnAShortPhoneWithNoHeroArt() {
+        renderHome(state = bothResumesState())
+
+        composeRule.onNodeWithTag(HOME_HERO_ART_TEST_TAG).assertDoesNotExist()
+        listOf(RESUME_CLASSIC_LABEL, RESUME_CHALLENGE_LABEL, classicTileTitle, challengeTileTitle)
+            .forEach { composeRule.onNodeWithText(it).assertIsDisplayed() }
+        assertThat(bottomOf(challengeTileTitle)).isAtMost(contentBottom())
+    }
+
+    /** The full set keeps its art on a window with room for it — the other side of 15h. */
+    @Test
+    @Config(qualifiers = TALL_PHONE_QUALIFIER)
+    fun theHeroKeepsItsArtOnAPhoneAboveTheCompactThreshold() {
+        renderHome(state = bothResumesState())
+
+        composeRule.onNodeWithTag(HOME_HERO_ART_TEST_TAG).assertExists()
+    }
+
+    /**
+     * Criterion 15i (with 14) — at 200% font scale the **slack** is what disappears, not the
+     * content: every band is still composed and still reachable, and the column scrolls.
+     *
+     * This is the case §4.2.2 clause 4 forbids solving with a weighted content band: a
+     * weighted child with `fill = true` is measured at exactly its share, so a weighted hero
+     * would measure **0** the moment the fixed bands exceed the viewport — clipped to nothing
+     * at exactly this font scale.
+     */
+    @Test
+    @Config(qualifiers = SHORT_PHONE_QUALIFIER)
+    fun everyBandSurvivesAndStaysReachableAtDoubleFontScale() {
+        renderHome(state = bothResumesState(), fontScale = DOUBLE_FONT_SCALE)
+
+        listOf(
+            appName,
+            RESUME_CLASSIC_LABEL,
+            RESUME_CHALLENGE_LABEL,
+            classicTileTitle,
+            challengeTileTitle,
+        ).forEach { composeRule.onNodeWithText(it).performScrollTo().assertIsDisplayed() }
+        composeRule.onNodeWithTag(HOME_PROGRESS_RIBBON_TEST_TAG).performScrollTo().assertIsDisplayed()
+    }
+
+    /**
+     * Criterion 15j, first half: the slack is empty space and not a control.
+     *
+     * The two `Spacer`s carry no semantics at all, so there is no node to interrogate — the
+     * honest form of "neither spacer is clickable or focusable" is therefore an exhaustive
+     * count of what *is* clickable on the busiest Home. Five, and these five: the Settings
+     * gear, two Continue chips, two mode tiles. A control added into the slack fails here.
+     */
+    @Test
+    @Config(qualifiers = TALL_PHONE_QUALIFIER)
+    fun theOnlyClickableThingsOnHomeAreTheGearTheTwoChipsAndTheTwoTiles() {
+        renderHome(state = bothResumesState())
+
+        assertThat(composeRule.onAllNodes(hasClickAction()).fetchSemanticsNodes()).hasSize(HOME_CONTROL_COUNT)
+        listOf(RESUME_CLASSIC_LABEL, RESUME_CHALLENGE_LABEL, classicTileTitle, challengeTileTitle)
+            .forEach { composeRule.onNodeWithText(it).assertHasClickAction() }
+        composeRule.onNodeWithContentDescription(settingsLabel).assertHasClickAction()
+    }
+
+    /**
+     * Criterion 15j, second half: on a window wider than `content_max_width` the content
+     * column is still capped **and centred**, not pushed against one edge.
+     *
+     * §12 has claimed this since Phase 2 and it stopped being true when `fillMaxSize()` went
+     * ahead of `widthIn(max = …)` in the column's chain: ahead of `verticalScroll` it fixes
+     * the content's width to the window's, which makes the cap that follows it a no-op
+     * (§4.2.2 clause 2).
+     */
+    @Test
+    @Config(qualifiers = WIDE_WINDOW_QUALIFIER)
+    fun theContentColumnIsCappedAndCentredOnAWindowWiderThanTheCap() {
+        renderHome(state = bothResumesState())
+
+        val root = composeRule.onRoot().getBoundsInRoot()
+        val tile = composeRule.onNodeWithText(classicTileTitle).getBoundsInRoot()
+        val cap = with(composeRule.density) { contentMaxWidthPx.toDp() }
+
+        assertThat(tile.right - tile.left).isAtMost(cap)
+        // Centred: the two margins agree. A column hugging the leading edge fails the first
+        // assertion of the pair, whatever the second says.
+        assertThat((tile.left - root.left).value).isWithin(CENTRING_TOLERANCE_DP).of((root.right - tile.right).value)
+        assertThat(tile.left).isGreaterThan(root.left)
+    }
+
     // ---- Play Games opt-in surfaces (PGS-01, D-15/D-18) ----------------------
 
     @Test
@@ -447,6 +591,7 @@ class HomeScreenTest {
         onResumeChallenge: (Int) -> Unit = {},
         onKeepDeviceProgress: () -> Unit = {},
         onUseCloudProgress: () -> Unit = {},
+        fontScale: Float = DEFAULT_FONT_SCALE,
     ) = renderHome(
         state = mutableStateOf(state),
         onPlayChallenge = onPlayChallenge,
@@ -454,7 +599,43 @@ class HomeScreenTest {
         onResumeChallenge = onResumeChallenge,
         onKeepDeviceProgress = onKeepDeviceProgress,
         onUseCloudProgress = onUseCloudProgress,
+        fontScale = fontScale,
     )
+
+    // ---- Layout helpers (D-03i) ----------------------------------------------
+
+    /** The busiest legitimate Home: a filled ribbon, both Continue chips, both mode tiles. */
+    private fun bothResumesState(): HomeUiState =
+        HomeUiState(
+            totalStars = EARNED_STARS,
+            classicBoardsCleared = CLEARED_BOARDS,
+            challengeCurrentLevel = PERSISTED_LEVEL,
+            classicResumeLevelId = RESUMABLE_LEVEL_ID,
+            classicResumeBoard = Boards.european37Initial,
+            challengeResumeLevel = STAMPED_RESUME_LEVEL,
+        )
+
+    private fun topOf(text: String): Dp = composeRule.onNodeWithText(text).getBoundsInRoot().top
+
+    private fun bottomOf(text: String): Dp = composeRule.onNodeWithText(text).getBoundsInRoot().bottom
+
+    /**
+     * Half the height of Home's content area.
+     *
+     * Robolectric delivers no window insets, so the `Scaffold`'s content padding is zero and
+     * the root's height is exactly the available height `HomeBands` measures its slack
+     * against — which is what §4.2.2 means by "the available height". On a device the insets
+     * are subtracted first, by the `Scaffold`, before the threshold or the weights see it.
+     */
+    private fun midpointOfContent(): Dp {
+        val root = composeRule.onRoot().getBoundsInRoot()
+        return (root.bottom - root.top) / HALVES
+    }
+
+    private fun contentBottom(): Dp = composeRule.onRoot().getBoundsInRoot().bottom
+
+    private val contentMaxWidthPx: Int
+        get() = RuntimeEnvironment.getApplication().resources.getDimensionPixelSize(R.dimen.content_max_width)
 
     /**
      * The settable overload, for the tests that need a live recomposition — Home fills the
@@ -468,21 +649,29 @@ class HomeScreenTest {
         onResumeChallenge: (Int) -> Unit = {},
         onKeepDeviceProgress: () -> Unit = {},
         onUseCloudProgress: () -> Unit = {},
+        fontScale: Float = DEFAULT_FONT_SCALE,
     ) {
         composeRule.setContent {
-            HomeScreen(
-                state = state.value,
-                onPlayClassic = {},
-                onPlayChallenge = onPlayChallenge,
-                onResumeClassic = onResumeClassic,
-                onResumeChallenge = onResumeChallenge,
-                onAcceptPlayGamesPrompt = {},
-                onDeclinePlayGamesPrompt = {},
-                onKeepDeviceProgress = onKeepDeviceProgress,
-                onUseCloudProgress = onUseCloudProgress,
-                onPlayGamesSignInErrorShown = {},
-                onOpenSettings = {},
-            )
+            // The font scale is provided rather than set through a resource qualifier because
+            // there is no qualifier for it: it is a property of `Density`, which is where
+            // every `sp` on the screen reads it from.
+            CompositionLocalProvider(
+                LocalDensity provides Density(density = LocalDensity.current.density, fontScale = fontScale),
+            ) {
+                HomeScreen(
+                    state = state.value,
+                    onPlayClassic = {},
+                    onPlayChallenge = onPlayChallenge,
+                    onResumeClassic = onResumeClassic,
+                    onResumeChallenge = onResumeChallenge,
+                    onAcceptPlayGamesPrompt = {},
+                    onDeclinePlayGamesPrompt = {},
+                    onKeepDeviceProgress = onKeepDeviceProgress,
+                    onUseCloudProgress = onUseCloudProgress,
+                    onPlayGamesSignInErrorShown = {},
+                    onOpenSettings = {},
+                )
+            }
         }
         composeRule.waitForIdle()
     }
@@ -556,6 +745,14 @@ class HomeScreenTest {
     private val challengeTileTitle: String
         get() = RuntimeEnvironment.getApplication().getString(R.string.challenge_tile_title)
 
+    /** The hero's gradient title — band 1's own content, and the compact hero's whole width. */
+    private val appName: String
+        get() = RuntimeEnvironment.getApplication().getString(R.string.app_name)
+
+    /** The gear's unchanged description (D-05b): `ButtonSoundTest` locates it by this string. */
+    private val settingsLabel: String
+        get() = RuntimeEnvironment.getApplication().getString(R.string.settings_action)
+
     /**
      * The D-18 failure copy, read from `strings.xml` rather than retyped: this test's claim
      * is that the message REACHES the player, not what it says (the wording itself is
@@ -619,3 +816,36 @@ private const val CLASSIC_CATALOGUE_SIZE = 5
 
 /** What a genuinely-zero pill renders — a real answer, and never the placeholder. */
 private const val ZERO_VALUE = "0"
+
+/**
+ * The reference 6.7-inch phone (criterion 15/15g), and the small baseline the first-paint
+ * rule is written against (criteria 15a/15h). The short one is BELOW
+ * `home_compact_threshold_height`, so it takes the compact band set; the tall one is above it.
+ */
+private const val TALL_PHONE_QUALIFIER = "w411dp-h915dp"
+private const val SHORT_PHONE_QUALIFIER = "w360dp-h640dp"
+
+/** Wider than `content_max_width` 480dp, which is the only window where the cap is visible. */
+private const val WIDE_WINDOW_QUALIFIER = "w800dp-h915dp"
+
+/** The system font-size setting at its maximum (criteria 14, 15i). */
+private const val DOUBLE_FONT_SCALE = 2f
+
+/** The system font-size setting as shipped. */
+private const val DEFAULT_FONT_SCALE = 1f
+
+/** Two halves of a screen — the midpoint criterion 15g is asserted against. */
+private const val HALVES = 2f
+
+/**
+ * Everything on the busiest Home a player can press: the Settings gear, two Continue chips,
+ * two mode tiles. The ribbon's three pills are deliberately not among them (§5), and neither
+ * spacer may ever be (criterion 15j).
+ */
+private const val HOME_CONTROL_COUNT = 5
+
+/**
+ * Slack the centring assertion allows, in dp: a cap of an odd number of pixels cannot be
+ * centred exactly, and rounding may put one extra pixel on either side.
+ */
+private const val CENTRING_TOLERANCE_DP = 1f

@@ -2,12 +2,12 @@ package com.app.pegsolitaire.ui.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -60,15 +60,18 @@ import kotlinx.coroutines.flow.first
  *
  * Renders [state] and forwards events; owns no logic (state hoisting). An M3
  * [Scaffold] with **no top bar at all** (Phase 15, D-03/D-05c) hosts the five scrolling
- * bands of [HomeBands], capped at `content_max_width`: the hero (the gradient Fredoka
+ * bands of [HomeBands], capped at `content_max_width` and centred, with the height left over
+ * split 3 : 1 above the Continue chips and below the tiles (§4.2.2, D-03i): the hero (the gradient Fredoka
  * title, its decorative peg cluster and the Settings gear that opens the Settings
  * destination, Phase-5 D-14), the read-only progress ribbon, up to two Continue chips,
  * the two chunky clay mode tiles — a violet Classic tile whose whole surface navigates to
  * the catalog ([onPlayClassic]) and a pink Challenge tile (with its persisted-level chip)
  * whose whole surface enters Challenge ([onPlayChallenge]) at the player's persisted
- * [HomeUiState.challengeCurrentLevel] (CHAL-05) — and an empty footer. Two slow-drifting
- * low-alpha blobs float behind the content (skipped when OS animations are off), the bands
- * enter with a stagger, and everything tappable squishes.
+ * [HomeUiState.challengeCurrentLevel] (CHAL-05) — and an empty footer, which is the smaller
+ * share of that slack. Two slow-drifting low-alpha blobs float behind the content (skipped
+ * when OS animations are off), the bands enter with a stagger, and everything tappable
+ * squishes. Below `home_compact_threshold_height` of available height the hero drops its art
+ * and becomes one row; no readout, control or band is ever dropped.
  *
  * **Home carries no tutorial chrome at all** (Phase 15, D-02). There is no information or
  * help icon anywhere on this screen, and no overlay: the tutorial is the `Tutorial` nav
@@ -256,8 +259,9 @@ private fun PlayGamesSignInErrorSnackbarEffect(
 }
 
 /**
- * Home's five bands (§4.2): hero, progress ribbon, Continue chips, mode tiles, empty footer —
- * one `verticalScroll` column capped at `content_max_width`.
+ * Home's five bands (§4.2): hero, progress ribbon, Continue chips, mode tiles, footer — one
+ * `verticalScroll` column capped at `content_max_width` and centred, inside a
+ * `BoxWithConstraints` that reads the height available to it (§4.2.2, D-03i).
  *
  * ## Why it scrolls, and why the scroll is not a place to put things
  *
@@ -265,18 +269,56 @@ private fun PlayGamesSignInErrorSnackbarEffect(
  * it already overflowed, so the scroll is a fix rather than polish. It exists for the overflow
  * case only: the first-paint rule (D-03f) requires bands 3 and 4 — the Continue chips and both
  * mode tiles — to be fully within the first viewport at default font scale on a 360x640dp
- * phone, and the hero is the band that yields to keep them there (`home_hero_min_height` is a
- * minimum). A Continue chip reachable only by scrolling is a broken device oracle, not a
- * layout compromise.
+ * phone, and on that window the **compact band set** below is what keeps them there. A
+ * Continue chip reachable only by scrolling is a broken device oracle, not a layout compromise.
  *
- * ## The weighted spacer
+ * ## The slack: two weighted spacers, 3 : 1
  *
- * It sits between bands 2 and 3, so on a tall phone the slack goes *above* the Continue chips
- * and the mode tiles stay in the lower thumb half of a 6.7-inch screen (§11 "One-handed use").
- * `verticalScroll` makes the column's height unbounded, so the spacer needs a
- * `heightIn(min = 0)`-style floor rather than a weight to behave — it is expressed as a
- * `Spacer` inside the arrangement instead, and the column's `Arrangement.spacedBy` does the
- * rest.
+ * One between bands 2 and 3 and one **as** band 5, so on a tall phone most of the slack goes
+ * *above* the Continue chips and the mode tiles stay in the lower thumb half of a 6.7-inch
+ * screen (§11 "One-handed use"), with a visible margin left below them rather than the tiles
+ * sitting on the navigation bar.
+ *
+ * **`heightIn(min = available)` is the whole mechanism, and the modifier order is contract.**
+ * `verticalScroll` measures its content with an unbounded maximum height, and a `Column`
+ * distributes weight over its maximum main-axis size only while that is finite — over its
+ * **minimum** once it is not. Setting the minimum to the available height therefore hands the
+ * two spacers exactly the slack between the viewport and the fixed bands, and hands them
+ * **nothing** the moment the fixed bands exceed it, which is precisely when the column must
+ * scroll instead. No other modifier in the chain may set a height. (Verified on the pinned
+ * Compose BOM: at 411x915dp the tiles take the slack, and with a band taller than the viewport
+ * the spacers measure 0 and the column scrolls.)
+ *
+ * The **previous** shape — one fixed `Spacer(spacing_lg)` — is what put the founder's empty
+ * space at the bottom of the screen instead of the middle: a top-aligned column in a
+ * `fillMaxSize` scroll container sends every unspent pixel to the footer. Measured on device
+ * as the Classic tile's centre at 1173px against a 1212px midline with the bottom 34% bare.
+ *
+ * **No content band may be weighted** (§4.2.2 clause 4). A weighted child with `fill = true`
+ * is measured at exactly its share, so a weighted hero would be measured at **0** the moment
+ * the fixed bands exceed the viewport — clipped to nothing at 200% font scale, which criterion
+ * 14 forbids. Empty `Spacer`s are the only safe weight holders here, and they are not bands:
+ * no entrance, no squish, no semantics, no test tag, no background.
+ *
+ * ## `fillMaxSize()` belongs on the Box and nowhere else
+ *
+ * Ahead of `verticalScroll` in the column's own chain it fixes the content's width to the
+ * window's, which makes the `widthIn(max = …)` after it a no-op and leaves the column hugging
+ * the leading edge on any window wider than 480dp — so §12's "capped and centred" row was not
+ * true of the screen. `align(Alignment.TopCenter)` on a column that may now be narrower than
+ * its parent is what centres what the cap caps.
+ *
+ * ## What a short screen gets
+ *
+ * Below `home_compact_threshold_height` of **available** height — after the `Scaffold` has
+ * subtracted the system-bar insets, so a tall navigation bar makes a device behave as the
+ * shorter device it effectively is — Home takes the compact band set, all of it or none:
+ * the hero composes no art and becomes one row at `home_hero_compact_min_height`, and the
+ * band spacing and the column's padding drop to `spacing_sm`. It is read against available
+ * height **only, never the font scale**, so a tall phone at 200% keeps the full set and
+ * scrolls rather than changing shape (criterion 15i). Nothing else yields: not the gear (the
+ * only route to Settings and so to How to play), not the ribbon, not a chip, not a tile, not
+ * a touch target.
  *
  * ## The entrance cascade
  *
@@ -293,64 +335,76 @@ private fun HomeBands(
     onResumeChallenge: (level: Int) -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-    Column(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .widthIn(max = dimensionResource(R.dimen.content_max_width))
-                .padding(dimensionResource(R.dimen.spacing_md)),
-        verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_md)),
-    ) {
-        HomeHero(onOpenSettings = onOpenSettings)
-        HomeProgressRibbon(
-            totalStars = state.totalStars,
-            classicBoardsCleared = state.classicBoardsCleared,
-            challengeCurrentLevel = state.challengeCurrentLevel,
-        )
-        // Band 2 -> 3: the slack goes here, above the Continue chips, so the two mode tiles
-        // stay in the thumb zone on a tall phone rather than floating mid-screen.
-        Spacer(modifier = Modifier.height(dimensionResource(R.dimen.spacing_lg)))
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val availableHeight = maxHeight
+        val compact = availableHeight < dimensionResource(R.dimen.home_compact_threshold_height)
+        val bandSpacing =
+            dimensionResource(if (compact) R.dimen.spacing_sm else R.dimen.spacing_md)
+        Column(
+            modifier =
+                Modifier
+                    .align(Alignment.TopCenter)
+                    .verticalScroll(rememberScrollState())
+                    .heightIn(min = availableHeight)
+                    .widthIn(max = dimensionResource(R.dimen.content_max_width))
+                    .padding(bandSpacing),
+            verticalArrangement = Arrangement.spacedBy(bandSpacing),
+        ) {
+            HomeHero(compact = compact, onOpenSettings = onOpenSettings)
+            HomeProgressRibbon(
+                totalStars = state.totalStars,
+                classicBoardsCleared = state.classicBoardsCleared,
+                challengeCurrentLevel = state.challengeCurrentLevel,
+            )
+            // Band 2 -> 3: most of the slack goes here, above the Continue chips, so the two
+            // mode tiles stay in the thumb zone on a tall phone rather than floating
+            // mid-screen. It never goes between bands 3 and 4 or inside band 4: the chips and
+            // the tiles are one contiguous group, and a gap between them would read as two
+            // unrelated regions and push band 4 off a short screen again.
+            Spacer(modifier = Modifier.weight(SLACK_ABOVE_CHIPS_WEIGHT))
 
-        var entranceOrder = RIBBON_ENTRANCE_ORDER + 1
-        val resumeLevelId = state.classicResumeLevelId
-        if (resumeLevelId != null) {
-            ResumeTile(
-                title = stringResource(R.string.resume_classic_title),
-                supporting = stringResource(R.string.resume_classic_supporting),
-                entranceOrder = entranceOrder++,
-                board = state.classicResumeBoard,
-                onResume = { onResumeClassic(resumeLevelId) },
+            var entranceOrder = RIBBON_ENTRANCE_ORDER + 1
+            val resumeLevelId = state.classicResumeLevelId
+            if (resumeLevelId != null) {
+                ResumeTile(
+                    title = stringResource(R.string.resume_classic_title),
+                    supporting = stringResource(R.string.resume_classic_supporting),
+                    entranceOrder = entranceOrder++,
+                    board = state.classicResumeBoard,
+                    onResume = { onResumeClassic(resumeLevelId) },
+                )
+            }
+            // The Challenge Continue carries the SNAPSHOT's stamped level (WR-03),
+            // never challengeCurrentLevel — the ladder flow can lag at a cold start
+            // while the stamp always names the level the saved board really is.
+            val challengeResumeLevel = state.challengeResumeLevel
+            if (challengeResumeLevel != null) {
+                ResumeTile(
+                    title = stringResource(R.string.resume_challenge_title),
+                    supporting =
+                        stringResource(
+                            R.string.resume_challenge_supporting,
+                            challengeResumeLevel,
+                        ),
+                    entranceOrder = entranceOrder++,
+                    // A procedural level has no memorable footprint, so this chip keeps the
+                    // generic play arrow: a thumbnail of a board the player cannot recognise
+                    // would be decoration pretending to be information.
+                    board = null,
+                    onResume = { onResumeChallenge(challengeResumeLevel) },
+                )
+            }
+            ClassicTile(entranceOrder = entranceOrder++, onPlayClassic = onPlayClassic)
+            ChallengeTile(
+                currentLevel = state.challengeCurrentLevel,
+                entranceOrder = entranceOrder,
+                onPlayChallenge = onPlayChallenge,
             )
+            // Band 5 — the footer. It stops being a comment and becomes the slack it was
+            // reserved for: still empty of content (§4.2), and now the smaller share of the
+            // margin that keeps the tiles off the navigation bar.
+            Spacer(modifier = Modifier.weight(SLACK_BELOW_TILES_WEIGHT))
         }
-        // The Challenge Continue carries the SNAPSHOT's stamped level (WR-03),
-        // never challengeCurrentLevel — the ladder flow can lag at a cold start
-        // while the stamp always names the level the saved board really is.
-        val challengeResumeLevel = state.challengeResumeLevel
-        if (challengeResumeLevel != null) {
-            ResumeTile(
-                title = stringResource(R.string.resume_challenge_title),
-                supporting =
-                    stringResource(
-                        R.string.resume_challenge_supporting,
-                        challengeResumeLevel,
-                    ),
-                entranceOrder = entranceOrder++,
-                // A procedural level has no memorable footprint, so this chip keeps the
-                // generic play arrow: a thumbnail of a board the player cannot recognise
-                // would be decoration pretending to be information.
-                board = null,
-                onResume = { onResumeChallenge(challengeResumeLevel) },
-            )
-        }
-        ClassicTile(entranceOrder = entranceOrder++, onPlayClassic = onPlayClassic)
-        ChallengeTile(
-            currentLevel = state.challengeCurrentLevel,
-            entranceOrder = entranceOrder,
-            onPlayChallenge = onPlayChallenge,
-        )
-        // Band 5 — the footer. Empty, and specified as empty (§4.2) so a later phase reads the
-        // gap as reserved rather than as an invitation.
     }
 }
 
@@ -614,6 +668,24 @@ private fun ModeTile(
 internal const val CONTENT_WEIGHT = 1f
 
 /**
+ * How Home's vertical slack is split between the two empty `Spacer`s — above band 3 and as
+ * band 5 — when there is any slack to split (§4.2.2 clause 3, D-03i).
+ *
+ * 3 : 1 keeps the first mode tile's **top** edge at or below the midpoint in every state on
+ * every device at or above `home_compact_threshold_height` (worst case, a fresh install at
+ * exactly 720dp: tile top 405dp against a 360dp midpoint) while still leaving the tiles a
+ * visible margin above the navigation bar instead of sitting on it.
+ *
+ * Deliberately **not** [CONTENT_WEIGHT], even though the denominator is a 1f: that constant is
+ * one share of a `Row`'s free *width* beside a fixed accent, and this file's own convention is
+ * that a shared literal is a place for two owners to disagree. These two are the only weights
+ * on the vertical axis, and no content band may ever join them (clause 4 — a weighted content
+ * band measures at exactly its share, so it measures 0 the moment the fixed bands overflow).
+ */
+private const val SLACK_ABOVE_CHIPS_WEIGHT = 3f
+private const val SLACK_BELOW_TILES_WEIGHT = 1f
+
+/**
  * Entrance-cascade order of Home's fixed bands (§10: 40ms stagger, strictly downward).
  *
  * Only the first two are constants: the Continue chips and the mode tiles are conditional, so
@@ -675,7 +747,44 @@ private fun HomeScreenDarkPreview() {
     }
 }
 
+/**
+ * The compact band set (§4.2.2), which is otherwise only visible on a short device: the same
+ * busiest state as the dark preview, on a window below `home_compact_threshold_height`. The
+ * hero should be one row with no art, and both tiles should be on screen.
+ */
+@Preview(name = "Home · compact", widthDp = PREVIEW_COMPACT_WIDTH_DP, heightDp = PREVIEW_COMPACT_HEIGHT_DP)
+@Composable
+private fun HomeScreenCompactPreview() {
+    AppTheme(darkTheme = true) {
+        HomeScreen(
+            state =
+                HomeUiState(
+                    totalStars = PREVIEW_STARS,
+                    classicBoardsCleared = PREVIEW_BOARDS_CLEARED,
+                    challengeCurrentLevel = PREVIEW_LEVEL,
+                    classicResumeLevelId = ClassicLevelIds.EUROPEAN37,
+                    classicResumeBoard = Boards.european37Initial,
+                    challengeResumeLevel = PREVIEW_RESUME_LEVEL,
+                ),
+            onPlayClassic = {},
+            onPlayChallenge = {},
+            onResumeClassic = {},
+            onResumeChallenge = {},
+            onAcceptPlayGamesPrompt = {},
+            onDeclinePlayGamesPrompt = {},
+            onKeepDeviceProgress = {},
+            onUseCloudProgress = {},
+            onPlayGamesSignInErrorShown = {},
+            onOpenSettings = {},
+        )
+    }
+}
+
 private const val PREVIEW_STARS = 7
 private const val PREVIEW_BOARDS_CLEARED = 3
 private const val PREVIEW_LEVEL = 12
 private const val PREVIEW_RESUME_LEVEL = 11
+
+/** The small baseline the first-paint rule is written against (D-03f), and below the threshold. */
+private const val PREVIEW_COMPACT_WIDTH_DP = 360
+private const val PREVIEW_COMPACT_HEIGHT_DP = 640

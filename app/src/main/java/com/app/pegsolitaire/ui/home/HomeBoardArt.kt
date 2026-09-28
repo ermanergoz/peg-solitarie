@@ -2,6 +2,7 @@ package com.app.pegsolitaire.ui.home
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Boards
@@ -30,6 +31,14 @@ import com.app.pegsolitaire.ui.game.GameUiState
  */
 
 /**
+ * Semantics tag the tests use to ask whether the hero's art was composed at all — never its
+ * size, which would be a statement about the token rather than about the band set (§4.2.2:
+ * the compact set does not compose this art). It is a tag and not a description: the art is
+ * decorative and announces nothing.
+ */
+const val HOME_HERO_ART_TEST_TAG = "home_hero_art"
+
+/**
  * The hero's static peg cluster (**Q-901 option 1**, the founder's answer).
  *
  * Five candy pegs in a plus, drawn at rest: no drifting, no pulse and no ambient motion of its
@@ -44,7 +53,7 @@ import com.app.pegsolitaire.ui.game.GameUiState
  */
 @Composable
 internal fun HomeHeroArt(modifier: Modifier = Modifier) {
-    StaticBoardArt(board = HERO_CLUSTER, modifier = modifier)
+    StaticBoardArt(board = HERO_CLUSTER, modifier = modifier.testTag(HOME_HERO_ART_TEST_TAG))
 }
 
 /**

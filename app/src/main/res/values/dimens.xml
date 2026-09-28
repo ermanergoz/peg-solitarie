@@ -95,6 +95,20 @@
     <dimen name="home_resume_thumb_size">40dp</dimen>
     <!-- A mode tile's trailing art: the Classic footprint / the Challenge bolt. -->
     <dimen name="home_tile_art_size">56dp</dimen>
+    <!--
+      D-03i / ux-spec §4.2.2. The hero's MINIMUM in the compact band set: one row holding the
+      gradient title and the 48dp Settings gear, no art. The title is never truncated and
+      never scaled down, so at a large font scale the band grows past this and the column
+      scrolls (criterion 15i) — 72dp is the floor, not the height.
+    -->
+    <dimen name="home_hero_compact_min_height">72dp</dimen>
+    <!--
+      D-03i / ux-spec §4.2.2. The available height below which Home takes the compact band
+      set. It is the full set's own both-chips requirement (~716dp) rounded onto the 4dp grid,
+      and it is compared against AVAILABLE HEIGHT ONLY — never against the font scale, so a
+      tall phone at 200% keeps the full set and scrolls instead of reshaping.
+    -->
+    <dimen name="home_compact_threshold_height">720dp</dimen>
 
     <!--
       ============ Phase-15 tokens: the gameplay status strip and action dock ============
