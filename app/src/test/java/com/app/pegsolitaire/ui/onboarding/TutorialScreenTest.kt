@@ -1,7 +1,5 @@
 package com.app.pegsolitaire.ui.onboarding
 
-import android.view.View
-import androidx.compose.ui.platform.ViewRootForTest
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
@@ -17,12 +15,10 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.Insets
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
+import com.app.pegsolitaire.testing.applySystemBarInsets
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.game.BoardMetrics
 import com.app.pegsolitaire.ui.theme.AppTheme
@@ -112,7 +108,7 @@ class TutorialScreenTest {
     @Test
     fun skipsWholeTouchTargetClearsTheSystemBarsOnEveryStep() {
         val viewModel = startTutorial()
-        applySystemBarInsets()
+        composeRule.applySystemBarInsets(top = statusBarInset, bottom = navigationBarInset)
         val skip = label(R.string.onboarding_skip)
 
         repeat(TutorialUiState.STEP_COUNT) { step ->
@@ -132,17 +128,37 @@ class TutorialScreenTest {
     /**
      * The other edge of the same contract: the completion CTA is not under the navigation bar.
      *
-     * Deliberately on a **short** window. On a tall one the four bands leave hundreds of dp
-     * of air below the CTA, so the assertion would hold whatever the insets did — the kind of
-     * test that passes for the wrong reason. Here the column overflows, `performScrollTo`
-     * puts the CTA against the viewport's bottom edge, and the only thing that can keep it
-     * off the navigation bar is the padding.
+     * ## Why this window, and not the one this test used to be on (A-10)
+     *
+     * The intent was always to measure on a window short enough that the column overflows, so
+     * that `performScrollTo` presses the CTA against the viewport's bottom edge and the padding
+     * is the only thing that can keep it off the bar. `w360dp-h640dp` is **not** that window,
+     * and the re-audit proved it: with `safeDrawingPadding()` deleted this test still passed. The
+     * numbers say why — the four bands measure ≈600dp, so on a 640dp window with the insets
+     * ignored the column does not overflow **at all** (scrollable overflow 0.0dp), the scroll is
+     * a no-op, and the CTA sits at `532..584` with 32dp of air under a 616dp floor. It passed
+     * for exactly the wrong reason its own KDoc claimed it could not.
+     *
+     * [OVERFLOWING_WINDOW_QUALIFIER] is the shortest qualifier at which the property is
+     * *measurable*: ≈600dp of content overflows it whether or not the insets are honoured, so the
+     * scrolled CTA lands on the bottom edge of whichever viewport it is given — the inset one at
+     * 536dp, or the whole window at 560dp. The 24dp between those two is the navigation bar, and
+     * it is the whole of what this test measures. Measured both ways:
+     *
+     * | `safeDrawingPadding()` | overflow | CTA after the scroll | floor | verdict |
+     * |---|---|---|---|---|
+     * | present | 120.0dp | `484..536` | 536 | pass |
+     * | deleted | 40.0dp | `508..560` | 536 | **fail by 24dp** |
+     *
+     * The precondition is asserted rather than assumed, because assuming it is what went wrong:
+     * the scroll must actually **move** the CTA. On a window with room to spare it would not, and
+     * a no-op scroll measures nothing.
      */
     @Test
-    @Config(qualifiers = SHORT_PHONE_QUALIFIER)
+    @Config(qualifiers = OVERFLOWING_WINDOW_QUALIFIER)
     fun theCompletionButtonClearsTheNavigationBar() {
         val viewModel = startTutorial()
-        applySystemBarInsets()
+        composeRule.applySystemBarInsets(top = statusBarInset, bottom = navigationBarInset)
 
         repeat(TutorialUiState.STEP_COUNT) {
             while (viewModel.uiState.value.board.board.pegCount > TutorialUiState.STEP_COMPLETE_PEGS) {
@@ -152,9 +168,14 @@ class TutorialScreenTest {
             composeRule.waitForIdle()
         }
 
-        val cta = composeRule.onNodeWithText(label(R.string.onboarding_got_it)).performScrollTo()
+        val ctaLabel = label(R.string.onboarding_got_it)
+        val before = composeRule.onNodeWithText(ctaLabel).getBoundsInRoot()
+        val cta = composeRule.onNodeWithText(ctaLabel).performScrollTo().getBoundsInRoot()
         val floor = composeRule.onRoot().getBoundsInRoot().bottom - navigationBarInset
-        assertThat(cta.getBoundsInRoot().bottom).isAtMost(floor)
+
+        // The column really overflows, so the scroll really presses the CTA against the edge.
+        assertThat(cta.top).isNotEqualTo(before.top)
+        assertThat(cta.bottom).isAtMost(floor)
     }
 
     @Test
@@ -184,37 +205,6 @@ class TutorialScreenTest {
         RuntimeEnvironment
             .getApplication()
             .getString(R.string.tutorial_step_progress, stepNumber, TutorialUiState.STEP_COUNT)
-
-    /**
-     * Hands the composition the system-bar inset a device reports and Robolectric does not.
-     *
-     * Robolectric never delivers insets of its own, and dispatching them at the decor view
-     * does not reach Compose (its listener is installed on the `ComposeView`, and the shadowed
-     * `ViewRootImpl` above it does not forward). Dispatching straight at that view does,
-     * through the same `ViewCompat` listener `WindowInsets.safeDrawing` reads — so the values
-     * below arrive exactly as a real status and navigation bar's would.
-     */
-    private fun applySystemBarInsets() {
-        val insets =
-            WindowInsetsCompat
-                .Builder()
-                .setInsets(
-                    WindowInsetsCompat.Type.systemBars(),
-                    Insets.of(0, insetPx(STATUS_BAR_INSET_DP), 0, insetPx(NAVIGATION_BAR_INSET_DP)),
-                ).setVisible(WindowInsetsCompat.Type.systemBars(), true)
-                .build()
-        ViewCompat.dispatchApplyWindowInsets(composeHost(), insets)
-        composeRule.waitForIdle()
-    }
-
-    /**
-     * The `AndroidComposeView` behind the semantics tree — the view `WindowInsets.safeDrawing`
-     * installs its listener on, reached through the tree rather than through the Activity so
-     * this file keeps `createComposeRule()`.
-     */
-    private fun composeHost(): View = (composeRule.onRoot().fetchSemanticsNode().root as ViewRootForTest).view
-
-    private fun insetPx(dp: Int): Int = with(composeRule.density) { dp.dp.roundToPx() }
 
     private val statusBarInset: Dp get() = STATUS_BAR_INSET_DP.dp
 
@@ -298,5 +288,12 @@ private const val TUTORIAL_SCREEN_ROBOLECTRIC_SDK = 34
  */
 private const val TALL_PHONE_QUALIFIER = "w411dp-h915dp"
 
-/** The small baseline (§4.1's own), where the four bands overflow and the column scrolls. */
-private const val SHORT_PHONE_QUALIFIER = "w360dp-h640dp"
+/**
+ * The shortest window at which the CTA's bottom-edge clearance is **measurable**: the tutorial's
+ * four bands measure ≈600dp, so this column overflows whether or not the window insets are
+ * honoured, and the scrolled CTA therefore lands on the bottom edge of whichever viewport it was
+ * given. `w360dp-h640dp` cannot measure it — ≈600dp of content fits a 640dp window, so with the
+ * insets ignored the column does not overflow at all (A-10, and the measured table on
+ * [TutorialScreenTest.theCompletionButtonClearsTheNavigationBar]).
+ */
+private const val OVERFLOWING_WINDOW_QUALIFIER = "w360dp-h560dp"
