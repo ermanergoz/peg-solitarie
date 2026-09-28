@@ -104,13 +104,18 @@ class TutorialSoundTest {
         assertThat(sounds.cues).isEmpty()
 
         // Every wrong-tap class the spec enumerates, plus selection and deselection.
+        //
+        // The recorder is NOT cleared between them, and that is the point: it used to be
+        // cleared after the fourth tap, so four of the five gestures this test is named for
+        // were never actually asserted and a Select cue on selection would have passed
+        // (code-auditor A-1). Nothing here fires a cue, so the whole sequence is assertable
+        // as one — which is what the test claims to check.
         val move = RulesEngine.legalMoves(viewModel.uiState.value.board.board).single()
         tapCell(move.from) // select
         tapCell(move.from) // deselect (a re-tap)
         tapCell(move.from) // select again
-        tapCell(Position(row = 0, col = 1)) // a peg with no legal jump of its own
-        sounds.clear()
-        tapCell(Position(row = 0, col = 0)) // an illegal destination for it
+        tapCell(Position(row = 0, col = 1)) // a different peg while one is held: a no-op
+        tapCell(Position(row = 0, col = 0)) // the held peg again — the only deselect
 
         assertThat(sounds.cues)
             .containsNoneOf(
@@ -127,11 +132,15 @@ class TutorialSoundTest {
         val viewModel = startTutorial()
 
         playToCompletion(viewModel)
-        sounds.clear()
         composeRule.waitForIdle()
 
         // A tutorial is not a victory: `ClayAnim.STAR_POP_MS` is borrowed as a duration, not
         // as a cue, and D-14's two-beat celebration belongs to a real solve.
+        //
+        // Not cleared before the assertion, for A-1's reason again: the clear used to sit
+        // after the star had already composed, so the one frame that could have fired a star
+        // cue was the one frame outside the assertion's reach. The playthrough's own Jump and
+        // PegRemove cues are in the list now and are not what `containsNoneOf` looks for.
         assertThat(sounds.cues).containsNoneOf(SoundCue.Win, SoundCue.StarPop)
     }
 
