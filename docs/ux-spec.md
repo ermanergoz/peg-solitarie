@@ -238,7 +238,8 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > **Not reopened:** every §5.1 prohibition, the tutorial and its audio rulings, D-03f's three
 > oracles and §4.2.1's four rejections, D-03i's mechanism except the three clauses D-03l amends
 > (stated in §4.2.4), D-03k's narrow-class arithmetic and criterion 15k, the dock's order, sizes,
-> glyphs and cues, and the earlier-phase ad-allowance ruling (`GameUiState.kt:131-135`), which
+> glyphs (bar one slashed variant for Show-moves Off) and cues, and the earlier-phase ad-allowance
+> ruling (`GameUiState.kt:131-135`), which
 > D-04e applies rather than relaxes. This amendment adds **no string** (it deletes one,
 > `show_moves_off`), **no colour**, **no dependency** and **no third-party asset**; it adds one
 > in-house vector and seven tokens, changes one token's value and retires three.
@@ -1894,9 +1895,9 @@ row, the ribbon, the chips and the tiles leave — so no threshold decides it an
 
 > *(Amended 2026-09-28 — founder-feedback amendment, **D-05d**, §4.3.1. The Centre row's
 > `titleMedium` becomes `titleLarge`; the Trailing row's `titleMedium` becomes `headlineSmall` in a
-> 40dp-minimum clay pill; and the strip's `statusBarsPadding()` below is withdrawn, because the
-> `Scaffold` has already applied the status bar. The table is left as it reads because it is what
-> the audited build was built against.)*
+> 40dp-minimum clay pill; and the status bar is applied once — the `statusBarsPadding()` below
+> stacks on the `Scaffold`'s own content padding today, so one of the two goes. The table is left
+> as it reads because it is what the audited build was built against.)*
 
 Replaces `GameTopBar` (`GameScreen.kt:490-527`). A plain `Row`, `game_status_strip_height`,
 transparent, `statusBarsPadding()`, `spacing_md` horizontal padding, `CenterVertically`:
@@ -1916,8 +1917,9 @@ No actions live here. The strip is status only, which is what lets it be this qu
 
 > **Status.** Answers the founder's "elapsed time and the title seem too small. They could be
 > reworked." (Q-004). Supersedes §4.3's Centre and Trailing rows in their type roles and the timer
-> pill's height and shadow, and withdraws the strip's `statusBarsPadding()` and the dock's
-> `navigationBarsPadding()`. Unchanged: the three slots and their order, the title's content logic
+> pill's height and shadow, and rules that each system bar is applied to the gameplay screen once —
+> by the `Scaffold` or by the strip and the dock, never by both, as today. Unchanged: the three
+> slots and their order, the title's content logic
 > (`app_name` for Classic; `challenge_level_indicator` with its `_desc` for Challenge), `navigate_back`,
 > `elapsed_time`, the heading semantics, start alignment, "no actions live here", the strip's 56dp
 > minimum height and its `spacing_md` sides.
@@ -1927,7 +1929,7 @@ No actions live here. The strip is status only, which is what lets it be this qu
 | Leading — back chip | 48dp clay chip | **Unchanged.** |
 | Centre — title | `titleMedium` (Fredoka Medium **16sp**), `maxLines = 1`, `weight(1f)`, start-aligned | **`titleLarge` (Fredoka Medium 22sp)**; otherwise unchanged — `onSurface`, `maxLines = 1` with ellipsis, `weight(1f)`, start-aligned, `semantics { heading() }` |
 | Trailing — timer | `titleMedium` (**16sp**) with tabular figures, in a fixed **32dp** `surfaceContainerHigh` pill, `spacing_sm` sides, no shadow | **`headlineSmall` (Fredoka Medium 24sp)** with `withTabularFigures()`, `onSurface`; the pill is `heightIn(min = game_timer_pill_height)` — **40dp**, and a **minimum**: it grows with the font scale instead of clipping the digits, which the fixed height would do at 200% — with `game_timer_pill_padding` (12dp) sides, `shapes.small`, `surfaceContainerHigh`, and **`clayShadow(elevation_pressed)`**, the back chip's own shadow, so the strip reads as two clay chips framing a title |
-| The strip | `statusBarsPadding()`, 56dp minimum | **No `statusBarsPadding()`** (below); 56dp minimum unchanged — the tallest child at default scale is still the 48dp back chip |
+| The strip | `statusBarsPadding()` on top of the `Scaffold`'s, 56dp minimum | **The status bar applied once** — the strip's `statusBarsPadding()` or the `Scaffold`'s, not both (below); 56dp minimum unchanged — the tallest child at default scale is still the 48dp back chip |
 
 **Why the timer is the bigger of the two.** The timer is what a player looks up to *check*; it
 changes every second and must read in one glance from arm's length. The title is context, read once
@@ -2003,8 +2005,9 @@ targets in a `SpaceEvenly` `Row`, each `game_action_button_size` (56dp) with a m
 > *(Amended 2026-09-28 — founder-feedback amendment, **D-04e**, §4.4.1. The **Resting** and
 > **State channel** columns below are superseded by §4.4.1's five looks: Undo, Hint **and Restart**
 > share one Available look, Undo's disabled state becomes Unavailable, Hint's thinking state
-> becomes Working, and Show-moves alone is drawn On or Off. The dock's `navigationBarsPadding()` is
-> withdrawn (D-05d, §4.3.1). Order, glyphs, sizes, cues, descriptions other than Show-moves' and the
+> becomes Working, and Show-moves alone is drawn On or Off. The navigation bar is applied to the
+> dock once — its `navigationBarsPadding()` or the `Scaffold`'s, not both (D-05d, §4.3.1). Order,
+> glyphs, sizes, cues, descriptions other than Show-moves' and the
 > no-allowance contract below are unchanged. The table is left as it reads because it is what the
 > audited build was built against.)*
 
@@ -3123,7 +3126,7 @@ D-03l / D-04e / D-05d)*:
 | `GameFlowTest.kt:129` | Finds the timer by `elapsed_time` | **Passes unedited.** |
 | `GameScreenChromeTest.showMovesCarriesItsStateByFillAndNotByTintAlone` (a phase-15 test) | Reads `DockActionFilledKey` and the `show_moves_on`/`show_moves_off` pair; the key is replaced and the off string deleted | **Retarget, never delete or `@Ignore`:** assert the On/Off look property, the `ToggleableState`, `Role.Switch` and the constant name. A name that says what it now proves, e.g. `showMovesCarriesItsStateByFillRingMarkAndSwitchStateNeverByTint`. |
 | Any other test reading `DockActionFilledKey` | The key is replaced by the look property | Retarget to the look property. |
-| `HomeScreenTest` assertions that the hero art is present on a tall window, or that the compact hero is a separate shape (criterion 15l's third window) | There is no hero art and one hero shape | Retarget "hero art present" to "stage art present"; the full/compact distinction is now spacing and pill shape only. |
+| `HomeLayoutTest` / `HomeScreenTest` assertions (Home's geometry moved to `HomeLayoutTest` in the S10 slice) that the hero art is present on a tall window, absent on the narrow baseline, or that the compact hero is a separate shape (criteria 15k part 4, 15l's third window) | There is no hero art on any window and one hero shape | Retarget "hero art present" to "stage art present" and "hero art absent" to "no stage art on an overflowing column"; the full/compact distinction is now spacing and pill shape only. Retarget, never delete or `@Ignore`. |
 
 **Owed, new** — every one watched fail once before it is trusted: criteria **15n–15r** (Home, §4.2.4,
 including the unit test that replays the stage's recorded move list from the English start),
