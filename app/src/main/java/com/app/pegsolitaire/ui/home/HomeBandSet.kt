@@ -10,17 +10,23 @@ import com.app.pegsolitaire.R
  * Which band set Home takes (§4.2.2 D-03i, §4.2.3 D-03k).
  *
  * The decision belongs to one place, and this is it: `HomeBands` reads the space available to it
- * and hands each band a flag, and **no band decides its own shape**. That is why `HomeHero` and
- * `HomeProgressRibbon` both take a `Boolean` rather than reading a threshold themselves — two
- * readers of the same threshold are two places for it to drift.
+ * and applies the set — the band spacing itself, and a flag for the ribbon — so **no band decides
+ * its own shape**. That is why `HomeProgressRibbon` takes a `Boolean` rather than reading a
+ * threshold itself: two readers of the same threshold are two places for it to drift.
+ *
+ * Since D-03l the set no longer touches the hero: the hero is one row on every window, and the
+ * stage beneath it sizes itself from its own slot, so no threshold decides it (§4.2.4). The
+ * thresholds are kept at their values although their derivation assumed the old 172dp hero — the
+ * full set is now shorter, so they are conservative, and re-deriving them is a later tuning
+ * decision that no founder note asked for.
  *
  * It is decided from the available space and from **nothing else**. In particular the font scale
  * is never read: at 200% on a tall phone the set stays full and the column scrolls (criterion
  * 15i), because a layout that changes shape when the player changes their font size is worse than
  * one that scrolls.
  *
- * @property compact the compact band set: no hero art, the hero as one row, `spacing_sm` between
- *   bands and around the column. All of it or none of it.
+ * @property compact the compact band set: `spacing_sm` between bands and around the column, and
+ *   on the narrow class the compact pill. All of it or none of it.
  * @property narrow the narrow window class — below `home_compact_threshold_width` of available
  *   width, where every band wraps and the arithmetic changes.
  */

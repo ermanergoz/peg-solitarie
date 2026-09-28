@@ -31,6 +31,7 @@ import com.app.pegsolitaire.ui.home.fixture.bothResumesState
 import com.app.pegsolitaire.ui.home.fixture.challengeTileTitle
 import com.app.pegsolitaire.ui.home.fixture.chipsState
 import com.app.pegsolitaire.ui.home.fixture.classicTileTitle
+import com.app.pegsolitaire.ui.home.fixture.columnBoundsOf
 import com.app.pegsolitaire.ui.home.fixture.pillDescriptions
 import com.app.pegsolitaire.ui.home.fixture.renderHome
 import com.app.pegsolitaire.ui.home.fixture.settingsLabel
@@ -248,22 +249,7 @@ class HomeStageTest {
 
     private fun SemanticsNodeInteraction.assertExistsAndGet(): SemanticsNode = fetchSemanticsNode()
 
-    /**
-     * A node's bounds **along the column**: its unclipped position and size, so a band below the
-     * fold reports where it is, not the viewport edge `getBoundsInRoot()` would clip it to.
-     */
-    private fun boundsOf(node: SemanticsNodeInteraction): DpRect {
-        val semantics = node.fetchSemanticsNode()
-        val origin = semantics.positionInRoot
-        return with(composeRule.density) {
-            DpRect(
-                left = origin.x.toDp(),
-                top = origin.y.toDp(),
-                right = (origin.x + semantics.size.width).toDp(),
-                bottom = (origin.y + semantics.size.height).toDp(),
-            )
-        }
-    }
+    private fun boundsOf(node: SemanticsNodeInteraction): DpRect = composeRule.columnBoundsOf(node)
 
     private fun widthOf(node: SemanticsNodeInteraction): Dp {
         val bounds = boundsOf(node)

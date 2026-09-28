@@ -62,18 +62,19 @@ import kotlinx.coroutines.flow.first
  * Renders [state] and forwards events; owns no logic (state hoisting). An M3
  * [Scaffold] with **no top bar at all** (Phase 15, D-03/D-05c) hosts the five scrolling
  * bands of [HomeBands], capped at `content_max_width` and centred, with the height left over
- * split 3 : 1 above the Continue chips and below the tiles (§4.2.2, D-03i): the hero (the gradient Fredoka
- * title, its decorative peg cluster and the Settings gear that opens the Settings
- * destination, Phase-5 D-14), the read-only progress ribbon, up to two Continue chips,
- * the two chunky clay mode tiles — a violet Classic tile whose whole surface navigates to
- * the catalog ([onPlayClassic]) and a pink Challenge tile (with its persisted-level chip)
- * whose whole surface enters Challenge ([onPlayChallenge]) at the player's persisted
- * [HomeUiState.challengeCurrentLevel] (CHAL-05) — and an empty footer, which is the smaller
- * share of that slack. Two slow-drifting low-alpha blobs float behind the content (skipped
- * when OS animations are off), the bands enter with a stagger, and everything tappable
- * squishes. Below the compact threshold of available height — which reads the available
- * **width** as well, since D-03k — the hero drops its art and becomes one row, and on the
- * narrow class each progress pill drops its decorative glyph and puts its label beside its
+ * split 3 : 1 between the stage beneath the hero and the footer below the tiles (§4.2.2,
+ * §4.2.4, D-03i, D-03l): the hero row (the gradient Fredoka title start-aligned beside the
+ * Settings gear that opens the Settings destination, Phase-5 D-14), the stage — a clay board
+ * showing a game in progress, as large as the slack allows and not drawn when there is none —
+ * the read-only progress ribbon, up to two Continue chips, the two chunky clay mode tiles — a
+ * violet Classic tile whose whole surface navigates to the catalog ([onPlayClassic]) and a pink
+ * Challenge tile (with its persisted-level chip) whose whole surface enters Challenge
+ * ([onPlayChallenge]) at the player's persisted [HomeUiState.challengeCurrentLevel] (CHAL-05) —
+ * and an empty footer, which is the smaller share of that slack. Two slow-drifting low-alpha
+ * blobs float behind the content (skipped when OS animations are off), the bands enter with a
+ * stagger, and everything tappable squishes. Below the compact threshold of available height —
+ * which reads the available **width** as well, since D-03k — the band spacing tightens, and on
+ * the narrow class each progress pill drops its decorative glyph and puts its label beside its
  * value; no readout, control or band is ever dropped.
  *
  * **Home carries no tutorial chrome at all** (Phase 15, D-02). There is no information or
@@ -320,10 +321,11 @@ private fun PlayGamesSignInErrorSnackbarEffect(
  *
  * Below the compact threshold of **available** height — after the `Scaffold` has subtracted the
  * system-bar insets, so a tall navigation bar makes a device behave as the shorter device it
- * effectively is — Home takes the compact band set, all of it or none: the hero composes no art
- * and becomes one row at `home_hero_compact_min_height`, the band spacing and the column's
- * padding drop to `spacing_sm`, and on the narrow class each progress pill drops its decorative
- * glyph and puts its label beside its value. It is read against available height and width
+ * effectively is — Home takes the compact band set, all of it or none: the band spacing and the
+ * column's padding drop to `spacing_sm`, and on the narrow class each progress pill drops its
+ * decorative glyph and puts its label beside its value. (The hero is one row on every window since
+ * D-03l, and the stage needs no threshold: it only ever gets the slack, so on a short screen it is
+ * simply 0 and draws nothing.) It is read against available height and width
  * **never the font scale**, so a tall phone at 200% keeps the full set and scrolls rather than
  * changing shape (criterion 15i). Nothing else yields: not the gear (the only route to Settings
  * and so to How to play), not a pill, not a label, not a value, not a chip, not a tile, not a
@@ -388,7 +390,7 @@ private fun HomeBands(
                     .padding(bandSpacing),
             verticalArrangement = Arrangement.spacedBy(bandSpacing),
         ) {
-            HomeHero(compact = bandSet.compact, onOpenSettings = onOpenSettings)
+            HomeHero(onOpenSettings = onOpenSettings)
             // The stage: most of the slack, directly beneath the hero row (§4.2.4 clause 3), so
             // the ribbon, the chips and the tiles form one contiguous lower group in the thumb
             // zone and the slack reads as the game's own board instead of a hole. It is the one
@@ -792,9 +794,10 @@ private fun HomeScreenDarkPreview() {
 /**
  * The compact-narrow band set (§4.2.2, §4.2.3), which is otherwise only visible on a short
  * narrow device: the same busiest state as the dark preview, on the design baseline's own
- * 360x640dp window. The hero should be one row with no art, each progress pill should read
- * "label value" on one line with no glyph, and the Challenge tile should be cut by the bottom
- * edge rather than sitting below it — that fold is criterion 15k part 2, not a clipping bug.
+ * 360x640dp window. The hero row should sit directly above the ribbon with no stage between
+ * them (the column overflows, so the stage is 0), each progress pill should read "label value"
+ * on one line with no glyph, and the Challenge tile should be cut by the bottom edge rather than
+ * sitting below it — that fold is criterion 15k part 2, not a clipping bug.
  *
  * In **both** themes, per rules/compose.md: the compact band set is the one a 360dp-wide phone
  * always gets (§4.2.3), so it is not a variant that only needs checking in one of them.

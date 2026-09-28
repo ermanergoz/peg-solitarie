@@ -55,7 +55,8 @@ import org.robolectric.annotation.Config
 
 /**
  * Home's **geometry**: the vertical slack (D-03i, §4.2.2, criteria 15g–15j) and the narrow window
- * class (D-03k, §4.2.3, criteria 15k–15m).
+ * class (D-03k, §4.2.3, criteria 15k–15m). The hero row and the stage that D-03l put in the slack
+ * (§4.2.4, criteria 15n–15r) are measured in `HomeHeroRowTest` and `HomeStageTest`.
  *
  * Split out of [HomeScreenTest], which proves that what the state carries reaches the screen. This
  * class proves *where* it lands, which is a different question measured with different tools —
@@ -120,7 +121,12 @@ class HomeLayoutTest {
     /**
      * Criterion 15l's third window, and the other side of the compact band set: at or above
      * `home_compact_threshold_width` nothing D-03k added changes behaviour, so a 6.7-inch phone
-     * keeps the full hero with its decorative art.
+     * keeps the full band set — and its slack holds the stage's board.
+     *
+     * Retargeted, not deleted (ux-spec §13's founder-feedback table): this asserted the hero's
+     * decorative art, which D-03l withdrew on every window. 15l's "with the hero's decorative art
+     * present" now reads "with the stage art present" (§14), and the full/compact distinction is
+     * spacing and pill shape alone.
      *
      * The qualifier is 15l's own `w412dp-h915dp` rather than [TALL_PHONE_QUALIFIER]'s 411dp — the
      * same side of the 400dp boundary, named as the criterion names it so the width term's
@@ -128,10 +134,10 @@ class HomeLayoutTest {
      */
     @Test
     @Config(qualifiers = WIDE_PHONE_QUALIFIER)
-    fun theHeroKeepsItsArtOnAPhoneAboveTheCompactThreshold() {
+    fun theStageArtIsPresentOnAPhoneAboveTheCompactThreshold() {
         composeRule.renderHome(state = bothResumesState())
 
-        composeRule.onNodeWithTag(HOME_HERO_ART_TEST_TAG).assertExists()
+        composeRule.onNodeWithTag(HOME_STAGE_ART_TEST_TAG).assertExists()
     }
 
     /**
@@ -225,8 +231,10 @@ class HomeLayoutTest {
      * "complete in the first viewport" is asserted as **"a scroll does not move this node"**
      * ([assertAScrollDoesNotMove]), which is a property of the layout rather than of the clipping.
      *
-     * Part 4's half that belongs here: the hero composes no art, and all three ribbon readouts are
-     * rendered rather than dropped or truncated to fit.
+     * Part 4's half that belongs here: no decorative art on the overflowing column — the stage
+     * measures 0 and draws nothing (retargeted from "the hero composes no art", which D-03l made
+     * true of every window) — and all three ribbon readouts are rendered rather than dropped or
+     * truncated to fit.
      */
     @Test
     @Config(qualifiers = SHORT_PHONE_QUALIFIER)
@@ -244,7 +252,7 @@ class HomeLayoutTest {
         assertAScrollDoesNotMove(composeRule.onNodeWithText(RESUME_CHALLENGE_LABEL))
         assertAScrollDoesNotMove(composeRule.onNodeWithText(classicTileTitle))
 
-        composeRule.onNodeWithTag(HOME_HERO_ART_TEST_TAG).assertDoesNotExist()
+        composeRule.onNodeWithTag(HOME_STAGE_ART_TEST_TAG).assertDoesNotExist()
         assertThat(composeRule.renderedValues())
             .containsAtLeast(EARNED_STARS.toString(), boardsValue, PERSISTED_LEVEL.toString())
     }
@@ -315,16 +323,28 @@ class HomeLayoutTest {
      *
      * A 360x800dp phone is comfortably above `home_compact_threshold_height` and would have kept
      * the full band set, which at this width is ~872dp against ~728dp of usable height — 144dp
-     * over, scrolling, with the art it cannot afford. Below `home_compact_threshold_width` the
-     * threshold is `home_compact_threshold_height_narrow` instead, so it takes the compact set and
-     * fits with slack to spare.
+     * over, scrolling. Below `home_compact_threshold_width` the threshold is
+     * `home_compact_threshold_height_narrow` instead, so it takes the compact set and fits with
+     * slack to spare.
+     *
+     * Retargeted, not deleted (ux-spec §13's founder-feedback table): the compact set used to be
+     * recognisable by its missing hero art, and D-03l withdrew that art on every window, so the
+     * full/compact distinction is now spacing and pill shape alone. The pill shape is the one read
+     * here — label **beside** value on one line, which the full set's stacked pill cannot do and
+     * which only the compact set on the narrow class draws. (This window's slack now draws a small
+     * stage board, which is §4.2.4's intent for a taller narrow phone and not a sign of the full
+     * set.)
      */
     @Test
     @Config(qualifiers = NARROW_TALL_PHONE_QUALIFIER)
     fun aNarrowTallPhoneIsCompactEvenThoughTheWideThresholdWouldKeepItFull() {
         composeRule.renderHome(state = bothResumesState())
 
-        composeRule.onNodeWithTag(HOME_HERO_ART_TEST_TAG).assertDoesNotExist()
+        val label = unmergedBounds(boardsLabel)
+        val value = unmergedBounds(boardsValue)
+        assertThat(value.top).isLessThan(label.bottom)
+        assertThat(label.top).isLessThan(value.bottom)
+        assertThat(label.right).isAtMost(value.left)
     }
 
     /**

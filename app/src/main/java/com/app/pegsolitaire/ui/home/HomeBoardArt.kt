@@ -2,17 +2,15 @@ package com.app.pegsolitaire.ui.home
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
 import com.app.pegsolitaire.domain.model.Board
-import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Boards
-import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.ui.components.BoardCanvas
 import com.app.pegsolitaire.ui.game.GameUiState
 
 /*
- * Home's decorative board art (ux-spec §4.2, D-03): the hero's peg cluster, the Classic mode
- * tile's footprint, and the Classic Continue chip's thumbnail of the saved board.
+ * Home's small decorative board art (ux-spec §4.2, D-03): the Classic mode tile's footprint and
+ * the Classic Continue chip's thumbnail of the saved board. The hero's peg cluster that used to
+ * live here is withdrawn (D-03l); the board the slack now holds is the stage, in `HomeStage.kt`.
  *
  * Why it is `BoardCanvas` and not an asset. Every one of these is the shipped board renderer in
  * `interactive = false` mode, which is what `BoardPreview` already does for the catalogue cards.
@@ -26,35 +24,9 @@ import com.app.pegsolitaire.ui.game.GameUiState
  * canvas. Keeping the two kinds apart is what stops either file becoming "Home's pictures".
  *
  * Everything here is DECORATIVE: each carries no content description (`BoardCanvas` attaches
- * none), because the band, chip or tile around it is already labelled and a screen reader
- * announcing a board footprint would add noise, not information (§11 "Labels").
+ * none), because the tile or chip around it is already labelled and a screen reader announcing a
+ * board footprint would add noise, not information (§11 "Labels").
  */
-
-/**
- * Semantics tag the tests use to ask whether the hero's art was composed at all — never its
- * size, which would be a statement about the token rather than about the band set (§4.2.2:
- * the compact set does not compose this art). It is a tag and not a description: the art is
- * decorative and announces nothing.
- */
-const val HOME_HERO_ART_TEST_TAG = "home_hero_art"
-
-/**
- * The hero's static peg cluster (**Q-901 option 1**, the founder's answer).
- *
- * Five candy pegs in a plus, drawn at rest: no drifting, no pulse and no ambient motion of its
- * own, so the two existing `HomeBlobs` remain the only moving things on the screen and nothing
- * runs an animation on the app's first frame (D-03g). Option 2's drifting mini-board was
- * rejected for exactly that; option 3 — the gradient title alone — is step 3 of §6.5's
- * degradation path, so if the C1 measurement ever forces it, removing this one call is the
- * whole change.
- *
- * It is deliberately **not** a Classic footprint: the hero is ornament, and reusing a real
- * board here would imply it is the board the player is about to enter.
- */
-@Composable
-internal fun HomeHeroArt(modifier: Modifier = Modifier) {
-    StaticBoardArt(board = HERO_CLUSTER, modifier = modifier.testTag(HOME_HERO_ART_TEST_TAG))
-}
 
 /**
  * A static board footprint, rendered read-only.
@@ -64,8 +36,8 @@ internal fun HomeHeroArt(modifier: Modifier = Modifier) {
  * the resting pegs and the recessed empty holes, and nothing that could react to a touch the
  * parent surface owns.
  *
- * @param board the footprint to draw — the hero cluster, a mode tile's board, or the exact
- *   board a saved Classic game sits on (carried in `HomeUiState`, never looked up here).
+ * @param board the footprint to draw — a mode tile's board, or the exact board a saved Classic
+ *   game sits on (carried in `HomeUiState`, never looked up here).
  * @param modifier layout modifier; the caller sizes it from a Home art token.
  */
 @Composable
@@ -84,28 +56,3 @@ internal fun StaticBoardArt(
 
 /** The Classic mode tile's trailing art: the smallest shipped footprint, at tile scale. */
 internal val ClassicTileArtBoard: Board get() = Boards.english33Initial
-
-/**
- * The hero cluster's five in-play cells, a plus inside a 3x3 box.
- *
- * `target = null`: this spec is never played, solved or scored — it exists only to give
- * `BoardGeometry` a footprint to lay out, and a target would imply a puzzle.
- */
-private val HERO_CLUSTER_SPEC =
-    BoardSpec(
-        inPlay =
-            listOf(
-                Position(row = 0, col = 1),
-                Position(row = 1, col = 0),
-                Position(row = 1, col = 1),
-                Position(row = 1, col = 2),
-                Position(row = 2, col = 1),
-            ),
-        target = null,
-    )
-
-/** All five cells hold a peg, so the hero reads as a cluster of pegs rather than a puzzle. */
-private val HERO_CLUSTER: Board =
-    HERO_CLUSTER_SPEC.inPlay.fold(Board(spec = HERO_CLUSTER_SPEC, pegs = 0L)) { board, position ->
-        board.withPeg(position)
-    }

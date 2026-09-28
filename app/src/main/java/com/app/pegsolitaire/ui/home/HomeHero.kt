@@ -1,8 +1,6 @@
 package com.app.pegsolitaire.ui.home
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -24,7 +22,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.tooling.preview.Preview
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.ui.theme.AppTheme
 import com.app.pegsolitaire.ui.theme.clayEntrance
 import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
@@ -34,88 +34,43 @@ import com.app.pegsolitaire.ui.theme.ctaGradientBrush
 const val HOME_HERO_TEST_TAG = "home_hero"
 
 /**
- * Band 1 — the hero: the gradient Fredoka title, the static peg-cluster art, and the Settings
- * gear as a clay circular chip at the band's top-end.
+ * Band 1 — the hero **row** (ux-spec §4.2.4, D-03l): the gradient Fredoka title start-aligned, the
+ * Settings gear as a clay circular chip at the row's end, on every window and in every band set.
  *
- * The title moves here from the deleted `TopAppBar` and grows to `displaySmall`; it keeps the
- * shared `ctaGradientBrush()`, so it is the same object the player sees on every CTA.
+ * ## Why one row, and no logo
  *
- * The gear keeps `Icons.Rounded.Settings` and — deliberately — the **unchanged**
- * `settings_action` content description (D-05b's rule applied to Home): `ButtonSoundTest`
- * locates it by that string, and it stays silent, exactly as it was in the bar.
- *
- * Its 48dp target is `IconButton`'s own minimum rather than a new dimen: the framework
- * guarantees it, the gear has always relied on it here, and a token would be a second,
- * driftable statement of the same number. The clay chip is the `Surface` around it.
- *
- * `home_hero_min_height` is a **minimum**: the band must be allowed to compress toward it —
- * art first, then title scale — before anything below it leaves the fold (D-03f).
- *
- * [compact] is the §4.2.2 band set, decided by `HomeBands` from the height available to it and
- * never by this composable: below the threshold the band drops its art, becomes one row, and
- * takes `home_hero_compact_min_height`. The hero is the band that yields because §6.5 already
- * ranks this art as the cheapest thing on Home to lose (step 3 of 4 in its degradation path);
- * what it must not do is lose the **gear**, which is the only route to Settings and, since
- * D-02a, the only permanent route to How to play.
- */
-@Composable
-internal fun HomeHero(
-    compact: Boolean,
-    onOpenSettings: () -> Unit,
-) {
-    if (compact) {
-        CompactHero(onOpenSettings = onOpenSettings)
-    } else {
-        FullHero(onOpenSettings = onOpenSettings)
-    }
-}
-
-/** The hero with room for its art: the cluster over the title, gear at the top-end corner. */
-@Composable
-private fun FullHero(onOpenSettings: () -> Unit) {
-    Box(
-        modifier =
-            Modifier
-                .clayEntrance(HERO_ENTRANCE_ORDER)
-                .fillMaxWidth()
-                .heightIn(min = dimensionResource(R.dimen.home_hero_min_height))
-                .testTag(HOME_HERO_TEST_TAG),
-    ) {
-        Column(
-            modifier = Modifier.align(Alignment.Center),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_sm)),
-        ) {
-            HomeHeroArt(modifier = Modifier.size(dimensionResource(R.dimen.home_hero_art_size)))
-            HeroTitle()
-        }
-        SettingsGear(
-            onOpenSettings = onOpenSettings,
-            modifier = Modifier.align(Alignment.TopEnd),
-        )
-    }
-}
-
-/**
- * The hero on a short screen: one row, the title leading and the gear trailing, art not
- * composed at all (§4.2.2).
+ * The founder named the peg-cross logo and "how the title sits" in the same breath, and they had
+ * one cause. Centring was the logo's composition — a centred emblem wants a centred word under it
+ * — and a title centred under art and above a ribbon belongs to neither. Start-aligned in the
+ * gear's row it reads as the screen's heading, grounded by the only other element that shares its
+ * job; and it is the geometry the 360dp-wide class has shown since D-03i, so the two width classes
+ * stop looking like two different apps. The logo is withdrawn outright rather than redrawn: the
+ * slack it stood in is now the [HomeStage], which shows the game itself.
  *
  * **This is not a top bar.** No surface, no elevation, no window insets of its own; it scrolls
- * with the content and the title keeps display scale. D-03a deleted Home's bar and §5's "no M3
- * `TopAppBar` anywhere" is untouched — what this shares with the deleted bar is one row's
- * geometry, which is not a component.
+ * with the content, and D-03a's deletion of Home's bar and §5's "no M3 `TopAppBar`" are untouched —
+ * what the row shares with the deleted bar is one row's geometry, which is not a component. It is
+ * the first thing in the column: nothing is drawn above the title but the column's top padding and
+ * the ambient blobs behind everything.
  *
- * The title is never truncated and never scaled down: there is no `maxLines` here, so a large
- * font scale wraps it, the band grows past its minimum and the column scrolls (criterion 14).
+ * The title keeps the shared `ctaGradientBrush()` at `displaySmall`, takes the width the gear
+ * leaves, and has **no `maxLines`**: it is never truncated and never scaled down, so at a large
+ * font scale it wraps, the row grows past `home_hero_row_min_height` and the column scrolls
+ * (criteria 14, 15i, 15o).
+ *
+ * The gear keeps `Icons.Rounded.Settings` and — deliberately — the **unchanged** `settings_action`
+ * content description (D-05b's rule applied to Home): `ButtonSoundTest` locates it by that string,
+ * and it stays silent. It is the only route to Settings and, since D-02a, the only permanent route
+ * to How to play, which is why it never yields on any window.
  */
 @Composable
-private fun CompactHero(onOpenSettings: () -> Unit) {
+internal fun HomeHero(onOpenSettings: () -> Unit) {
     Row(
         modifier =
             Modifier
                 .clayEntrance(HERO_ENTRANCE_ORDER)
                 .fillMaxWidth()
-                .heightIn(min = dimensionResource(R.dimen.home_hero_compact_min_height))
+                .heightIn(min = dimensionResource(R.dimen.home_hero_row_min_height))
                 .testTag(HOME_HERO_TEST_TAG),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -134,16 +89,17 @@ private fun HeroTitle(modifier: Modifier = Modifier) {
     )
 }
 
-/** The clay gear chip — identical in both band sets, because it is the one thing that cannot yield. */
+/**
+ * The clay gear chip. Its 48dp target is `IconButton`'s own minimum rather than a new dimen: the
+ * framework guarantees it, and a token would be a second, driftable statement of the same number.
+ * The clay chip is the `Surface` around it.
+ */
 @Composable
-private fun SettingsGear(
-    onOpenSettings: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+private fun SettingsGear(onOpenSettings: () -> Unit) {
     Surface(
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = modifier.clayShadow(dimensionResource(R.dimen.elevation_pressed), CircleShape),
+        modifier = Modifier.clayShadow(dimensionResource(R.dimen.elevation_pressed), CircleShape),
     ) {
         IconButton(onClick = onOpenSettings, modifier = Modifier.claySquish()) {
             Icon(
@@ -154,3 +110,18 @@ private fun SettingsGear(
         }
     }
 }
+
+/** The hero row on the design baseline's width, on the app background, in both themes. */
+@Preview(name = "Home hero · light", widthDp = PREVIEW_HERO_WIDTH_DP)
+@Preview(name = "Home hero · dark", widthDp = PREVIEW_HERO_WIDTH_DP, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun HomeHeroPreview() {
+    AppTheme {
+        Surface(color = MaterialTheme.colorScheme.background) {
+            HomeHero(onOpenSettings = {})
+        }
+    }
+}
+
+/** The narrowest supported window, where the title has the least room beside the gear. */
+private const val PREVIEW_HERO_WIDTH_DP = 360

@@ -8,11 +8,13 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.DpRect
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.domain.model.Boards
@@ -163,6 +165,26 @@ internal fun ComposeContentTestRule.renderHome(
         }
     }
     waitForIdle()
+}
+
+// ---- Geometry ----------------------------------------------------------------
+
+/**
+ * A node's bounds **along the column**: its unclipped position and size, so a band below the fold
+ * reports where it is rather than the viewport edge `getBoundsInRoot()` clips it to (§13's first
+ * forbidden idiom is containment read off clipped bounds).
+ */
+internal fun ComposeContentTestRule.columnBoundsOf(node: SemanticsNodeInteraction): DpRect {
+    val semantics = node.fetchSemanticsNode()
+    val origin = semantics.positionInRoot
+    return with(density) {
+        DpRect(
+            left = origin.x.toDp(),
+            top = origin.y.toDp(),
+            right = (origin.x + semantics.size.width).toDp(),
+            bottom = (origin.y + semantics.size.height).toDp(),
+        )
+    }
 }
 
 // ---- Ribbon accessors --------------------------------------------------------

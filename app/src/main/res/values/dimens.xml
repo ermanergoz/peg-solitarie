@@ -73,17 +73,12 @@
       ux-spec §4.2, §6.1. One token per owner even where an existing token shares the value.
     -->
     <!--
-      MINIMUM height of the hero band, not a fixed one: the hero is the band that yields (art
-      first, then title scale) so bands 3 and 4 — the Continue chips and both mode tiles —
-      stay inside the first viewport at default font scale on a 360x640dp phone (D-03f).
+      D-03l / ux-spec §4.2.4. The MINIMUM height of the hero row — the gradient title and the 48dp
+      Settings gear — on every window. The title is never truncated and never scaled down, so at a
+      large font scale the row grows past this and the column scrolls (criteria 14, 15i, 15o).
+      Same value as the retired compact-hero token, new owner: the row is no longer compact-only.
     -->
-    <dimen name="home_hero_min_height">160dp</dimen>
-    <!--
-      The hero's decorative peg cluster (Q-901 option 1, answered): static, contentDescription
-      null, and drawn from BoardCanvas primitives, so it is vector geometry with no asset
-      decode on the cold-start critical path (D-03g).
-    -->
-    <dimen name="home_hero_art_size">120dp</dimen>
+    <dimen name="home_hero_row_min_height">72dp</dimen>
     <!-- One progress-ribbon pill. Three of them share the row at equal weight. -->
     <dimen name="home_stat_pill_min_height">64dp</dimen>
     <!-- One progress-ribbon pill glyph. Decorative: the pill speaks as one node. -->
@@ -95,13 +90,6 @@
     <dimen name="home_resume_thumb_size">40dp</dimen>
     <!-- A mode tile's trailing art: the Classic footprint / the Challenge bolt. -->
     <dimen name="home_tile_art_size">56dp</dimen>
-    <!--
-      D-03i / ux-spec §4.2.2. The hero's MINIMUM in the compact band set: one row holding the
-      gradient title and the 48dp Settings gear, no art. The title is never truncated and
-      never scaled down, so at a large font scale the band grows past this and the column
-      scrolls (criterion 15i) — 72dp is the floor, not the height.
-    -->
-    <dimen name="home_hero_compact_min_height">72dp</dimen>
     <!--
       D-03i / ux-spec §4.2.2. The available height below which Home takes the compact band
       set. It is the full set's own both-chips requirement (~716dp) rounded onto the 4dp grid,
