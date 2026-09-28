@@ -1,8 +1,6 @@
 package com.app.pegsolitaire.ui.game
 
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -14,17 +12,30 @@ import com.app.pegsolitaire.R
 import com.app.pegsolitaire.ui.theme.claySquish
 
 /**
- * The top-bar "Show possible moves" toggle (player control over the legal-destination dots).
+ * The "Show possible moves" toggle — one of [GameActionDock]'s two **quiet** controls (D-04b).
  *
- * A stateless `TopAppBar` action mirroring [RestartControl]: an [IconButton] showing
- * [Icons.Rounded.Info] sized to `top_bar_icon_size`, emitting [onToggleHints] on tap.
- * Core icon set has no lightbulb/visibility glyph, so the on/off state is conveyed by
- * the tint — `primary` when the dots are ON, `onSurfaceVariant` when OFF — and by the
- * content description (`show_moves_on` / `show_moves_off`) so the icon-only control is
- * accessible. It stays a pure render gate for the dots and is deliberately distinct from
- * the separate winning-move [HintControl] (D-02); the persisted flip lives in the ViewModel.
+ * A stateless [IconButton] on a [DockActionChip] that is outlined when the dots are OFF and
+ * **filled** when they are ON, showing the local [ShowMovesIcon] at `game_action_glyph_size`.
+ * It stays a pure render gate for the dots and is deliberately distinct from the separate
+ * winning-move [HintControl] (D-02); the persisted flip lives in the ViewModel.
  *
- * @param showHints whether hints are currently on (drives tint + content description).
+ * ## Two fixes, not a reskin (criterion 20, criterion 21)
+ *
+ * **The glyph.** It was the core set's information glyph — the same drawing Home used for its
+ * help button, so one picture meant two unrelated things in one app. [ShowMovesIcon] is a peg
+ * with two trailing
+ * destination dots: literally what the feature draws.
+ *
+ * **The state channel.** Until Phase 15 this control carried its whole ON/OFF state in tint —
+ * `primary` versus `onSurfaceVariant` — which breaks rules/compose.md's "never colour alone" and
+ * is invisible to a colour-blind player and in a screenshot. The fill is now the primary channel,
+ * the tint the second and `show_moves_on`/`show_moves_off` the third, and the fill is reported
+ * through [DockActionFilledKey] so a regression fails a test rather than a review.
+ *
+ * It is **silent** (D-09): a toggle is not a navigational CTA, and `show_moves_on` must stay its
+ * ON description — `ButtonSoundTest.kt:226-244` locates it by that string.
+ *
+ * @param showHints whether hints are currently on (drives fill, tint and content description).
  * @param onToggleHints invoked when the player taps the toggle.
  * @param modifier layout modifier for the icon button.
  */
@@ -34,21 +45,23 @@ fun HintToggleControl(
     onToggleHints: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    IconButton(
-        onClick = onToggleHints,
-        modifier = modifier.claySquish().size(dimensionResource(R.dimen.top_bar_touch_target)),
-    ) {
-        Icon(
-            imageVector = Icons.Rounded.Info,
-            contentDescription =
-                stringResource(if (showHints) R.string.show_moves_on else R.string.show_moves_off),
-            tint =
-                if (showHints) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-            modifier = Modifier.size(dimensionResource(R.dimen.top_bar_icon_size)),
-        )
+    DockActionChip(filled = showHints) {
+        IconButton(
+            onClick = onToggleHints,
+            modifier = modifier.claySquish().size(dimensionResource(R.dimen.game_action_button_size)),
+        ) {
+            Icon(
+                imageVector = ShowMovesIcon,
+                contentDescription =
+                    stringResource(if (showHints) R.string.show_moves_on else R.string.show_moves_off),
+                tint =
+                    if (showHints) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                modifier = Modifier.size(dimensionResource(R.dimen.game_action_glyph_size)),
+            )
+        }
     }
 }

@@ -62,6 +62,28 @@ class UndoControlTest {
 
         assertThat(clicks).isEqualTo(0)
     }
+
+    /**
+     * Criterion 22 after the D-04 move: the control keeps its label in **both** states, so the
+     * disabled case is announced rather than merely drawn.
+     *
+     * Added with Phase 15 rather than rewritten: the control moved from the top bar into the
+     * action dock and grew from `top_bar_touch_target` to `game_action_button_size`, but what it
+     * promises the player did not change, so the two tests above stand unedited and this one
+     * covers the channel the reskin could silently have dropped.
+     */
+    @Test
+    fun theUndoActionKeepsItsLabelInBothStatesSoDisabledIsAnnouncedAndNotOnlyDrawn() {
+        composeRule.setContent {
+            AppTheme {
+                UndoControl(canUndo = false, onUndo = {})
+            }
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription(undoLabel).assertExists()
+        composeRule.onNodeWithContentDescription(undoLabel).assertIsNotEnabled()
+    }
 }
 
 /** Robolectric has no android-all jar for Android 16 (SDK 36) yet; emulate SDK 34. */

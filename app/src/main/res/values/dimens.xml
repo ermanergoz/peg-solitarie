@@ -99,6 +99,29 @@
     <dimen name="home_tile_art_size">56dp</dimen>
 
     <!--
+      ============ Phase-15 tokens: the gameplay status strip and action dock ============
+      ux-spec §4.3, §4.4, §6.1. The deleted `TopAppBar` held all of this; these tokens are what
+      replace it, and the dock's targets are deliberately the LARGEST in the app because they
+      sit under the thumb during play.
+    -->
+    <!-- The status strip: back chip, context title, timer pill. Transparent, no bar. -->
+    <dimen name="game_status_strip_height">56dp</dimen>
+    <!-- The strip's back chip. 48dp is the accessibility floor, and the strip is status-only. -->
+    <dimen name="game_status_back_size">48dp</dimen>
+    <!-- The timer pill. Short, because the elapsed time is a reading rather than a control. -->
+    <dimen name="game_timer_pill_height">32dp</dimen>
+    <!-- The action dock slab below the board, in the thumb zone. -->
+    <dimen name="game_action_dock_height">72dp</dimen>
+    <!--
+      One dock action target: 56dp, above the 48dp floor on purpose (§11). This is the token
+      that replaces `top_bar_touch_target` at all five of its former call sites, which is what
+      lets that token be retired.
+    -->
+    <dimen name="game_action_button_size">56dp</dimen>
+    <!-- One dock action glyph, sized up from `top_bar_icon_size` to match the larger target. -->
+    <dimen name="game_action_glyph_size">28dp</dimen>
+
+    <!--
       Phase-4 token: min height of the inline no-win/stuck rescue banner (multiple of 4)
       so its three actions (Undo · Restart · Home) stay tap-reachable (UI-SPEC §4).
     -->

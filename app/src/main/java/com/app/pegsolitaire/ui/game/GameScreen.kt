@@ -1,29 +1,18 @@
-// The screen and its private, single-purpose parts: the top bar, its four labels/indicators,
-// the confirm dialog, and the nine one-shot feedback effects (one haptic + seven sound cues +
-// the ad-message snackbar). Each is a handful of lines and each exists only for this screen;
-// splitting them across files to satisfy a per-file count would scatter the screen's own
-// composition for no reader's benefit. The cue effects in particular are deliberately adjacent
-// to JumpHaptic — they are clones of its idiom and are read against it.
-@file:Suppress("TooManyFunctions")
-
 package com.app.pegsolitaire.ui.game
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -31,7 +20,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -58,7 +46,6 @@ import com.app.pegsolitaire.ui.components.ClaySnackbarHost
 import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.ctaGradientBrush
-import com.app.pegsolitaire.ui.theme.withTabularFigures
 
 /** Test tag of the board-state node carrying the [PegCountKey]/[GameStatusKey]/[LegalTargetCountKey] semantics. */
 const val GAME_STATE_TEST_TAG = "game_state"
@@ -79,10 +66,19 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
 /**
  * The stateless playable-board screen (Route/Screen/Leaf middle layer).
  *
- * Renders [state] and forwards events; owns no game logic (state hoisting). An M3
- * [Scaffold] hosts a [TopAppBar] (a back nav, the title, the live `mm:ss` elapsed
- * timer D-04, and the [RestartControl] D-06 action) over a centered
- * `surfaceContainerHigh` board panel containing the [BoardCanvas]. Reaching a
+ * Renders [state] and forwards events; owns no game logic (state hoisting).
+ *
+ * ## The chrome, after D-04/D-05
+ *
+ * There is **no Material top app bar** (criterion 16). An M3 [Scaffold] hosts a column of three
+ * things: the [GameStatusStrip] (back, context title, live `mm:ss` timer — status only), the
+ * centred `surfaceContainerHigh` board panel containing the [BoardCanvas], and the
+ * [GameActionDock] (Undo · Hint · Show-moves · Restart) pinned below it in the thumb zone. The
+ * board takes the space the two leave, so the dock is on screen at every viewport height and
+ * font scale — a dock the player has to scroll to would be worse than the bar it replaced.
+ *
+ * Nothing the player can *use* was removed: all five controls, the context-aware title, the
+ * timer label and every handler signature this composable takes are the ones it had. Reaching a
  * terminal [GameStatus] no longer raises an in-screen dialog — the ViewModel emits a
  * one-shot finish event and [GameRoute] navigates to Results (D-05); only the
  * mid-game confirm [AlertDialog] (D-06) still overlays, when [GameUiState.confirmRestart].
@@ -106,7 +102,7 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  *
  * @param state the immutable UI state to render.
  * @param onCellTap forwards a tapped board [Position] to the ViewModel.
- * @param onRestart top-bar restart intent (VM decides confirm vs. immediate reset).
+ * @param onRestart the dock's restart intent (the VM decides confirm vs. immediate reset).
  * @param onConfirmRestart confirms a restart (mid-game confirm dialog).
  * @param onDismissRestart dismisses the mid-game restart confirmation.
  * @param onAnimationFinished signals the jump slide completed.
@@ -119,11 +115,11 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  * @param onDismissAdOffer the player declined the offer, tapped the scrim or pressed back —
  *   all three are the same event, and none of them charges or changes anything (D-06).
  * @param onHome leaves to the Home root from the rescue banner (D-09); wired to the same
- *   destination as the top-bar back nav ([onNavigateBack]).
- * @param onNavigateBack leaves the gameplay screen (top-bar back nav).
+ *   destination as the status strip's back control ([onNavigateBack]).
+ * @param onNavigateBack leaves the gameplay screen (the status strip's back chip).
  * @param modifier layout modifier for the screen.
  * @param challengeLevel the Challenge level number when this is a Challenge game (drives
- *   the "Level N" top-bar title, S2/D-03), or `null` for Classic (app-name title). This
+ *   the "Level N" strip title, S2/D-03), or `null` for Classic (app-name title). This
  *   is a pure presentation flag — it reaches only the title slot, never the board logic.
  *
  * The `LongMethod` suppression below carries an inline list of every surface this composable
@@ -131,7 +127,7 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  * without the reader of that line finding out. Amend the list rather than growing under it,
  * and never add a second suppression or a detekt baseline entry in its place.
  */
-@Suppress("LongMethod") // Scaffold + top bar + snackbar host + board panel + confirm and ad-offer dialogs.
+@Suppress("LongMethod") // Scaffold + status strip + snackbar host + board panel + action dock + two dialogs.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameScreen(
@@ -170,76 +166,87 @@ fun GameScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         snackbarHost = { ClaySnackbarHost(snackbarHostState) },
-        topBar = {
-            GameTopBar(
-                elapsedSeconds = state.elapsedSeconds,
-                showHints = state.showHints,
-                canUndo = state.canUndo,
-                solverThinking = state.solverThinking,
-                challengeLevel = challengeLevel,
-                onRestart = onRestart,
-                onToggleHints = onToggleHints,
-                onUndo = onUndo,
-                onHint = onHint,
-                onNavigateBack = onNavigateBack,
-            )
-        },
     ) { contentPadding ->
-        Box(
+        Column(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .padding(contentPadding)
-                    .padding(dimensionResource(R.dimen.board_screen_margin))
-                    .testTag(GAME_STATE_TEST_TAG)
-                    .semantics {
-                        pegCountValue = state.board.pegCount
-                        gameStatusValue = state.status.name
-                        legalTargetCountValue = state.legalTargets.size
-                    },
-            contentAlignment = Alignment.Center,
+                    .padding(contentPadding),
         ) {
-            if (state.isLoading) {
-                LoadingIndicator()
-            } else {
-                Surface(
-                    shape = MaterialTheme.shapes.extraLarge,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    modifier =
-                        Modifier
-                            .clayShadow(
-                                dimensionResource(R.dimen.elevation_card),
-                                MaterialTheme.shapes.extraLarge,
-                            ).widthIn(max = dimensionResource(R.dimen.board_max_size))
-                            .fillMaxWidth()
-                            .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO),
-                ) {
-                    BoardCanvas(
-                        state = state,
-                        onCellTap = onCellTap,
-                        onAnimationFinished = onAnimationFinished,
-                        modifier = Modifier.padding(dimensionResource(R.dimen.spacing_md)),
+            GameStatusStrip(
+                elapsedSeconds = state.elapsedSeconds,
+                challengeLevel = challengeLevel,
+                onNavigateBack = onNavigateBack,
+            )
+            Box(
+                modifier =
+                    Modifier
+                        // The board takes whatever the strip and the dock leave, so both stay
+                        // on screen at every viewport height — the dock in particular, which
+                        // is the whole point of moving the actions into the thumb zone.
+                        .weight(BOARD_WEIGHT)
+                        .fillMaxWidth()
+                        .padding(dimensionResource(R.dimen.board_screen_margin))
+                        .testTag(GAME_STATE_TEST_TAG)
+                        .semantics {
+                            pegCountValue = state.board.pegCount
+                            gameStatusValue = state.status.name
+                            legalTargetCountValue = state.legalTargets.size
+                        },
+                contentAlignment = Alignment.Center,
+            ) {
+                if (state.isLoading) {
+                    LoadingIndicator()
+                } else {
+                    Surface(
+                        shape = MaterialTheme.shapes.extraLarge,
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        modifier =
+                            Modifier
+                                .clayShadow(
+                                    dimensionResource(R.dimen.elevation_card),
+                                    MaterialTheme.shapes.extraLarge,
+                                ).widthIn(max = dimensionResource(R.dimen.board_max_size))
+                                .fillMaxWidth()
+                                .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO),
+                    ) {
+                        BoardCanvas(
+                            state = state,
+                            onCellTap = onCellTap,
+                            onAnimationFinished = onAnimationFinished,
+                            modifier = Modifier.padding(dimensionResource(R.dimen.spacing_md)),
+                        )
+                    }
+                }
+                // The rescue banner overlays the still-interactive board (non-blocking, D-08):
+                // it sits in the same Box so taps still reach the board beneath it. Only a
+                // no-win/stuck position raises it; a Won game routes to Results instead.
+                if (state.showRescueBanner) {
+                    NoWinBanner(
+                        message =
+                            stringResource(
+                                if (state.noWinningMove) R.string.nowin_message else R.string.stuck_message,
+                            ),
+                        onUndo = onUndo,
+                        onRestart = onRestart,
+                        onHome = onHome,
+                        modifier =
+                            Modifier
+                                .align(Alignment.BottomCenter)
+                                .fillMaxWidth(),
                     )
                 }
             }
-            // The rescue banner overlays the still-interactive board (non-blocking, D-08):
-            // it sits in the same Box so taps still reach the board beneath it. Only a
-            // no-win/stuck position raises it; a Won game routes to Results instead.
-            if (state.showRescueBanner) {
-                NoWinBanner(
-                    message =
-                        stringResource(
-                            if (state.noWinningMove) R.string.nowin_message else R.string.stuck_message,
-                        ),
-                    onUndo = onUndo,
-                    onRestart = onRestart,
-                    onHome = onHome,
-                    modifier =
-                        Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth(),
-                )
-            }
+            GameActionDock(
+                showHints = state.showHints,
+                canUndo = state.canUndo,
+                solverThinking = state.solverThinking,
+                onUndo = onUndo,
+                onHint = onHint,
+                onToggleHints = onToggleHints,
+                onRestart = onRestart,
+                modifier = Modifier.padding(dimensionResource(R.dimen.spacing_md)),
+            )
         }
     }
 
@@ -442,102 +449,6 @@ private fun AdMessageSnackbarEffect(
 }
 
 /**
- * The gameplay top bar: a back nav, the context-aware title, the live `mm:ss` elapsed
- * timer (D-04), the [UndoControl] (ASST-02), the [HintControl] (ASST-01), the
- * [HintToggleControl], and the [RestartControl] (D-06). Stateless — every value/handler
- * is hoisted. The title slot is the only mode-aware element (S2): a non-null
- * [challengeLevel] renders the "Level N" indicator, else the app name; the actions row is
- * identical in both modes.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun GameTopBar(
-    elapsedSeconds: Int,
-    showHints: Boolean,
-    canUndo: Boolean,
-    solverThinking: Boolean,
-    challengeLevel: Int?,
-    onRestart: () -> Unit,
-    onToggleHints: () -> Unit,
-    onUndo: () -> Unit,
-    onHint: () -> Unit,
-    onNavigateBack: () -> Unit,
-) {
-    TopAppBar(
-        navigationIcon = {
-            IconButton(
-                onClick = onNavigateBack,
-                modifier =
-                    Modifier
-                        .claySquish()
-                        .size(dimensionResource(R.dimen.top_bar_touch_target)),
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = stringResource(R.string.navigate_back),
-                    modifier = Modifier.size(dimensionResource(R.dimen.top_bar_icon_size)),
-                )
-            }
-        },
-        title = { GameTopBarTitle(challengeLevel = challengeLevel) },
-        actions = {
-            ElapsedTimeLabel(elapsedSeconds = elapsedSeconds)
-            UndoControl(canUndo = canUndo, onUndo = onUndo)
-            HintControl(solverThinking = solverThinking, onHint = onHint)
-            HintToggleControl(showHints = showHints, onToggleHints = onToggleHints)
-            RestartControl(onRestart = onRestart)
-        },
-    )
-}
-
-/**
- * The context-aware gameplay title (S2 / D-03). In Challenge mode ([challengeLevel] set)
- * it renders the neutral "Level N" indicator (`titleLarge`, `onSurface` — deliberately
- * NOT accent per UI-SPEC S3) with a `challenge_level_indicator_desc` screen-reader
- * description; otherwise it renders the static app-name title. This is the sole
- * presentation delta — no `if (challenge)` reaches the board/selection/jump logic.
- */
-@Composable
-private fun GameTopBarTitle(challengeLevel: Int?) {
-    if (challengeLevel != null) {
-        val description = stringResource(R.string.challenge_level_indicator_desc, challengeLevel)
-        Text(
-            text = stringResource(R.string.challenge_level_indicator, challengeLevel),
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.semantics { contentDescription = description },
-        )
-    } else {
-        Text(
-            text = stringResource(R.string.app_name),
-            style = MaterialTheme.typography.titleLarge,
-        )
-    }
-}
-
-/**
- * The live `mm:ss` elapsed timer shown in the gameplay top bar (D-04).
- *
- * The zero-padded time is a computed clock string ([GameTimerFormat]), not a string
- * resource; the `elapsed_time` content description is attached for screen readers so
- * the value is announced as the elapsed time rather than a bare number. It uses
- * tabular figures so ticking digits never shift the label horizontally.
- */
-@Composable
-private fun ElapsedTimeLabel(elapsedSeconds: Int) {
-    val description = stringResource(R.string.elapsed_time)
-    Text(
-        text = GameTimerFormat.format(elapsedSeconds),
-        style = MaterialTheme.typography.titleMedium.withTabularFigures(),
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier =
-            Modifier
-                .padding(end = dimensionResource(R.dimen.spacing_sm))
-                .semantics { contentDescription = description },
-    )
-}
-
-/**
  * The centered progress indicator shown while a Challenge board is generated off the
  * main thread (CR-01). Carries the `loading_level` content description so screen
  * readers announce the wait; it replaces the board panel until the state settles.
@@ -621,3 +532,6 @@ private fun RestartConfirmDialog(
         },
     )
 }
+
+/** The board takes the height the status strip and the action dock leave between them. */
+private const val BOARD_WEIGHT = 1f
