@@ -200,6 +200,48 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > and still binds** (the auditor broke clause 4's shape and watched the guard catch it), and
 > criteria 15g, 15i and 15j stand unamended. No readout, no control, no touch target and no band
 > is removed by this ruling, and none of §4.2.1's four rejected simplifications is reached for.
+>
+> **Seventh revision — 2026-09-28 — FOUNDER-FEEDBACK AMENDMENT (Home hero, dock state language,
+> status strip).** The founder reviewed the phase-15 build on an emulator and returned three notes,
+> recorded with their scoping answer as **Q-004** in `.planning/questions/FOUNDER.md`; all three are
+> this role's. **(1) Home** — "I don't really like this screen", scoped by Q-004 to the **empty
+> middle gap**, the **peg-cross logo** and **how the title sits**; the stats ribbon, the mode cards
+> and the Candy Clay palette and style were *not* selected and are kept. **(2) The dock** — "I like
+> the in-game icons, but I can't really say if they are on or off." **(3) The status strip** —
+> "elapsed time and the title seem too small. They could be reworked." Three decisions, one per
+> note, each with its own specification subsection and criteria a test can check:
+>
+> - **D-03l** (§4.2.4; criteria **15n–15r**) — the hero becomes **one row**, the gradient title
+>   start-aligned beside the Settings gear, on every window; the peg-cross logo is **withdrawn**
+>   (Q-901's answer is superseded by Q-004); and the slack that D-03i parked as a blank band between
+>   the ribbon and the Continue chips moves into the hero as a **stage** — a static clay board
+>   showing a game in progress, sized by the slack itself and simply not drawn when there is no
+>   room. The ribbon therefore sits directly on the Continue chips; that change of **position** is
+>   the only consequence for any band the founder asked to keep. Art direction between strong
+>   alternatives is queued as **Q-005**, non-blocking, with this as the built default.
+> - **D-04e** (§4.4.1; criteria **21a–21g**) — **one look, one meaning.** D-04c's loud/quiet split
+>   drew Undo and Hint filled and Restart outlined, which is the on/off vocabulary, so the founder
+>   saw two controls "on" and two "off"; and the fill it relied on is **≈1.04:1** against the dock
+>   slab in light theme — a state channel nobody can see. Undo, Hint and Restart now share one
+>   "button" look and change only between available, working and unavailable; Show-moves, the only
+>   toggle, is the only control with an on/off look — a solid `primary` disc with a check mark when
+>   on, a ring with a slashed glyph when off. Every pair of looks differs in at least two channels
+>   that are not hue, and TalkBack gets the same fix: Show-moves becomes a real switch with one
+>   stable name.
+> - **D-05d** (§4.3.1; criteria **18a–18e**) — the title moves from `titleMedium` (16sp) to
+>   **`titleLarge` (22sp)** and the timer to **`headlineSmall` (24sp)** in a taller clay pill; and
+>   the strip and the dock apply the system-bar insets **once**. Today both are applied twice —
+>   visible in the founder's screenshot as an empty band the height of the status bar above the
+>   strip — which on a 360×640dp phone takes 72dp from the board's region and shrinks the board from
+>   328dp to 304dp.
+>
+> **Not reopened:** every §5.1 prohibition, the tutorial and its audio rulings, D-03f's three
+> oracles and §4.2.1's four rejections, D-03i's mechanism except the three clauses D-03l amends
+> (stated in §4.2.4), D-03k's narrow-class arithmetic and criterion 15k, the dock's order, sizes,
+> glyphs and cues, and the earlier-phase ad-allowance ruling (`GameUiState.kt:131-135`), which
+> D-04e applies rather than relaxes. This amendment adds **no string** (it deletes one,
+> `show_moves_off`), **no colour**, **no dependency** and **no third-party asset**; it adds one
+> in-house vector and seven tokens, changes one token's value and retires three.
 
 ---
 
@@ -218,6 +260,15 @@ The founder's words, verbatim:
 | Homepage looks empty with just 2 buttons | **D-03** | Home gains a hero block, a three-pill progress ribbon and board art on its tiles. The two mode tiles stay primary and stay in the thumb zone. **Bounded by two hard constraints: three existing readouts are device-test oracles that must stay visible on first paint (D-03f), and Home is on the measured ≤ 950 ms cold-start gate (D-03g).** *(The ≤ 950 ms figure is reattributed to PLAT-08 / phase 14 by **D-03j**, 2026-09-28; the sentence is left as it read.)* *(And by **D-03k**, 2026-09-28: "visible on first paint" is exact for the Continue chips on every window and for all three oracles at 400dp of width or more, but on a 360dp-wide phone the Challenge tile's level chip is across the fold — composed at full size, one plain scroll of ≤ 120dp away, with the ribbon's Level pill as its above-the-fold witness. §4.2.3 has the arithmetic that forces it; criterion 15k is the check; nothing is ever collapsed, truncated or behind a tap.)* |
 | Redesign the in-game icons on the top | **D-04** | The five controls are re-glyphed, re-grouped and re-homed. Two real accessibility defects are fixed in the process. |
 | Remove the toolbar from the game | **D-05** | The `TopAppBar` at `GameScreen.kt:502` is deleted. It is the **same surface** as the "icons on the top", so D-04 and D-05 are one change — see D-05 in §3. |
+
+**The founder's three notes on the built screens, 2026-09-28 (Q-004) — the founder-feedback
+amendment.** The table above is the record of the original asks and is left as it reads.
+
+| Note (verbatim) | Decision | Verdict |
+|-----------------|----------|---------|
+| Home: "I don't really like this screen" — scoped to the empty middle gap, the peg-cross logo and how the title sits | **D-03l** | The logo goes; the title sits start-aligned in one row with the gear; the blank band becomes a stage — a static board showing a game in progress, sized by the slack. Ribbon, cards and palette kept. §4.2.4, Q-005. |
+| "I like the in-game icons, but I can't really say if they are on or off" | **D-04e** | Icons kept. Actions get one look with no on/off; the one toggle gets the only on/off look, marked by shape (check mark / slash), fill and ring, and speaks as a switch. §4.4.1. |
+| "Elapsed time and the title seem too small. They could be reworked." | **D-05d** | Title `titleLarge` 22sp, timer `headlineSmall` 24sp in a 40dp clay pill; the double system-bar inset removed, so the board loses nothing. §4.3.1. |
 
 ---
 
@@ -238,6 +289,16 @@ the Play Games opt-in prompt, and the profile-swap dialog. This refresh is a pre
 everywhere except one place: the tutorial gains three **new** teaching miniatures
 (`object TutorialBoards`, §4.1), which live outside `Boards.CLASSIC_SPECS` and change no existing
 board, no catalogue entry and no number the player has already earned.
+
+*(2026-09-28 — founder-feedback amendment.)* No screen is added or removed. **Home**'s hero is
+re-seated as one row and its slack becomes a stage (D-03l, §4.2.4); **Gameplay**'s strip is
+re-sized with the insets applied once (D-05d, §4.3.1) and its dock gains a state language (D-04e,
+§4.4.1). Files touched in addition to the rows above: `ui/home/HomeHero.kt` (the row; `FullHero`,
+`CompactHero` and `HomeHeroArt` removed), a new stage composable beside it, `ui/game/GameStatusStrip.kt`,
+`ui/game/GameActionDock.kt`, `ui/game/{Undo,Hint,HintToggle,Restart}Control.kt`, a new in-house
+`ShowMovesOffIcon`, `res/values/{dimens,strings}.xml`, and `ui/game/GameScreen.kt` if the developer
+chooses to keep the insets in the strip and dock and set the `Scaffold`'s content insets to none
+(§4.3.1).
 
 ---
 
@@ -522,6 +583,9 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   top-end. — With the info button gone (D-02) the bar holds one icon and a title, which is chrome
   around a single control. The gradient Fredoka title is the brand moment and deserves display
   scale, not `titleLarge` in a 56dp bar.
+  *(Amended 2026-09-28 — founder-feedback amendment, **D-03l**. The bar stays deleted and the
+  title keeps display scale; what changes is where it sits: **start-aligned in one row with the
+  gear on every window**, no longer centred under art at the top of a separate hero block.)*
 
 - **D-03b:** The hero carries **decorative board art**, not a logo or an illustration. — The
   studio ships no logo, and rules/ip-policy.md means any sourced art needs a licence row. The
@@ -529,6 +593,11 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   visual language (`BoardCanvas.kt:480-522`); using them costs nothing and cannot be an IP
   problem. Art direction between two equally valid treatments is queued as **Q-901** (§15) with a
   default chosen so nothing blocks.
+  *(Superseded in its art on 2026-09-28 — founder-feedback amendment, **D-03l**. The founder
+  rejected the static peg cluster Q-901 chose (Q-004), so `HomeHeroArt` is withdrawn on every
+  window. The rationale above still binds the replacement: the hero's decoration is still the
+  game's own board art, licence-free and asset-free — now a clay board showing a game in progress,
+  drawn into the slack rather than above the title. Q-005 asks the art direction again.)*
 
 - **D-03c:** The progress ribbon shows **three pills: Stars · Boards · Level**, and each pill
   renders a neutral em-dash placeholder when its value is not yet known. — Three is the most the
@@ -633,6 +702,13 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   the threshold, which now reads width as well as height, and the yield order, which gains one
   step. The conclusion this ruling reached is unchanged and is now stronger: one number cannot
   serve two screen sizes.)*
+  *(Amended again 2026-09-28 — founder-feedback amendment, **D-03l**, §4.2.4. The
+  `BoxWithConstraints`, the modifier order, `heightIn(min = available)`, the 3 : 1 ratio and clause
+  6 stand. Three clauses gain one exception each: the upper weight moves from "between bands 2 and 3"
+  into the hero, directly beneath its row (clause 3); it may carry **one** decorative drawing, which
+  is the only weighted child on Home allowed to hold anything (clause 4); and that drawing borrows
+  the hero's entrance order (clause 5). The founder's screenshot is why: the ¾ share this ruling
+  parked between the ribbon and the chips measured **≈172dp of nothing** on a 6.7-inch phone.)*
 
 - **D-03j** *(2026-09-28 — folded in from the tech-lead's ruling
   `.planning/reports/phase-15/tech-lead-coldstart-gate.md` §4, which corrects a gate that report's
@@ -709,6 +785,38 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   reading — every dp above is Robolectric's, the qa-engineer's glass numbers govern, and 15k names
   the failure route back to this role if they differ.
 
+- **D-03l** *(2026-09-28 — **founder-feedback amendment**, UX ruling on the founder's Q-004
+  answer: "I don't really like this screen", scoped to the **empty middle gap**, the **peg-cross
+  logo** and **how the title sits**. Amends D-03a, D-03b and clauses 3–5 of D-03i; specified in
+  **§4.2.4**; criteria **15n–15r**; art direction queued as **Q-005**, non-blocking, with this as
+  the built default.)*: **the hero is one row, and the slack becomes a stage.** Three parts.
+  **(1)** The peg-cross logo (`HomeHeroArt`, Q-901 option 1) is **withdrawn** on every window.
+  **(2)** The title stops floating centred under art and **sits start-aligned in one row with the
+  Settings gear** — the geometry the compact band set already had, now the only hero Home has, at
+  every size. **(3)** The weighted slack D-03i put between the ribbon and the Continue chips moves
+  **into the hero, directly beneath its row**, and carries a **stage**: a static clay board slab
+  showing a game in progress, whose edge is the slack's own height (capped), and which is not drawn
+  at all when the slack is too small to hold it. The ribbon, the chips, the tiles, the palette and
+  the blobs are unchanged in design; the ribbon now sits directly on the Continue chips, which is a
+  change of **position** forced by the hero and the only one any kept band receives.
+  — The founder named three things and they have one cause. D-03i kept the tiles low by parking
+  three quarters of the slack **as nothing** in the middle of the screen; on the founder's phone
+  that nothing measured ≈172dp between two islands of content, above which a small emblem sat over a
+  centred word. Tiles in the thumb zone (rules/compose.md, criterion 15g) and no hole in the middle
+  are only both achievable if what sits above the tiles **grows into** the space instead of being
+  pushed down by a gap. D-03i's clause 4 is right that a *content* band must never do that — a
+  weighted child is measured at 0 when the column overflows — but a decoration may, because 0 is
+  its correct size on a short screen: that is exactly what the compact set already did to the hero
+  art. So the stage is the one child on Home allowed to hold the weight, and the logo is not redrawn
+  bigger; it is replaced by **the game itself**, on the game's own slab in the game's own pegs,
+  which previews what the player is about to do instead of standing for it. The title's new seat is
+  the same argument from the other side: a word centred under a picture and above a ribbon belongs
+  to neither, while a title in one row with the gear is grounded by the only other element that
+  shares its job, and it is the shape 360dp-wide phones have shown since D-03i — so the two width
+  classes stop looking like two different apps. Screens, layout and decoration are this role's
+  (rules/studio.md); which of several strong directions the founder *prefers* is taste, so Q-005
+  asks it without blocking anything.
+
 ### In-game controls (ASST-01, ASST-02, CLAS-02, SCOR-02, proposed UX-03)
 
 - **D-04:** The five controls are kept, **re-glyphed, re-grouped and re-homed**: read-only status
@@ -737,16 +845,57 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   breaks rules/compose.md's "never colour alone (shape, pattern, label)". The content description
   already switches correctly (`show_moves_on`/`show_moves_off`, `strings.xml:90-91`) — the defect
   is purely visual, and a filled-vs-unfilled pill fixes it without new copy.
+  *(Amended 2026-09-28 — founder-feedback amendment, **D-04e**, §4.4.1. The glyph fix stands. The
+  state fix was right in kind and too weak in fact: the `primaryContainer` fill it added measures
+  ≈1.04:1 against the dock slab, and two other controls wore the same fill as "loud" (D-04c), so
+  the founder could not read on from off. ON is now a solid `primary` disc with a check mark; OFF a
+  ring with a slashed glyph. And the sentence above about the description is **withdrawn**: the
+  swapped pair was not correct. Both strings are imperatives and each names the *opposite* of what
+  the next tap does, so Show-moves now speaks as a switch with one constant name, and
+  `show_moves_off` is deleted.)*
 
 - **D-04c:** Undo and Hint are **visually louder than** Show-moves and Restart, by fill and not by
   size. All four targets are the same `game_action_button_size`. — Hierarchy has to be legible,
   but four different button sizes in one row reads as a mistake, and unequal targets invite the
   smaller ones to drop under 48dp at some font scale. Fill is the safer channel.
+  *(**Retired 2026-09-28** — founder-feedback amendment, **D-04e**. Equal sizes stand. The
+  loud/quiet split by fill does not: fill-versus-outline is the on/off vocabulary, so a dock whose
+  actions were filled or outlined by *importance* read to the founder as two controls on and two
+  off. No control is louder than another by fill any more; Undo and Hint keep the first two
+  positions under the thumb, and Restart's protection against a careless tap is its mid-game
+  confirm dialog (D-06), where it always was.)*
 
 - **D-04d:** The Hint "thinking" state keeps its current behaviour exactly — spinner in place of
   the glyph, `enabled = false`, `hint_thinking` description (`HintControl.kt:47-62`). Undo keeps
   `enabled = canUndo`. — These are correct today, including the TalkBack "disabled" reporting that
   `enabled = false` gives for free; the redesign is a reskin of them, not a rewrite.
+  *(Stands, 2026-09-28. D-04e gives the two states their looks — Hint thinking is **Working**,
+  Undo with nothing to undo is **Unavailable** — and changes no behaviour, description or
+  `enabled` value.)*
+
+- **D-04e** *(2026-09-28 — **founder-feedback amendment**, UX ruling on the founder's note "I like
+  the in-game icons, but I can't really say if they are on or off" (Q-004). Amends D-04b, retires
+  D-04c; specified in **§4.4.1**; criteria **21a–21g**.)*: **one look, one meaning.** The dock
+  holds two kinds of control, and they get two visual grammars that cannot be confused.
+  **Actions** — Undo, Hint, Restart — have no on/off at all; they share one "button" look (a pale,
+  raised disc) and change only between **Available**, **Working** (Hint's search) and
+  **Unavailable** (Undo with nothing to undo). **The toggle** — Show-moves — is the only control
+  with an on/off, and the only one ever drawn **On** (a solid `primary` disc with a check mark) or
+  **Off** (a ring with a slashed glyph). Every glyph the founder likes is kept; Show-moves Off gains
+  a slash. Every pair of the five looks differs in at least two channels that are not hue, which a
+  unit test asserts. A spent hint or undo allowance is **not** a state: the control looks exactly
+  Available and the tap raises the opt-in dialog, which is the earlier-phase ruling at
+  `GameUiState.kt:131-135` applied, not relaxed. TalkBack gets the same fix: Show-moves becomes a
+  switch — constant name "Show possible moves", announced state On or Off.
+  — The founder's diagnosis is exact and the cause is a **channel collision**, not the icons.
+  Fill-versus-outline was carrying two meanings at once — importance (D-04c) and state (D-04b) — so
+  the dock showed two filled controls and two outlined ones, and the eye reads that as two on and
+  two off. Worse, the channel was nearly invisible: `primaryContainer` #EDE4FF on the dock's
+  `surfaceContainerHigh` #F1EAFB is **≈1.04:1** and the `outline` ring **≈1.5:1**, against WCAG
+  1.4.11's 3:1 for visual information that identifies a state. Separating the kinds by grammar and
+  giving state its own marks fixes both, without touching the glyphs, the order, the sizes, the
+  cues or the ad-allowance contract. The alternative the founder's words invite — text labels under
+  the icons — is weighed and declined in §4.4.1.
 
 ### The toolbar (D-05 — and its reconciliation with D-04)
 
@@ -785,6 +934,22 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   would re-introduce the chrome the founder asked to remove, and `NavigationBar` in particular
   carries destination semantics that would announce four in-game actions to TalkBack as
   navigation targets, which they are not.
+
+- **D-05d** *(2026-09-28 — **founder-feedback amendment**, UX ruling on the founder's note
+  "elapsed time and the title seem too small. They could be reworked." (Q-004). Amends §4.3's
+  Centre and Trailing rows and §6.3; specified in **§4.3.1**; criteria **18a–18e**.)*: **the title
+  is `titleLarge` (22sp), the timer is `headlineSmall` (24sp) with tabular figures in a 40dp clay
+  pill that grows with the font scale, and each system bar is applied to the gameplay screen
+  exactly once.** Slots, order, content logic, content descriptions and "no actions live here" are
+  unchanged. — `titleMedium` (16sp) was chosen in §4.3 so the strip would be *quiet*, and quiet
+  turned out to mean unreadable at a glance: the two things a player looks up for mid-game were the
+  smallest text on the screen. The timer takes the larger of the two roles because it is the one
+  that changes — the number a player checks — while the title is context read once. Both fit a
+  360dp phone at default scale with room to spare (§4.3.1's width budget), and the board loses
+  nothing, because the same ruling returns space the screen has been wasting: the strip applies
+  `statusBarsPadding()` and the dock `navigationBarsPadding()` inside a `Scaffold` whose content
+  padding already contains both bars. The founder's screenshot shows it as an empty band as tall as
+  the status bar above the strip; on a 360×640dp phone it takes 72dp from the board's region.
 
 ---
 
@@ -951,6 +1116,12 @@ Single `verticalScroll` column, `widthIn(max = content_max_width)`, five bands:
 `settings_action` content description. The art is `contentDescription = null` and is fully static
 when animations are off. **No info button (D-02).**
 
+> *(Superseded 2026-09-28 — founder-feedback amendment, **D-03l**, §4.2.4.)* Band 1 is now the
+> **hero row** — the gradient `displaySmall` title start-aligned and the unchanged gear chip at the
+> end of the same row, on every window — followed by the **stage** that holds the slack. There is
+> no hero art above the title any more and no `home_hero_min_height`/`home_hero_art_size`. The
+> gear, its description, its silence and "No info button" are unchanged.
+
 **2 — Progress ribbon.** One `Row`, three equal-weight clay pills, `home_stat_pill_min_height`,
 `spacing_sm` between them, each a `surfaceContainerHigh` `shapes.medium` surface with
 `clayShadow(elevation_card)`:
@@ -1003,6 +1174,13 @@ polish.
 > the ordered yield for a screen too short to seat all five bands, and the arithmetic for both
 > baselines. The band order, the cap, the scroll-for-overflow rule and the first-paint rule above
 > are unchanged by it.
+>
+> *(Amended again 2026-09-28 — founder-feedback amendment, **D-03l**, §4.2.4.)* "A weighted spacer
+> sits between bands 2 and 3" is superseded: the upper share of the slack now sits **between the
+> hero row and the ribbon** and is the stage, so the ribbon, the Continue chips and the tiles form
+> one contiguous lower group. The intent of this paragraph is unchanged and better served — the
+> tiles stay in the lower half (criterion 15g, recomputed in §4.2.4), and the slack stops reading as
+> a hole because it now holds the hero's board.
 
 **First-paint rule (D-03f).** Scrolling exists for the overflow case, not as a place to put
 things. At **default font scale on a 360×640dp phone with both Continue chips present**, bands 3
@@ -1281,6 +1459,12 @@ height, Home takes the **compact band set** — all three of these together, nev
 > (§4.2.3 part 2). And "the 64dp that closes the remaining gap" was the sentence that carried the
 > arithmetic error: at 360dp width it closes 64dp of a **132dp** gap, which is why there is a
 > fourth step at all and why, after it, the screen still scrolls by ≈72dp and criterion 15k says so.
+>
+> *(Amended 2026-09-28 — founder-feedback amendment, D-03l, §4.2.4.)* Step 1 is now **vacuous**:
+> there is no hero art on any window, and the stage that replaced it draws only into slack, so it
+> cannot cost a short screen a dp. Step 2's one-row hero is now what **every** window gets. Steps 3
+> and 4 — the tighter spacing and, on the narrow class, the compact pill — are what "the compact band
+> set" still means, and the thresholds that switch them are retained at their values (§4.2.4).
 
 The threshold is **720dp**: the full set's own both-chips requirement (≈716dp) rounded up onto the
 grid. Its consequence, stated rather than discovered: a device around 360×780dp takes the compact
@@ -1520,7 +1704,199 @@ it is trusted, which is the lesson of MB-1:
 - At the same qualifier at font scale 2.0 nothing above changes in kind: the column scrolls, every
   band is reachable, no band is dropped and nothing is clipped (criteria 14, 15i — unchanged).
 
+#### 4.2.4 The hero, re-seated: one row and a stage (D-03l — founder-feedback amendment, 2026-09-28)
+
+> **Status.** This subsection answers the founder's review of the phase-15 build (Q-004) and
+> applies to the slice that lands D-03l. It does not retro-certify any earlier build. §4.2.2's
+> mechanism — the `BoxWithConstraints`, the modifier order, `heightIn(min = available)`, the 3 : 1
+> ratio, clause 6 — and §4.2.3's narrow class and criterion 15k are **untouched**; clauses 3, 4 and
+> 5 of §4.2.2 gain one exception each, stated below. The ribbon, the Continue chips, the mode tiles,
+> the palette and the blobs are unchanged in design. The ribbon's **position** changes, and that is
+> the only consequence of the hero change for any band the founder asked to keep.
+
+**What the founder saw, measured off `home-founder.png`** (1080×2424px, a 411×923dp phone, one
+Classic Continue chip): the peg cluster (120dp) above a centred title; the ribbon; then **≈172dp of
+blank** between the ribbon's bottom edge and the Continue chip's top edge — nearly a fifth of the
+screen — and the remaining quarter-share of slack (≈57dp) below the Challenge tile. The screen reads
+as two islands with a hole between them, and the title belongs to neither.
+
+**The column after D-03l**, top to bottom, inside §4.2.2's unchanged `BoxWithConstraints` and
+scroll column (band spacing and padding `spacing_md` in the full set, `spacing_sm` in the compact
+set, exactly as before):
+
+| # | Child of the column | Height | Notes |
+|---|---|---|---|
+| 1 | **Hero row** — gradient title (start) + Settings gear chip (end) | `home_hero_row_min_height` (72dp) minimum; grows if the title wraps | Every window, both band sets. Replaces `FullHero`, `CompactHero` and `HomeHeroArt`. |
+| 1s | **Stage** — the weighted slot, weight **3** | its share of the slack; **0** when the column overflows | Decoration only. Draws the stage art when its height is ≥ `home_stage_art_min_size`. The constant D-03i named for "the slack above the chips" is renamed for its new owner; its value is unchanged. |
+| 2 | Progress ribbon | unchanged | Now directly above the Continue chips. |
+| 3 | Continue chips (0, 1 or 2) | unchanged | |
+| 4 | Mode tiles | unchanged | |
+| 5 | Footer — weighted `Spacer`, weight **1** | its share | Unchanged (D-03i). |
+
+The stage *replaces* the upper `Spacer` as a child, so the column has the same number of children
+and the same number of `spacedBy` gaps as before in every chip state.
+
+**The hero row.**
+
+- One `Row`, `CenterVertically`, `fillMaxWidth()`, `heightIn(min = home_hero_row_min_height)`,
+  entering with `clayEntrance(HERO_ENTRANCE_ORDER)` as today.
+- **Title:** `app_name` in `displaySmall` (Fredoka SemiBold, 36sp) filled with
+  `ctaGradientBrush()`; **start-aligned**; `weight(1f)` so it takes the width the gear leaves;
+  `semantics { heading() }`; **no `maxLines`** — never truncated, never scaled down; at a large
+  font scale it wraps, the row grows and the column scrolls (criteria 14, 15i). One composable for
+  every band set.
+- **Gear:** the existing clay chip, unchanged in every respect — `Icons.Rounded.Settings`,
+  `settings_action`, 48dp, `surfaceContainerHigh`, `clayShadow(elevation_pressed)`, silent.
+- **The row is the first thing in the column.** Nothing is drawn above the title except the
+  column's top padding and the ambient `HomeBlobs` behind everything.
+- **It is not a top bar** — §4.2.2 step 2's paragraph applies verbatim: no surface, no elevation,
+  no insets of its own, it scrolls with the content, and §5's "no M3 `TopAppBar`" is untouched.
+- **Why start-aligned and not centred.** Centring was the logo's composition: a centred emblem
+  wants a centred word under it. Without the emblem, a centred title floats between the screen's
+  edge and the ribbon, which is the "how the title sits" complaint. Start-aligned in the gear's row
+  it reads as the screen's heading, in the place the app's other screen titles sit, and it is the
+  geometry the 360dp-wide class has shown since D-03i, so the two width classes stop looking like
+  two different apps.
+
+**The stage.**
+
+- A direct child of the column between the hero row and the ribbon: `Modifier.weight(3f)` through
+  the renamed constant, `fillMaxWidth()`. **Nothing about it is tappable or focusable, and it
+  announces nothing**; its only semantics is a test tag, `HOME_STAGE_TEST_TAG`, which TalkBack does
+  not read.
+- **The stage art:** a square of edge `e = min(stage height, the column's content width,
+  home_stage_art_max_size)`, centred horizontally and vertically in the stage. It is composed
+  **only if `e ≥ home_stage_art_min_size`**; below that, nothing is composed and the stage is plain
+  slack.
+- **What the art is:** the gameplay board slab in miniature — a `surfaceContainerHigh` square,
+  `shapes.extraLarge`, `clayShadow(elevation_card)` — holding a `BoardCanvas` with
+  `interactive = false`, inset by `e × HomeStageMetrics.SLAB_PADDING_FRACTION` (**0.06**, a
+  unitless ratio, so a scoped constants object and not `dimens.xml`, §6.4's convention). **Not
+  through `BoardPreview`**, which forces `catalog_preview_size` 96dp whatever size it is asked for
+  (D-01a).
+- **The position on it:** **English-33, mid-game** — a constant peg set of **12–16 pegs**,
+  **reachable from the English start by legal play** (criterion 15q proves it by replaying a
+  recorded move list in a unit test; nothing is replayed at start-up). No selected peg, no
+  legal-target dots, no hint glow, so nothing on it pulses or pops and it is **static on every
+  frame** with animations on or off (§10). It never depends on the player's data — it is not their
+  saved board and not their progress — so it cannot contradict a readout and costs no read on first
+  paint (D-03g). The developer picks the position; a scattered mid-game look reads better than a
+  near-win, and a near-win is not required.
+- `contentDescription = null`, no semantics node of its own (§11: decorative).
+- **Entrance:** the art takes `clayEntrance(HERO_ENTRANCE_ORDER)`, so it arrives with the title
+  instead of appearing unanimated while everything below it slides in; with animations off it is
+  simply there. It adds no entrance order of its own, so §10's cascade and every chip's and tile's
+  counted order are unchanged.
+
+**The three clause exceptions, stated narrowly.**
+
+- **Clause 3 (where the weight goes).** The upper weight moves from "between bands 2 and 3" to
+  "between the hero row and band 2". The tiles stay low for the reason they always did — the whole
+  upper share of the slack is above them — and the ribbon now joins the lower group, which is where
+  it reads best: "your progress" directly above "continue" and "play". **No slack may sit between
+  the ribbon and the Continue chips any more** — that is where the founder's hole was. Clause 6
+  (never between bands 3 and 4, or inside band 4) is unchanged, so the ribbon, the chips and the
+  tiles are one contiguous group.
+- **Clause 4 (no content band may be weighted).** Its reason is that a weighted child is measured
+  at its share, and therefore at **0** the moment the fixed bands exceed the viewport — fatal for a
+  readout, which criterion 14 forbids clipping. The stage is the one child for which 0 is the
+  correct answer: it carries no information and no target, so on an overflowing column it vanishes,
+  exactly as the compact set already made the hero art vanish. The exception is **exactly one**
+  weighted child, this one, and what it holds must be decorative, `contentDescription = null`,
+  non-interactive and non-focusable. Every other sentence of clause 4 stands: no readout, no
+  control and no band a player reads may be weighted, and the hero **row** is not weighted.
+- **Clause 5 (spacers are not bands).** The footer `Spacer` is exactly as specified. The stage is
+  not a band for §10's cascade either; its art borrows the hero's order (above).
+
+**What this does to the compact set's rules, recorded so nobody re-implements them.** §4.2.2's
+step 1 ("the hero's decorative art is not composed at all") has nothing left to act on — there is
+no hero art on any window, and the stage draws only into slack, so it cannot cost a short screen a
+single dp. §4.2.2's step 2 (one row, 72dp minimum) is now what **every** window gets. And the
+compact thresholds (`home_compact_threshold_height` 720dp, `home_compact_threshold_height_narrow`
+880dp, `home_compact_threshold_width` 400dp) are **retained at their values although their
+derivation assumed the 172dp full hero**: the full set is now ≈100dp shorter, so the thresholds are
+conservative, and the only things they still switch are the band spacing and, on the narrow class,
+the pill shape. Re-deriving them would move which phones get the tighter spacing, which no founder
+note asked for; it is a later tuning decision and changes no criterion. Criterion 15l's three
+windows still hold, with "the hero's decorative art present" read as "the stage art present".
+
+**The arithmetic, on the 6.7-inch baseline.** 412×915dp with a 24dp status bar and a 48dp
+navigation bar → **843dp** usable; full band set (`spacing_md`), hero row 72dp. Band heights at
+412dp have not been measured, so each is a **range**: the low end is the band's own un-wrapped
+estimate at that width, the high end the height it *measured* at 360dp in §4.2.2 — a deliberately
+pessimistic ceiling. Criterion 15p's own measurement governs.
+
+| State | Fixed: padding 32 + gaps + row 72 + ribbon 84–116 + chips 84–108 each + tiles 196–224 | Slack | Stage (¾) = art edge | Footer (¼) | First tile's top vs the 421dp midpoint |
+|---|---|---|---|---|---|
+| No Continue chip (5 gaps, 80) | 464–524 | 319–379 | **239–284** | 80–95 | 491–504 — below it ✓ |
+| One chip — the founder's state (6 gaps, 96) | 564–648 | 195–279 | **146–209** | 49–70 | 522–529 — below it ✓ |
+| Both chips (7 gaps, 112) | 664–772 | 71–179 | **53–134** | 18–45 | 553–554 — below it ✓ |
+
+On the founder's own phone the ≈172dp hole becomes a ≈150–210dp board with ordinary 16dp gaps
+either side of it. Criterion 15g's tall-phone property holds in every state at both ends of every
+range. **The largest blank the stage can ever leave**, on any window, is just under
+`home_stage_art_min_size` plus the two gaps around it: **< 80dp** in the full set (48 + 2×16) and
+**< 64dp** in the compact set (48 + 2×8), against the founder's ≈172dp. Criterion 15p makes that a
+bound, not a hope.
+
+**The narrow class is unchanged where it matters.** On 360×640dp with both chips the column
+overflows, so the stage is 0 and draws nothing. The only movement is that the stage's two 8dp gaps
+now fall **above** the ribbon instead of below it: hero row `8..80` · stage (0) · ribbon `96..152`
+· chip `160..268` · chip `276..384` · tile `392..500` · tile `508..624`. The chips, the tiles, the
+fold through the second tile and 15k's ≤ 120dp overflow are exactly as §4.2.3 derived them. On a
+taller narrow window with slack — 360×800dp, ≈88dp of it — the stage gets ≈66dp and draws a small
+board: decoration where there is room, which costs the short screen nothing by construction.
+
+**Cold start (D-03g).** The stage is one `BoardCanvas` draw of a constant position; it replaces the
+deleted cluster's one draw. No read, no decode, no asset, no SDK call, and no work that depends on
+`HomeUiState` — it renders the same before and after the first progress emission. §6.5's table and
+its degradation step 3 now name the stage.
+
+**What yields, and what never does.** §4.2.2's "What never yields" list stands unchanged. The stage
+is the first thing on Home to yield, and it yields **by construction** — it only ever gets what the
+row, the ribbon, the chips and the tiles leave — so no threshold decides it and nothing ever yields
+*to* it.
+
+**Considered and rejected**, so none of these is re-proposed as a simplification:
+
+- *Keep the logo, just bigger or better placed.* The founder rejected the logo, not its size.
+- *Distribute the slack evenly across every gap.* It shrinks the hole by multiplying it — five
+  medium gaps instead of one large one — and on a fresh install it lifts the first tile above the
+  midpoint of a 6.7-inch phone, which criterion 15g forbids.
+- *Let the mode tiles or Continue chips grow into the slack.* It changes the cards the founder asked
+  to keep, and a weighted content band is exactly clause 4's forbidden case; a computed height is
+  possible but spends the space on the part that was not the complaint. Offered to the founder as
+  Q-005 option 3 with that cost stated.
+- *Show the player's own saved board on the stage.* It duplicates the Continue chip's thumbnail,
+  makes a decoration depend on data that can arrive after first paint (a visible swap), and a fresh
+  install has no board to show.
+- *Rotate, tilt or animate the stage board.* Motion on the start destination is on D-03g's critical
+  path and competes with the two blobs — Q-901's argument against its option 2, still true.
+- *Leave the stage empty and just move the title.* That is the complaint.
+
+**What this owes in tests** (deterministic, JVM, with the device's system-bar insets supplied per
+§13's forbidden-idioms rule; every one watched fail once before it is trusted):
+
+- 15n — `HomeHeroArt` is gone and no node sits above the title row.
+- 15o — the title's start edge is the column's content start, the gear's end edge its content end,
+  their vertical ranges overlap, and the title is un-truncated at `displaySmall`.
+- 15p — on `w412dp-h915dp` with insets, the stage art is present at ≥ 120dp and every gap is
+  ≤ 24dp in the no-chip and one-chip states; and on a grid of phone windows in every chip state,
+  no blank between consecutive visible elements above the second tile exceeds 80dp (full) or 64dp
+  (compact).
+- 15q — a unit test replays a recorded, legal move list from `Boards.english33Initial` and arrives
+  exactly at the stage's constant peg set; the stage's board state has no selection, no targets and
+  no hint.
+- 15r — the stage is not clickable, not focusable and announces nothing; Home's TalkBack traversal
+  is unchanged.
+
 ### 4.3 Gameplay status strip — `GameStatusStrip.kt` (CLAS-02, SCOR-02, D-04/D-05a/D-05b)
+
+> *(Amended 2026-09-28 — founder-feedback amendment, **D-05d**, §4.3.1. The Centre row's
+> `titleMedium` becomes `titleLarge`; the Trailing row's `titleMedium` becomes `headlineSmall` in a
+> 40dp-minimum clay pill; and the strip's `statusBarsPadding()` below is withdrawn, because the
+> `Scaffold` has already applied the status bar. The table is left as it reads because it is what
+> the audited build was built against.)*
 
 Replaces `GameTopBar` (`GameScreen.kt:490-527`). A plain `Row`, `game_status_strip_height`,
 transparent, `statusBarsPadding()`, `spacing_md` horizontal padding, `CenterVertically`:
@@ -1536,6 +1912,84 @@ transparent, `statusBarsPadding()`, `spacing_md` horizontal padding, `CenterVert
 
 No actions live here. The strip is status only, which is what lets it be this quiet.
 
+#### 4.3.1 The status strip, re-sized, and the insets applied once (D-05d — founder-feedback amendment, 2026-09-28)
+
+> **Status.** Answers the founder's "elapsed time and the title seem too small. They could be
+> reworked." (Q-004). Supersedes §4.3's Centre and Trailing rows in their type roles and the timer
+> pill's height and shadow, and withdraws the strip's `statusBarsPadding()` and the dock's
+> `navigationBarsPadding()`. Unchanged: the three slots and their order, the title's content logic
+> (`app_name` for Classic; `challenge_level_indicator` with its `_desc` for Challenge), `navigate_back`,
+> `elapsed_time`, the heading semantics, start alignment, "no actions live here", the strip's 56dp
+> minimum height and its `spacing_md` sides.
+
+| Slot | Before (§4.3) | After (D-05d) |
+|------|---------------|---------------|
+| Leading — back chip | 48dp clay chip | **Unchanged.** |
+| Centre — title | `titleMedium` (Fredoka Medium **16sp**), `maxLines = 1`, `weight(1f)`, start-aligned | **`titleLarge` (Fredoka Medium 22sp)**; otherwise unchanged — `onSurface`, `maxLines = 1` with ellipsis, `weight(1f)`, start-aligned, `semantics { heading() }` |
+| Trailing — timer | `titleMedium` (**16sp**) with tabular figures, in a fixed **32dp** `surfaceContainerHigh` pill, `spacing_sm` sides, no shadow | **`headlineSmall` (Fredoka Medium 24sp)** with `withTabularFigures()`, `onSurface`; the pill is `heightIn(min = game_timer_pill_height)` — **40dp**, and a **minimum**: it grows with the font scale instead of clipping the digits, which the fixed height would do at 200% — with `game_timer_pill_padding` (12dp) sides, `shapes.small`, `surfaceContainerHigh`, and **`clayShadow(elevation_pressed)`**, the back chip's own shadow, so the strip reads as two clay chips framing a title |
+| The strip | `statusBarsPadding()`, 56dp minimum | **No `statusBarsPadding()`** (below); 56dp minimum unchanged — the tallest child at default scale is still the 48dp back chip |
+
+**Why the timer is the bigger of the two.** The timer is what a player looks up to *check*; it
+changes every second and must read in one glance from arm's length. The title is context, read once
+per game. Both grow — the title by 38%, the timer by 50% — and the one that changes grows most.
+
+**Width budget at 360dp, default font scale.** 360 − 2×16 (strip sides) − 48 (back chip) − 2×8
+(`spacedBy`) = **264dp** for the title and the pill together. The timer "00:00" at 24sp is ≈64dp of
+digits plus 2×12dp = **≈88dp**, which leaves the title **≈176dp**: "Peg Solitaire" at 22sp needs
+≈150dp and "Level 1234" ≈120dp, so both render **un-truncated with ≥ 25dp to spare**. These are
+estimates; criterion 18a measures.
+
+**At 200% font scale the timer wins, unchanged in principle.** The timer is 48sp in a pill that has
+grown to hold it (≈64dp tall); the title truncates before the timer can be clipped (§11 "Text
+scaling"), and TalkBack still reads the title's full text — the Classic title's text node is the
+whole string, and the Challenge title's description is "Challenge level N" whatever is drawn.
+
+**Tabular figures must actually be tabular.** The pill's width must not change as the timer ticks.
+`withTabularFigures()` requests `tnum`; if the resolved Fredoka build does not honour it on a device,
+the digits shift width, and criterion 18d is the check that catches it. The requirement is the
+property, not the feature flag, so the fix — if one is needed — is the developer's.
+
+**The insets, applied once.** The gameplay `Scaffold` passes content padding that already contains
+the status bar and the navigation bar (its default content window insets), and `GameScreen` applies
+that padding to its column (`GameScreen.kt:170-175`). Inside the column, `GameStatusStrip` applies
+`statusBarsPadding()` again (`GameStatusStrip.kt:81`) and `GameActionDock` applies
+`navigationBarsPadding()` again (`GameActionDock.kt:95`). The founder's `gameplay.png` shows the
+result: the back chip's top edge sits at ≈112dp on a phone whose status bar is ≈52dp tall — 52 +
+52 + the strip's own few dp — so an empty band as tall as the status bar hangs above the strip, and
+the dock rides a second navigation inset. **Ruled: on the gameplay screen each system bar is applied
+exactly once.** Which layer applies it — the `Scaffold`'s padding, or the strip and the dock with
+the `Scaffold`'s content insets set to none — is the developer's choice; the property is criterion
+18b.
+
+**The board budget after D-05d** — 360×640dp, 24dp status bar, 48dp three-button navigation,
+**568dp** usable:
+
+| | Today (insets twice, 16sp) | After, default font scale | After, 200% font scale |
+|---|---|---|---|
+| Double-applied insets | 24 + 48 = 72 | 0 | 0 |
+| Status strip | 56 | 56 | ≈64 (the grown timer pill) |
+| Dock slab + its `spacing_md` margin ×2 | 72 + 32 = 104 | 104 | 104 — the dock has no text |
+| Board region less `board_screen_margin` ×2 | 568 − 72 − 56 − 104 − 32 = **304** | 568 − 56 − 104 − 32 = **376** | 568 − 64 − 104 − 32 = **368** |
+| Board slab edge (width limit: 360 − 32 = **328**) | **304** — height-limited | **328** — full | **328** — full |
+
+So the larger type costs the board **nothing** at either scale on the design baseline, and the
+board **gains** 24dp of edge over today because the wasted inset is returned. On a 6.7-inch phone
+the board is width-limited with more than 100dp to spare either way.
+
+**Placement.** Unchanged: title start-aligned directly after the back chip, timer at the strip's end
+edge, all three `CenterVertically`. **Considered and rejected:** centring the title (the pill is
+≈40dp wider than the back chip, so a "centred" title is off-centre unless equal side slots are
+reserved, and reserving them costs the title ≈40dp at 360dp — exactly where it has least); a
+two-row strip (costs the board ≥ 28dp for nothing once both fit one row); a clock glyph in the pill
+(the core icon set has none, and the `mm:ss` shape and the `elapsed_time` description already say
+what the number is); a Nunito role for the digits (§6.3 maps title and headline roles to Fredoka, and
+a one-off body role at 24sp would be a second type voice in a two-element strip).
+
+**What this owes in tests:** criteria 18a (the rendered text styles and the pill's height, read off
+the text layout), 18b (the strip's top edge and the dock's bottom edge against supplied insets), 18c
+(the board slab's edge at 1.0 and 2.0 font scale), 18d (the pill's width across ticks, on a device)
+and 18e (at 200% the timer is fully shown and only the title may ellipsise).
+
 ### 4.4 Gameplay action dock — `GameActionDock.kt` (ASST-01, ASST-02, D-04/D-04a–d), and the tutorial's wrong-tap contract (D-01c, D-01h)
 
 > Two unrelated surfaces share this section because the second is a single table: the dock below,
@@ -1545,6 +1999,14 @@ A single clay slab below the board, in the thumb zone: `surfaceContainerHigh`, `
 `clayShadow(elevation_card)`, `game_action_dock_height`, `navigationBarsPadding()`, holding four
 targets in a `SpaceEvenly` `Row`, each `game_action_button_size` (56dp) with a minimum
 `spacing_sm` gap:
+
+> *(Amended 2026-09-28 — founder-feedback amendment, **D-04e**, §4.4.1. The **Resting** and
+> **State channel** columns below are superseded by §4.4.1's five looks: Undo, Hint **and Restart**
+> share one Available look, Undo's disabled state becomes Unavailable, Hint's thinking state
+> becomes Working, and Show-moves alone is drawn On or Off. The dock's `navigationBarsPadding()` is
+> withdrawn (D-05d, §4.3.1). Order, glyphs, sizes, cues, descriptions other than Show-moves' and the
+> no-allowance contract below are unchanged. The table is left as it reads because it is what the
+> audited build was built against.)*
 
 | Order | Control | Glyph | Resting | State channel | Cue |
 |-------|---------|-------|---------|---------------|-----|
@@ -1606,6 +2068,151 @@ criteria (7d) and owed tests (§13) rather than an absence nobody asserts.
 During normal gameplay (outside the tutorial) wrong-tap handling is **unchanged** — the existing
 `rejectedTapTick` → `InvalidTap` path (`GameScreen.kt:393-398`), cue included.
 
+#### 4.4.1 The dock's state language (D-04e — founder-feedback amendment, 2026-09-28)
+
+> **Status.** Answers the founder's "I like the in-game icons, but I can't really say if they are
+> on or off" (Q-004). Supersedes the Resting and State channel columns of the dock table above,
+> §6.2's dock rows and §11's dock rows. Unchanged: the order (Undo · Hint · Show moves · Restart),
+> every glyph except that Show-moves Off gains a slash, the 56dp targets and 28dp glyphs, the slab,
+> `SpaceEvenly`, every cue, `undo_action`, `hint_action`, `hint_thinking`, `restart_board`,
+> `show_moves_on`, and the no-allowance negative contract.
+
+**What the founder saw, and why.** In `gameplay.png`, Undo and Hint are pale filled discs and
+Show-moves and Restart are outlined rings. Fill-versus-outline is the on/off vocabulary, so the
+dock read as two controls on and two off, when three of the four have no on/off at all and the one
+that does was on. The channel was also nearly invisible: `primaryContainer` #EDE4FF on the slab's
+`surfaceContainerHigh` #F1EAFB is **≈1.04:1**, and the `outline` #C9BEE0 ring **≈1.5:1** — WCAG
+1.4.11 asks 3:1 of anything that identifies a state.
+
+**Two kinds, two grammars.**
+
+| Kind | Controls | Has an on/off? | Looks it can take |
+|------|----------|----------------|-------------------|
+| **Action** — press to do something | Undo, Hint, Restart | **No** | Available · Working (Hint only) · Unavailable (Undo only) |
+| **Toggle** — a setting that is on or off | Show moves | **Yes** | On · Off |
+
+**The five looks.** Every value is an existing M3 role or a §6.1 token; nothing is a new colour.
+
+| Look | Disc fill | Ring | Shadow | Glyph | Mark | Responds to a press |
+|------|-----------|------|--------|-------|------|---------------------|
+| **Available** | `primaryContainer` (pale) | none | `clayShadow(elevation_pressed)` — raised | the control's own glyph, `onPrimaryContainer`, full strength | none | yes — `claySquish()` |
+| **Working** | `primaryContainer` (pale) | none | **none** — pressed in while busy | a `CircularProgressIndicator` in `primary` at `game_action_glyph_size`, in place of the glyph | none | no |
+| **Unavailable** | **none** — transparent | none | none | the control's own glyph, `onSurface` at `DockMetrics.UNAVAILABLE_GLYPH_ALPHA` (**0.38**, a unitless ratio in a scoped constants object) | none | no |
+| **On** | `primary` (strong) | none | `clayShadow(elevation_pressed)` | `ShowMovesIcon`, `onPrimary` | **the on mark** — a `game_action_mark_size` (24dp) circle filled `onPrimary`, with a `game_action_ring_width` (2dp) `primary` border and `Icons.Rounded.Check` at `game_action_mark_glyph_size` (16dp) in `primary`, centred on the disc's rim at its top-end 45° point | yes — `claySquish()` |
+| **Off** | **none** — transparent | `game_action_ring_width` (2dp), `onSurfaceVariant` | none | **`ShowMovesOffIcon`** — the same drawing with a diagonal slash from top-start to bottom-end, knocked out one stroke-width either side so it reads as a slash and not a scratch — `onSurfaceVariant`, full strength | none | yes — `claySquish()` |
+
+Every disc stays `game_action_button_size` (56dp) and every glyph `game_action_glyph_size` (28dp).
+The on mark is drawn, not a node, and it stays inside the 72dp slab: centred on the rim, its outer
+edge sits ≈4dp below the slab's top.
+
+**Which control is in which look — every state each can reach.**
+
+| Control | Situation | Look | TalkBack (name · role · state) |
+|---------|-----------|------|--------------------------------|
+| Undo | at least one move to undo (`canUndo`) | Available | "Undo" · button |
+| Undo | `canUndo`, and the free undos for this level are spent | **Available — identical** | identical |
+| Undo | nothing to undo: a fresh board, undone back to the start, or a Challenge board still loading (`!canUndo`) | Unavailable | "Undo" · button · disabled |
+| Hint | idle | Available | "Hint" · button |
+| Hint | the free hints for this level are spent | **Available — identical** | identical |
+| Hint | a hint is showing on the board (`hintSource != null`) | **Available — identical.** Hint has no "on": the gold glow on the board is the only sign a hint is up | identical |
+| Hint | the last search found no winning move (`noWinningMove`) | **Available — identical**; the rescue banner carries the message | identical |
+| Hint | a Challenge board is still loading | Available — the look follows `solverThinking` only; what a tap does while loading is the ViewModel's and unchanged | identical |
+| Hint | the Solver is searching (`solverThinking`) | Working | "Finding a move" (`hint_thinking`, unchanged) · button · disabled |
+| Show moves | dots on (`showHints`) | On | "Show possible moves" · switch · on |
+| Show moves | dots off | Off | "Show possible moves" · switch · off |
+| Restart | always — the ViewModel decides confirm or immediate | Available | "Restart Board" · button |
+
+While the restart confirm or the ad opt-in dialog is up, every control keeps its look behind the
+scrim; nothing in the dock changes because a dialog opened.
+
+**The spent-allowance rows are an earlier ruling applied, not a new one.** `GameUiState.kt:131-135`
+says the controls "must not change appearance" with the allowance counters — "no badge, no "×3"
+chip, no allowance-driven disabled state" — because the opt-in dialog is the only signal the
+allowance system exists. So "out of hints" and "out of undos" are **not** states of
+the dock: the control looks and announces exactly as Available, and the tap raises the opt-in dialog
+(ADS-01) — or, if no ad can load, grants the assist with the "refilled for free" snackbar (D-11).
+Drawing Unavailable there would be worse than a rule breach: it would tell the player the assist is
+gone when one tap would offer it.
+
+**Why no two looks can be confused without colour.** The channels are fill (none / pale / strong —
+"strong" is ≥ 3:1 against the slab, so it survives every colour-vision deficiency and a greyscale
+screenshot), ring, shadow, glyph shape (normal / slashed / spinner), and mark. Hue is not counted.
+
+| Pair | Channels that differ |
+|------|----------------------|
+| Available · Working | shadow, glyph shape |
+| Available · Unavailable | fill, shadow (and glyph strength) |
+| Available · On | fill tone, mark |
+| Available · Off | fill, ring, shadow, glyph shape |
+| Working · Unavailable | fill, glyph shape |
+| Working · On | fill tone, shadow, glyph shape, mark |
+| Working · Off | fill, ring, glyph shape |
+| Unavailable · On | fill, shadow, mark |
+| Unavailable · Off | ring, glyph shape (and glyph strength) |
+| On · Off | fill, ring, shadow, glyph shape, mark |
+
+Every pair differs in **at least two**. The recipe is data — one mapping from look to fill, ring,
+shadow, glyph variant and mark — so criterion 21b asserts this over all ten pairs in a unit test
+instead of trusting this table.
+
+**Contrast**, computed from `Color.kt`; the device reading governs (criteria 21f, 27):
+
+| Pair | Light | Dark | Needs |
+|------|-------|------|-------|
+| On disc `primary` against the slab `surfaceContainerHigh` | ≈4.9:1 | ≈5.2:1 | ≥ 3:1 — it identifies a state |
+| Off ring `onSurfaceVariant` against the slab | ≈5.3:1 | ≈5.6:1 | ≥ 3:1 |
+| On glyph `onPrimary` on `primary` | ≈5.7:1 | ≈5.6:1 | ≥ 3:1 |
+| Check `primary` on the mark's `onPrimary` | ≈5.7:1 | ≈5.6:1 | ≥ 3:1 |
+| Available glyph `onPrimaryContainer` on `primaryContainer` | ≈10.5:1 | ≈7.6:1 | ≥ 3:1 |
+| Off glyph `onSurfaceVariant` on the slab | ≈5.3:1 | ≈5.6:1 | ≥ 3:1 |
+| *Retired channel, for the record:* `primaryContainer` fill against the slab | ≈1.04:1 | ≈1.5:1 | it was carrying a state |
+
+The Unavailable glyph is deliberately below 3:1; WCAG exempts an inactive control, and the look
+does not rely on it alone (it also loses its fill and its shadow).
+
+**TalkBack: Show-moves becomes a switch.** The toggle takes toggleable semantics with
+`Role.Switch` and `ToggleableState.On`/`Off`, and its name is **constant** — `show_moves_on`,
+"Show possible moves", in both states. TalkBack then reads name, role and state the way every
+switch in Settings already does. The old pattern swapped the whole description between "Show
+possible moves" (on) and "Hide possible moves" (off): two imperatives, each naming the **opposite**
+of what the next tap does, so a TalkBack user heard "Hide possible moves" on a control whose tap
+shows them. `show_moves_off` loses its only caller and is deleted (§8). `ButtonSoundTest.kt:226-244`
+finds the toggle by `show_moves_on`, and that is now the toggle's name in both states, so the test
+passes **unedited**. The toggle stays silent (D-09) and stays an `IconButton`-sized 56dp target; its
+node is not merged or cleared (§11 "The unmerged tree is not the contract").
+
+**Transitions.** On ↔ Off: the fill and the ring cross-fade over `ClayAnim.PRESS_IN_MS`, the glyph
+cross-fades to its other variant over the same, and the on mark scales in with `overshootSpring()`
+and out without overshoot. Available ↔ Unavailable: fill, shadow and glyph strength cross-fade over
+`ClayAnim.PRESS_IN_MS`. Available → Working is instant, because it confirms the tap registered. All
+of it is gated on `rememberAnimationsEnabled()`; with animations off each look is simply the new one.
+Sound is unchanged: Undo plays `SoundCue.Undo`, Hint `SoundCue.Hint` on the reveal, Show-moves and
+Restart are silent (D-09).
+
+**The on mark is a state mark, not an allowance badge.** Criterion 24 and the plan's prohibition
+grep P10 (`allowance|badge|×[0-9]|adReason` over `GameActionDock.kt`) forbid allowance surfaces, and
+the mark is not one: it marks a *setting*, never a count, and it appears only on Show-moves. So that
+the grep stays a meaningful zero rather than acquiring a false hit, the mark is called the **on
+mark** (or check mark) in code, KDoc and test names — never a "badge".
+
+**Labels were weighed and not added.** Text under each icon would name the actions and could spell
+the toggle's state, and it is the obvious reading of the founder's note. It is declined for three
+reasons: it costs the board ≥ 20dp at default scale and ≥ 40dp at 200% on the phone where the board
+is tightest (§4.3.1's budget); it breaks the dock's "renders no text at all" property that makes the
+allowance contract greppable; and the founder asked for the icons to stay. The marks do the state
+job without text; if the founder later wants labels, they are an additive change to this section.
+
+**Test hook.** `DockActionFilledKey` (a `Boolean`) cannot express five looks. It is replaced by one
+custom semantics property carrying the look — `Available`, `Working`, `Unavailable`, `On`, `Off` —
+on each dock control, in the same idiom (`GameScreen`'s `PegCountKey`), so every row of the table
+above is assertable without a screenshot.
+
+**What this owes in tests:** criteria 21a (every control in the look its state requires,
+table-driven over the rows above), 21b (the ten pairs, over the recipe data), 21c (a spent
+allowance changes nothing visible or announced), 21d (switch semantics, one name, `show_moves_off`
+gone, `ButtonSoundTest` unedited), 21e (only Show-moves ever draws the mark or the slash); and on a
+device 21f (contrast of the two state marks) and 21g (the greyscale read).
+
 ### 4.5 Settings — one row added (D-02a)
 
 A `SettingsLinkRow` in `GeneralSection` (`SettingsScreen.kt:193-218`), **above** the Sound toggle:
@@ -1634,6 +2241,12 @@ Things a reader might expect from this spec and will not find, each on purpose:
 - **No allowance counters, badges or ad affordances** on the dock (§4.4).
 - **No Play Games chip on Home** (D-03e).
 - **No tappable progress pills** (§4.2).
+- **No logo or emblem on Home** *(2026-09-28, D-03l)*. The hero's only decoration is the stage —
+  the game's own board, drawn into the slack — and it is not tappable, not focusable and not
+  announced (§4.2.4).
+- **No text in the dock, and no on/off look on an action** *(2026-09-28, D-04e)*. Undo, Hint and
+  Restart are never drawn On or Off, never carry the on mark and never draw a slashed glyph; only
+  Show-moves does. A spent allowance never changes a control's look (§4.4.1).
 - **No loading state, skeleton or spinner on Home.** The ribbon paints placeholders and fills;
   first paint never waits (D-03g, §6.5).
 - **No per-board star pips on Home.** They stay on the Classic catalog, untouched (§4.2.1).
@@ -1733,6 +2346,22 @@ declared even where an existing token shares its value. All multiples of 4.
 | `home_compact_threshold_width` | 400dp | **(D-03k, added 2026-09-28)** The available **width** below which the compact threshold is the narrow one. 360dp is the narrowest supported window and the next common width is the 412dp class, so no shipping device sits on the boundary (§4.2.3) |
 | `home_compact_threshold_height_narrow` | 880dp | **(D-03k, added 2026-09-28)** The compact threshold **at an available width below 400dp**: the full set's own both-chips height *at 360dp width* (≈872dp, where the bands wrap) rounded onto the grid. Its consequence is deliberate — at 360dp width Home is always compact (§4.2.3) |
 | `home_stat_pill_compact_min_height` | 40dp | **(D-03k, added 2026-09-28)** One progress pill in the compact-narrow ribbon: `spacing_sm` + one `titleMedium` line + `spacing_sm`, with the label beside the value and no decorative glyph. A **floor**, not a height — the label wraps and the band grows before either text truncates (§4.2.3, criteria 14/15m) |
+| `home_hero_row_min_height` | 72dp | **(D-03l, founder-feedback amendment, added 2026-09-28)** The hero row — title and 48dp gear — on **every** window. Same value as the retired `home_hero_compact_min_height`, new owner: the row is no longer a compact-only shape (§4.2.4) |
+| `home_stage_art_min_size` | 48dp | **(D-03l)** The smallest stage-art edge that is drawn; below it the stage is plain slack. It is what bounds the largest blank Home can show at 48 + 2 × band spacing (§4.2.4, criterion 15p) |
+| `home_stage_art_max_size` | 320dp | **(D-03l)** The largest stage-art edge; above it the art is centred in its stage (§4.2.4) |
+| `game_timer_pill_padding` | 12dp | **(D-05d, founder-feedback amendment, added 2026-09-28)** Horizontal padding inside the gameplay timer pill (§4.3.1) |
+| `game_action_mark_size` | 24dp | **(D-04e, founder-feedback amendment, added 2026-09-28)** The on mark's circle on Show-moves On (§4.4.1) |
+| `game_action_mark_glyph_size` | 16dp | **(D-04e)** The check inside the on mark |
+| `game_action_ring_width` | 2dp | **(D-04e)** The Off ring and the on mark's border. A sub-4dp stroke — the same documented exception as `peg_selected_ring_width` — and a token of its own so the dock stops borrowing the board's ring width |
+
+**Changed value** *(D-05d, 2026-09-28)*: `game_timer_pill_height` **32dp → 40dp**, and it is now
+applied as a **minimum** (`heightIn`), not a fixed height, so the pill grows with the font scale
+(§4.3.1).
+
+**Retired by D-03l** *(2026-09-28)*: `home_hero_min_height` (160dp), `home_hero_art_size` (120dp)
+and `home_hero_compact_min_height` (72dp) lose their callers with `FullHero`, `HomeHeroArt` and
+`CompactHero`. Two new ratios live in scoped constants objects, not here (§6.4):
+`HomeStageMetrics.SLAB_PADDING_FRACTION` (0.06) and `DockMetrics.UNAVAILABLE_GLYPH_ALPHA` (0.38).
 
 **One note on `home_stat_pill_min_height`** *(added 2026-09-28, D-03k — a fact, not a change)*: at
 64dp it is a minimum that **has never bound**. The pill it sizes composes `spacing_sm` + a 20dp
@@ -1769,12 +2398,26 @@ layout since Phase 2.
 | Tutorial coach ring | `primary` (the existing selection-ring role) |
 | Captions, supporting lines | `onSurfaceVariant` |
 
+*(Amended 2026-09-28 — founder-feedback amendment, D-04e, D-03l, D-05d.)* The three dock rows above
+("Dock loud actions", "Dock quiet actions", "Show-moves ON") and "Disabled Undo" are superseded by
+§4.4.1's five looks: **Available** — Undo, Hint and Restart alike — `primaryContainer` /
+`onPrimaryContainer`; **Working** the same fill with a `primary` spinner; **Unavailable** no fill and
+an `onSurface` glyph at 0.38; **On** `primary` / `onPrimary` with the on mark (`onPrimary` fill,
+`primary` border and check); **Off** no fill, an `onSurfaceVariant` ring and glyph. The Home stage
+slab is `surfaceContainerHigh`, like the board slab it miniaturises, and the timer pill keeps
+`surfaceContainerHigh`. **Still no new colour, no new gradient, no hex.**
+
 ### 6.3 Typography
 
 M3 roles only, per the Fredoka/Nunito mapping in the design system. Home title `displaySmall`;
 gameplay title and timer `titleMedium`; stat-pill values `titleMedium`; stat-pill labels
 `labelMedium`; tutorial caption `bodyMedium`; all button labels `labelLarge`. Timer and every
 numeric stat value use `withTabularFigures()` so digits never shift width.
+
+*(Amended 2026-09-28 — founder-feedback amendment, **D-05d** and **D-03l**.)* Gameplay title
+**`titleLarge`** (22sp) and gameplay timer **`headlineSmall`** (24sp) with tabular figures — both
+Fredoka Medium, per the design system's mapping (§4.3.1). The Home title stays `displaySmall`
+(36sp), now start-aligned in the hero row on every window (§4.2.4).
 
 ### 6.4 Motion
 
@@ -1837,6 +2480,16 @@ soon as C1 passes; each step is a visual loss only and costs no oracle (§4.2.1)
 
 **Nothing in the degradation path touches the Challenge tile chip, the Continue chips themselves,
 or the Classic catalog** — those are D-03f oracles and are not available to trade.
+
+*(Amended 2026-09-28 — founder-feedback amendment, **D-03l**.)* The table's "Hero board art" row
+now reads **"Hero stage art — one `BoardCanvas` draw of a constant position, only when the slack
+holds ≥ 48dp — Low"**: it replaces the withdrawn peg cluster's one draw, so the budget is unchanged,
+and it depends on no `HomeUiState` field, so it can never wait on a read. Degradation **step 3** now
+reads **"Hero stage art (1 draw) — the stage stays as plain slack"**. Be clear about its price:
+that step brings back **the very blank band the founder objected to** (≈150–280dp on a 6.7-inch
+phone, §4.2.4) and fails criterion 15p, so it is taken only if a measured sitting forces it, and
+taking it sends 15p back to this role with the numbers rather than closing it. Q-901's "option 3",
+which this step used to name, no longer exists: the hero is a title row either way.
 
 **Handoff:** this is a design budget, not a measurement. The developer measures C1 with the fuller
 Home before the phase closes; the qa-engineer checks the numbers at the gate.
@@ -2120,6 +2773,14 @@ saying what happened to the originals.)*
 values and move to the new tutorial (Reused unchanged, above). The shared `onboarding_` prefix is
 not a licence to sweep the group.
 
+`show_moves_off` ("Hide possible moves", `strings.xml:96`) — *deleted 2026-09-28 by the
+founder-feedback amendment, D-04e.* Show-moves becomes a switch whose name is `show_moves_on`
+("Show possible moves") in both states, with the state announced by the switch role, so the off
+string has no caller; it also named the opposite of what a tap on the off control does (§4.4.1).
+`show_moves_on` stays, value unchanged, and moves from "Reused unchanged" into service as the
+toggle's constant name. **The amendment adds no string**: the stage has no text, the on mark and the
+slash are drawn, and the strip's larger type reuses its existing strings.
+
 ### Fixed
 
 `settings_sound_supporting` — "Saved for the upcoming sound effects" is stale since Phase 7.
@@ -2151,6 +2812,15 @@ Both new vectors follow the `UndoIcon.kt` / `ModeGlyphs.kt` precedent: a 24-unit
 opaque black, recoloured by the host `Icon`'s tint, `@Suppress("MagicNumber")` on the path data
 with the same justification comment the existing two carry.
 
+*(Added 2026-09-28 — founder-feedback amendment, D-03l / D-04e.)* Three rows join the table, none
+third-party and none needing a `THIRD_PARTY.md` row beyond what already ships:
+
+| Asset | Kind | Source | Licence |
+|-------|------|--------|---------|
+| `Icons.Rounded.Check` — the check inside Show-moves' on mark | vector | `material-icons-core`, already a dependency | Apache-2.0 (notice already shipped) |
+| **`ShowMovesOffIcon`** — `ShowMovesIcon` with a knocked-out diagonal slash | vector | **new, in-house**, same precedent as the two above; it brings one more `@Suppress("MagicNumber")` on path data, which the code-auditor sees under the existing precedent rather than as a new kind of suppression | project-owned |
+| Home stage art — a mid-game English-33 position on a clay slab | drawn | `BoardCanvas` primitives, no asset file; replaces the withdrawn peg-cluster art | project-owned |
+
 ---
 
 ## 10. Animation and motion
@@ -2168,6 +2838,9 @@ All new motion reuses the Candy Clay vocabulary; nothing invents a curve.
 | Tutorial nudge escalation | one `TutorialAnim.COACH_PULSE_MS` pulse, `TutorialAnim.NUDGE_DELAY_MS` after the last non-progressing tap |
 | Tutorial completion star | `ClayAnim.STAR_POP_MS` + `overshootSpring()` + `goldGradientFill()` |
 | Hero board art | idle — no ambient motion of its own; the two existing `HomeBlobs` remain the only drifting elements |
+| **Hero stage art** *(2026-09-28, D-03l — replaces the row above)* | static on every frame: no selection, no dots, no hint, so nothing on the board pulses or pops; enters with the hero (`clayEntrance(HERO_ENTRANCE_ORDER)`); the blobs remain the only drifting elements |
+| **Show-moves On ↔ Off** *(2026-09-28, D-04e — replaces "Show-moves toggling ON/OFF")* | fill and ring cross-fade over `ClayAnim.PRESS_IN_MS`; glyph cross-fades to its variant (slashed / plain) over the same; the on mark scales in with `overshootSpring()` and out without overshoot |
+| **Dock action Available ↔ Unavailable** *(D-04e)* | fill, shadow and glyph strength cross-fade over `ClayAnim.PRESS_IN_MS`; Available → Working is instant (it confirms the tap) |
 
 **Reduced motion is a hard requirement.** Every decorative animation above is gated on
 `rememberAnimationsEnabled()` (`Clay.kt:209-218`), which reads
@@ -2177,6 +2850,9 @@ All new motion reuses the Candy Clay vocabulary; nothing invents a curve.
   (`Clay.kt:185`) — inherited, nothing to add.
 - The tutorial coach pulse, the star pop, the caption cross-fade and the pill cross-fade **do not
   run**; the ring, the star, the caption and the fill appear settled.
+- *(2026-09-28, D-04e / D-03l.)* The dock's look cross-fades and the on mark's scale-in **do not
+  run**: every control simply shows its new look. The stage art has no motion to gate; it appears
+  with the hero, settled.
 - `TutorialAnim.STEP_ADVANCE_DELAY_MS` still applies. It is a **functional** beat — the player must
   see their jump resolve before the board is replaced — not decoration, and collapsing it would
   make the tutorial swap boards under the player's finger.
@@ -2211,6 +2887,10 @@ art, the Continue thumbnail, the ribbon pill glyphs (the pill speaks as one node
 step pips (the row speaks as one node), the completion star. Labelled: back, Settings gear, all
 four dock actions, Skip, the completion CTA, the Settings row, both mode tiles, both Continue
 chips, the timer.
+*(2026-09-28, founder-feedback amendment.)* Decorative, added: the **Home stage art** (D-03l — and
+the stage itself announces nothing and takes no focus) and Show-moves' **on mark** and **slash**,
+which are drawn parts of one control whose state TalkBack reads from the switch role (D-04e). The
+hero art is gone from the decorative list with the art itself.
 
 **The unmerged tree is not the contract** *(ruled 2026-09-28, from the finding in
 `.planning/reports/phase-15/android-game-dev-s5-s8.md:213-220`; no code change follows from it)*.
@@ -2258,12 +2938,31 @@ settled rather than re-litigated at every review:
 This is a fix, not a restatement: `HintToggleControl.kt:45-51` carries its state in tint alone
 today.
 
+*(Amended 2026-09-28 — founder-feedback amendment, **D-04e**, §4.4.1. The table above was right in
+intent and failed in fact: its "fill" channel for Show-moves and Undo measured ≈1.04:1 against the
+dock, and the loud/quiet fills put two actions in the on/off vocabulary. It is superseded by these
+rows.)*
+
+| Control | Channels, since D-04e |
+|---------|-----------------------|
+| Show-moves On / Off | **strong fill vs none** + **ring** (Off) + **shadow** (On) + **glyph shape** (plain vs slashed) + **on mark** (On) + `Role.Switch` with announced state, one constant name |
+| Undo Available / Unavailable | **fill** + **shadow** + glyph strength + `enabled` (TalkBack "disabled") |
+| Hint Available / Working | **glyph shape** (glyph vs spinner) + **shadow** + `enabled` + `hint_action`/`hint_thinking` |
+| Restart | always Available — it has one look, so there is no state to encode |
+| Any action vs the toggle | an action is **never** drawn with the on mark, the slash, a strong fill or a ring |
+
+Every pair of looks differs in at least two non-hue channels (§4.4.1's pair table, criterion 21b).
+
 **Contrast.** ≥ 4.5:1 for all body and label text and ≥ 3:1 for glyphs and boundaries, in **both**
 light and dark. The pairs in use are all from the design system's verified set. Two to check
 explicitly on device because they are new pairings: `onPrimaryContainer` glyph on
 `primaryContainer` fill (dock loud actions), and `onSurfaceVariant` glyph on `surfaceVariant` fill
 (disabled Undo — perceivable even though WCAG exempts disabled controls). The gradient CTA label
 sits on the gradient's dark half by construction (`Clay.kt:91-103`).
+*(2026-09-28, D-04e.)* The dock's pairs to check on device are now §4.4.1's contrast table; the two
+that carry a **state** — the On disc and the Off ring, each against the slab — must measure ≥ 3:1
+in both themes (criterion 21f). The `onSurfaceVariant`-on-`surfaceVariant` pair above no longer
+exists: an Unavailable action has no fill.
 
 **Text scaling.** Every size is an M3 type role, so all text scales with the system font size.
 Four layouts must be verified at 200%: the Home column (scrolls — §4.2), the tutorial column
@@ -2275,6 +2974,9 @@ label nor the value is ever truncated or scaled down; D-03k, §4.2.3, criteria 1
 gameplay status strip
 (the title is `maxLines = 1` with `weight(1f)` and truncates before it can push the timer pill off
 screen — the timer must never be clipped, since it is the only place elapsed time appears).
+*(2026-09-28, D-05d.)* The strip's roles are now `titleLarge` and `headlineSmall`, and the timer
+pill's 40dp is a **minimum**, so at 200% the pill grows to hold 48sp digits rather than clipping
+them; the rule above is unchanged and criterion 18e checks it.
 
 **Screen-reader traversal.** Tutorial order: pips → Skip → board → caption → CTA. Gameplay order:
 back → title → timer → board → dock (Undo → Hint → Show-moves → Restart) → any raised banner.
@@ -2332,6 +3034,14 @@ height that ships, because the wrap is a property of the width and not of the he
 above default scale — the slack goes, then the column scrolls, and no band is dropped (criterion
 15i). What §4.2.3 adds to it is that on a 360×640dp phone the column scrolls at **default** scale
 too, by ~72dp, and criterion 15k says so instead of asserting a fit.
+
+*(Added 2026-09-28 — founder-feedback amendment.)* **Tall phone**: Home's slack is now the **stage**
+(D-03l, §4.2.4) — it sits between the hero row and the ribbon and holds a board as large as the
+slack allows (≈150–280dp on a 6.7-inch phone), so the tiles stay low without a blank band above
+them; the largest blank any window can show is < 80dp. **Narrow and short**: unchanged — the stage
+is 0 and 15k's numbers stand. **Gameplay, every size**: each system bar is applied once (D-05d,
+§4.3.1), which is what lets the larger title and timer cost the board nothing on a 360×640dp phone
+at both 1.0 and 2.0 font scale.
 
 ---
 
@@ -2403,6 +3113,24 @@ assertion will reach for the first of them again:
   window where the device does not. Supply the insets the way `TutorialScreenTest`'s
   `applySystemBarInsets()` already does; the harness exists in this repo and was written for F-1 in
   the same slice. A reading taken without them is **neither a pass nor a fail** (criterion 15k).
+
+**Founder-feedback amendment — what it breaks, what it retargets, what it owes** *(2026-09-28,
+D-03l / D-04e / D-05d)*:
+
+| Test | Effect | Fix |
+|------|--------|-----|
+| `ButtonSoundTest.kt:226-244` | Finds the back chip by `navigate_back` and the toggle by `show_moves_on` | **Passes unedited** — both descriptions survive, and `show_moves_on` is now the toggle's name in both states. If it needs an edit, a description drifted; fix the production code. |
+| `GameFlowTest.kt:129` | Finds the timer by `elapsed_time` | **Passes unedited.** |
+| `GameScreenChromeTest.showMovesCarriesItsStateByFillAndNotByTintAlone` (a phase-15 test) | Reads `DockActionFilledKey` and the `show_moves_on`/`show_moves_off` pair; the key is replaced and the off string deleted | **Retarget, never delete or `@Ignore`:** assert the On/Off look property, the `ToggleableState`, `Role.Switch` and the constant name. A name that says what it now proves, e.g. `showMovesCarriesItsStateByFillRingMarkAndSwitchStateNeverByTint`. |
+| Any other test reading `DockActionFilledKey` | The key is replaced by the look property | Retarget to the look property. |
+| `HomeScreenTest` assertions that the hero art is present on a tall window, or that the compact hero is a separate shape (criterion 15l's third window) | There is no hero art and one hero shape | Retarget "hero art present" to "stage art present"; the full/compact distinction is now spacing and pill shape only. |
+
+**Owed, new** — every one watched fail once before it is trusted: criteria **15n–15r** (Home, §4.2.4,
+including the unit test that replays the stage's recorded move list from the English start),
+**18a–18e** (the strip, §4.3.1 — 18b and 18c with insets supplied, 18d on a device), and
+**21a–21g** (the dock, §4.4.1 — 21b is a pure unit test over the recipe data, 21f and 21g device
+checks). The two §13 idioms above still bind every new layout assertion: no
+`bottom ≤ contentBottom()` containment and no zero-inset window.
 
 **Four audio tests** *(2026-09-21 — added with D-01i; the list above carried none, and criterion
 7c had a device check and nothing else)*. The project's own rule is that a named silence is only
@@ -2713,6 +3441,50 @@ prohibitions are unchanged and still bind; **15h is retired and 15k replaces it*
      ribbon band measures **≤ 56dp** — if it measures more, the band grows and the column scrolls
      rather than anything clipping. (D-03k, D-03c, D-03h, criteria 13, 13a, 14, 15j, §11)
 
+**Home hero (D-03l, §4.2.4 — founder-feedback amendment, added 2026-09-28)** — these five apply to
+the slice that lands D-03l and retro-certify nothing. Criteria 11, 14, 15, 15a's chips half, 15d,
+15g, 15i, 15j, 15k, 15l and 15m stand unchanged; in 15l's third window, "with the hero's decorative
+art present" now reads **"with the stage art present"**.
+
+15n. **No logo.** Given Home on any window in any state, then no decorative art is composed above
+     or beside the title, and `grep -rn 'HomeHeroArt' app/src/main` returns 0 hits. (D-03l)
+
+15o. **The title sits in one row with the gear.** Given Home at default font scale on
+     `w360dp-h640dp` and on `w412dp-h915dp`, with the system-bar insets supplied, then: the title's
+     start edge equals the column's content start edge (±1dp); the gear's end edge equals the
+     column's content end edge (±1dp); the title's and the gear's vertical ranges overlap; no node
+     is composed above the title; and the title renders at `displaySmall` (36sp) with its full
+     text, neither truncated nor scaled. At font scale 2.0 the title may wrap and the row grows,
+     but it is still never truncated or scaled and the gear stays in the row. (D-03l, criteria 14,
+     15i)
+
+15p. **No empty middle gap.**
+     1. Given Home at default font scale on `w412dp-h915dp` with a 24dp status bar and a 48dp
+        navigation bar supplied (843dp usable), when there is no Continue chip, and again when only
+        the Classic Continue chip is present, then the stage art is drawn with an edge **≥ 120dp**,
+        and **no vertical distance between two consecutive visible elements** — hero row, stage art,
+        ribbon, each chip, each tile — **exceeds 24dp**.
+     2. Given each of `w360dp` × `h640dp`/`h720dp`/`h800dp` and `w412dp` × `h780dp`/`h850dp`/`h915dp`,
+        insets supplied, in every chip state (none, Classic only, Challenge only, both), then no
+        vertical distance between two consecutive visible elements above the second mode tile,
+        measured along the column whether or not it is scrolled, exceeds **80dp** where the window
+        takes the full band set or **64dp** where it takes the compact set.
+     3. If the device's own band heights put the one-chip stage art below 120dp, that is a failure
+        of this criterion and it returns to the ux-designer with the measured numbers; it is not
+        closed by shrinking a band, a readout or a target. The qa-engineer's device numbers govern.
+     (D-03l, criterion 15g)
+
+15q. **The stage shows a real game, and holds still.** A unit test replays a recorded move list
+     from `Boards.english33Initial` — every move legal under the shipped rules engine — and arrives
+     exactly at the stage art's peg set, which holds 12–16 pegs. The board state the stage draws has
+     no selected peg, no legal targets and no hint, so nothing on it animates on any frame.
+     (D-03l, D-03g, §10)
+
+15r. **The stage is decoration.** The stage and its art are neither clickable nor focusable and
+     announce nothing; Home's TalkBack traversal is unchanged — title → gear → ribbon pills →
+     Continue chips → mode tiles; and the stage renders identically before and after `HomeUiState`
+     receives its first progress emission. (D-03l, §11, criteria 15f, 15j, D-03g)
+
 **In-game controls (D-04) and the toolbar (D-05)**
 
 16. The gameplay screen has **no Material top app bar**: no bar background, no bar elevation, no
@@ -2721,12 +3493,75 @@ prohibitions are unchanged and still bind; **15h is retired and 15k replaces it*
     where they came from; system back does the same. (D-05b)
 18. The elapsed timer is still visible during play and is still announced as the elapsed time.
     (SCOR-02, D-05a)
+
+**The status strip, re-sized (D-05d, §4.3.1 — founder-feedback amendment, added 2026-09-28)**
+
+18a. **Bigger, and measured.** Given gameplay at default font scale, then the title's rendered text
+     style is `titleLarge` (22sp) and the timer's is `headlineSmall` (24sp) carrying the `tnum`
+     feature — read from the text layout, not assumed — and the timer pill is ≥ 40dp tall; and on
+     `w360dp` both "Peg Solitaire" (Classic) and "Level 1234" (Challenge) render with no ellipsis.
+     (D-05d, SCOR-02, CLAS-02)
+
+18b. **Each system bar once.** Given gameplay on `w360dp-h640dp` with a 24dp status bar and a 48dp
+     navigation bar supplied, then the status strip's top edge is at 24dp (±1dp) and the dock
+     slab's bottom edge is at 576dp (±1dp) — 640 less the 48dp bar and the dock's 16dp margin. On a
+     device, the back chip's top edge is within 8dp of the status bar's bottom edge. (D-05d)
+
+18c. **The board keeps its space.** Same window: the board slab's edge is **328dp** — the window
+     width less 2 × `board_screen_margin` — at font scale 1.0 **and** at 2.0. (D-05d, D-04)
+
+18d. **The timer does not jitter.** On a device with the shipped font, the timer pill's width is
+     the same (±0.5dp) at 00:00, 08:08, 11:11 and 59:59. (D-05d, §6.3)
+
+18e. **At 200% the timer wins.** Given gameplay on `w360dp` at font scale 2.0, then the timer's
+     text is fully visible — not clipped, not ellipsised — in a pill that has grown to hold it; only
+     the title may ellipsise; and TalkBack still reads the title's full text ("Peg Solitaire", or
+     "Challenge level N"). (D-05d, §11, criterion 18)
 19. Undo, Hint, Show-moves and Restart are all still reachable, all still work, and all four sit in
     the lower half of the screen. (ASST-01, ASST-02, D-04)
 20. The Hint control does not use a magnifying-glass glyph, and the Show-moves control does not use
     the same glyph as any other control in the app. (D-04a, D-04b)
 21. Turning Show-moves on and off changes the control's **fill**, not only its colour, and a
     screen reader announces which state it is in. (D-04b)
+
+**The dock's state language (D-04e, §4.4.1 — founder-feedback amendment, added 2026-09-28)** —
+criteria 19–24 above stand unchanged; these seven make "on or off" legible and checkable.
+
+21a. **Every control is in the look its state requires.** A table-driven test over §4.4.1's "which
+     control is in which look" rows: given each row's situation, the control's look property equals
+     that row's look — including Undo **Unavailable** on a fresh board and **Available** after one
+     jump, Hint **Working** while `solverThinking`, Hint **Available** with `hintSource` set and
+     with `noWinningMove`, Show-moves **On** and **Off**, and Restart **Available**. (D-04e, ASST-01,
+     ASST-02, criteria 22, 23)
+
+21b. **No two looks share a recipe.** A unit test over the recipe data asserts that each of the ten
+     pairs of looks differs in at least two of: fill (none / pale / strong), ring, shadow, glyph
+     shape (normal / slashed / spinner), on mark. (D-04e, rules/compose.md "never colour alone")
+
+21c. **A spent allowance changes nothing a player can see or hear.** Given Undo — and separately
+     Hint — with its free allowance for the level spent, when the dock renders, then the control's
+     look is Available, its semantics (name, role, enabled) equal those it had before the allowance
+     was spent, the dock has the same nodes, and a tap raises the opt-in dialog. (D-04e; the
+     earlier-phase ruling at `GameUiState.kt:131-135`; ADS-01; criterion 24)
+
+21d. **Show-moves speaks as a switch.** The toggle exposes `Role.Switch` with `ToggleableState.On`
+     when the dots are on and `Off` when they are off, and its content description is "Show
+     possible moves" in both states; `grep -rn 'show_moves_off' app/src` returns 0 hits; and
+     `ButtonSoundTest.kt:226-244` passes with zero diff. (D-04e, criterion 21)
+
+21e. **Only the toggle is ever on or off.** Show-moves On draws the on mark and `ShowMovesIcon`;
+     Off draws `ShowMovesOffIcon` and no mark; no other control, in any look, draws the mark, the
+     slashed glyph, a `primary` fill or a ring. (D-04e, §5)
+
+21f. **The state marks are visible.** On a device screenshot in light and in dark theme, the On
+     disc and the Off ring each measure ≥ 3:1 against the dock slab. (D-04e, WCAG 1.4.11,
+     criterion 27)
+
+21g. **The greyscale read.** The qa-engineer captures the dock on a device with Show-moves On and
+     with it Off, each on a fresh board (Undo Unavailable) and after one jump (Undo Available), plus
+     one capture while a hint is being searched (Hint Working); converts each capture to greyscale;
+     and records which look each control shows. Every reading must match §4.4.1's table without
+     reference to colour. (D-04e, rules/compose.md)
 22. With no moves made, Undo is visibly and announced-as disabled; after one jump it is enabled.
     (ASST-02, D-04d)
 23. Requesting a hint shows a spinner in place of the glyph, the control reports as disabled while
@@ -2763,8 +3598,9 @@ prohibitions are unchanged and still bind; **15h is retired and 15k replaces it*
 
 ## 15. Open questions for the founder (non-blocking)
 
-Both are art direction between equals, which rules/studio.md routes to the founder. Both have a
-default decided so no work waits.
+Each is art direction between equals, which rules/studio.md routes to the founder. Each has a
+default decided so no work waits. *(Q-901 and Q-902 are answered; Q-005 was added on 2026-09-28 by
+the founder-feedback amendment and is open.)*
 
 **Q-901 — Home hero treatment.** Options: (1) a **static** decorative peg cluster in Candy Clay;
 (2) a **slowly drifting** mini board that idles behind the title; (3) no art — a larger gradient
@@ -2774,6 +3610,9 @@ screen. Option 2 competes with the two `HomeBlobs` that already drift there, and
 running animation on the cold-start critical path (D-03g). Option 3 is also step 3 of the §6.5
 degradation path, so if C1 measurement forces it, the founder's answer is already implemented.
 **Blocks: nothing.**
+*(Answered 2026-09-21: option 1. **Superseded 2026-09-28** by the founder's Q-004 — having seen
+option 1 built, the founder rejected the peg-cross logo. D-03l withdraws it and Q-005 below asks the
+art direction again with the founder's three named problems as its brief.)*
 
 **Q-902 — Do the in-game actions move to the bottom?** The founder said "redesign the icons on the
 top" and "remove toolbar from the game" in the same breath. This spec reads that as one surface
@@ -2784,6 +3623,29 @@ the lower thumb zone of a 6.7-inch phone and Undo — the control a peg-solitair
 is currently in the worst-reachable corner of the screen. If the founder wants the icons visually
 "on the top", §4.3 and §4.4 swap places and nothing else in this spec changes.
 **Blocks: nothing.**
+*(Answered 2026-09-21: the split. Unaffected by the 2026-09-28 amendment; D-04e and D-05d restyle
+both halves of it without moving anything between them.)*
+
+**Q-005 — Home hero: how should the top of Home fill the screen?** *(added 2026-09-28 —
+founder-feedback amendment; queued in `.planning/questions/FOUNDER.md`)*. Per Q-004 the peg-cross
+logo goes, the title is re-seated and the blank band between the stats and the cards must go. Three
+directions are each buildable and each fixes all three named problems; choosing between them is
+taste. Options: **(1) Board stage** — the title left-aligned beside the gear in one line, and below
+it a large clay board showing a game in progress that grows or shrinks with the screen and is not
+drawn on small phones (§4.2.4, D-03l). **(2) No art, one block** — no picture anywhere; the title
+sits directly on the stats, and title, stats, Continue and mode cards form one block in the lower
+part of the screen, with only the gear and the soft background blobs above it. **(3) Bigger cards**
+— no picture; the title line as in (1); on taller phones the mode cards and Continue chips grow
+taller (larger art, larger tap areas) to take the space — which changes the cards the founder said
+to keep. **Recommendation and default: (1).** It removes the gap on every phone without moving the
+mode cards out of thumb reach, shows the game itself instead of an emblem, and costs nothing at cold
+start (one drawing, replacing the logo's). (2) leaves the top third of a tall phone empty — the
+original "looks empty" complaint in a new place; (3) spends the space on the part the founder asked
+to keep and needs a computed band height, since a weighted content band is forbidden (§4.2.2 clause
+4). If the founder picks (2), §4.2.4's stage is deleted and the upper weight returns to a plain
+`Spacer` **above** the hero row, and 15p part 1 is replaced by "the title sits directly on the
+ribbon"; if (3), the stage is deleted and the tiles' and chips' minimum heights become a function of
+the available height, capped. Either way 15n, 15o, 15g and 15k stand. **Blocks: nothing.**
 
 ---
 
@@ -2840,6 +3702,15 @@ are still one *tap* from Home, and a scroll is not a tap. **QUAL-03** gains thre
 `home_stat_pill_compact_min_height`, §6.1) and no new string. **PLAT-08 (C1)**'s obligation is
 unchanged and slightly cheaper to meet: the narrow ribbon removes three vector `Icon` draws from
 the start destination and adds no read, no decode and no measuring pass.
+
+*(Added 2026-09-28 — founder-feedback amendment.)* **NAV-01** and proposed **UX-02** gain §4.2.4
+and criteria 15n–15r (the hero row and the stage, D-03l); **PLAT-08 (C1)**'s budget is unchanged —
+the stage's one draw replaces the logo's. **CLAS-02** and **SCOR-02** gain §4.3.1 and criteria
+18a–18e (the title and the timer, larger, with the insets applied once, D-05d). **ASST-01** and
+**ASST-02** gain §4.4.1 and criteria 21a–21g (the dock's state language, D-04e). **ADS-01/02** gain
+criterion 21c — a spent allowance changes nothing a player can see, which is the earlier-phase
+ruling made testable rather than relaxed. **QUAL-03** gains seven tokens and one changed value
+(§6.1), two scoped ratios, and one deleted string; no new colour and no new string.
 
 ---
 
