@@ -157,6 +157,49 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > `docs/audio-spec.md` the cue list of record and that file has never existed on any branch. The
 > gap predates phase 15, belongs to the sound-designer, and the producer is tracking it
 > separately. This spec names cues per screen; it does not stand in for that file.
+>
+> **Sixth revision — 2026-09-28 (the compact band set does not fit a 360×640dp phone; criterion
+> 15h is retired because it is false).** `.planning/reports/phase-15/code-auditor-s9.md` **MB-1** —
+> the reviewer's re-audit of the build that landed §4.2.2. Two findings, and both are this role's to
+> answer. **(1)** §4.2.2's ≈544dp compact total is **≈156dp light**, because it sums band
+> *minimums* while at 360dp width the bands stand well above their floors: measured, ribbon
+> **116dp**, each Continue chip **108dp**, the mode tiles **108** and **116dp** — **≈700dp** of
+> content (≈684dp to the last band's bottom edge). **(2)** On the test's own zero-inset
+> `w360dp-h640dp` window the Challenge tile sits at `568..640` unscrolled and `524..640` once
+> scrolled into view — **44dp below the fold** — where criterion 15h required both tiles visible
+> *without* scrolling. §4.2.2 had itself named this the "stop and report the measured numbers"
+> branch (`:1077-1081`) and reserved the next yield to this role; the numbers have arrived, so it is
+> ruled here rather than deferred again.
+>
+> The ruling is **D-03k** (§3, specified in **§4.2.3**) and it has four parts. §4.2.2's arithmetic
+> is **corrected additively** — the first-edition table is left legible with a pointer and a
+> corrected, **wrapped-height** table sits beside it, together with the usable-height figure this
+> document now designs against: **568dp**, not 640. The compact **threshold becomes a function of
+> width as well as height**, because the ≈156dp error was wrap at narrow width and not height at
+> all. **One new thing yields and it costs no readout** — the ribbon pill's `contentDescription =
+> null` glyph and its stacked third line, which together are ~44dp of the 116dp. And then, on the
+> corrected arithmetic, **criterion 15h is retired because it is false**: after every available
+> yield the compact set still stands **72dp** over a real 360×640dp phone, and all 72dp sit in
+> bands that are readouts, targets or routes. Its replacement, **15k**, says what is true — the
+> hero row, the ribbon, both Continue chips and the *first* mode tile complete inside the first
+> viewport, the second tile breaking the fold, the whole column one bounded scroll. **An amended
+> criterion that tells the truth is worth more than a criterion that passes.**
+>
+> **Which build the new criteria apply to — stated once, because two reviewers have returned
+> verdicts against earlier wordings.** **15k, 15l and 15m apply only to the slice that lands
+> D-03k**, the slice *after* the build audited on 2026-09-28. They do **not** retro-certify that
+> build. 15h stays legible beneath its replacement precisely because it is the criterion the S9
+> build was measured against, and S9's verdict against it is **FAIL**. **Retiring 15h does not
+> clear MB-1**: an assertion incapable of failing (`HomeScreenTest.kt:300`) is a defect on its own
+> terms and is not made acceptable by a criterion changing underneath it. That assertion is still
+> the developer's to fix, now against 15k and **with insets supplied** — which matters more than
+> before, because on the corrected numbers the compact column lands within a few dp of the 640dp
+> zero-inset window, so a zero-inset test would read "fits" on the very window where the device
+> does not. Nothing else is reopened: D-03i's mechanism — the `BoxWithConstraints`, the modifier
+> order, the two weighted `Spacer`s and clause 4's ban on a weighted content band — is **untouched
+> and still binds** (the auditor broke clause 4's shape and watched the guard catch it), and
+> criteria 15g, 15i and 15j stand unamended. No readout, no control, no touch target and no band
+> is removed by this ruling, and none of §4.2.1's four rejected simplifications is reached for.
 
 ---
 
@@ -172,7 +215,7 @@ The founder's words, verbatim:
 |-----|----------|---------|
 | Make the tutorial more interactive | **D-01** | The tutorial becomes three micro-puzzles the player actually plays on a live board. No step is advanced by a Next button. |
 | Remove the info button that starts the tutorial | **D-02** | `HomeScreen.kt:348-354` is deleted. The replay path moves to a Settings › General row; first-run auto-start is unchanged. |
-| Homepage looks empty with just 2 buttons | **D-03** | Home gains a hero block, a three-pill progress ribbon and board art on its tiles. The two mode tiles stay primary and stay in the thumb zone. **Bounded by two hard constraints: three existing readouts are device-test oracles that must stay visible on first paint (D-03f), and Home is on the measured ≤ 950 ms cold-start gate (D-03g).** *(The ≤ 950 ms figure is reattributed to PLAT-08 / phase 14 by **D-03j**, 2026-09-28; the sentence is left as it read.)* |
+| Homepage looks empty with just 2 buttons | **D-03** | Home gains a hero block, a three-pill progress ribbon and board art on its tiles. The two mode tiles stay primary and stay in the thumb zone. **Bounded by two hard constraints: three existing readouts are device-test oracles that must stay visible on first paint (D-03f), and Home is on the measured ≤ 950 ms cold-start gate (D-03g).** *(The ≤ 950 ms figure is reattributed to PLAT-08 / phase 14 by **D-03j**, 2026-09-28; the sentence is left as it read.)* *(And by **D-03k**, 2026-09-28: "visible on first paint" is exact for the Continue chips on every window and for all three oracles at 400dp of width or more, but on a 360dp-wide phone the Challenge tile's level chip is across the fold — composed at full size, one plain scroll of ≤ 120dp away, with the ribbon's Level pill as its above-the-fold witness. §4.2.3 has the arithmetic that forces it; criterion 15k is the check; nothing is ever collapsed, truncated or behind a tap.)* |
 | Redesign the in-game icons on the top | **D-04** | The five controls are re-glyphed, re-grouped and re-homed. Two real accessibility defects are fixed in the process. |
 | Remove the toolbar from the game | **D-05** | The `TopAppBar` at `GameScreen.kt:502` is deleted. It is the **same surface** as the "icons on the top", so D-04 and D-05 are one change — see D-05 in §3. |
 
@@ -583,6 +626,13 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   can offer at most 640dp and in practice ~568dp. Two tiles low on a tall phone and four oracles
   above the fold on a short one are therefore not a trade to be split down the middle with one
   number; they need a mechanism that reads the space it has, which is what §4.2.2 specifies.
+  *(Amended 2026-09-28 — see **D-03k** and **§4.2.3**. Every clause of the mechanism stands: the
+  `BoxWithConstraints`, the modifier order, the two weighted `Spacer`s, the 3 : 1 ratio and clause
+  4's ban on a weighted content band are untouched and still bind. What is amended is the
+  **arithmetic** this ruling argued from — it summed band minimums and the bands wrap — and with it
+  the threshold, which now reads width as well as height, and the yield order, which gains one
+  step. The conclusion this ruling reached is unchanged and is now stronger: one number cannot
+  serve two screen sizes.)*
 
 - **D-03j** *(2026-09-28 — folded in from the tech-lead's ruling
   `.planning/reports/phase-15/tech-lead-coldstart-gate.md` §4, which corrects a gate that report's
@@ -611,6 +661,53 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   whichever device the number eventually comes from.
   — Which number gates *this* phase is a UX-contract question because §14 is this document's, and
   the instrument and the ownership are the tech-lead's; this records the half that is mine.
+
+- **D-03k** *(2026-09-28 — UX ruling on measured evidence, taking the branch D-03i's own §4.2.2
+  reserved to this role: `.planning/reports/phase-15/code-auditor-s9.md` MB-1. It applies to the
+  slice **after** the build audited on 2026-09-28 and rewrites nothing above it.)*: **a 360×640dp
+  phone with both Continue chips scrolls, and the criterion says so.** Four parts, each specified
+  in **§4.2.3**: **(1)** §4.2.2's compact arithmetic is corrected to sum **measured, wrapped** band
+  heights at 360dp width (≈700dp, not ≈544dp) against **568dp** of usable height, not 640dp;
+  **(2)** the compact threshold reads **width as well as height** — at an available width below
+  400dp the height threshold is 880dp, so **every 360dp-wide phone is compact**, and at or above
+  400dp nothing changes; **(3)** one new thing yields and it costs **no readout**: the progress
+  pill's decorative glyph and its stacked third line, taking the band from a measured 116dp to
+  ≤ 56dp with the same three values, the same three labels and the same single TalkBack sentence;
+  **(4)** **criterion 15h is retired as false** and replaced by **15k**, which requires the hero
+  row, the whole ribbon, **both** Continue chips and the **first** mode tile complete inside the
+  first viewport, the **second** mode tile **breaking the fold**, and the rest reached by one plain
+  vertical scroll of **≤ 120dp** with no tap, no expander and no state change. New criteria:
+  **15k, 15l, 15m**.
+  — The evidence forces part 1 and part 1 forces the rest. Measured at 360dp width the ribbon is
+  **116dp** against a stated 64dp, each Continue chip **108dp** against 72dp, the mode tiles
+  **108** and **116dp** against 96dp: ≈700dp of content where the table predicted ≈544dp. The
+  ribbon's half of that error is provable by reading rather than measuring, and it is the reason
+  §4.2.2 wrongly called the band unyieldable: the pill is
+  `padding(spacing_sm)` + glyph 20dp + `spacing_xs` + label + `spacing_xs` + value +
+  `padding(spacing_sm)` (`HomeProgressRibbon.kt:129-163`), i.e. **44dp of chrome over two text
+  lines — ≥84dp before any wrap** — while §4.2.2's arithmetic omitted the glyph and one
+  `spacing_xs` and read a 64dp *minimum* as if it were a cap. **After every yield that costs no
+  readout, the compact set is still ≈640dp against 568dp usable — 72dp over — and all 72dp are in
+  the hero's 48dp gear and gradient title, oracle 3's two Continue chips, §11's two 96dp tile
+  floors carrying oracle 1's level chip, and `spacing_sm`.** There is nothing left to take that is
+  not a readout, a target or a route, so a no-scroll fit is not available at any price this
+  document is willing to pay, and asserting one would be a second false green three weeks after
+  the first. **What is deliberately *not* done, and why it looks cheaper than it is:** dropping the
+  ribbon would save 56–116dp and make the arithmetic close (≈560dp against 568dp), and it is
+  rejected three times over. An 8dp margin is not a margin — it is inside the variance between
+  Robolectric's text metrics and glass, between a 48dp navigation bar and a ~24dp gesture handle,
+  and above any font scale over 1.0. It would make criterion 11 ("three progress pills", no
+  screen-size qualifier) false on exactly the phones whose Home looks emptiest, un-answering the
+  founder's ask where it was loudest. And it is the one change that would genuinely breach D-03f:
+  §4.2.1 records that the Level pill and the Challenge tile's chip "read the same
+  `challengeCurrentLevel`, so they cannot diverge by construction", which makes **the Level pill
+  the ladder position's above-the-fold witness** once the tile chip is below the fold. The ribbon
+  is not the band that disappears; it is the band that makes the scroll safe.
+  — Both halves are this role's: §14 is this document's, so retiring a criterion is a UX decision
+  and not a concession extracted by a failing test; and the band set, the threshold and the yield
+  order are layout, which rules/studio.md puts here. What is **not** claimed here is a device
+  reading — every dp above is Robolectric's, the qa-engineer's glass numbers govern, and 15k names
+  the failure route back to this role if they differ.
 
 ### In-game controls (ASST-01, ASST-02, CLAS-02, SCOR-02, proposed UX-03)
 
@@ -915,6 +1012,22 @@ must be allowed to compress toward it (art first, then title scale) before anyth
 leaves the fold. A Continue chip that is only reachable by scrolling is a broken oracle, not a
 layout compromise.
 
+> *(Amended 2026-09-28 — D-03k, §4.2.3. Left as it reads; this is the rule criterion 15h was
+> derived from, so it is where the correction has to be visible.)* **Band 3 stands, absolutely and
+> on every window.** Both Continue chips are fully within the first viewport with no scrolling, and
+> the last sentence above is the reason — oracle 3 is the only one of the three with no second
+> witness anywhere in the app, so a scrolled Continue chip is a broken oracle and always will be.
+> **Band 4 cannot hold on a 360×640dp phone and is corrected.** §4.2.2's corrected arithmetic puts
+> the compact band set at ≈700dp — ≈640dp after the last yield that costs no readout — against
+> **568dp** of usable height, and every remaining dp is a readout, a target or a route. So on that
+> window the **first** mode tile is fully within the first viewport and the **second** breaks the
+> fold, reached by one plain scroll of ≤ 120dp (criterion **15k**, which replaces 15h). **The
+> hero's yield order in this paragraph is also superseded in one detail**: the hero does not
+> "compress toward `home_hero_min_height`, art first then title scale" — §4.2.2 step 2 drops the
+> art outright and takes `home_hero_compact_min_height`, and the title is **never** scaled down at
+> any size. Everything else here — scrolling exists for overflow and not as a place to put things
+> — is untouched and is exactly what §4.2.3 holds the narrow class to.
+
 #### 4.2.1 Load-bearing readouts — do not hide these (D-03f)
 
 Three readouts are the pass/fail oracles of the cloud-save device checklist
@@ -926,7 +1039,7 @@ why §5.1 forbids the tutorial from going near it.
 
 | # | Oracle | Where it lives after this refresh | What "survives" means |
 |---|--------|-----------------------------------|------------------------|
-| 1 | **Challenge ladder position** | The Challenge tile's level chip (`challenge_tile_continue`, "Continue — Level N", `HomeScreen.kt:544-558`) — unchanged — **and** additionally the ribbon's Level pill | The tile chip is the oracle and stays exactly as it is. The Level pill is **additive**; if the two ever disagree the tile is right. Both read the same `challengeCurrentLevel`, so they cannot diverge by construction. |
+| 1 | **Challenge ladder position** | The Challenge tile's level chip (`challenge_tile_continue`, "Continue — Level N", `HomeScreen.kt:544-558`) — unchanged — **and** additionally the ribbon's Level pill | The tile chip is the oracle and stays exactly as it is. The Level pill is **additive**; if the two ever disagree the tile is right. Both read the same `challengeCurrentLevel`, so they cannot diverge by construction. *(2026-09-28, D-03k: on the **narrow class** the pill stops being merely additive and becomes this oracle's **above-the-fold witness**, because the tile chip is across the fold there — reached by one plain scroll of ≤ 120dp, criterion 15k. The tile chip is still the authority and still unchanged; "cannot diverge by construction" is what makes the witness sound, and it is why the ribbon may not be dropped to buy space.)* |
 | 2 | **Classic per-board stars** | The **Classic catalog**, as gold pips under each board preview (`BoardPreview.kt:100-123`, `ClassicBoardUiState.earnedStars`) — this refresh does not touch that screen | Per-board stars have never been on Home and are not being moved there. What must survive is the **path**: the Classic tile remains a single tap from Home to the catalog, and the catalog's pips are untouched. The ribbon's **Stars pill is an aggregate total and is explicitly NOT a replacement for the per-board pips** — do not "simplify" the catalog by pointing at it. |
 | 3 | **Continue / resume affordance** | Home band 3, up to two gold chips — behaviour, data and ordering unchanged (`HomeScreen.kt:293-318`) | Visible on first paint without scrolling (first-paint rule above). The added board thumbnail is cosmetic; the chip's presence, its title, its supporting line and its resume target are the oracle. |
 
@@ -944,6 +1057,43 @@ why §5.1 forbids the tutorial from going near it.
 - *A "recent activity" or "last played" band.* Rejected: it is the Continue chip with worse copy,
   and it needs `completedAt` ordering — a new read on the cold-start path for no new information.
 
+**All four rejections stand, unamended and unreachable** — restated here in 2026-09-28 because
+D-03k adds a yield step and the next reader will wonder how far it goes. It goes as far as one
+decorative drawing and one line of stacking; it does not reach any of the four. **The second one is
+the near miss and is worth spelling out:** D-03k does **not** move the Challenge level "into the
+ribbon pill only". The tile chip stays, unchanged, as the authority; what changes on a 360dp-wide
+phone is only *where the fold falls relative to it*, and the pill — which has been there since
+D-03c and reads the same field — is what keeps the value above that fold. A ruling that deleted the
+tile chip and kept the pill would be this rejected option; a ruling that keeps both and scrolls to
+one of them is not.
+
+> **What "behind a scroll position" means, and what it does not** *(added 2026-09-28, D-03k —
+> narrow by design; it licenses exactly one window class and nothing else)*. This subsection and
+> criterion 15d forbid an oracle "behind a tap, an expander, a scroll position, an animation, or a
+> later screen", and the stated reason is that `11-HUMAN-UAT.md` tests 10/11/13 read their
+> pass/fail off these three, so hiding one makes cloud save **unverifiable on a device**. A tester
+> can only be misled by a *hidden* readout: one whose absence and whose collapse look identical,
+> or one that cannot be read without changing state. §4.2.3's arithmetic shows a 360×640dp phone
+> with both chips cannot seat all five bands at any price this document will pay, so the letter and
+> the reason have to be separated — once, explicitly, and not again:
+>
+> - **Forbidden on every window, unchanged:** a tap, an expander, a "show more", a later screen, an
+>   animation that must finish, a state change of any kind, and **any collapsed, folded or
+>   truncated region**. A reading that costs the tester a decision is hidden, whatever its cause.
+> - **Permitted, on the narrow-and-short class only** (§4.2.3's compact-narrow set): a readout
+>   composed at full size with its full label and its full semantics, entirely inside the one
+>   scrolling column, reached by a **plain vertical scroll that reveals nothing which was not
+>   already composed**. Criterion 15k bounds that scroll at ≤ 120dp — under one mode tile, one
+>   flick — and requires the fold to **cut through a band** rather than land between two, so the
+>   screen cannot present a false bottom.
+> - **Never permitted for oracle 3, on any window.** Both Continue chips stay complete inside the
+>   first viewport everywhere. §4.2's first-paint rule already says it in the right words — "A
+>   Continue chip that is only reachable by scrolling is a broken oracle, not a layout compromise"
+>   — and that sentence is untouched. Oracle 3 is the only one of the three with **no second
+>   witness anywhere in the app**: oracle 1 has the Level pill on this same screen reading the same
+>   field, and oracle 2 has never been on Home at all. That asymmetry is the whole of the licence
+>   above; it is not a general relaxation and it may not be cited as one.
+
 #### 4.2.2 Vertical slack, and the band set a short screen gets (D-03i — added 2026-09-28)
 
 > **Status, before anything else.** This subsection **postdates the build under audit**. §4.2's
@@ -957,6 +1107,16 @@ why §5.1 forbids the tutorial from going near it.
 table is a floor, not a prediction. Available height = what is left inside the `Scaffold`'s content
 padding, which is why a tall navigation bar makes a device behave as the shorter device it
 effectively is.
+
+> **The table immediately below is superseded in its numbers — 2026-09-28, D-03k.** It is left
+> exactly as it read, because it is the arithmetic the audited build was built against and because
+> the way it was wrong is the point. It sums band **minimums**; at 360dp width the bands stand well
+> above their floors, and the compact total is **≈700dp, not ≈544dp**. The sentence it opens with —
+> "every band is a *minimum* height, so the table is a floor, not a prediction" — is the warning
+> the totals rows then ignored. **The corrected, wrapped-height arithmetic is the second table,
+> below this one, and that is the one to compute against.** Its conclusion about the *full* set is
+> unchanged and only strengthened; what it got wrong is the compact set's headroom, and with it
+> criterion 15h.
 
 | At default font scale | Full band set | Compact band set (below the threshold) |
 |---|---|---|
@@ -977,6 +1137,72 @@ fresh-install state, and a fixed 24dp spends 24dp of it wherever the state happe
 the measured 45% dead space, and it is also why the spacer's real cost is **40dp** rather than 24:
 as a child of `Arrangement.spacedBy(spacing_md)` it brings a second 16dp gap with it, 16dp of which
 expresses no intent at all.
+
+##### The same arithmetic, corrected — wrapped heights at 360dp width (D-03k, 2026-09-28)
+
+Measured by `code-auditor-s9.md` MB-1 on a `w360dp-h640dp` window at default font scale, against
+the shipped compact band set. **Sum wrapped heights, never floors.** The error this replaces was
+not a rounding slip: it was summing a column of minimums and writing the result as a total.
+
+| Compact band set, both chips | First-edition floor | Measured at 360dp width | Over its floor by |
+|---|---|---|---|
+| Column padding, top + bottom (`spacing_sm` ×2) | 16 | 16 | — |
+| Gaps between children (`spacing_sm` ×7) | 56 | 56 | — |
+| 1 Hero, one row, no art | 72 | **72** (title 44 inside it) | — |
+| 2 Ribbon | 64 | **116** | **+52** |
+| 3 Continue chip — Classic | 72 | **108** | **+36** |
+| 3 Continue chip — Challenge | 72 | **108** | **+36** |
+| 4 Mode tile — Classic | 96 | **108** | **+12** |
+| 4 Mode tile — Challenge (carries oracle 1's level chip) | 96 | **116** | **+20** |
+| **Total, both chips, zero slack** | **≈ 544** | **≈ 700** | **+156** |
+
+The band edges are on the record, so the sum is checkable rather than asserted — hero `8..80`,
+ribbon `88..204`, a Continue chip `220..328`, a mode tile `452..560`, the Challenge tile `568..684`
+(reported as `568..640` unscrolled because `getBoundsInRoot()` clips to the root, and `524..640`
+once scrolled into view). Two figures are **derived, not measured**, and are marked so they are not
+mistaken for readings: the second Continue chip at `336..444` (the first tile's top, 452, less one
+8dp gap and one 108dp chip) and the column's own total of **700** (the last tile's bottom, 684,
+plus one 8dp gap, the zero-height band-5 `Spacer` and 8dp of bottom padding). The 16dp between the
+ribbon's bottom and the first chip's top is the slack `Spacer` between bands 2 and 3 contributing
+its two `Arrangement.spacedBy` gaps at zero height — **the mechanism working exactly as clause 2
+specifies**, not a defect.
+
+**The usable height this document designs against: 568dp.** Stated as a number and not as a
+qualifier, because the original error is the kind that regenerates the moment the sum is left
+loose:
+
+| Window the short class is designed against | Usable height | ≈700dp of content is over by |
+|---|---|---|
+| **The design baseline** — 360×640dp, 24dp status + 48dp three-button navigation | **568dp** | **132dp** |
+| The same phone with a gesture handle instead of a bar (~24dp bottom inset) | ≈592dp | ≈108dp |
+| The JVM test window, zero insets (`w360dp-h640dp`) | 640dp | **60dp** — and the Challenge tile's bottom edge sits **44dp** below the fold |
+
+Three consequences, each of which has to be written down or it comes back:
+
+1. **A zero-inset window is a measurement artefact, not a device.** It is the most generous window
+   in the table and it is the only one no player holds. Any criterion about the short class is
+   measured with the insets supplied — the harness already exists in this repo
+   (`TutorialScreenTest.applySystemBarInsets()`) and was not carried across to the Home test where
+   the margin is 24dp instead of 96dp. Criterion 15k requires it.
+2. **The 116dp figure and the 132dp figure are both right and measure different things.** 684 − 568
+   = 116dp is the last band's *bottom edge* against real usable height; 700 − 568 = 132dp adds the
+   column's own trailing gap and bottom padding, which is space the column genuinely needs. The
+   layout must clear **132dp**; a test that stops at the last band's edge is reporting 116dp.
+3. **The ribbon was never unyieldable.** The bullet below claiming it "cannot yield
+   arithmetically … ~60dp inside a 64dp minimum" omitted the pill's glyph and one `spacing_xs`,
+   and read a *minimum* as a cap. `HomeProgressRibbon.kt:129-163` composes
+   `padding(spacing_sm)` + glyph `home_stat_pill_glyph_size` (20dp) + `spacing_xs` + label
+   (`labelMedium`) + `spacing_xs` + value (`titleMedium`) + `padding(spacing_sm)` — **44dp of
+   chrome over two text lines, ≥84dp at default font scale before any wrap**, inside a band
+   specified at 64dp. That 24dp omission is provable by reading the file, not by measuring it, and
+   it is where the ribbon's +52dp starts. §4.2.3 spends it.
+
+**The full set, recomputed at the same width, for completeness.** Hero 172 (as built) + ribbon 116
++ chips 108 + 108 + tiles 108 + 116 = 728 fixed, plus `spacing_md` ×7 = 112 and `spacing_md` ×2 =
+32 → **≈872dp** against 568dp usable. The first edition's "the full set is ~148dp over" was
+therefore itself generous: it is **~304dp** over. The conclusion is unchanged and only harder —
+the full set cannot serve a 360dp-wide phone of *any* height that ships, which is why D-03k makes
+the threshold read width (§4.2.3).
 
 **The mechanism.** One `BoxWithConstraints` and two empty `Spacer`s.
 
@@ -1048,6 +1274,14 @@ height, Home takes the **compact band set** — all three of these together, nev
 3. **Band spacing and the column's padding drop from `spacing_md` to `spacing_sm`** — the 64dp that
    closes the remaining gap.
 
+> *(Amended 2026-09-28 — D-03k, §4.2.3.)* **All three still go together and none is now optional.**
+> What changes is the count and the last clause of the sentence above them: on the **narrow** class
+> there is a **fourth** step, taken with the other three and never partially — the progress pill
+> drops its `contentDescription = null` glyph and puts its label beside its value on one line
+> (§4.2.3 part 2). And "the 64dp that closes the remaining gap" was the sentence that carried the
+> arithmetic error: at 360dp width it closes 64dp of a **132dp** gap, which is why there is a
+> fourth step at all and why, after it, the screen still scrolls by ≈72dp and criterion 15k says so.
+
 The threshold is **720dp**: the full set's own both-chips requirement (≈716dp) rounded up onto the
 grid. Its consequence, stated rather than discovered: a device around 360×780dp takes the compact
 set even though the full set would fit its *fresh-install* state. That is deliberate — the
@@ -1055,6 +1289,16 @@ alternative is a screen whose hero changes shape the first time the player leave
 and a layout that reshuffles when a Continue chip appears is worse than one that is stable per
 device. For the same reason the threshold reads **available height only and never the font scale**:
 at 200% on a tall phone the set stays full and the column scrolls (criterion 15i).
+
+> *(Amended 2026-09-28 — D-03k, §4.2.3.)* **"Never the font scale" stands. "Height only" does
+> not.** The threshold's *derivation* is kept — it is still "the full set's own both-chips
+> requirement at this width, rounded onto the grid" — but that requirement is **≈872dp at 360dp
+> width** and ≈716dp only at the wider class, because the bands wrap. So the threshold becomes a
+> function of **both** `BoxWithConstraints` dimensions: below `home_compact_threshold_width`
+> (400dp) the height threshold is `home_compact_threshold_height_narrow` (880dp), and at or above
+> it the 720dp above is unchanged. The font scale is still never read, for the reason given here.
+> The stated consequence gains a blunter one: **at 360dp width Home is always compact**, which is
+> deliberate and is argued in §4.2.3.
 
 **What never yields**, on any screen size, because each is a readout, a target, or a route:
 
@@ -1064,6 +1308,15 @@ at 200% on a tall phone the set stays full and the column scrolls (criterion 15i
 - The **ribbon**: three pills, their labels and their semantics. It also cannot yield arithmetically
   — value (`titleMedium`) + `spacing_xs` + label (`labelMedium`) + `spacing_sm` padding is ~60dp
   inside a 64dp minimum, so a smaller token would buy 4dp and lie about the layout.
+  > *(Amended 2026-09-28 — D-03k, §4.2.3.)* **The first clause stands; the second was wrong.**
+  > Three pills, their labels, their values and their one-sentence semantics still never yield —
+  > and on the narrow class the Level pill becomes load-bearing rather than additive, because it is
+  > the ladder position's above-the-fold witness once the tile chip is below the fold (§4.2.1's
+  > 2026-09-28 note). What was wrong is the arithmetic: the sum omitted the pill's 20dp glyph and
+  > one `spacing_xs`, and treated a 64dp *minimum* as a cap on an ≥84dp content column
+  > (`HomeProgressRibbon.kt:129-163`). The band has ~44dp of **decoration and stacking** in it, and
+  > §4.2.3 spends exactly that: the `contentDescription = null` glyph and the third line. No pill,
+  > no label, no value and no semantics node is touched, so nothing in the first clause moves.
 - The **Continue chips**: both, independent, 72dp, present whenever a snapshot exists (§4.2.1
   oracle 3).
 - The **mode tiles**: 96dp each (§11's tile floor), and the Challenge tile's level chip (oracle 1).
@@ -1080,6 +1333,19 @@ font scale — the headroom is ~24dp on the worst inset case and every number ab
 or a target, and that is a design change I will make against measured numbers rather than guess at
 here.
 
+> **This branch was taken, and it is answered — 2026-09-28, D-03k, §4.2.3.** The paragraph above
+> stands as the instruction and it was the right instruction; the reviewer reported the numbers
+> (`code-auditor-s9.md` MB-1) instead of a green test being accepted, and the ruling is made here
+> rather than deferred a second time. Two of its own figures were wrong and the correction matters:
+> the headroom is **not ~24dp**, it is **−132dp** against the design baseline, and the next
+> candidate to yield turned out **not** to be "a readout or a target" — those were the only bands
+> left *after* one more yield that costs neither. §4.2.3 spends the ribbon's decoration and its
+> third line, and then rules that the remaining 72dp cannot be found: on the corrected arithmetic
+> every dp of it is the hero's 48dp gear and gradient title, oracle 3's two Continue chips, and
+> §11's two 96dp tile floors carrying oracle 1's level chip. So **the screen scrolls and the
+> criterion says so** — criterion 15h is retired as false and 15k replaces it. Nothing in the
+> mechanism above changes.
+
 **Cold start (D-03g, criterion 15e).** The mechanism adds no read, no image decode, no asset load
 and no SDK call; its cost is one `SubcomposeLayout` for the band column and two zero-content
 `Spacer`s, and the compact set *removes* one `BoardCanvas` draw on the devices that take it. It is
@@ -1094,10 +1360,165 @@ qa-engineer's; the properties are this document's):
   Home content height — asserted in both the no-chip and the both-chips state (criterion 15g).
 - At a 360×640dp qualifier with both chips at default font scale, each Continue chip and both mode
   tiles are **fully inside** the viewport, and the hero art is absent (criterion 15h).
+  > *(Superseded 2026-09-28 — D-03k.)* The hero-art half stands. The "both mode tiles fully
+  > inside" half is **not achievable** (§4.2.2's corrected arithmetic, §4.2.3) and criterion 15h is
+  > retired; **§4.2.3's owed-tests list replaces this line**, and it also forbids the two idioms
+  > this one was written with — a containment assertion that `getBoundsInRoot()`'s clipping makes a
+  > tautology, and a zero-inset window (§13, "Two test idioms this refresh now forbids").
 - At the same qualifier with font scale 2.0, the column scrolls and every band is reachable, with no
   band dropped (criteria 14, 15i).
 - Neither spacer is a clickable or focusable node, and the content column is capped at 480dp and
   centred on a window wider than that (criterion 15j).
+
+#### 4.2.3 The narrow class: what yields last, and the criterion that tells the truth (D-03k — added 2026-09-28)
+
+> **Status, before anything else.** This subsection **postdates the build audited on 2026-09-28**
+> and applies to the slice that lands D-03k — the slice *after* that one. §4.2.2's mechanism is
+> **untouched and still binds** in every clause. §4.2's "Thumb zone" paragraph, the first-paint
+> rule, §4.2.1's oracle table and its four rejections, and criteria 14, 15, 15a, 15d and 15g–15j
+> are all left exactly as they read. What is new is one yield step, a width term in the threshold,
+> and the replacement of **criterion 15h**, which this subsection's arithmetic proves false rather
+> than asserting it. **Retiring 15h does not clear the reviewer's MB-1**: an assertion incapable of
+> failing is a defect on its own terms, and the criterion it certifies changing underneath it does
+> not make it sound.
+
+**The finding, in one line.** After §4.2.2's three compact steps the band set measures **≈700dp**
+at 360dp width and the design baseline offers **568dp** (§4.2.2's corrected tables). The gap is
+**132dp**.
+
+**Part 1 — the threshold reads width as well as height.** The ≈156dp error was **wrap at narrow
+width, not height**, so a threshold that reads height alone is measuring the wrong axis. The
+derivation is kept and applied twice:
+
+| Available width (`BoxWithConstraints.maxWidth`) | Compact below | Token | Why that number |
+|---|---|---|---|
+| < 400dp | **880dp** | `home_compact_threshold_height_narrow` | The full set's own both-chips height **at 360dp width** is ≈872dp (§4.2.2), rounded up onto the 8dp grid |
+| ≥ 400dp | 720dp — unchanged | `home_compact_threshold_height` | ≈716dp at that width, as D-03i derived it |
+
+400dp is the boundary because 360dp is the narrowest supported window and the next common width is
+the 412dp class; **no shipping device sits between them**, so the boundary is not a judgement about
+a real phone. The font scale is still never read (§4.2.2's reason is unchanged): at 200% a tall
+phone keeps the full set and scrolls (criterion 15i).
+
+**The consequence, stated rather than discovered — at 360dp width Home is always compact.** No
+shipping 360dp-wide phone is 880dp tall, so the narrow branch is the only branch a 360dp phone
+takes. That is the intent, not an accident: the bands wrap at 360dp whatever the height, so a
+360×800dp phone needs the compact set exactly as much as a 360×640dp one — the full set is ≈872dp
+against its ~728dp of usable height (**144dp over, scrolling**) while the compact set is ≈640dp
+(**fits, with ~88dp of slack**). At or above 400dp of width **nothing changes at all**: the 720dp
+threshold, the hero's decorative art, the 3 : 1 slack and everything criterion 15g measures are as
+D-03i left them. Reading `maxWidth` costs nothing — it is a second read of a value the
+`BoxWithConstraints` D-03i already specified has measured, not a second measuring pass.
+
+**Part 2 — the compact-narrow ribbon. The last yield, and it costs no readout.** Below
+`home_compact_threshold_width`, and only there, each progress pill takes the **compact pill**:
+
+1. **The pill's glyph is not composed at all.** It is `contentDescription = null` decoration inside
+   a `clearAndSetSemantics` node (`HomeProgressRibbon.kt:136`, `:143-151`) — it carries **no
+   information whatsoever**, which puts it in the same class as the hero's decorative art that
+   §6.5's degradation path already ranks as the cheapest thing on Home to lose. 20dp, plus the
+   `spacing_xs` beneath it.
+2. **The label and the value share one line**, not two: label (`labelMedium`, `onSurfaceVariant`),
+   `spacing_xs`, value (`titleMedium` with `withTabularFigures()`, `onSurface`), `CenterVertically`.
+   **Neither is truncated and neither is scaled down** — if the pair does not fit the pill's width,
+   the label wraps, the pill grows, the band grows and the column scrolls, exactly as criterion 14
+   requires. The floor is `home_stat_pill_compact_min_height` (**40dp**: `spacing_sm` + one
+   `titleMedium` line + `spacing_sm`) and the design target for the whole band at 360dp width at
+   default font scale is **≤ 56dp**, which criterion 15m measures rather than assumes.
+3. **Nothing else about the ribbon changes.** Three pills, three labels, three values, equal
+   `CONTENT_WEIGHT` widths, `spacing_sm` between them, `surfaceContainerHigh` +
+   `clayShadow(elevation_card)`, `clayEntrance(RIBBON_ENTRANCE_ORDER)` on the `Row` so §10's
+   cascade is untouched, not tappable, not focusable, and **one** `clearAndSetSemantics` node per
+   pill speaking `home_stat_pill_desc` as "label, value". The em-dash placeholder rule (D-03c,
+   D-03h) is unchanged: unknown and failed both render `—` and neither ever renders `0`.
+   **No new string.** TalkBack cannot tell the two pill shapes apart, and that is the test that the
+   yield costs no readout.
+
+It also moves cold start the right way: three fewer vector `Icon` draws on the start destination,
+no new read, no decode, no asset. D-03g is unaffected and §6.5's budget is not spent.
+
+**Part 3 — and then it still does not fit, so the criterion changes.** With the ribbon at its 56dp
+target the compact-narrow set is:
+
+| | dp |
+|---|---|
+| Hero row — gradient title + 48dp Settings gear | 72 |
+| Ribbon — compact pills | 56 |
+| Continue chips ×2 | 216 |
+| Mode tiles ×2 (Classic 108, Challenge 116) | 224 |
+| Gaps (`spacing_sm` ×7) + column padding (×2) | 72 |
+| **Total** | **≈ 640** |
+| **Usable height, design baseline** | **568** |
+| **Over by** | **72** |
+
+**Every one of those 72dp is a readout, a target or a route, and this is the whole argument:**
+
+| Band | May it yield? |
+|---|---|
+| Hero row, 72 | **No.** The gear is §11's 48dp floor and the only route to Settings and therefore to How to play (D-02a); the title is never truncated and never scaled (§4.2.2 step 2). |
+| Ribbon, 56 | **Already yielded** — everything in it that is not a value, a label or a semantics node is gone. |
+| Continue chips, 216 | **No.** Oracle 3, and the only oracle with no second witness anywhere in the app (§4.2.1's 2026-09-28 note). |
+| Mode tiles, 224 | **No.** §11's 96dp tile floor twice over, and the Challenge tile carries oracle 1's level chip. |
+| Gaps + padding, 72 | **No.** `spacing_sm` is already the smaller grid step; `spacing_xs` between bands would read as one undifferentiated slab and would breach §11's ≥ 8dp separation between targets. |
+
+Note where 640 lands: **within a few dp of the 640dp zero-inset JVM window.** That is the second
+and sharper reason 15k must be measured with insets — at these numbers a zero-inset test reads
+"fits" on precisely the window where the device does not.
+
+**So: a 360×640dp phone with both Continue chips scrolls.** Criterion **15h is retired as false**
+and **15k** replaces it, requiring what is achievable and measurable: the hero row, the whole
+ribbon, **both** Continue chips and the **first** mode tile complete inside the first viewport; the
+**second** mode tile **breaking the fold**, so the screen has no false bottom; and the rest reached
+by one plain vertical scroll of **≤ 120dp** — under one tile, one flick — with no tap, no expander
+and no state change. Where the fold falls, derived from the table above at 568dp of available
+height and to be confirmed by 15k's own measurement: hero `8..80` · ribbon `88..144` · slack
+`Spacer` (0) · chip `160..268` · chip `276..384` · tile `392..500` · tile `508..624`. The fold at
+568 cuts through the Challenge tile with ~60 of its 116dp showing. **A fold through a band is the
+strongest "there is more below" signal a scrolling screen has**, which is why 15k requires it
+rather than merely permitting it: a fold landing in a gap is a false bottom, and a false bottom is
+how a readout becomes hidden without anyone collapsing it. (15k states that part **conditionally on
+the column overflowing**, so a taller window where everything fits passes it trivially instead of
+failing for fitting. The requirement bites where the overflow is, which is the narrow-and-short
+class.) The position is robust to the ribbon landing anywhere in its 40–72dp range: at 40dp the
+tile sits `492..608`, at 72dp `524..640`, and the fold at 568 cuts through it in every case.
+
+**Why the ribbon is not simply dropped**, since it saves 56–116dp and would make the arithmetic
+close (≈560dp against 568dp). Rejected three times over, recorded so it is not re-proposed as a
+"simplification":
+
+1. **8dp is not a margin.** It is inside the variance between Robolectric's text metrics and
+   glass, between a 48dp navigation bar and a ~24dp gesture handle, and above any font scale over
+   1.0. A criterion that passes by 8dp on the JVM and fails on the device is the same false green
+   MB-1 blocked, and this document will not write a second one.
+2. **It would make criterion 11 false** — "a titled hero band, three progress pills and board art
+   on the mode tiles", with no screen-size qualifier — on exactly the phones whose Home looks
+   emptiest, un-answering the founder's ask where it was loudest. (Criterion 11 **is** met by the
+   compact-narrow set as specified: the hero band is still titled, the three pills are still there,
+   and the mode tiles' own `home_tile_art_size` art is **never** part of any yield.)
+3. **It is the one change that would genuinely breach D-03f.** §4.2.1 records that the Level pill
+   and the Challenge tile's chip "read the same `challengeCurrentLevel`, so they cannot diverge by
+   construction" — which makes the Level pill the ladder position's **above-the-fold witness** once
+   the tile chip is below the fold. The ribbon is not the band that disappears; it is the band that
+   makes the scroll safe.
+
+**What this owes in tests** (deterministic, JVM, no device — the harness is the developer's and the
+qa-engineer's; the properties are this document's). Every one of these must be watched fail before
+it is trusted, which is the lesson of MB-1:
+
+- At `w360dp-h640dp` **with the device's system-bar insets supplied** — the
+  `TutorialScreenTest.applySystemBarInsets()` idiom already in this repo — the hero row, the
+  ribbon, both Continue chips and the first mode tile are complete in the first viewport, and the
+  second mode tile's top edge is **above** the fold while its bottom edge is **below** it
+  (criterion 15k, parts 1–2). "Complete in the viewport" is asserted as **"a scroll does not move
+  this node"**, never as `bottom ≤ contentBottom()`, which `getBoundsInRoot()`'s clipping makes a
+  tautology.
+- The column's total scrollable overflow at that window is **≤ 120dp** (criterion 15k part 3).
+- Three windows fix the threshold's width term: `w360dp-h800dp` compact, `w360dp-h640dp` compact,
+  `w412dp-h915dp` full with the hero art present (criterion 15l).
+- The compact pill: no glyph node, label and value present, the band ≤ 56dp at default scale, and
+  the pill's spoken description **byte-identical** to the full set's (criterion 15m).
+- At the same qualifier at font scale 2.0 nothing above changes in kind: the column scrolls, every
+  band is reachable, no band is dropped and nothing is clipped (criteria 14, 15i — unchanged).
 
 ### 4.3 Gameplay status strip — `GameStatusStrip.kt` (CLAS-02, SCOR-02, D-04/D-05a/D-05b)
 
@@ -1217,7 +1638,13 @@ Things a reader might expect from this spec and will not find, each on purpose:
   first paint never waits (D-03g, §6.5).
 - **No per-board star pips on Home.** They stay on the Classic catalog, untouched (§4.2.1).
 - **Nothing on Home collapsed behind a tap or an expander.** All three device-test oracles are
-  visible on first paint (D-03f).
+  visible on first paint (D-03f). *(Sharpened 2026-09-28, D-03k — the first sentence is the
+  contract and it is **unchanged on every window**: nothing on Home is ever collapsed, folded,
+  truncated, expandable or behind a tap. The second sentence was always loose, because oracle 2
+  has never been on Home at all, and on the **narrow class** oracle 1's tile chip is across the
+  fold — composed at full size, reached by one plain scroll of ≤ 120dp, with the ribbon's Level
+  pill as its above-the-fold witness. Oracle 3's two Continue chips are on first paint everywhere
+  and that is not relaxed. §4.2.1's dated note draws the line; criteria 15d and 15k check it.)*
 - **No tutorial step persisted across process death** (D-01e) — and specifically **no
   `SavedStateHandle` step cursor**, which would survive process death and resume at T2, silently
   contradicting D-01e. Forbidding the cursor is D-01g's clause; the decision it protects is
@@ -1302,7 +1729,17 @@ declared even where an existing token shares its value. All multiples of 4.
 | `home_resume_thumb_size` | 40dp | The Classic Continue chip's board thumbnail |
 | `home_tile_art_size` | 56dp | A mode tile's trailing board art |
 | `home_hero_compact_min_height` | 72dp | **(D-03i, added 2026-09-28)** The hero's minimum in the compact band set — one row holding the gradient title and the 48dp Settings gear, no art (§4.2.2) |
-| `home_compact_threshold_height` | 720dp | **(D-03i, added 2026-09-28)** The available height below which Home takes the compact band set. It is the full set's own both-chips requirement (≈716dp) rounded onto the grid, and it is compared against available height only — never against the font scale (§4.2.2) |
+| `home_compact_threshold_height` | 720dp | **(D-03i, added 2026-09-28)** The available height below which Home takes the compact band set. It is the full set's own both-chips requirement (≈716dp) rounded onto the grid, and it is compared against available height only — never against the font scale (§4.2.2) — *and, since D-03k, only at an available width of `home_compact_threshold_width` or more; the narrow class uses the token below* |
+| `home_compact_threshold_width` | 400dp | **(D-03k, added 2026-09-28)** The available **width** below which the compact threshold is the narrow one. 360dp is the narrowest supported window and the next common width is the 412dp class, so no shipping device sits on the boundary (§4.2.3) |
+| `home_compact_threshold_height_narrow` | 880dp | **(D-03k, added 2026-09-28)** The compact threshold **at an available width below 400dp**: the full set's own both-chips height *at 360dp width* (≈872dp, where the bands wrap) rounded onto the grid. Its consequence is deliberate — at 360dp width Home is always compact (§4.2.3) |
+| `home_stat_pill_compact_min_height` | 40dp | **(D-03k, added 2026-09-28)** One progress pill in the compact-narrow ribbon: `spacing_sm` + one `titleMedium` line + `spacing_sm`, with the label beside the value and no decorative glyph. A **floor**, not a height — the label wraps and the band grows before either text truncates (§4.2.3, criteria 14/15m) |
+
+**One note on `home_stat_pill_min_height`** *(added 2026-09-28, D-03k — a fact, not a change)*: at
+64dp it is a minimum that **has never bound**. The pill it sizes composes `spacing_sm` + a 20dp
+glyph + `spacing_xs` + `labelMedium` + `spacing_xs` + `titleMedium` + `spacing_sm`, i.e. ≥ 84dp at
+default font scale (`HomeProgressRibbon.kt:129-163`), and it measured **116dp** at 360dp width
+(§4.2.2). The token is harmless and stays as it is; it is recorded here so nobody reads it as the
+band's height again, which is the mistake §4.2.2's first-edition arithmetic made.
 
 **Reused unchanged:** `spacing_xs/sm/md/lg/xl`, `content_max_width`, `mode_tile_min_height`,
 `resume_tile_min_height`, `settings_row_min_height`, `settings_row_icon_size`, `top_bar_icon_size`,
@@ -1831,7 +2268,11 @@ sits on the gradient's dark half by construction (`Clay.kt:91-103`).
 **Text scaling.** Every size is an M3 type role, so all text scales with the system font size.
 Four layouts must be verified at 200%: the Home column (scrolls — §4.2), the tutorial column
 (also scrolls, board unshrunk — §4.1), the three-pill ribbon
-(each pill wraps its label under its value rather than truncating), and the gameplay status strip
+(each pill wraps its label under its value rather than truncating — *and on the narrow class,
+where the two start out side by side, the label wrapping onto its own line is exactly the same
+behaviour and the same requirement: it wraps, the band grows, the column scrolls, and neither the
+label nor the value is ever truncated or scaled down; D-03k, §4.2.3, criteria 15i/15m*), and the
+gameplay status strip
 (the title is `maxLines = 1` with `weight(1f)` and truncates before it can push the timer pill off
 screen — the timer must never be clipped, since it is the only place elapsed time appears).
 
@@ -1879,6 +2320,18 @@ width to the window's and makes the `widthIn(max = content_max_width)` after it 
 column is today neither capped nor centred on a window wider than 480dp. The cap and the centring
 are contract and have been since Phase 2; §4.2.2 specifies the modifier order that restores them and
 criterion 15j checks it.
+
+*(Added 2026-09-28, D-03k.)* Two rows above are sharpened by measurement, neither is replaced.
+The **"Narrow phone (≤ 360dp)"** row's "ribbon pills … never wrap to two rows" is now specified
+rather than hoped for: on the narrow class each pill drops its decorative glyph and puts its label
+beside its value on **one** line (§4.2.3), which is what actually keeps the band off a second row —
+the shipped stacked pill measured **116dp** at 360dp width, nearly double the 64dp the row assumed.
+That row is also where the compact set is now *always* taken: a 360dp-wide window is compact at any
+height that ships, because the wrap is a property of the width and not of the height. The
+**"Short phone / 200% font"** row is unchanged and is still the honest description of what happens
+above default scale — the slack goes, then the column scrolls, and no band is dropped (criterion
+15i). What §4.2.3 adds to it is that on a 360×640dp phone the column scrolls at **default** scale
+too, by ~72dp, and criterion 15k says so instead of asserting a fit.
 
 ---
 
@@ -1931,6 +2384,25 @@ to the two gaps above)*:
   tutorial board joining `CLASSIC_SPECS` cannot change a shipped number silently.
 - A placeholder test that a ribbon pill with no value yet shows "—", and a repository test that a
   failed read degrades to unknown rather than to `0` (D-03h).
+
+**Two test idioms this refresh now forbids** *(added 2026-09-28, D-03k, from `code-auditor-s9.md`
+MB-1; the layout properties D-03k owes are listed in §4.2.3)*. They are recorded here rather than
+only in §4.2.3 because they are a **testing** contract and the next Home or tutorial layout
+assertion will reach for the first of them again:
+
+- **Never assert containment as `bottomOf(node) ≤ contentBottom()`.** `getBoundsInRoot()` returns
+  bounds **clipped to the root**, so that comparison holds by construction and a node pushed
+  entirely off screen reports `0.0.dp..0.0.dp` — the assertion is arithmetically incapable of
+  failing. Assert instead that **a scroll does not move the node**
+  (`before.top == onNode(…).performScrollTo().getBoundsInRoot().top`). `assertIsDisplayed()` does
+  not close the gap either: Compose satisfies it on **partial** visibility, so it passes with a
+  band clipped.
+- **Never measure a short-window layout property on a zero-inset window.** The design baseline is
+  **568dp** of usable height at 360dp width, not 640dp (§4.2.2), and at the corrected numbers the
+  compact column lands within a few dp of 640 — so a zero-inset reading says "fits" on exactly the
+  window where the device does not. Supply the insets the way `TutorialScreenTest`'s
+  `applySystemBarInsets()` already does; the harness exists in this repo and was written for F-1 in
+  the same slice. A reading taken without them is **neither a pass nor a fail** (criterion 15k).
 
 **Four audio tests** *(2026-09-21 — added with D-01i; the list above carried none, and criterion
 7c had a device check and nothing else)*. The project's own rule is that a named silence is only
@@ -2057,14 +2529,28 @@ blocks tests 10/11/13 in `11-HUMAN-UAT.md`, not just the look of the screen.
 
 15a. On a 360×640dp phone at default font scale, with **both** a Classic and a Challenge game
      saved, the Continue chips **and** both mode tiles are fully visible on Home without
-     scrolling. (D-03f, PERS-03)
+     scrolling. (D-03f, PERS-03) *(Pointer 2026-09-28 — D-03k, §4.2.3: **left as it reads, and its
+     two halves now part company.** The **Continue chips** half is absolute, holds on every
+     supported window and is restated in 15k part 1. The **both mode tiles** half is **not
+     achievable** — §4.2.3 measures the band set at ≈640dp after every yield that costs no readout,
+     against 568dp of usable height — and it is superseded by **15k**, which puts the first tile
+     inside the first viewport and the second across the fold. 15a is kept verbatim because it is
+     what the S5–S8 and S9 builds were judged against; it is **not** the criterion the D-03k slice
+     is judged against.)*
 15b. The Challenge tile still shows the ladder position on its own face ("Continue — Level N"),
      and it shows the same number as the ribbon's Level pill. (D-03f, CHAL-05)
 15c. Tapping the Classic tile reaches the catalogue in one tap, and each board card there still
      shows its earned-star pips. The Home Stars pill is a total and has not replaced them.
      (D-03f, CLAS-01)
 15d. No readout on Home is behind a tap, an expander, a "show more", or a scroll position.
-     (D-03f)
+     (D-03f) *(Pointer 2026-09-28 — D-03k: **left as it reads**, and §4.2.1's dated note draws the
+     one bright line it needs. The tap, the expander, the "show more", any collapsed or truncated
+     region, any animation that must finish and any state change stay forbidden on **every**
+     window. "A scroll position" is read, on the **narrow-and-short class only**, as forbidding a
+     readout that a scroll *reveals* — not one that is fully composed at full size with full
+     semantics inside a column the player scrolls, with the overflow bounded at ≤ 120dp and the
+     fold cutting through a band (15k). Both Continue chips stay above the fold everywhere; that
+     part is not relaxed anywhere by anything.)*
 
 **Home cold start (D-03g, D-03j, PLAT-08 C1)**
 
@@ -2121,17 +2607,54 @@ and stay the record of what that build was judged against; 15g and 15h are the s
 stated so that a tall phone and a short one can both pass, which one fixed spacer value cannot
 deliver.
 
+*(Pointer 2026-09-28 — D-03k.)* Three of these four stand exactly as written and are the criteria
+the D-03k slice is judged against too: **15g** (the tall phone), **15i** (200% font scale) and
+**15j** (the slack is empty space, and the column is capped and centred). The fourth, **15h**, is
+**retired below as false** and replaced by **15k**; the block that follows 15j — "Home on the
+narrow class" — carries 15k together with the width-term and ribbon-yield criteria, and states
+which build all three apply to.
+
 15g. On a 6.7-inch phone, in **both** states — a fresh install with no Continue chip, and a player
      with both — the **top** edge of the first mode tile is at or below the vertical midpoint of
      Home's content area, and the empty space left below the second mode tile is no more than a
      third of the screen's unused space. No band is pinned to the bottom edge and no single gap on
      the screen is larger than the space the tiles occupy. (D-03i, D-03, criterion 15)
 
-15h. On a 360×640dp phone at default font scale with **both** a Classic and a Challenge game saved,
-     Home shows — **without scrolling** — both Continue chips and both mode tiles, and the hero
-     shows its gradient title and its Settings gear with no decorative art. Scrolling reveals
-     nothing that was hidden, and the Challenge tile's level chip is on screen with the rest.
-     (D-03i, criterion 15a, D-03f)
+15h. *(**RETIRED 2026-09-28 — D-03k, §4.2.3. It is not achievable, and it was certified by an
+     assertion that could not fail.** Replaced by **15k**. Read the retirement note below it before
+     citing either.)* On a 360×640dp phone at default font scale with **both** a Classic and a
+     Challenge game saved, Home shows — **without scrolling** — both Continue chips and both mode
+     tiles, and the hero shows its gradient title and its Settings gear with no decorative art.
+     Scrolling reveals nothing that was hidden, and the Challenge tile's level chip is on screen
+     with the rest. (D-03i, criterion 15a, D-03f)
+
+> **Why 15h is retired, and what it still does.** Kept verbatim above, not deleted, for two
+> reasons: it is **the criterion the 2026-09-28 build was measured against**, and that build's
+> verdict against it is **FAIL** (`code-auditor-s9.md` MB-1) — retiring it must not launder that
+> verdict — and a reader who meets MB-1 has to be able to find the wording it was refusing.
+>
+> It is retired because **it is false, and §4.2.3 proves it false by arithmetic rather than
+> asserting it**. Measured at 360dp width the compact band set is ≈700dp against 568dp of usable
+> height; after the last yield that costs no readout (the ribbon's decorative glyph and its third
+> line, D-03k part 2) it is ≈640dp — still **72dp over**, and every one of those 72dp is the hero's
+> 48dp gear and gradient title, oracle 3's two Continue chips, or §11's two 96dp tile floors
+> carrying oracle 1's level chip. No yield remains that is not a readout, a target or a route, and
+> §4.2.1's four rejected simplifications are not available.
+>
+> **Retiring it does not clear MB-1.** The defect MB-1 names is an assertion that is
+> *arithmetically incapable of failing* (`HomeScreenTest.kt:300`; `getBoundsInRoot()` clips to the
+> root, so `bottom ≤ contentBottom()` holds by construction and a node pushed off-screen reports
+> `0.0.dp..0.0.dp`). A criterion changing underneath such an assertion does not make it sound. The
+> assertion is still the developer's to fix, and 15k specifies the two idioms that make it decisive
+> — **assert a scroll does not move the node**, and **supply the insets** — because on the
+> corrected numbers the compact column lands within a few dp of the 640dp zero-inset window, so a
+> zero-inset test would read "fits" on exactly the window where the device does not.
+>
+> **What this is not.** It is not a lowered bar and not a regression. Before this refresh the same
+> window was ~304dp short with the full band set; the compact set closes that to 72dp. The
+> replacement is *stricter* in three places 15h never covered: it requires the insets, it bounds
+> the overflow at ≤ 120dp, and it requires the fold to cut **through** the second tile so the
+> screen cannot present a false bottom.
 
 15i. At 200% font scale on **both** baselines the slack is what disappears, not the content: Home
      scrolls, every band is reachable, nothing is clipped, no band has been dropped or collapsed,
@@ -2141,6 +2664,54 @@ deliver.
      and nothing below the mode tiles, is tappable, focusable by TalkBack, or announced at all. On a
      window wider than 480dp the content column is still capped at `content_max_width` and
      **centred**, not pushed against one edge. (D-03i, §12, §4.2)
+
+**Home on the narrow class (D-03k, §4.2.3 — added 2026-09-28)** — **these three apply only to the
+slice that lands D-03k**, the slice *after* the build audited on 2026-09-28. They do **not**
+retro-certify that build, and no earlier criterion is restated by them except where a pointer above
+says so. Criteria 14, 15, 15g, 15i and 15j are unchanged and still bind; 15a's chips half and 15d's
+prohibitions are unchanged and still bind; **15h is retired and 15k replaces it**.
+
+15k. On a **360×640dp phone at default font scale with both a Classic and a Challenge game saved**,
+     measured on a window with the device's **real system-bar insets applied** — a zero-inset
+     window is a measurement artefact and a reading taken on one is **neither a pass nor a fail**:
+     1. **Complete inside the first viewport, with no scrolling:** the hero row (gradient title and
+        the 48dp Settings gear), the **whole** progress ribbon with all three values, **both**
+        Continue chips, and the **first** mode tile.
+     2. **If the column overflows at all, the fold cuts through a band and not through a gap** —
+        on this window that band is the second mode tile, with its top edge above the fold and its
+        bottom edge below it, so Home presents no false bottom. A fold landing in the gap between
+        two bands fails this part as surely as a tile entirely off screen does. (Stated
+        conditionally on purpose: a window where nothing overflows passes this part trivially, and
+        §4.2.3's arithmetic says 360×640dp is not such a window — it is ≈72dp over.)
+     3. **One plain scroll completes the screen.** The second mode tile, the Challenge tile's level
+        chip included, is fully visible after a vertical scroll of the column involving **no tap,
+        no expander and no state change**, revealing nothing that was not already composed; and the
+        column's total scrollable overflow is **≤ 120dp** — under one mode tile, one flick.
+     4. Nothing is clipped, no band is dropped or collapsed, no readout is truncated, and the hero
+        shows no decorative art.
+     5. **If the measured overflow exceeds 120dp, or anything in part 1 is not complete in the
+        first viewport, that is a failure of this criterion and it comes back to the ux-designer
+        with the measured numbers** — it is not closed by trimming a readout, a label or a target,
+        and it is not closed by weakening this criterion a second time. Every dp in §4.2.3 is
+        Robolectric's; the qa-engineer's device numbers govern.
+     (D-03k, §4.2.3, §4.2.1's 2026-09-28 note, D-03f, criteria 15a/15d/15h, PERS-03, CHAL-05)
+
+15l. The compact band set's threshold reads **width as well as height**: below
+     `home_compact_threshold_width` of available width Home is compact below
+     `home_compact_threshold_height_narrow`, and at or above that width below
+     `home_compact_threshold_height` as before. Checkable as three windows — `w360dp-h800dp`
+     compact, `w360dp-h640dp` compact, `w412dp-h915dp` **full** with the hero's decorative art
+     present and 15g's tall-phone behaviour intact. Nothing at or above 400dp of available width
+     changes behaviour, and the font scale is still never read. (D-03k, D-03i, criteria 15g, 15i)
+
+15m. **The last yield costs no readout.** On the narrow class each progress pill shows its label
+     and its value **on one line with no decorative glyph**; all three values are present and
+     correct; the em-dash placeholder rule is unchanged (unknown and failed both render "—",
+     neither ever renders `0`); and TalkBack announces each pill **exactly once, as "label,
+     value", word for word as the full set does**. No pill is tappable or focusable, neither label
+     nor value is truncated or scaled down, and at default font scale at 360dp width the whole
+     ribbon band measures **≤ 56dp** — if it measures more, the band grows and the column scrolls
+     rather than anything clipping. (D-03k, D-03c, D-03h, criteria 13, 13a, 14, 15j, §11)
 
 **In-game controls (D-04) and the toolbar (D-05)**
 
@@ -2255,6 +2826,20 @@ launch bar are both **PLAT-08 / phase-14's**, and §6.5 records that the second 
 measured on a physical phone — owner, recommendation and decided default named there. The
 2026-09-28 obligation immediately above, that the measurement is taken on the branch landing the
 §4.2.2 layout, is unchanged and is now stated in the criterion itself.
+
+*(Amended 2026-09-28, D-03k.)* The **PERS-03** and **CHAL-05** rows keep the extra surface the
+D-03i note gave them, with the criterion substituted and the claim corrected. What checks them on
+a *short* screen is now **criterion 15k**, not 15h, and what it checks is the truth rather than the
+wish: **PERS-03**'s two Continue chips are complete inside the first viewport on a 360×640dp phone
+with the insets applied — absolute, on every supported window — while **CHAL-05**'s level chip on
+the Challenge tile is across the fold there and reached by one plain scroll of ≤ 120dp, with the
+ribbon's Level pill as its above-the-fold witness reading the same `challengeCurrentLevel`
+(§4.2.1's 2026-09-28 note, §4.2.3). **CLAS-01** is untouched: the catalogue and its per-board pips
+are still one *tap* from Home, and a scroll is not a tap. **QUAL-03** gains three tokens
+(`home_compact_threshold_width`, `home_compact_threshold_height_narrow`,
+`home_stat_pill_compact_min_height`, §6.1) and no new string. **PLAT-08 (C1)**'s obligation is
+unchanged and slightly cheaper to meet: the narrow ribbon removes three vector `Icon` draws from
+the start destination and adds no read, no decode and no measuring pass.
 
 ---
 
