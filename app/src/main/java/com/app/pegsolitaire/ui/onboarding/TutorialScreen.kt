@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
@@ -77,6 +78,12 @@ const val TUTORIAL_SCREEN_TEST_TAG = "tutorial_screen"
  * is the wrong trade. What yields at 200% is the caption's growth pushing the empty footer
  * below the fold, which costs nothing.
  *
+ * **Window insets are this screen's own job.** It is a full-window destination with no
+ * `Scaffold`, so nothing subtracts the system bars for it; the column carries
+ * `safeDrawingPadding()` itself. See the comment at the root for why it sits where it does in
+ * the chain, and `TutorialScreenTest.skipsWholeTouchTargetClearsTheSystemBarsOnEveryStep`
+ * for the geometry it buys.
+ *
  * **Audio (D-01i).** A *completed* jump plays the game's own pair via the shared
  * [JumpSoundEffect] — lifted, never re-implemented, so the removal layering and the pitch
  * ladder cannot drift from the real game's. The two exits speak the app's press vocabulary.
@@ -108,25 +115,44 @@ fun TutorialScreen(
         modifier = modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .widthIn(max = dimensionResource(R.dimen.content_max_width))
-                    .padding(dimensionResource(R.dimen.spacing_md))
-                    .testTag(TUTORIAL_SCREEN_TEST_TAG),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_lg)),
-        ) {
-            TutorialHeader(state = state, onSkip = onSkip)
-            TutorialBoardSlab(
-                state = state,
-                onCellTap = onCellTap,
-                onAnimationFinished = onAnimationFinished,
-            )
-            TutorialCaption(captionRes = state.captionRes)
-            TutorialFooter(completed = state.completed, onDone = onDone)
+        // The surface keeps filling the window — the background belongs edge to edge — and
+        // this Box is what stops doing so for the content. Two things need it:
+        //
+        //  * `safeDrawingPadding()` sits on the COLUMN and outside `verticalScroll`, so the
+        //    scrolling viewport itself is inset and no band can be scrolled under a system
+        //    bar. The app targets SDK 36, where the platform draws every window edge to edge
+        //    whether it asks to or not, and this screen has no `Scaffold` to subtract the
+        //    insets for it the way Home does. Without it the header lands under the status
+        //    bar and the visible "Skip" becomes untappable — the tutorial's one promise
+        //    (D-01d: "a tutorial the player cannot leave is worse than no tutorial") resting
+        //    on a control that does not answer a press.
+        //  * `Surface` is a `Box(propagateMinConstraints = true)`, so it hands the column a
+        //    minimum width equal to the window's; `widthIn(max = content_max_width)` under
+        //    that minimum is a no-op, which is how the 480dp cap came to do nothing here.
+        //    This Box does not propagate its minimum, so the cap binds and `align` centres
+        //    what it caps (§12 "capped at content_max_width and centred").
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier =
+                    Modifier
+                        .align(Alignment.TopCenter)
+                        .safeDrawingPadding()
+                        .verticalScroll(rememberScrollState())
+                        .widthIn(max = dimensionResource(R.dimen.content_max_width))
+                        .padding(dimensionResource(R.dimen.spacing_md))
+                        .testTag(TUTORIAL_SCREEN_TEST_TAG),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_lg)),
+            ) {
+                TutorialHeader(state = state, onSkip = onSkip)
+                TutorialBoardSlab(
+                    state = state,
+                    onCellTap = onCellTap,
+                    onAnimationFinished = onAnimationFinished,
+                )
+                TutorialCaption(captionRes = state.captionRes)
+                TutorialFooter(completed = state.completed, onDone = onDone)
+            }
         }
     }
 }

@@ -1,14 +1,25 @@
 package com.app.pegsolitaire.ui.onboarding
 
+import android.view.View
+import androidx.compose.ui.platform.ViewRootForTest
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.core.graphics.Insets
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
@@ -30,9 +41,12 @@ import org.robolectric.annotation.Config
  * [BOARD_CANVAS_TEST_TAG] — **never by button copy**, which is the defect the phase's two
  * retargeted tests exist to remove. A screen located by the words on its buttons breaks
  * whenever the copy changes and says nothing about the behaviour.
+ *
+ * Two of its tests supply the window insets Robolectric leaves empty, which is the blind
+ * spot that let a visible-but-untappable "Skip" reach a device (see [applySystemBarInsets]).
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [TUTORIAL_SCREEN_ROBOLECTRIC_SDK])
+@Config(sdk = [TUTORIAL_SCREEN_ROBOLECTRIC_SDK], qualifiers = TALL_PHONE_QUALIFIER)
 class TutorialScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
@@ -81,6 +95,68 @@ class TutorialScreenTest {
         }
     }
 
+    /**
+     * Criterion 5 again, and the half [skipIsReachableOnEveryStep] cannot see: a control that
+     * is *displayed* is not necessarily a control that can be *pressed*.
+     *
+     * A Compose test composes with **zero** window insets, so every node lands where the
+     * layout puts it and a screen drawing under the status bar looks identical to one that
+     * respects it. That blind spot is exactly how a tutorial whose visible "Skip" was a no-op
+     * — 99 px of a 126 px target inside a 142 px system-bar inset, the label's own centre
+     * dead — reached a device with a green suite. So this test **supplies** the insets
+     * Robolectric leaves empty ([applySystemBarInsets]) and then asserts the geometry: the
+     * whole of Skip's touch target, not merely its label, clears the top inset on every step.
+     *
+     * It fails on a screen with no inset modifier, which is the property worth owning.
+     */
+    @Test
+    fun skipsWholeTouchTargetClearsTheSystemBarsOnEveryStep() {
+        val viewModel = startTutorial()
+        applySystemBarInsets()
+        val skip = label(R.string.onboarding_skip)
+
+        repeat(TutorialUiState.STEP_COUNT) { step ->
+            // The pips share the header row, and they were drawn over the system clock too.
+            assertThat(nodeTop(hasContentDescription(stepDescription(step + 1)))).isAtLeast(statusBarInset)
+            assertThat(nodeTop(hasText(skip))).isAtLeast(statusBarInset)
+            if (step < TutorialUiState.STEP_COUNT - 1) {
+                while (viewModel.uiState.value.board.board.pegCount > TutorialUiState.STEP_COMPLETE_PEGS) {
+                    playTheOnlyMove(viewModel)
+                }
+                idlePastTheStepBeat()
+                composeRule.waitForIdle()
+            }
+        }
+    }
+
+    /**
+     * The other edge of the same contract: the completion CTA is not under the navigation bar.
+     *
+     * Deliberately on a **short** window. On a tall one the four bands leave hundreds of dp
+     * of air below the CTA, so the assertion would hold whatever the insets did — the kind of
+     * test that passes for the wrong reason. Here the column overflows, `performScrollTo`
+     * puts the CTA against the viewport's bottom edge, and the only thing that can keep it
+     * off the navigation bar is the padding.
+     */
+    @Test
+    @Config(qualifiers = SHORT_PHONE_QUALIFIER)
+    fun theCompletionButtonClearsTheNavigationBar() {
+        val viewModel = startTutorial()
+        applySystemBarInsets()
+
+        repeat(TutorialUiState.STEP_COUNT) {
+            while (viewModel.uiState.value.board.board.pegCount > TutorialUiState.STEP_COMPLETE_PEGS) {
+                playTheOnlyMove(viewModel)
+            }
+            idlePastTheStepBeat()
+            composeRule.waitForIdle()
+        }
+
+        val cta = composeRule.onNodeWithText(label(R.string.onboarding_got_it)).performScrollTo()
+        val floor = composeRule.onRoot().getBoundsInRoot().bottom - navigationBarInset
+        assertThat(cta.getBoundsInRoot().bottom).isAtMost(floor)
+    }
+
     @Test
     fun theStepPipRowAnnouncesItselfAsOneNodeSayingStepNOfThree() {
         val viewModel = startTutorial()
@@ -101,12 +177,52 @@ class TutorialScreenTest {
         assertThat(pipNodeCount(stepNumber = FIRST_STEP + 1)).isEqualTo(NO_NODE)
     }
 
-    private fun pipNodeCount(stepNumber: Int): Int {
-        val description =
-            RuntimeEnvironment
-                .getApplication()
-                .getString(R.string.tutorial_step_progress, stepNumber, TutorialUiState.STEP_COUNT)
-        return composeRule.onAllNodes(hasContentDescription(description)).fetchSemanticsNodes().size
+    private fun pipNodeCount(stepNumber: Int): Int =
+        composeRule.onAllNodes(hasContentDescription(stepDescription(stepNumber))).fetchSemanticsNodes().size
+
+    private fun stepDescription(stepNumber: Int): String =
+        RuntimeEnvironment
+            .getApplication()
+            .getString(R.string.tutorial_step_progress, stepNumber, TutorialUiState.STEP_COUNT)
+
+    /**
+     * Hands the composition the system-bar inset a device reports and Robolectric does not.
+     *
+     * Robolectric never delivers insets of its own, and dispatching them at the decor view
+     * does not reach Compose (its listener is installed on the `ComposeView`, and the shadowed
+     * `ViewRootImpl` above it does not forward). Dispatching straight at that view does,
+     * through the same `ViewCompat` listener `WindowInsets.safeDrawing` reads — so the values
+     * below arrive exactly as a real status and navigation bar's would.
+     */
+    private fun applySystemBarInsets() {
+        val insets =
+            WindowInsetsCompat
+                .Builder()
+                .setInsets(
+                    WindowInsetsCompat.Type.systemBars(),
+                    Insets.of(0, insetPx(STATUS_BAR_INSET_DP), 0, insetPx(NAVIGATION_BAR_INSET_DP)),
+                ).setVisible(WindowInsetsCompat.Type.systemBars(), true)
+                .build()
+        ViewCompat.dispatchApplyWindowInsets(composeHost(), insets)
+        composeRule.waitForIdle()
+    }
+
+    /**
+     * The `AndroidComposeView` behind the semantics tree — the view `WindowInsets.safeDrawing`
+     * installs its listener on, reached through the tree rather than through the Activity so
+     * this file keeps `createComposeRule()`.
+     */
+    private fun composeHost(): View = (composeRule.onRoot().fetchSemanticsNode().root as ViewRootForTest).view
+
+    private fun insetPx(dp: Int): Int = with(composeRule.density) { dp.dp.roundToPx() }
+
+    private val statusBarInset: Dp get() = STATUS_BAR_INSET_DP.dp
+
+    private val navigationBarInset: Dp get() = NAVIGATION_BAR_INSET_DP.dp
+
+    private fun nodeTop(matcher: SemanticsMatcher): Dp {
+        val node = composeRule.onNode(matcher).performScrollTo()
+        return node.getBoundsInRoot().top
     }
 
     /** Asserts the screen offers no way to skip past a step without playing it. */
@@ -160,7 +276,27 @@ class TutorialScreenTest {
 
         /** Copy a tap-to-advance affordance would have to use; none may exist (criterion 1). */
         val ADVANCE_WORDS = listOf("Next", "Continue", "Done")
+
+        /**
+         * The top inset under test, in dp — the 142 px cutout band a `Pixel_9a` at 420 dpi
+         * reports, rounded up onto the grid so the number is a floor rather than one device's
+         * exact reading (`qa-engineer.md` F-1: `frame=[0,0][1080,142]` ≈ 54 dp).
+         */
+        const val STATUS_BAR_INSET_DP = 56
+
+        /** A gesture-navigation bar, the shallower of the two bottom cases. */
+        const val NAVIGATION_BAR_INSET_DP = 24
     }
 }
 
 private const val TUTORIAL_SCREEN_ROBOLECTRIC_SDK = 34
+
+/**
+ * A 6.7-inch-class window, so the inset assertions read against a viewport that can hold the
+ * board — Robolectric's default 320x470px window would make every geometry claim a statement
+ * about a screen no player has.
+ */
+private const val TALL_PHONE_QUALIFIER = "w411dp-h915dp"
+
+/** The small baseline (§4.1's own), where the four bands overflow and the column scrolls. */
+private const val SHORT_PHONE_QUALIFIER = "w360dp-h640dp"
