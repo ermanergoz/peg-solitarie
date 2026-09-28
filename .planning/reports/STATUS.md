@@ -1,17 +1,18 @@
 # STATUS — Peg Solitaire
 
 ## Waiting on founder
-(none)
-
-## Waiting on founder (open)
-(none — Q-901 and Q-902 both answered 2026-09-21, both on their defaults)
-- app-ads.txt / REL-03: **unblocked, awaiting crawl.** Founder set the Website field and the listing is published — the row is live on the public page as `https://ermanergoz.github.io` (observed 2026-09-21T01:29:28Z), which 301s to the correct file on the canonical host; Google documents cross-domain redirects as valid. Clock: re-read AdMob status after **2026-09-22T01:29Z**; if still unverified at **2026-09-23T01:29Z**, switch the field to `https://ermanergoz.com` and check the AdMob app entry is linked to the Play listing. Do not edit the field before then — every edit restarts the 24 h clock.
+Q-901 and Q-902 were both answered 2026-09-21, both on their defaults.
+- **app-ads.txt / REL-03 — the crawl window has long since passed and the result is unread.** Founder set the listing's Website field and the listing published; the row went live on the public page as `https://ermanergoz.github.io` at 2026-09-21T01:29:28Z, 301ing to the correct file on the canonical host (Google documents cross-domain redirects as valid). The ≤ 24 h checkpoint was 2026-09-22 and the 48 h escalation 2026-09-23; **it is now 2026-09-28**, so AdMob has either verified or it has not. Founder to read AdMob → Apps → this app → App settings → `app-ads.txt`. If still unverified: switch the field to `https://ermanergoz.com` (bare apex) and check the AdMob app entry is linked to the Play listing. The file itself has been correct and live since 2026-09-02 — do not touch the website.
 
 ## In flight
 - phase-14 (release-readiness) — primary checkout on feature/phase-14-release-plan, plus worktrees PegSolitarie-r1 (feature/phase-14-gate-scope) and PegSolitarie-r5 (feature/phase-14-release-docs); external track (developer website, app-ads.txt, privacy policy, Console declarations) and the fuzz/coverage gate outstanding
-- phase-15 (ux-refresh) — feature/phase-15-ux-refresh in worktree PegSolitarie-p15; design done, roadmap entry written, not yet planned or built; founder request of 2026-09-21
-- phase-15 — S1–S4 **done and green** (`c342d43`, `20dceb4`, `4fb9c00`, `ec02e58`); **S5–S8 building now** (entry points + test retargets, Home, gameplay chrome, retirement + C1 measurement). Review (code-auditor + hands-on QA device session) and tech-lead sign-off still owed before any merge.
-- phase-15 spec corrections — ux-designer on two items the build surfaced: D-01i's false premise for the silent Hint cue, and the unspecified second-peg re-selection behaviour (must be reconciled against quick task 260628-n4f's "deselect only on re-tap" rule, not rubber-stamped to match the code)
+- phase-15 (ux-refresh) — `feature/phase-15-ux-refresh` in worktree PegSolitarie-p15; founder request of 2026-09-21. **Build interrupted 2026-09-21 by a weekly API rate limit (reset 2026-09-25); resumed 2026-09-28.**
+  - Done and green, each on its own passing `check`: S1 `c342d43`, S2 `20dceb4`, S3 `4fb9c00`, S4 `ec02e58`, the S4 tap correction `b9b581f`, S5 `c642676`, S6 `05245d3`.
+  - **S7 (gameplay chrome) is written but UNCOMMITTED and UNVERIFIED** — no `check` has ever run against it. 5 new files (`GameActionDock.kt`, `GameStatusStrip.kt`, `HintIcon.kt`, `ShowMovesIcon.kt`, `GameScreenChromeTest.kt`, 715 lines) plus 309 changed lines across `GameScreen.kt`, the four control composables, `dimens.xml` and two tests. Treat as a draft to be verified, not as work done.
+  - **S8 (token retirement + the C1 two-arm cold-start measurement) not started.** `15-BUILD-EVIDENCE.md` does not exist yet.
+  - No S5–S8 report was written — the interrupted agent never reached it.
+  - Still owed after the build: code-auditor review, a hands-on QA device session, tech-lead sign-off. Nothing merges to `develop` before all three.
+- phase-15 citation drift — after S5–S8, one docs pass is owed: S3's lift moved `JumpSound` out of `GameScreen.kt`, so §2, D-01i, §10 and §4.4 cite stale `file:line`s, and §4.1's heading still reads `D-01/D-01a–h` while citing D-01i. Deliberately left by the ux-designer (three of four sit inside the audio ruling it was scoped out of touching); S5–S8 will move more lines
 - **one suppression awaits the code-auditor** (studio DoD: no new `@Suppress` without an "approved by code-auditor" line): `@Suppress("TooManyFunctions")` on the `ProgressRepository` interface, which `observeHomeProgress()` takes to 12 against detekt's threshold of 11. It mirrors the suppression the implementation in that file has carried since Phase 12; the developer rejected raising the shared threshold and splitting the interface (a second declared owner of the same tables) and flagged it rather than deciding it
 - **phase-15 open follow-ups, neither blocking the build:**
   - `15-PLAN.md:1088` writes the launch component as `com.erman.pegsolitarie/.MainActivity`, which expands to a class that does not exist — `applicationId` (`app/build.gradle.kts:279`) and `namespace` (`:263`) deliberately differ, so the component must be `com.erman.pegsolitarie/com.app.pegsolitaire.MainActivity`. Owner: android-game-dev; must be fixed before S8 runs the C1 measurement.
