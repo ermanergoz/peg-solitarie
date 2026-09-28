@@ -122,6 +122,37 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > change** — the unmerged tree is not the tree the contract is written against — while the TalkBack
 > pass criterion 26 always required stays owed.
 >
+> **Fifth revision — 2026-09-28 (the cold-start gate, re-specified; the ≤ 2 s bar's unmeasured
+> state).** `.planning/reports/phase-15/tech-lead-coldstart-gate.md` — the tech-lead's ruling on
+> **criterion 15e**, a gate it specified itself and has now corrected on evidence. The delta half of
+> 15e was **ill-posed, not merely unmeasured**: its ≤ 50 ms threshold was Phase 6's **46 ms
+> within-arm range** (nine samples of one build, 603–649 ms around a 633 ms median,
+> `06-BUILD-EVIDENCE.md:319-320`) promoted to a threshold on a **between-arm median difference**,
+> which is a different and noisier statistic. Two independent null experiments — the same build
+> measured against itself, where the true delta is zero — returned **57 ms**
+> (`15-BUILD-EVIDENCE.md:52-53`) and **59 ms** (`qa-engineer.md:162-163`), so the instrument's floor
+> sits near 60 ms and a 50 ms gate cannot tell a regression from noise. Both nulls ran on the
+> **same AVD**, so the **1.83×** gap between their absolute medians (957 ms against 1832 ms) is host
+> load and not device class — which is what kills the absolute reading on an emulator and leaves the
+> relative one recoverable.
+>
+> Two edits follow, and they are of different kinds. The **procedure** is replaced in §6.5 by a
+> **second edition** — an interleaved A/B delta with a **same-sitting null control**, a threshold
+> derived from that control (`max(2 × floor, 100 ms)`) and a **VOID** verdict above a 150 ms floor —
+> filed as a named subsection and not as a decision, on the same reasoning the first measurement
+> contract was (a gate procedure is not a design choice). The **ownership of the ≤ 950 ms absolute**
+> is a contract change, so it is filed as a decision, **D-03j**: the absolute is not phase 15's gate,
+> it is a tracked target owned by **PLAT-08 / phase 14** where Phase 6 explicitly put it
+> (`06-BUILD-EVIDENCE.md:308-309`), and the bar of record is rules/studio.md's **under 2 seconds on
+> a named mid-range physical phone**. §6.5 now also records, as a **named gap** rather than an
+> implication, that **that bar has never been measured on a physical phone** — every cold-start
+> number in this repo is from an emulator — with the tech-lead's recommendation and its decided
+> default. Criterion **15e is replaced**, its first edition kept verbatim beneath it because two
+> reviewers returned verdicts against that wording and a reader who meets those reviews must be able
+> to find what they were refusing; criterion **15f is not deferred with it**; D-03g, §1's D-03 row
+> and §16 gain pointers. Nothing else is reopened: D-03i / §4.2.2, the audio rulings and §5.1 are
+> untouched, and no bar is lowered — a noisy host now buys a re-run instead of a pass.
+>
 > Out of scope here and **not** absorbed into this document: rules/audio.md makes
 > `docs/audio-spec.md` the cue list of record and that file has never existed on any branch. The
 > gap predates phase 15, belongs to the sound-designer, and the producer is tracking it
@@ -141,7 +172,7 @@ The founder's words, verbatim:
 |-----|----------|---------|
 | Make the tutorial more interactive | **D-01** | The tutorial becomes three micro-puzzles the player actually plays on a live board. No step is advanced by a Next button. |
 | Remove the info button that starts the tutorial | **D-02** | `HomeScreen.kt:348-354` is deleted. The replay path moves to a Settings › General row; first-run auto-start is unchanged. |
-| Homepage looks empty with just 2 buttons | **D-03** | Home gains a hero block, a three-pill progress ribbon and board art on its tiles. The two mode tiles stay primary and stay in the thumb zone. **Bounded by two hard constraints: three existing readouts are device-test oracles that must stay visible on first paint (D-03f), and Home is on the measured ≤ 950 ms cold-start gate (D-03g).** |
+| Homepage looks empty with just 2 buttons | **D-03** | Home gains a hero block, a three-pill progress ribbon and board art on its tiles. The two mode tiles stay primary and stay in the thumb zone. **Bounded by two hard constraints: three existing readouts are device-test oracles that must stay visible on first paint (D-03f), and Home is on the measured ≤ 950 ms cold-start gate (D-03g).** *(The ≤ 950 ms figure is reattributed to PLAT-08 / phase 14 by **D-03j**, 2026-09-28; the sentence is left as it read.)* |
 | Redesign the in-game icons on the top | **D-04** | The five controls are re-glyphed, re-grouped and re-homed. Two real accessibility defects are fixed in the process. |
 | Remove the toolbar from the game | **D-05** | The `TopAppBar` at `GameScreen.kt:502` is deleted. It is the **same surface** as the "icons on the top", so D-04 and D-05 are one change — see D-05 in §3. |
 
@@ -509,6 +540,12 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   is a two-arm delta against `develop`, not a single absolute number against the pre-SDK 633 ms
   reference. The procedure is §6.5 "How C1 is measured for this phase" and the gate is criterion
   15e.)*
+  *(Amended again 2026-09-28 — see **D-03j** and §6.5's **second edition** of that procedure. Every
+  hard rule for Home's first frame above is untouched and still binds. What changed is the **number
+  this phase is gated on**: the ≤ 950 ms absolute quoted in the rationale is no longer phase 15's
+  gate, and the two-arm delta is now **interleaved** with a **null control** whose measured floor
+  sets the threshold, because the old ≤ 50 ms threshold was below the instrument's own noise
+  floor.)*
 
 - **D-03h** *(2026-09-21 — tech-lead ruling, `tech-lead-architecture.md` §2/§3, folded in)*: the
   two derived ribbon values come from **one `Flow`-returning SQL aggregate**
@@ -546,6 +583,34 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   can offer at most 640dp and in practice ~568dp. Two tiles low on a tall phone and four oracles
   above the fold on a short one are therefore not a trade to be split down the middle with one
   number; they need a mechanism that reads the space it has, which is what §4.2.2 specifies.
+
+- **D-03j** *(2026-09-28 — folded in from the tech-lead's ruling
+  `.planning/reports/phase-15/tech-lead-coldstart-gate.md` §4, which corrects a gate that report's
+  own author had specified. It postdates the build under audit and rewrites nothing above it.)*:
+  **the ≤ 950 ms cold-start absolute is not a phase-15 gate. It is a tracked target owned by
+  PLAT-08 / phase 14, and the bar of record for launch is rules/studio.md's product baseline —
+  under 2 seconds on a named mid-range physical phone.** Phase 15's own gate is **relative only**:
+  the interleaved A/B delta with a same-sitting null control specified in §6.5's second edition, and
+  criterion 15e carries no absolute number. — This restores two earlier decisions rather than
+  inventing a deferral. Phase 6 wrote its 633 ms figure as the before-picture "**PLAT-08 measures
+  against in Phase 14**" (`06-BUILD-EVIDENCE.md:308-309`), so the absolute comparison was always
+  phase 14's; and the first edition of §6.5 already routed a condition-(1)-only failure to
+  PLAT-08 / phase 14 "rather than being paid for out of this phase's visual budget" — this ruling
+  stops that routing from being a special case and makes it the rule. Three facts make 950 ms
+  indefensible as a *gate* number now: it derives from a **pre-SDK** baseline that predates UMP,
+  AdMob, Play Games, leaderboards and cloud save; that baseline was taken on a build with a
+  different `applicationId` (`com.app.pegsolitaire` then, `com.erman.pegsolitarie` now); and on a
+  shared host the absolute reading is not a property of the app at all — the **same AVD** returned
+  **957 ms and 1832 ms**, a factor of **1.83×**, with nothing changing but host load
+  (`15-BUILD-EVIDENCE.md:52-53`, `qa-engineer.md:162-163`). QA's ~1.8 s is therefore evidence about
+  the host and **must not be read as either passing or failing the 2 s bar**. What this document
+  owes in exchange is stated and not implied: §6.5 records that the 2 s bar **has never been
+  measured on a physical phone**, with the recommendation and the decided default, so the
+  reattribution cannot be read as the bar being dropped. Nothing in §4.2 or §4.2.2 may assume the
+  bar is met; D-03g's hard rules for Home's first frame are the design-side answer and they hold
+  whichever device the number eventually comes from.
+  — Which number gates *this* phase is a UX-contract question because §14 is this document's, and
+  the instrument and the ownership are the tech-lead's; this records the half that is mine.
 
 ### In-game controls (ASST-01, ASST-02, CLAS-02, SCOR-02, proposed UX-03)
 
@@ -1286,6 +1351,14 @@ New constants go in a scoped `TutorialAnim` object (unitless ms/floats, so not `
 — so everything added to Home in §4.2 is on the critical path. The budget below is part of the
 design, not a review note.
 
+*(Pointer added 2026-09-28, **D-03j**. The sentence above is left as it read and its premise still
+holds: Home is the start destination and everything §4.2 adds is on the critical path, so the
+design budget below is unchanged and still binds. What the sentence may **no longer** be read as is
+this phase's **gate**. The ≤ 950 ms figure is a tracked target owned by PLAT-08 / phase 14; the bar
+of record is rules/studio.md's under-2-seconds on a named mid-range physical phone, which this
+section now records as **never yet measured**; and phase 15's gate is the relative one in "How C1 is
+measured for this phase — **second edition**" below.)*
+
 **Hard rules for Home's first frame.** No blocking read. No image decode. No asset load. No
 bitmap. No new SDK call. Every visual this refresh adds is one of:
 
@@ -1331,11 +1404,24 @@ or the Classic catalog** — those are D-03f oracles and are not available to tr
 **Handoff:** this is a design budget, not a measurement. The developer measures C1 with the fuller
 Home before the phase closes; the qa-engineer checks the numbers at the gate.
 
+*(Pointer 2026-09-28, D-03j: **not before this phase closes.** The measurement moves to the
+follow-up slice that lands §4.2.2, because a delta measured against a layout that has since changed
+is not evidence. The division of labour is unchanged — the developer measures, the qa-engineer
+checks — on that slice's sitting.)*
+
 **How C1 is measured for this phase** *(2026-09-21 — tech-lead ruling,
 `tech-lead-architecture.md` §3, folded in)*. The Phase-6 reference of 633 ms is **pre-SDK**: UMP,
 AdMob, Play Games, leaderboards and cloud save all landed after it, so a Phase-15 developer who
 compared against it would be charging five phases of SDK cost to a UX refresh. Phase 15's own gate
 is therefore a **two-arm delta**, and the absolute ≤ 950 ms stays PLAT-08's:
+
+> ⚠️ **Superseded in part on 2026-09-28 — read the second edition below first.** Three parts of this
+> first edition **stand unchanged** and are *not* repeated there: the **launch identity** the arms are
+> started with (second bullet), the **seeded ~200-level ladder** (third bullet), and **where the
+> numbers go** (last bullet). Two parts are **retired**: the *blocked* arm order (ten samples of one
+> arm, then ten of the other) and the **pass condition** (≤ 950 ms absolute *and* ≤ 50 ms delta).
+> The text is kept verbatim as the record of what was asked for and why it was overturned; it is not
+> the contract. Its own instinct — that the absolute stays PLAT-08's — is what D-03j generalises.
 
 - **Two arms, same AVD, same host, same sitting, back to back:** arm A = `develop` (control),
   arm B = `feature/phase-15-ux-refresh`. Phase 6's instrument exactly — AVD `Pixel_9a` API 36,
@@ -1372,6 +1458,128 @@ is therefore a **two-arm delta**, and the absolute ≤ 950 ms stays PLAT-08's:
   `06-BUILD-EVIDENCE.md:315-323`, plus the seeded-ladder row and the same precision caveat. The
   phase does not close without both tables. Criterion 15f (placeholders, no spinner, no reflow) is
   a separate visual check at the same sitting — the timing number does not cover it.
+
+**How C1 is measured for this phase — second edition** *(2026-09-28 — tech-lead ruling,
+`.planning/reports/phase-15/tech-lead-coldstart-gate.md` §3/§5, folded in. A gate **procedure**, so
+a named subsection and not a decision — the same call the first edition made. The one part of the
+ruling that **is** a contract change is filed as **D-03j** in §3.)*
+
+**Why it changed, in one paragraph.** The first edition's ≤ 50 ms delta threshold was Phase 6's
+**46 ms within-arm range** — nine samples of *one* build, 603–649 ms around a 633 ms median
+(`06-BUILD-EVIDENCE.md:319-320`) — applied to a **between-arm median difference**. Those are
+different statistics, and the second is the noisier, because it also absorbs everything that drifts
+between the arms. Two null experiments settled it: the same build measured against itself, where the
+true delta is zero, returned **57 ms** (`15-BUILD-EVIDENCE.md:52-53`) and **59 ms**
+(`qa-engineer.md:162-163`) — **5.8%** and **3.3%** of their own pooled medians. An instrument that
+reports 57–59 ms between a build and itself cannot answer "is the delta ≤ 50 ms?", and keeping the
+question would have forced either a fabricated pass or a permanent block. Both nulls were taken on
+the **same AVD**, and their absolute medians differ by **1.83×** (957 ms against 1832 ms) with
+nothing changing but host load — which is why the absolute reading is retired here (D-03j) and the
+relative one, which held within 2 ms across that same 1.83× swing, is kept.
+
+**Which builds this gate applies to — read this before booking an emulator.**
+
+| Build | 15e |
+|-------|-----|
+| The phase-15 build audited on 2026-09-28 (the fixed `Spacer` at `HomeScreen.kt:311-313`) | **Not run — `:NOT RUN` is the correct record.** Home's layout mechanism changes in the follow-up slice (D-03i, §4.2.2), so a delta measured against this layout would be superseded before anyone read it. **Phase 15 closes without a 15e number, on this ruling and not on an omission.** |
+| **The follow-up slice that lands §4.2.2 / D-03i** | **This is where 15e runs**, once, arm A = `develop`. It is a **closing condition of that slice**, and of no other. |
+| Any later branch that changes Home's first frame | The same protocol, unchanged. |
+
+**Preconditions — every one recorded with its value in the evidence table. If any fails, the
+sitting is VOID, not failed.**
+
+1. AVD `Pixel_9a`, API 36, `:app:installDebug`; OS animations off (Developer options → Animator
+   duration scale: off), the same device state criteria 7c and 25 are run in.
+2. **Exactly one emulator running.** A second `Pixel_9` must be shut down, not merely idle.
+3. **No concurrent Gradle build in any worktree**, and no other agent session building or
+   measuring on this host.
+4. `uptime` recorded **before and after** the sitting; the **1-minute load average < 2.0 at both
+   ends**.
+5. ART state normalised on **both** arms before measuring —
+   `adb shell cmd package compile -m speed -f com.erman.pegsolitarie` — so JIT/AOT warm-up is not a
+   free variable between the arms.
+6. The launch component **resolved from the device, never assumed** — the first edition's
+   `cmd package resolve-activity --brief` form, unchanged, and still the one failure mode that
+   costs the gate its evidence rather than its pass.
+7. Both arms **installed and kept installed** for the whole sitting.
+8. The first edition's seeded **~200-level** Challenge ladder, identical on both arms.
+
+**Protocol — three steps, in this order.**
+
+1. **Null control first, in the same sitting, under the identical protocol, with the *same* build in
+   both positions.** Record `floor = |median difference|`. This is the developer's own unprompted
+   null experiment promoted from a precheck to the protocol's first step.
+2. **Interleave the real arms:** A/B/A/B in blocks of five, **≥ 20 recorded samples per arm**, the
+   first sample of each block discarded, `am force-stop` plus a 2 s pause between samples. **Do not
+   run one arm to completion and then the other** — blocked arms are exactly what the two nulls
+   measured, and what produced the 57–59 ms floor.
+3. Arm A = the `develop` build; arm B = the branch build.
+
+**Verdict — one comparison, three outcomes, no second judgement call.**
+
+| Measurement | Verdict |
+|-------------|---------|
+| `median_B − median_A ≤ max(2 × floor, 100 ms)` | **PASS** |
+| `median_B − median_A > max(2 × floor, 100 ms)` | **FAIL**, and it is a real regression: walk the ordered degradation path above and re-measure the **whole** sitting, null control included, after each step, stopping at the first sitting that passes. |
+| `floor > 150 ms`, whatever the arms say | **VOID** — the host was too noisy to decide. Re-run later. A void sitting is **not a pass and not a fail and may not be reported as either**, and the arm numbers from a void sitting are not evidence of anything. |
+
+On the two floors measured so far the threshold lands at **114 ms** and **118 ms**
+(`max(2 × 57, 100)`, `max(2 × 59, 100)`) — comfortably inside the scale of regression a Home
+refresh could plausibly cause, and it claims no 50 ms resolution that nobody has.
+
+**This raises the bar; it does not lower it.** The threshold is derived from a control measured
+alongside the comparison, so a noisy host can no longer buy a pass — it buys a **void** and a
+repeat. Under the first edition a noisy host produced a number whose sign was luck and which a
+tired reader would have taken for a result. The trade is deliberate: **fewer decidable sittings, no
+undecidable verdicts.** "It passed" can no longer mean "the host was too noisy to tell".
+
+**Where the numbers go.** The first edition's location and field shape are unchanged —
+`.planning/phases/15-ux-refresh/15-BUILD-EVIDENCE.md`, section `## Cold-start measurement`, one
+table per arm in `06-BUILD-EVIDENCE.md:315-323`'s shape, with the seeded-ladder row and the same
+precision caveat — recorded on the slice that runs it. **Added:** the **null-control table**, the
+eight preconditions with their recorded values, both `uptime` readings, and the computed `floor` and
+threshold. A sitting reported without its null table cannot be checked by anyone and counts as
+**void**.
+
+**Criterion 15f does not travel with 15e.** 15f is the visual check that Home's first paint shows
+"—" placeholders with no spinner, no blank band, no blocked screen and no reflow as the values
+arrive. It is not a timing measurement, it needs none of the preconditions above, and it stays a
+**phase-15 sign-off item on this build**; the tech-lead's ruling is explicit that it does not rule
+on 15f. What the ruling does name is why 15f is weaker than it looks: no instrument in the repo can
+see time-to-full-display, and the placeholder frame's window is shorter than QA's 250 ms screenshot
+interval (`qa-engineer.md:144`), so 15f is verified today by reading plus observation rather than by
+capture. The instrument that would make it decidable — Jetpack Macrobenchmark's
+`StartupTimingMetric` plus `reportFullyDrawn()` in `MainActivity` — is new infrastructure, is the
+producer's to schedule, and is not this phase's or this document's to specify.
+
+**The ≤ 2 s launch bar, and the fact that it has never been measured on a phone** *(named gap —
+added 2026-09-28, D-03j, from the tech-lead ruling's Open issues. Recorded here because §6.5 is
+where this document keeps its non-functional launch targets, and because an unmeasured bar everyone
+assumes is met is worse than a gap with a name.)*
+
+- **The bar.** rules/studio.md's product baseline: the product "launches in under 2 seconds on a
+  mid-range phone". D-03j makes that the bar of record for launch, and a release must meet it.
+- **The gap.** It has **never been measured for this app.** Every cold-start number in this repo is
+  from an Android emulator on a shared host: Phase 6's 633 ms, this phase's 957 / 1014 ms, QA's
+  1832 / 1773 ms. Since the *same* AVD returned 957 ms and 1832 ms in two sittings with nothing
+  changing but host load, an emulator number is evidence about the host and not about the app —
+  QA's ~1.8 s is **neither a pass nor a fail** against the 2 s bar and may not be reported as
+  either, in either direction.
+- **Owner.** PLAT-08 / phase 14, with the reference device named in the phase-14 release evidence.
+- **The tech-lead's recommendation, recorded as given:** phase 14 measures the bar on the physical
+  device the phase-8 checklist used, and names that device in the release evidence.
+- **The decided default if no physical device is available at phase 14:** the release proceeds on
+  the interleaved emulator A/B gate plus the scheduled Macrobenchmark task, with the absolute bar
+  **recorded as unverified in the release evidence rather than silently passed**. Unverified is a
+  legitimate record; a silent pass is not.
+- **Where the money question goes.** Buying a mid-range test phone is money and therefore the
+  founder's call, not a staff decision. No founder question is opened from this document: the
+  tech-lead routed it into the **phase-14 release track** rather than opening a second thread, and
+  this role is not re-routing it. The producer folds it in there.
+- **What this document owes meanwhile.** Nothing in §4.2 or §4.2.2 may assume the bar is met.
+  D-03g's hard rules for Home's first frame — no blocking read, no decode, no asset load, no new
+  SDK call, placeholders first — are the design-side answer and hold whichever device the number
+  eventually comes from.
 
 ---
 
@@ -1858,20 +2066,54 @@ blocks tests 10/11/13 in `11-HUMAN-UAT.md`, not just the look of the screen.
 15d. No readout on Home is behind a tap, an expander, a "show more", or a scroll position.
      (D-03f)
 
-**Home cold start (D-03g, PLAT-08 C1)**
+**Home cold start (D-03g, D-03j, PLAT-08 C1)**
 
-15e. Cold start is measured as a **two-arm delta**, not as a single absolute number: arm A =
-     `develop`, arm B = this branch, same AVD (`Pixel_9a`, API 36), same host, same sitting,
-     debug variant, 10 `am start -W` samples per arm with the first discarded, re-installed
-     between arms, on a device seeded with ~200 banked Challenge levels. **Both must hold:**
-     (1) after-median **≤ 950 ms**, and (2) (after-median − before-median) **≤ 50 ms**. Both
-     arms' tables are recorded in `15-BUILD-EVIDENCE.md` and the phase does not close without
-     them. If (2) fails, §6.5's degradation path is walked and re-measured after each step; if
-     (1) fails while (2) passes, the regression belongs to PLAT-08/Phase 14 and escalates to the
-     producer rather than being paid for out of this refresh. (PLAT-08 C1, §6.5)
+15e. *(Replaced 2026-09-28 — D-03j and §6.5 "second edition"; the retired first edition is quoted
+     below it.)* **Cold start is checked as an interleaved A/B delta against a null control
+     measured in the same sitting — and it is checked on the follow-up slice that lands §4.2.2, not
+     on the build audited on 2026-09-28.** Arm A = `develop`, arm B = that slice's branch; one AVD
+     (`Pixel_9a`, API 36), `:app:installDebug`, both arms installed for the whole sitting, the
+     seeded ~200-level Challenge ladder on both, the launch component resolved from the device, and
+     **exactly one emulator with no concurrent Gradle build anywhere on the host**. The sitting runs
+     the **null control first** — the *same* build in both positions, identical protocol — and
+     records `floor = |median difference|`; then the two real arms **interleaved** A/B/A/B in blocks
+     of five, **≥ 20 recorded samples per arm**, the first of each block discarded, `am force-stop`
+     and 2 s between samples. **PASS:** `median_B − median_A ≤ max(2 × floor, 100 ms)`. **FAIL:**
+     greater than that — a real regression; §6.5's degradation path is walked and the whole sitting,
+     null control included, is re-measured after each step. **VOID:** `floor > 150 ms` — the host
+     was too noisy to decide, the sitting is re-run later, and it is reported as **neither a pass
+     nor a fail**; the arm numbers from a void sitting are not evidence. The null table, both arm
+     tables, the eight §6.5 preconditions with their recorded values, both `uptime` readings and the
+     computed floor and threshold all go in that slice's build evidence, and **that slice does not
+     close without them**. **This criterion contains no absolute number**: the ≤ 950 ms figure is a
+     tracked target owned by PLAT-08 / phase 14, and the bar of record is rules/studio.md's
+     under-2-seconds on a named mid-range physical phone — which §6.5 records as never yet measured,
+     with its owner and its decided default. **Phase 15 closes with 15e recorded as `:NOT RUN`**,
+     which is the correct record and not an omission. (PLAT-08 C1, D-03j, §6.5 second edition)
+
+> **15e — first edition, retired 2026-09-28** (`tech-lead-coldstart-gate.md` §1/§3/§4). Kept legible
+> because two reviewers returned verdicts against *this* wording, and a reader who meets those
+> reviews has to be able to find what they were refusing. It read: a two-arm delta, arms run one
+> after the other, 10 `am start -W` samples each with the first discarded, re-installed between
+> arms, and **both** of (1) after-median **≤ 950 ms** and (2) delta **≤ 50 ms** had to hold, with
+> "the phase does not close without them". It is retired for two independent reasons, **neither of
+> them a lowered bar**. **(2) was ill-posed:** 50 ms came from Phase 6's 46 ms *within-arm range*
+> and was applied to a *between-arm median difference*, and two null experiments put that
+> instrument's floor at **57 ms** and **59 ms** — the question could not be answered by the
+> instrument being asked it, so the only available outcomes were a fabricated pass and a permanent
+> block. **(1) was never this phase's:** Phase 6 wrote its 633 ms as the before-picture "PLAT-08
+> measures against in Phase 14" (`06-BUILD-EVIDENCE.md:308-309`), and this criterion's own last
+> clause already escalated a condition-(1)-only failure to PLAT-08 / phase 14 "rather than being
+> paid for out of this refresh" — D-03j stops that from being a special case and makes it the rule.
+> The replacement is **stricter where it matters**: a noisy host now buys a **void** and a re-run
+> instead of a number whose sign is luck.
+
 15f. On first paint, before any progress data has loaded, Home shows the ribbon with "—"
      placeholders — never a spinner, never a blank band, never a blocked screen — and the values
-     fill in without the layout shifting. (D-03c, D-03g)
+     fill in without the layout shifting. (D-03c, D-03g) *(Pointer 2026-09-28: **unchanged, and it
+     does not travel with 15e.** 15f is a visual check, not a timing measurement; it needs none of
+     §6.5's preconditions and stays a **phase-15 sign-off item on this build**. §6.5's second
+     edition records how it is verified today and what instrument would make it decidable.)*
 
 **Home vertical slack (D-03i, §4.2.2 — added 2026-09-28)** — these four check the change D-03i
 requires and **not** the build measured before it. Criteria 14, 15, 15a and 15d above are unchanged
@@ -2004,6 +2246,15 @@ both Continue chips, both tiles and the level chip on screen without scrolling o
 **PLAT-08 (C1)** carries one more obligation — §6.5's two-arm measurement is taken on the branch
 that lands the §4.2.2 layout, because a number measured against a layout that has since changed is
 not evidence.
+
+*(Added 2026-09-28, D-03j.)* The **PLAT-08 (C1)** row stands, with one substitution and one
+addition. The *substitution*: what it traces to is §6.5's design budget plus §6.5's
+**second-edition** measurement procedure, and criterion 15e is now a **relative** gate carrying no
+absolute number. The *addition*: the ≤ 950 ms absolute **and** rules/studio.md's under-2-seconds
+launch bar are both **PLAT-08 / phase-14's**, and §6.5 records that the second has never been
+measured on a physical phone — owner, recommendation and decided default named there. The
+2026-09-28 obligation immediately above, that the measurement is taken on the branch landing the
+§4.2.2 layout, is unchanged and is now stated in the criterion itself.
 
 ---
 
