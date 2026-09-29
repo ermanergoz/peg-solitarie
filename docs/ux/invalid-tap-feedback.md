@@ -117,9 +117,10 @@ text.
   the jump already reads), and only on API 30 or later. Below API 30 there is no haptic, and no
   fallback. — The jump fires `ContextClick` (`GameScreen.kt:304-314`). If a wrong tap fired the
   same type, success and failure would feel identical, which is worse than no haptic. Below
-  API 30 the platform has no distinct light reject, and `LONG_PRESS`, the usual fallback, is far
-  heavier than a jump and would feel punishing. *Taste check queued as Q-012 (§10), non-blocking;
-  the buzz is the built default.*
+  API 30 the platform has no reject constant. The constants that do exist there are either a
+  single tick like the jump's (`CONTEXT_CLICK`, `KEYBOARD_TAP`, `VIRTUAL_KEY`) or `LONG_PRESS`,
+  which is far heavier than a jump and would feel punishing. *Taste check queued as Q-012 (§10),
+  non-blocking; the buzz is the built default.*
 
 - **D-06c:** **A wrong tap is announced to a screen reader, politely, in the game only.** There
   is one short sentence per wrong-tap kind (§6). It adds no focus stop, it is spoken for every
