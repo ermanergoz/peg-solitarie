@@ -5,10 +5,16 @@ import android.graphics.Typeface
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFontFamilyResolver
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -21,11 +27,14 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.sp
 import androidx.core.content.res.ResourcesCompat
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.testing.composeHost
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.app.pegsolitaire.ui.theme.withTabularFigures
+import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import kotlinx.coroutines.CompletableDeferred
 import org.junit.Rule
@@ -179,6 +188,78 @@ class TimerDigitsTest {
     }
 
     /**
+     * Code-auditor N-2: the clock speaks as one node. Its one-character cells are hidden from
+     * accessibility services, so TalkBack meets the clock's own node, with the time as its text and
+     * the caller's description, and never the cells one by one ("1", "1", "colon", "1", "1"). Read
+     * from the view's accessibility node provider, which is what an accessibility service is handed.
+     */
+    @Test
+    fun theClockSpeaksAsOneNodeAndItsCellsAreHiddenFromAccessibilityServices() {
+        setClock(SPOKEN_TIME, Modifier.semantics { contentDescription = SPOKEN_DESCRIPTION })
+
+        val provider = checkNotNull(composeRule.composeHost().accessibilityNodeProvider) { "no node provider" }
+        val clock = clockNode()
+        val clockInfo = checkNotNull(provider.createAccessibilityNodeInfo(clock.id)) { "no node for the clock" }
+        assertWithMessage("whether the clock's node is visible to accessibility services")
+            .that(clockInfo.isVisibleToUser)
+            .isTrue()
+        assertThat(clockInfo.text?.toString()).isEqualTo(SPOKEN_TIME)
+        assertThat(clockInfo.contentDescription?.toString()).isEqualTo(SPOKEN_DESCRIPTION)
+        assertThat(clock.children).hasSize(SPOKEN_TIME.length)
+        clock.children.forEachIndexed { index, cell ->
+            assertWithMessage("whether cell $index is visible to accessibility services")
+                .that(provider.createAccessibilityNodeInfo(cell.id)?.isVisibleToUser ?: false)
+                .isFalse()
+        }
+    }
+
+    /**
+     * Code-auditor N-2: a clock reads left to right in every layout direction, as the single string
+     * did. In a right-to-left layout "05:12" still reads "05:12" across the screen; mirrored cells
+     * would read "21:50".
+     */
+    @Test
+    fun aClockReadsLeftToRightInARightToLeftLayout() {
+        setClock(RTL_TIME, Modifier, LayoutDirection.Rtl)
+
+        val readAcross =
+            clockNode()
+                .children
+                .sortedBy { it.positionInRoot.x }
+                .joinToString(separator = "") { cell -> textOf(cell) }
+        assertThat(readAcross).isEqualTo(RTL_TIME)
+    }
+
+    /** Sets [time] as one clock in the timer's own style, tagged for [clockNode], laid out in [direction]. */
+    private fun setClock(
+        time: String,
+        modifier: Modifier,
+        direction: LayoutDirection = LayoutDirection.Ltr,
+    ) {
+        composeRule.setContent {
+            AppTheme {
+                CompositionLocalProvider(LocalLayoutDirection provides direction) {
+                    TimerDigits(
+                        time = time,
+                        style = MaterialTheme.typography.headlineSmall.withTabularFigures(),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = modifier.testTag(ONE_CLOCK),
+                    )
+                }
+            }
+        }
+        composeRule.waitForIdle()
+    }
+
+    /** The node of the clock [setClock] set, in the unmerged tree, where its cells are its children. */
+    private fun clockNode(): SemanticsNode =
+        composeRule.onNodeWithTag(ONE_CLOCK, useUnmergedTree = true).fetchSemanticsNode()
+
+    /** The text a cell lays out: its one character. */
+    private fun textOf(cell: SemanticsNode): String =
+        cell.config[SemanticsProperties.Text].joinToString(separator = "") { it.text }
+
+    /**
      * Reads which typeface [face] resolves to at the Medium weight, so the calling composition is
      * recomposed when a late face lands (see the class KDoc for why the host must).
      */
@@ -272,6 +353,14 @@ private const val WIDTH_TOLERANCE_DP = 0.5f
 private const val LATE_CLOCK = "late_clock"
 private const val PRESENT_CLOCK = "present_clock"
 private const val CELL_CLOCK = "cell_clock"
+private const val ONE_CLOCK = "one_clock"
+
+/** A clock whose five cells would each be spoken, and the description its caller gives it. */
+private const val SPOKEN_TIME = "11:11"
+private const val SPOKEN_DESCRIPTION = "Elapsed time"
+
+/** A clock with no two characters alike, so any reordering of its cells shows. */
+private const val RTL_TIME = "05:12"
 
 /** The ten digits; the widest of them sets the cell. */
 private const val DECIMAL_DIGITS = "0123456789"
