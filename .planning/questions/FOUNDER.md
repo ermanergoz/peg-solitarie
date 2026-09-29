@@ -1,5 +1,29 @@
 # Founder questions (newest first)
 
+## Q-014 — Fable-pinned tech-lead and ux-designer rulings for the rest of phase 15   (answered)
+Date: 2026-09-29    Asked by: producer
+Context: The font fix (Q-013) needs a tech-lead ruling (bundle the OFL fonts vs repair the Google
+Fonts provider) and the ux-designer has two open spec rulings (15p gap reading; the 15e "both arms
+installed" precondition, E-1). Both roles are pinned to Fable, which is exhausted; 0.6.2 has no
+fallback. Q-003 covered only the phase-15 review chain.
+Options: 1) Opus for phase 15 2) Wait for Fable 3) Founder tops up Fable
+Recommendation: producer — 1, so phase 15 can finish.
+Blocks: phase-15 font fix and merge
+Answer: 1 — Opus for the tech-lead and ux-designer rulings for the rest of phase 15 (2026-09-29),
+each recorded as a deviation. Scoped to phase 15.
+
+## Q-013 — The app's fonts have never loaded on any device; when do we fix it?   (answered)
+Date: 2026-09-29    Asked by: producer (from qa-engineer F-A/F-B, qa-engineer-loop2.md)
+Context: `Type.kt` builds `AppTypography` before the Fredoka/Nunito families exist, so every style
+has a null family and Roboto renders everywhere, since 2026-08-26 (unreleased; `main` predates it).
+The provider certificate in `font_certs.xml` is also corrupt. Every phase-15 fit measurement was
+taken in Roboto.
+Options: 1) Fix inside phase 15 and re-walk the fit criteria 2) Separate phase after merge
+3) Drop the custom fonts
+Recommendation: producer — 1.
+Blocks: nothing
+Answer: 1 — fix inside phase 15 (2026-09-29); founder sees screenshots in the real faces before merge.
+
 ## Q-005 — Home hero: how should the top of Home fill the screen?   (answered)
 Date: 2026-09-28    Asked by: ux-designer
 Context: Per your Q-004 answer the peg-cross logo goes, the title is re-seated, and the empty band
