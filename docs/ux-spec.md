@@ -4,7 +4,7 @@ phase: 15
 slug: ux-refresh
 status: draft
 created: 2026-09-21
-revised: 2026-09-28
+revised: 2026-09-29
 stack: android-compose-game
 design-system: docs/ui/DESIGN-SYSTEM.md
 ---
@@ -243,6 +243,21 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > D-04e applies rather than relaxes. This amendment adds **no string** (it deletes one,
 > `show_moves_off`), **no colour**, **no dependency** and **no third-party asset**; it adds one
 > in-house vector and seven tokens, changes one token's value and retires three.
+>
+> **Eighth revision — 2026-09-29 — AMENDMENT (criterion 15p's gap reading; the hero row loses its
+> floor).** `.planning/reports/15-founder-feedback/qa-engineer.md` **E-1**, from the qa-engineer's
+> device pass of the D-03l slice. Criterion 15p part 1 passes or fails depending on what "hero row"
+> means. Measured from the row's 72dp box, the hero→art gap is ≈16dp. Measured from the gear, the
+> row's lowest visible edge, it is **27.4dp** in every chip state. The 72dp floor around a 48dp gear
+> makes the two readings disagree by construction. Ruled as **D-03m** (§3, specified in the last
+> subsection of **§4.2.4**): **the visible reading governs**, with "visible element" defined once, and
+> **`home_hero_row_min_height` is retired**, so the row is exactly as tall as its tallest child and the
+> gap is the ordinary band gap. The ruling is checked in **Fredoka and Nunito** as well as in the
+> Roboto that every device reading so far was taken in (`qa-engineer-loop2.md` F-A, Q-013). The title
+> row's width and height move by 0.25dp or less. Pointers go to D-03l, §4.2.3, §4.2.4, §6.1, §13, §14
+> (15p) and §16. **Not reopened:** 15p's words, bounds and ≥ 120dp art, every other criterion, §4.2.2's
+> mechanism, the stage, the gear and the compact thresholds. No string, no colour, no dependency; one
+> token retired.
 
 ---
 
@@ -817,6 +832,30 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   classes stop looking like two different apps. Screens, layout and decoration are this role's
   (rules/studio.md); which of several strong directions the founder *prefers* is taste, so Q-005
   asks it without blocking anything.
+  *(Amended 2026-09-29 — see **D-03m**. The hero row, the stage and everything above stand. The row
+  loses its 72dp minimum height: it is exactly as tall as its tallest child. Criterion 15p's gaps are
+  measured between visible elements.)*
+
+- **D-03m** *(2026-09-29 — **amendment**. UX ruling on the qa-engineer's escalation **E-1** on
+  criterion 15p part 1, `.planning/reports/15-founder-feedback/qa-engineer.md`. Amends D-03l's hero
+  row and §4.2.4's arithmetic, and is specified in the last subsection of **§4.2.4**. It adds no
+  criterion; 15p gains a pointer.)*: **15p's gaps are measured between what is drawn, and the hero row
+  loses the floor that hid a gap inside it.** Two parts.
+  **(1)** Every gap or blank criterion on Home — the three parts of 15p, and 15g's "no single gap" —
+  is read between **visible** elements. A visible element's edges are the layout bounds of a drawn
+  surface or a laid-out text, never an undrawn box. A composite band's edges are the union of its
+  visible children.
+  **(2)** `home_hero_row_min_height` (72dp) is **retired**. The hero row is exactly as tall as its
+  tallest child, which is the 48dp gear chip at default font scale.
+  — The 72dp floor put 24dp of air around a 48dp gear. So the hero→art gap the player sees was
+  16 + 12 = 28dp (27.4dp measured on the Pixel_9), while a test that measured the box read 16dp. The
+  founder's complaint (Q-004) was a gap the eye sees, and a criterion that passes such a gap is a false
+  green. With no floor, the row's box and its visible extent are the same. The gap is then the band gap
+  in every state: 16dp in the full set, 8dp in the compact one. The stage gains the 24dp, about +18dp
+  of board edge. §4.2.4's bound on the largest blank (< 80dp / < 64dp) becomes exact. The ruling holds
+  in Fredoka as it does in Roboto. The title's 44dp line box is shorter than the gear's 48dp in either
+  face. "Peg Solitaire" measures 205.7dp in Fredoka SemiBold against 205.5dp in Roboto, and the title
+  has 296dp of room at 360dp width.
 
 ### In-game controls (ASST-01, ASST-02, CLAS-02, SCOR-02, proposed UX-03)
 
@@ -1646,6 +1685,14 @@ target the compact-narrow set is:
 | Mode tiles, 224 | **No.** §11's 96dp tile floor twice over, and the Challenge tile carries oracle 1's level chip. |
 | Gaps + padding, 72 | **No.** `spacing_sm` is already the smaller grid step; `spacing_xs` between bands would read as one undifferentiated slab and would breach §11's ≥ 8dp separation between targets. |
 
+> *(Amended 2026-09-29 — **D-03m**, §4.2.4.)* The two "Hero row, 72" rows above were wrong by 24dp,
+> in exactly the way this subsection warns about: 72 was the row's **floor**, not its content. The
+> 24dp above its tallest child, the 48dp gear, was not a readout, a target or a route. D-03m retires
+> the floor, so the row is 48dp. The compact-narrow set becomes ≈616dp against 568dp, so it is **48dp
+> over, not 72**. The fold still cuts through the Challenge tile (`484..600`). Criterion 15k is
+> unchanged and holds with more margin, and "a 360×640dp phone with both Continue chips scrolls" is
+> still true on this Robolectric arithmetic. Everything else in the table stands.
+
 Note where 640 lands: **within a few dp of the 640dp zero-inset JVM window.** That is the second
 and sharper reason 15k must be measured with insets — at these numbers a zero-inset test reads
 "fits" on precisely the window where the device does not.
@@ -1737,6 +1784,11 @@ set, exactly as before):
 The stage *replaces* the upper `Spacer` as a child, so the column has the same number of children
 and the same number of `spacedBy` gaps as before in every chip state.
 
+*(Amended 2026-09-29 — **D-03m**. Row 1's Height cell is superseded. The hero row has **no minimum
+height of its own**. It is exactly as tall as its tallest child: the 48dp gear at default font scale,
+or the title when it is taller. `home_hero_row_min_height` is retired. See the last subsection of
+§4.2.4.)*
+
 **The hero row.**
 
 - One `Row`, `CenterVertically`, `fillMaxWidth()`, `heightIn(min = home_hero_row_min_height)`,
@@ -1758,6 +1810,9 @@ and the same number of `spacedBy` gaps as before in every chip state.
   it reads as the screen's heading, in the place the app's other screen titles sit, and it is the
   geometry the 360dp-wide class has shown since D-03i, so the two width classes stop looking like
   two different apps.
+
+*(Amended 2026-09-29 — **D-03m**. In the first bullet, `heightIn(min = home_hero_row_min_height)`
+is withdrawn, and the 72dp goes with it. Every other bullet above stands word for word.)*
 
 **The stage.**
 
@@ -1840,6 +1895,11 @@ range. **The largest blank the stage can ever leave**, on any window, is just un
 **< 64dp** in the compact set (48 + 2×8), against the founder's ≈172dp. Criterion 15p makes that a
 bound, not a hope.
 
+*(Amended 2026-09-29 — **D-03m**. The table above assumes the 72dp row floor. The corrected table,
+with the row at 48dp, is in the last subsection of §4.2.4. Measured between visible elements, the
+paragraph above was true only of a row with no floor: the 72dp row put another 12dp of blank inside
+itself, beneath the gear. D-03m removes the floor, and that makes the < 80dp / < 64dp bound exact.)*
+
 **The narrow class is unchanged where it matters.** On 360×640dp with both chips the column
 overflows, so the stage is 0 and draws nothing. The only movement is that the stage's two 8dp gaps
 now fall **above** the ribbon instead of below it: hero row `8..80` · stage (0) · ribbon `96..152`
@@ -1847,6 +1907,10 @@ now fall **above** the ribbon instead of below it: hero row `8..80` · stage (0)
 fold through the second tile and 15k's ≤ 120dp overflow are exactly as §4.2.3 derived them. On a
 taller narrow window with slack — 360×800dp, ≈88dp of it — the stage gets ≈66dp and draws a small
 board: decoration where there is room, which costs the short screen nothing by construction.
+
+*(Amended 2026-09-29 — **D-03m**. With the row at 48dp, every position above moves up 24dp and the
+overflow falls from 72dp to 48dp. The fold still cuts through the second tile. On 360×800dp the slack
+is ≈112dp and the stage ≈84dp. The last subsection of §4.2.4 has the corrected figures.)*
 
 **Cold start (D-03g).** The stage is one `BoardCanvas` draw of a constant position; it replaces the
 deleted cluster's one draw. No read, no decode, no asset, no SDK call, and no work that depends on
@@ -1890,6 +1954,182 @@ row, the ribbon, the chips and the tiles leave — so no threshold decides it an
   no hint.
 - 15r — the stage is not clickable, not focusable and announces nothing; Home's TalkBack traversal
   is unchanged.
+- *(2026-09-29, D-03m.)* 15p's gaps are measured between **visible** elements, from the lower of the
+  title's and the gear's bottom edges. They are never measured from the hero row's box. The owed tests
+  are at the end of the subsection below.
+
+##### 15p's gap reading, ruled — the hero row loses its floor (D-03m — 2026-09-29 amendment)
+
+> **Status.** This answers the qa-engineer's escalation **E-1** on criterion 15p part 1
+> (`.planning/reports/15-founder-feedback/qa-engineer.md`, E-1 and the 15p row). It applies to the
+> slice that lands D-03m. It does not retro-certify the builds measured on 2026-09-29 (`d017711`,
+> `7cc46bf`). Everything earlier in §4.2.4 stands, except the hero row's minimum height and the
+> arithmetic that assumed it; each of those carries a pointer here. Nothing here depends on how the
+> tech-lead fixes the fonts (Q-013). Every number below is checked in Fredoka and Nunito, as well as in
+> the Roboto that devices have been rendering.
+
+**The finding.** Criterion 15p part 1 bounds "the vertical distance between two consecutive visible
+elements — hero row, stage art, …" at ≤ 24dp. On the Pixel_9, in every chip state, the hero row's
+**72dp box** ends ≈16dp above the stage art, which passes. The row's **visible** content ends
+**27.4dp** above it, which fails: the 48dp gear chip spans 82.7–130.7dp and the art starts at
+158.1dp. The 12dp difference is built in. `home_hero_row_min_height` centres a 48dp gear and a 44dp
+title line in a box 24dp taller than either, so 12dp of nothing sits inside the row beneath the gear,
+and the band gap is added on top of it. `HomeStageTest` and this subsection's own arithmetic ("row
+72") counted the box. The qa-engineer counted what is drawn. Both readings can be argued from the
+criterion's list, and they cannot both pass.
+
+**Ruled: the visible reading governs.** It governs every part of 15p and every gap or blank criterion
+on Home, 15g's "no single gap" included. There are three reasons.
+
+1. **The criterion says "visible".** "Hero row" in its list names what the player sees in that
+   position, the title and the gear. It does not name the layout box around them, and a box has no
+   edge on screen.
+2. **The founder's complaint is about what the eye sees.** Q-004 named an *empty gap*, and an empty
+   gap is what the eye sees between two drawn things. On `s11-home.png` the band above the board reads
+   deeper than the 16dp gaps below it. That is exactly the effect the criterion exists to forbid,
+   only smaller. A reading that passes a gap the eye reads as a gap is a false green, and this document
+   has already paid for one of those (MB-1, criterion 15h).
+3. **Only the visible reading can be measured on glass.** `uiautomator` and a screenshot report the
+   gear and the title. The row's box is a layout fact that only a JVM test can see. If a criterion's
+   device reading and its JVM reading differ by construction, this question will keep coming back.
+
+**What "visible element" means.** This is stated once, so that nobody needs a third reading.
+
+- An element's edges are the layout bounds of something drawn: a surface or a laid-out text. The
+  surfaces are the gear chip, the stage-art slab, a ribbon pill, a Continue chip and a mode tile; the
+  text is the title.
+- Glyph ink never counts, and neither does a shadow. An undrawn layout box never counts either: a
+  `Row`'s or `Column`'s minimum height, a `Spacer`, or the stage slot itself.
+- A composite band's edges are the union of its visible children. The hero row runs from the higher
+  of the title's and the gear's top edges to the lower of their bottom edges. The ribbon runs from its
+  pills' top edges to their bottom edges.
+- A gap runs from one element's visible bottom edge to the next element's visible top edge, measured
+  along the column, whether or not it is scrolled.
+
+**Re-specified: the hero row has no minimum height of its own.** It is exactly as tall as its tallest
+child. At default font scale that is the 48dp gear chip; at a large font scale it is the title, once
+the title grows taller than the gear. **`home_hero_row_min_height` is retired** (§6.1). Every other
+property of the row stands, as the bullets under "The hero row" above give it: one `Row`,
+`CenterVertically`, `fillMaxWidth()` and `clayEntrance(HERO_ENTRANCE_ORDER)`. The title keeps its
+style, its `weight(1f)`, its heading semantics and its lack of `maxLines`. The gear is unchanged in
+every respect.
+
+- **Why no floor at all, rather than a 48dp floor.** Any floor taller than the row's tallest visible
+  child is an invisible band by construction, and that is the defect. A floor exactly equal to the gear
+  only repeats what `IconButton` already guarantees. `HomeHero.kt`'s own KDoc turns down a token for the
+  gear on that ground: it would be "a second, driftable statement of the same number". With no floor,
+  the row's box and its visible extent are the same, so the two readings agree by construction and
+  cannot drift apart again.
+- **Why not keep 72dp and shrink the gap below the row.** The gap below the row is the column's
+  `spacedBy`, the same for every band. Shrinking one gap to cancel air inside a box would add a special
+  case to fix a special case. The 24dp is taken out where it was put in.
+- **The touch target is untouched.** The gear is still a 48dp `IconButton` in a 48dp clay chip. The
+  nearest target to it is the first Continue chip or mode tile, well below. The ribbon pills are not
+  targets.
+- **The top of the screen.** The row now starts right at the column's top padding. The title and the
+  gear sit `spacing_md` (16dp) below the status bar in the full set, and `spacing_sm` (8dp) below it in
+  the compact set; before this change it was 28dp and 20dp. That is still looser than the gameplay
+  strip, whose back chip sits ≈4dp below the status bar (criterion 18b). The 24dp goes to the stage,
+  which is where Home's slack is meant to go.
+
+**The arithmetic on the 6.7-inch baseline, corrected additively.** The window is 412×915dp with a
+24dp status bar and a 48dp navigation bar, giving **843dp** usable, with the full band set and the
+hero row at **48dp**. The band ranges are the same as in the table earlier in §4.2.4.
+
+| State | Fixed: padding 32 + gaps + row 48 + bands | Slack | Stage (¾) = art edge | Footer (¼) | First tile's top vs the 421dp midpoint |
+|---|---|---|---|---|---|
+| No Continue chip (5 gaps, 80) | 440–500 | 343–403 | **257–302** | 86–101 | 485–498 — below it ✓ |
+| One chip — the founder's state (6 gaps, 96) | 540–624 | 219–303 | **164–227** | 55–76 | 516–523 — below it ✓ |
+| Both chips (7 gaps, 112) | 640–748 | 95–203 | **71–152** | 24–51 | 547–548 — below it ✓ |
+
+The art fills its stage in all three states, because its edge never reaches the 320dp cap or the
+380dp content width. So **every visible gap is the band gap, 16dp**, and that includes hero→art.
+Part 1's ≥ 120dp art in the one-chip state holds at both ends of its range (164–227dp). Criterion
+15g's midpoint holds in every state, with the tiles ≈6dp higher than before.
+
+On the device QA measured, the 24dp comes back as ≈18dp of stage and ≈6dp of footer. That device is
+the Pixel_9: 411×923dp, a 54.1dp status bar and a 24dp gesture bar.
+
+- The stage art goes from 289 / 216 / 144dp to about **307 / 234 / 162dp** (no chip, one chip, both
+  chips).
+- The gear's bottom edge moves from 130.7dp to about 118dp (below the 54.1dp status bar: 16dp of
+  padding plus the 48dp gear).
+- Hero→art goes from 27.4dp to **16dp** in every state.
+
+These are projections from QA's device numbers, not readings. The re-walk of 15p governs.
+
+**The narrow class.** On `w360dp-h640dp` with both chips, §4.2.3's Robolectric arithmetic becomes:
+hero row `8..56` · stage (0) · ribbon `72..128` · chip `136..244` · chip `252..360` · tile `368..476`
+· tile `484..600`.
+
+- The column totals ≈616dp against 568dp usable: **48dp over, not 72**.
+- The fold at 568 still cuts through the Challenge tile: its top (484) is above the fold and its bottom
+  (600) below it.
+- The overflow is 48dp against 15k's ≤ 120dp. Every part of 15k holds, with more margin, unchanged.
+- The 24dp is the one item §4.2.3 got wrong when it said "every one of those 72dp is a readout, a
+  target or a route". It was the row's floor above its tallest child, which is none of the three
+  (pointer at §4.2.3).
+
+On the device QA measured (360×640dp, a 52dp status bar, a 24dp gesture bar, 564dp usable), the
+both-chips column already fitted, with ≈28dp of slack. That slack becomes ≈52dp. The stage gets ≈39dp,
+which is under `home_stage_art_min_size`, so no art is drawn. The gear→ribbon blank goes from 49.0dp
+to about **55dp**. That is inside part 2's compact bound of < 64dp, and the bound is now exact: the
+largest blank is the stage's < 48dp plus two band gaps, with nothing hidden inside the row to add to
+it.
+
+**The ruling in the real faces.** QA's F-A found that Fredoka and Nunito have never rendered (Q-013),
+so every device number above was taken in Roboto. The row was therefore re-checked against the OFL
+binaries. Fredoka `[wdth,wght]` was instanced at wght 600, the weight `displaySmall` uses; it is
+byte-identical to the test fixture `fixtures/fonts/Fredoka-Variable.ttf`. Google's Roboto v3 was
+instanced at wght 600 for comparison. The strings were shaped with HarfBuzz, kerning applied.
+
+- **Width.** "Peg Solitaire" is **5.715em** wide in Fredoka SemiBold, against 5.708em in Roboto
+  SemiBold. At 36sp that is **205.7dp**, 0.25dp wider than Roboto.
+  - The title's room is the content width less the gear: **296dp** at 360dp width (344 − 48), and
+    332dp at 412dp (380 − 48). So at default scale the title fits on one line with ≥ 90dp to spare.
+  - At 200% on API 34+, non-linear scaling turns 36sp into ≈43.3dp, so the title is ≈247.5dp: still
+    one line on a 360dp phone.
+  - On API ≤ 33, scaling is linear and the largest system step is 1.3×. At that step (≈46.8dp) the
+    title is ≈267.5dp: still one line.
+  - It wraps only above ≈51.8dp of rendered size. Even then it breaks at the space ("Peg" /
+    "Solitaire"), never mid-word, and it is never truncated (criteria 14, 15o).
+- **Height.** Fredoka sets `USE_TYPO_METRICS`, with an ascender of 0.974em and a descender of
+  −0.236em. That totals **1.210em**, or 43.6sp at 36sp, which fits inside `displaySmall`'s 44sp line
+  height (Roboto's total is 1.172em).
+  - So the title's text layout is **44dp** tall at default scale in either face. That is under the
+    gear's 48dp, so the row is 48dp in either face, and the choice of face cannot move this ruling.
+  - At 200% the title's line height (≈50dp) is more than 48dp. The title is then the row's tallest
+    child, and the gap to the stage is still the band gap, by construction.
+- **Everything else.** The stage art and the gaps contain no text. The fits of the ribbon, the chips,
+  the tiles and the status strip in the real faces are recorded in
+  `.planning/reports/15-founder-feedback/ux-designer-15p.md`. None of them changes a band height at
+  default font scale, so no number in this subsection depends on them.
+
+**What does not change:**
+
+- criteria 15n, 15o, 15q and 15r;
+- 15p's words, its three bounds (24, 80 and 64dp) and its ≥ 120dp art;
+- criteria 15g, 15i, 15k, 15l and 15m;
+- §4.2.2's mechanism and every clause exception D-03l made;
+- the stage, its art, its tokens and its position;
+- the gear;
+- the compact thresholds.
+
+No string, colour or dependency is added. One token is retired.
+
+**What this owes in tests.** Each one must be watched failing once before it is trusted.
+
+- **15p is measured between visible elements.** Every gap is measured as defined above: from the
+  lower of the title's and the gear's bottom edges, never from the hero row's box. A test that measures
+  from the box measures a quantity 15p does not name, and today it passes a layout the device fails.
+  To watch it fail, restore the 72dp floor: on `w412dp-h915dp` with insets, hero→art then reads 28dp
+  and the test goes red.
+- **The row is as tall as its tallest child.** The hero row's height equals its tallest child's
+  height (±0.5dp), at font scale 1.0 and 2.0, on both baselines. Any assertion that the row is
+  ≥ 72dp, or equals `home_hero_row_min_height`, is retargeted to this. It is never deleted and never
+  `@Ignore`d.
+- **15k's tests stand.** Any expected Robolectric overflow falls from ≈72dp to ≈48dp. That is still
+  inside ≤ 120dp, and the fold still cuts through the second tile.
 
 ### 4.3 Gameplay status strip — `GameStatusStrip.kt` (CLAS-02, SCOR-02, D-04/D-05a/D-05b)
 
@@ -2349,7 +2589,7 @@ declared even where an existing token shares its value. All multiples of 4.
 | `home_compact_threshold_width` | 400dp | **(D-03k, added 2026-09-28)** The available **width** below which the compact threshold is the narrow one. 360dp is the narrowest supported window and the next common width is the 412dp class, so no shipping device sits on the boundary (§4.2.3) |
 | `home_compact_threshold_height_narrow` | 880dp | **(D-03k, added 2026-09-28)** The compact threshold **at an available width below 400dp**: the full set's own both-chips height *at 360dp width* (≈872dp, where the bands wrap) rounded onto the grid. Its consequence is deliberate — at 360dp width Home is always compact (§4.2.3) |
 | `home_stat_pill_compact_min_height` | 40dp | **(D-03k, added 2026-09-28)** One progress pill in the compact-narrow ribbon: `spacing_sm` + one `titleMedium` line + `spacing_sm`, with the label beside the value and no decorative glyph. A **floor**, not a height — the label wraps and the band grows before either text truncates (§4.2.3, criteria 14/15m) |
-| `home_hero_row_min_height` | 72dp | **(D-03l, founder-feedback amendment, added 2026-09-28)** The hero row — title and 48dp gear — on **every** window. Same value as the retired `home_hero_compact_min_height`, new owner: the row is no longer a compact-only shape (§4.2.4) |
+| `home_hero_row_min_height` | 72dp | **(D-03l, founder-feedback amendment, added 2026-09-28)** The hero row — title and 48dp gear — on **every** window. Same value as the retired `home_hero_compact_min_height`, new owner: the row is no longer a compact-only shape (§4.2.4). *Retired 2026-09-29 by **D-03m**; see below.* |
 | `home_stage_art_min_size` | 48dp | **(D-03l)** The smallest stage-art edge that is drawn; below it the stage is plain slack. It is what bounds the largest blank Home can show at 48 + 2 × band spacing (§4.2.4, criterion 15p) |
 | `home_stage_art_max_size` | 320dp | **(D-03l)** The largest stage-art edge; above it the art is centred in its stage (§4.2.4) |
 | `game_timer_pill_padding` | 12dp | **(D-05d, founder-feedback amendment, added 2026-09-28)** Horizontal padding inside the gameplay timer pill (§4.3.1) |
@@ -2365,6 +2605,12 @@ applied as a **minimum** (`heightIn`), not a fixed height, so the pill grows wit
 and `home_hero_compact_min_height` (72dp) lose their callers with `FullHero`, `HomeHeroArt` and
 `CompactHero`. Two new ratios live in scoped constants objects, not here (§6.4):
 `HomeStageMetrics.SLAB_PADDING_FRACTION` (0.06) and `DockMetrics.UNAVAILABLE_GLYPH_ALPHA` (0.38).
+
+**Retired by D-03m** *(2026-09-29 — amendment)*: `home_hero_row_min_height` (72dp). The hero row has
+no minimum height of its own and is exactly as tall as its tallest child (§4.2.4, last subsection).
+Any floor taller than the 48dp gear is an invisible band, and a floor equal to it would only repeat
+`IconButton`'s own guarantee. **No token replaces it.** The gear keeps `IconButton`'s own minimum, as
+it already did.
 
 **One note on `home_stat_pill_min_height`** *(added 2026-09-28, D-03k — a fact, not a change)*: at
 64dp it is a minimum that **has never bound**. The pill it sizes composes `spacing_sm` + a 20dp
@@ -3128,6 +3374,14 @@ D-03l / D-04e / D-05d)*:
 | Any other test reading `DockActionFilledKey` | The key is replaced by the look property | Retarget to the look property. |
 | `HomeLayoutTest` / `HomeScreenTest` assertions (Home's geometry moved to `HomeLayoutTest` in the S10 slice) that the hero art is present on a tall window, absent on the narrow baseline, or that the compact hero is a separate shape (criteria 15k part 4, 15l's third window) | There is no hero art on any window and one hero shape | Retarget "hero art present" to "stage art present" and "hero art absent" to "no stage art on an overflowing column"; the full/compact distinction is now spacing and pill shape only. Retarget, never delete or `@Ignore`. |
 
+**D-03m — what it retargets** *(2026-09-29 amendment, §4.2.4 last subsection)*:
+
+| Test | Effect | Fix |
+|------|--------|-----|
+| `HomeStageTest` (15p): measures the hero→art gap from the hero row's box | Reads 16dp where the device shows 27.4dp. The row's box is not a visible element (D-03m). | **Retarget**: measure from the lower of the title's and the gear's bottom edges. Watch it fail against the old 72dp floor (28dp on `w412dp-h915dp` with insets) before trusting it. |
+| Any assertion that the hero row is ≥ 72dp or equals `home_hero_row_min_height` (for example in `HomeHeroRowTest`) | The token is retired. | **Retarget** to "the row's height equals its tallest child's (±0.5dp) at font scale 1.0 and 2.0". Never delete or `@Ignore`. |
+| Any 15k test that pins the Robolectric overflow at ≈72dp | The overflow falls to ≈48dp. | Keep the ≤ 120dp bound and the fold-through-the-second-tile assertion. A test that pinned exactly 72dp was pinning the defect. |
+
 **Owed, new** — every one watched fail once before it is trusted: criteria **15n–15r** (Home, §4.2.4,
 including the unit test that replays the stage's recorded move list from the English start),
 **18a–18e** (the strip, §4.3.1 — 18b and 18c with insets supplied, 18d on a device), and
@@ -3476,6 +3730,14 @@ art present" now reads **"with the stage art present"**.
         of this criterion and it returns to the ux-designer with the measured numbers; it is not
         closed by shrinking a band, a readout or a target. The qa-engineer's device numbers govern.
      (D-03l, criterion 15g)
+     *(Ruled 2026-09-29 — **D-03m**, §4.2.4 last subsection. The words stand; what they measure is
+     now settled. A "visible element" is a drawn surface or a laid-out text, measured by its layout
+     bounds. It is never an undrawn box, glyph ink or a shadow. The hero row's edges are the union of
+     the title's bounds and the gear's. On that reading the builds measured on 2026-09-29 do **not**
+     meet part 1: hero→art is **27.4dp** on the Pixel_9, in every chip state. The cause is this
+     document's 72dp row floor, not the implementation, which built what §4.2.4 said. D-03m removes
+     the floor. This applies to the slice that lands D-03m, and the device re-walk in the real faces
+     owed under Q-013 is the reading that closes it.)*
 
 15q. **The stage shows a real game, and holds still.** A unit test replays a recorded move list
      from `Boards.english33Initial` — every move legal under the shipped rules engine — and arrives
@@ -3714,6 +3976,10 @@ the stage's one draw replaces the logo's. **CLAS-02** and **SCOR-02** gain §4.3
 criterion 21c — a spent allowance changes nothing a player can see, which is the earlier-phase
 ruling made testable rather than relaxed. **QUAL-03** gains seven tokens and one changed value
 (§6.1), two scoped ratios, and one deleted string; no new colour and no new string.
+
+*(Added 2026-09-29 — D-03m.)* **NAV-01** and proposed **UX-02** keep criterion 15p, which now has a
+definition of how its gaps are measured (between visible elements). **QUAL-03** retires one token,
+`home_hero_row_min_height`, and adds none. No string, colour or dependency changes.
 
 ---
 
