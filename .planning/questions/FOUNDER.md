@@ -1,5 +1,17 @@
 # Founder questions (newest first)
 
+## Q-011 — The audio follow-up needs four Fable-pinned roles and Fable is exhausted   (answered)
+Date: 2026-09-29    Asked by: producer
+Context: After Q-008–Q-010 the audio work needs the sound-designer (recipes, WAV conversion,
+re-levelling), tech-lead (silent-mode design), ux-designer (wrong-tap visual partner) and
+research-analyst (per-file licence verdicts), all pinned to Fable; Fable returns HTTP 429
+(req_011CfWkWg9kgDK8skQV5QcMF). Q-006 was a one-time exception; 0.6.2 has no Fable fallback.
+Options: 1) Wait for Fable 2) Run the four on Opus 3) Founder tops up Fable
+Recommendation: producer — 1; the audio work is small and nothing waits on it.
+Blocks: audio-review follow-up
+Answer: 2 — run them on Opus (2026-09-29). Exception scoped to these four audio steps; each report
+records the deviation. Not a standing policy change.
+
 ## Q-010 — Should the game go quiet when the phone is on Silent or Vibrate?   (answered)
 Date: 2026-09-29    Asked by: sound-designer (queued by producer)
 Context: Game sounds follow media volume only, so Silent/Vibrate does not mute them; rules/audio.md
