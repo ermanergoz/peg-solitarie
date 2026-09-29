@@ -31,7 +31,7 @@ import kotlin.math.max
  * ## Why cells, when the style already asks for tabular figures
  *
  * `withTabularFigures()` only *requests* the `tnum` feature, and the shipped face has none.
- * Fredoka, the downloadable face of the title and headline roles, sets its digits proportionally
+ * Fredoka, the bundled face of the title and headline roles, sets its digits proportionally
  * ("1" is 388 units wide, "2" is 587). A plain `Text` of the time therefore narrowed by up to 18dp
  * whenever a "1" ticked in, and the pill around it narrowed with it. The requirement is the
  * property, not the flag, so the layout keeps it: each digit is centred in its cell, and the colon
@@ -41,10 +41,10 @@ import kotlin.math.max
  * ## Measured while measuring
  *
  * The widest digit is read in the layout pass, not in composition: every pass measures the ten
- * digits in the face the style resolves to at that moment. The downloadable face arrives after
- * the first frame. When it does, the cells' own text is laid out again in it, which lays this
- * clock out again too, so the cells take the real face's digits. A width remembered in
- * composition would keep the fallback's width forever.
+ * digits in the face the style resolves to at that moment. If the face or the font scale changes
+ * after the first layout, the cells' own text is laid out again in it, which lays this clock out
+ * again too, so the cells take the new face's digits. A width remembered in composition would keep
+ * the old face's width forever.
  *
  * ## Left to right in every layout direction
  *

@@ -21,9 +21,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
@@ -32,14 +29,12 @@ import androidx.compose.ui.unit.sp
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.testing.applySystemBarInsets
 import com.app.pegsolitaire.testing.renderedWindow
-import com.app.pegsolitaire.testing.shippedFaceFile
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.app.pegsolitaire.ui.theme.withTabularFigures
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
@@ -60,8 +55,8 @@ import kotlin.math.abs
  *
  * An ellipsis is only a fact if the text was measured. Robolectric's default LEGACY mode measures
  * every character one dp wide — "Peg Solitaire" at 22sp comes out 13dp across, against 126dp under
- * NATIVE — so a no-ellipsis assertion under LEGACY could not fail. NATIVE runs the real text stack
- * (with the platform font, since the downloadable Fredoka never resolves off-device).
+ * NATIVE — so a no-ellipsis assertion under LEGACY could not fail. NATIVE runs the real text stack,
+ * in the faces the app bundles, as a device does.
  *
  * ## Why the insets are supplied
  *
@@ -75,9 +70,6 @@ import kotlin.math.abs
 class GameStatusStripTest {
     @get:Rule
     val composeRule = createComposeRule()
-
-    @get:Rule
-    val fontFolder = TemporaryFolder()
 
     private val challengeLevel = mutableStateOf<Int?>(null)
 
@@ -180,32 +172,23 @@ class GameStatusStripTest {
      * Criterion 18d, on the JVM, in the shipped face: the timer pill keeps one width as the clock
      * ticks. At 00:00, 08:08, 11:11 and 59:59 it is the same width to within ±0.5dp.
      *
-     * The shipped face is Fredoka Medium. It is a downloadable Google Font that never resolves
-     * under Robolectric, and Robolectric's fallback face has tabular digits of its own, so on the
-     * fallback this would pass whatever the timer does. That is how a proportional clock reached
-     * a device. Here the timer's role is set in the Fredoka binary that Google Fonts serves (a
-     * test-only copy, `fixtures/fonts/Fredoka-Variable.ttf`, OFL). Its digits are proportional
-     * ("1" is 388 units wide, "2" is 587), and it has no `tnum` feature for `withTabularFigures()`
-     * to switch on. The first assertion proves the digits really are proportional in this render,
-     * so the second cannot pass on a fallback.
+     * The shipped face is Fredoka Medium, bundled in `res/font` and set by [AppTheme]'s own type
+     * scale, which is what renders here. Its digits are proportional ("1" is 388 units wide, "2"
+     * is 587), and it has no `tnum` feature for `withTabularFigures()` to switch on. The platform
+     * face has tabular digits of its own, so on it this would pass whatever the timer does: that is
+     * how a proportional clock reached a device. The first assertion therefore proves the digits
+     * really are proportional in this render, so the second cannot pass on a fallback.
      */
     @Test
     fun theTimerPillKeepsOneWidthAsItTicksInTheShippedFace() {
-        val shippedFace = fredokaMedium()
         val elapsed = mutableStateOf(JITTER_READINGS_SECONDS.first())
         lateinit var timerStyle: TextStyle
         lateinit var measurer: TextMeasurer
         composeRule.setContent {
             AppTheme {
-                val appTypography = MaterialTheme.typography
-                MaterialTheme(
-                    typography =
-                        appTypography.copy(headlineSmall = appTypography.headlineSmall.copy(fontFamily = shippedFace)),
-                ) {
-                    timerStyle = MaterialTheme.typography.headlineSmall.withTabularFigures()
-                    measurer = rememberTextMeasurer()
-                    GameStatusStrip(elapsedSeconds = elapsed.value, challengeLevel = null, onNavigateBack = {})
-                }
+                timerStyle = MaterialTheme.typography.headlineSmall.withTabularFigures()
+                measurer = rememberTextMeasurer()
+                GameStatusStrip(elapsedSeconds = elapsed.value, challengeLevel = null, onNavigateBack = {})
             }
         }
         composeRule.waitForIdle()
@@ -296,10 +279,6 @@ class GameStatusStripTest {
         }
         composeRule.waitForIdle()
     }
-
-    /** The shipped face, Fredoka, at the Medium weight the timer's role asks for. */
-    private fun fredokaMedium(): FontFamily =
-        FontFamily(Font(file = fontFolder.shippedFaceFile(), weight = FontWeight.Medium))
 
     private fun setChallengeLevel(level: Int) {
         composeRule.runOnUiThread { challengeLevel.value = level }
