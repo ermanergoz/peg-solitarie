@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsNodeInteraction
@@ -18,6 +19,12 @@ import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -25,11 +32,14 @@ import androidx.compose.ui.unit.sp
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.testing.applySystemBarInsets
 import com.app.pegsolitaire.testing.renderedWindow
+import com.app.pegsolitaire.testing.shippedFaceFile
 import com.app.pegsolitaire.ui.theme.AppTheme
+import com.app.pegsolitaire.ui.theme.withTabularFigures
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
@@ -39,7 +49,7 @@ import kotlin.math.abs
 
 /**
  * The status strip, re-sized, and each system bar applied once (ux-spec §4.3.1, D-05d, criteria
- * 18a, 18b, 18c and 18e; 18d is a device check).
+ * 18a to 18e; 18d is also a device check, which governs).
  *
  * The founder's note was that "elapsed time and the title seem too small", and the ruling has two
  * halves that pay for each other: the title and the timer grow, and the space they need comes back
@@ -66,6 +76,9 @@ class GameStatusStripTest {
     @get:Rule
     val composeRule = createComposeRule()
 
+    @get:Rule
+    val fontFolder = TemporaryFolder()
+
     private val challengeLevel = mutableStateOf<Int?>(null)
 
     /** The slab colour of the theme the screen was last drawn in. */
@@ -75,15 +88,22 @@ class GameStatusStripTest {
      * Criterion 18a, the type roles — read from the rendered text layout, not assumed from the
      * code: the title is `titleLarge` at 22sp, the timer `headlineSmall` at 24sp with tabular
      * figures requested, and the timer's pill is at least its 40dp minimum.
+     *
+     * The timer is set one character to a cell ([TimerDigits]), so its rendered text layouts are
+     * its cells'. Every cell is read, and together they must spell the clock the timer's node
+     * carries, so no cell can be missed.
      */
     @Test
     fun theTitleIsTwentyTwoSpAndTheTimerTwentyFourSpWithTabularFiguresInAFortyDpPill() {
         renderGame()
 
         assertThat(layoutOf(title()).layoutInput.style.fontSize).isEqualTo(TITLE_SP.sp)
-        val timer = layoutOf(timer())
-        assertThat(timer.layoutInput.style.fontSize).isEqualTo(TIMER_SP.sp)
-        assertThat(timer.layoutInput.style.fontFeatureSettings).isEqualTo(TABULAR_FIGURES)
+        val cells = timerCellLayouts()
+        assertThat(cells.joinToString(separator = "") { it.layoutInput.text.text }).isEqualTo(timerText())
+        cells.forEach { cell ->
+            assertThat(cell.layoutInput.style.fontSize).isEqualTo(TIMER_SP.sp)
+            assertThat(cell.layoutInput.style.fontFeatureSettings).isEqualTo(TABULAR_FIGURES)
+        }
         assertThat(heightOf(composeRule.onNodeWithTag(GAME_TIMER_PILL_TEST_TAG))).isAtLeast(PILL_MIN_DP.dp)
     }
 
@@ -157,16 +177,75 @@ class GameStatusStripTest {
     }
 
     /**
-     * Criterion 18e — at 200% the timer wins. The timer's text is whole — not ellipsised, not
-     * overflowing — inside a pill that has grown past its 40dp minimum to hold it; only the title
-     * may give way; and TalkBack still reads the title's full text, because the ellipsis is drawn
-     * and never spoken.
+     * Criterion 18d, on the JVM, in the shipped face: the timer pill keeps one width as the clock
+     * ticks. At 00:00, 08:08, 11:11 and 59:59 it is the same width to within ±0.5dp.
+     *
+     * The shipped face is Fredoka Medium. It is a downloadable Google Font that never resolves
+     * under Robolectric, and Robolectric's fallback face has tabular digits of its own, so on the
+     * fallback this would pass whatever the timer does. That is how a proportional clock reached
+     * a device. Here the timer's role is set in the Fredoka binary that Google Fonts serves (a
+     * test-only copy, `fixtures/fonts/Fredoka-Variable.ttf`, OFL). Its digits are proportional
+     * ("1" is 388 units wide, "2" is 587), and it has no `tnum` feature for `withTabularFigures()`
+     * to switch on. The first assertion proves the digits really are proportional in this render,
+     * so the second cannot pass on a fallback.
+     */
+    @Test
+    fun theTimerPillKeepsOneWidthAsItTicksInTheShippedFace() {
+        val shippedFace = fredokaMedium()
+        val elapsed = mutableStateOf(JITTER_READINGS_SECONDS.first())
+        lateinit var timerStyle: TextStyle
+        lateinit var measurer: TextMeasurer
+        composeRule.setContent {
+            AppTheme {
+                val appTypography = MaterialTheme.typography
+                MaterialTheme(
+                    typography =
+                        appTypography.copy(headlineSmall = appTypography.headlineSmall.copy(fontFamily = shippedFace)),
+                ) {
+                    timerStyle = MaterialTheme.typography.headlineSmall.withTabularFigures()
+                    measurer = rememberTextMeasurer()
+                    GameStatusStrip(elapsedSeconds = elapsed.value, challengeLevel = null, onNavigateBack = {})
+                }
+            }
+        }
+        composeRule.waitForIdle()
+
+        val setWidths =
+            JITTER_READINGS_SECONDS.map { seconds ->
+                measurer.measure(GameTimerFormat.format(seconds), timerStyle).size.width
+            }
+        assertWithMessage("how far apart the four readings are set in the face under test, in dp")
+            .that(with(composeRule.density) { (setWidths.max() - setWidths.min()).toDp().value })
+            .isGreaterThan(JITTER_TOLERANCE_DP)
+
+        val pillWidths =
+            JITTER_READINGS_SECONDS.map { seconds ->
+                composeRule.runOnUiThread { elapsed.value = seconds }
+                composeRule.waitForIdle()
+                val pill = composeRule.onNodeWithTag(GAME_TIMER_PILL_TEST_TAG).getBoundsInRoot()
+                (pill.right - pill.left).value
+            }
+        pillWidths.forEachIndexed { index, width ->
+            assertWithMessage("the pill at ${GameTimerFormat.format(JITTER_READINGS_SECONDS[index])}, in dp")
+                .that(width)
+                .isWithin(JITTER_TOLERANCE_DP)
+                .of(pillWidths.first())
+        }
+    }
+
+    /**
+     * Criterion 18e — at 200% the timer wins. The timer's text is whole — every cell of it, not
+     * ellipsised, not overflowing — inside a pill that has grown past its 40dp minimum to hold it;
+     * only the title may give way; and TalkBack still reads the title's full text, because the
+     * ellipsis is drawn and never spoken.
      */
     @Test
     fun atDoubleFontScaleTheTimerIsWholeInAGrownPillAndTheTitleStillSpeaksInFull() {
         renderGame(fontScale = DOUBLE_FONT_SCALE)
 
-        assertTimerWhole(layoutOf(timer()))
+        val cells = timerCellLayouts()
+        assertThat(cells.joinToString(separator = "") { it.layoutInput.text.text }).isEqualTo(timerText())
+        cells.forEach(::assertTimerWhole)
         val pill = composeRule.onNodeWithTag(GAME_TIMER_PILL_TEST_TAG).getBoundsInRoot()
         val digits = timer().getBoundsInRoot()
         assertThat(pill.bottom - pill.top).isGreaterThan(PILL_MIN_DP.dp)
@@ -218,6 +297,10 @@ class GameStatusStripTest {
         composeRule.waitForIdle()
     }
 
+    /** The shipped face, Fredoka, at the Medium weight the timer's role asks for. */
+    private fun fredokaMedium(): FontFamily =
+        FontFamily(Font(file = fontFolder.shippedFaceFile(), weight = FontWeight.Medium))
+
     private fun setChallengeLevel(level: Int) {
         composeRule.runOnUiThread { challengeLevel.value = level }
         composeRule.waitForIdle()
@@ -239,15 +322,25 @@ class GameStatusStripTest {
             useUnmergedTree = true,
         )
 
-    /** The timer's own text node, by its unchanged `elapsed_time` description (`GameFlowTest.kt:129`). */
+    /** The timer's own node, by its unchanged `elapsed_time` description (`GameFlowTest.kt:129`). */
     private fun timer(): SemanticsNodeInteraction =
         composeRule.onNodeWithContentDescription(string(R.string.elapsed_time), useUnmergedTree = true)
 
-    private fun layoutOf(node: SemanticsNodeInteraction): TextLayoutResult {
-        val results = mutableListOf<TextLayoutResult>()
-        node
+    /** The clock the timer's node carries as its text, e.g. "00:00". */
+    private fun timerText(): String =
+        timer()
             .fetchSemanticsNode()
-            .config[SemanticsActions.GetTextLayoutResult]
+            .config[SemanticsProperties.Text]
+            .joinToString(separator = "") { it.text }
+
+    /** The text layouts of the timer's cells, one per character of the clock, in order. */
+    private fun timerCellLayouts(): List<TextLayoutResult> = timer().fetchSemanticsNode().children.map(::layoutOf)
+
+    private fun layoutOf(node: SemanticsNodeInteraction): TextLayoutResult = layoutOf(node.fetchSemanticsNode())
+
+    private fun layoutOf(node: SemanticsNode): TextLayoutResult {
+        val results = mutableListOf<TextLayoutResult>()
+        node.config[SemanticsActions.GetTextLayoutResult]
             .action
             ?.invoke(results)
         return results.single()
@@ -367,6 +460,12 @@ private const val PILL_MIN_DP = 40
 
 /** The OpenType feature `withTabularFigures()` requests. */
 private const val TABULAR_FIGURES = "tnum"
+
+/** Criterion 18d's four readings: 00:00, 08:08, 11:11 and 59:59, in seconds. */
+private val JITTER_READINGS_SECONDS = listOf(0, 488, 671, 3599)
+
+/** Criterion 18d's ±0.5dp. */
+private const val JITTER_TOLERANCE_DP = 0.5f
 
 /** Criterion 18a's widest Challenge title: "Level 1234". */
 private const val FOUR_DIGIT_LEVEL = 1234

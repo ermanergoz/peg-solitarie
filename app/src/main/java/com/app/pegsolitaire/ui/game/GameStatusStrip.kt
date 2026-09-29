@@ -79,8 +79,8 @@ const val GAME_TIMER_PILL_TEST_TAG = "game_timer_pill"
  * carries no `withClickSound` wrap — and the cue must never be folded into the shared
  * [claySquish] below it, which is also on the dock's controls.
  *
- * @param elapsedSeconds the live elapsed time (D-04), rendered `mm:ss` with tabular figures so
- *   ticking digits never shift the pill's width.
+ * @param elapsedSeconds the live elapsed time (D-04), rendered `mm:ss` in fixed-width digit cells
+ *   so ticking digits never shift the pill's width.
  * @param challengeLevel the Challenge level when this is a Challenge game, else `null` for the
  *   app-name title. The one mode-aware element on the whole screen.
  * @param onNavigateBack leaves the gameplay screen.
@@ -192,7 +192,9 @@ private fun GameContextTitle(
  *
  * The zero-padded time is a computed string ([GameTimerFormat]), not a string resource, and the
  * **unchanged** `elapsed_time` content description makes it announce as the elapsed time rather
- * than as a bare number. Tabular figures keep the digits from shifting as it ticks.
+ * than as a bare number. [TimerDigits] sets every digit in a cell as wide as the face's widest
+ * digit, so the pill keeps one width as the clock ticks, even in the shipped face, which has no
+ * tabular figures for `withTabularFigures()` to switch on (criterion 18d).
  */
 @Composable
 private fun TimerPill(elapsedSeconds: Int) {
@@ -210,8 +212,8 @@ private fun TimerPill(elapsedSeconds: Int) {
             modifier = Modifier.padding(horizontal = dimensionResource(R.dimen.game_timer_pill_padding)),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = GameTimerFormat.format(elapsedSeconds),
+            TimerDigits(
+                time = GameTimerFormat.format(elapsedSeconds),
                 style = MaterialTheme.typography.headlineSmall.withTabularFigures(),
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.semantics { contentDescription = description },
