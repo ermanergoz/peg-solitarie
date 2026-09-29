@@ -100,6 +100,7 @@ class HomeHeroRowTest {
         assertThat(gear.top).isLessThan(title.bottom)
         assertThat(title.top).isLessThan(gear.bottom)
         assertThat(gear.right.value).isWithin(EDGE_TOLERANCE_DP).of(content.right.value)
+        assertNothingElseTakesRoomBesideOrAboveTheTitle()
     }
 
     // ---- Assertions ------------------------------------------------------------
@@ -107,9 +108,12 @@ class HomeHeroRowTest {
     /**
      * The hero row's children are exactly the title and the gear chip, and every other node in
      * Home's column that has a height begins at or below the row's bottom — unless it is a
-     * container the row sits inside. A logo, an emblem or a stray board anywhere in or above the
-     * row fails one half or the other. The two ambient `HomeBlobs` drift *behind* the column, not
-     * in it, and §4.2.4 names them as the one thing that may be drawn above the title.
+     * container the row sits inside. Those two halves catch anything that has a node; decorative
+     * art has none, so a third half asks the layout instead
+     * ([assertNothingElseTakesRoomBesideOrAboveTheTitle]). A logo, an emblem or a stray board
+     * anywhere in or above the row fails one of the three. The two ambient `HomeBlobs` drift
+     * *behind* the column, not in it, and §4.2.4 names them as the one thing that may be drawn
+     * above the title.
      *
      * Asked of the tree rather than of `BOARD_CANVAS_TEST_TAG`s, because a second test tag on the
      * same node overrides that one: the withdrawn cluster carried its own tag and was invisible to
@@ -135,7 +139,46 @@ class HomeHeroRowTest {
                         .filter { it.id !in inRow && it.size.height > 0 }
                         .filter { boundsOf(it).top < rowBounds.bottom && !boundsOf(it).contains(rowBounds) }
                 assertThat(intruders.map { describe(it) }).isEmpty()
+                assertNothingElseTakesRoomBesideOrAboveTheTitle()
             }
+    }
+
+    /**
+     * Nothing takes room beside the title or above the row — asked of the **layout**, because
+     * decorative art is exactly what the semantics tree cannot show: an `Icon` with a null
+     * description (§11's idiom for decoration) has no node for any query above to find, and it
+     * still takes room.
+     *
+     * Beside: the title and the gear chip tile the row — the title starts at the row's start, ends
+     * where the chip starts, and the chip ends at the row's end — so nothing is laid out before,
+     * between or after them. Above: the row is the first thing in Home's column — its top is the
+     * column's content top, one column inset below the viewport's top edge (the inset read off the
+     * ribbon, which fills the content width, since the column pads all four sides alike) — so
+     * nothing is laid out above it.
+     */
+    private fun assertNothingElseTakesRoomBesideOrAboveTheTitle() {
+        val row = boundsOf(composeRule.onNodeWithTag(HOME_HERO_TEST_TAG, useUnmergedTree = true).fetchSemanticsNode())
+        val title = bounds(title())
+        val gear = gearChip()
+        assertWithMessage("the title's start edge against the row's, in dp")
+            .that(title.left.value)
+            .isWithin(EDGE_TOLERANCE_DP)
+            .of(row.left.value)
+        assertWithMessage("the title's end edge against the gear chip's start edge, in dp")
+            .that(title.right.value)
+            .isWithin(EDGE_TOLERANCE_DP)
+            .of(gear.left.value)
+        assertWithMessage("the gear chip's end edge against the row's, in dp")
+            .that(gear.right.value)
+            .isWithin(EDGE_TOLERANCE_DP)
+            .of(row.right.value)
+
+        val viewport = boundsOf(composeRule.onNode(hasScrollAction(), useUnmergedTree = true).fetchSemanticsNode())
+        val columnInset = bounds(composeRule.onNodeWithTag(HOME_PROGRESS_RIBBON_TEST_TAG)).left - viewport.left
+        assertWithMessage("how far below the column's top edge the row starts, in dp")
+            .that((row.top - viewport.top).value)
+            .isWithin(EDGE_TOLERANCE_DP)
+            .of(columnInset.value)
     }
 
     /** What a node is, in a word a failure message can use. */
@@ -173,6 +216,7 @@ class HomeHeroRowTest {
         assertThat(gear.top).isLessThan(title.bottom)
         assertThat(title.top).isLessThan(gear.bottom)
         assertThat(nodesWhollyAbove(title.top)).isEmpty()
+        assertNothingElseTakesRoomBesideOrAboveTheTitle()
         assertTitleWholeAtDisplayScale()
     }
 
