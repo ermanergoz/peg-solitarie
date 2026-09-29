@@ -258,6 +258,35 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > (15p) and §16. **Not reopened:** 15p's words, bounds and ≥ 120dp art, every other criterion, §4.2.2's
 > mechanism, the stage, the gear and the compact thresholds. No string, no colour, no dependency; one
 > token retired.
+>
+> **Ninth revision — 2026-09-29 — AMENDMENT (the tech-lead's font ruling and 15e arm swap; a check of
+> D-03m by an agent that did not write it).** Two inputs, and neither reopens a decision.
+> **(1)** `.planning/reports/15-founder-feedback/tech-lead-fonts.md` (Q-013, and the qa-engineer's
+> loop-2 E-1). Fredoka and Nunito now ship as five **bundled** static OFL files in `res/font` and load
+> blocking on first use. The 15e sitting swaps its arms at block boundaries, because both arms share
+> one `applicationId`. The tech-lead's wording is applied as given:
+> - §6.5 gains the one named exception to Home's first-frame hard rules, a cost row and a degradation
+>   note;
+> - §6.5 preconditions 1, 4 and 7 are amended: the `Pixel_9a` stays required and a `Pixel_9` sitting is
+>   VOID; the host-quiet limit becomes half the host's logical cores; "kept installed" was an error;
+> - criterion 15e follows them, and it and §6.5's "Which builds" table record that the sitting runs
+>   once, on the branch head that carries both D-03m and the fonts;
+> - §6.3 records that Fredoka has no `tnum`;
+> - §9's font row and its opening paragraph record the bundled asset and its `THIRD_PARTY.md` rows;
+> - criterion 18d names the discriminators.
+>
+> D-03g gains a pointer, since its rule gains the exception, and a note reconciles precondition 1's
+> `:app:installDebug` with preconditions 3 and 7. The tech-lead's companion text for
+> `docs/ui/DESIGN-SYSTEM.md` §Typography is **not** applied in this revision; until it lands, that
+> file's "downloadable fonts" sentence is superseded by §6.3 and §9 here.
+> **(2)** The eighth revision (D-03m) was checked by a ux-designer agent that did not write it. The
+> ruling, its arithmetic and its real-face figures hold. Seven passages still stated the retired 72dp
+> row or the ≈72dp overflow as current. They gain six dated pointers: D-03k, §4.2.2 (one pointer for
+> two passages), §4.2.4, §12, and criteria 15h and 15k. §15 records Q-005's answer. D-03m's real-face check is re-anchored on
+> the bundled static file, because the font ruling deletes the test fixture it cites.
+> **Not reopened:** every decision, D-03m's ruling, 15e's verdict rule, and every bar. No string,
+> colour or token changes. One third-party asset enters the artifact, the two font families, under
+> OFL-1.1.
 
 ---
 
@@ -674,6 +703,11 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   gate, and the two-arm delta is now **interleaved** with a **null control** whose measured floor
   sets the threshold, because the old ≤ 50 ms threshold was below the instrument's own noise
   floor.)*
+  *(Amended 2026-09-29 — tech-lead font ruling, `.planning/reports/15-founder-feedback/tech-lead-fonts.md`.
+  The hard rules stand with **one named exception**: the app's two type faces, bundled as five
+  static files in `res/font`, load blocking during Home's first composition, so the first frame is
+  drawn in them. No other asset joins them. §6.5 states the exception, its cost row, and why it is
+  not on the degradation path.)*
 
 - **D-03h** *(2026-09-21 — tech-lead ruling, `tech-lead-architecture.md` §2/§3, folded in)*: the
   two derived ribbon values come from **one `Flow`-returning SQL aggregate**
@@ -800,6 +834,11 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   order are layout, which rules/studio.md puts here. What is **not** claimed here is a device
   reading — every dp above is Robolectric's, the qa-engineer's glass numbers govern, and 15k names
   the failure route back to this role if they differ.
+  *(Corrected 2026-09-29 — see **D-03m**. The ruling and all four parts stand. One figure in the
+  argument does not: 24dp of the "72dp over" was the hero row's 72dp **floor** above its 48dp gear,
+  which is not a readout, a target or a route. With the floor retired the compact-narrow set is
+  ≈616dp, **48dp over**, and the fold still cuts through the second tile (§4.2.3's pointer, §4.2.4's
+  last subsection).)*
 
 - **D-03l** *(2026-09-28 — **founder-feedback amendment**, UX ruling on the founder's Q-004
   answer: "I don't really like this screen", scoped to the **empty middle gap**, the **peg-cross
@@ -1570,6 +1609,11 @@ here.
 > criterion says so** — criterion 15h is retired as false and 15k replaces it. Nothing in the
 > mechanism above changes.
 
+> *(Corrected 2026-09-29 — **D-03m**.)* "The remaining 72dp" above, and "still scrolls by ≈72dp" in
+> the D-03k note on the compact steps, both count 24dp that was the hero row's floor above its 48dp
+> gear, not a readout, a target or a route. With the floor retired, the Robolectric overflow is
+> ≈48dp and the screen still scrolls (§4.2.4's last subsection).
+
 **Cold start (D-03g, criterion 15e).** The mechanism adds no read, no image decode, no asset load
 and no SDK call; its cost is one `SubcomposeLayout` for the band column and two zero-content
 `Spacer`s, and the compact set *removes* one `BoardCanvas` draw on the devices that take it. It is
@@ -1876,6 +1920,11 @@ the pill shape. Re-deriving them would move which phones get the tighter spacing
 note asked for; it is a later tuning decision and changes no criterion. Criterion 15l's three
 windows still hold, with "the hero's decorative art present" read as "the stage art present".
 
+*(Amended 2026-09-29 — **D-03m**. "One row, 72dp minimum" in the paragraph above now reads "one row,
+exactly as tall as its tallest child": the row has no floor on any window. The thresholds are still
+retained at their values; the full set is now a further 24dp shorter than their derivation assumed,
+so they are more conservative still.)*
+
 **The arithmetic, on the 6.7-inch baseline.** 412×915dp with a 24dp status bar and a 48dp
 navigation bar → **843dp** usable; full band set (`spacing_md`), hero row 72dp. Band heights at
 412dp have not been measured, so each is a **range**: the low end is the band's own un-wrapped
@@ -2104,6 +2153,22 @@ instanced at wght 600 for comparison. The strings were shaped with HarfBuzz, ker
   the tiles and the status strip in the real faces are recorded in
   `.planning/reports/15-founder-feedback/ux-designer-15p.md`. None of them changes a band height at
   default font scale, so no number in this subsection depends on them.
+
+*(Checked 2026-09-29 by a ux-designer agent that did not write D-03m, against the file that will
+ship.)* The font ruling (`tech-lead-fonts.md`, Ruling 1) bundles Fredoka's **static** SemiBold
+instance, `res/font/fredoka_semibold.ttf` (Google Fonts v17, sha256 `021e30b2…d7688e43a8`), and
+deletes the test fixture cited above (T5). Every figure above holds in that file, measured
+independently with HarfBuzz 14.4.0 and fontTools 4.66.0:
+
+- "Peg Solitaire" is **5715** units per 1000 (kerning applied), the same as the variable font at
+  wght 600. At 36sp that is 205.7dp, and it stops fitting 296dp only above 51.8dp of rendered size.
+- `sTypoAscender` 974, `sTypoDescender` −236, line gap 0, `USE_TYPO_METRICS` set: **1.210em**, or
+  43.6dp at 36sp, inside `displaySmall`'s 44sp line.
+- Android's scale-2.0 table (`FontScaleConverterFactory`, API 35 sources) maps 36sp to **43.3dp**
+  and 44sp to **50.4dp**, so at 200% the title is ≈247.5dp wide, on one line, and taller than the
+  gear, as stated above.
+
+So the ruling holds in the face that ships, not only in the fixture it was first checked against.
 
 **What does not change:**
 
@@ -2668,6 +2733,11 @@ numeric stat value use `withTabularFigures()` so digits never shift width.
 Fredoka Medium, per the design system's mapping (§4.3.1). The Home title stays `displaySmall`
 (36sp), now start-aligned in the hero row on every window (§4.2.4).
 
+*(Note 2026-09-29 — tech-lead font ruling.)* Fredoka has **no `tnum` feature**: its digits are
+proportional ("1" is 388 units per 1000, "2" is 587) whatever `withTabularFigures()` requests, which
+is why the timer sets its digits in cells (§4.3.1, `TimerDigits`). Nunito's digits are tabular by
+design (600 each). Fredoka stat-pill values are proportional; they do not tick, so nothing jitters.
+
 ### 6.4 Motion
 
 New constants go in a scoped `TutorialAnim` object (unitless ms/floats, so not `dimens.xml`):
@@ -2689,7 +2759,17 @@ section now records as **never yet measured**; and phase 15's gate is the relati
 measured for this phase — **second edition**" below.)*
 
 **Hard rules for Home's first frame.** No blocking read. No image decode. No asset load. No
-bitmap. No new SDK call. Every visual this refresh adds is one of:
+bitmap. No new SDK call.
+
+> *(Amended 2026-09-29 — tech-lead font ruling, `.planning/reports/15-founder-feedback/tech-lead-fonts.md`.)*
+> **One named exception: the app's type faces.** Fredoka and Nunito ship as five static font files
+> in `res/font` and load blocking on first use, during Home's first composition, so the first frame
+> is drawn in the real faces and nothing lays out again when they arrive. They are the only asset
+> Home's first frame reads, their cost is inside 15e's measured delta, and they replace the
+> downloadable path, which drew the first frames of every cold start in the platform face and then
+> laid out Home again. No other asset, font or otherwise, joins them.
+
+Every visual this refresh adds is one of:
 
 | Added element | First-frame cost | Verdict |
 |---------------|------------------|---------|
@@ -2700,6 +2780,7 @@ bitmap. No new SDK call. Every visual this refresh adds is one of:
 | Continue chip thumbnail | One `BoardCanvas` draw, only when a Classic resume exists | Low, and conditional |
 | Mode tile art (2) | Two `BoardCanvas` draws | Low |
 | `verticalScroll` on the column | Scroll state allocation | Negligible |
+| Type faces (Fredoka ×2, Nunito ×3, `res/font`) | Blocking resource load of the faces the first frame draws (four of the five on Home; 50–132 KB each) | Low — measured inside 15e; **not** on the degradation path (a face is not decoration) |
 
 Net: Home's first frame gains up to **four `BoardCanvas` draws** (hero, thumbnail, two tiles) of
 static geometry, and **one new single-row Room query** behind a Flow.
@@ -2739,6 +2820,9 @@ that step brings back **the very blank band the founder objected to** (≈150–
 phone, §4.2.4) and fails criterion 15p, so it is taken only if a measured sitting forces it, and
 taking it sends 15p back to this role with the numbers rather than closing it. Q-901's "option 3",
 which this step used to name, no longer exists: the hero is a title row either way.
+
+*(2026-09-29.)* If 15e fails on the build that first bundles the faces, the tech-lead rules on their
+share before any step is taken: the steps remove art, and removing art cannot pay for type.
 
 **Handoff:** this is a design budget, not a measurement. The developer measures C1 with the fuller
 Home before the phase closes; the qa-engineer checks the numbers at the gate.
@@ -2824,24 +2908,56 @@ relative one, which held within 2 ms across that same 1.83× swing, is kept.
 | **The follow-up slice that lands §4.2.2 / D-03i** | **This is where 15e runs**, once, arm A = `develop`. It is a **closing condition of that slice**, and of no other. |
 | Any later branch that changes Home's first frame | The same protocol, unchanged. |
 
+*(Pointer 2026-09-29 — tech-lead font ruling, Ruling 2.)* The follow-up slices landed inside phase
+15, on `feature/phase-15-ux-refresh`. 15e runs **once**, with arm A = `develop` and arm B = that
+branch's head **after both D-03m and the bundled fonts**, because both change Home's first frame. A
+sitting on an earlier head is not the gate's reading.
+
 **Preconditions — every one recorded with its value in the evidence table. If any fails, the
 sitting is VOID, not failed.**
 
 1. AVD `Pixel_9a`, API 36, `:app:installDebug`; OS animations off (Developer options → Animator
-   duration scale: off), the same device state criteria 7c and 25 are run in.
+   duration scale: off), the same device state criteria 7c and 25 are run in. *(Added 2026-09-29.)*
+   A sitting on any other AVD is VOID; the `Pixel_9` is not a substitute (tech-lead-fonts.md,
+   Ruling 2).
 2. **Exactly one emulator running.** A second `Pixel_9` must be shut down, not merely idle.
 3. **No concurrent Gradle build in any worktree**, and no other agent session building or
    measuring on this host.
-4. `uptime` recorded **before and after** the sitting; the **1-minute load average < 2.0 at both
-   ends**.
+4. `uptime` recorded **before** the sitting, with the emulator idle on the launcher for ≥ 60 s, and
+   **after** it, 60 s after the last sample with the app force-stopped; the **1-minute load average
+   ≤ half the host's logical cores** (`sysctl -n hw.ncpu` ÷ 2; **5.0** on the studio's 10-core host)
+   at both ends. *(Amended 2026-09-29: the earlier "< 2.0" was unattainable on this host and
+   stricter than decidability needs; the null control is the noise guard.)*
+
+   *First wording, superseded 2026-09-29 and kept as the record:* "`uptime` recorded **before and
+   after** the sitting; the **1-minute load average < 2.0 at both ends**."
 5. ART state normalised on **both** arms before measuring —
    `adb shell cmd package compile -m speed -f com.erman.pegsolitarie` — so JIT/AOT warm-up is not a
    free variable between the arms.
 6. The launch component **resolved from the device, never assumed** — the first edition's
    `cmd package resolve-activity --brief` form, unchanged, and still the one failure mode that
    costs the gate its evidence rather than its pass.
-7. Both arms **installed and kept installed** for the whole sitting.
+7. **Each arm swapped in only at a block boundary.** Both arms carry `applicationId`
+   `com.erman.pegsolitarie` and cannot be installed side by side, so the arm under measurement is
+   installed at the start of its block — `adb install -r -d --no-incremental <arm>.apk`, then
+   `cmd package compile -m speed -f com.erman.pegsolitarie`, then `am force-stop` — and never
+   between samples; the installed `base.apk`'s sha256 is recorded after every swap and must equal
+   that arm's. The null control swaps its one build back in at each of its block boundaries, so the
+   floor contains whatever a swap costs. Valid only while both arms share the Room schema
+   (`git diff <A>..<B> -- app/schemas` empty) and the DataStore keys; otherwise the sitting is VOID.
+   *(Amended 2026-09-29, tech-lead ruling on qa-engineer E-1 — "both arms installed and kept
+   installed" was a tech-lead error: the arms share one `applicationId`.)*
+
+   *First wording, superseded 2026-09-29 and kept as the record:* "Both arms **installed and kept
+   installed** for the whole sitting."
 8. The first edition's seeded **~200-level** Challenge ladder, identical on both arms.
+
+*(Note 2026-09-29 — reading precondition 1 beside 3 and 7, under the tech-lead's Ruling 2.)*
+`:app:installDebug` in precondition 1 and in criterion 15e names the **debug variant**, not a command
+run during the sitting. Both arms are built beforehand with `:app:assembleDebug`, each in its own
+clean worktree, and the daemons are stopped. Each arm is then installed only at a block boundary, by
+precondition 7's `adb install`, so no Gradle process runs while the sitting is timed (precondition
+3). The full procedure, with every step and what it records, is Ruling 2 in `tech-lead-fonts.md`.
 
 **Protocol — three steps, in this order.**
 
@@ -3039,7 +3155,9 @@ slash are drawn, and the strip's larger type reuses its existing strings.
 ## 9. Assets and licences
 
 Every asset this refresh needs, with its licence. **No third-party asset is introduced, so no new
-`THIRD_PARTY.md` or `docs/audio/CREDITS.md` row is required.**
+`THIRD_PARTY.md` or `docs/audio/CREDITS.md` row is required.** *(Amended 2026-09-29.)* The fonts are
+the exception: bundled, they are a third-party asset in the artifact and need their `THIRD_PARTY.md`
+rows (text in `tech-lead-fonts.md`).
 
 | Asset | Kind | Source | Licence |
 |-------|------|--------|---------|
@@ -3055,7 +3173,8 @@ Every asset this refresh needs, with its licence. **No third-party asset is intr
 | `SoundCue.Jump` (`R.raw.sfx_jump`, `SoundCue.kt:30`) + `SoundCue.PegRemove` (`R.raw.sfx_peg_remove`, `:33`) | audio | already in `res/raw`, credited in `docs/audio/CREDITS.md` — **newly placed on the tutorial screen** by D-01i, as the existing pair at existing levels; no asset, no volume and no pitch value changes | CC0 1.0 (as recorded) |
 | `SoundCue.ButtonForward`, `SoundCue.ButtonDismiss` (`SoundCue.kt:70-74`) | audio | already in `res/raw`, credited — newly placed on the Settings "How to play" row (§4.5, `ButtonForward`), the tutorial's completion CTA (`ButtonForward`) and `Skip` (`ButtonDismiss`), all by the existing `withClickSound` idiom (D-01i, D-11) | CC0 1.0 (as recorded) |
 | `SoundCue.Select`, `Deselect`, `Undo`, `InvalidTap`, `Hint`, `Win`, `StarPop` | audio | already in `res/raw`, credited — **unchanged, and explicitly never played on the tutorial screen** (D-01h as amended by D-01i, §5) | CC0 1.0 (as recorded) |
-| Fredoka, Nunito | font | downloadable Google Fonts, already wired | OFL (already shipped) |
+| Fredoka, Nunito *(superseded 2026-09-29 by the next row; kept as the record)* | font | downloadable Google Fonts, already wired | OFL (already shipped) |
+| Fredoka Medium/SemiBold, Nunito Regular/SemiBold/Bold | font | **bundled** static instances in `app/src/main/res/font/` (Google Fonts, unmodified; tech-lead font ruling 2026-09-29) — replaces the downloadable-font path | OFL-1.1, no Reserved Font Name; notice and licence ship in the APK (`assets/licenses/`); **one `THIRD_PARTY.md` row per family** |
 
 Both new vectors follow the `UndoIcon.kt` / `ModeGlyphs.kt` precedent: a 24-unit viewport, filled
 opaque black, recoloured by the host `Icon`'s tint, `@Suppress("MagicNumber")` on the path data
@@ -3283,6 +3402,8 @@ height that ships, because the wrap is a property of the width and not of the he
 above default scale — the slack goes, then the column scrolls, and no band is dropped (criterion
 15i). What §4.2.3 adds to it is that on a 360×640dp phone the column scrolls at **default** scale
 too, by ~72dp, and criterion 15k says so instead of asserting a fit.
+*(Corrected 2026-09-29 — D-03m: ~48dp on the Robolectric arithmetic once the hero row's floor is
+retired. The device QA measured, with shorter bands, already fitted; §4.2.4's last subsection.)*
 
 *(Added 2026-09-28 — founder-feedback amendment.)* **Tall phone**: Home's slack is now the **stage**
 (D-03l, §4.2.4) — it sits between the hero row and the ribbon and holds a board as large as the
@@ -3543,9 +3664,11 @@ blocks tests 10/11/13 in `11-HUMAN-UAT.md`, not just the look of the screen.
      below it.)* **Cold start is checked as an interleaved A/B delta against a null control
      measured in the same sitting — and it is checked on the follow-up slice that lands §4.2.2, not
      on the build audited on 2026-09-28.** Arm A = `develop`, arm B = that slice's branch; one AVD
-     (`Pixel_9a`, API 36), `:app:installDebug`, both arms installed for the whole sitting, the
+     (`Pixel_9a`, API 36), `:app:installDebug`, each arm swapped in only at a block boundary, the
+     null control swapping its one build the same way (§6.5 precondition 7), the
      seeded ~200-level Challenge ladder on both, the launch component resolved from the device, and
-     **exactly one emulator with no concurrent Gradle build anywhere on the host**. The sitting runs
+     **exactly one emulator with no concurrent Gradle build anywhere on the host** and a 1-minute
+     load ≤ half the host's logical cores at both ends. The sitting runs
      the **null control first** — the *same* build in both positions, identical protocol — and
      records `floor = |median difference|`; then the two real arms **interleaved** A/B/A/B in blocks
      of five, **≥ 20 recorded samples per arm**, the first of each block discarded, `am force-stop`
@@ -3561,6 +3684,14 @@ blocks tests 10/11/13 in `11-HUMAN-UAT.md`, not just the look of the screen.
      under-2-seconds on a named mid-range physical phone — which §6.5 records as never yet measured,
      with its owner and its decided default. **Phase 15 closes with 15e recorded as `:NOT RUN`**,
      which is the correct record and not an omission. (PLAT-08 C1, D-03j, §6.5 second edition)
+     *(Amended 2026-09-29 — tech-lead font ruling, Ruling 2, on the qa-engineer's E-1. Before this
+     date the paragraph read "both arms installed for the whole sitting", which no sitting could
+     meet because both arms share one `applicationId`; the host-load clause is new. §6.5
+     preconditions 1, 4 and 7 carry the full text, and a sitting on any AVD other than the
+     `Pixel_9a` is VOID. The follow-up slices have since landed inside phase 15, on this branch, so
+     "Phase 15 closes with 15e recorded as `:NOT RUN`" no longer describes the close: per Ruling 2,
+     15e runs **once**, with arm B = the branch head that carries both D-03m and the bundled fonts,
+     because both change Home's first frame (§6.5's "Which builds" table, pointer below it).)*
 
 > **15e — first edition, retired 2026-09-28** (`tech-lead-coldstart-gate.md` §1/§3/§4). Kept legible
 > because two reviewers returned verdicts against *this* wording, and a reader who meets those
@@ -3626,6 +3757,10 @@ which build all three apply to.
 > carrying oracle 1's level chip. No yield remains that is not a readout, a target or a route, and
 > §4.2.1's four rejected simplifications are not available.
 >
+> *(Corrected 2026-09-29 — **D-03m**.)* Of those 72dp, 24dp was the hero row's floor above its 48dp
+> gear, which is none of the three. With the floor retired the set is ≈48dp over, so 15h is still
+> false and stays retired.
+>
 > **Retiring it does not clear MB-1.** The defect MB-1 names is an assertion that is
 > *arithmetically incapable of failing* (`HomeScreenTest.kt:300`; `getBoundsInRoot()` clips to the
 > root, so `bottom ≤ contentBottom()` holds by construction and a node pushed off-screen reports
@@ -3667,7 +3802,9 @@ prohibitions are unchanged and still bind; **15h is retired and 15k replaces it*
         bottom edge below it, so Home presents no false bottom. A fold landing in the gap between
         two bands fails this part as surely as a tile entirely off screen does. (Stated
         conditionally on purpose: a window where nothing overflows passes this part trivially, and
-        §4.2.3's arithmetic says 360×640dp is not such a window — it is ≈72dp over.)
+        §4.2.3's arithmetic says 360×640dp is not such a window — it is ≈72dp over.) *(≈48dp over
+        since D-03m, 2026-09-29, which retires the hero row's floor. The conditional and every bound
+        in 15k are unchanged.)*
      3. **One plain scroll completes the screen.** The second mode tile, the Challenge tile's level
         chip included, is fully visible after a vertical scroll of the column involving **no tap,
         no expander and no state change**, revealing nothing that was not already composed; and the
@@ -3775,8 +3912,10 @@ art present" now reads **"with the stage art present"**.
 18c. **The board keeps its space.** Same window: the board slab's edge is **328dp** — the window
      width less 2 × `board_screen_margin` — at font scale 1.0 **and** at 2.0. (D-05d, D-04)
 
-18d. **The timer does not jitter.** On a device with the shipped font, the timer pill's width is
-     the same (±0.5dp) at 00:00, 08:08, 11:11 and 59:59. (D-05d, §6.3)
+18d. **The timer does not jitter.** On a device with the shipped font — the shipped font confirmed
+     on that install by the discriminators in `tech-lead-fonts.md` — the timer pill's width is
+     the same (±0.5dp) at 00:00, 08:08, 11:11 and 59:59. (D-05d, §6.3; the discriminator clause
+     added 2026-09-29, tech-lead font ruling)
 
 18e. **At 200% the timer wins.** Given gameplay on `w360dp` at font scale 2.0, then the timer's
      text is fully visible — not clipped, not ellipsised — in a pill that has grown to hold it; only
@@ -3865,7 +4004,8 @@ criteria 19–24 above stand unchanged; these seven make "on or off" legible and
 
 Each is art direction between equals, which rules/studio.md routes to the founder. Each has a
 default decided so no work waits. *(Q-901 and Q-902 are answered; Q-005 was added on 2026-09-28 by
-the founder-feedback amendment and is open.)*
+the founder-feedback amendment and is open.)* *(Updated 2026-09-29: Q-005 is answered too — see its
+entry below.)*
 
 **Q-901 — Home hero treatment.** Options: (1) a **static** decorative peg cluster in Candy Clay;
 (2) a **slowly drifting** mini board that idles behind the title; (3) no art — a larger gradient
@@ -3911,6 +4051,11 @@ to keep and needs a computed band height, since a weighted content band is forbi
 `Spacer` **above** the hero row, and 15p part 1 is replaced by "the title sits directly on the
 ribbon"; if (3), the stage is deleted and the tiles' and chips' minimum heights become a function of
 the available height, capped. Either way 15n, 15o, 15g and 15k stand. **Blocks: nothing.**
+*(Answered 2026-09-29: option 1, the board stage, which is the built default
+(`.planning/questions/FOUNDER.md`). D-03m, the same day, changes nothing in option 1: the title stays
+start-aligned beside the gear on one line, and the 24dp the retired row floor held goes back to the
+slack, three quarters of it to the stage, so the board is larger and the title sits 12dp nearer the
+top.)*
 
 ---
 
@@ -3980,6 +4125,12 @@ ruling made testable rather than relaxed. **QUAL-03** gains seven tokens and one
 *(Added 2026-09-29 — D-03m.)* **NAV-01** and proposed **UX-02** keep criterion 15p, which now has a
 definition of how its gaps are measured (between visible elements). **QUAL-03** retires one token,
 `home_hero_row_min_height`, and adds none. No string, colour or dependency changes.
+
+*(Added 2026-09-29 — tech-lead font ruling.)* **PLAT-08 (C1)**'s budget gains one named item, the
+bundled type faces (§6.5), which are measured inside 15e and are never on the degradation path.
+§6.5's preconditions 1, 4 and 7 and criterion 15e change how the gate's sitting is run, not what it
+decides. **CLAS-02** and **SCOR-02** gain 18d's discriminator clause. No string, colour or token
+changes. One third-party asset enters the artifact, the two font families (OFL-1.1, §9).
 
 ---
 
