@@ -72,13 +72,6 @@
       ================ Phase-15 tokens: the Home recomposition ====================
       ux-spec §4.2, §6.1. One token per owner even where an existing token shares the value.
     -->
-    <!--
-      D-03l / ux-spec §4.2.4. The MINIMUM height of the hero row — the gradient title and the 48dp
-      Settings gear — on every window. The title is never truncated and never scaled down, so at a
-      large font scale the row grows past this and the column scrolls (criteria 14, 15i, 15o).
-      Same value as the retired compact-hero token, new owner: the row is no longer compact-only.
-    -->
-    <dimen name="home_hero_row_min_height">72dp</dimen>
     <!-- One progress-ribbon pill. Three of them share the row at equal weight. -->
     <dimen name="home_stat_pill_min_height">64dp</dimen>
     <!-- One progress-ribbon pill glyph. Decorative: the pill speaks as one node. -->

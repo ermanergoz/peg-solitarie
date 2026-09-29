@@ -6,9 +6,12 @@ import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onChildren
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -34,6 +37,7 @@ import com.app.pegsolitaire.ui.home.fixture.classicTileTitle
 import com.app.pegsolitaire.ui.home.fixture.columnBoundsOf
 import com.app.pegsolitaire.ui.home.fixture.pillDescriptions
 import com.app.pegsolitaire.ui.home.fixture.renderHome
+import com.app.pegsolitaire.ui.home.fixture.ribbon
 import com.app.pegsolitaire.ui.home.fixture.settingsLabel
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
@@ -61,6 +65,14 @@ import org.robolectric.annotation.GraphicsMode
  * band would come out at its unwrapped floor and every slack figure would be wrong by exactly the
  * wrap it ignored. Distances are taken **along the column**, from each node's unclipped position,
  * so a band below the fold is measured where it is rather than where `getBoundsInRoot()` clips it.
+ *
+ * ## Between visible elements (D-03m)
+ *
+ * Every gap runs from one element's visible bottom edge to the next one's visible top edge. An
+ * element's edges are the layout bounds of what it draws — a surface or a laid-out text — and never
+ * an undrawn box: a band made of several things runs from the highest of their top edges to the
+ * lowest of their bottom edges. The hero row's box used to stand 12dp below its gear, so a test
+ * that read the box saw 16dp where a player saw 28dp.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [HOME_ROBOLECTRIC_SDK])
@@ -220,16 +232,17 @@ class HomeStageTest {
         ).joinToString(" and ").ifEmpty { "no chip" } + " saved"
 
     /**
-     * The widest distance between two consecutive visible elements, top to bottom: the hero row,
-     * the stage art if drawn, the ribbon, each Continue chip, the first mode tile and the second.
-     * The footer's slack below the second tile is not a gap between two elements and is not read.
+     * The widest distance between two consecutive visible elements, top to bottom: the hero row
+     * (its title and its gear chip), the stage art if drawn, the ribbon (its three pills), each
+     * Continue chip, the first mode tile and the second. The footer's slack below the second tile is
+     * not a gap between two elements and is not read.
      */
     private fun widestGap(): Dp {
         val elements =
             buildList {
-                add(boundsOf(composeRule.onNodeWithTag(HOME_HERO_TEST_TAG)))
+                add(spanning(listOf(boundsOf(heroTitle()), gearChip())))
                 if (exists(HOME_STAGE_ART_TEST_TAG)) add(boundsOf(stageArt()))
-                add(boundsOf(composeRule.onNodeWithTag(HOME_PROGRESS_RIBBON_TEST_TAG)))
+                add(spanning(ribbonPills()))
                 listOf(RESUME_CLASSIC_LABEL, RESUME_CHALLENGE_LABEL).forEach { chip ->
                     if (composeRule.onAllNodesWithText(chip).fetchSemanticsNodes().isNotEmpty()) {
                         add(boundsOf(composeRule.onNodeWithText(chip)))
@@ -243,6 +256,35 @@ class HomeStageTest {
 
     private fun stageArt(): SemanticsNodeInteraction =
         composeRule.onNodeWithTag(HOME_STAGE_ART_TEST_TAG, useUnmergedTree = true)
+
+    /** The hero's title: a laid-out text, and the row's visible content with the gear chip. */
+    private fun heroTitle(): SemanticsNodeInteraction = composeRule.onNode(hasText(appName), useUnmergedTree = true)
+
+    /**
+     * The gear **chip**, the 48dp clay circle the row draws: the parent of the button node that
+     * carries the gear's description.
+     */
+    private fun gearChip(): DpRect =
+        composeRule.columnBoundsOf(
+            checkNotNull(composeRule.onNodeWithContentDescription(settingsLabel).fetchSemanticsNode().parent),
+        )
+
+    /** The ribbon's three pills: the surfaces the ribbon draws. */
+    private fun ribbonPills(): List<DpRect> =
+        composeRule
+            .ribbon()
+            .onChildren()
+            .fetchSemanticsNodes()
+            .map(composeRule::columnBoundsOf)
+
+    /** The band a set of visible elements makes: from the highest top edge to the lowest bottom edge. */
+    private fun spanning(parts: List<DpRect>): DpRect =
+        DpRect(
+            left = parts.minOf { it.left },
+            top = parts.minOf { it.top },
+            right = parts.maxOf { it.right },
+            bottom = parts.maxOf { it.bottom },
+        )
 
     private fun exists(tag: String): Boolean =
         composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()

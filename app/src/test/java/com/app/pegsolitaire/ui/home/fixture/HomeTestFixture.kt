@@ -174,15 +174,18 @@ internal fun ComposeContentTestRule.renderHome(
  * reports where it is rather than the viewport edge `getBoundsInRoot()` clips it to (§13's first
  * forbidden idiom is containment read off clipped bounds).
  */
-internal fun ComposeContentTestRule.columnBoundsOf(node: SemanticsNodeInteraction): DpRect {
-    val semantics = node.fetchSemanticsNode()
-    val origin = semantics.positionInRoot
+internal fun ComposeContentTestRule.columnBoundsOf(node: SemanticsNodeInteraction): DpRect =
+    columnBoundsOf(node.fetchSemanticsNode())
+
+/** [columnBoundsOf] for a node already fetched, such as a parent reached through the tree. */
+internal fun ComposeContentTestRule.columnBoundsOf(node: SemanticsNode): DpRect {
+    val origin = node.positionInRoot
     return with(density) {
         DpRect(
             left = origin.x.toDp(),
             top = origin.y.toDp(),
-            right = (origin.x + semantics.size.width).toDp(),
-            bottom = (origin.y + semantics.size.height).toDp(),
+            right = (origin.x + node.size.width).toDp(),
+            bottom = (origin.y + node.size.height).toDp(),
         )
     }
 }

@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.app.pegsolitaire.testing.applySystemBarInsets
+import com.app.pegsolitaire.ui.home.fixture.DEFAULT_FONT_SCALE
 import com.app.pegsolitaire.ui.home.fixture.DOUBLE_FONT_SCALE
 import com.app.pegsolitaire.ui.home.fixture.HOME_ROBOLECTRIC_SDK
 import com.app.pegsolitaire.ui.home.fixture.appName
@@ -102,6 +103,35 @@ class HomeHeroRowTest {
         assertThat(gear.right.value).isWithin(EDGE_TOLERANCE_DP).of(content.right.value)
         assertNothingElseTakesRoomBesideOrAboveTheTitle()
     }
+
+    // ---- D-03m: the row has no floor of its own --------------------------------
+
+    /**
+     * D-03m: the hero row is exactly as tall as its tallest child — the 48dp gear chip at the
+     * default font scale — and has no minimum height of its own. A floor taller than what the row
+     * draws is an invisible band inside it, and criterion 15p's gaps are read between visible
+     * elements: the 72dp floor this retires put 12dp of nothing under the gear, which a player saw
+     * as a 28dp gap above the stage.
+     */
+    @Test
+    @Config(qualifiers = TALL_PHONE_QUALIFIER)
+    fun theHeroRowIsAsTallAsItsTallestChildOnATallPhone() = assertRowIsAsTallAsItsTallestChild(DEFAULT_FONT_SCALE)
+
+    @Test
+    @Config(qualifiers = NARROW_BASELINE_QUALIFIER)
+    fun theHeroRowIsAsTallAsItsTallestChildOnTheNarrowBaseline() =
+        assertRowIsAsTallAsItsTallestChild(DEFAULT_FONT_SCALE)
+
+    /** At 200% the title's line is taller than the gear chip, and the row is exactly the title's height. */
+    @Test
+    @Config(qualifiers = TALL_PHONE_QUALIFIER)
+    fun atDoubleFontScaleTheHeroRowIsAsTallAsItsTallestChildOnATallPhone() =
+        assertRowIsAsTallAsItsTallestChild(DOUBLE_FONT_SCALE)
+
+    @Test
+    @Config(qualifiers = NARROW_BASELINE_QUALIFIER)
+    fun atDoubleFontScaleTheHeroRowIsAsTallAsItsTallestChildOnTheNarrowBaseline() =
+        assertRowIsAsTallAsItsTallestChild(DOUBLE_FONT_SCALE)
 
     // ---- Assertions ------------------------------------------------------------
 
@@ -220,6 +250,21 @@ class HomeHeroRowTest {
         assertTitleWholeAtDisplayScale()
     }
 
+    /** The hero row's height equals its taller child's, the title or the gear chip, to ±0.5dp. */
+    private fun assertRowIsAsTallAsItsTallestChild(fontScale: Float) {
+        composeRule.renderHome(state = chipsState(classic = true, challenge = true), fontScale = fontScale)
+        supplyInsets()
+
+        val row = boundsOf(composeRule.onNodeWithTag(HOME_HERO_TEST_TAG, useUnmergedTree = true).fetchSemanticsNode())
+        val tallestChild = maxOf(heightOf(bounds(title())), heightOf(gearChip()))
+        assertWithMessage("the hero row's height against its tallest child's, in dp")
+            .that(heightOf(row).value)
+            .isWithin(ROW_HEIGHT_TOLERANCE_DP)
+            .of(tallestChild.value)
+    }
+
+    private fun heightOf(bounds: DpRect): Dp = bounds.bottom - bounds.top
+
     /** `displaySmall` is 36sp; the whole string is laid out, on as many lines as it needs, and none is cut. */
     private fun assertTitleWholeAtDisplayScale() {
         val layout = layoutOf(title())
@@ -292,6 +337,9 @@ private const val NAVIGATION_BAR_DP = 48f
 
 /** Criterion 15o's ±1dp. */
 private const val EDGE_TOLERANCE_DP = 1f
+
+/** D-03m's ±0.5dp: the hero row against its tallest child. */
+private const val ROW_HEIGHT_TOLERANCE_DP = 0.5f
 
 /** The hero title's type role, `displaySmall`. */
 private const val DISPLAY_SMALL_SP = 36

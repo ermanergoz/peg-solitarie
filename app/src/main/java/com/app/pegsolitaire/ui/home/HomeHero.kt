@@ -3,7 +3,6 @@ package com.app.pegsolitaire.ui.home
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -55,8 +54,13 @@ const val HOME_HERO_TEST_TAG = "home_hero"
  *
  * The title keeps the shared `ctaGradientBrush()` at `displaySmall`, takes the width the gear
  * leaves, and has **no `maxLines`**: it is never truncated and never scaled down, so at a large
- * font scale it wraps, the row grows past `home_hero_row_min_height` and the column scrolls
- * (criteria 14, 15i, 15o).
+ * font scale it grows, the row grows with it and the column scrolls (criteria 14, 15i, 15o).
+ *
+ * **The row has no minimum height of its own (D-03m).** It is exactly as tall as its tallest
+ * child: the 48dp gear chip at the default font scale, the title once it is taller. A floor above
+ * that would be an invisible band inside the row, and criterion 15p reads Home's gaps between
+ * what is drawn: the retired 72dp floor put 12dp of nothing under the gear, so on the 6.7-inch
+ * phone the gap a player saw above the stage was 28dp, not the 16dp band gap.
  *
  * The gear keeps `Icons.Rounded.Settings` and — deliberately — the **unchanged** `settings_action`
  * content description (D-05b's rule applied to Home): `ButtonSoundTest` locates it by that string,
@@ -70,7 +74,6 @@ internal fun HomeHero(onOpenSettings: () -> Unit) {
             Modifier
                 .clayEntrance(HERO_ENTRANCE_ORDER)
                 .fillMaxWidth()
-                .heightIn(min = dimensionResource(R.dimen.home_hero_row_min_height))
                 .testTag(HOME_HERO_TEST_TAG),
         verticalAlignment = Alignment.CenterVertically,
     ) {
