@@ -1,5 +1,38 @@
 # Founder questions (newest first)
 
+## Q-010 — Should the game go quiet when the phone is on Silent or Vibrate?   (answered)
+Date: 2026-09-29    Asked by: sound-designer (queued by producer)
+Context: Game sounds follow media volume only, so Silent/Vibrate does not mute them; rules/audio.md
+says silent mode must be honoured. A strict reading would also mute players wearing headphones.
+Options: 1) mute on Silent/Vibrate, always 2) mute on Silent/Vibrate only on the phone speaker;
+headphones keep sound 3) keep today's behaviour and record an exception to the rule
+Recommendation: sound-designer — 2. The tech-lead costs it before it is built.
+Blocks: nothing
+Answer: 2 — mute on the phone speaker only; headphones keep sound (2026-09-29).
+
+## Q-009 — Sound file format: convert to WAV, keep OGG, or remake in-house?   (answered)
+Date: 2026-09-29    Asked by: sound-designer (queued by producer)
+Context: rules/audio.md wants WAV for SFX (OGG only for music); all 12 are OGG (72 KB). WAV adds
+about 255 KB (+12 %).
+Options: 1) convert the kept sounds to WAV from their originals, fixing levels in the same pass
+2) keep OGG and ask the studio to allow OGG for sourced effects 3) remake the whole set in-house
+Recommendation: sound-designer — 1.
+Blocks: nothing
+Answer: 1 — convert to WAV, re-levelled in the same pass (2026-09-29).
+
+## Q-008 — Pick new sounds for peg removal and the wrong-tap   (answered)
+Date: 2026-09-29    Asked by: sound-designer (queued by producer)
+Context: The removal sound is the jump sound again (spectral similarity 0.998); the wrong-tap "bong"
+is too low for a phone speaker. A/B clips: .planning/qa/audio-review/candidates/ab/ (git-ignored).
+Options: 1) removal squish (a) + wrong-tap soft tok (a) 2) removal pfft (b) + wrong-tap muted bwop
+(b) 3) mix and match 4) keep both. Optional: hint soft glint (a).
+Recommendation: sound-designer — 1, keep the hint.
+Blocks: nothing
+Answer: mix and match (2026-09-29), by the clips the founder named:
+- peg removal: **keep today's sound** (`ab_jump_run_with_remove_incumbent`) — no replacement;
+- wrong tap: **candidate a, "soft tok"** (`ab_select_invalid_x2_deselect_a`);
+- hint: **candidate a, "soft glint"** (`ab_hint_a`).
+
 ## Q-007 — Refresh the rules snapshot from v0.5.1 to plugin 0.6.2 now?   (answered)
 Date: 2026-09-29    Asked by: producer
 Context: The installed plugin is 0.6.2 (latest release), but this product's `.claude/rules/` was the
