@@ -69,9 +69,9 @@ fun ComposeContentTestRule.applySystemBarInsets(
 
 /**
  * The `AndroidComposeView` behind the semantics tree — the view the Compose inset APIs install
- * their listener on, reached through the tree rather than through the Activity so a caller keeps
- * `createComposeRule()`.
+ * their listener on, and the view [renderedWindow] draws — reached through the tree rather than
+ * through the Activity so a caller keeps `createComposeRule()`.
  */
-private fun ComposeContentTestRule.composeHost(): View = (onRoot().fetchSemanticsNode().root as ViewRootForTest).view
+internal fun ComposeContentTestRule.composeHost(): View = (onRoot().fetchSemanticsNode().root as ViewRootForTest).view
 
 private fun ComposeContentTestRule.insetPx(dp: Dp): Int = with(density) { dp.roundToPx() }

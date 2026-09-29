@@ -1,7 +1,6 @@
 package com.app.pegsolitaire.ui.game
 
 import android.graphics.Bitmap
-import android.graphics.Canvas
 import androidx.annotation.StringRes
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
@@ -9,16 +8,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.ViewRootForTest
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.dp
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.testing.renderedWindow
+import com.app.pegsolitaire.testing.renderedWindowWithShadows
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
@@ -30,25 +30,30 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import kotlin.math.abs
+import kotlin.math.ceil
+import kotlin.math.max
 import kotlin.math.sqrt
 
 /**
- * Criterion 21e — **only the toggle is ever on or off** (ux-spec §4.4.1, §5, D-04e).
+ * Criterion 21e — **only the toggle is ever on or off** (ux-spec §4.4.1, §5, D-04e) — and the disc
+ * each look draws, fill, ring and shadow, as §4.4.1's table of the five looks requires.
  *
  * Show-moves On draws the on mark and the plain [ShowMovesIcon]; Off draws [ShowMovesOffIcon] and
  * no mark; no action, in any look, draws the mark, the slashed glyph, a `primary` fill or a ring.
  *
  * Two halves, because "draws" has two halves. Which looks a control can **reach** is a semantics
- * fact, asserted over every state the dock can be put in. What a look **draws** is a pixel fact:
- * the on mark is drawn rather than composed (it is not a node, §4.4.1), so no semantics assertion
- * can see it, and this class reads it off the rendered dock instead.
+ * fact, asserted over every state the dock can be put in. What a look **draws** is a pixel fact —
+ * the on mark is drawn rather than composed (it is not a node, §4.4.1), and a disc's fill, ring and
+ * shadow are colours no semantics assertion can see — so this class reads them off the rendered
+ * dock. The recipe being right is [DockLookRecipeTest]'s to prove; that the dock draws what the
+ * table says is this class's, which is why its expected discs are typed in from the table rather
+ * than read from [DockLook.recipe].
  *
- * ## Why NATIVE graphics, and why not `captureToImage`
+ * ## Two renders
  *
- * Robolectric's default LEGACY graphics mode stubs every `Canvas` call, so a LEGACY render is blank
- * and a pixel assertion against it can only lie. NATIVE runs the real Skia pipeline. The Compose
- * host view is drawn into a bitmap directly rather than through `captureToImage()`, whose
- * `PixelCopy` path waits on a redraw Robolectric's paused looper never delivers.
+ * The mark, the slash, the fills and the ring are read from the flat render, where every colour is
+ * exact. A shadow exists only in the composited render — see `renderedWindow` and
+ * `renderedWindowWithShadows` in the `testing` package for why each is what it is.
  *
  * ## Where the pixels are read
  *
@@ -63,6 +68,12 @@ import kotlin.math.sqrt
  *   [ShowMovesIcon]'s three circles never reach that corner. The point read is on the slash's centre
  *   line, [SLASH_PROBE_UNITS] into the 24-unit glyph viewport: ink when slashed, and the disc or the
  *   slab showing through when not.
+ * - **The fill.** On the start side, midway between the 28dp glyph's edge and the inner edge of
+ *   the 2dp ring that sits inside the 56dp disc's rim: always the disc, never the glyph or a ring.
+ * - **The ring.** On the start side, in the middle of that 2dp ring: the ring's colour where there
+ *   is one, the fill beneath it where there is none.
+ * - **The shadow.** The band `elevation_pressed` (2dp) deep straight below the rim, where a disc
+ *   raised on that elevation casts its shadow onto the slab and a flat disc leaves bare slab.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [MARK_ROBOLECTRIC_SDK], qualifiers = MARK_WINDOW_QUALIFIER)
@@ -145,6 +156,64 @@ class DockOnMarkAndSlashTest {
         assertNear("Show moves, on", pixelAt(R.string.show_moves_on) { slashProbe() }, scheme.primary)
     }
 
+    /**
+     * The fill half of criterion 21e, drawn: every control, in every look it can reach, fills its
+     * disc with its look's tone and no other — `primaryContainer` for Available and Working,
+     * `primary` for On alone, and nothing for Unavailable and Off, so the slab shows through.
+     *
+     * Read with a tolerance of one level, because the pale disc and the slab are ≈1.04:1 apart
+     * (§4.4.1) — four to six levels a channel — and a looser read could not tell a pale disc from
+     * no disc at all.
+     */
+    @Test
+    fun everyControlFillsItsDiscWithTheToneItsLookRequires() =
+        forEveryReachableLook(render = { composeRule.renderedWindow() }) { window, row ->
+            assertNear(
+                "${row.what}: the fill",
+                window.pixelAt(disc(row.control), ::fillProbe),
+                fillColour(row.expected.fill),
+                EXACT_TOLERANCE,
+            )
+        }
+
+    /**
+     * The ring half of criterion 21e, drawn: Show-moves Off rings its disc in `onSurfaceVariant`,
+     * and nothing else ever does — at the same point every other look shows its own fill.
+     */
+    @Test
+    fun onlyShowMovesOffRingsItsDisc() =
+        forEveryReachableLook(render = { composeRule.renderedWindow() }) { window, row ->
+            val expected = if (row.expected.ring) scheme.onSurfaceVariant else fillColour(row.expected.fill)
+            assertNear(
+                "${row.what}: the ring",
+                window.pixelAt(disc(row.control), ::ringProbe),
+                expected,
+                EXACT_TOLERANCE,
+            )
+        }
+
+    /**
+     * The shadow channel, drawn: Available and On sit raised on `elevation_pressed` and cast a
+     * shadow onto the slab below the rim; Working, Unavailable and Off are flat, and the slab under
+     * them is bare. It is one of the two channels that keep Working apart from Available, and
+     * Unavailable apart from On (§4.4.1's pair table), so a disc that keeps its shadow in a flat
+     * look brings back a pair the founder could not tell apart.
+     */
+    @Test
+    fun onlyTheRaisedLooksCastAShadowOntoTheSlab() =
+        forEveryReachableLook(render = { composeRule.renderedWindowWithShadows() }) { window, row ->
+            val darkening = window.shadowBelow(disc(row.control))
+            if (row.expected.raised) {
+                assertWithMessage("${row.what}: the slab under a raised disc is darkened by")
+                    .that(darkening)
+                    .isAtLeast(RAISED_MIN_DARKENING)
+            } else {
+                assertWithMessage("${row.what}: the slab under a flat disc is darkened by")
+                    .that(darkening)
+                    .isAtMost(EXACT_TOLERANCE)
+            }
+        }
+
     // ---- Rendering -------------------------------------------------------------
 
     /** The real dock over [flags], in the light theme, recording the scheme it was drawn with. */
@@ -172,10 +241,23 @@ class DockOnMarkAndSlashTest {
         composeRule.waitForIdle()
     }
 
-    /** The rendered window, drawn by Skia into a bitmap (see the class KDoc for why not PixelCopy). */
-    private fun renderedWindow(): Bitmap {
-        val view = (composeRule.onRoot().fetchSemanticsNode().root as ViewRootForTest).view
-        return Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888).also { view.draw(Canvas(it)) }
+    /**
+     * Puts the dock in each state [DRAWN_ROWS] names, renders it once per state with [render], and
+     * hands every row of that state to [check] — every control in every look it can reach.
+     */
+    private fun forEveryReachableLook(
+        render: () -> Bitmap,
+        check: (window: Bitmap, row: DrawnRow) -> Unit,
+    ) {
+        val rowsByState = DRAWN_ROWS.groupBy { it.flags }
+        val flags = mutableStateOf(rowsByState.keys.first())
+        composeRule.setContent { ThemedDock(flags.value) }
+
+        rowsByState.forEach { (state, rows) ->
+            setFlags(flags, state)
+            val window = render()
+            rows.forEach { row -> check(window, row) }
+        }
     }
 
     /**
@@ -189,14 +271,61 @@ class DockOnMarkAndSlashTest {
         probe: (radiusPx: Float) -> Offset,
     ): Int {
         composeRule.waitForIdle()
-        val bounds =
-            composeRule
-                .onNode(hasContentDescription(string(control)) and hasLook())
-                .fetchSemanticsNode()
-                .boundsInRoot
-        val offset = probe(bounds.width / 2)
-        return renderedWindow().getPixel((bounds.center.x + offset.x).toInt(), (bounds.center.y + offset.y).toInt())
+        return composeRule.renderedWindow().pixelAt(disc(control), probe)
     }
+
+    /** The disc of the dock control named [control]: its own node, which the disc wraps exactly. */
+    private fun disc(
+        @StringRes control: Int,
+    ): Rect =
+        composeRule
+            .onNode(hasContentDescription(string(control)) and hasLook())
+            .fetchSemanticsNode()
+            .boundsInRoot
+
+    /** The colour at [probe]'s offset from the centre of [disc]. */
+    private fun Bitmap.pixelAt(
+        disc: Rect,
+        probe: (radiusPx: Float) -> Offset,
+    ): Int {
+        val offset = probe(disc.width / 2)
+        return getPixel((disc.center.x + offset.x).toInt(), (disc.center.y + offset.y).toInt())
+    }
+
+    /**
+     * How much darker than the slab the band straight below [disc]'s rim is drawn, summed over its
+     * rows and its three colour channels: zero where nothing is cast onto the slab.
+     */
+    private fun Bitmap.shadowBelow(disc: Rect): Int {
+        val slab = scheme.surfaceContainerHigh.toArgb()
+        val x = disc.center.x.toInt()
+        val rim = ceil(disc.bottom).toInt()
+        return (rim until rim + ceil(dpToPx(SHADOW_BAND_DP)).toInt()).sumOf { y ->
+            val drawn = getPixel(x, y)
+            COLOUR_CHANNELS.sumOf { shift -> max(0, (slab shr shift and CHANNEL) - (drawn shr shift and CHANNEL)) }
+        }
+    }
+
+    /**
+     * On the start side, midway between the glyph's edge and the inner edge of the ring: the disc
+     * itself, whatever glyph or ring the look draws.
+     */
+    private fun fillProbe(radiusPx: Float): Offset {
+        val glyphEdge = dpToPx(GLYPH_DP / 2)
+        val ringInnerEdge = radiusPx - dpToPx(RING_DP)
+        return Offset(-(glyphEdge + ringInnerEdge) / 2, 0f)
+    }
+
+    /** On the start side, in the middle of the ring drawn inside the disc's rim. */
+    private fun ringProbe(radiusPx: Float): Offset = Offset(-(radiusPx - dpToPx(RING_DP / 2)), 0f)
+
+    /** The colour §4.4.1 fills a disc with — the slab itself where the look has no disc. */
+    private fun fillColour(fill: DockFill): Color =
+        when (fill) {
+            DockFill.None -> scheme.surfaceContainerHigh
+            DockFill.Pale -> scheme.primaryContainer
+            DockFill.Strong -> scheme.primary
+        }
 
     /** [MARK_PROBE_DP] beyond the rim along the top-end diagonal: on the mark's border, off the disc. */
     private fun markProbe(radiusPx: Float): Offset {
@@ -234,11 +363,12 @@ class DockOnMarkAndSlashTest {
         @StringRes id: Int,
     ): String = RuntimeEnvironment.getApplication().getString(id)
 
-    /** A pixel matches a theme colour when every channel is within [CHANNEL_TOLERANCE]. */
+    /** A pixel matches a theme colour when every channel is within [tolerance]. */
     private fun assertNear(
         what: String,
         actual: Int,
         expected: Color,
+        tolerance: Int = CHANNEL_TOLERANCE,
     ) {
         val wanted = expected.toArgb()
         val distance =
@@ -247,7 +377,7 @@ class DockOnMarkAndSlashTest {
             }
         assertWithMessage("$what: expected #%08X, read #%08X".format(wanted, actual))
             .that(distance)
-            .isAtMost(CHANNEL_TOLERANCE)
+            .isAtMost(tolerance)
     }
 }
 
@@ -273,6 +403,61 @@ private val DOCK_CONTROLS =
 /** The looks an action may take (§4.4.1 "Two kinds, two grammars"). */
 private val ACTION_LOOKS = listOf(DockLook.Available, DockLook.Working, DockLook.Unavailable)
 
+/**
+ * One row of §4.4.1's table of the five looks, as the disc must be drawn: its fill, whether it is
+ * ringed, and whether it is raised on a shadow.
+ */
+private data class SpecDisc(
+    val fill: DockFill,
+    val ring: Boolean,
+    val raised: Boolean,
+)
+
+/** §4.4.1's "Disc fill", "Ring" and "Shadow" columns, typed in from the spec — never read from the recipe. */
+private val SPEC_DISCS =
+    mapOf(
+        DockLook.Available to SpecDisc(fill = DockFill.Pale, ring = false, raised = true),
+        DockLook.Working to SpecDisc(fill = DockFill.Pale, ring = false, raised = false),
+        DockLook.Unavailable to SpecDisc(fill = DockFill.None, ring = false, raised = false),
+        DockLook.On to SpecDisc(fill = DockFill.Strong, ring = false, raised = true),
+        DockLook.Off to SpecDisc(fill = DockFill.None, ring = true, raised = false),
+    )
+
+/**
+ * A control, found by the name it has in [flags], and the look §4.4.1's "which control is in which
+ * look" rows put it in there.
+ */
+private data class DrawnRow(
+    val flags: DockFlags,
+    @param:StringRes val control: Int,
+    val look: DockLook,
+) {
+    val expected: SpecDisc get() = SPEC_DISCS.getValue(look)
+    val what: String get() = "${RuntimeEnvironment.getApplication().getString(control)}, $look"
+}
+
+/** Mid-game with the dots on: every action can be pressed, and the toggle is on. */
+private val MID_GAME_DOTS_ON = DockFlags(showHints = true, canUndo = true, solverThinking = false)
+
+/** A fresh board with the dots off while the Solver searches: nothing to undo, Hint at work, the toggle off. */
+private val FRESH_BOARD_SEARCHING_DOTS_OFF = DockFlags(showHints = false, canUndo = false, solverThinking = true)
+
+/**
+ * Every control in every look it can reach, across the two states that between them reach all
+ * five looks. Working renames Hint to `hint_thinking` for its duration.
+ */
+private val DRAWN_ROWS =
+    listOf(
+        DrawnRow(MID_GAME_DOTS_ON, R.string.undo_action, DockLook.Available),
+        DrawnRow(MID_GAME_DOTS_ON, R.string.hint_action, DockLook.Available),
+        DrawnRow(MID_GAME_DOTS_ON, R.string.show_moves_on, DockLook.On),
+        DrawnRow(MID_GAME_DOTS_ON, R.string.restart_board, DockLook.Available),
+        DrawnRow(FRESH_BOARD_SEARCHING_DOTS_OFF, R.string.undo_action, DockLook.Unavailable),
+        DrawnRow(FRESH_BOARD_SEARCHING_DOTS_OFF, R.string.hint_thinking, DockLook.Working),
+        DrawnRow(FRESH_BOARD_SEARCHING_DOTS_OFF, R.string.show_moves_on, DockLook.Off),
+        DrawnRow(FRESH_BOARD_SEARCHING_DOTS_OFF, R.string.restart_board, DockLook.Available),
+    )
+
 /** How far beyond the disc's rim the on-mark probe reads: the middle of the mark's 10..12dp border. */
 private const val MARK_PROBE_DP = 11f
 
@@ -289,6 +474,25 @@ private const val CHANNEL = 0xFF
 
 /** Per-channel slack for a solid region; wide enough for rounding, far below any colour change. */
 private const val CHANNEL_TOLERANCE = 12
+
+/**
+ * Slack for a read that must tell colours a few levels apart — the pale disc from the slab, bare
+ * slab from a shadow: a flat region renders exact, so one level covers rounding and nothing more.
+ */
+private const val EXACT_TOLERANCE = 1
+
+/** §4.4.1: the ring is `game_action_ring_width`, drawn inside the disc's rim. */
+private const val RING_DP = 2f
+
+/** `elevation_pressed`: a disc raised on it casts its shadow within this distance of its rim. */
+private const val SHADOW_BAND_DP = 2f
+
+/**
+ * The least darkening that counts as a raised disc's shadow. The composited render darkens the band
+ * under a disc on `elevation_pressed` by ≈18 levels summed; a third of that leaves room for a
+ * renderer's rounding and still sits far above the zero a flat disc leaves.
+ */
+private const val RAISED_MIN_DARKENING = 6
 
 /** A window wide enough that the four discs sit apart, at a density fine enough to read a 2dp stroke. */
 private const val MARK_WINDOW_QUALIFIER = "w400dp-h200dp-xxhdpi"
