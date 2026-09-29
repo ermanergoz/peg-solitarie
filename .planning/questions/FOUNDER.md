@@ -1,5 +1,15 @@
 # Founder questions (newest first)
 
+## Q-012 — Should a wrong tap also buzz?   (answered)
+Date: 2026-09-29    Asked by: ux-designer (queued by producer)
+Context: docs/ux/invalid-tap-feedback.md gives a wrong tap a shake (or a still dashed ring under
+reduced motion) and, by default, the platform "reject" haptic on API 30+, gated by Settings > Haptics,
+never the jump's ContextClick.
+Options: 1) Yes, buzz 2) No buzz
+Recommendation: ux-designer — 1.
+Blocks: nothing
+Answer: 1 — yes, buzz (2026-09-29).
+
 ## Q-011 — The audio follow-up needs four Fable-pinned roles and Fable is exhausted   (answered)
 Date: 2026-09-29    Asked by: producer
 Context: After Q-008–Q-010 the audio work needs the sound-designer (recipes, WAV conversion,
