@@ -1,8 +1,11 @@
 package com.app.pegsolitaire.ui.game
 
 import androidx.annotation.StringRes
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -11,6 +14,7 @@ import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.text.TextLayoutResult
@@ -20,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.testing.applySystemBarInsets
+import com.app.pegsolitaire.testing.renderedWindow
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
@@ -30,6 +35,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import kotlin.math.abs
 
 /**
  * The status strip, re-sized, and each system bar applied once (ux-spec §4.3.1, D-05d, criteria
@@ -61,6 +67,9 @@ class GameStatusStripTest {
     val composeRule = createComposeRule()
 
     private val challengeLevel = mutableStateOf<Int?>(null)
+
+    /** The slab colour of the theme the screen was last drawn in. */
+    private var slabColour = Color.Unspecified
 
     /**
      * Criterion 18a, the type roles — read from the rendered text layout, not assumed from the
@@ -96,6 +105,13 @@ class GameStatusStripTest {
      * supplied, the strip starts where the status bar ends, and the dock slab ends one
      * `spacing_md` margin above the navigation bar: 640 − 48 − 16 = 576dp. Applied twice, the strip
      * starts at 48dp and the dock ends at 528dp.
+     *
+     * The tagged containers are read, and so is what they draw. A second inset applied *inside* a
+     * tagged container pushes the back chip down and pulls the slab's paint up, yet leaves the
+     * container's own bounds exactly where they were — so the tags alone cannot tell once from
+     * twice. The back chip's top edge must be within 8dp of the status bar's bottom edge (18b's
+     * device clause, read here with the insets supplied), and the slab must be painted down to
+     * 576dp.
      */
     @Test
     fun eachSystemBarIsAppliedToTheGameplayScreenOnce() {
@@ -106,6 +122,16 @@ class GameStatusStripTest {
         val dock = composeRule.onNodeWithTag(GAME_ACTION_DOCK_TEST_TAG).getBoundsInRoot()
         assertThat(strip.top.value).isWithin(EDGE_TOLERANCE_DP).of(STATUS_BAR_DP)
         assertThat(dock.bottom.value).isWithin(EDGE_TOLERANCE_DP).of(DOCK_BOTTOM_DP)
+
+        val backChip = composeRule.onNodeWithContentDescription(string(R.string.navigate_back)).getBoundsInRoot()
+        assertWithMessage("the back chip's top edge, in dp").that(backChip.top.value).isAtLeast(STATUS_BAR_DP)
+        assertWithMessage("the back chip's top edge, in dp")
+            .that(backChip.top.value)
+            .isAtMost(STATUS_BAR_DP + BACK_CHIP_MAX_GAP_DP)
+        assertWithMessage("where the dock slab's paint ends, in dp")
+            .that(dockSlabPaintBottomDp())
+            .isWithin(EDGE_TOLERANCE_DP)
+            .of(DOCK_BOTTOM_DP)
     }
 
     /**
@@ -169,6 +195,7 @@ class GameStatusStripTest {
                 LocalDensity provides Density(density = LocalDensity.current.density, fontScale = fontScale),
             ) {
                 AppTheme {
+                    slabColour = MaterialTheme.colorScheme.surfaceContainerHigh
                     GameScreen(
                         state = GameUiState.initial(),
                         onCellTap = {},
@@ -260,6 +287,37 @@ class GameStatusStripTest {
             .isAtMost(layout.size.width.toFloat())
     }
 
+    /**
+     * Where the dock slab's paint ends, in dp: down the column between the dock's first two
+     * controls, from their centre line, the first row no longer painted in the slab's colour. Read
+     * from the flat render, where the slab's edge is crisp and no elevation shadow blurs it into the
+     * background below — which is only a few levels away from the slab to begin with.
+     */
+    private fun dockSlabPaintBottomDp(): Float {
+        val controls =
+            composeRule
+                .onNodeWithTag(GAME_ACTION_DOCK_TEST_TAG)
+                .onChildren()
+                .fetchSemanticsNodes()
+                .map { it.boundsInRoot }
+                .sortedBy { it.left }
+        val column = ((controls[0].right + controls[1].left) / 2).toInt()
+        val window = composeRule.renderedWindow()
+        val slab = slabColour.toArgb()
+        var row = controls[0].center.y.toInt()
+        while (row < window.height && isPaintedIn(window.getPixel(column, row), slab)) row++
+        return with(composeRule.density) { row.toDp().value }
+    }
+
+    /** Whether [pixel] is [colour] to within one level a channel: a flat region renders exact. */
+    private fun isPaintedIn(
+        pixel: Int,
+        colour: Int,
+    ): Boolean =
+        COLOUR_CHANNELS.all { shift ->
+            abs((pixel shr shift and CHANNEL) - (colour shr shift and CHANNEL)) <= PAINT_TOLERANCE
+        }
+
     private fun assertSlabIsFullWidth() {
         val slab = composeRule.onNodeWithTag(GAME_BOARD_SLAB_TEST_TAG).getBoundsInRoot()
         assertThat((slab.right - slab.left).value).isWithin(EDGE_TOLERANCE_DP).of(FULL_SLAB_DP)
@@ -291,6 +349,16 @@ private const val FULL_SLAB_DP = 328f
 
 /** Criterion 18b's ±1dp. */
 private const val EDGE_TOLERANCE_DP = 1f
+
+/** Criterion 18b's device clause: the back chip's top edge within 8dp of the status bar's bottom edge. */
+private const val BACK_CHIP_MAX_GAP_DP = 8f
+
+/** Blue, green and red, by bit offset in an ARGB int. */
+private val COLOUR_CHANNELS = listOf(0, 8, 16)
+private const val CHANNEL = 0xFF
+
+/** Per-channel slack for reading a flat fill, which renders exact: rounding and nothing more. */
+private const val PAINT_TOLERANCE = 1
 
 /** §4.3.1: `titleLarge` and `headlineSmall`, and the pill's 40dp minimum. */
 private const val TITLE_SP = 22
