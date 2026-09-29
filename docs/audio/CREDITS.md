@@ -61,20 +61,20 @@ rendered from.
 One row per file in `app/src/main/res/raw/`, and no other table in this document names a
 `res/raw` filename (see the pick-up/put-down section for why).
 
-| res/raw filename | original filename | source | licence | author |
-|------------------|-------------------|--------|---------|--------|
-| `sfx_jump.wav` | `Audio/drop_003.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Kenney (www.kenney.nl) |
-| `sfx_peg_remove.wav` | `Audio/drop_002.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Kenney (www.kenney.nl) |
-| `sfx_select.wav` | `506546__lilmati__pop-01.wav` (the original WAV download, not a preview), by way of the single-encode `sfx_select.ogg` at c5b02ef | https://freesound.org/people/LilMati/sounds/506546/ | CC0 1.0 | freesound user LilMati; the file's own tags name the artist as Mattias "MATTIX" Lahoud |
-| `sfx_deselect.wav` | derived from `506546__lilmati__pop-01.wav` — the same normalised intermediate as the pick-up, time-reversed and pitched down a whole tone via `ffmpeg -af areverse` plus `asetrate`, by way of the single-encode `sfx_deselect.ogg` at c5b02ef | https://freesound.org/people/LilMati/sounds/506546/ | CC0 1.0 | freesound user LilMati; derivative made by the studio |
-| `sfx_undo.wav` | `Audio/minimize_008.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Kenney (www.kenney.nl) |
-| `sfx_invalid.wav` | none — in-house "soft tok", rendered with ergoz-soft `scripts/sfx-synth.sh` | `audio/recipes/invalid.json` | own work (ergoz-soft) | ergoz-soft sound-designer |
-| `sfx_hint.wav` | none — in-house "soft glint", rendered with ergoz-soft `scripts/sfx-synth.sh` | `audio/recipes/hint.json` | own work (ergoz-soft) | ergoz-soft sound-designer |
-| `sfx_win.wav` | `Audio/confirmation_002.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Kenney (www.kenney.nl) |
-| `sfx_star_pop.wav` | `531512__cogfirestudios__positive-blip-effect.wav` (the original WAV download, not a preview), by way of the single-encode `sfx_star_pop.ogg` at c5b02ef | https://freesound.org/people/CogFireStudios/sounds/531512/ | CC0 1.0 | freesound user CogFireStudios |
-| `sfx_btn_forward.wav` | `Audio/click_001.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Kenney (www.kenney.nl) |
-| `sfx_btn_dismiss.wav` | `Audio/back_004.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Kenney (www.kenney.nl) |
-| `sfx_sound_enabled.wav` | `Audio/confirmation_001.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Kenney (www.kenney.nl) |
+| res/raw filename | original filename | source | licence | author | sha256 |
+|------------------|-------------------|--------|---------|--------|--------|
+| `sfx_jump.wav` | `Audio/drop_003.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Kenney (www.kenney.nl) | 830661a553299e102cdf045739d91079c2aed0b604bf756b1e8c993d557d4993 |
+| `sfx_peg_remove.wav` | `Audio/drop_002.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Kenney (www.kenney.nl) | 1a3e31d59853c77b584b59e536eb81ccf2d364ce7b0700ce462de0202209530c |
+| `sfx_select.wav` | `506546__lilmati__pop-01.wav` (the original WAV download, not a preview), by way of the single-encode `sfx_select.ogg` at c5b02ef | https://freesound.org/people/LilMati/sounds/506546/ | CC0 1.0 | freesound user LilMati; the file's own tags name the artist as Mattias "MATTIX" Lahoud | f2301135f4c1657f7671781749bf86deeb92e74002b8204655fb626e9ead7e01 |
+| `sfx_deselect.wav` | derived from `506546__lilmati__pop-01.wav` — the same normalised intermediate as the pick-up, time-reversed and pitched down a whole tone via `ffmpeg -af areverse` plus `asetrate`, by way of the single-encode `sfx_deselect.ogg` at c5b02ef | https://freesound.org/people/LilMati/sounds/506546/ | CC0 1.0 | freesound user LilMati; derivative made by the studio | 264e7716247b5b371c17091efbc5e6b5ba5ec69dbc207ea7e85d5f593d189dcc |
+| `sfx_undo.wav` | `Audio/minimize_008.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Kenney (www.kenney.nl) | 953208209159b712e4b4249ac8d8ffa9d1c7603638a37677c7cd8eb166225b04 |
+| `sfx_invalid.wav` | none — in-house "soft tok", rendered with ergoz-soft `scripts/sfx-synth.sh` | audio/recipes/invalid.json | own work (ergoz-soft) | ergoz-soft sound-designer | 35e3ce1ede68b2a839dc307a1f28a6206fc6b7f7bdf64187411b7bf5cb3c13cb |
+| `sfx_hint.wav` | none — in-house "soft glint", rendered with ergoz-soft `scripts/sfx-synth.sh` | audio/recipes/hint.json | own work (ergoz-soft) | ergoz-soft sound-designer | d4d73592076cf81c40726e8c1c573485f3d806a2230c9460681714f1dff86060 |
+| `sfx_win.wav` | `Audio/confirmation_002.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Kenney (www.kenney.nl) | 6955beab73b662dfdbb3eb9c15aa3dbf1cd0cd445e068a55d1b6172c756da223 |
+| `sfx_star_pop.wav` | `531512__cogfirestudios__positive-blip-effect.wav` (the original WAV download, not a preview), by way of the single-encode `sfx_star_pop.ogg` at c5b02ef | https://freesound.org/people/CogFireStudios/sounds/531512/ | CC0 1.0 | freesound user CogFireStudios | 22637d42c4b42372d384e77f238a968ef11d5fa8d311deb100654c654a2362ae |
+| `sfx_btn_forward.wav` | `Audio/click_001.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Kenney (www.kenney.nl) | 2b03e4da0042c0c70d9a820da610043b71f8c5cd2ef2a0ca7a3860ce12d95e36 |
+| `sfx_btn_dismiss.wav` | `Audio/back_004.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Kenney (www.kenney.nl) | fc63ab48c36cfb38411dacf621a03104b6c6b70a64f6021313bb4f92496a26ad |
+| `sfx_sound_enabled.wav` | `Audio/confirmation_001.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Kenney (www.kenney.nl) | fc2a03331d67a172bce7527fa55fa86d00f27abfd6d07a0ead2e43ec8a976c69 |
 
 Retired on 2026-09-29 and no longer shipped: `Audio/bong_001.ogg` (the old wrong tap) and
 `Audio/pluck_002.ogg` (the old hint), both Kenney, CC0 1.0.
@@ -185,25 +185,11 @@ Term by term:
   ffmpeg's decoder keeps the attack. The shipped OGGs were made from ffmpeg's decode, and these
   renders are too.
 
-**Pinned output** (`shasum -a 256 -c` from the repo root). PCM output is deterministic, so unlike
-the old OGGs these files **can** be verified by hash. The hashes hold for ffmpeg 9.0.2 and the
-ergoz-soft 0.6.2 synthesizer. A different ffmpeg build may round differently, and then the
-measured properties below are the gate.
-
-```
-830661a553299e102cdf045739d91079c2aed0b604bf756b1e8c993d557d4993  app/src/main/res/raw/sfx_jump.wav
-1a3e31d59853c77b584b59e536eb81ccf2d364ce7b0700ce462de0202209530c  app/src/main/res/raw/sfx_peg_remove.wav
-f2301135f4c1657f7671781749bf86deeb92e74002b8204655fb626e9ead7e01  app/src/main/res/raw/sfx_select.wav
-264e7716247b5b371c17091efbc5e6b5ba5ec69dbc207ea7e85d5f593d189dcc  app/src/main/res/raw/sfx_deselect.wav
-953208209159b712e4b4249ac8d8ffa9d1c7603638a37677c7cd8eb166225b04  app/src/main/res/raw/sfx_undo.wav
-35e3ce1ede68b2a839dc307a1f28a6206fc6b7f7bdf64187411b7bf5cb3c13cb  app/src/main/res/raw/sfx_invalid.wav
-d4d73592076cf81c40726e8c1c573485f3d806a2230c9460681714f1dff86060  app/src/main/res/raw/sfx_hint.wav
-6955beab73b662dfdbb3eb9c15aa3dbf1cd0cd445e068a55d1b6172c756da223  app/src/main/res/raw/sfx_win.wav
-22637d42c4b42372d384e77f238a968ef11d5fa8d311deb100654c654a2362ae  app/src/main/res/raw/sfx_star_pop.wav
-2b03e4da0042c0c70d9a820da610043b71f8c5cd2ef2a0ca7a3860ce12d95e36  app/src/main/res/raw/sfx_btn_forward.wav
-fc63ab48c36cfb38411dacf621a03104b6c6b70a64f6021313bb4f92496a26ad  app/src/main/res/raw/sfx_btn_dismiss.wav
-fc2a03331d67a172bce7527fa55fa86d00f27abfd6d07a0ead2e43ec8a976c69  app/src/main/res/raw/sfx_sound_enabled.wav
-```
+**Pinned output.** PCM output is deterministic, so unlike the old OGGs these files **can** be
+verified by hash. The `sha256` column of the Files table pins every file:
+`shasum -a 256 app/src/main/res/raw/*.wav` must print the same twelve values. The hashes hold for
+ffmpeg 9.0.2 and the ergoz-soft 0.6.2 synthesizer. A different ffmpeg build may round
+differently, and then the measured properties below are the gate.
 
 **Measured properties.** `ffprobe` reports `pcm_s16le`, 1 channel, 44,100 Hz for all twelve.
 
@@ -219,6 +205,14 @@ fc2a03331d67a172bce7527fa55fa86d00f27abfd6d07a0ead2e43ec8a976c69  app/src/main/r
   much, from 20,637,687 B to 20,893,399 B. The release APK was not rebuilt, because it needs the
   signing secrets. It grows by the same number of stored bytes, from the 2,057,007 B recorded below
   to about 2.31 MB (+12.4 %).
+- **The pick-up / put-down RMS pair, corrected.** The WAVs measure RMS −25.26 dB (select) and
+  −24.53 dB (deselect) over their designed lengths, and their peaks are unchanged (−5.48 and
+  −5.46 dBFS). The 2026-08 figure of −26.46 dB for `sfx_select.ogg` was measured over ffmpeg's
+  decode of it. That decode runs 945 samples of Vorbis block padding past the sound's 2,959, which
+  lowers the RMS by 1.2 dB. So the put-down's RMS lead at equal peak is **0.73 dB, not 1.92 dB**.
+  The audio did not change, only the measurement window. The −10 dB `DESELECT_ATTENUATION` was
+  tuned by ear and stands (its re-check is P4c), but any KDoc that quotes the old RMS pair should
+  quote these figures.
 - **Resource ids are unchanged.** `R.raw.sfx_*` resolves by resource name, not by extension, and the
   debug APK packages all twelve `res/raw/sfx_*.wav`. The release shrink check below was run on the
   OGG set, but it still holds for the same reason the star-pop swap gave: only the bytes behind
