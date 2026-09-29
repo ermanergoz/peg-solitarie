@@ -5,6 +5,35 @@ Q-901 and Q-902 were both answered 2026-09-21, both on their defaults.
 - **app-ads.txt / REL-03 — the crawl window has long since passed and the result is unread.** Founder set the listing's Website field and the listing published; the row went live on the public page as `https://ermanergoz.github.io` at 2026-09-21T01:29:28Z, 301ing to the correct file on the canonical host (Google documents cross-domain redirects as valid). The ≤ 24 h checkpoint was 2026-09-22 and the 48 h escalation 2026-09-23; **it is now 2026-09-28**, so AdMob has either verified or it has not. Founder to read AdMob → Apps → this app → App settings → `app-ads.txt`. If still unverified: switch the field to `https://ermanergoz.com` (bare apex) and check the AdMob app entry is linked to the Play listing. The file itself has been correct and live since 2026-09-02 — do not touch the website.
 
 ## In flight
+- **PAUSED by the founder, 2026-09-29 — resume on "continue".** Nothing is running; the emulator
+  `emulator-5560` (Pixel_9, windowed) is left up with the S11 loop-2 debug build installed.
+  - **phase-15 S11 (founder feedback Q-004/Q-005: Home board stage, dock state language, bigger strip,
+    and the Q-013 font fix)** — `feature/phase-15-ux-refresh` @ `e1875cb` in PegSolitarie-p15.
+    Developer loop 2 done (`472835f..e1875cb`, check green: 1,061 app + 274 domain tests): fonts bundled
+    (F-A/F-B/F-C), D-03m (no 72dp hero-row floor), N-1/N-2. **Next on resume:** fresh code-auditor
+    re-audit of `2cfad41..e1875cb` → `code-auditor-loop3.md`; fresh qa-engineer re-walk **in the real
+    faces** (tech-lead's list in `tech-lead-fonts.md`: first an on-screen "Level 111" Fredoka proof,
+    then 18a/18d/18e, 15f/15g/15i/15k/15m/15o/15p, tutorial captions, whole app) plus 15e on
+    **Pixel_9a** per the amended §6.5 (load < 5.0, block swaps with sha256) → `qa-engineer-loop3.md`;
+    founder screenshots in the real faces; then tech-lead sign-off, merge to develop, then merge
+    develop (rules 0.6.2 + Q-006/Q-007 in FOUNDER.md — expect a FOUNDER.md conflict) back as needed.
+    Staffing: Opus under Q-003 (reviews) and Q-014 (rulings); deviations recorded per report.
+  - **audio-review** — `feature/audio-review` @ `71b2450` in PegSolitarie-audio (off develop 3f2af90).
+    Done: sound-designer review + assets (12 cues → WAV, soft tok / soft glint recipes, levels),
+    research-analyst verdicts (10 sourced files CLEAN, Kenney pin), tech-lead silent-mode design
+    (`docs/tech/audio-silent-mode.md`), ux-designer wrong-tap feedback (`docs/ux/invalid-tap-feedback.md`).
+    Founder: Q-008 (keep removal; tok; glint), Q-009 WAV, Q-010 mute on speaker only, Q-011 Opus,
+    Q-012 wrong tap buzzes. `check` is RED by design until the developer's integration
+    (`AudioCreditsTest` scans *.ogg). **Next on resume, only after phase 15 merges:** merge develop in;
+    tech-lead rules how the tutorial reads the Haptics setting (open from the ux-designer); android-game-dev
+    integration (silent-mode seam, P8 background stop, VOLUME_JUMP 1.0, AudioCreditsTest per §2.3, V1
+    volume keys, wrong-tap shake/ring/buzz, shared jump haptic, KDoc nits); review; qa-engineer on a
+    device incl. the Deselect listen (P4c).
+  - **Owed to the release-manager** (THIRD_PARTY.md lives on feature/phase-14-release-docs): the
+    research-analyst's audio row delta (`.planning/reports/audio-review/research-analyst.md`, audio
+    branch) and the bundled Fredoka/Nunito OFL rows (`tech-lead-fonts.md`).
+  - **Parked for a later ruling:** `docs/ui/DESIGN-SYSTEM.md` font wording (tech-lead text, not applied);
+    Home stage blanks > 80dp on tall tablets (ux-designer-6-5-and-d03m-check.md).
 - phase-14 (release-readiness) — primary checkout on feature/phase-14-release-plan, plus worktrees PegSolitarie-r1 (feature/phase-14-gate-scope) and PegSolitarie-r5 (feature/phase-14-release-docs); external track (developer website, app-ads.txt, privacy policy, Console declarations) and the fuzz/coverage gate outstanding
 - phase-15 (ux-refresh) — `feature/phase-15-ux-refresh` in worktree PegSolitarie-p15; founder request of 2026-09-21. **Build interrupted 2026-09-21 by a weekly API rate limit (reset 2026-09-25); resumed 2026-09-28.**
   - Done and green, each on its own passing `check`: S1 `c342d43`, S2 `20dceb4`, S3 `4fb9c00`, S4 `ec02e58`, the S4 tap correction `b9b581f`, S5 `c642676`, S6 `05245d3`.
@@ -42,6 +71,12 @@ Q-901 and Q-902 were both answered 2026-09-21, both on their defaults.
   5. **`docs/audio-spec.md` has never existed on any branch** (`git log --all --diff-filter=A` → 0 commits) although rules/audio.md makes it the cue list of record — its absence is why the D-01h/SOUND-01 contradiction stayed invisible through a full design pass. No sound-designer is staffed on this product, so the qa-engineer stood in under a recorded recusal. Owner: sound-designer if staffed, else tech-lead. Predates phase 15 and does not block it.
 
 ## Done
+2026-09-29 | rules snapshot v0.5.1 → 0.6.2 (Q-007) | producer | merged to develop 3f2af90 | .claude/rules/ (feature/sync-rules-062, deleted)
+2026-09-29 | phase-15 S11 rulings: fonts bundle + 15e E-1; 15p D-03m; §6.5 fold + D-03m check | tech-lead, ux-designer ×2 (Opus, Q-014) | ruled; D-03m text FAIL fixed in-commit | .planning/reports/15-founder-feedback/tech-lead-fonts.md, ux-designer-15p.md, ux-designer-6-5-and-d03m-check.md
+2026-09-29 | phase-15 S11 review loops 1–2 | code-auditor, qa-engineer (Opus, Q-003) | FAIL ×2 (F-1 dock pixels; 18d timer; N-1/N-2; F-A/F-B fonts never loaded since 2026-08-26) — fixed in dev loops 1–2, re-review owed | .planning/reports/15-founder-feedback/code-auditor.md, code-auditor-loop2.md, qa-engineer.md, qa-engineer-loop2.md, android-game-dev-fix1.md, android-game-dev-fix2.md
+2026-09-29 | phase-15 S11 build (D-03l, D-05d, D-04e) | android-game-dev | done, check green | .planning/reports/15-founder-feedback/android-game-dev.md
+2026-09-28 | phase-15 founder feedback spec (Q-004/Q-005) | ux-designer (Opus; first Fable run 429) | done | docs/ux-spec.md, .planning/reports/15-founder-feedback/ux-designer.md
+2026-09-29 | audio review + follow-up (Q-006/Q-008–Q-012) | sound-designer ×2, research-analyst, tech-lead, ux-designer (Opus, Q-006/Q-011) | review FAIL 6/15 → assets + designs done; integration owed | feature/audio-review: .planning/reports/audio-review/*.md
 2026-09-20 | adopt-studio | producer | done | rules snapshot v0.1.0, VERSION, STATUS.md, FOUNDER.md (repo predates the studio; phases 1-12 were built under gsd alone)
 2026-09-20 | approve-concept | producer, founder | approved (candidate 1) | docs/concept-brief.md, .planning/approvals/concept.approved
 2026-09-20 | phase-13 device pass (UAT 10-13) | qa-engineer, producer | 10 blocked, 11 blocked, 12 blocked, 13 partial | .planning/reports/phase-13/qa-engineer-device-pass.md (4 gamer-tag screenshots withheld from the repo)
