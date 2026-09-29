@@ -1,0 +1,9 @@
+{
+  "seed": 7201,
+  "duration_ms": 90,
+  "peak_dbfs": -5.5,
+  "layers": [
+    {"wave": "triangle", "freq_hz": 420, "freq_end_hz": 360, "gain": 0.85, "attack_ms": 2, "decay_ms": 75, "release_ms": 0, "sustain": 0.0, "lowpass_hz": 1200},
+    {"wave": "noise", "freq_hz": 1000, "gain": 0.15, "attack_ms": 1, "decay_ms": 20, "release_ms": 0, "sustain": 0.0, "lowpass_hz": 900}
+  ]
+}
