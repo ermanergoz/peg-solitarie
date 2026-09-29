@@ -379,13 +379,7 @@ android {
             // (-84.6%); the ~5.5 MB ads SDK and its transitives land in plan 06-09, so
             // minification has to exist before they arrive.
             isMinifyEnabled = true
-            // Safe here despite `font_certs.xml` being an array OF array references
-            // (`@array/..._dev` / `..._prod`) reached only as
-            // `R.array.com_google_android_gms_fonts_certs` from ui/theme/Type.kt: the
-            // shrinker follows resource->resource references, verified against the
-            // shrunk APK with `aapt2 dump resources`. If it had not, downloadable
-            // Fredoka/Nunito would silently fall back to the default font — the one
-            // player-visible thing R8 could plausibly break here.
+            // `res/font` is referenced from code through `R.font`, so the resource shrinker keeps it.
             isShrinkResources = true
             // `proguard-android-optimize.txt`, NOT the plain variant: the optimizing
             // baseline is AGP's current recommendation and is the maintained rule set,
@@ -478,8 +472,6 @@ dependencies {
     implementation(libs.bundles.compose)
     // Curated Material Symbols set — only Icons.Rounded.Refresh is used (top-bar restart).
     implementation(libs.androidx.compose.material.icons.core)
-    // Downloadable Fredoka/Nunito (Candy-Clay type scale); async with default-font fallback.
-    implementation(libs.androidx.compose.ui.text.google.fonts)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     // MVVM: ViewModel base for the StateFlow-driven UiState. Non-Compose artifact
