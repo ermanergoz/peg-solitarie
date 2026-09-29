@@ -221,6 +221,13 @@ class GameStatusStripTest {
      * ellipsised, not overflowing — inside a pill that has grown past its 40dp minimum to hold it;
      * only the title may give way; and TalkBack still reads the title's full text, because the
      * ellipsis is drawn and never spoken.
+     *
+     * "Whole" is asked of each axis. Each cell is one character laid out at an unbounded width, so
+     * its own text layout can never read as cut short sideways; what can is the clock around the
+     * cells. A clock squeezed below the width its cells need still places every cell, past its own
+     * edge and past the pill's, where the pill clips them — "59:59" reads "59:5" — while each cell's
+     * layout reads whole. So the cells' unclipped extents must lie inside the clock's node, and the
+     * node inside the pill.
      */
     @Test
     fun atDoubleFontScaleTheTimerIsWholeInAGrownPillAndTheTitleStillSpeaksInFull() {
@@ -234,6 +241,7 @@ class GameStatusStripTest {
         assertThat(pill.bottom - pill.top).isGreaterThan(PILL_MIN_DP.dp)
         assertThat(digits.top).isAtLeast(pill.top)
         assertThat(digits.bottom).isAtMost(pill.bottom)
+        assertTimerInsideItsPillSideways()
         assertThat(
             title()
                 .fetchSemanticsNode()
@@ -358,6 +366,34 @@ class GameStatusStripTest {
             .that(layout.getLineRight(0))
             .isAtMost(layout.size.width.toFloat())
     }
+
+    /**
+     * Sideways, nothing of the timer is clipped: every cell lies inside the clock's node, and the
+     * node inside the pill. Read from unclipped positions: a clipped node's bounds collapse to the
+     * part that shows, which is exactly the part that is not in question.
+     */
+    private fun assertTimerInsideItsPillSideways() {
+        val clock = timer().fetchSemanticsNode()
+        val clockSpan = horizontalSpanOf(clock)
+        clock.children.forEachIndexed { index, cell ->
+            val cellSpan = horizontalSpanOf(cell)
+            assertWithMessage("cell $index of the timer's clock, against the clock, in px")
+                .that(cellSpan.start)
+                .isAtLeast(clockSpan.start)
+            assertWithMessage("cell $index of the timer's clock, against the clock, in px")
+                .that(cellSpan.endInclusive)
+                .isAtMost(clockSpan.endInclusive)
+        }
+        val pillSpan = horizontalSpanOf(composeRule.onNodeWithTag(GAME_TIMER_PILL_TEST_TAG).fetchSemanticsNode())
+        assertWithMessage("the timer's clock, against its pill, in px").that(clockSpan.start).isAtLeast(pillSpan.start)
+        assertWithMessage("the timer's clock, against its pill, in px")
+            .that(clockSpan.endInclusive)
+            .isAtMost(pillSpan.endInclusive)
+    }
+
+    /** A node's left and right edges in the root, in px, before any ancestor clips it. */
+    private fun horizontalSpanOf(node: SemanticsNode): ClosedFloatingPointRange<Float> =
+        node.positionInRoot.x..(node.positionInRoot.x + node.size.width)
 
     /**
      * Where the dock slab's paint ends, in dp: down the column between the dock's first two
