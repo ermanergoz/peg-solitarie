@@ -19,8 +19,9 @@ build gate around them — and has — but it cannot execute one of them.
 The consequence is blunt and worth stating before the first checkbox: **no signed release
 artifact of any kind can be produced on this machine today.** Two fail-fast Gradle gates
 (`verifyReleaseAdIds`, `verifyReleaseGamesIds`) throw at configuration time when the real AdMob
-ad-unit IDs are absent, and no `signingConfig` exists in the build at all (D-16 deliberately
-deferred it to this phase). That is not a defect; it is the design working. But it means
+ad-unit IDs are absent. A third gate, the release `signingConfig` (on `develop` since 9ca3829),
+fails a release build when the four `PLAY_UPLOAD_*` variables are absent. That is not a defect;
+it is the design working. But it means
 ROADMAP success criterion 1 — *every feature re-verified from a downloaded signed build* — is
 gated end to end on Step 6 and Step 7 below, and nothing the studio does in the meantime can
 substitute for them.
@@ -394,10 +395,12 @@ test IDs — the one failure mode the presence-based gate cannot detect."*
 **Blocks:** every signed artifact, together with Step 6.
 **Time:** 10 minutes.
 
-No `signingConfig` exists in `app/build.gradle.kts` — deliberately (D-16: *"a committed
-debug-keystore shortcut is exactly the kind of thing that survives to a store upload"*). The
-studio adds one on the release branch that reads four environment variables and **fails the build
-if they are absent**, per the studio's Play rules. It cannot supply their values.
+The `signingConfig` exists on `develop` (merged as `feature/phase-14-signing-config`, 9ca3829).
+It reads the four environment variables below and nothing else: no committed keystore and no
+debug-keystore fallback (D-16: *"a committed debug-keystore shortcut is exactly the kind of thing
+that survives to a store upload"*). A release invocation **fails the build** when any of them is
+absent, and `verifyReleaseSigning` repeats the check before packaging. Debug builds, `check`
+and IDE sync never need them. The studio cannot supply their values.
 
 1. [ ] Locate the **original release keystore** (D-21). Every upload must be signed with that
        exact keystore, or Play rejects it outright and there is no recovery path except a key
@@ -468,26 +471,29 @@ at Gate 2, not a step on this list.
 
 ## Step 9 — Provenance for the artwork that lives only in the Console
 
-**Blocks:** `THIRD_PARTY.md`, and the studio's release rules block a release when any
-`THIRD_PARTY.md` row lacks a license.
-**Time:** 15 minutes of recall.
+**Status: done, 2026-10-17.** You answered Q-017 (*"you did it"*: the studio produced the art in
+its own sessions). The studio wrote own-work rows with each file's sha256 into `THIRD_PARTY.md`
+§7 on `feature/phase-14-release-docs`. Nothing is left for you here.
 
-Everything in the APK has recorded provenance: the twelve sound files are CC0 with a per-file
-table (`docs/audio/CREDITS.md`), the fonts are Google Fonts downloadable families, and the
-launcher icon is drawn in this repo as vector XML. The art that has **no** record anywhere is the
-art that only ever existed in the Play Console:
+**Blocked:** `THIRD_PARTY.md`. The studio's release rules block a release while any row lacks
+a licence.
 
-1. [ ] The **20 achievement icons** (512×512) uploaded in phase 12. For each — or for the set, if
-       they share an origin — state: where they came from, and under what license. The four
-       answers that matter are "I drew them", "generated with <tool>", "bought from <source>
-       under <license>", or "taken from <URL>".
-2. [ ] The listing's **512×512 icon** and **1024×500 feature graphic** — same question.
-3. [ ] Any **screenshot** on the listing that is not a plain capture of this app.
-4. [ ] Reply with those answers; the studio writes them into `THIRD_PARTY.md`. Do not paste them
-       into this file.
+Everything in the artifact has recorded provenance. The twelve WAV sound files are CC0 or rendered
+in-house, with a per-file table (`docs/audio/CREDITS.md`). Fredoka and Nunito are **bundled** as
+five static OFL-1.1 font files with their licence texts (`feature/phase-15-ux-refresh`; the
+downloadable-font path is gone in 3.0.0). The launcher icon is drawn in this repo as vector XML.
+The art that had **no** record was the art that lives only in the Play Console:
 
-**How to tell it is done:** `THIRD_PARTY.md` has a license in every row, including the store-art
-rows, and the studio's release check stops flagging it.
+1. [x] The **20 achievement icons** (512×512) uploaded in phase 12, plus the 7 leaderboard icons.
+       Studio-produced (Q-017).
+2. [x] The listing's **512×512 icon** and **1024×500 feature graphic**. Studio-produced (Q-017).
+       The icon was exported from the launcher design canvas.
+3. [x] **Screenshots:** the studio recaptures them as plain captures of this app after the candy
+       backdrop lands (Q-016).
+4. [x] Answers recorded in `THIRD_PARTY.md` §7, not in this file.
+
+**How to tell it is done:** `THIRD_PARTY.md` has a licence in every row, including the store-art
+rows, and §7 holds no pending row.
 
 ---
 

@@ -149,19 +149,24 @@ the release branch is not cut over the top of them:
 ```sh
 # from a clean develop with every item in 2a/2b landed
 git checkout develop && git pull --ff-only
-FUZZ_SEEDS=100000 ./gradlew check              # release-settings gate (2a)
-git checkout -b release/3.0.0 develop
+FUZZ_SEEDS=100000 ./scripts/check.sh           # release-settings gate (2a); the Check command
+                                                # once feature/phase-14-check-gates lands
+                                                # (docs/tech-design.md §16 item 9)
+git checkout -b release/3.0.0 develop           # alone: the branch guard judges a one-line
+                                                # `checkout -b … && git commit` before the switch
 
 # VERSION already reads 3.0.0 — confirm rather than edit
 cat VERSION                                     # -> 3.0.0
-# app/build.gradle.kts: versionCode 3 -> 30000, versionName unchanged
+# app/build.gradle.kts: versionCode is already 30_000 on develop
+# (feature/phase-14-version-code) — confirm rather than edit
 # CHANGELOG.md: add the 3.0.0 section (section 3 below)
 # docs/release-checklist.md: tick every studio-verifiable item
 git commit -m "chore(release): 3.0.0"
 ```
 
-Merge, tag and back-merge are unchanged from `rules/gitflow.md` and happen **after** the founder
-summary and Gate 2 — not as part of preparing the branch:
+Merge, tag and back-merge are unchanged from `rules/gitflow.md`. They are part of the release
+step (the plugin's skills/release), so they happen **before** Gate 2: the founder approves a
+tagged build, not a branch.
 
 ```sh
 git checkout main && git merge --no-ff release/3.0.0
@@ -172,9 +177,14 @@ git tag --merged develop | grep -x v3.0.0       # must print v3.0.0
 ```
 
 The tag is what the release is; `main` is only where it lives. Note for later: the approval file
-`.planning/approvals/publish-3.0.0.approved` lives on **develop**, not on `main` and not on the
-tag, so the upload script is run from a develop checkout after the approval merge. The publish
-hook blocks it anywhere else.
+`.planning/approvals/publish-3.0.0.approved` is merged to **develop** from
+`feature/publish-3.0.0`. It is not on `main` and not on the tag. After that merge the producer
+cuts `feature/publish-3.0.0-done` from develop (the plugin's skills/publish step 3). The
+release-manager runs the gated upload script **from that branch's checkout** and writes the
+upload report there, at `.planning/reports/publish-3.0.0/release-manager-upload.md`. The
+producer commits it with the post-launch records and merges the branch (skills/publish step 5).
+Nothing is run or written on develop itself. The publish hook blocks the upload on `main`, on the
+tag and on any checkout without the approval file.
 
 ---
 
@@ -247,7 +257,9 @@ listing ends up promising something that is not there.
 
 ### 4a. What is missing from the build and gets added on the release branch
 
-1. **A `signingConfig`.** None exists — D-16 deferred it here deliberately, so that no
+1. **A `signingConfig`.** *Done 2026-10-17: merged to `develop` as
+   `feature/phase-14-signing-config` (9ca3829), with the `verifyReleaseSigning` backstop. The
+   text below is kept as the specification it was built from.* None existed. D-16 deferred it here deliberately, so that no
    debug-keystore shortcut could survive to a store upload. It is added to
    `app/build.gradle.kts` reading the four environment variables the studio's Play rules name,
    and **failing the release build outright when any is absent**, in the same fail-fast register
@@ -440,13 +452,14 @@ committed opening-book resources through R8 and `shrinkResources` — the book i
 resource lookup with a fail-closed parse, and a shrunk-away book presents as "the hints got worse",
 not as an error.
 
-### T-11 — Resume, and the downloadable fonts
+### T-11 — Resume, and the bundled fonts
 
 Background mid-game, kill, relaunch, Continue. **Pass:** the exact board returns with undo intact
 and elapsed time carried over. While you are there: **Fredoka/Nunito render** rather than the
-default font — the font-certs resource array is reachable only through a resource→resource
-reference and a wrong shrink decision there is the one player-visible thing R8 could plausibly
-break.
+default font. 3.0.0 **bundles** them as five static files in `res/font`
+(`feature/phase-15-ux-refresh`; the downloadable-font provider and `font_certs.xml` are gone), so
+the check is that R8's resource shrinking kept all five. Release checklist 1.4 confirms the AAB
+carries the five fonts and both `assets/licenses/*-OFL.txt` files; this is the on-device half.
 
 ### T-12 — Account swap / D-14 wipe (needs checklist Step 4)
 
@@ -470,7 +483,12 @@ been observed.
 
 ## 6. `THIRD_PARTY.md`
 
-**It does not exist anywhere in the tree** — confirmed independently by the phase-13 auditor
+**Update 2026-10-17:** the file now exists on `feature/phase-14-release-docs` and is the
+authority. It covers the 12 WAV cues (10 CC0 + 2 in-house), the five bundled OFL font files, the
+dependency families, and the store-art rows (§7, own work, closed by Q-017). The inventory below
+is kept as the plan's record, corrected for the 3.0.0 asset set.
+
+When this plan was written, **it did not exist anywhere in the tree** — confirmed independently by the phase-13 auditor
 (`getconflict` F-7), by the tech-lead sign-off (`ls THIRD_PARTY.md` → missing) and again here. The
 studio's IP policy calls it mandatory and the release rules block a release when any row lacks a
 license, so this is a release blocker in the literal sense, not a documentation nicety.
@@ -490,10 +508,11 @@ license, what was taken, and how it is credited. The inventory, from reading the
 
 | Item | Source | License | Credit |
 |---|---|---|---|
-| 9 of 12 sound effects | Kenney, *Interface Sounds* 1.0 | **CC0 1.0** | `docs/audio/CREDITS.md`, per-file table |
-| `sfx_star_pop.ogg` | freesound sound 531512 by CogFireStudios | **CC0 1.0** | same |
-| `sfx_select.ogg` + derived `sfx_deselect.ogg` | freesound sound 506546 by LilMati | **CC0 1.0** | same |
-| Fredoka, Nunito | Google Fonts, loaded at runtime by the downloadable-fonts provider | **OFL-1.1** | licenses surface |
+| 7 of 12 sound effects (WAV) | Kenney, *Interface Sounds* 1.0 | **CC0 1.0** | `docs/audio/CREDITS.md`, per-file table |
+| `sfx_star_pop.wav` | freesound sound 531512 by CogFireStudios | **CC0 1.0** | same |
+| `sfx_select.wav` + derived `sfx_deselect.wav` | freesound sound 506546 by LilMati | **CC0 1.0** | same |
+| `sfx_invalid.wav`, `sfx_hint.wav` | rendered in-house from `audio/recipes/*.json` | own work | — |
+| Fredoka (2 files), Nunito (3 files) | Google Fonts static instances, **bundled** in `res/font` with their OFL texts in `assets/licenses/` | **OFL-1.1** | the stand-alone OFL files in the artifact (OFL §2) |
 | Launcher icon, cloud-save cover | drawn in this repo as vector XML | own work | — |
 | Opening books, recorded solution fixtures, Diamond-41 floor line | authored in-house in phase 8 by beam search | own work | — |
 
@@ -533,6 +552,10 @@ license — there is no raster image anywhere in `app/src/main/res`. Those rows 
 explicit `license: unknown — pending founder` marker and **the release is blocked until they are
 filled**, per ip-policy's "the release skill blocks a release if a row lacks a license". That is
 checklist Step 9 and founder question Q-F3.
+
+**Closed 2026-10-17:** the founder answered Q-017 (Q-F3): *"you did it"*, studio-produced. The
+rows are own work, each file identified by its sha256, in `THIRD_PARTY.md` §7 on
+`feature/phase-14-release-docs`. The 7 leaderboard icons are recorded there too.
 
 ---
 
