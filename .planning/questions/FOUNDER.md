@@ -1,5 +1,18 @@
 # Founder questions (newest first)
 
+## Q-022 — The Turkish store listing describes the old app   (open)
+Date: 2026-10-18    Asked by: release-manager
+Context: The live Play listing has its own Turkish text ("5 farklı oyun modu") written for the old app;
+14 other languages show translated English (saved in the Console or automatic: only you can see which).
+The new en-US copy is drafted in docs/store/ (feature/phase-14-release-docs) for your approval at Gate 2.
+Options: 1) The studio drafts a tr-TR translation of the new copy for you to approve at Gate 2
+2) Delete the Turkish translation so Turkish users see the English text (or Play's automatic translation)
+3) You write the Turkish text yourself
+Recommendation: release-manager picks 1 — a stale text describing features that are gone is a Play policy
+exposure, and a drafted translation costs no extra round trip at Gate 2.
+Blocks: nothing (the Gate 2 store-asset line)
+Answer:
+
 ## Q-021 — Which look should the menu and game backgrounds take?   (answered)
 Date: 2026-10-18    Asked by: ux-designer
 Context: You asked for Candy Crush's aliveness, not a copy: glassy, with something in the back. Three directions
