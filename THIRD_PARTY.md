@@ -9,6 +9,17 @@ Created on `feature/phase-14-release-docs` for v1.1 / product version **3.0.0** 
 R-5, `.planning/reports/phase-14/tech-lead-signoff-r3-signing.md` §G). Re-checked at every release
 branch cut — `docs/release-checklist.md` step 6.
 
+**Rows describe what 3.0.0 will ship, not what `develop` holds today** (updated 2026-10-17). Two
+asset changes are still on unmerged branches, and each affected row names its branch:
+
+| Change | Branch today | What `develop` (3f2af90) still holds |
+|---|---|---|
+| Twelve sound cues as WAV; the wrong-tap and hint cues now rendered in-house instead of taken from the Kenney pack | `feature/audio-review` (d1c6e9b, af2b554; verdicts 3a1fce7) | the twelve-file `.ogg` set described by the earlier revision of this file |
+| Fredoka and Nunito **bundled** as five static font files plus their OFL texts; downloadable-font provider, `font_certs.xml` and `ui-text-google-fonts` removed | `feature/phase-15-ux-refresh` (472835f, b5836ac) | the downloadable-font path, nothing bundled |
+
+If either branch does not reach `release/3.0.0`, its rows below are wrong for the release and are
+re-cut at checklist step 1.4.
+
 ---
 
 ## 0. How the shipped set was drawn
@@ -67,29 +78,59 @@ them recorded anyway.
 
 ## 2. Assets shipped in the artifact
 
-The only binary assets in the app are twelve sound files. There is **no raster image anywhere in
-`app/src/main/res`** — every drawable and the launcher icon are vector XML authored in this repo
-(`app/src/main/res/drawable/`, `mipmap-anydpi-v26/`).
+The only binary assets in the app are twelve sound files in `app/src/main/res/raw/`, all mono
+16-bit 44.1 kHz WAV — ten sourced under CC0 (seven from Kenney *Interface Sounds* 1.0, three from
+two freesound sounds) and two rendered in-house from committed recipes — **and five font files** in
+`app/src/main/res/font/` with their two licence texts in `app/src/main/assets/licenses/`. There is
+**no raster image anywhere in `app/src/main/res`** — every drawable and the launcher icon are vector
+XML authored in this repo (`app/src/main/res/drawable/`, `mipmap-anydpi-v26/`).
+
+**Audio rows: on `feature/audio-review` today** (WAV set d1c6e9b, in-house renders af2b554,
+verdicts `docs/audio/licence-verdicts.md` 3a1fce7, research-analyst verdict 2026-09-29).
+**Font rows: on `feature/phase-15-ux-refresh` today** (472835f; tech-lead ruling
+`.planning/reports/15-founder-feedback/tech-lead-fonts.md` D1–D2).
 
 | Item | Source | Licence | How verified | Credit |
 |---|---|---|---|---|
-| 9 of the 12 `res/raw` sound cues | Kenney, *Interface Sounds* 1.0 — https://kenney.nl/assets/interface-sounds | **CC0 1.0** | Publisher's published terms; per-file table in `docs/audio/CREDITS.md` | `docs/audio/CREDITS.md` |
-| `sfx_star_pop.ogg` | freesound sound 531512 by CogFireStudios — https://freesound.org/people/CogFireStudios/sounds/531512/ | **CC0 1.0** | Licence stated on the sound's freesound page; recorded per-file | same |
-| `sfx_select.ogg` | freesound sound 506546 by LilMati — https://freesound.org/people/LilMati/sounds/506546/ | **CC0 1.0** | same | same |
-| `sfx_deselect.ogg` | Derived in-repo from sound 506546 (reversed, pitched down a whole tone) | **CC0 1.0** (derivative of a CC0 work) | same | same |
+| `sfx_jump.wav` | Kenney, *Interface Sounds* 1.0, `Audio/drop_003.ogg` — https://kenney.nl/assets/interface-sounds | **CC0 1.0** | Asset page and the pack's `License.txt`; archive and source-file sha256 pinned; research-analyst verdict **CLEAN** (`docs/audio/licence-verdicts.md` row 1, 2026-09-29) | `docs/audio/CREDITS.md` |
+| `sfx_peg_remove.wav` | Kenney, *Interface Sounds* 1.0, `Audio/drop_002.ogg` — https://kenney.nl/assets/interface-sounds | **CC0 1.0** | same; verdict **CLEAN** (row 2) | same |
+| `sfx_select.wav` | freesound sound 506546 "Pop 01" by LilMati — https://freesound.org/people/LilMati/sounds/506546/ | **CC0 1.0** | Licence on the sound's page (live and archived); master md5 pinned; verdict **CLEAN** (row 9) | same |
+| `sfx_deselect.wav` | Derived in-repo from freesound sound 506546 (reversed, a whole tone lower) — https://freesound.org/people/LilMati/sounds/506546/ | **CC0 1.0** (derivative of a CC0 work) | Parent's licence; verdict **CLEAN** (row 10) | same |
+| `sfx_undo.wav` | Kenney, *Interface Sounds* 1.0, `Audio/minimize_008.ogg` — https://kenney.nl/assets/interface-sounds | **CC0 1.0** | as `sfx_jump.wav`; verdict **CLEAN** (row 3) | same |
+| `sfx_invalid.wav` | Rendered in-house from `audio/recipes/invalid.json` with the studio's `sfx-synth.sh` (oscillators and seeded noise; no sampled material) | Own work | Not a borrowed asset, no verdict needed (`docs/audio/licence-verdicts.md`, In-house cues); re-renders byte-identically | — |
+| `sfx_hint.wav` | Rendered in-house from `audio/recipes/hint.json` with the studio's `sfx-synth.sh` (oscillators only; no sampled material) | Own work | same | — |
+| `sfx_win.wav` | Kenney, *Interface Sounds* 1.0, `Audio/confirmation_002.ogg` — https://kenney.nl/assets/interface-sounds | **CC0 1.0** | as `sfx_jump.wav`; verdict **CLEAN** (row 4) | `docs/audio/CREDITS.md` |
+| `sfx_star_pop.wav` | freesound sound 531512 "Positive Blip Effect" by CogFireStudios — https://freesound.org/people/CogFireStudios/sounds/531512/ | **CC0 1.0** | Licence on the sound's page (live and archived); master md5 pinned; verdict **CLEAN** (row 8) | same |
+| `sfx_btn_forward.wav` | Kenney, *Interface Sounds* 1.0, `Audio/click_001.ogg` — https://kenney.nl/assets/interface-sounds | **CC0 1.0** | as `sfx_jump.wav`; verdict **CLEAN** (row 5) | same |
+| `sfx_btn_dismiss.wav` | Kenney, *Interface Sounds* 1.0, `Audio/back_004.ogg` — https://kenney.nl/assets/interface-sounds | **CC0 1.0** | as `sfx_jump.wav`; verdict **CLEAN** (row 6) | same |
+| `sfx_sound_enabled.wav` | Kenney, *Interface Sounds* 1.0, `Audio/confirmation_001.ogg` — https://kenney.nl/assets/interface-sounds | **CC0 1.0** | as `sfx_jump.wav`; verdict **CLEAN** (row 7) | same |
+| Fredoka Medium, Fredoka SemiBold — `res/font/fredoka_medium.ttf`, `fredoka_semibold.ttf`, **bundled in the artifact** | Google Fonts, Fredoka **v17** static instances, unmodified (renamed only): https://fonts.google.com/download/list?family=Fredoka, entries `static/Fredoka-Medium.ttf` (sha256 `8143bd54…2304ae6fa`) and `static/Fredoka-SemiBold.ttf` (sha256 `021e30b2…d7688e43a8`; full hashes in `tech-lead-fonts.md` D1). Upstream https://github.com/hafontia/Fredoka-One. © 2016 The Fredoka Project Authors | **OFL-1.1**, no Reserved Font Name; the font stays under OFL-1.1, never under the app's terms (OFL §5) | The `OFL.txt` from the same family download (copyright line + full OFL 1.1 text); the files' own `name` table carries the same copyright (nameID 0) and an OFL-1.1 licence pointer (nameIDs 13/14) | **OFL §2 condition met by stand-alone text files in every copy:** `assets/licenses/Fredoka-OFL.txt` ships in the APK/AAB beside the fonts. Not shown on any screen — OFL does not require display; the studio's licences-screen rule is a separate gap, §7 |
+| Nunito Regular, SemiBold, Bold — `res/font/nunito_regular.ttf`, `nunito_semibold.ttf`, `nunito_bold.ttf`, **bundled in the artifact** | Google Fonts, Nunito **v32** static instances, unmodified (renamed only): https://fonts.google.com/download/list?family=Nunito, entries `static/Nunito-Regular.ttf`, `static/Nunito-SemiBold.ttf`, `static/Nunito-Bold.ttf` (hashes in `tech-lead-fonts.md` D1). Upstream https://github.com/googlefonts/nunito. © 2014 The Nunito Project Authors | **OFL-1.1**, no Reserved Font Name; stays under OFL-1.1 (§5) | The `OFL.txt` from the same family download; `name` table as for Fredoka | **OFL §2 met the same way:** `assets/licenses/Nunito-OFL.txt` in the APK/AAB. Checked at the release branch that the AAB keeps all five fonts and both texts (`tech-lead-fonts.md` AC-F5; release-checklist 1.4) |
 | Launcher icon, monochrome icon, cloud-save cover | Drawn in this repo as vector XML | Own work | — | — |
 | Opening books (`domain/src/main/resources/golden/book/*.txt`), recorded solution fixtures, the Diamond-41 floor line | Authored in-house in phase 8 by beam search | Own work | `.planning/phases/08-assist-generator-quality-debt/08-BOOK-EVIDENCE.md` | — |
-| Fredoka, Nunito | Google Fonts, delivered at runtime by the Google Play services downloadable-font provider — **not bundled in the artifact** | **OFL-1.1** (Google Fonts published terms) | Project's published terms | Listed here; no in-app licences screen exists — see §7 |
 
-CC0 waives copyright and imposes no attribution condition, so the credits above are a courtesy and
-an in-repo provenance record. `docs/audio/CREDITS.md` is the per-file authority; this file points
-at it rather than duplicating it, because two copies of an asset table drift.
+CC0 waives copyright and imposes no attribution condition, so the audio credits above are a
+courtesy and an in-repo provenance record. The audio rows are per file because `rules/ip-policy.md`
+asks for one row per borrowed asset and `rules/audio.md` asks every sourced sound's row to carry
+the research-analyst's verdict. `docs/audio/CREDITS.md` stays the per-file processing record, and
+`docs/audio/licence-verdicts.md` holds the verdict evidence, the archive and file pins, and the
+commands that re-verify them at a release.
+
+**What OFL-1.1 asks of an app that bundles a font, and how 3.0.0 meets it** (read from the OFL
+text shipped in `assets/licenses/`): §1 — the font may not be sold by itself (it is not; it ships
+inside the app). §2 — each copy bundled with software must contain the copyright notice and the
+licence, "either as stand-alone text files, human-readable headers or in the appropriate
+machine-readable metadata fields"; met by the two stand-alone `*-OFL.txt` files packaged in the
+artifact. §3 — Reserved Font Names may not be used by a modified version; neither family declares
+one, and the files are unmodified. §4 — the authors' names may not be used to promote the app;
+they appear only in the notices. §5 — the font stays under OFL; recorded in the rows above. Nothing
+in OFL requires the notice to be displayed in the UI.
 
 ## 3. Code snippets copied into this repo
 
 | Item | Source | Licence | How verified | Credit |
 |---|---|---|---|---|
-| `app/src/main/res/values/font_certs.xml` — the dev and prod certificate arrays for the Google Play services font provider | The standard certificate block published in the Android downloadable-fonts documentation (the file's own header records this) | **Apache-2.0** — developer.android.com sample code is published under Apache-2.0 | Project's published terms (Android developer site content licence). The certificates themselves are public key material, not a copyrightable work | This row |
+| `app/src/main/res/values/font_certs.xml` — the dev and prod certificate arrays for the Google Play services font provider. **Does not ship in 3.0.0:** deleted on `feature/phase-15-ux-refresh` (b5836ac) when the fonts were bundled; the row stays only while `develop` still carries the file | The standard certificate block published in the Android downloadable-fonts documentation (the file's own header records this) | **Apache-2.0** — developer.android.com sample code is published under Apache-2.0 | Project's published terms (Android developer site content licence). The certificates themselves are public key material, not a copyrightable work | This row |
 
 ## 4. Direct shipped dependencies
 
@@ -102,7 +143,7 @@ One row per coordinate declared at `implementation` in `app/build.gradle.kts`. V
 | `androidx.compose.ui:ui` | BOM 2026.06.00 | Apache-2.0 | POM `<licenses>` |
 | `androidx.compose.ui:ui-tooling-preview` | BOM 2026.06.00 | Apache-2.0 | AndroidX published terms (family row §5b) |
 | `androidx.compose.material:material-icons-core` | BOM 2026.06.00 | Apache-2.0 | AndroidX published terms |
-| `androidx.compose.ui:ui-text-google-fonts` | BOM 2026.06.00 | Apache-2.0 | POM `<licenses>` |
+| `androidx.compose.ui:ui-text-google-fonts` — **does not ship in 3.0.0**: removed on `feature/phase-15-ux-refresh` (b5836ac); listed while `develop` still declares it | BOM 2026.06.00 | Apache-2.0 | POM `<licenses>` |
 | `androidx.activity:activity-compose` | 1.13.0 | Apache-2.0 | POM `<licenses>` |
 | `androidx.core:core-ktx` | 1.18.0 (forced) | Apache-2.0 | POM `<licenses>` |
 | `androidx.lifecycle:lifecycle-viewmodel` | 2.9.4 | Apache-2.0 | AndroidX published terms |
@@ -158,6 +199,7 @@ a family nobody listed. `docs/release-checklist.md` step 6 closes it on the rele
 | U-4 | **The 1024×500 feature graphic** | Same — Console only | Founder recall — Step 9 |
 | U-5 | **Any store screenshot that is not a plain capture of this app** | Same — Console only | Founder recall — Step 9 |
 | U-6 | Per-coordinate enumeration of §5b | The resolved release runtime classpath has not been listed (Gradle deliberately not run on this branch) | `./gradlew :app:dependencies --configuration releaseRuntimeClasspath`, on the release branch, output recorded in the release report |
+| U-7 | **The candy-style backdrop of the menu and game screens** (to be added before release; `feature/candy-backdrop`, no commits yet) | Not designed yet; its research-analyst IP verdict is in flight. If it is drawn in-repo as vector XML or Compose drawing it is own work and needs only a row like the launcher icon's; anything sourced needs a row with a licence and a verdict before the cut | The verdict, then a §2 row written when the asset lands on `develop` |
 
 ## 7. PLACEHOLDER — store artwork provenance (needs the founder)
 
@@ -192,11 +234,15 @@ Two related items, also founder-only and recorded here so they are not rediscove
 
 - **No in-app licences screen exists.** `rules/ip-policy.md` asks for attribution "in
   `THIRD_PARTY.md` **and** in the product's licences screen or page". Settings today has the two
-  privacy rows (REL-05 / CONS-03) and no licences row. Every shipped asset is CC0 or OFL and every
-  dependency is Apache-2.0 or a permitted Google SDK, so **nothing shipped carries an attribution
-  obligation** and this is not a legal blocker for v1.1 — it is a studio-rule gap. **Routed, not
-  fixed here:** a Settings licences row is a UI change and belongs to a developer with a
-  ux-designer review; recorded for the v1.1.1 backlog.
+  privacy rows (REL-05 / CONS-03) and no licences row. Every shipped asset is CC0, OFL or own
+  work, and every dependency is Apache-2.0 or a permitted Google SDK. The two bundled font
+  families carry OFL-1.1's notice condition; it is met by the stand-alone licence files in the
+  artifact (§2), so **nothing shipped carries an unmet attribution obligation** and this is not a
+  legal blocker for 3.0.0 — it is a studio-rule gap. **Routed, not fixed here:** either a Settings
+  licences row (a UI change: a developer with a ux-designer review) or a licences *page* on the
+  developer website linked from the listing (the rule says "screen or page"; website work is
+  founder-only); the producer decides which, and whether it is pulled into 3.0.0 or left for
+  3.0.1.
 - A **`SKILLS.md`** is named by `rules/skills-policy.md` and does not exist in this repo. No
   external skill has been installed into `.claude/skills/`, so there is nothing to record; noted
   so the absence is a fact rather than an omission.
