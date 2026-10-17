@@ -78,20 +78,39 @@ therefore revenue on exactly the two ad surfaces phases 9 and 10 built.
            curl -sS -o /dev/null -w '%{http_code} %{num_redirects} %{url_effective}\n' https://<host>/app-ads.txt
 
        A `200` with `0` redirects is what you want.
-4. [ ] **Check which host the store listing actually names.** Play Console → Grow → Store
-       presence → Store listing → *Contact details → Website*. AdMob discovers `app-ads.txt` by
-       reading the developer-website URL **off the store listing**, so the file has to be at the
-       root of *that* host. The repo already records that two hosts are in play: the
-       Play-registered address is `ermanergoz.github.io`, which 301-redirects to the canonical
-       domain compiled into the app (`PrivacyLinks.kt` KDoc). **Current state of the listing's
-       website field: unverified** — only you can read it.
-       - If the field names the GitHub Pages host, the simplest robust fix is to **serve
-         `app-ads.txt` at the root of both hosts** with a direct 200. Redirect handling across
-         root domains is the one part of the ads.txt spec that different crawlers read
-         differently, and serving both costs one extra file.
-       - Do **not** "fix" this by changing the listing's website field to the canonical domain
-         unless you also re-check Step 2's curl against the new host. Changing the field starts
-         the 24-hour crawl clock over.
+4. [x] **Which host the store listing names — settled 2026-09-21.** *(Corrected 2026-10-17 from
+       `.planning/reports/phase-15/release-manager-app-ads-diagnosis.md`; the earlier text of this
+       item was wrong on two counts, below.)* AdMob discovers `app-ads.txt` by reading the
+       developer-website URL **off the store listing**, so the file has to be reachable from the
+       root of *that* host.
+       - **The field was empty until 2026-09-21.** The public Play page for
+         `com.erman.pegsolitarie`, fetched in three locales that day, showed only a support email
+         and a privacy-policy link under **App support**; the word `Website` was not on the page.
+         Google's own confirmation test for this field is "check that the Developer Website URL is
+         linked in the 'app support' of your Android app page" (AdMob Help 9363762). With no
+         hostname there is no crawl, which is why the status never flipped although the file had
+         been live and correct on `https://ermanergoz.com/app-ads.txt` since 2026-09-02.
+       - **You filled it; it is live as `https://ermanergoz.github.io`** — observed on the public
+         page at 2026-09-21T01:29:28Z and re-observed 2026-10-17. That host answers
+         `/app-ads.txt` with GitHub Pages' custom-domain `301` to
+         `https://ermanergoz.com/app-ads.txt`, which serves the correct record with a `200`.
+         AdMob Help 9363762, "Web server redirects", lists "Another domain, including multiple
+         subdomains" among valid redirect destinations, so this is expected to verify. **Leave
+         the field alone**: every edit restarts the 24-hour crawl clock.
+       - **Do not try to serve `app-ads.txt` on `ermanergoz.github.io` itself** — an earlier
+         revision of this item recommended serving it on both hosts. That is not possible here:
+         the site repo ships a `CNAME` of `ermanergoz.com` in `public/` and `dist/` and deploys
+         with `gh-pages -d dist`, and GitHub Pages 301-redirects the whole `*.github.io` host
+         once a custom domain is set. There is no per-path exception. The 301 itself was never
+         the fault.
+       - **Only if item 5 still shows unverified 48 hours after the field went live** (that mark
+         was 2026-09-23T01:29Z, long past): change the field to `https://ermanergoz.com` (bare
+         apex, https, no path, no `www.`) — it serves the file with a direct 200 and, having no
+         subdomain, keeps Google's "probe up to one subdomain level" rule from walking up to the
+         shared `github.io` suffix. Then wait 24 hours again. If it still does not flip, confirm
+         in AdMob → Apps → this app → App settings that the app entry is **linked to the Play
+         listing** (an unlinked, manually added entry has no listing to read the website from),
+         and that AdMob → Settings → Account information shows the same `pub-…` as the file.
 5. [ ] After the crawl, confirm **AdMob → Apps → this app → App settings → `app-ads.txt`**
        reports the app as **authorised/verified** (the wording differs by UI revision; what you
        need is the positive state, not the "not found" or "unauthorised" banner).
