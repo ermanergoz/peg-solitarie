@@ -1,0 +1,673 @@
+<title>Peg Solitaire Backdrops</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700;800&display=swap">
+<style>
+/* Layout: a specimen board. Each direction is a plate of four phones (Home and game, light and dark) with three short notes under it. */
+:root{
+  /* page (follows the viewer's theme) */
+  --page:#F5F3F8; --paper:#FFFFFF; --ink:#211C29; --ink2:#575062; --line:#E2DCEA;
+  --accent:#6D28D9; --accentInk:#3B1D77; --accentSoft:#ECE4FB; --bezel:#17131D; --frameShadow:rgba(40,20,70,.30);
+  --disp:"Fredoka","Nunito",ui-rounded,system-ui,sans-serif;
+  --body:"Nunito",ui-rounded,system-ui,-apple-system,"Segoe UI",sans-serif;
+
+  /* app palette, light (docs/ui/DESIGN-SYSTEM.md, ui/theme/Color.kt) */
+  --lBg:#F4F1FA; --lOn:#332F3A; --lOnV:#635F69; --lPri:#7C3AED; --lOnPri:#FFFFFF;
+  --lPc:#EDE4FF; --lOnPc:#3B1D77; --lSec:#EC4899; --lSc:#FFE1EF; --lOnSc:#831843;
+  --lTc:#FFEFC7; --lOnTc:#6B4E00; --lSch:#F1EAFB; --lDimS:#CFC2E8; --lDimF:#E4DBF4;
+  --lShadow:rgba(124,58,237,.25); --lDot:rgba(124,58,237,.38); --lGold:#F59E0B; --lGoldHi:#FDE68A;
+  /* app palette, dark */
+  --dBg:#1B1626; --dOn:#EDE9F5; --dOnV:#A79FB5; --dPri:#A78BFA; --dOnPri:#2E1065;
+  --dPc:#4C3A85; --dOnPc:#EDE4FF; --dSec:#F472B6; --dSc:#7A2352; --dOnSc:#FFE1EF;
+  --dTc:#5C4300; --dOnTc:#FFEFC7; --dSch:#2E2740; --dDimS:#15101F; --dDimF:#201A2F;
+  --dShadow:rgba(10,4,24,.65); --dDot:rgba(167,139,250,.38); --dScGlyph:#500724;
+  /* title gradients: today's CTA brush, and colour-vision.md TG-01 */
+  --lCta1:#A78BFA; --lCta2:#7C3AED; --lT1:#7C3AED; --lT2:#5B21B6; --dT1:#C4B5FD; --dT2:#A78BFA;
+  /* peg shading (theme-neutral) and white/ink alphas */
+  --pegShHi:#FFFFFF; --pegShRim:#7A0A3C; --white:#FFFFFF;
+  --w95:rgba(255,255,255,.95); --w90:rgba(255,255,255,.90); --w80:rgba(255,255,255,.80); --w70:rgba(255,255,255,.70);
+  --w38:rgba(255,255,255,.38); --w22:rgba(255,255,255,.22); --w16:rgba(255,255,255,.16); --clear:rgba(255,255,255,0);
+  /* today's drifting blobs */
+  --tB1:rgba(124,58,237,.10); --tB2:rgba(236,72,153,.10);
+  /* A · Frosted glass */
+  --aLMid:#EEE3FD; --aLLow:#F9DDEE; --aLB1:rgba(167,139,250,.55); --aLB2:rgba(244,114,182,.45); --aLB3:rgba(196,181,253,.60);
+  --aLGlass:rgba(255,255,255,.80); --aLRim:rgba(255,255,255,.95); --aLTc:rgba(255,239,199,.82); --aLPc:rgba(237,228,255,.72); --aLSc:rgba(255,225,239,.72);
+  --aLGlow:rgba(124,58,237,.28); --aLGlint:rgba(255,255,255,.75); --aLLvl:rgba(255,255,255,.85); --aLDock:rgba(237,228,255,.85);
+  --aDMid:#160E26; --aDLow:#1E0D33; --aDB1:rgba(124,58,237,.45); --aDB2:rgba(219,39,119,.35); --aDB3:rgba(91,33,182,.50);
+  --aDGlass:rgba(27,22,38,.72); --aDRim:rgba(255,255,255,.14); --aDTc:rgba(92,67,0,.82); --aDPc:rgba(76,58,133,.80); --aDSc:rgba(122,35,82,.80);
+  --aDGlow:rgba(124,58,237,.35); --aDGlint:rgba(255,255,255,.14); --aDLvl:rgba(27,22,38,.80); --aDDock:rgba(76,58,133,.90);
+  /* B · Deep gloss */
+  --bLMid:#F6E3F6; --bLLow:#F0C9E7; --bLDeep:#E3C3F6;
+  --bLW1:#F6B3DD; --bLW2:#DD8BE6; --bLW3:#B98AF2; --bLWLip:rgba(255,255,255,.70); --bLWHi:rgba(255,255,255,.65);
+  --bLK1:rgba(255,255,255,.80); --bLK1r:rgba(255,255,255,.95); --bLK2:rgba(244,114,182,.30); --bLK2r:rgba(244,114,182,.55);
+  --bLK3:rgba(167,139,250,.30); --bLK3r:rgba(167,139,250,.55);
+  --bLGloss:rgba(255,255,255,.70); --bLLip:rgba(255,255,255,.95); --bLShade:rgba(124,58,237,.10); --bLGlow:rgba(219,39,119,.30);
+  --bDMid:#1C0E38; --bDLow:#2A1150; --bDDeep:#3A0F48;
+  --bDW1:#9B6BF7; --bDW2:#7C2DB8; --bDW3:#4A1158; --bDWLip:rgba(255,255,255,.35); --bDWHi:rgba(255,255,255,.30);
+  --bDK1:rgba(196,181,253,.14); --bDK1r:rgba(196,181,253,.24); --bDK2:rgba(244,114,182,.14); --bDK2r:rgba(244,114,182,.24);
+  --bDK3:rgba(139,92,246,.16); --bDK3r:rgba(139,92,246,.28);
+  --bDGloss:rgba(255,255,255,.10); --bDLip:rgba(255,255,255,.18); --bDShade:rgba(0,0,0,.30); --bDGlow:rgba(139,92,246,.45);
+  --gV1:#9566F2; --gV2:#7C3AED; --gV3:#5B21B6; --gP1:#E44593; --gP2:#D61F6F; --gP3:#BE185D;
+  --gelLip:rgba(255,255,255,.38); --gelSheen:rgba(255,255,255,.30); --gelGlowV:rgba(91,33,182,.55); --gelGlowP:rgba(190,24,93,.50);
+  /* C · Airy daylight */
+  --cLMid:#F8F2FF; --cLLow:#FBDDEE; --cLR1:rgba(196,181,253,.45); --cLR2:rgba(249,168,212,.40);
+  --cLBIn:rgba(255,255,255,.18); --cLBR1:rgba(196,181,253,.70); --cLBR2:rgba(249,168,212,.60); --cLBHi:rgba(255,255,255,.95);
+  --cLGlass:rgba(255,255,255,.86); --cLRim:rgba(255,255,255,.95); --cLSh1:rgba(236,72,153,.20); --cLSh2:rgba(124,58,237,.18);
+  --cDMid:#1C1430; --cDLow:#261238; --cDR1:rgba(124,58,237,.30); --cDR2:rgba(219,39,119,.20);
+  --cDBIn:rgba(255,255,255,.03); --cDBR1:rgba(196,181,253,.26); --cDBR2:rgba(244,114,182,.22); --cDBHi:rgba(255,255,255,.12);
+  --cDGlass:rgba(46,39,64,.88); --cDRim:rgba(255,255,255,.08); --cDSh1:rgba(219,39,119,.22); --cDSh2:rgba(124,58,237,.30);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --page:#100E14; --paper:#1A1720; --ink:#ECE8F2; --ink2:#ABA4B8; --line:#2D2836;
+    --accent:#B9A3FB; --accentInk:#EDE4FF; --accentSoft:#2A2140; --bezel:#2E2936; --frameShadow:rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --page:#100E14; --paper:#1A1720; --ink:#ECE8F2; --ink2:#ABA4B8; --line:#2D2836;
+  --accent:#B9A3FB; --accentInk:#EDE4FF; --accentSoft:#2A2140; --bezel:#2E2936; --frameShadow:rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+
+/* ---------- page ---------- */
+*,*::before,*::after{box-sizing:border-box}
+body{background:var(--page);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;margin:0}
+.page{max-width:1560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:2.5rem 4.5rem}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+.mast{display:grid;gap:1.1rem;max-width:74rem}
+.eyebrow{margin:0;font:800 .75rem/1.4 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+h1{margin:0;font:600 clamp(2rem,5vw,3.5rem)/1.06 var(--disp);letter-spacing:-.01em;text-wrap:balance}
+.lede{margin:0;max-width:64ch;font-size:1.125rem;color:var(--ink2)}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem 1.25rem;margin-top:.4rem}
+.stillbtn{display:inline-flex;align-items:center;gap:.5rem;padding:.6rem 1.05rem;border-radius:999px;border:1px solid var(--line);background:var(--accentSoft);color:var(--accentInk);font-weight:800;cursor:pointer;user-select:none}
+.stillbtn .on{display:none}
+#still:checked ~ .page .stillbtn .on{display:inline}
+#still:checked ~ .page .stillbtn .off{display:none}
+#still:focus-visible ~ .page .stillbtn{outline:3px solid var(--accent);outline-offset:3px}
+.hint{font-size:.9375rem;color:var(--ink2);max-width:52ch}
+.jump{display:flex;flex-wrap:wrap;gap:.5rem}
+.jump a{padding:.35rem .8rem;border-radius:999px;border:1px solid var(--line);color:var(--ink);text-decoration:none;font-weight:700;font-size:.9375rem}
+.jump a:hover{border-color:var(--accent)}
+.jump a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.plate{margin-top:3.5rem;padding-top:2.25rem;border-top:1px solid var(--line)}
+.plate-head{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem 1rem;margin-bottom:1.75rem}
+.letter{display:inline-grid;place-items:center;min-width:2.4rem;height:2.4rem;padding:0 .7rem;border-radius:999px;background:var(--ink);color:var(--page);font:600 1.05rem var(--disp)}
+.plate h2{margin:0;font:600 clamp(1.6rem,3.2vw,2.35rem)/1.1 var(--disp);text-wrap:balance}
+.plate .one{flex-basis:100%;margin:0;max-width:66ch;font-size:1.0625rem;color:var(--ink2)}
+.frames{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,15rem),1fr));gap:2.4rem 1.9rem;justify-items:center;padding:.7rem}
+.cap{margin:1rem 0 0;text-align:center;font:800 .75rem/1.3 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,19rem),1fr));gap:1.4rem 2.2rem;margin-top:2.4rem}
+.note{min-width:0}
+.note h3{margin:0 0 .45rem;font:800 .75rem/1.3 var(--body);letter-spacing:.11em;text-transform:uppercase;color:var(--accent)}
+.note p{margin:0 0 .6rem;max-width:64ch}
+.note p:last-child{margin-bottom:0}
+.facts{margin:1.6rem 0 0;padding:1rem 1.2rem;border:1px solid var(--line);border-radius:1rem;background:var(--paper);display:grid;gap:.45rem;max-width:74rem}
+.facts p{margin:0;font-size:.9375rem}
+.facts b{font-weight:800}
+.today-grid{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:2.5rem 3rem;align-items:start}
+@media (max-width:780px){.today-grid{grid-template-columns:minmax(0,1fr)}}
+.today-grid .fw{justify-self:center}
+.keeps{margin:0;padding:0;list-style:none;display:grid;gap:.85rem;max-width:60ch}
+.keeps li{padding-left:1.4rem;position:relative}
+.keeps li::before{content:"";position:absolute;left:0;top:.55em;width:.55rem;height:.55rem;border-radius:50%;background:var(--accent)}
+.keeps b{font-weight:800}
+.pick{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:2rem 3rem;align-items:start}
+@media (max-width:960px){.pick{grid-template-columns:minmax(0,1fr)}}
+.verdict{padding:1.4rem 1.5rem;border-radius:1.25rem;border:1px solid var(--line);background:var(--accentSoft);color:var(--ink)}
+.verdict p{margin:0 0 .75rem;max-width:62ch}
+.verdict p:last-child{margin-bottom:0}
+.verdict .big{font:600 1.55rem/1.2 var(--disp);color:var(--accentInk)}
+.cmp{overflow-x:auto;border:1px solid var(--line);border-radius:1rem;background:var(--paper)}
+.cmp table{width:100%;min-width:36rem;border-collapse:collapse;font-size:.9375rem}
+.cmp th,.cmp td{padding:.65rem .85rem;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+.cmp thead th{font:800 .75rem/1.3 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.cmp tbody th{font-weight:800}
+.cmp tbody tr:last-child>*{border-bottom:0}
+.meter{display:inline-flex;gap:3px;margin-right:.45rem;vertical-align:middle}
+.meter i{display:block;width:.6rem;height:.6rem;border-radius:2px;background:var(--line)}
+.m1 i:nth-child(-n+1),.m2 i:nth-child(-n+2),.m3 i:nth-child(-n+3){background:var(--accent)}
+.foot{margin-top:3.5rem;padding-top:1.5rem;border-top:1px solid var(--line);display:grid;gap:.5rem;max-width:84ch;font-size:.875rem;color:var(--ink2)}
+.foot p{margin:0}
+
+/* ---------- phone frame (1em = 16dp; the frame is a 360 x 780 dp phone) ---------- */
+.fw{container-type:inline-size;width:100%;max-width:360px}
+.phone{position:relative;width:100%;aspect-ratio:360/780;font-size:16px;font-size:calc(100cqw / 22.5);border-radius:2.25em;overflow:hidden;isolation:isolate;
+  background:var(--bg);color:var(--on);font-family:var(--body);line-height:1.25;
+  box-shadow:0 0 0 .55em var(--bezel),0 1.6em 3em -1.2em var(--frameShadow)}
+.phone svg{display:block}
+.phone.L{--bg:var(--lBg);--on:var(--lOn);--onv:var(--lOnV);--pri:var(--lPri);--onpri:var(--lOnPri);--pc:var(--lPc);--onpc:var(--lOnPc);
+  --sec:var(--lSec);--sc:var(--lSc);--onsc:var(--lOnSc);--tc:var(--lTc);--ontc:var(--lOnTc);--sch:var(--lSch);--peg:var(--lSec);
+  --dimS:var(--lDimS);--dimF:var(--lDimF);--shadow:var(--lShadow);--dot:var(--lDot);--t1:var(--lT1);--t2:var(--lT2);
+  --pcIc:var(--lPri);--pcGl:var(--lOnPri);--scIc:var(--lSec);--scGl:var(--lOnPri);--lvlBg:var(--w95);--dockBtn:var(--lPc);--dockGl:var(--lOnPc);
+  --slabRim:var(--w90);--spec:var(--w80);--gearC:var(--lOnV)}
+.phone.D{--bg:var(--dBg);--on:var(--dOn);--onv:var(--dOnV);--pri:var(--dPri);--onpri:var(--dOnPri);--pc:var(--dPc);--onpc:var(--dOnPc);
+  --sec:var(--dSec);--sc:var(--dSc);--onsc:var(--dOnSc);--tc:var(--dTc);--ontc:var(--dOnTc);--sch:var(--dSch);--peg:var(--dSec);
+  --dimS:var(--dDimS);--dimF:var(--dDimF);--shadow:var(--dShadow);--dot:var(--dDot);--t1:var(--dT1);--t2:var(--dT2);
+  --pcIc:var(--dPri);--pcGl:var(--dOnPri);--scIc:var(--dSec);--scGl:var(--dScGlyph);--lvlBg:var(--dBg);--dockBtn:var(--dPc);--dockGl:var(--dOnPc);
+  --slabRim:var(--w16);--spec:var(--w70);--gearC:var(--dOnV)}
+.bd{position:absolute;inset:0;z-index:0;overflow:hidden;background:var(--bg)}
+.bd i{position:absolute;display:block}
+.veil{left:0;right:0;top:0;height:24%;background:linear-gradient(180deg,var(--bg) 0%,var(--bg) 45%,transparent 100%)}
+.ui{position:absolute;inset:0;z-index:1}
+.sb{position:absolute;top:0;left:0;right:0;height:2em;display:flex;align-items:center;justify-content:space-between;padding:0 1.4em 0 1.5em;color:var(--on)}
+.sb>span:first-child{font:700 .8125em var(--body)}
+.sbi{display:flex;gap:.3em}
+.sbi svg{width:.95em;height:.95em}
+.gesture{position:absolute;z-index:2;bottom:.55em;left:calc(50% - 3.4em);width:6.8em;height:.25em;border-radius:1em;background:var(--on);opacity:.8}
+/* Home */
+.hero{position:absolute;left:1em;right:1em;top:2.75em;height:3em;display:flex;align-items:center;justify-content:space-between}
+.title{font:600 2.25em/1.15 var(--disp);white-space:nowrap;background:linear-gradient(180deg,var(--t1) 0%,var(--t2) 50%,var(--t2) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.gear,.back{flex:none;width:3em;height:3em;border-radius:50%;display:grid;place-items:center;background:var(--sch);color:var(--gearC);position:relative}
+.gear svg,.back svg{width:1.5em;height:1.5em}
+.stage{position:absolute;top:6.75em;left:calc(50% - 7em);width:14em;height:14em;border-radius:2em;background:var(--sch)}
+.stage svg{position:absolute;left:.85em;top:.85em;width:12.3em;height:12.3em}
+.ribbon{position:absolute;left:1em;right:1em;top:21.75em;height:4.75em;display:grid;grid-template-columns:repeat(3,1fr);gap:.5em}
+.pill{position:relative;border-radius:1.25em;background:var(--sch);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1em}
+.pill svg{width:1.25em;height:1.25em;color:var(--onv)}
+.pill .lb{font-size:.8125em;color:var(--onv)}
+.pill .vl{font:700 1.25em/1.1 var(--disp);color:var(--on)}
+.cont{position:absolute;left:1em;right:1em;top:27.5em;height:4.75em;border-radius:1.75em;display:flex;align-items:center;gap:.75em;padding:0 1.1em 0 1.25em;background:var(--tc);color:var(--ontc)}
+.tile{position:absolute;left:1em;right:1em;height:5.75em;border-radius:1.75em;display:flex;align-items:center;gap:1em;padding:0 1.1em 0 1em}
+.classic{top:33.25em;background:var(--pc);color:var(--onpc)}
+.challenge{top:40em;background:var(--sc);color:var(--onsc)}
+.tile .ic{flex:none;width:2.75em;height:2.75em;border-radius:.9em;display:grid;place-items:center}
+.tile .ic svg{width:1.5em;height:1.5em}
+.classic .ic{background:var(--pcIc);color:var(--pcGl)}
+.challenge .ic{background:var(--scIc);color:var(--scGl)}
+.tx{display:flex;flex-direction:column;gap:.15em;min-width:0;position:relative}
+.tx b{font:600 1.25em/1.2 var(--disp)}
+.cont .tx b{font-size:1.125em}
+.tx>span{font-size:.9375em}
+.tx .lvl{align-self:flex-start;margin-top:.15em;padding:.25em .75em;border-radius:999px;background:var(--lvlBg);font-size:.8125em;white-space:nowrap}
+.mini{flex:none;margin-left:auto;width:3.5em;height:3.5em;position:relative;
+  background:radial-gradient(circle,var(--peg) 0 31%,transparent 35%) 0 0/calc(100% / 7) calc(100% / 7);
+  clip-path:polygon(28.57% 0,71.43% 0,71.43% 28.57%,100% 28.57%,100% 71.43%,71.43% 71.43%,71.43% 100%,28.57% 100%,28.57% 71.43%,0 71.43%,0 28.57%,28.57% 28.57%)}
+.cont .mini{width:3em;height:3em}
+.bolt{flex:none;margin-left:auto;width:2.75em;height:2.75em;color:var(--sec);position:relative}
+/* Game */
+.strip{position:absolute;left:1em;right:1em;top:2.75em;height:3em;display:flex;align-items:center;gap:.75em}
+.gtitle{flex:1;font:600 1.375em/1.2 var(--disp);white-space:nowrap;color:var(--on)}
+.timer{flex:none;position:relative;height:2.75em;padding:0 .8em;border-radius:1em;display:grid;place-items:center;background:var(--sch)}
+.timer span{font:600 1.5em/1 var(--disp);font-variant-numeric:tabular-nums;color:var(--on)}
+.slab{position:absolute;left:1em;right:1em;top:13.375em;aspect-ratio:1;border-radius:2em;background:var(--sch)}
+.slab svg{position:absolute;left:1em;top:1em;width:calc(100% - 2em);height:calc(100% - 2em)}
+.dock{position:absolute;left:1em;right:1em;bottom:2.25em;height:5em;border-radius:2em;background:var(--sch);display:flex;align-items:center;justify-content:space-evenly}
+.db{position:relative;width:3.5em;height:3.5em;border-radius:50%;display:grid;place-items:center;background:var(--dockBtn);color:var(--dockGl)}
+.db svg{width:1.5em;height:1.5em}
+.db.on{background:var(--pri);color:var(--onpri)}
+.chk{position:absolute;right:-.15em;top:-.15em;width:1.3em;height:1.3em;border-radius:50%;display:grid;place-items:center;background:var(--onpri);color:var(--pri);box-shadow:0 0 0 .125em var(--sch)}
+.chk svg{width:.8em;height:.8em}
+/* shared surfaces: today's clay; directions restyle .gl */
+.gl,.stage,.slab{box-shadow:0 .45em 1.2em -.55em var(--shadow)}
+.stage,.slab{box-shadow:inset 0 0 0 .0625em var(--slabRim),0 .6em 1.6em -.6em var(--shadow)}
+
+/* ---------- today ---------- */
+.T.L{--t1:var(--lCta1);--t2:var(--lCta2);--slabRim:transparent}
+.T .tb{width:15em;height:15em;border-radius:50%}
+.T .tb1{right:-12em;top:-11em;background:var(--tB1);animation:tDrift 8s linear infinite alternate}
+.T .tb2{left:-12em;bottom:-11em;background:var(--tB2);animation:tDrift 8s linear infinite alternate-reverse}
+@keyframes tDrift{from{transform:translate(-1em,-1em)}to{transform:translate(1em,1em)}}
+
+/* ---------- A · Frosted glass: frosted panels over slow pools of light ---------- */
+.A.L{--m:var(--aLMid);--lo:var(--aLLow);--k1:var(--aLB1);--k2:var(--aLB2);--k3:var(--aLB3);--glass:var(--aLGlass);--rim:var(--aLRim);
+  --gTc:var(--aLTc);--gPc:var(--aLPc);--gSc:var(--aLSc);--glow:var(--aLGlow);--glint:var(--aLGlint);--lvlBg:var(--aLLvl);--dockBtn:var(--aLDock)}
+.A.D{--m:var(--aDMid);--lo:var(--aDLow);--k1:var(--aDB1);--k2:var(--aDB2);--k3:var(--aDB3);--glass:var(--aDGlass);--rim:var(--aDRim);
+  --gTc:var(--aDTc);--gPc:var(--aDPc);--gSc:var(--aDSc);--glow:var(--aDGlow);--glint:var(--aDGlint);--lvlBg:var(--aDLvl);--dockBtn:var(--aDDock)}
+.A .bd{background:linear-gradient(180deg,var(--bg) 0%,var(--bg) 13%,var(--m) 40%,var(--lo) 100%)}
+.A .blob{left:var(--x);top:var(--y);width:var(--s);height:var(--s);border-radius:50%;background:radial-gradient(closest-side,var(--c) 0%,var(--c) 22%,transparent 100%)}
+.A .b1{--c:var(--k1);animation:aDrift1 21s ease-in-out infinite}
+.A .b2{--c:var(--k2);animation:aDrift2 25s ease-in-out infinite}
+.A .b3{--c:var(--k3);animation:aDrift3 29s ease-in-out infinite}
+.A.G .b1{animation-duration:33s}
+.A.G .b2{animation-duration:39s}
+@keyframes aDrift1{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(4em,-2.5em) scale(1.12)}}
+@keyframes aDrift2{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(-4.5em,-3em) scale(.9)}}
+@keyframes aDrift3{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(3.5em,2em) scale(1.1)}}
+.A .gl{background:var(--glass);overflow:hidden;box-shadow:inset 0 0 0 .0625em var(--rim),inset 0 .125em .05em -.04em var(--rim),0 .6em 1.4em -.7em var(--glow)}
+.A .cont{background:var(--gTc)}
+.A .classic{background:var(--gPc)}
+.A .challenge{background:var(--gSc)}
+.A .gl>*{position:relative;z-index:1}
+.A .gl::after{content:"";position:absolute;z-index:0;top:-30%;bottom:-30%;left:-50%;width:38%;pointer-events:none;
+  background:linear-gradient(100deg,transparent 0%,var(--glint) 50%,transparent 100%);transform:translateX(0) skewX(-14deg);
+  animation:aGlint 9s ease-in-out infinite;animation-delay:var(--gd,0s)}
+@keyframes aGlint{0%,68%{transform:translateX(0) skewX(-14deg)}100%{transform:translateX(480%) skewX(-14deg)}}
+.A .stage,.A .slab{box-shadow:inset 0 0 0 .0625em var(--slabRim),0 .8em 2em -.8em var(--glow)}
+/* ---------- B · Deep gloss: glossy waves, rising soft lights, gel mode cards ---------- */
+.B.L{--m:var(--bLMid);--lo:var(--bLLow);--dp:var(--bLDeep);--w1:var(--bLW1);--w2:var(--bLW2);--w3:var(--bLW3);--wLip:var(--bLWLip);--wHi:var(--bLWHi);
+  --k1:var(--bLK1);--k1r:var(--bLK1r);--k2:var(--bLK2);--k2r:var(--bLK2r);--k3:var(--bLK3);--k3r:var(--bLK3r);
+  --gloss:var(--bLGloss);--lip:var(--bLLip);--shade:var(--bLShade);--glow:var(--bLGlow)}
+.B.D{--m:var(--bDMid);--lo:var(--bDLow);--dp:var(--bDDeep);--w1:var(--bDW1);--w2:var(--bDW2);--w3:var(--bDW3);--wLip:var(--bDWLip);--wHi:var(--bDWHi);
+  --k1:var(--bDK1);--k1r:var(--bDK1r);--k2:var(--bDK2);--k2r:var(--bDK2r);--k3:var(--bDK3);--k3r:var(--bDK3r);
+  --gloss:var(--bDGloss);--lip:var(--bDLip);--shade:var(--bDShade);--glow:var(--bDGlow)}
+.B .bd{background:linear-gradient(180deg,var(--bg) 0%,var(--bg) 12%,var(--m) 34%,var(--lo) 66%,var(--dp) 100%)}
+.B .wave{left:-25%;width:150%;top:var(--wy);height:70%;border-radius:50% 50% 0 0/16% 16% 0 0;
+  background:linear-gradient(180deg,var(--w1) 0%,var(--w2) 18%,var(--w3) 100%);box-shadow:inset 0 .3em .15em -.1em var(--wLip)}
+.B .wave::before{content:"";position:absolute;left:22%;right:22%;top:.6em;height:1.6em;border-radius:50%;background:radial-gradient(closest-side,var(--wHi),transparent)}
+.B .wv1{opacity:.6;animation:bWave1 12s ease-in-out infinite alternate}
+.B .wv2{left:-40%;animation:bWave2 9s ease-in-out infinite alternate}
+@keyframes bWave1{from{transform:translate(-1.5em,0)}to{transform:translate(1.5em,-.6em)}}
+@keyframes bWave2{from{transform:translate(1.2em,0)}to{transform:translate(-1.2em,.4em)}}
+.B .bk{left:var(--x);top:var(--y);width:var(--s);height:var(--s);border-radius:50%;opacity:var(--o);
+  background:radial-gradient(circle closest-side,var(--kc) 0%,var(--kc) 64%,var(--kr) 84%,transparent 100%);
+  animation:bRise var(--d) linear infinite;animation-delay:var(--dl)}
+.B .k1{--kc:var(--k1);--kr:var(--k1r)}
+.B .k2{--kc:var(--k2);--kr:var(--k2r)}
+.B .k3{--kc:var(--k3);--kr:var(--k3r)}
+@keyframes bRise{0%{transform:translateY(2em);opacity:0}15%,85%{opacity:var(--o)}100%{transform:translateY(-5em);opacity:0}}
+.B .gl{background-image:linear-gradient(180deg,var(--gloss) 0%,transparent 46%);
+  box-shadow:inset 0 .125em 0 var(--lip),inset 0 -.3em .6em var(--shade),0 .7em 1.6em -.7em var(--glow)}
+.B .db{background-image:linear-gradient(180deg,var(--gloss) 0%,transparent 55%);box-shadow:inset 0 .1em 0 var(--lip)}
+.B .db.on{background-image:linear-gradient(180deg,var(--w38) 0%,transparent 55%)}
+.B .tile{color:var(--white);overflow:hidden}
+.B .classic{background:linear-gradient(180deg,var(--gV1) 0%,var(--gV2) 36%,var(--gV3) 100%);box-shadow:inset 0 .1em 0 var(--w38),0 .8em 1.6em -.7em var(--gelGlowV)}
+.B .challenge{background:linear-gradient(180deg,var(--gP1) 0%,var(--gP2) 28%,var(--gP3) 100%);box-shadow:inset 0 .1em 0 var(--w38),0 .8em 1.6em -.7em var(--gelGlowP)}
+.B .tile>*{position:relative;z-index:1}
+.B .tile .ic{background:var(--w22);color:var(--white)}
+.B .tile .lvl{background:var(--w95);color:var(--lOnSc)}
+.B .tile .mini{--peg:var(--w90)}
+.B .tile .bolt{color:var(--w90)}
+.B .tile::before{content:"";position:absolute;z-index:0;left:.7em;right:.7em;top:.22em;height:1.3em;border-radius:1.4em 1.4em .9em .9em;
+  background:linear-gradient(180deg,var(--gelLip) 0%,transparent 100%);pointer-events:none}
+.B .tile::after{content:"";position:absolute;z-index:0;top:-30%;bottom:-30%;left:-50%;width:30%;pointer-events:none;
+  background:linear-gradient(100deg,transparent 0%,var(--gelSheen) 50%,transparent 100%);transform:translateX(0) skewX(-14deg);
+  animation:bSheen 10s ease-in-out infinite;animation-delay:var(--gd,0s)}
+@keyframes bSheen{0%,75%{transform:translateX(0) skewX(-14deg)}100%{transform:translateX(560%) skewX(-14deg)}}
+.B .stage,.B .slab{box-shadow:inset 0 0 0 .0625em var(--slabRim),inset 0 .12em 0 var(--lip),0 .9em 2.2em -.8em var(--glow)}
+/* ---------- C · Airy daylight: silk ribbons of light and floating bubbles ---------- */
+.C.L{--m:var(--cLMid);--lo:var(--cLLow);--r1:var(--cLR1);--r2:var(--cLR2);--bIn:var(--cLBIn);--bR1:var(--cLBR1);--bR2:var(--cLBR2);--bHi:var(--cLBHi);
+  --glass:var(--cLGlass);--rim:var(--cLRim);--sh1:var(--cLSh1);--sh2:var(--cLSh2)}
+.C.D{--m:var(--cDMid);--lo:var(--cDLow);--r1:var(--cDR1);--r2:var(--cDR2);--bIn:var(--cDBIn);--bR1:var(--cDBR1);--bR2:var(--cDBR2);--bHi:var(--cDBHi);
+  --glass:var(--cDGlass);--rim:var(--cDRim);--sh1:var(--cDSh1);--sh2:var(--cDSh2)}
+.C .bd{background:linear-gradient(180deg,var(--bg) 0%,var(--bg) 13%,var(--m) 40%,var(--lo) 100%)}
+.C .rib{left:-35%;width:170%;top:var(--y);height:var(--h);border-radius:50%;
+  background:radial-gradient(closest-side,var(--rc) 0%,var(--rc) 30%,transparent 100%);transform:rotate(var(--r));
+  animation:cSway var(--d) ease-in-out infinite alternate}
+.C .r1{--rc:var(--r1)}
+.C .r2{--rc:var(--r2)}
+@keyframes cSway{from{transform:translateX(-1.6em) rotate(var(--r))}to{transform:translateX(1.6em) rotate(calc(var(--r) + 3deg))}}
+.C .bub{left:var(--x);top:var(--y);width:var(--s);height:var(--s);border-radius:50%;
+  background:radial-gradient(circle at 33% 30%,var(--bHi) 0 8%,transparent 11%),radial-gradient(circle closest-side,var(--bIn) 0 74%,var(--bR1) 84%,var(--bR2) 93%,transparent 100%);
+  animation:cFloat var(--d) ease-in-out infinite;animation-delay:var(--dl)}
+@keyframes cFloat{0%{transform:translate(0,1.5em);opacity:0}12%{opacity:1}50%{transform:translate(.8em,-2.5em)}88%{opacity:1}100%{transform:translate(-.4em,-6em);opacity:0}}
+.C .gl{background:var(--glass);box-shadow:inset 0 0 0 .0625em var(--rim),0 .9em 2em -1em var(--sh1),0 .3em .8em -.3em var(--sh2)}
+.C .cont{background:var(--tc)}
+.C .classic{background:var(--pc)}
+.C .challenge{background:var(--sc)}
+.C .stage,.C .slab{box-shadow:inset 0 0 0 .0625em var(--slabRim),0 1em 2.2em -1em var(--sh1),0 .3em .8em -.3em var(--sh2)}
+
+/* motion off: the OS setting, or the button at the top of the page */
+@media (prefers-reduced-motion: reduce){.phone *,.phone *::before,.phone *::after{animation:none !important}}
+#still:checked ~ .page .phone *,#still:checked ~ .page .phone *::before,#still:checked ~ .page .phone *::after{animation:none !important}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <radialGradient id="pgSh" cx=".42" cy=".38" r=".62" fx=".34" fy=".3">
+      <stop offset="0" style="stop-color:var(--pegShHi);stop-opacity:.6"/>
+      <stop offset=".42" style="stop-color:var(--pegShHi);stop-opacity:0"/>
+      <stop offset=".72" style="stop-color:var(--pegShRim);stop-opacity:0"/>
+      <stop offset="1" style="stop-color:var(--pegShRim);stop-opacity:.55"/>
+    </radialGradient>
+    <linearGradient id="goldG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" style="stop-color:var(--lGoldHi)"/><stop offset="1" style="stop-color:var(--lGold)"/>
+    </linearGradient>
+    <g id="pg"><circle r=".34" style="fill:var(--peg)"/><circle r=".34" fill="url(#pgSh)"/><circle cx="-.115" cy="-.125" r=".075" style="fill:var(--spec)"/></g>
+    <g id="ho"><circle r=".16" style="fill:var(--dimS)"/><circle cy=".03" r=".13" style="fill:var(--dimF)"/></g>
+  </defs>
+  <!-- Home stage: the constant English-33 position from the phase-15 build -->
+  <symbol id="bd-stage" viewBox="0 0 7 7">
+    <use href="#ho" x="2.5" y=".5"/><use href="#ho" x="3.5" y=".5"/><use href="#ho" x="4.5" y="1.5"/><use href="#ho" x="2.5" y="2.5"/><use href="#ho" x="3.5" y="2.5"/>
+    <use href="#ho" x=".5" y="3.5"/><use href="#ho" x="1.5" y="3.5"/><use href="#ho" x="2.5" y="3.5"/><use href="#ho" x="3.5" y="3.5"/><use href="#ho" x="4.5" y="3.5"/><use href="#ho" x="5.5" y="3.5"/>
+    <use href="#ho" x=".5" y="4.5"/><use href="#ho" x="3.5" y="4.5"/><use href="#ho" x="5.5" y="4.5"/><use href="#ho" x="6.5" y="4.5"/>
+    <use href="#ho" x="2.5" y="5.5"/><use href="#ho" x="3.5" y="5.5"/><use href="#ho" x="3.5" y="6.5"/><use href="#ho" x="4.5" y="6.5"/>
+    <use href="#pg" x="4.5" y=".5"/><use href="#pg" x="2.5" y="1.5"/><use href="#pg" x="3.5" y="1.5"/>
+    <use href="#pg" x=".5" y="2.5"/><use href="#pg" x="1.5" y="2.5"/><use href="#pg" x="4.5" y="2.5"/><use href="#pg" x="5.5" y="2.5"/><use href="#pg" x="6.5" y="2.5"/>
+    <use href="#pg" x="6.5" y="3.5"/><use href="#pg" x="1.5" y="4.5"/><use href="#pg" x="2.5" y="4.5"/><use href="#pg" x="4.5" y="4.5"/>
+    <use href="#pg" x="4.5" y="5.5"/><use href="#pg" x="2.5" y="6.5"/>
+  </symbol>
+  <!-- Game: mid-game, centre peg selected, three legal targets showing (Show moves on) -->
+  <symbol id="bd-game" viewBox="0 0 7 7">
+    <use href="#ho" x="3.5" y=".5"/><use href="#ho" x="4.5" y="1.5"/><use href="#ho" x=".5" y="2.5"/><use href="#ho" x="3.5" y="2.5"/><use href="#ho" x="6.5" y="2.5"/>
+    <use href="#ho" x="1.5" y="3.5"/><use href="#ho" x="5.5" y="3.5"/><use href="#ho" x=".5" y="4.5"/><use href="#ho" x="2.5" y="4.5"/><use href="#ho" x="6.5" y="4.5"/>
+    <use href="#ho" x="3.5" y="5.5"/><use href="#ho" x="2.5" y="6.5"/>
+    <use href="#pg" x="2.5" y=".5"/><use href="#pg" x="4.5" y=".5"/><use href="#pg" x="2.5" y="1.5"/><use href="#pg" x="3.5" y="1.5"/>
+    <use href="#pg" x="1.5" y="2.5"/><use href="#pg" x="2.5" y="2.5"/><use href="#pg" x="4.5" y="2.5"/><use href="#pg" x="5.5" y="2.5"/>
+    <use href="#pg" x=".5" y="3.5"/><use href="#pg" x="2.5" y="3.5"/><use href="#pg" x="4.5" y="3.5"/><use href="#pg" x="6.5" y="3.5"/>
+    <use href="#pg" x="1.5" y="4.5"/><use href="#pg" x="3.5" y="4.5"/><use href="#pg" x="4.5" y="4.5"/><use href="#pg" x="5.5" y="4.5"/>
+    <use href="#pg" x="2.5" y="5.5"/><use href="#pg" x="4.5" y="5.5"/><use href="#pg" x="3.5" y="6.5"/><use href="#pg" x="4.5" y="6.5"/>
+    <g style="fill:var(--dot)"><circle cx="3.5" cy="5.5" r=".18"/><circle cx="1.5" cy="3.5" r=".18"/><circle cx="5.5" cy="3.5" r=".18"/></g>
+    <g transform="translate(3.5 3.5)"><use href="#pg" transform="scale(1.08)"/><circle r=".42" fill="none" stroke-width=".08" style="stroke:var(--pri)"/></g>
+  </symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4" fill="none" stroke="currentColor" stroke-width="3.2" stroke-dasharray="3.3 3.3"/><path fill="currentColor" fill-rule="evenodd" d="M12 5a7 7 0 1 0 0 14 7 7 0 1 0 0-14zm0 4.3a2.7 2.7 0 1 1 0 5.4 2.7 2.7 0 1 1 0-5.4z"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5.5M11 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 6.5 4.5 11 9 15.5M5 11h9.2a5 5 0 0 1 0 10H12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5a6.5 6.5 0 0 0-3.9 11.7c.6.5.9 1.1.9 1.8V17h6v-1c0-.7.3-1.3.9-1.8A6.5 6.5 0 0 0 12 2.5z"/><rect x="9" y="18.2" width="6" height="1.6" rx=".8" fill="currentColor"/><rect x="10" y="20.6" width="4" height="1.6" rx=".8" fill="currentColor"/></symbol>
+  <symbol id="i-moves" viewBox="0 0 24 24"><circle cx="8" cy="12" r="4.6" fill="currentColor"/><circle cx="15.6" cy="12" r="1.7" fill="currentColor"/><circle cx="20.4" cy="12" r="1.7" fill="currentColor"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-restart" viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.8 3.8v5.1h-5.1" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 2.6l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17l-5.6 3 1.1-6.3L2.9 9.3l6.3-.9z" fill="url(#goldG)"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><g fill="currentColor"><rect x="3.5" y="3.5" width="7.4" height="7.4" rx="1.6"/><rect x="13.1" y="3.5" width="7.4" height="7.4" rx="1.6"/><rect x="3.5" y="13.1" width="7.4" height="7.4" rx="1.6"/><rect x="13.1" y="13.1" width="7.4" height="7.4" rx="1.6"/></g></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path fill="currentColor" d="M13.5 2 5 13.5h6L10 22l9-12h-6.2z"/></symbol>
+  <symbol id="i-sig" viewBox="0 0 24 24"><path fill="currentColor" d="M3 20h3v-4H3zm5 0h3v-8H8zm5 0h3V8h-3zm5 0h3V4h-3z"/></symbol>
+  <symbol id="i-wifi" viewBox="0 0 24 24"><path fill="currentColor" d="M12 20.5l3-3.6a4.7 4.7 0 0 0-6 0zM5 13.4a10.6 10.6 0 0 1 14 0l-1.9 2.3a7.6 7.6 0 0 0-10.2 0zM1.8 9.6a15.4 15.4 0 0 1 20.4 0l-1.9 2.3a12.4 12.4 0 0 0-16.6 0z"/></symbol>
+  <symbol id="i-bat" viewBox="0 0 24 24"><rect x="2" y="7" width="18" height="10" rx="3" fill="currentColor"/><rect x="21" y="10" width="1.8" height="4" rx=".9" fill="currentColor"/></symbol>
+</svg>
+
+<input type="checkbox" id="still" class="vh">
+<div class="page">
+
+<header class="mast">
+  <p class="eyebrow">Peg Solitaire · backdrop directions · for your pick in Q-021</p>
+  <h1>Three ways to make the game feel alive</h1>
+  <p class="lede">You asked for the aliveness of Candy Crush without copying it: a glassy look, maybe with something soft in the back. Each direction below keeps the game exactly as it plays today and changes only what sits behind and around it. Pick one, ask for changes, or say none of them.</p>
+  <div class="bar">
+    <label class="stillbtn" for="still"><span class="off">Stop the motion</span><span class="on">Start the motion</span></label>
+    <span class="hint">Every screen moves gently. Stopping it shows what players who turn animations off in Android see: the same picture, standing still.</span>
+  </div>
+  <nav class="jump" aria-label="Directions">
+    <a href="#today">Today</a><a href="#a">A · Frosted glass</a><a href="#b">B · Deep gloss</a><a href="#c">C · Airy daylight</a><a href="#pick">My pick</a>
+  </nav>
+</header>
+
+<section class="plate" id="today" aria-labelledby="h-today">
+  <div class="plate-head"><span class="letter">Now</span><h2 id="h-today">Today, for comparison</h2>
+    <p class="one">The phase-15 Home as it is about to ship: a flat lavender background with two very faint drifting blobs.</p></div>
+  <div class="today-grid">
+    <div class="fw">
+      <div class="phone T L" role="img" aria-label="Today's Home screen in the light theme">
+        <div class="bd"><i class="tb tb1"></i><i class="tb tb2"></i></div>
+        <div class="ui" aria-hidden="true">
+          <div class="sb"><span>9:44</span><span class="sbi"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-bat"/></svg></span></div>
+          <div class="hero"><span class="title">Peg Solitaire</span><span class="gear gl"><svg><use href="#i-gear"/></svg></span></div>
+          <div class="stage"><svg viewBox="0 0 7 7"><use href="#bd-stage"/></svg></div>
+          <div class="ribbon"><span class="pill gl"><svg><use href="#i-star"/></svg><span class="lb">Stars</span><span class="vl">401</span></span><span class="pill gl"><svg><use href="#i-grid"/></svg><span class="lb">Boards</span><span class="vl">0/5</span></span><span class="pill gl"><svg><use href="#i-bolt"/></svg><span class="lb">Level</span><span class="vl">111</span></span></div>
+          <div class="cont gl"><span class="tx"><b>Continue Classic</b><span>Pick up your saved board</span></span><i class="mini"></i></div>
+          <div class="tile classic gl"><span class="ic"><svg><use href="#i-grid"/></svg></span><span class="tx"><b>Classic</b><span>5 boards</span></span><i class="mini"></i></div>
+          <div class="tile challenge gl"><span class="ic"><svg><use href="#i-bolt"/></svg></span><span class="tx"><b>Challenge</b><span class="lvl">Continue — Level 111</span></span><svg class="bolt"><use href="#i-bolt"/></svg></div>
+        </div><i class="gesture"></i>
+      </div>
+      <p class="cap">Today · Home · light</p>
+    </div>
+    <div>
+      <h3 class="eyebrow" style="margin-bottom:.9rem">What every direction keeps</h3>
+      <ul class="keeps">
+        <li><b>The board.</b> Same pegs, holes, selection ring and move dots, on the same solid slab. The board never sits on glass, so it reads exactly as today.</li>
+        <li><b>The layout.</b> Every card, button, text size and position stays where phase 15 put it. Only the background and the finish of the cards change.</li>
+        <li><b>The colours.</b> Violet leads and pink seconds. Gold stays reserved for stars and hints.</li>
+        <li><b>Nothing from Candy Crush.</b> No sweets, no characters, no candy shapes, no tile grid. Only light, glass, gloss and bubbles, drawn by us.</li>
+        <li><b>Start-up speed.</b> Everything is drawn in code, with no pictures to load. The first frame is a plain gradient, so the app opens as fast as today.</li>
+        <li><b>Calm titles.</b> The top of every screen stays as quiet as today, so the title and the timer always read clearly.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="plate" id="a" aria-labelledby="h-a">
+  <div class="plate-head"><span class="letter">A</span><h2 id="h-a">Frosted glass</h2>
+    <p class="one">Frosted panels float over slow pools of violet and pink light, and a soft glint crosses the glass now and then.</p></div>
+  <div class="frames">
+    <div class="fw">
+      <div class="phone A L" role="img" aria-label="Direction A, Home, light theme">
+        <div class="bd"><i class="blob b1" style="--x:-30%;--y:26%;--s:23em"></i><i class="blob b2" style="--x:30%;--y:48%;--s:25em"></i><i class="blob b3" style="--x:-15%;--y:70%;--s:21em"></i><i class="veil"></i></div>
+        <div class="ui" aria-hidden="true">
+          <div class="sb"><span>9:44</span><span class="sbi"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-bat"/></svg></span></div>
+          <div class="hero"><span class="title">Peg Solitaire</span><span class="gear gl"><svg><use href="#i-gear"/></svg></span></div>
+          <div class="stage"><svg viewBox="0 0 7 7"><use href="#bd-stage"/></svg></div>
+          <div class="ribbon"><span class="pill gl" style="--gd:.2s"><svg><use href="#i-star"/></svg><span class="lb">Stars</span><span class="vl">401</span></span><span class="pill gl" style="--gd:.35s"><svg><use href="#i-grid"/></svg><span class="lb">Boards</span><span class="vl">0/5</span></span><span class="pill gl" style="--gd:.5s"><svg><use href="#i-bolt"/></svg><span class="lb">Level</span><span class="vl">111</span></span></div>
+          <div class="cont gl" style="--gd:.8s"><span class="tx"><b>Continue Classic</b><span>Pick up your saved board</span></span><i class="mini"></i></div>
+          <div class="tile classic gl" style="--gd:1.1s"><span class="ic"><svg><use href="#i-grid"/></svg></span><span class="tx"><b>Classic</b><span>5 boards</span></span><i class="mini"></i></div>
+          <div class="tile challenge gl" style="--gd:1.4s"><span class="ic"><svg><use href="#i-bolt"/></svg></span><span class="tx"><b>Challenge</b><span class="lvl">Continue — Level 111</span></span><svg class="bolt"><use href="#i-bolt"/></svg></div>
+        </div><i class="gesture"></i>
+      </div>
+      <p class="cap">A · Home · light</p>
+    </div>
+    <div class="fw">
+      <div class="phone A L G" role="img" aria-label="Direction A, game screen, light theme">
+        <div class="bd"><i class="blob b1" style="--x:-35%;--y:55%;--s:24em"></i><i class="blob b2" style="--x:35%;--y:68%;--s:26em"></i><i class="veil"></i></div>
+        <div class="ui" aria-hidden="true">
+          <div class="sb"><span>9:44</span><span class="sbi"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-bat"/></svg></span></div>
+          <div class="strip"><span class="back gl"><svg><use href="#i-back"/></svg></span><span class="gtitle">Peg Solitaire</span><span class="timer gl" style="--gd:.3s"><span>05:12</span></span></div>
+          <div class="slab"><svg viewBox="0 0 7 7"><use href="#bd-game"/></svg></div>
+          <div class="dock gl" style="--gd:.9s"><span class="db"><svg><use href="#i-undo"/></svg></span><span class="db"><svg><use href="#i-bulb"/></svg></span><span class="db on"><svg><use href="#i-moves"/></svg><i class="chk"><svg><use href="#i-check"/></svg></i></span><span class="db"><svg><use href="#i-restart"/></svg></span></div>
+        </div><i class="gesture"></i>
+      </div>
+      <p class="cap">A · Game · light</p>
+    </div>
+    <div class="fw">
+      <div class="phone A D" role="img" aria-label="Direction A, Home, dark theme">
+        <div class="bd"><i class="blob b1" style="--x:-30%;--y:26%;--s:23em"></i><i class="blob b2" style="--x:30%;--y:48%;--s:25em"></i><i class="blob b3" style="--x:-15%;--y:70%;--s:21em"></i><i class="veil"></i></div>
+        <div class="ui" aria-hidden="true">
+          <div class="sb"><span>9:44</span><span class="sbi"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-bat"/></svg></span></div>
+          <div class="hero"><span class="title">Peg Solitaire</span><span class="gear gl"><svg><use href="#i-gear"/></svg></span></div>
+          <div class="stage"><svg viewBox="0 0 7 7"><use href="#bd-stage"/></svg></div>
+          <div class="ribbon"><span class="pill gl" style="--gd:.2s"><svg><use href="#i-star"/></svg><span class="lb">Stars</span><span class="vl">401</span></span><span class="pill gl" style="--gd:.35s"><svg><use href="#i-grid"/></svg><span class="lb">Boards</span><span class="vl">0/5</span></span><span class="pill gl" style="--gd:.5s"><svg><use href="#i-bolt"/></svg><span class="lb">Level</span><span class="vl">111</span></span></div>
+          <div class="cont gl" style="--gd:.8s"><span class="tx"><b>Continue Classic</b><span>Pick up your saved board</span></span><i class="mini"></i></div>
+          <div class="tile classic gl" style="--gd:1.1s"><span class="ic"><svg><use href="#i-grid"/></svg></span><span class="tx"><b>Classic</b><span>5 boards</span></span><i class="mini"></i></div>
+          <div class="tile challenge gl" style="--gd:1.4s"><span class="ic"><svg><use href="#i-bolt"/></svg></span><span class="tx"><b>Challenge</b><span class="lvl">Continue — Level 111</span></span><svg class="bolt"><use href="#i-bolt"/></svg></div>
+        </div><i class="gesture"></i>
+      </div>
+      <p class="cap">A · Home · dark</p>
+    </div>
+    <div class="fw">
+      <div class="phone A D G" role="img" aria-label="Direction A, game screen, dark theme">
+        <div class="bd"><i class="blob b1" style="--x:-35%;--y:55%;--s:24em"></i><i class="blob b2" style="--x:35%;--y:68%;--s:26em"></i><i class="veil"></i></div>
+        <div class="ui" aria-hidden="true">
+          <div class="sb"><span>9:44</span><span class="sbi"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-bat"/></svg></span></div>
+          <div class="strip"><span class="back gl"><svg><use href="#i-back"/></svg></span><span class="gtitle">Peg Solitaire</span><span class="timer gl" style="--gd:.3s"><span>05:12</span></span></div>
+          <div class="slab"><svg viewBox="0 0 7 7"><use href="#bd-game"/></svg></div>
+          <div class="dock gl" style="--gd:.9s"><span class="db"><svg><use href="#i-undo"/></svg></span><span class="db"><svg><use href="#i-bulb"/></svg></span><span class="db on"><svg><use href="#i-moves"/></svg><i class="chk"><svg><use href="#i-check"/></svg></i></span><span class="db"><svg><use href="#i-restart"/></svg></span></div>
+        </div><i class="gesture"></i>
+      </div>
+      <p class="cap">A · Game · dark</p>
+    </div>
+  </div>
+  <div class="notes">
+    <div class="note"><h3>Why this one</h3>
+      <p>The most direct answer to "glassy, with something in the back". Three big, soft pools of violet and pink light drift slowly behind the screen, and every panel you touch becomes frosted glass that lets their colour through. A soft glint crosses the glass every few seconds, so the menu feels alive even when nobody touches it.</p>
+      <p>The cards keep their violet, pink and gold tints, so the Home you approved in phase 15 stays recognisable. The game screen gets the same light, lower and slower, around a board that stays solid.</p></div>
+    <div class="note"><h3>What it costs to build in Compose</h3>
+      <p>One Canvas behind each screen draws a gradient and three soft radial circles. One infinite animation moves them in the draw phase only, so nothing recomposes. That is the work Home already does for its two blobs, plus one circle.</p>
+      <p>The glass is a translucent fill, a 1dp light rim and the existing clay shadow, with no blur pass. Compose has no built-in background blur, RenderEffect needs Android 12 while the app supports Android 7, and over light that is already soft a blur would change almost nothing. This mock uses no blur either, so it shows what we would ship. The glint is one moving gradient per panel. The first frame is the gradient with the pools at rest; motion starts after it. No images, no new library.</p></div>
+    <div class="note"><h3>Readable text, readable board</h3>
+      <p>No text sits on the moving light. The title and the game title stay in a calm band at the top that always matches today's background. Text on glass reads at least 5.3:1 in light and 6.0:1 in dark even over the brightest overlap of light (body text needs 4.5:1), because the glass is dense: white at 80%, or the dark background at 72%.</p>
+      <p>The slab stays solid, so pegs and holes are today's, pixel for pixel. Its edge gains a 1dp rim. In light the pools make it stand out more than today (1.9:1 against 1.05:1); in dark the rim or the fill keeps it at 1.28:1 or more (today 1.26:1).</p></div>
+  </div>
+  <div class="facts">
+    <p><b>What moves:</b> three light pools on 21 to 29 second loops (two pools, 33 to 39 seconds, on the game screen); a glint crosses each panel every 9 seconds. With animations off, nothing moves.</p>
+    <p><b>Candy Crush check</b> (my pre-check; reviewers give the binding answer): no element traces to a King design, and one screenshot reads as a peg-solitaire cross on a lavender slab, not as Candy Crush.</p>
+  </div>
+</section>
+<section class="plate" id="b" aria-labelledby="h-b">
+  <div class="plate-head"><span class="letter">B</span><h2 id="h-b">Deep gloss</h2>
+    <p class="one">A deep, glossy world: liquid waves of colour at the bottom, soft out-of-focus lights rising through it, and gel-like mode cards.</p></div>
+  <div class="frames">
+    <div class="fw">
+      <div class="phone B L" role="img" aria-label="Direction B, Home, light theme">
+        <div class="bd"><i class="wave wv1" style="--wy:49%"></i><i class="wave wv2" style="--wy:62%"></i>
+          <i class="bk k1" style="--x:4%;--y:24%;--s:3.25em;--d:30s;--dl:-4s;--o:.9"></i><i class="bk k2" style="--x:80%;--y:20%;--s:2.25em;--d:26s;--dl:-11s;--o:.85"></i><i class="bk k3" style="--x:82%;--y:33%;--s:4.25em;--d:34s;--dl:-2s;--o:.75"></i><i class="bk k2" style="--x:1%;--y:37%;--s:2em;--d:24s;--dl:-16s;--o:.85"></i><i class="bk k1" style="--x:72%;--y:50%;--s:3em;--d:38s;--dl:-20s;--o:.6"></i><i class="bk k3" style="--x:28%;--y:86%;--s:4.75em;--d:40s;--dl:-8s;--o:.55"></i><i class="bk k2" style="--x:86%;--y:88%;--s:2.5em;--d:28s;--dl:-14s;--o:.8"></i><i class="bk k1" style="--x:10%;--y:64%;--s:2.75em;--d:32s;--dl:-6s;--o:.6"></i><i class="bk k1" style="--x:46%;--y:92%;--s:1.75em;--d:22s;--dl:-9s;--o:.8"></i><i class="veil"></i></div>
+        <div class="ui" aria-hidden="true">
+          <div class="sb"><span>9:44</span><span class="sbi"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-bat"/></svg></span></div>
+          <div class="hero"><span class="title">Peg Solitaire</span><span class="gear gl"><svg><use href="#i-gear"/></svg></span></div>
+          <div class="stage"><svg viewBox="0 0 7 7"><use href="#bd-stage"/></svg></div>
+          <div class="ribbon"><span class="pill gl"><svg><use href="#i-star"/></svg><span class="lb">Stars</span><span class="vl">401</span></span><span class="pill gl"><svg><use href="#i-grid"/></svg><span class="lb">Boards</span><span class="vl">0/5</span></span><span class="pill gl"><svg><use href="#i-bolt"/></svg><span class="lb">Level</span><span class="vl">111</span></span></div>
+          <div class="cont gl"><span class="tx"><b>Continue Classic</b><span>Pick up your saved board</span></span><i class="mini"></i></div>
+          <div class="tile classic gl"><span class="ic"><svg><use href="#i-grid"/></svg></span><span class="tx"><b>Classic</b><span>5 boards</span></span><i class="mini"></i></div>
+          <div class="tile challenge gl" style="--gd:.6s"><span class="ic"><svg><use href="#i-bolt"/></svg></span><span class="tx"><b>Challenge</b><span class="lvl">Continue — Level 111</span></span><svg class="bolt"><use href="#i-bolt"/></svg></div>
+        </div><i class="gesture"></i>
+      </div>
+      <p class="cap">B · Home · light</p>
+    </div>
+    <div class="fw">
+      <div class="phone B L G" role="img" aria-label="Direction B, game screen, light theme">
+        <div class="bd"><i class="wave wv1" style="--wy:72%"></i><i class="wave wv2" style="--wy:80%"></i>
+          <i class="bk k1" style="--x:8%;--y:17%;--s:2.25em;--d:36s;--dl:-5s;--o:.8"></i><i class="bk k3" style="--x:74%;--y:20%;--s:3em;--d:42s;--dl:-18s;--o:.7"></i><i class="bk k2" style="--x:42%;--y:23%;--s:1.75em;--d:30s;--dl:-10s;--o:.8"></i><i class="bk k3" style="--x:16%;--y:73%;--s:3.5em;--d:44s;--dl:-12s;--o:.6"></i><i class="bk k2" style="--x:76%;--y:76%;--s:2.5em;--d:38s;--dl:-24s;--o:.8"></i><i class="veil"></i></div>
+        <div class="ui" aria-hidden="true">
+          <div class="sb"><span>9:44</span><span class="sbi"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-bat"/></svg></span></div>
+          <div class="strip"><span class="back gl"><svg><use href="#i-back"/></svg></span><span class="gtitle">Peg Solitaire</span><span class="timer gl"><span>05:12</span></span></div>
+          <div class="slab"><svg viewBox="0 0 7 7"><use href="#bd-game"/></svg></div>
+          <div class="dock gl"><span class="db"><svg><use href="#i-undo"/></svg></span><span class="db"><svg><use href="#i-bulb"/></svg></span><span class="db on"><svg><use href="#i-moves"/></svg><i class="chk"><svg><use href="#i-check"/></svg></i></span><span class="db"><svg><use href="#i-restart"/></svg></span></div>
+        </div><i class="gesture"></i>
+      </div>
+      <p class="cap">B · Game · light</p>
+    </div>
+    <div class="fw">
+      <div class="phone B D" role="img" aria-label="Direction B, Home, dark theme">
+        <div class="bd"><i class="wave wv1" style="--wy:49%"></i><i class="wave wv2" style="--wy:62%"></i>
+          <i class="bk k1" style="--x:4%;--y:24%;--s:3.25em;--d:30s;--dl:-4s;--o:.9"></i><i class="bk k2" style="--x:80%;--y:20%;--s:2.25em;--d:26s;--dl:-11s;--o:.85"></i><i class="bk k3" style="--x:82%;--y:33%;--s:4.25em;--d:34s;--dl:-2s;--o:.75"></i><i class="bk k2" style="--x:1%;--y:37%;--s:2em;--d:24s;--dl:-16s;--o:.85"></i><i class="bk k1" style="--x:72%;--y:50%;--s:3em;--d:38s;--dl:-20s;--o:.6"></i><i class="bk k3" style="--x:28%;--y:86%;--s:4.75em;--d:40s;--dl:-8s;--o:.55"></i><i class="bk k2" style="--x:86%;--y:88%;--s:2.5em;--d:28s;--dl:-14s;--o:.8"></i><i class="bk k1" style="--x:10%;--y:64%;--s:2.75em;--d:32s;--dl:-6s;--o:.6"></i><i class="bk k1" style="--x:46%;--y:92%;--s:1.75em;--d:22s;--dl:-9s;--o:.8"></i><i class="veil"></i></div>
+        <div class="ui" aria-hidden="true">
+          <div class="sb"><span>9:44</span><span class="sbi"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-bat"/></svg></span></div>
+          <div class="hero"><span class="title">Peg Solitaire</span><span class="gear gl"><svg><use href="#i-gear"/></svg></span></div>
+          <div class="stage"><svg viewBox="0 0 7 7"><use href="#bd-stage"/></svg></div>
+          <div class="ribbon"><span class="pill gl"><svg><use href="#i-star"/></svg><span class="lb">Stars</span><span class="vl">401</span></span><span class="pill gl"><svg><use href="#i-grid"/></svg><span class="lb">Boards</span><span class="vl">0/5</span></span><span class="pill gl"><svg><use href="#i-bolt"/></svg><span class="lb">Level</span><span class="vl">111</span></span></div>
+          <div class="cont gl"><span class="tx"><b>Continue Classic</b><span>Pick up your saved board</span></span><i class="mini"></i></div>
+          <div class="tile classic gl"><span class="ic"><svg><use href="#i-grid"/></svg></span><span class="tx"><b>Classic</b><span>5 boards</span></span><i class="mini"></i></div>
+          <div class="tile challenge gl" style="--gd:.6s"><span class="ic"><svg><use href="#i-bolt"/></svg></span><span class="tx"><b>Challenge</b><span class="lvl">Continue — Level 111</span></span><svg class="bolt"><use href="#i-bolt"/></svg></div>
+        </div><i class="gesture"></i>
+      </div>
+      <p class="cap">B · Home · dark</p>
+    </div>
+    <div class="fw">
+      <div class="phone B D G" role="img" aria-label="Direction B, game screen, dark theme">
+        <div class="bd"><i class="wave wv1" style="--wy:72%"></i><i class="wave wv2" style="--wy:80%"></i>
+          <i class="bk k1" style="--x:8%;--y:17%;--s:2.25em;--d:36s;--dl:-5s;--o:.8"></i><i class="bk k3" style="--x:74%;--y:20%;--s:3em;--d:42s;--dl:-18s;--o:.7"></i><i class="bk k2" style="--x:42%;--y:23%;--s:1.75em;--d:30s;--dl:-10s;--o:.8"></i><i class="bk k3" style="--x:16%;--y:73%;--s:3.5em;--d:44s;--dl:-12s;--o:.6"></i><i class="bk k2" style="--x:76%;--y:76%;--s:2.5em;--d:38s;--dl:-24s;--o:.8"></i><i class="veil"></i></div>
+        <div class="ui" aria-hidden="true">
+          <div class="sb"><span>9:44</span><span class="sbi"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-bat"/></svg></span></div>
+          <div class="strip"><span class="back gl"><svg><use href="#i-back"/></svg></span><span class="gtitle">Peg Solitaire</span><span class="timer gl"><span>05:12</span></span></div>
+          <div class="slab"><svg viewBox="0 0 7 7"><use href="#bd-game"/></svg></div>
+          <div class="dock gl"><span class="db"><svg><use href="#i-undo"/></svg></span><span class="db"><svg><use href="#i-bulb"/></svg></span><span class="db on"><svg><use href="#i-moves"/></svg><i class="chk"><svg><use href="#i-check"/></svg></i></span><span class="db"><svg><use href="#i-restart"/></svg></span></div>
+        </div><i class="gesture"></i>
+      </div>
+      <p class="cap">B · Game · dark</p>
+    </div>
+  </div>
+  <div class="notes">
+    <div class="note"><h3>Why this one</h3>
+      <p>The richest and most alive of the three, and the closest to the energy you described. A deep violet space sits behind the screen, with two slow, glossy waves of colour near the bottom and soft out-of-focus lights rising through it. Panels get a wet gloss highlight, and the two mode cards become gel: solid violet and pink with white text and a shine across the top.</p>
+      <p>It is also the biggest change. The mode cards you chose to keep in Q-004 go from pale tints to deep gel, the light theme turns noticeably pink, and the app starts to look like a darker, bolder game.</p></div>
+    <div class="note"><h3>What it costs to build in Compose</h3>
+      <p>One Canvas draws a gradient, two wave Paths built once per screen size, and nine soft lights (radial gradients with a brighter rim), all on one animation clock: about a dozen fills per frame, still cheap.</p>
+      <p>The gloss is a gradient overlay and a highlight line per panel. Compose has no inner shadow, so the depth is drawn with gradients instead of one shadow call. The gel cards are a vertical gradient plus one clipped highlight. The first frame is the gradient alone; the waves and lights arrive on the second. No images, no new library.</p></div>
+    <div class="note"><h3>Readable text, readable board</h3>
+      <p>Panels stay solid under their gloss, and their text sits where the gloss has faded out, so the stats and the Continue card read as today. White text on the gel cards reads at least 5.0:1 on violet and 4.7:1 on pink where the text sits; the shine ends above the title.</p>
+      <p>In dark, the lights above mid-screen stay dim enough that a title wrapped at the largest font size still reads over them. The slab stays solid with a 1dp rim, which keeps its edge at 1.28:1 or more against the deep background (today 1.26:1).</p></div>
+  </div>
+  <div class="facts">
+    <p><b>What moves:</b> two waves bob on 9 and 12 second cycles; nine lights rise and fade on 22 to 40 second loops (five, slower, on the game screen); a shine crosses each mode card every 10 seconds. With animations off, nothing moves.</p>
+    <p><b>Candy Crush check</b> (my pre-check): no element traces to a King design. Deep violet with glossy light is a common casual-game finish, and the peg cross on a solid slab rules out a match-3 reading. Soft "bokeh" lights are not on the research-analyst's list word for word, so I ask for a one-line confirmation before anything is built.</p>
+  </div>
+</section>
+<section class="plate" id="c" aria-labelledby="h-c">
+  <div class="plate-head"><span class="letter">C</span><h2 id="h-c">Airy daylight</h2>
+    <p class="one">Bright and calm: wide ribbons of light sway across a pale sky while a few soap bubbles float up and fade.</p></div>
+  <div class="frames">
+    <div class="fw">
+      <div class="phone C L" role="img" aria-label="Direction C, Home, light theme">
+        <div class="bd"><i class="rib r1" style="--y:30%;--h:11em;--r:-14deg;--d:17s"></i><i class="rib r2" style="--y:56%;--h:12em;--r:10deg;--d:21s"></i>
+          <i class="bub" style="--x:8%;--y:30%;--s:2.5em;--d:22s;--dl:-3s"></i><i class="bub" style="--x:82%;--y:24%;--s:1.75em;--d:26s;--dl:-12s"></i><i class="bub" style="--x:86%;--y:40%;--s:3.25em;--d:30s;--dl:-7s"></i><i class="bub" style="--x:4%;--y:48%;--s:1.5em;--d:20s;--dl:-15s"></i><i class="bub" style="--x:62%;--y:88%;--s:2.75em;--d:28s;--dl:-5s"></i><i class="bub" style="--x:16%;--y:90%;--s:2em;--d:24s;--dl:-18s"></i><i class="bub" style="--x:88%;--y:70%;--s:1.25em;--d:19s;--dl:-9s"></i><i class="veil"></i></div>
+        <div class="ui" aria-hidden="true">
+          <div class="sb"><span>9:44</span><span class="sbi"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-bat"/></svg></span></div>
+          <div class="hero"><span class="title">Peg Solitaire</span><span class="gear gl"><svg><use href="#i-gear"/></svg></span></div>
+          <div class="stage"><svg viewBox="0 0 7 7"><use href="#bd-stage"/></svg></div>
+          <div class="ribbon"><span class="pill gl"><svg><use href="#i-star"/></svg><span class="lb">Stars</span><span class="vl">401</span></span><span class="pill gl"><svg><use href="#i-grid"/></svg><span class="lb">Boards</span><span class="vl">0/5</span></span><span class="pill gl"><svg><use href="#i-bolt"/></svg><span class="lb">Level</span><span class="vl">111</span></span></div>
+          <div class="cont gl"><span class="tx"><b>Continue Classic</b><span>Pick up your saved board</span></span><i class="mini"></i></div>
+          <div class="tile classic gl"><span class="ic"><svg><use href="#i-grid"/></svg></span><span class="tx"><b>Classic</b><span>5 boards</span></span><i class="mini"></i></div>
+          <div class="tile challenge gl"><span class="ic"><svg><use href="#i-bolt"/></svg></span><span class="tx"><b>Challenge</b><span class="lvl">Continue — Level 111</span></span><svg class="bolt"><use href="#i-bolt"/></svg></div>
+        </div><i class="gesture"></i>
+      </div>
+      <p class="cap">C · Home · light</p>
+    </div>
+    <div class="fw">
+      <div class="phone C L G" role="img" aria-label="Direction C, game screen, light theme">
+        <div class="bd"><i class="rib r2" style="--y:68%;--h:12em;--r:8deg;--d:26s"></i>
+          <i class="bub" style="--x:6%;--y:18%;--s:1.75em;--d:30s;--dl:-6s"></i><i class="bub" style="--x:84%;--y:20%;--s:2.25em;--d:34s;--dl:-14s"></i><i class="bub" style="--x:14%;--y:76%;--s:2.5em;--d:32s;--dl:-9s"></i><i class="bub" style="--x:80%;--y:79%;--s:1.5em;--d:28s;--dl:-20s"></i><i class="veil"></i></div>
+        <div class="ui" aria-hidden="true">
+          <div class="sb"><span>9:44</span><span class="sbi"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-bat"/></svg></span></div>
+          <div class="strip"><span class="back gl"><svg><use href="#i-back"/></svg></span><span class="gtitle">Peg Solitaire</span><span class="timer gl"><span>05:12</span></span></div>
+          <div class="slab"><svg viewBox="0 0 7 7"><use href="#bd-game"/></svg></div>
+          <div class="dock gl"><span class="db"><svg><use href="#i-undo"/></svg></span><span class="db"><svg><use href="#i-bulb"/></svg></span><span class="db on"><svg><use href="#i-moves"/></svg><i class="chk"><svg><use href="#i-check"/></svg></i></span><span class="db"><svg><use href="#i-restart"/></svg></span></div>
+        </div><i class="gesture"></i>
+      </div>
+      <p class="cap">C · Game · light</p>
+    </div>
+    <div class="fw">
+      <div class="phone C D" role="img" aria-label="Direction C, Home, dark theme">
+        <div class="bd"><i class="rib r1" style="--y:30%;--h:11em;--r:-14deg;--d:17s"></i><i class="rib r2" style="--y:56%;--h:12em;--r:10deg;--d:21s"></i>
+          <i class="bub" style="--x:8%;--y:30%;--s:2.5em;--d:22s;--dl:-3s"></i><i class="bub" style="--x:82%;--y:24%;--s:1.75em;--d:26s;--dl:-12s"></i><i class="bub" style="--x:86%;--y:40%;--s:3.25em;--d:30s;--dl:-7s"></i><i class="bub" style="--x:4%;--y:48%;--s:1.5em;--d:20s;--dl:-15s"></i><i class="bub" style="--x:62%;--y:88%;--s:2.75em;--d:28s;--dl:-5s"></i><i class="bub" style="--x:16%;--y:90%;--s:2em;--d:24s;--dl:-18s"></i><i class="bub" style="--x:88%;--y:70%;--s:1.25em;--d:19s;--dl:-9s"></i><i class="veil"></i></div>
+        <div class="ui" aria-hidden="true">
+          <div class="sb"><span>9:44</span><span class="sbi"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-bat"/></svg></span></div>
+          <div class="hero"><span class="title">Peg Solitaire</span><span class="gear gl"><svg><use href="#i-gear"/></svg></span></div>
+          <div class="stage"><svg viewBox="0 0 7 7"><use href="#bd-stage"/></svg></div>
+          <div class="ribbon"><span class="pill gl"><svg><use href="#i-star"/></svg><span class="lb">Stars</span><span class="vl">401</span></span><span class="pill gl"><svg><use href="#i-grid"/></svg><span class="lb">Boards</span><span class="vl">0/5</span></span><span class="pill gl"><svg><use href="#i-bolt"/></svg><span class="lb">Level</span><span class="vl">111</span></span></div>
+          <div class="cont gl"><span class="tx"><b>Continue Classic</b><span>Pick up your saved board</span></span><i class="mini"></i></div>
+          <div class="tile classic gl"><span class="ic"><svg><use href="#i-grid"/></svg></span><span class="tx"><b>Classic</b><span>5 boards</span></span><i class="mini"></i></div>
+          <div class="tile challenge gl"><span class="ic"><svg><use href="#i-bolt"/></svg></span><span class="tx"><b>Challenge</b><span class="lvl">Continue — Level 111</span></span><svg class="bolt"><use href="#i-bolt"/></svg></div>
+        </div><i class="gesture"></i>
+      </div>
+      <p class="cap">C · Home · dark</p>
+    </div>
+    <div class="fw">
+      <div class="phone C D G" role="img" aria-label="Direction C, game screen, dark theme">
+        <div class="bd"><i class="rib r2" style="--y:68%;--h:12em;--r:8deg;--d:26s"></i>
+          <i class="bub" style="--x:6%;--y:18%;--s:1.75em;--d:30s;--dl:-6s"></i><i class="bub" style="--x:84%;--y:20%;--s:2.25em;--d:34s;--dl:-14s"></i><i class="bub" style="--x:14%;--y:76%;--s:2.5em;--d:32s;--dl:-9s"></i><i class="bub" style="--x:80%;--y:79%;--s:1.5em;--d:28s;--dl:-20s"></i><i class="veil"></i></div>
+        <div class="ui" aria-hidden="true">
+          <div class="sb"><span>9:44</span><span class="sbi"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-bat"/></svg></span></div>
+          <div class="strip"><span class="back gl"><svg><use href="#i-back"/></svg></span><span class="gtitle">Peg Solitaire</span><span class="timer gl"><span>05:12</span></span></div>
+          <div class="slab"><svg viewBox="0 0 7 7"><use href="#bd-game"/></svg></div>
+          <div class="dock gl"><span class="db"><svg><use href="#i-undo"/></svg></span><span class="db"><svg><use href="#i-bulb"/></svg></span><span class="db on"><svg><use href="#i-moves"/></svg><i class="chk"><svg><use href="#i-check"/></svg></i></span><span class="db"><svg><use href="#i-restart"/></svg></span></div>
+        </div><i class="gesture"></i>
+      </div>
+      <p class="cap">C · Game · dark</p>
+    </div>
+  </div>
+  <div class="notes">
+    <div class="note"><h3>Why this one</h3>
+      <p>The lightest touch. The sky stays pale and close to today's, two wide ribbons of lilac and pink light sway slowly across it, and a few soap bubbles with shimmering rims drift up and fade. Panels become white glass with soft pink and violet shadows, and the cards keep their exact colours.</p>
+      <p>It adds life without changing the app's character and gives the board the calmest frame of the three. It is also the least glassy, and the furthest from the energy you described.</p></div>
+    <div class="note"><h3>What it costs to build in Compose</h3>
+      <p>One Canvas draws a gradient, two rotated soft ellipses and seven bubbles (each a ring drawn with a gradient brush plus a highlight dot) on one animation clock: about 17 fills per frame, all of them small.</p>
+      <p>Panels are a translucent white fill, a rim and two tinted shadows. The first frame is the gradient alone. No images, no new library.</p></div>
+    <div class="note"><h3>Readable text, readable board</h3>
+      <p>The pale sky keeps every panel at least as readable as today: white glass at 86% keeps labels at 5.8:1 or more in light, and the dark glass keeps them at 5.4:1 or more. Bubbles fade out before they reach the calm band, and in dark they are faint enough that a wrapped title still reads over them.</p>
+      <p>The slab stays solid. With its rim, its edge is never weaker than today's in either theme.</p></div>
+  </div>
+  <div class="facts">
+    <p><b>What moves:</b> two light ribbons sway on 17 and 21 second cycles; seven bubbles rise and fade on 19 to 30 second loops (one ribbon and four bubbles, slower, on the game screen). With animations off, nothing moves.</p>
+    <p><b>Candy Crush check</b> (my pre-check): no element traces to a King design; soap bubbles and light ribbons are generic. Like B's lights, bubbles are not on the research-analyst's list word for word, so they get the same one-line confirmation before build.</p>
+  </div>
+</section>
+<section class="plate" id="pick" aria-labelledby="h-pick">
+  <div class="plate-head"><span class="letter">Pick</span><h2 id="h-pick">My recommendation</h2></div>
+  <div class="pick">
+    <div class="verdict">
+      <p class="big">A · Frosted glass</p>
+      <p>It is the closest match to what you asked for: glass you can see, with soft light moving behind it. It brings real motion to both screens while the cards and colours you chose to keep in Q-004 stay recognisable, and it is the cheapest of the three to build and to run, at about the work Home already does today. The board stays the calmest thing on the screen.</p>
+      <p>Choose B if you want the boldest, most energetic look and are happy for the app to turn darker and pinker, with gel mode cards. Choose C if you want the smallest step from today.</p>
+      <p>Whichever you pick replaces the sweets landscape from Q-020: no hills, sweets or sprinkles. Nothing is built until you choose.</p>
+    </div>
+    <div class="cmp">
+      <table>
+        <caption class="vh">The three directions compared</caption>
+        <thead><tr><th scope="col"></th><th scope="col">A · Frosted glass</th><th scope="col">B · Deep gloss</th><th scope="col">C · Airy daylight</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Feels alive</th><td><span class="meter m2" aria-hidden="true"><i></i><i></i><i></i></span>High</td><td><span class="meter m3" aria-hidden="true"><i></i><i></i><i></i></span>Highest</td><td><span class="meter m1" aria-hidden="true"><i></i><i></i><i></i></span>Gentle</td></tr>
+          <tr><th scope="row">Glassy</th><td><span class="meter m3" aria-hidden="true"><i></i><i></i><i></i></span>Glass is the look</td><td><span class="meter m2" aria-hidden="true"><i></i><i></i><i></i></span>Gloss and gel</td><td><span class="meter m1" aria-hidden="true"><i></i><i></i><i></i></span>Light white glass</td></tr>
+          <tr><th scope="row">Calm around the board</th><td><span class="meter m2" aria-hidden="true"><i></i><i></i><i></i></span>Calm</td><td><span class="meter m1" aria-hidden="true"><i></i><i></i><i></i></span>Busier</td><td><span class="meter m3" aria-hidden="true"><i></i><i></i><i></i></span>Calmest</td></tr>
+          <tr><th scope="row">Change from today</th><td><span class="meter m2" aria-hidden="true"><i></i><i></i><i></i></span>Moderate: same cards, glass finish</td><td><span class="meter m3" aria-hidden="true"><i></i><i></i><i></i></span>Large: gel cards, pinker light theme</td><td><span class="meter m1" aria-hidden="true"><i></i><i></i><i></i></span>Small</td></tr>
+          <tr><th scope="row">Work per frame</th><td>About 4 soft fills, like Home today</td><td>About 12 fills</td><td>About 17 small fills</td></tr>
+          <tr><th scope="row">Dark theme</th><td>Deep plum with glowing pools</td><td>Its natural home</td><td>Dusk with faint ribbons</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <p>ux-designer · 2026-10-18 · Your answer goes in Q-021.</p>
+  <p>Every screen here is drawn in CSS and inline SVG from the app's own colour tokens and laid out from the phase-15 screens. No image from Candy Crush or any other game was used, traced or opened.</p>
+  <p>Contrast figures are WCAG ratios computed from the colours shown. Once a direction is built, the reading on a real phone is what counts.</p>
+</footer>
+
+</div>
