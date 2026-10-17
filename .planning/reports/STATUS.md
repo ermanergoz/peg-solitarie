@@ -7,6 +7,7 @@
 - phase-13 (cloud-save) — feature/phase-13-cloud-save, main checkout; plans 13-01..13-10 done; 13-11 task 1 green, task 2 device pass recorded (3 blocked, 1 partial) and Q-001 answered 'already on' so the refused save is a defect: developer adding the CloudSaveOutcome reason code (review loop 1), then a QA re-run; task 3 pending
 
 ## Done
+2026-10-18 | phase-14 R-1 gate scope | android-game-dev, code-auditor, qa-engineer, tech-lead | PASS (QA and tech-lead on Opus under Q-019); merged to develop --no-ff; QA open issues routed to check-gates C3a/C3b | .planning/reports/phase-14/code-auditor-gate-scope.md, qa-engineer-gate-scope.md, tech-lead-signoff-gate-scope.md, producer-gate-scope.md
 2026-09-20 | adopt-studio | producer | done | rules snapshot v0.1.0, VERSION, STATUS.md, FOUNDER.md (repo predates the studio; phases 1-12 were built under gsd alone)
 2026-09-20 | approve-concept | producer, founder | approved (candidate 1) | docs/concept-brief.md, .planning/approvals/concept.approved
 2026-09-20 | phase-13 device pass (UAT 10-13) | qa-engineer, producer | 10 blocked, 11 blocked, 12 blocked, 13 partial | .planning/reports/phase-13/qa-engineer-device-pass.md (4 gamer-tag screenshots withheld from the repo)
