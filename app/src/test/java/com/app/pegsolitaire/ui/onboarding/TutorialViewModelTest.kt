@@ -10,6 +10,7 @@ import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.tutorial.TutorialBoards
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -285,6 +286,55 @@ class TutorialViewModelTest {
         }
 
     /**
+     * Criterion 4's threshold (§4.4 class 3): the **third** consecutive tap that changes nothing
+     * raises the coach, its source ring and its destination dot, and the second does not
+     * (phase-15 QA, G-1).
+     *
+     * The count is typed here, tap by tap, from the criterion. It is never read back from
+     * [TutorialAnim.NON_PROGRESSING_TAPS_BEFORE_COACH]: a test that tapped "the constant" times
+     * would follow it to 1 or to 10 and stay green, which is the gap G-1 found. The constant
+     * appears only in the failure messages, so a red run names the knob that moved.
+     */
+    @Test
+    fun theThirdConsecutiveNonProgressingTapRaisesTheCoachAndTheSecondDoesNot() =
+        runTest(testDispatcher) {
+            val viewModel = viewModelFor()
+            runCurrent()
+            playTheOnlyMove(viewModel)
+            settleStepAdvance()
+            // Nothing is held, so a tap on an empty hole changes nothing (§4.1; §4.4 class 2).
+            val (firstTap, secondTap, thirdTap) = T2_EMPTY_HOLES
+
+            viewModel.onCellTap(firstTap)
+            runCurrent()
+            viewModel.onCellTap(secondTap)
+            runCurrent()
+
+            assertWithMessage("the coach after the second tap, $THRESHOLD_IN_USE")
+                .that(viewModel.uiState.value.coachTick)
+                .isEqualTo(NO_ESCALATION)
+            assertWithMessage("the coached peg after the second tap, $THRESHOLD_IN_USE")
+                .that(viewModel.uiState.value.board.hintSource)
+                .isNull()
+            assertWithMessage("the coached dot after the second tap, $THRESHOLD_IN_USE")
+                .that(viewModel.uiState.value.board.hintTarget)
+                .isNull()
+
+            viewModel.onCellTap(thirdTap)
+            runCurrent()
+
+            assertWithMessage("the coach after the third tap, $THRESHOLD_IN_USE")
+                .that(viewModel.uiState.value.coachTick)
+                .isEqualTo(FIRST_ESCALATION)
+            assertWithMessage("the coached peg after the third tap, $THRESHOLD_IN_USE")
+                .that(viewModel.uiState.value.board.hintSource)
+                .isEqualTo(T2_MOVABLE_PEG)
+            assertWithMessage("the coached dot after the third tap, $THRESHOLD_IN_USE")
+                .that(viewModel.uiState.value.board.hintTarget)
+                .isEqualTo(T2_COACHED_DOT)
+        }
+
+    /**
      * The release clause (§4.4, criterion 3): the escalation puts down a held peg it is **not**
      * pointing at, in the same state change that raises the ring.
      *
@@ -406,11 +456,25 @@ class TutorialViewModelTest {
         const val T1_START_PEGS = 2
         const val ONE_PEG = 1
 
+        /** `coachTick` before any escalation, which the screen reads as "nothing to pulse". */
+        const val NO_ESCALATION = 0
+
         /** The coach escalates **once**; this is that one escalation's ordinal. */
         const val FIRST_ESCALATION = 1
 
+        /**
+         * The threshold the ViewModel runs with, for failure messages only (G-1). The test's
+         * expectations never read it.
+         */
+        const val THRESHOLD_IN_USE =
+            "with TutorialAnim.NON_PROGRESSING_TAPS_BEFORE_COACH = " +
+                "${TutorialAnim.NON_PROGRESSING_TAPS_BEFORE_COACH}; criterion 4 asks for the third tap"
+
         /** T2's only movable peg — the source of its single legal move, so the coached one. */
         val T2_MOVABLE_PEG = Position(row = 0, col = 1)
+
+        /** Where T2's single legal move lands: the hole below its middle peg, so the coached dot. */
+        val T2_COACHED_DOT = Position(row = 2, col = 1)
 
         /** T2's middle peg: in play, holds a peg, and has no legal jump (§4.4 class 1). */
         val T2_IMMOVABLE_PEG = Position(row = 1, col = 1)
