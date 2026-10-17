@@ -100,7 +100,30 @@ founder question through the producer, non-blocking, recommendation: raise to 26
 release after 3.0.0 whose Play Console device statistics show API 24–25 under 1 % of active installs;
 until then 24 stands and this entry is the recorded reason for the divergence.** The tech-lead owns
 the raise when it comes: one line in `android-app.gradle.kts`, the font ruling re-opened for variable
-instances, nothing else.
+instances, nothing else. *(The routed recommendation is superseded 2026-10-17 by the founder's
+answer below; §17.)*
+
+**Founder answer — Q-018, option 3 (2026-10-17): `minSdk` stays 24 indefinitely, unless a technical
+need appears.** Recorded in `.planning/questions/FOUNDER.md` Q-018 (committed on
+`feature/phase-15-ux-refresh`, 98913c8). The Play-statistics trigger above is withdrawn: no release
+raises the floor for installed-base share, rule alignment or size. What follows is the tech-lead's
+reading of "a technical need", so that the re-opening is a fact and not a judgement call:
+
+- **Re-opens it:** a dependency the app must take — a security fix, a Play-policy-driven SDK
+  (Play Games v2, GMA Next-Gen, UMP) or an AndroidX/Compose line the stack has to follow — whose
+  supported minimum rises above 24 with no maintained version left at 24; a platform API that a
+  scoped feature needs and that has no compat path on API 24–25; a Play Console or Play policy
+  requirement. Each is evidenced by a citation (release notes, the artifact's manifest
+  `minSdkVersion`, the policy page) and written here before any build changes.
+- **Does not re-open it:** the ≈ 50 KB a variable font would save (§11); simpler code paths
+  (`ContextCompat.registerReceiver`, the API 24–32 audio route inference, §12); rules/kotlin-android.md's
+  26, which is a scaffold-day default for new products (the divergence is recorded in §1.2).
+- **When one appears:** the tech-lead records the need and its evidence in this section, the
+  producer tells the founder in the next titled update before the release that carries it (the
+  answer already authorises a raise for a technical need, so this is information, not a new
+  question), and the raise is the change described above — one line in `android-app.gradle.kts`, the
+  font ruling (§11) re-opened for variable instances. Until then nothing about the floor is queued,
+  scheduled or revisited.
 
 ## 2. Modules and boundaries
 
@@ -737,7 +760,8 @@ first false positive; ktlint/detekt over `build-logic` (§2.5); hoisting the pac
 `ReleaseInvocation` as pinned constants (auditor F-3); the Macrobenchmark module and
 `reportFullyDrawn()` (§10); the golden-image suite after R-2 (§8.5); the `:domain:depthSweep` CI job
 split at the 25-minute measured threshold (§9.7); closing Diamond-41's opening-book gap (the honest
-lever on `check`'s 11 minutes); minSdk 26 when the Play statistics permit (§1.3); the in-app licences
+lever on `check`'s 11 minutes); minSdk 26 when the Play statistics permit (§1.3) — *superseded
+2026-10-17 by Q-018: 24 stands until a technical need appears, so this is no longer backlog*; the in-app licences
 surface (§16); `docs/gdd.md` (game-designer); a `compose-performance-audit` before release
 (rules/compose.md; O-B idle Home); the upstream Gradle issue for `hasResults()` validating existence
 but not validity (low priority); the `Pixel_9a` emulator fault preserved as a control (an environment
@@ -766,7 +790,7 @@ Every item the seeded file listed as "decided by nobody" is now either decided o
 
 | # | Item | Status | Owner |
 |---|---|---|---|
-| 1 | `minSdk 24` vs the rule's 26 | **Decided** (§1.3): 24 for 3.0.0, with the reason recorded; the raise is a founder question (installed-base share) the producer queues, non-blocking, with the tech-lead's recommendation | founder via producer; tech-lead executes the raise |
+| 1 | `minSdk 24` vs the rule's 26 | **Decided** (§1.3): 24 for 3.0.0, with the reason recorded; the raise is a founder question (installed-base share) the producer queues, non-blocking, with the tech-lead's recommendation. **Answered 2026-10-17 (Q-018, option 3):** 24 indefinitely, unless a technical need appears; nothing is queued, and §1.3 defines what re-opens it | tech-lead, only on a recorded technical need (§1.3) |
 | 2 | R-2 / R-7 — kover and fuzz | **Designed** (§7.3, §8.4) and briefed; implementation is the next gate branch | android-game-dev → code-auditor → tech-lead |
 | 3 | R-1′ — the gate task | **Implemented** on `feature/phase-14-gate-scope`, auditor PASS; qa-engineer and tech-lead sign-off next; auditor F-2 ruled into the R-2 branch (§9.3) | producer sequencing |
 | 4 | In-app licences surface | Studio-rule gap, not a legal one: the OFL notice condition is met by the licence files in the APK, everything else is CC0, Apache-2.0 or a permitted SDK licence. **Backlog v1.1.1**, needs a ux-designer (a Settings row) and a developer | ux-designer, android-game-dev via producer |
@@ -799,3 +823,4 @@ Nothing is deleted from this file; a superseded decision stays with a pointer to
 | "R-2 edits `standards.gradle.kts`" (the file-collision premise in both phase-14 sign-offs) | The fuzz task and kover wiring live in `domain/build.gradle.kts`; only F1 touches `standards.gradle.kts`. The one-branch ruling stands on the shared `check` registration, the same author and the same auditor, not on a textual collision | §14.1 |
 | The seeded §9 "Open — decided by nobody yet" (release-manager, 2026-09-21) | §16, each item decided or owned | §16 |
 | `versionCode = 3` | `30_000` (merged to `develop` as `feature/phase-14-version-code`) | §9.5 |
+| §1.3's routed recommendation: raise `minSdk` to 26 in the first minor after 3.0.0 whose Play statistics show API 24–25 under 1 % of active installs | The founder's Q-018 answer (option 3, 2026-10-17): 24 indefinitely, unless a technical need appears; §1.3 lists what counts | §1.3, §14.2, §16 #1 |
