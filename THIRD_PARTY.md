@@ -16,9 +16,10 @@ asset changes are still on unmerged branches, and each affected row names its br
 |---|---|---|
 | Twelve sound cues as WAV; the wrong-tap and hint cues now rendered in-house instead of taken from the Kenney pack | `feature/audio-review` (d1c6e9b, af2b554; verdicts 3a1fce7) | the twelve-file `.ogg` set described by the earlier revision of this file |
 | Fredoka and Nunito **bundled** as five static font files plus their OFL texts; downloadable-font provider, `font_certs.xml` and `ui-text-google-fonts` removed | `feature/phase-15-ux-refresh` (472835f, b5836ac) | the downloadable-font path, nothing bundled |
+| A candy-themed backdrop behind the Home and gameplay screens, drawn in-repo (§1 idea row) | `feature/candy-backdrop` (**not yet built**: verdict and UX spec only) | no backdrop |
 
-If either branch does not reach `release/3.0.0`, its rows below are wrong for the release and are
-re-cut at checklist step 1.4.
+If any of these branches does not reach `release/3.0.0`, its rows below are wrong for the release
+and are re-cut at checklist step 1.4.
 
 ---
 
@@ -38,7 +39,7 @@ two module build files:
 | `compileOnly(...)` — `error_prone_annotations` | no | CLASS-retention annotations; the declaration's own comment records "nothing is added to the APK" (`app/build.gradle.kts:490-495`) |
 | `testImplementation(...)` — JUnit, Truth, Turbine, MockK, coroutines-test, ArchUnit, Robolectric, Room testing, Compose ui-test-junit4 | no | JVM unit-test classpath only; never in a variant's runtime classpath |
 | `debugImplementation(...)` — `ui-tooling`, `ui-test-manifest` | no | debug variant only; the release variant's source sets and classpath are disjoint from debug's (proved at class-output and minified-`classes.dex` level for the debug snapshot picker, `.planning/reports/phase-14/code-auditor-prerelease-fixes.md`) |
-| `[plugins]` block + `build-logic/` classpath — AGP, Kotlin, KSP, Hilt, Room, detekt, ktlint Gradle plugins | no | build tooling; runs on the build machine |
+| `[plugins]` block + `build-logic/` classpath — AGP, Kotlin, KSP, Hilt, Room, detekt, ktlint Gradle plugins; kover (pending feature/phase-14-check-gates) | no | build tooling; runs on the build machine |
 | `platform(libs.androidx.compose.bom)` | no artifact of its own | a BOM is a version constraint; the Compose artifacts it governs are listed below |
 
 **Transitive dependencies ship too**, and there are many more of them than direct ones (the local
@@ -75,6 +76,7 @@ them recorded anyway.
 | Peg solitaire as a game | Traditional; documented from the 17th century | Not protected — a game mechanic is an idea, not an expression | The rule set: orthogonal jump over an adjacent peg into an empty hole, jumped peg removed | Named as the game |
 | The five Classic board footprints — English-33, European-37, Asymmetric-39, Diamond-41, Wiegleb-45 | Historical published board geometries (Wiegleb's 45-hole cross dates from 1779) | Not protected — board geometry is an idea | Hole layouts only; every coordinate table is authored in this repo (`domain/.../model`) | Board names in-game |
 | Rules and board fidelity reference | The founder's own earlier peg-solitaire repository | Own work | Rule behaviour and board fidelity checked against it | — |
+| Candy-themed backdrop for the Home (menu) and gameplay screens. **Ships from `feature/candy-backdrop` (not yet built)**; if it does not reach `release/3.0.0`, delete this row at checklist 1.4 | The candy-themed casual-game genre; the founder's named reference was *Candy Crush Saga* by King.com Limited — https://www.candycrush.com/ , https://play.google.com/store/apps/details?id=com.king.candycrushsaga | Not protected — a visual theme is an idea, not an expression (`rules/ip-policy.md`). King's names, logos, characters, candy designs and artwork are protected, and **none was taken** — verdict *inspiration only*, `.planning/reports/candy-backdrop/research-analyst.md` | The idea of a bright sweets-landscape backdrop only; every shape, colour stop and composition is authored in this repo (`ui/theme/Color.kt` tokens, Compose Canvas / vector drawables) | — deliberately not credited in the app: naming King in the app or the listing would imply a relationship Play's Impersonation policy forbids; this row stays out of any in-app licences screen |
 
 ## 2. Assets shipped in the artifact
 
@@ -194,43 +196,97 @@ a family nobody listed. `docs/release-checklist.md` step 6 closes it on the rele
 | # | Item | Why unverified | What would settle it |
 |---|---|---|---|
 | U-1 | `com.google.android.ump:user-messaging-platform:4.0.0` | No POM in the local Gradle module cache (the artifact resolves through Gradle module metadata); the AAR's `third_party_licenses.txt` covers its dependencies, not itself. Its two sibling Google SDKs declare the Android SDK Licence, but that is an inference about a different artifact | Read the `<licenses>` block of `user-messaging-platform-4.0.0.pom` from `dl.google.com` / `maven.google.com`, **or** run `./gradlew :app:dependencies` once online and read the resolved module's metadata. One command, and it is on the release-branch checklist |
-| U-2 | **The 20 achievement icons** (512×512, uploaded to the Play Console in phase 12) | They exist only in the Play Console. Nothing in this repository records their origin — there is no raster image in `app/src/main/res` at all | Founder recall — operator checklist Step 9. See §7 |
-| U-3 | **The listing 512×512 icon** | Same — Console only | Founder recall — Step 9 |
-| U-4 | **The 1024×500 feature graphic** | Same — Console only | Founder recall — Step 9 |
-| U-5 | **Any store screenshot that is not a plain capture of this app** | Same — Console only | Founder recall — Step 9 |
+| U-2 | **The 20 achievement icons** (512×512, uploaded to the Play Console in phase 12) | They exist only in the Play Console. Nothing in this repository records their origin — there is no raster image in `app/src/main/res` at all | **Closed 2026-10-17** — founder answer to Q-017: studio-produced; own-work rows with hashes in §7 |
+| U-3 | **The listing 512×512 icon** | Same — Console only | **Closed 2026-10-17** — same answer; §7 |
+| U-4 | **The 1024×500 feature graphic** | Same — Console only | **Closed 2026-10-17** — same answer; §7 |
+| U-5 | **Any store screenshot that is not a plain capture of this app** | Same — Console only | **Closed 2026-10-17** — the listing screenshots are plain captures the studio recaptures after the candy backdrop lands (Q-016); §7 |
 | U-6 | Per-coordinate enumeration of §5b | The resolved release runtime classpath has not been listed (Gradle deliberately not run on this branch) | `./gradlew :app:dependencies --configuration releaseRuntimeClasspath`, on the release branch, output recorded in the release report |
-| U-7 | **The candy-style backdrop of the menu and game screens** (to be added before release; `feature/candy-backdrop`, no commits yet) | Not designed yet; its research-analyst IP verdict is in flight. If it is drawn in-repo as vector XML or Compose drawing it is own work and needs only a row like the launcher icon's; anything sourced needs a row with a licence and a verdict before the cut | The verdict, then a §2 row written when the asset lands on `develop` |
 
-## 7. PLACEHOLDER — store artwork provenance (needs the founder)
+## 7. Store artwork provenance (Play Console assets)
 
-**These rows block the release.** `rules/ip-policy.md`: the release is blocked if a row lacks a
-licence, and four of them do. This is operator checklist **Step 9** and founder question **Q-F3**.
+These assets are not in the artifact. They live in the Play Console (listing, and Play Games
+Services achievements and leaderboards), so `rules/ip-policy.md` and the Play IP policy still apply
+to them. The rows waited on the founder (Q-F3) until the founder answered **Q-017** on
+2026-10-17: *"you did it"*: the studio produced them in its own sessions. The founder keeps the
+files on their Desktop, dated 2026-09-14/15. **They are not copied into this repo**; the sha256
+below identifies each file, so a later upload can be checked against this record.
 
 | Item | Source | Licence | Credit |
 |---|---|---|---|
-| 20 achievement icons (512×512) | `PENDING FOUNDER — Q-F3` | `PENDING FOUNDER — Q-F3` | — |
-| Listing icon (512×512) | `PENDING FOUNDER — Q-F3` | `PENDING FOUNDER — Q-F3` | — |
-| Feature graphic (1024×500) | `PENDING FOUNDER — Q-F3` | `PENDING FOUNDER — Q-F3` | — |
-| Store screenshots that are not plain app captures | `PENDING FOUNDER — Q-F3` | `PENDING FOUNDER — Q-F3` | — |
+| 20 achievement icons (512×512), `PegSolitaire Achievement Icons/a01…a20` | Produced by the studio in its own sessions, 2026-09-15 (founder answer, Q-017). No source file is kept; per-file hashes below | **Own work** | — |
+| 7 leaderboard icons (512×512), `PegSolitaire Leaderboard Icons/` | Same | **Own work** | — |
+| Listing icon (512×512), `peg-solitaire-icon-512.png` | Exported from the studio's approved launcher-icon design canvas, 2026-09-14. That canvas is the same design the in-app launcher vectors reproduce (`.planning/quick/260914-x4a-add-adaptive-launcher-icon-from-the-appr/260914-x4a-PLAN.md`, commit 5e99af1: "The Play Store 512×512 PNG is NOT this task's deliverable; the user exports that from the design canvas separately") | **Own work** | — |
+| Feature graphic (1024×500), `peg-solitaire-feature-1024x500.png` | Produced by the studio, 2026-09-14 (Q-017). The file's XMP records a 1024×1024 original, so it was cropped to 1024×500 on this Mac (the file's quarantine tag names macOS Preview). The title and tagline are set in rounded sans faces that look like the app's own Fredoka and Nunito (OFL-1.1, §2) | **Own work** (text rendered in OFL-1.1 fonts: OFL covers the font software, not images made with it, so no notice attaches) | — |
+| Store screenshots | Plain captures of this app, recaptured by the studio after the candy backdrop lands (Q-016; candy-backdrop verdict §3d: no added art or framing) | **Own work** | — |
 
-**Exactly what is needed, per group** (the studio writes the rows; do not paste URLs, account
-details or Console identifiers into this file):
+**How each file was checked (2026-10-17).** Each image was opened and inspected; hashes from
+`shasum -a 256`, sizes from `sips`. Each file's PNG chunks were read: no `tEXt`/`iTXt` names a
+generator or a source, and Spotlight records no download URL (`kMDItemWhereFroms` empty) for any
+file. The achievement and leaderboard PNGs have only `IHDR`/`IDAT`/`IEND` chunks and a macOS
+quarantine tag naming Chrome, so they were saved from a browser page. That fits a studio canvas
+rendered in a browser, the same way as the launcher design. **What is in the art:** peg-board
+footprints of the five Classic boards, pink pegs, gold stars, a stopwatch, a struck-through bulb
+(no hints), a struck-through undo arrow, a bar ladder, number pills (5, 10, 25, 50, 100, 250), a
+dotted constellation, and violet, pink and gold rims. No logo, no character, no photograph, no
+stock texture, no watermark, and no third-party mark. The only text is the feature graphic's
+"Peg Solitaire" and "Classic boards, endless fun!" plus the digits in the pills. The pictograms
+are generic. If any one of them was drawn after an icon set, the likely sets (Material Symbols)
+are Apache-2.0, so no licence gap opens either way.
 
-1. For the **20 achievement icons**, answer once for the set if they share an origin, otherwise
-   per icon: which of — (a) *"I drew them"*, (b) *"generated with `<tool name>`"* — name the tool
-   and, if the tool's terms turn on a plan or a date, which plan and roughly when, (c) *"bought or
-   downloaded from `<source>` under `<licence>`"* — name both, (d) *"taken from `<a URL>`"* — the
-   URL, so the studio can read the licence at that URL itself.
-2. The same four-way answer for the **listing 512×512 icon**.
-3. The same four-way answer for the **1024×500 feature graphic**.
-4. Whether **any listing screenshot** contains artwork that is not simply a capture of this app
-   (a device frame, a background, a logo, a font in an overlay) — and if so, the same answer for
-   that element.
-5. If any answer is (c) or (d) and the licence is **CC-BY** or **CC-BY-SA**, the studio also needs
-   the author's name as the source requires it to be credited — CC-BY makes the credit an
-   obligation, not a courtesy, and CC-BY-SA is an escalation under `rules/ip-policy.md`.
+**Achievement icons** (Console names in
+`.planning/phases/12-leaderboards-achievements/12-OPERATOR-CHECKLIST.md`):
 
-Two related items, also founder-only and recorded here so they are not rediscovered:
+| # | File | Size | sha256 |
+|---|---|---|---|
+| A01 | `a01-first-clear.png` | 512×512 | `dd3117880734c1c25775f1cccc0181c4f1880089fb36f974eab6fe009a7625ba` |
+| A02 | `a02-three-stars.png` | 512×512 | `48ec47bb312fc67ef5929ec5b9f525a1737ff7e8bf314afe62d0698606c2269c` |
+| A03 | `a03-getting-started.png` | 512×512 | `1d8814f550a435215662f09bc538179399b5e238bf6747151dd9b41d57b43b24` |
+| A04 | `a04-quick-hands.png` | 512×512 | `f7079525148552bd9fd2514e5bfa170d68146e69e2ea1cbb9b081c89cf01e033` |
+| A05 | `a05-no-hints-needed.png` | 512×512 | `7c518147352cdd7854555910016b7d383f4d56cf54d87c81a10f683a5325deb2` |
+| A06 | `a06-no-take-backs.png` | 512×512 | `7fef8faccaf755c578af77c2707bc5a862e1d154ffafdc9bca49b4388c6e4f71` |
+| A07 | `a07-dead-center.png` | 512×512 | `d65a40db523eb6ebcef57e0c785dee376660fed822cd6311a330f13d5662069c` |
+| A08 | `a08-english-cleared.png` | 512×512 | `b283f4980e869f54b02e9193e5c545675ea19e0cdb6b091c28a4ea5e11b6f547` |
+| A09 | `a09-european-cleared.png` | 512×512 | `d98dead11b97af79fd01ead4b273bc30af716a3e4b142f440b15334db7f49f47` |
+| A10 | `a10-asymmetric-cleared.png` | 512×512 | `48bde989a8f4cb4b7a3b549d721c562b9411170910e34905e259dcaaa27dce49` |
+| A11 | `a11-diamond-cleared.png` | 512×512 | `8024b89a6814c0d29c98ea4db15361954e0b43f0a7baf6fdb2bd76f504784f86` |
+| A12 | `a12-wiegleb-cleared.png` | 512×512 | `2ae1b6fcb2b07721baf6103fa8db00becb0b23678c905410bc41e7bf55c3e5fe` |
+| A13 | `a13-climbing.png` | 512×512 | `cdb8b2caeab195e1c2fa8052c64477c299f05b6c6fda9e06f8c38061c4b4e013` |
+| A14 | `a14-ascending.png` | 512×512 | `fbaf04eef36738b0efa2a9311def18bd24184c4d6c487df3ee266a3e07add9ff` |
+| A15 | `a15-century-climb.png` | 512×512 | `19ac6be3eba2f1be61ec06b4824f17e1d1b6ec15f646e415c2d997e9cb4eec76` |
+| A16 | `a16-star-collector.png` | 512×512 | `35a450a74fe01aafd83894d8309925b1237bf7dee3d01f11a179be7eb1774406` |
+| A17 | `a17-star-hoarder.png` | 512×512 | `ffca30cc80d4e0a77cd1348cc028dca8a8776956bc2d677a69031c56b38f3d46` |
+| A18 | `a18-constellation.png` | 512×512 | `65e993fcc479f280cd9e61f8064245cd69072f5acdd097c473bc052121c06864` |
+| A19 | `a19-grand-tour.png` | 512×512 | `5754a68e5e778d549d0b3755f0e89413c70c03aff6d9fe303ea0e9e69556ff73` |
+| A20 | `a20-perfectionist.png` | 512×512 | `8fb1db6ef0ee70463bda3ccc7f3d97d67b3926ac5fcf7c43beb9ffe1c421ee8d` |
+
+**Leaderboard icons:**
+
+| File | Size | sha256 |
+|---|---|---|
+| `asymmetric-39-best-score.png` | 512×512 | `7eb0815630ae9efaa0d91f8d2be57e0cab378432bb774a924997ed4fcd6c6534` |
+| `challenge-ladder.png` | 512×512 | `ec8df014d0c6f1195e165ab8a4ad1d8969e965928bad541cf3963aa8ddee19d8` |
+| `challenge-total-score.png` | 512×512 | `8f1aa8faca4ec0e7b535c421122159c064a1dcd03d11e68dc9d090eb02c50a5e` |
+| `diamond-41-best-score.png` | 512×512 | `82c755555ff07aa787821f64a6f3263d44d43553be6ffc54d888756f9757b646` |
+| `english-33-best-score.png` | 512×512 | `45a2b59aee584d05ca893302b338d7353750645b7457b4053267b35cc74229a7` |
+| `european-37-best-score.png` | 512×512 | `6acadbe5a833e6ce8edf6f56fbb4b689ca929096dbdb6538cfdcf1ea9fa5d3f2` |
+| `wiegleb-45-best-score.png` | 512×512 | `b9956a28b857e8044f24000e40804b032c78e7e45770d205642c2c4ceae257bf` |
+
+**Listing assets:**
+
+| File | Size | sha256 |
+|---|---|---|
+| `peg-solitaire-icon-512.png` | 512×512 | `d6cf915da10c78a752504484cc789514e652a96bd94ed15556926703c6134335` |
+| `peg-solitaire-feature-1024x500.png` | 1024×500 | `bfaa1ba1cbf79a5a112b3bb0a4a3e30c341d7ae91cd119cdede864078f1b03e4` |
+
+**Limits of this record.** No session record of how the achievement, leaderboard and feature
+graphic files were drawn is in this repo; the founder's answer is the provenance. For the
+listing icon, the design is recorded only by the launcher task's plan; the canvas file
+itself was session scratch and no longer exists. Art an agent produced may carry no
+copyright of its own (US Copyright Office, Part 2 report; *Thaler v. Perlmutter*; cited in the
+candy-backdrop verdict §4c). That means others might copy these images. It does not create an
+infringement risk for this app, and it does not leave a licence gap.
+
+Two related items, recorded here so they are not rediscovered:
 
 - **No in-app licences screen exists.** `rules/ip-policy.md` asks for attribution "in
   `THIRD_PARTY.md` **and** in the product's licences screen or page". Settings today has the two

@@ -29,7 +29,7 @@ is short enough to put here — **never tap an ad that does not carry the "Test 
 | # | Item | Who | Evidence that ticks it |
 |---|---|---|---|
 | 1.1 | [ ] `develop` is clean and every release blocker on the tech-lead's ordered list is merged or explicitly deferred with a named owner | [S] | `git status --porcelain` empty; the blocker table in the latest `.planning/reports/phase-*/tech-lead-*.md` has no open row marked **branch cut** |
-| 1.2 | [ ] The **Check command passes at release settings** on `develop`, on the merged tree — not on any contributing branch | [S] | `FUZZ_SEEDS=100000 ./gradlew check` exits 0. Record the wall-clock time and the seed count actually honoured |
+| 1.2 | [ ] The **Check command passes at release settings** on `develop`, on the merged tree — not on any contributing branch | [S] | `FUZZ_SEEDS=100000 ./scripts/check.sh` exits 0 (the Check command once `feature/phase-14-check-gates` lands; `docs/tech-design.md` §16 item 9). Record the wall-clock time and the seed count actually honoured |
 | 1.3 | [ ] No disabled, ignored or suppressed test, and no new baseline, entered the release range without a code-auditor line | [S] | `git diff v<previous>..develop -- '*/src/*' \| grep -cE '^\+.*(@Suppress\|@Ignore\|Disabled\|!!)'` reviewed hit by hit |
 | 1.4 | [ ] `THIRD_PARTY.md` exists and **no shipped row lacks a licence** | [S] + [F] for store artwork | Every row in `THIRD_PARTY.md` §§1–5 has a licence; §6 has no row that is both unverified and shipped; §7 has no `PENDING FOUNDER` left |
 | 1.5 | [ ] Every founder question that blocks the cut is answered | [S] reads, [F] answers | `.planning/questions/FOUNDER.md` — no `## Q-…  (open)` whose `Blocks:` line names the release |
@@ -62,8 +62,8 @@ is re-cut.
 
 | # | Gate | Who | Command / evidence |
 |---|---|---|---|
-| 3.1 | [ ] Check at release settings, on the release branch itself | [S] | `FUZZ_SEEDS=100000 ./gradlew check` → exit 0 |
-| 3.2 | [ ] Fuzz harness at the release tier, failing seeds file **absent** | [S] | `build/fuzz-failures.txt` does not exist. Any failing seed blocks the release (`rules/puzzle-design.md` invariant 8) |
+| 3.1 | [ ] Check at release settings, on the release branch itself | [S] | `FUZZ_SEEDS=100000 ./scripts/check.sh` → exit 0 (`docs/tech-design.md` §16 item 9, R-7: the script holds the one-build-per-worktree lock and runs `check`; it lands with `feature/phase-14-check-gates`, and until then this item cannot be ticked) |
+| 3.2 | [ ] Fuzz harness at the release tier, failing seeds file **absent** | [S] | `domain/build/fuzz-failures.txt` does not exist (`docs/tech-design.md` §7.3, §16 item 9). Any failing seed blocks the release (`rules/puzzle-design.md` invariant 8) |
 | 3.3 | [ ] Coverage gate green at its recorded threshold | [S] | `koverVerify` inside `check`; record the measured figure, not just "passed" |
 | 3.4 | [ ] The four literal gates ran — ad-ID, Play-Games-ID, audio-focus, dp/sp | [S] | they are wired into `check`; confirm the task list actually invoked them |
 | 3.5 | [ ] Every shipped dependency coordinate falls under a `THIRD_PARTY.md` row | [S] | `./gradlew :app:dependencies --configuration releaseRuntimeClasspath` — every coordinate printed maps to a row or a family row; **this is the run that closes `THIRD_PARTY.md` §5b** |
