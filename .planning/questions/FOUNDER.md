@@ -1,5 +1,24 @@
 # Founder questions (newest first)
 
+## Q-020 — How much of the candy scene goes on the game screen?   (answered — direction reopened)
+Date: 2026-10-17    Asked by: ux-designer
+Context: The menu gets the full sweets landscape you asked for: frosted hills with drips and sprinkles, clouds,
+and a lollipop, a cane, a gumdrop and a cupcake beside the board picture. The game screen gets a calmer version
+so your eye stays on the pegs. All three options are readable and IP-safe; this is taste.
+Options: 1) Calm game screen (default, being built): cotton-candy sky, clouds behind the title, frosted hills
+with sprinkles under and behind the board; the standing sweets stay on the menu  2) Full scene on the game
+screen too: the lollipop, cane, gumdrop and cupcake also stand on the hills around the board (on phones they
+mostly peek out from below it; fully on tablets)  3) Plain game screen: sky and clouds only, no hills
+Recommendation: ux-designer picks 1 — the game screen joins the same candy world while nothing stands next to
+the board you are solving; 2 is the busiest frame, but on phones the sweets would mostly show as pieces
+peeking out from behind the board and the buttons; 3 is calmest but loses the candy feel you asked for.
+Blocks: nothing (option 1 is specified and buildable; 2 and 3 are constant changes, docs/ux/candy-backdrop.md §3.3)
+Answer: none of the three (2026-10-17), verbatim: "I wanted you to get inspired by the aliveness of candy crush
+not to copy it. galssy look with something in the back maybe? Idk but get my approval. Show me the design first".
+So the sweets-landscape direction is reopened: the ux-designer shows visual directions (a glossy/glassy, lively
+look with depth behind it) and the founder approves one before anything is built. The candy-backdrop build now
+waits on that approval (next question, Q-021).
+
 ## Q-019 — Fable limit reached again; how do the Fable-pinned roles finish v1.1?   (answered)
 Date: 2026-10-17    Asked by: producer
 Context: Both Fable dispatches in flight died on HTTP 429 "You've reached your Fable limit": qa-engineer
