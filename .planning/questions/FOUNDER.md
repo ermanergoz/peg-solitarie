@@ -1,6 +1,23 @@
 # Founder questions (newest first)
 
-## Q-018 — minSdk 24 → 26: when, if ever?   (open)
+## Q-019 — Fable limit reached again; how do the Fable-pinned roles finish v1.1?   (answered)
+Date: 2026-10-17    Asked by: producer
+Context: Both Fable dispatches in flight died on HTTP 429 "You've reached your Fable limit": qa-engineer
+phase-15 loop 3 (`req_011Cg8FSKsGNXgPkGc5fvo6t`, cut at its start) and ux-designer candy-backdrop spec
+(`req_011Cg8FSCnNYKh3QkBpoYdpJ`, sections 0–2 of docs/ux/candy-backdrop.md written). code-auditor, qa-engineer,
+tech-lead, ux-designer and game-designer are pinned to Fable; plugin 1.0.0 has no fallback. Q-003/Q-014
+already allow Opus for the phase-15 review chain and rulings only.
+Options: 1) Top up Fable (/usage-credits) and continue as staffed, no deviation 2) Wait for the Fable
+allowance to reset 3) Opus for every Fable-pinned role until 3.0.0 is published, each report recording
+the deviation (reviewers then share the developer's model)
+Recommendation: producer — 1 if the spend is acceptable, since the code-auditor and qa-engineer are the
+gates that make review independent of the Opus-written code; else 3, with fresh reviewers that run the
+Check and their own mutation probes rather than trusting recorded results.
+Blocks: candy-backdrop spec and build reviews, phase-14 R-1 QA and sign-off, check-gates reviews, the release QA
+Answer: 3 — Opus for every Fable-pinned role until 3.0.0 is published (2026-10-17). Recorded as a deviation
+from studio staffing in every report; mitigations: fresh reviewers, Check and mutation probes run by the reviewer.
+
+## Q-018 — minSdk 24 → 26: when, if ever?   (answered)
 Date: 2026-10-17    Asked by: tech-lead
 Context: The studio rule names minSdk 26 for new products; this published app ships 3.0.0 at 24, and
 raising it drops API 24–25 installs from updates. Technically nothing forces either (docs/tech-design.md §1.3).
@@ -9,7 +26,7 @@ statistics show API 24–25 under 1 % of active installs  3) hold 24 indefinitel
 Recommendation: tech-lead picks 2 — no technical cost is paid by waiting and no player is dropped on a guess.
 The design records 24 as the ruling for 3.0.0 either way.
 Blocks: nothing
-Answer:
+Answer: 3 — keep minSdk 24 indefinitely, unless a technical need appears (2026-10-17). docs/tech-design.md §1.3 to record it.
 
 ## Q-017 — Store-art provenance: achievement icons, listing icon, feature graphic   (answered)
 Date: 2026-10-17    Asked by: release-manager (Q-F3 / F-4)
