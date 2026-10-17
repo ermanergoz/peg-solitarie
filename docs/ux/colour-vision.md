@@ -4,6 +4,7 @@ task: candy-backdrop (routed items 2 and 3 of docs/ux/candy-backdrop.md §14)
 slug: colour-vision
 status: draft
 created: 2026-10-17
+revised: 2026-10-18 (amendments for backdrop direction B, Q-021: §11; earlier text kept, with dated pointers)
 stack: android-compose-game
 design-system: docs/ui/DESIGN-SYSTEM.md
 layout-contract: docs/ux-spec.md (phase 15: §4.4.1, §4.5, §6.2, §11)
@@ -149,6 +150,11 @@ later ruling is `CV-nna` with a pointer.
 - **CV-12: The backdrop is unchanged and needs no colour-blind variant.** — It encodes nothing, it
   shares no token with the board's marks, and the slab the marks live in is opaque
   (`docs/ux/candy-backdrop.md` §5.3).
+- **CV-12a (2026-10-18, amends CV-12 for direction B): neither the B backdrop nor the gloss finish
+  nor the gel mode tiles needs a colour-blind variant.** — The waves, the lights, the gloss and the gel
+  encode nothing, and they share no token with the board's marks. The two gel tiles are told apart by
+  label, badge glyph, trailing art and the level chip, never by hue alone. The dock's discs, and the
+  slab fill around them, are unchanged. §11.2 has the check.
 - **CV-13: The standard palette is not changed by this document.** — Its marks never use colour
   alone, but four of them fall below `docs/ux-spec.md` §11's 3:1 for glyphs and boundaries (§7).
   Changing them would change the board the founder approved, so it is drafted as a founder question,
@@ -182,8 +188,8 @@ the one built on `feature/phase-15-ux-refresh`.
 | **Stars** (Results 48dp, catalogue pips 16dp, tutorial completion star) | Earned: `Icons.Filled.Star` recoloured with `GoldGradient`. Unearned: `Icons.Outlined.Star` in `outlineVariant` | **Shape** (filled against hollow) | Light: earned fill against the background 1.09–2.22, unearned outline 1.29, catalogue pip outline 1.23. Dark: earned 9.58–15.9, unearned 1.48–1.50, pip outline 1.20 | **Luminance.** The unearned outline is near-invisible in both themes. In light the earned fill barely separates from the background, so "filled against hollow" carries almost nothing in greyscale |
 | **Tutorial step pips** | Done: a solid `GoldGradient` disc. Current: a `surface` disc with a `primary` ring. Upcoming: a `surface` disc with an `outlineVariant` ring. The row speaks "Step N of 3" | **Shape** (filled, ringed, faint), and the spoken text | Current ring: 4.68–5.45 / 5.86–6.07. Done fill in light: 1.09–2.22 (the star's gold) | **The done pip's fill in light** (as the stars). The current and upcoming pips are fine: the faint ring is meant to be faint |
 | **The dock's on/off language** | Five looks from `DockLookRecipe` (§4.4.1 of the phase-15 spec): fill, ring, shadow, glyph shape (plain, slashed or spinner), on mark | **Every pair of looks differs in at least two non-hue channels** (criterion 21b) | The On disc against the slab: 4.17–4.86 / 5.17–5.34 (criterion 21f wants ≥ 3:1) | **Nothing** |
-| **Mode tiles, Continue chips, ribbon, rescue banner, dialogs** | Text labels, glyph shapes, containers | Labels, shapes | Text pairs from the design system's verified set | **Nothing** |
-| **The backdrop** | Decoration, outside the opaque slab (`docs/ux/candy-backdrop.md`) | — | Every rule there is a luminance ratio (§5.3 there) | **Nothing.** It encodes nothing |
+| **Mode tiles, Continue chips, ribbon, rescue banner, dialogs** | Text labels, glyph shapes, containers | Labels, shapes | Text pairs from the design system's verified set | **Nothing.** *Amended 2026-10-18 (§11.2): under direction B the tiles are gel with white text (≥ 4.90:1 where text sits) and still miss nothing* |
+| **The backdrop** | Decoration, outside the opaque slab (`docs/ux/candy-backdrop.md`) | — | Every rule there is a luminance ratio (§5.3 there) | **Nothing.** It encodes nothing. *Amended 2026-10-18 (§11.2): the same holds for direction B's waves, lights and gloss finish* |
 
 **What the audit says.** The standard palette never uses colour alone: every state has a shape
 channel, which is what rules/compose.md's first clause asks. What it lacks is **luminance** where
@@ -477,6 +483,11 @@ same violet ramp in each theme:
 
 ### 4.4 Over the backdrop
 
+> **Amended 2026-10-18.** This subsection was computed against the sweets landscape, which direction B
+> replaced. Its method stands, and its numbers are re-derived for B in §11.3. The dark-theme failure
+> it reports, the far mounds' frosting lips under a wrapped title, cannot occur under B. The text
+> below is kept as the record.
+
 **At rest** the title sits on `SkyTop`, which equals `background` pixel for pixel
 (`docs/ux/candy-backdrop.md` §3.3). §4.3's background column is therefore the at-rest reading on
 the branch with the backdrop and on the branch without it.
@@ -555,9 +566,9 @@ QA artifacts (captures, the simulation script and the samples) live under
 | # | Criterion | By | Pass line |
 |---|---|---|---|
 | **TG-AC01** | **Tokens.** `LightTitleGradientColors = [#7C3AED, #5B21B6]` and `DarkTitleGradientColors = [#C4B5FD, #A78BFA]` are in `Color.kt`. A `titleGradient` in `ClayColors`. A `titleGradientBrush()` with stops at 0 and 0.5. `HeroTitle` uses it. `ctaGradientBrush()`, its colours and every other caller are unchanged | Auditor | the diff shows exactly this |
-| **TG-AC02** | **Contrast, computed.** Each title stop against its theme's `background`: light 5.10 and 8.05, dark 9.56 and 6.49, so ≥ 4.5:1 for both stops in both themes. Every channel moves the same way between the stops. Each stop is ≥ 4.5:1 against the backdrop's zone-T tokens in its theme and against the orbs' blends: light ≥ 4.58 against `CloudShade` and ≥ 4.55 against the pink orb, with one exception, the primary orb at 4.43, which sits under the gear and not the title (§4.4). In light, each stop is ≥ 3:1 against `BackdropHillFar`, `BackdropSkyHorizon` and `BackdropFrosting` | Test (JVM, from `Color.kt`) | as stated |
+| **TG-AC02** | **Contrast, computed.** Each title stop against its theme's `background`: light 5.10 and 8.05, dark 9.56 and 6.49, so ≥ 4.5:1 for both stops in both themes. Every channel moves the same way between the stops. Each stop is ≥ 4.5:1 against the backdrop's zone-T tokens in its theme and against the orbs' blends: light ≥ 4.58 against `CloudShade` and ≥ 4.55 against the pink orb, with one exception, the primary orb at 4.43, which sits under the gear and not the title (§4.4). In light, each stop is ≥ 3:1 against `BackdropHillFar`, `BackdropSkyHorizon` and `BackdropFrosting`. **Amended 2026-10-18 (§11.3):** under direction B, the backdrop clauses read: each stop ≥ 4.5:1 against B's zone-T sky tokens in its theme (light `SkyTop`, `SkyMid`; dark `SkyTop`, `SkyMid`, `SkyLow`, `SkyDeep`; there are no orbs); and in light, each stop ≥ 3:1 against every lane light's rim composite over the sky at 0.47 H (the worst is a Pink rim, L 0.522) | Test (JVM, from `Color.kt`) | as stated |
 | **TG-AC03** | **Contrast on the device.** On Home at rest, font scale 1.0, light and dark, on the Pixel_9 and at 360×640dp, QA samples the topmost pixels of the ascenders and pixels in the lower half against the pixels beside them. At 2.0 on 360×640dp (three lines) and on the Pixel_9, it samples every line | QA | at rest **≥ 4.5:1** in both themes; at 2.0 **≥ 3:1** for every sampled glyph pixel, except TG-AC04's case |
-| **TG-AC04** | **Dark, wrapped, over the backdrop.** At 2.0 on 360×640dp in dark, with the candy backdrop landed, no backdrop pixel inside the wrapped title's box has L > 0.0786 | QA, Test (a geometry test on the backdrop side) | as stated. **Fails against the backdrop as specified today** (§4.4), so it passes only once the backdrop's owner has amended the far lips (§10 item 1) |
+| **TG-AC04** | **Dark, wrapped, over the backdrop.** ~~At 2.0 on 360×640dp in dark, with the candy backdrop landed, no backdrop pixel inside the wrapped title's box has L > 0.0786.~~ **Target amended 2026-10-18 (§11.1):** at 2.0 on 360×640dp in dark, with the backdrop landed, **no pixel of the direction's dark backdrop above 0.47 H has L > 0.0786**, at rest and at every pose of its motion | QA, Test (`docs/ux/candy-backdrop.md` BD-08 and BD-11: every lane light's rim composite ≤ 0.0786, no two lane lights overlapping, no wave pixel above 0.47 H) | as stated. ~~Fails against the backdrop as specified today (§4.4), so it passes only once the backdrop's owner has amended the far lips (§10 item 1).~~ Direction B meets it by construction: the worst point is a Pearl light's rim at L 0.047 (§11.1) |
 | **TG-AC05** | **Nothing else moved.** Every CTA-gradient button is pixel-identical to the base: the tutorial CTA, Results' Replay, the dialogs. The title's face, size, weight, alignment, wrapping, heading semantics and entrance are unchanged, as are the phase-15 criteria 14, 15i and 15o. The title is identical with the colour-blind palette on and off | Test (goldens), Auditor | as stated |
 
 ## 6. Tests owed
@@ -655,7 +666,9 @@ needs no new row, and the licences screen (`docs/ux/licences-screen.md` §3.2) l
 
 ## 10. Open items routed to the producer
 
-1. **The candy backdrop's dark far-hill frosting lips lie under a wrapped title** (§4.4,
+1. **Closed 2026-10-18 (§11.1): moot under direction B**, which has no hills or lips. TG-AC04's target
+   moved to "the direction's dark backdrop above 0.47 H", and B meets it. The original item follows,
+   as the record. **The candy backdrop's dark far-hill frosting lips lie under a wrapped title** (§4.4,
    TG-AC04). `docs/ux/candy-backdrop.md` §5.1 claims "dark: ≥ 4.2:1 everywhere". At 200% on a
    360dp phone, the title's last line reads 1.08–1.59:1 over `BackdropFrosting` dark (L 0.308). No
    title colour can fix it. The proposed rule for that document's owner (this role, on its own
@@ -683,3 +696,90 @@ needs no new row, and the licences screen (`docs/ux/licences-screen.md` §3.2) l
 8. **Scheduling into 3.0.0.** The producer's call. Both fixes are rule gaps
    (rules/compose.md, `docs/ux-spec.md` §11), so they are asked of the release. The specs are
    complete and need no founder answer to be built.
+
+## 11. Amendments for backdrop direction B (2026-10-18)
+
+The founder picked direction B, "Deep gloss" (Q-021, 2026-10-18), and the third edition of
+`docs/ux/candy-backdrop.md` specifies it. B brings four things:
+- a deep violet-to-pink gradient behind Home and the game screen;
+- two glossy waves, and soft lights rising and fading;
+- a gloss finish on the clay chips and pills;
+- gel fills, with white text, on the two mode tiles.
+
+This section records what B changes here. Nothing else in this document changes: CV-01 to CV-13,
+TG-01, TG-02 and every palette value stand. Superseded text above stays as the record, with a dated
+pointer to this section.
+
+### 11.1 TG-AC04's target, and §10 item 1
+
+- **The target** is now "the direction's dark backdrop above 0.47 H". No pixel of it may have
+  L > 0.0786, at rest or at any pose of its motion.
+- **Direction B meets it by construction** (candy-backdrop B-21, BD-08, BD-11). Above 0.47 H in dark
+  there is only:
+  - the sky: L ≤ 0.011, its brightest point above the line being 0.47 H itself;
+  - at most one light at a time, because the lights that can reach above the line run in disjoint
+    lanes. A light's brightest point is its rim. Over that sky the rim composites to at most L 0.047
+    (Pearl), 0.035 (Pink) or 0.03 (Violet).
+
+  No wave pixel lies above the line at any pose: the back wave's crest, bob included, never rises
+  higher than 0.484 H on a 640dp-tall window.
+- **What the wrapped dark title reads there:** its deep stop ≥ **3.99:1** and its light stop
+  ≥ 5.89:1, against the 3:1 bar.
+- **§10 item 1 is closed.** B has no hills and no frosting lips.
+
+### 11.2 §2's audit and the colour-blind palette, beside the gel tiles and the gloss dock
+
+- **The gel mode tiles** keep §2's "nothing missing".
+  - White title and supporting text: ≥ 4.90:1 on the pink gel and ≥ 5.72:1 on the violet gel, at
+    every font scale. They sit only from 16dp below the tile's top, where the gel is fully deep
+    (candy-backdrop §3.5.2, §5.3).
+  - The white badge glyph: ≥ 3.73:1. The level chip's text: 8.9:1.
+  - **Telling the tiles apart:** by label, badge glyph (grid or bolt), trailing art (footprint or bolt)
+    and the level chip. In greyscale the two gels read close (mid L 0.134 and 0.164), and nothing
+    relies on that.
+  - Pressing darkens the gel, so no state lowers the text's contrast.
+- **The Continue chips and the ribbon** keep their fills.
+  - In light, the white gloss only raises their dark text's contrast.
+  - In dark, the 6% gloss keeps `onSurfaceVariant` at ≥ 4.66:1, and the rest higher.
+  - Nothing is missing.
+- **The dock** ("the gloss dock"). B draws **no gloss on the dock**: not on its discs, its on mark or
+  the slab fill around the discs. Its rim, lip and glow lie at the slab's outer edge, away from every
+  disc. So:
+  - CV-11 and §2's "dock: nothing missing" hold;
+  - criterion 21f's "the On disc and the Off ring each ≥ 3:1 against the dock slab" holds in both
+    palettes;
+  - CV-AC10's "the dock's 21a–21g pass in both palettes" is unaffected.
+
+  The board drew a gloss on the discs, and candy-backdrop §13 records why it was dropped: the On
+  disc's top would read ≈ 2.4:1 against the slab.
+- **The backdrop and the finish encode nothing.** Every rule on them is a luminance ratio (CV-12a).
+- **The palette's consumers** (§3.3) are unchanged. None is on Home's tiles, on the gloss finish or on
+  the backdrop. Home therefore stays pixel-identical with the palette on and off (CV-AC06) under B
+  too: the gel tiles and the finish do not read the palette.
+- **The palette's marks** live inside the opaque board slab. B draws nothing in it or over it
+  (candy-backdrop BD-17), so every §3.5 ratio stands.
+
+### 11.3 §4.3 and §4.4's backdrop numbers, re-derived for B
+
+| Where the title can be | Light theme: light stop `#7C3AED` / deep stop `#5B21B6` | Dark theme: light stop `#C4B5FD` / deep stop `#A78BFA` |
+|---|---|---|
+| At rest, in the calm band (the sky alone, L ≥ 0.876 in light, ≤ 0.0095 in dark) | ≥ 5.04:1 / ≥ 7.92:1 | ≥ 9.56:1 / ≥ 6.48:1 |
+| On B's zone-T sky tokens (light `SkyTop`, `SkyMid`; dark `SkyTop`, `SkyMid`, `SkyLow`, `SkyDeep`) | ≥ 4.69:1 (`SkyMid`, L 0.812) / ≥ 7.37:1 | ≥ 8.48:1 / ≥ 5.75:1 (`SkyDeep`, L 0.017) |
+| Wrapped, above 0.47 H: the sky plus at most one light | ≥ 3.11:1 (a Pink light's rim, L 0.522) / ≥ 4.89:1 | ≥ 5.89:1 / ≥ 3.99:1 (a Pearl light's rim, L 0.047) |
+| Over the orbs | the orbs retire under B | the orbs retire under B |
+
+- **The light bound of §4.4** (every light backdrop colour the title can overlap has L ≥ 0.503) holds.
+  The darkest such colour is a Pink light's rim, at 0.522.
+- **TG-AC02's backdrop clauses** read as amended in its row. TG-AC03's "≥ 3:1 at 2.0" now holds with
+  no exception.
+- **`TitleGradientContrastTest`** ("the title clears 3:1 over every backdrop colour it can reach in
+  light") reads the backdrop palette, so it tests B's tokens without a rename.
+
+### 11.4 What this amendment does not change
+
+- The palette (§3) and its persistence, reach, marks and deficiency checks.
+- The title fix (§4.3), its tokens and TG-AC01, TG-AC03 and TG-AC05.
+- Every CV-AC criterion, and §6's tests apart from the backdrop tokens they read.
+- §7's findings.
+- §8's rejections. A gel-coloured or glossy title joins them, for the outline's reason: it would read
+  as candy-textured lettering.
