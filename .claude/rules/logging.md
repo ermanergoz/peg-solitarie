@@ -31,10 +31,8 @@ File contents (path, byte count and sha256 only; never-log paths such as keystor
 and known token shapes; prompts and replies are capped at 8 KB (length and hash kept).
 
 ## Step attribution and knobs
-Every Agent dispatch `description` starts with `[<step>]`: `[new-product]`,
-`[pitch]`, `[design]`, `[phase-<NN>]`, `[review-<branch-slug>]`,
-`[release-<X.Y.Z>]`, `[publish-<X.Y.Z>]`, `[approve]`, `[status]`,
-`[retro-<X.Y.Z>]`, `[retro-pitch]`, `[retro-post-launch-<X.Y.Z>]`; the logger
-reads the step from that prefix. Knobs: `ERGOZ_LOG=0` turns the logger off
-(tests/run.sh sets it); `ERGOZ_LOG_ALWAYS=1` logs outside a product repo;
-`ERGOZ_LOG_CAP=<bytes>` changes the 8 KB cap.
+Every Agent dispatch `description` starts with `[<step>]`: `[new-product]`, `[pitch]`,
+`[design]`, `[phase-<NN>]`, `[review-<branch-slug>]`, `[release-<X.Y.Z>]`, `[publish-<X.Y.Z>]`,
+`[approve]`, `[status]`, `[retro-<X.Y.Z>]`, `[retro-pitch]`, `[retro-post-launch-<X.Y.Z>]`; the
+logger reads the step from that prefix. Knobs: `ERGOZ_LOG=0` turns the logger off (tests/run.sh sets it);
+`ERGOZ_LOG_ALWAYS=1` logs outside a product repo; `ERGOZ_LOG_CAP=<bytes>` changes the 8 KB cap.

@@ -2,18 +2,27 @@
 
 ## Waiting on founder
 Q-901 and Q-902 were both answered 2026-09-21, both on their defaults.
-- **app-ads.txt / REL-03 — the crawl window has long since passed and the result is unread.** Founder set the listing's Website field and the listing published; the row went live on the public page as `https://ermanergoz.github.io` at 2026-09-21T01:29:28Z, 301ing to the correct file on the canonical host (Google documents cross-domain redirects as valid). The ≤ 24 h checkpoint was 2026-09-22 and the 48 h escalation 2026-09-23; **it is now 2026-09-28**, so AdMob has either verified or it has not. Founder to read AdMob → Apps → this app → App settings → `app-ads.txt`. If still unverified: switch the field to `https://ermanergoz.com` (bare apex) and check the AdMob app entry is linked to the Play listing. The file itself has been correct and live since 2026-09-02 — do not touch the website.
+- **app-ads.txt / REL-03 — the crawl window has long since passed and the result is unread.** Founder set the listing's Website field and the listing published; the row went live on the public page as `https://ermanergoz.github.io` at 2026-09-21T01:29:28Z, 301ing to the correct file on the canonical host (Google documents cross-domain redirects as valid). The ≤ 24 h checkpoint was 2026-09-22 and the 48 h escalation 2026-09-23; **it is now 2026-10-18**, so AdMob has either verified or it has not. Founder to read AdMob → Apps → this app → App settings → `app-ads.txt`. If still unverified: switch the field to `https://ermanergoz.com` (bare apex) and check the AdMob app entry is linked to the Play listing. The file itself has been correct and live since 2026-09-02 — do not touch the website.
 
 ## In flight
 - **RESUMED 2026-10-17** on the founder's "finish this app and make it ready for the release", with a new
-  ask: "the game and the menu background to be like candy crush game" (track `candy-backdrop`, below).
-  Wave 1 dispatched 2026-10-17 (plugin rules v1.0.0, read from the plugin; snapshot still 0.6.2):
-  - phase-15 S11 loop 3 — code-auditor in PegSolitarie-p15 → `15-founder-feedback/code-auditor-loop3.md`;
-    qa-engineer building in detached worktree PegSolitarie-p15-qa (e1875cb) → `qa-engineer-loop3.md` + founder screenshots
-  - candy-backdrop — `feature/candy-backdrop` in PegSolitarie-candy (off develop 3f2af90): research-analyst IP verdict
-    → `.planning/reports/candy-backdrop/research-analyst.md`; next ux-designer spec, then build after phase 15 merges
-  - phase-14 — release-manager (THIRD_PARTY audio + bundled-font rows, founder-items list) and tech-lead (R-6
-    `docs/tech-design.md`, R-2 + check-gate concurrency brief), both in PegSolitarie-r5, uncommitted until both return
+  ask: "the game and the menu background to be like candy crush game". Fable-pinned roles run on Opus until
+  3.0.0 is published (Q-019). State on 2026-10-18:
+  - **phase-15** — PegSolitarie-p15. Loop 3: code-auditor PASS (Fable), qa-engineer PASS (Opus). Tech-lead
+    sign-off HOLD with H-1..H-4 (`15-founder-feedback/tech-lead-signoff.md`). H-2 done (`3b27012`, F-2 light status
+    bar + G-1 test). develop (with R-1) merged in. Next: H-1 code-auditor (S10 + H-2 + the merged tree's Check)
+    → `code-auditor-loop4.md`; H-3 qa-engineer 15e on a new `Pixel_9a_bench` AVD + F-2 device check + light
+    screenshots → `qa-engineer-15e.md`; H-4 founder sees the screens (first page published 2026-10-17).
+  - **candy-backdrop** — PegSolitarie-candy (feature/candy-backdrop off develop 3f2af90). IP verdict inspiration-only
+    + direction-B addendum clean; founder picked **B · Deep gloss** (Q-021). ux-designer rewriting
+    `docs/ux/candy-backdrop.md` for B (`ux-designer-direction-b.md`). Colour-vision palette + title fix and the
+    licences screen are specified. Builds last (after phase 15, check-gates, audio, F-1), with its own 15e sitting.
+  - **phase-14** — R-1 merged to develop (c3d3437). release-docs (PegSolitarie-r5): THIRD_PARTY rows, founder-items
+    list, store-art own-work rows (Q-017), `docs/tech-design.md` (R-6) committed; tech-design edits owed from the
+    two latest sign-offs. check-gates (R-2 + concurrency + C3a/C3b) cut after phase 15 merges. release-plan
+    (primary checkout) mergeable any time.
+  - **owed before release/3.0.0**: F-1 Home chip-arrival jump (`bugfix/home-chip-arrival`, ux ruling first);
+    audio integration; timer TalkBack form; 200% pill labels; docs/store copy (Q-016); founder items F-1..F-14.
 - *(2026-09-29 record)* **PAUSED by the founder, 2026-09-29 — resume on "continue".** Nothing is running; the emulator
   `emulator-5560` (Pixel_9, windowed) is left up with the S11 loop-2 debug build installed.
   - **phase-15 S11 (founder feedback Q-004/Q-005: Home board stage, dock state language, bigger strip,
@@ -80,6 +89,7 @@ Q-901 and Q-902 were both answered 2026-09-21, both on their defaults.
   5. **`docs/audio-spec.md` has never existed on any branch** (`git log --all --diff-filter=A` → 0 commits) although rules/audio.md makes it the cue list of record — its absence is why the D-01h/SOUND-01 contradiction stayed invisible through a full design pass. No sound-designer is staffed on this product, so the qa-engineer stood in under a recorded recusal. Owner: sound-designer if staffed, else tech-lead. Predates phase 15 and does not block it.
 
 ## Done
+2026-10-18 | phase-14 R-1 gate scope | android-game-dev, code-auditor, qa-engineer, tech-lead | PASS (QA and tech-lead on Opus under Q-019); merged to develop --no-ff; QA open issues routed to check-gates C3a/C3b | .planning/reports/phase-14/code-auditor-gate-scope.md, qa-engineer-gate-scope.md, tech-lead-signoff-gate-scope.md, producer-gate-scope.md
 2026-09-29 | rules snapshot v0.5.1 → 0.6.2 (Q-007) | producer | merged to develop 3f2af90 | .claude/rules/ (feature/sync-rules-062, deleted)
 2026-09-29 | phase-15 S11 rulings: fonts bundle + 15e E-1; 15p D-03m; §6.5 fold + D-03m check | tech-lead, ux-designer ×2 (Opus, Q-014) | ruled; D-03m text FAIL fixed in-commit | .planning/reports/15-founder-feedback/tech-lead-fonts.md, ux-designer-15p.md, ux-designer-6-5-and-d03m-check.md
 2026-09-29 | phase-15 S11 review loops 1–2 | code-auditor, qa-engineer (Opus, Q-003) | FAIL ×2 (F-1 dock pixels; 18d timer; N-1/N-2; F-A/F-B fonts never loaded since 2026-08-26) — fixed in dev loops 1–2, re-review owed | .planning/reports/15-founder-feedback/code-auditor.md, code-auditor-loop2.md, qa-engineer.md, qa-engineer-loop2.md, android-game-dev-fix1.md, android-game-dev-fix2.md

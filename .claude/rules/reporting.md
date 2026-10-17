@@ -8,6 +8,8 @@ Every role appends a report before saying "done":
     Branch: <branch> (<first-commit>..<last-commit>)
     Skills loaded: <comma-separated>
     Ran in parallel with: <task slugs or "none">
+    Ran on: <model> at effort <effort>
+    Fan-out: none | <angles | attempts or skeptics | parts> × <N> roles   (rules/dispatch.md in the plugin)
     Loops: <N>   (producer reports of build and review steps: developer re-dispatches after the first review round; 0 = first pass)
     Lessons applied: <L-NNNN, L-NNNN> | none
 
@@ -21,7 +23,15 @@ Every role appends a report before saying "done":
     ## Handoff
     Next: <role> — <what they need>
 
-A report with no Checks section or no Lessons applied line is invalid.
+For `Ran on:`, a role writes the `model:` and `effort:` of its own agent file
+(`${CLAUDE_PLUGIN_ROOT}/agents/<role>.md`) unless the harness says otherwise,
+and the producer writes the session's /model and /effort.
+
+A report with no Checks section, no `Ran on:` line, or no `Lessons applied:` line is invalid.
+
+A role that answers a workflow's question (a gsd config, planning, checkpoint
+or UAT question) writes `.planning/answers/<skill>.md` and its report like any
+other, `Branch: none` when nothing was committed. No dispatch may waive a report.
 
 The producer keeps `.planning/reports/STATUS.md`: one line per finished task
 (`date | task | roles | verdict | report paths`), a "Waiting on founder"
