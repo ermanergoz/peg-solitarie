@@ -4,7 +4,12 @@
 blocker R-6). It was seeded as a transcription by the release-manager on 2026-09-21
 (`.planning/reports/phase-14/release-manager-release-docs.md`, O-5) and taken over, re-framed and
 completed by the tech-lead on 2026-10-17 (`.planning/reports/phase-14/tech-lead-tech-design.md`).
-Every decision below is a tech-lead decision or a transcription of a recorded ruling; each names where
+Brought up to date on 2026-10-18 (`.planning/reports/phase-14/tech-lead-design-sync.md`) with three
+reports: the phase-15 sign-off (`.planning/reports/15-founder-feedback/tech-lead-signoff.md`, on
+`feature/phase-15-ux-refresh`), the R-1 gate-scope sign-off
+(`.planning/reports/phase-14/tech-lead-signoff-gate-scope.md`, on `develop`) and the candy-backdrop
+architecture rulings (`.planning/reports/candy-backdrop/tech-lead-architecture.md`, on
+`feature/candy-backdrop`). Every decision below is a tech-lead decision or a transcription of a recorded ruling; each names where
 it was decided. Entries are never deleted: a superseded entry gets a "superseded by" line and the
 supersession is listed in §17.
 
@@ -72,7 +77,10 @@ This product predates `docs/toolchain.md`; the catalog's comments are its toolch
 newer toolchain versions and minSdk 26 for products *scaffolded today*. This repo predates the rule,
 and every version divergence has a recorded environment reason above (the compileSdk-37 wall, the
 KSP/Kotlin pairing). Pins move only by the ladder rule in rules/stacks.md (each rung the newest
-stable compatible with the rung above) and only outside a release week.
+stable compatible with the rung above) and only outside a release week. The rule's "Android Lint and
+Kotlin warnings as errors" (plugin 1.0.0) is ruled in §9.8: errors in `:app`'s main compilations and
+in every `:domain` compilation from check-gates C7, and a held deviation for `:app`'s unit-test
+compilations and for lint until the first release branch after 3.0.0.
 
 **D-18 — release builds are not offline-safe on a cold cache.** AGP's `produceReleaseComposeMapping`
 implicitly resolves `org.jetbrains.kotlin:compose-group-mapping` at a coordinate tracking the Kotlin
@@ -202,12 +210,16 @@ Composables are stateless below the screen level and take state plus callbacks (
 `compose-skill`). UI models are immutable data classes. No `runBlocking`, no `first()` on a start
 path, no screen-wide loading state on Home (3.4).
 
+*One exception, tech-lead, 2026-10-17 (candy-backdrop R4):* the Licenses **list** screen has no
+ViewModel. It has no data source, no async work and no event beyond navigation, so a ViewModel would
+hold nothing. Its text screen has one (§3.6).
+
 ### 3.2 Routes
 
 `navigation/Routes.kt` is the single source of truth for destinations — type-safe `@Serializable`
 routes (NAV-02) that the `NavHost` (`AppNavHost`), the catalog, Results and `GameViewModel` all build
-against. Destinations: Home, Classic catalog, Gameplay (mode + level), Results, Settings, and (phase
-15) Tutorial. A sixth screen that is a screen everywhere except in the nav graph is a special case
+against. Destinations: Home, Classic catalog, Gameplay (mode + level), Results, Settings, (phase 15)
+Tutorial, and (`feature/candy-backdrop`) `Licenses` and `LicenseText(entryId)` (§3.6). A sixth screen that is a screen everywhere except in the nav graph is a special case
 with no compensating benefit (3.3).
 
 ### 3.3 Ruling — the tutorial is a nav destination
@@ -255,6 +267,130 @@ background submitter. Standing rule, checkable in one grep: **no Kotlin fold ove
 shape over one `MutableStateFlow(HomeUiState())`; it is never restructured into a single `combine`,
 which would make the whole Home state wait on a database round trip. `aggregate()` (suspend,
 one-shot, goes stale) is not used for a live value.
+
+### 3.5 Ruling — one backdrop behind the `NavHost`, and its heavy layer off Home's first frame
+
+**Tech-lead rulings, 2026-10-17** (`.planning/reports/candy-backdrop/tech-lead-architecture.md` R1 and
+R3, on `feature/candy-backdrop`). **Status on 2026-10-18:** those rulings were written against the
+sweets landscape, which the founder reopened (Q-020). The founder has since chosen direction **B,
+"Deep gloss"** (Q-021, 2026-10-18): a deep violet world with glossy waves, rising soft lights and gel
+mode cards. The ux-designer is rewriting `docs/ux/candy-backdrop.md` for B. This section keeps the
+parts of R1 and R3 that do not depend on the look, and they bind the B build. The B spec sets the
+per-destination variants' names and layer contents; R1's Landscape, Quiet and Sparse are the sweets
+spec's. **R2, the stage wings (B-12), is void**: it ruled on the sweets landscape's wings, which
+direction B replaces. Anything B puts on Home's
+stage or tiles, the gel mode cards included, gets its own fit ruling against D-03l clause 4 and the
+phase-15 suites when the B spec lands (§16 #16). Until then nothing on the stage or the tiles is ruled.
+
+- **One instance, in `AppNavHost`, behind the `NavHost`.** Screens draw no backdrop of their own. They
+  only stop painting over it: transparent `Scaffold` and `TopAppBar` containers, and a transparent
+  root `Surface` on the tutorial. Why not one backdrop per screen: the `NavHost`'s default transition
+  cross-fades both screens (`fadeIn`/`fadeOut(tween(700))` in navigation-compose 2.9.8), so two
+  translucent per-screen backdrops would dip toward `background` mid-transition. One host also builds
+  its geometry once per window size, theme and variant, not on every entry into composition.
+- **Where the state lives.** The variant is a pure function of the **committed** back-stack
+  destination, a mapping in `navigation/`. Its `else` branch is the calmest variant, so a destination
+  added later can never put text on a saturated colour. The backdrop composable (`ui/backdrop/`) is
+  stateless with respect to app state: it knows no route and reads no `UiState`. A thin adapter reads
+  the back stack, so a destination change recomposes only the adapter and the backdrop. Under
+  predictive back the backdrop follows the committed destination, not the gesture, so it never dips.
+- **The composition order is load-bearing.** The adapter is composed **after** the `NavHost` in the
+  same `Box` and drawn **behind** it with `Modifier.zIndex(−1f)`. It starts from the synchronous
+  `navController.currentBackStackEntry`. The `NavHost` restores a saved back stack synchronously while
+  it composes, so after a process-death restore frame 1 shows the right variant. An adapter composed
+  first would read `null` on frame 1. A KDoc on the `Box` says why, and a `StateRestorationTester`
+  restore test pins it.
+- **The cross-fade.** One constant, `ClayAnim.NAV_TRANSITION_MS = 700` (today's default made
+  explicit), drives the `NavHost`'s four transitions and the backdrop's fade, so the two cannot drift.
+  There are two slots. The current variant is opaque below. The incoming one is above, its alpha read
+  inside `graphicsLayer { }`. A change mid-fade first promotes the in-flight slot to full alpha. The
+  outgoing backdrop is never translucent over `background`. With reduced motion the swap is instant.
+- **Per frame.** Every animated quantity is read in the draw phase (`graphicsLayer` or a draw lambda),
+  never in composition, so an animated drift is a layer-property update and not a recomposition plus
+  a re-layout. Today's `HomeBlobs` reads its drift in composition and feeds `Modifier.offset(Dp)`,
+  which lint flags as `UseOfNonLambdaOffsetOverload` (§9.8). Static layers are built in
+  `drawWithCache`'s cache block, keyed on size, variant, palette, layout direction and the status-bar
+  inset. Draw lambdas allocate nothing: no `Path`, `Stroke`, `Brush`, list or `PathEffect` built per
+  frame, indexed loops rather than `forEach`, no per-shape `clipPath`. Whether a layer becomes an
+  offscreen texture is decided by measurement at the `compose-performance-audit`, not up front.
+- **Geometry is a pure model** (`ui/backdrop/BackdropGeometry.kt`). It holds immutable primitives
+  built from px inputs (an `@Immutable` dimens holder resolved once from `dimens.xml`) and named
+  ratios. It contains no Compose `Path` and no `android.*` import, so it is tested without composing.
+  **The palette:** the hexes live only in `ui/theme/Color.kt`, behind an `@Immutable` holder and a
+  `staticCompositionLocalOf` that `AppTheme` provides beside `LocalClayColors`.
+- **The F-32 theme `Surface`, which the app lacks today.** `AppTheme` wraps `MaterialTheme` only.
+  `AppNavHost`'s root becomes `Surface(color = background, contentColor = onBackground,
+  Modifier.fillMaxSize())`, rules/compose.md's F-32 surface. Without it a transparent `Scaffold`'s
+  content colour falls back to the default black, and dark-mode text that names no colour turns black.
+  Every transparent container also passes `contentColor = onBackground` itself, so a screen is right
+  in a preview or a test without the host. Frame 1 gains one solid fill (window background, host
+  `Surface`, backdrop base), inside what 15e measures. Accepted.
+- **Insets.** The backdrop fills the window under both bars and any cutout and is never padded. Each
+  screen keeps the one inset application it has today: the `Scaffold` content padding, and the
+  tutorial column's `safeDrawingPadding()`. No scroll container draws under a transparent top bar.
+  `MainActivity` is untouched: no `enableEdgeToEdge()`, no `isNavigationBarContrastEnforced`.
+  **Known divergence from rules/compose.md F-33**, which has the navigation host pad off the system
+  bars once with `safeDrawingPadding()`. Its intent, each bar applied exactly once, is met and tested
+  by 18b/18c. Moving the insets up into the host would re-lay out every screen and re-open phase 15's
+  15k/18b/18c geometry, so it is not in 3.0.0 (§14.2).
+- **The first-frame gate (R3).** One flag, set one frame late, keeps the costly decorative layer off
+  Home's first frame. `rememberBackdropSceneReady()` is called once in the host:
+  `remember { mutableStateOf(false) }` and `LaunchedEffect(Unit) { withFrameNanos { }; ready.value = true }`.
+  The `State<Boolean>` itself, not its value, is provided through a `staticCompositionLocalOf` whose
+  default is always true, so previews and component tests show everything. Only the readers that call
+  `.value` recompose on the flip. It runs on the Compose frame clock, so the test clock steps it
+  exactly. Rejected: a state write from a draw lambda, `delay(16)`, `View.post` and `Choreographer`.
+  Frame 1 is the window background, the host `Surface`, the cheap layers and Home's content. The gated
+  layer is recorded on frame 2, or frame 3 at the latest. **What the gate covers in B:** every layer
+  whose geometry is built from a model, and every full-window fill beyond the first gradient, unless
+  the tech-lead rules otherwise when the B spec lands. The spec's degradation steps become one-line
+  changes on this flag and are built only if a sitting fails.
+- **15e on that branch** (§10). Arm A is `git merge-base develop feature/candy-backdrop` at the
+  sitting, and it must contain phase 15. Arm B is the branch head. The instrument is
+  `Pixel_9a_bench`. The sitting comes last, before the merge: after the code-auditor's PASS on the
+  final diff and after `develop` has been merged in. A jank check runs as a separate block after the
+  sitting, never inside it: animations on, `dumpsys gfxinfo` "Janky frames", PASS when
+  `median_B ≤ median_A + 1`.
+
+### 3.6 Ruling — the licences screens
+
+**Tech-lead ruling, 2026-10-17** (`candy-backdrop/tech-lead-architecture.md` R4). It does not depend
+on the backdrop's look, so Q-021 leaves it standing. It is built on `feature/candy-backdrop` against
+`docs/ux/licences-screen.md`.
+
+- **Routes** (`navigation/Routes.kt`): `@Serializable data object Licenses` and
+  `@Serializable data class LicenseText(val entryId: String)`. Settings opens Licenses, Licenses opens
+  a text, and `onBack` pops. **A route carries the entry's stable id, never an asset path.** An id the
+  catalogue does not know shows the text screen's error state; it is not a crash and not a file
+  lookup. Route arguments are restorable, forgeable state (the `Gameplay(levelId)` and T-05-08
+  reasoning), so nothing from a route reaches `AssetManager.open`.
+- **The catalogue is code.** `internal object LicenseCatalog` in `ui/licenses/` holds `@Immutable` data
+  classes with read-only `List` fields, the codebase's idiom; `kotlinx.collections.immutable` would be
+  a new dependency. `enum class BundledLicenseText` is the **only** place an asset path is written:
+  `licenses/Fredoka-OFL.txt`, `licenses/Nunito-OFL.txt`, `licenses/Apache-2.0.txt`. Rejected: a
+  generated list, a JSON asset (a read and a parser for nine static entries), `oss-licenses` and
+  AboutLibraries (new dependencies).
+- **The list has no ViewModel** (§3.1's exception). A stateless `LicensesScreen` is fed the
+  catalogue. Its `LazyColumn` is keyed by entry id with saveable state, so the position survives the
+  round trip to a text.
+- **The text screen.** `@HiltViewModel LicenseTextViewModel(savedStateHandle, source,
+  defaultDispatcher)` exposes a sealed `LicenseTextUiState`: `Loading`, `Loaded(paragraphs)` and
+  `Failed`, which also covers an unknown id and a failed read. The 300 ms spinner threshold is UI
+  timing on the composition clock, so the Compose test clock controls it. The body is a `Column` in
+  `verticalScroll`, not a `LazyColumn`, because a `SelectionContainer` around a lazy list selects only
+  what is composed; the longest text is 11,358 B. It keeps one `Text` per paragraph for TalkBack.
+- **Reading off the main thread.** `data/LicenseTextSource` (`suspend fun read(text): String?`) is
+  implemented by `AssetLicenseTextSource` on an `@IoDispatcher`, a **new qualifier** in
+  `di/DispatchersModule.kt`. It must be qualified because the graph already binds an unqualified
+  `CoroutineDispatcher` (Default, `DomainModule`), and a second unqualified binding is a Hilt
+  duplicate-binding error. The source catches `IOException` only and returns `null`. The re-flow is a
+  pure function, `reflowLicenseText(raw)`: normalise line endings, split on blank lines, join a
+  paragraph's lines with single spaces, drop empty paragraphs. It changes whitespace only, and the
+  asset stays untouched.
+- **`app/src/main/assets/licenses/Apache-2.0.txt`** is byte-identical to
+  `https://www.apache.org/licenses/LICENSE-2.0.txt` (11,358 B, sha256
+  `cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30`) and committed unmodified. It adds
+  no dependency (§13).
 
 ## 4. Persistence
 
@@ -460,7 +596,7 @@ below is what `.planning/reports/phase-14/tech-lead-r2-gate-brief.md` instructs 
 | `:domain:depthSweep` | JVM, own task | `check` | ~11 min (§7.2) |
 | `:domain:fuzz` | JVM, own task | `check` at the measured tier; CI 10,000; release exhaustive | measured (§7.3) |
 | `:app:testDebugUnitTest` — ViewModels (Turbine), repositories against the real in-memory Room DB, Robolectric Compose UI tests (one per screen's main flow), ArchUnit boundary tests, codec and merge tests | JVM, Robolectric 4.16 SDK 34 (the only `android-all` image cached offline — **do not add `@Config(sdk = ...)` for another level**: it needs a network fetch and breaks `check --offline`) | `check` | minutes |
-| `build-logic` tests (54 at R-1) — the release-gate resolvers | JVM | CI's first step (`./gradlew -p build-logic test`); not reachable from the root `check` | seconds |
+| `build-logic` tests (54 at R-1; 54 after check-gates C3, whose brief count of 55 was wrong, addendum A0; 55 after C3a) — the release-gate resolvers | JVM | CI's first step (`./gradlew -p build-logic test`); not reachable from the root `check` | seconds |
 | Device sessions | qa-engineer, real device else emulator | every executed plan, every phase, every release | — |
 
 Deterministic tests only: no wall clock, no network, no unseeded random, no sleeps. No `@Ignore`,
@@ -524,6 +660,13 @@ changed screen. The suite is a roadmap item — "Golden-image screenshot suite (
 qa-engineer with tech-lead sign-off — **after v1.1 and after R-2**, recorded against the post-refresh
 screens.
 
+*Pointer, 2026-10-17 (`candy-backdrop/tech-lead-architecture.md` R5):* stored goldens stay out, but
+**pixel comparisons inside one test run** are allowed. Two renders in the same JVM, on the same host
+and in the same test, are compared in memory: with and without the backdrop, font scale 1.0 against
+2.0, LTR against mirrored RTL. Nothing is stored and there is no baseline to drift, so neither
+objection above applies. An exact-equality pixel test that meets shader dithering states a
+±1-per-channel tolerance as a named constant and keeps the assertion.
+
 ## 9. Build, signing and gates
 
 ### 9.1 The Check command
@@ -531,7 +674,9 @@ screens.
 `CLAUDE.md`: `Check command: ./gradlew check` (becoming `./scripts/check.sh`, 9.6). `check` runs, for
 both modules: detekt (one widened task, 9.4), ktlintCheck, `dpSpLiteralCheck`, `adIdLiteralCheck`,
 `gamesIdLiteralCheck`, `audioFocusLiteralCheck`; Android lint; `:domain:test`, `:domain:depthSweep`,
-`:app:testDebugUnitTest`; and after R-2, `:domain:fuzz` and `:domain:koverVerify`. **A new gate is
+`:app:testDebugUnitTest`; and after R-2, `:domain:fuzz` and `:domain:koverVerify`. From check-gates
+C7, a Kotlin warning in `:app`'s main compilations or in any `:domain` compilation fails the
+compilation, and so the Check (§9.8). **A new gate is
 registered in `standards.gradle.kts`'s `check` block (module-wide gates) or the owning module's
 `check` dependency (module-specific tasks), and nowhere else** — CI invokes `check` verbatim (9.7), so
 that is the one registration CI cannot forget. Wall clock today ≈ 11 min, dominated by the sweep.
@@ -550,14 +695,25 @@ that is the one registration CI cannot forget. Wall clock today ≈ 11 min, domi
 
 ### 9.3 The literal gates and their scope (F-8 / R-1)
 
-The three ID gates read `SourceSetPolicy.shippedSourceRoots()` = `src/main` + `src/release` +
-`src/debug` × `{java,kotlin,res}`, filtered by `exists()`. **Test source sets are excluded on purpose
+The three ID gates read every file under `src/main`, `src/release` and `src/debug`
+(`SourceSetPolicy.shippedSourceRoots()`; the manifest, `assets/`, Java `resources/` and any later
+content type included), filtered by `exists()`. **Test source sets are excluded on purpose
 and the failure messages say so**, derived from the list (`SHIPPED_SOURCE_ROOTS_DESCRIPTION`), because
 a gate whose failure text misdescribes its own scope is how F-1's false claim happened. `src/debug` is
 not cosmetic: a real ad unit id there is AdMob invalid traffic against the account, and a focus request
 there falsifies every QA audio observation. `src/test*` legitimately names the test-publisher prefix,
 the key names and the focus API. *Decided in:* `tech-lead-prerelease-signoff.md` §B; implemented R-1,
-PASS `code-auditor-gate-scope.md` (planted probes in all five source sets, negative control included).
+PASS `code-auditor-gate-scope.md` (planted probes in all five source sets, negative control included);
+signed off PASS in `tech-lead-signoff-gate-scope.md` and merged to `develop` as `c3d3437`.
+
+*Amended 2026-10-18 (`tech-lead-signoff-gate-scope.md` ruling 2, on QA's open issue 2):* the
+per-directory {java, kotlin, res} list had a hole at the manifest. That is where AdMob's setup puts the
+app ID, and the manifest's own comment (`AndroidManifest.xml:50-54`) claimed the gate covered it.
+`assets/` (phase 15's licence texts) and `:domain`'s Java `resources/` (the opening book) ship too and
+were unscanned. The source-set list is now the only list, and the tripwire guards it. Implemented in
+check-gates C3a; with it the manifest comment becomes true, so `AndroidManifest.xml` is not edited.
+On every tree due to merge (R-1, phase 15, audio, candy) the four markers occur in 0 files under the
+shipped source sets, binaries included, so the widened gates start green.
 
 **The tripwire.** At configuration time, any `src/<name>` directory outside `KNOWN_SOURCE_SET_NAMES`
 fails the build naming both lists and the two decisions. **Ruling on auditor F-2 (2026-10-17):**
@@ -617,12 +773,91 @@ memory, a timeout, a killed worker or the diff. Latent since phase 8, filed in p
 ### 9.7 CI runs `check`, verbatim
 
 `.github/workflows/ci.yml` runs `./gradlew -p build-logic test` (first, fail-fast) then
-`./gradlew check assembleDebug` on every push and PR to `develop` and `main`. It used to name tasks
-and so never ran the four literal gates. **Ruling on the sweep's CI cost:** stays in the same job
+`./gradlew check assembleDebug` on every push and PR to `develop`, `release/**` and `main`
+(rules/stacks.md scaffold contract 8; check-gates C3b; `tech-lead-signoff-gate-scope.md` ruling 1).
+Push as well as pull request, because the studio merges locally with `git merge --no-ff`: once a
+remote exists, a pushed branch is the only event GitHub sees. The repository has no git remote today,
+so the workflow has never run. The local Check is the only gate that has executed, and the 25-minute
+split trigger below waits for the first remote run; a local `check` time is not that figure. It used
+to name tasks and so never ran the four literal gates. **Ruling on the sweep's CI cost:** stays in the same job
 until the measured wall clock of the `verify` job exceeds **25 minutes**; then `:domain:depthSweep`
 moves to its own parallel job in the same workflow whose union with the first job is still `check`
 (never back to a list of task names). The producer records the first measured figure in STATUS.md.
 After R-2 the step carries `FUZZ_SEEDS=10000` explicitly whatever the local default (§7.3).
+
+### 9.8 Kotlin and lint warnings — ruling (2026-10-18)
+
+The plugin's rules/kotlin-android.md (1.0.0) has the Check run "with Android Lint and Kotlin warnings
+as errors". Neither is configured: there is no `allWarningsAsErrors` and no `lint { }` block in
+`build-logic/`, `app/build.gradle.kts` or `domain/build.gradle.kts`. **Tech-lead ruling
+(`.planning/reports/phase-14/tech-lead-design-sync.md`): the main code becomes warning-free and gated
+now, as a small developer task. The unit-test compilations and lint are a held deviation for 3.0.0.**
+
+**The count.** The newest Check log on disk is `./gradlew --no-daemon --no-build-cache --rerun-tasks
+check` on `feature/phase-15-ux-refresh` at `e1875cb` (2026-10-17): green, 98 of 98 tasks executed,
+**239 `w:` lines**.
+
+| Where | Lines | Kind | Fix |
+|---|---|---|---|
+| `:app` main | 6 | `androidx.hilt.navigation.compose.hiltViewModel` is deprecated, "moved to package `androidx.hilt.lifecycle.viewmodel.compose`", in `ClassicCatalogRoute.kt:29`, `GameRoute.kt:49`, `HomeRoute.kt:59`, `TutorialRoute.kt:33`, `ResultsRoute.kt:63` and `SettingsRoute.kt:28` | The import. In `hilt-navigation-compose` 1.3.0's sources the deprecated function is an inline forwarder to the new one, so behaviour does not change |
+| `:app` main | 4 | Kotlin's annotation default-target change: a qualifier on a constructor `private val` "is currently applied to the value parameter only", in `ChallengeProgress.kt:54`, `ClassicLevelSource.kt:40`, `InterstitialCadenceStore.kt:98` and `TutorialViewModel.kt:76` | An explicit `@param:` use-site target. That is today's behaviour, written down |
+| `:domain`, main and test; `build-logic` | 0 | — | — |
+| `:app` unit tests (`src/test`, `src/testDebug`) | 198 | Opt-in required for `kotlinx.coroutines.ExperimentalCoroutinesApi`, the coroutines test API | A compiler opt-in on `:app`'s unit-test compilations only |
+| same | 29 | `createComposeRule` is deprecated for `junit4.v2.createComposeRule`. The v2 rule's `StandardTestDispatcher` queues work that the v1 rule runs at once | A migration that changes how 29 Compose suites synchronise, the phase-15 geometry suites among them |
+| same | 1 | `GameUiState::class.members` (`GameScreenSoundTest.kt:300`) needs `kotlin-reflect`, which reaches the test runtime only transitively | Java reflection, or a declared test dependency |
+| build environment | 1 | "Detected multiple Kotlin daemon sessions" | Not a compiler diagnostic about the code |
+
+**Lint** in the same run (`lint-results-debug.txt`): **0 errors, 57 warnings.**
+- 35 are "a newer version exists" checks: `GradleDependency` 18, `NewerVersionAvailable` 14,
+  `AndroidGradlePluginVersion` 3. The ladder rule and the compileSdk-37 wall (§1.2) forbid acting on
+  them in a release week, and some cannot be acted on at compileSdk 36 at all.
+- `UnusedResources` 13 (dimens and strings).
+- `PluralsCandidate` 5: user-facing strings, the ux-designer's copy.
+- `UseOfNonLambdaOffsetOverload` 2: `HomeBlobs`, which the backdrop branch replaces (§3.5).
+- `TypographyDashes` 1, and `FieldSiteTargetOnQualifierAnnotation` 1 (`App.kt:90`).
+
+**Ruling.**
+1. **Developer task: check-gates commit C7**, `feat(14): fail the build on Kotlin warnings in shipped
+   code`, on `feature/phase-14-check-gates` after C6. That branch is cut from `develop` only after
+   phase 15 has merged (§14.1), and two of the ten sites are phase-15 files. Scope:
+   - `allWarningsAsErrors` on every main compilation of `:app` (debug and release) and on every
+     compilation of `:domain` (main and test), set once in the convention plugins
+     (`android-app.gradle.kts`, `kotlin-jvm.gradle.kts`) with a comment pointing here. `:app`'s
+     unit-test compilations are exempt by name, in the same place.
+   - The opt-in of `kotlinx.coroutines.ExperimentalCoroutinesApi` on `:app`'s unit-test compilations
+     only, never on a main compilation.
+   - The ten main-source fixes in the table, and nothing else in `ui/` or `data/`.
+   - `androidx.hilt:hilt-lifecycle-viewmodel-compose` declared directly, because the code now imports
+     it. It takes the `hiltNavigationCompose` version ref (1.3.0), so the two cannot drift; 1.4.x needs
+     compileSdk 37. It is already on the release runtime classpath through `hilt-navigation-compose`
+     1.3.0, so nothing shipped changes.
+   - Not in C7: no test migration, no lint setting, no `@Suppress`, no `-Xwarning-level`, `-nowarn`
+     or `suppressWarnings`, no resource or string edit.
+   - The acceptance is addendum A3 of the design-sync report.
+2. **Held deviation for 3.0.0: `:app`'s unit-test compilations and Android Lint keep warnings as
+   warnings.**
+   - *Why, tests:* after the opt-in, what remains is the `createComposeRule` v2 migration. It changes
+     how 29 reviewed Compose suites synchronise, in a release week, after 101 reviewed phase-15
+     commits, and the backdrop branch must run the phase-15 suites unchanged. It is a change to test
+     behaviour, not a cleanup.
+   - *Why, lint:* about two thirds of its warnings are version checks the pins are held against for
+     recorded reasons. The rest touch user-facing strings, and resources the backdrop branch is
+     rewriting. Making them errors now means disabling checks or adding a baseline, and both hide
+     warnings rather than fix them.
+   - *While it holds, no growth:* a diff that adds a unit-test compilation warning, or a lint warning,
+     in a file it touches is a review finding, fixed in that diff. The code-auditor reads the Check
+     log's `w:` lines and `app/build/reports/lint-results-debug.txt` for the diff's files.
+   - **End:** before the first `release/*` branch after `release/3.0.0` is cut; a `hotfix/*` is
+     exempt. Closing it means the v2 migration and the reflection call, `allWarningsAsErrors` on the
+     unit-test compilations, and `warningsAsErrors` in lint. The version checks there are either acted
+     on by the ladder or disabled by a line the code-auditor approves, with its reason. Owner:
+     android-game-dev via the producer, then the code-auditor and the tech-lead (§14.2).
+3. **Every branch merged after C7 compiles its main code warning-free.** A new main warning fails that
+   branch's Check once it has taken `develop` in. It is fixed on that branch, in the code, never by a
+   suppression or a compiler switch. If check-gates merges after `feature/audio-review`, C7's
+   acceptance runs on the merged tree. The same two patterns, the import and the `@param:` target,
+   then apply to audio's code too; any other kind of warning stops the developer and comes to the
+   tech-lead.
 
 ## 10. Performance budgets
 
@@ -630,14 +865,14 @@ After R-2 the step carries `FUZZ_SEEDS=10000` explicitly whatever the local defa
 |---|---|---|---|
 | **Cold start, the gate** | **< 2 s on a named mid-range physical phone** (rules/studio.md product baseline) | **Never measured on a physical device** — every number in the repo is from an emulator. Owner: PLAT-08 / phase 14; the reference device is named in the release evidence. *Decided default if no physical device is available:* the release proceeds on the interleaved emulator gate below plus the Macrobenchmark follow-up, with the absolute bar recorded as **unverified**, never silently passed. Buying a test phone is a founder question the producer folds into the release track | `tech-lead-coldstart-gate.md` §4, Open issues |
 | Cold start, tracked target | ≤ 950 ms `am start -W` TotalTime on AVD `Pixel_9a` API 36, debug | **Demoted from gate to tracked target.** It derives from a pre-SDK 633 ms baseline and a different `applicationId`; the same AVD read 957 ms and 1832 ms with nothing changing but host load (1.83×), so an absolute emulator reading is a property of the host, not the app | same §2, §4 |
-| Cold-start regression (criterion 15e) | Interleaved A/B gate: `median_B − median_A ≤ max(2 × floor, 100 ms)` with `floor = |median(N1) − median(N2)|` from a **same-sitting null control** of one build in both positions; **VOID** (not pass, not fail) when `floor > 150 ms`; ≥ 20 kept samples per arm in blocks of 5, first of each block discarded, `am force-stop` + 2 s between samples; ART normalised with `cmd package compile -m speed -f`; animations off; exactly one emulator; no Gradle daemon anywhere; 1-minute load ≤ half the host's logical cores (5.0 on the studio's 10-core M4) read before and after with the launcher idle; arms share one `applicationId`, so each arm is swapped in **only at a block boundary** and the null control swaps the same way; valid only while both arms share the Room schema and DataStore keys; `Pixel_9a` is the instrument of record and a `Pixel_9` sitting is VOID | Replaces the ill-posed ≤ 50 ms delta (a within-arm range promoted to a between-arm threshold — the tech-lead's own specification error). Runs once, on the phase-15 follow-up slice, with `develop` as arm A | `tech-lead-coldstart-gate.md` §3; `15-founder-feedback/tech-lead-fonts.md` Ruling 2 |
+| Cold-start regression (criterion 15e) | Interleaved A/B gate: `median_B − median_A ≤ max(2 × floor, 100 ms)` with `floor = |median(N1) − median(N2)|` from a **same-sitting null control** of one build in both positions; **VOID** (not pass, not fail) when `floor > 150 ms`; ≥ 20 kept samples per arm in blocks of 5, first of each block discarded, `am force-stop` + 2 s between samples; ART normalised with `cmd package compile -m speed -f`; animations off; exactly one emulator; no Gradle daemon anywhere; 1-minute load ≤ half the host's logical cores (5.0 on the studio's 10-core M4) read before and after with the launcher idle; arms share one `applicationId`, so each arm is swapped in **only at a block boundary** and the null control swaps the same way; valid only while both arms share the Room schema and DataStore keys; **`Pixel_9a_bench`** is the instrument of record: the `Pixel_9a`'s profile and image (`android-36.1` `google_apis_playstore_ps16k`, arm64, 16 KB pages, 4 cores, 2 GB RAM, 1080×2424 at 420 dpi) with a 16 GB data partition, no Google account, and used for no other testing; `/data` free ≥ 4 GB (`dumpsys diskstats`, `Data-Free`) at the start and the end of the sitting, both recorded; a sitting on any other AVD is VOID, the `Pixel_9` and the `Pixel_9a` included; arm A = the branch's merge-base with `develop` at the sitting, so A..B is exactly the branch's diff; a later `develop` merge-in leaves a sitting standing unless it changes a start-path file (`App.kt`, `MainActivity.kt`, `di/`, `navigation/`, `ui/home/`, `ui/theme/`, `res/font/`, `res/values/themes.xml`, `AndroidManifest.xml`, and since H-2 `res/values-night/themes.xml`); a test-only commit leaves it standing | Replaces the ill-posed ≤ 50 ms delta (a within-arm range promoted to a between-arm threshold — the tech-lead's own specification error). Runs once on phase 15 before its merge (H-3). Each later branch that changes Home's first frame carries its own sitting on the bench: candy-backdrop (§3.5), and F-1 if its fix changes the first frame. A VOID is re-run, never reported as a pass or a fail | `tech-lead-coldstart-gate.md` §3; `15-founder-feedback/tech-lead-fonts.md` Ruling 2; `15-founder-feedback/tech-lead-signoff.md` Decision 1 |
 | Instrument succession | `:macrobenchmark` module (`androidx.benchmark`, Apache-2.0) with `StartupTimingMetric`, `StartupMode.COLD`, `CompilationMode.Full()`, ≥ 10 iterations, physical device; plus `reportFullyDrawn()` in `MainActivity` so time-to-full-display becomes measurable (criterion 15f's real subject) | **Scheduled, not phase 15's**; producer schedules, android-game-dev implements, qa-engineer runs. `reportFullyDrawn()` is its own small plan | `tech-lead-coldstart-gate.md` §6 |
-| Home's first frame | No blocking read, no image decode, no asset load, no bitmap, no new SDK call — **one named exception: the five bundled type faces** (§11), which load blocking on first use so the first frame is final; the progress ribbon fills asynchronously into a placeholder | Held structurally by the independent-collector shape (§3.4) | `docs/ux-spec.md` §6.5 as amended |
+| Home's first frame | No blocking read, no image decode, no asset load, no bitmap, no new SDK call — **one named exception: the five bundled type faces** (§11), which load blocking on first use so the first frame is final; the progress ribbon fills asynchronously into a placeholder; the backdrop's gated layer is off frame 1 (§3.5); the Continue chips arrive after first paint by design, because their collector decodes both resume snapshots before it emits (the WR-02/CR-01 phantom-chip guard), and what moves when they arrive is F-1 (§16 #13) | Held structurally by the independent-collector shape (§3.4) | `docs/ux-spec.md` §6.5 as amended; `15-founder-feedback/tech-lead-signoff.md` Decision 3 |
 | Hint latency | 1.5 s deadline per `GetHintUseCase` call; book hits in single-digit ms; `depthSweep` measures it exhaustively over every covered frontier | Diamond-41's 440 off-book positions wait out the deadline — the honest cost of the book's documented gap | §7.2 |
 | `check` wall clock | ≈ 11 min today; the fuzz default tier adds ≤ 60 s (§7.3); no second multi-minute gate | — | §7.3, §9.7 |
 | APK size | Baselined, not gated (D-12): last recorded release APK 2,038,611 B at phase 7, before the ads and PGS SDKs; the fonts add ≈ 229 KiB compressed | — | `06-CONTEXT.md:42`; §11 |
 | Cue path | `play()` is one volatile read, zero IPC, zero allocation; no audio work on the main thread beyond the play call | — | §12 |
-| Idle Home | `HomeBlobs` draws at ≈ 61 fps idle (O-B) — a pre-release `compose-performance-audit` item (rules/compose.md), not ruled here | open, owner android-game-dev at the audit | `tech-lead-fonts.md`, Open issues |
+| Idle Home | `HomeBlobs` draws at ≈ 61 fps idle (O-B) — a pre-release `compose-performance-audit` item (rules/compose.md), not ruled here. The backdrop branch moves every animated drift into the draw phase (§3.5), which lowers each frame's cost, not the frame count, so the audit runs after that branch | open, owner android-game-dev at the audit | `tech-lead-fonts.md`, Open issues; `15-founder-feedback/tech-lead-signoff.md` (O-B) |
 
 ## 11. Typography — the fonts are bundled
 
@@ -666,7 +901,19 @@ Fredoka has **no `tnum`** (its digits are proportional, "1" = 388, "2" = 587 per
 why `TimerDigits` sets the timer's digits in fixed cells; Nunito's digits are tabular by design. The
 late-face path in `TimerDigits` stays as a guard for a post-layout face or font-scale change.
 Acceptance (AC-F1–F10) and the device re-walk with the digit-"1" discriminators are in the ruling;
-`THIRD_PARTY.md` carries one row per family (§13). If 15e fails on the build that first bundles the
+`THIRD_PARTY.md` carries one row per family (§13).
+
+*Amended 2026-10-18 (`15-founder-feedback/tech-lead-signoff.md` Decision 2):* **AC-F7** now reads
+"Both faces render on a cold start (the on-screen discriminators), and the APK contains no
+downloadable-font path (a dex and `resources.arsc` scan with a positive control)". Its airplane-mode
+cold start was a proxy for one property, that no face depends on the network. The scan tests that
+property directly and for every environment: arm B's 30 dex files and its `resources.arsc` hold 0
+`com.google.android.gms.fonts` authority strings, 0 `googlefonts` classes and 0 certificate resources,
+against 5, 47 and 3 on `develop`, the positive control. **No literal airplane run is owed, now or at
+release.** A face discriminator uses a tracking-free role, such as titleLarge's "Level N": the Nunito
+band once assumed bodyMedium's 0.25 sp tracking where Material3 1.4.0 sets 0.2 sp (loop-3 O-1). AC-F5's
+release half (the AAB keeps the five fonts, `bundletool dump resources`) is the release-manager's, on
+`release/3.0.0`. If 15e fails on the build that first bundles the
 faces, the tech-lead rules on their share **before** any art is removed: removing art cannot pay for
 type.
 
@@ -719,6 +966,7 @@ family; it does not duplicate the rows.
 | User Messaging Platform | `com.google.android.ump:user-messaging-platform` 4.0.0 | **unverified (U-1)** — the AAR carries its dependencies' licences and no licence of its own; one online dependency listing settles it | — | release-checklist 3.5 |
 | Fonts | Fredoka v17 (Medium, SemiBold), Nunito v32 (Regular, SemiBold, Bold), static, unmodified | OFL-1.1, no Reserved Font Name | file-level only; **not** an escalation (§11) | notice shipped in `assets/licenses/` |
 | Sounds | 9 Kenney + 3 freesound borrows, per `docs/audio/CREDITS.md` | CC0 1.0 | no | attribution a courtesy |
+| Licence text (candy-backdrop, §3.6) | `assets/licenses/Apache-2.0.txt`, byte-identical to apache.org's (sha256 `cfc7749b…3d30`) | the text's own redistribution terms (the research-analyst confirms them in one line) | no | an asset, not a dependency; its `THIRD_PARTY.md` row is the release-manager's |
 | Test-only | JUnit 4 (EPL-1.0), Truth, Turbine, MockK, kotlinx-coroutines-test, Robolectric, ArchUnit, Room testing, Compose ui-test | various permissive | no | never on a variant's runtime classpath |
 | Build-only | AGP, Kotlin, KSP, Hilt, Room, detekt, ktlint Gradle plugins; **kover (R-2, Apache-2.0, JetBrains)** | permissive | no | run on the build machine; kover joins `THIRD_PARTY.md`'s build-tooling row when R-2 lands (release-manager's file) |
 
@@ -726,8 +974,13 @@ family; it does not duplicate the rows.
 with the reason and a `THIRD_PARTY.md` row; any GPL/LGPL/AGPL/CC-BY-SA candidate stops and escalates
 to the founder through the producer before it is added; "no licence" or "unknown" is never added.
 Nothing shipped carries an **unmet** attribution obligation; the studio-rule gap of an in-app licences
-surface is open (§16). No dependency was added by phases 13–14; R-2 adds kover (build-only), phase 15
-removes `ui-text-google-fonts`, the Macrobenchmark follow-up will add `androidx.benchmark` (Apache-2.0).
+surface is scheduled with `feature/candy-backdrop` (§3.6, §16 #4). No dependency was added by phases
+13–14; R-2 adds kover (build-only), phase 15 removes `ui-text-google-fonts`, the Macrobenchmark
+follow-up will add `androidx.benchmark` (Apache-2.0). The candy-backdrop branch adds none (the
+Apache-2.0 text is an asset; `kotlinx.collections.immutable`, `oss-licenses` and AboutLibraries were
+rejected, §3.6). Check-gates C7 declares `androidx.hilt:hilt-lifecycle-viewmodel-compose` 1.3.0
+directly, since the code then imports it (§9.8). It is already on the release runtime classpath through
+`hilt-navigation-compose` 1.3.0, under the AndroidX row above, so nothing shipped changes.
 
 ## 14. Technical order
 
@@ -738,16 +991,36 @@ polish; across the remaining v1.1 work it is the dependency order below.
 
 | # | Item | Owner | Depends on |
 |---|---|---|---|
-| R-1 | Gate task (rulings 9.2.5, 9.2.6, 9.3, 9.7) — `feature/phase-14-gate-scope` | android-game-dev → code-auditor PASS → qa-engineer → tech-lead sign-off → merge | — |
-| **R-2 + F1/F2 + F-2** | **One branch, serial commits**: F1 self-heal → F2 lock script + Check command → F-2 trimmed known-set + F-1 KDoc → `generateLadder` → fuzz harness + tiers + CI env → kover gate. Brief: `.planning/reports/phase-14/tech-lead-r2-gate-brief.md` | android-game-dev → code-auditor → tech-lead | R-1 merged (same file region in `standards.gradle.kts`, same `check` block); merges **before** phase 15, which then merges `develop` in |
+| R-1 | Gate task (rulings 9.2.5, 9.2.6, 9.3, 9.7) — `feature/phase-14-gate-scope` | android-game-dev → code-auditor PASS → qa-engineer → tech-lead sign-off → merge | **Done**: signed off PASS 2026-10-18 (`tech-lead-signoff-gate-scope.md`) and merged to `develop` as `c3d3437`. Its two non-blocking rulings ride check-gates as C3a (§9.3) and C3b (§9.7) |
+| **R-2 + F1/F2 + F-2** | **One branch, `feature/phase-14-check-gates`, serial commits**: C1 F1 self-heal → C2 F2 lock script + Check command → C3 F-2 trimmed known-set + F-1 KDoc (acceptance count **54**, not the brief's 55: addendum A0) → C3a the literal gates over every file of a shipped source set (§9.3; count 55) → C3b CI on `release/**` (§9.7) → C4 `generateLadder` → C5 fuzz harness + tiers + CI env → C6 kover gate → C7 Kotlin warnings as errors in `:app`'s main compilations and all of `:domain` (§9.8). Brief: `.planning/reports/phase-14/tech-lead-r2-gate-brief.md`, with addendum A0–A2 of `tech-lead-signoff-gate-scope.md` and addendum A3 of `tech-lead-design-sync.md` | android-game-dev → code-auditor → tech-lead | R-1 **and phase 15** merged; cut from `develop` after both (`15-founder-feedback/tech-lead-signoff.md` Decision 4: the kover bound is measured on the `:domain` that ships, with phase 15's `TutorialBoards`, and two of C7's sites are phase-15 files). *Superseded:* "merges before phase 15, which then merges `develop` in" (§17) |
 | R-8 | Test hygiene: fold the two duplicate doubles; bound the two `AppForegroundTrackerTest` awaits | android-game-dev → code-auditor | parallel, non-gating; slips to v1.1.1 if not green in one loop |
-| Phase 15 | UX refresh with the font bundling, the follow-up slice, and 15e on that slice | android-game-dev → code-auditor + qa-engineer → tech-lead | R-2 branch merged first (so phase 15's closing Check runs on a gate that cannot wedge); its catalog edit (removing `ui-text-google-fonts`) and R-2's (adding kover) are disjoint regions |
-| Audio follow-up | `docs/tech/audio-silent-mode.md` §5 build order (P5 → P4a → gate → P8 → V1) | android-game-dev → code-auditor → qa-engineer (physical phone) → sound-designer review | `develop` contains phase 15 (C1) |
+| Phase 15 | UX refresh with the font bundling and the follow-up slice; 15e sat on `Pixel_9a_bench` before the merge | android-game-dev → code-auditor + qa-engineer → tech-lead | H-1 to H-4 of `15-founder-feedback/tech-lead-signoff.md` (verdict HOLD, which becomes PASS without a new tech-lead dispatch when they close as written). Merges before R-2, in either order with R-1; R-1 merged first, and phase 15 has taken `develop` in (`ee16a2a`). *Superseded:* "R-2 branch merged first" (§17) |
+| F-1 | Home re-lays out ≈ 0.6 s after first paint when the Continue chips arrive — `bugfix/home-chip-arrival`, off `develop` after phase 15, test first (a Compose test emits no-chip, one-chip and two-chip `HomeUiState`s and asserts the bounds the design ruling pins) | ux-designer (§4.2.4/§4.2.2 amendment) → tech-lead (a mechanism ruling only if the design needs more than layout) → android-game-dev → code-auditor + qa-engineer (a screen-recorded cold start with one and two chips, read frame by frame; its own 15e sitting if the fix changes Home's first frame) → tech-lead | phase 15 merged. **Deadline: merged before `release/3.0.0` is cut**, preferably before the candy-backdrop developer dispatch (both reshape Home); if candy goes first, the second to merge takes `develop` in and re-runs candy's three-chip-state checks. A chip shown from the mode list before the decode would bring the phantom chip back, and is rejected |
+| Audio follow-up | `docs/tech/audio-silent-mode.md` §5 build order (P5 → P4a → gate → P8 → V1) | android-game-dev → code-auditor → qa-engineer (physical phone) → sound-designer review | `develop` contains phase 15 (C1), merged in first. Runs in parallel with check-gates and F-1, each in its own worktree; audio and check-gates edit `standards.gradle.kts` in disjoint regions, and the second to finish merges `develop` in and re-runs the Check (C7's rule 3 applies, §9.8). The wrong-tap half also waits on the tech-lead's haptics ruling (§16 #17) |
+| Candy-backdrop | The backdrop, direction B "Deep gloss" (Q-021), and the licences screens — `feature/candy-backdrop` (§3.5, §3.6) | ux-designer (the B spec rewrite, in progress) → tech-lead (the B fit ruling, §16 #16) → android-game-dev → code-auditor + qa-engineer → tech-lead | phase 15 merged, and `develop` merged into the branch before its first code commit (candy R6). Merges **last**. Its own 15e sitting on `Pixel_9a_bench` is its final step (arm A = its merge-base, §3.5). In parallel with audio only as two developer dispatches in two worktrees, not two gsd phases; they share four files (`GameScreen.kt`, `TutorialScreen.kt`, `dimens.xml`, `strings.xml`), where this branch adds comment-headed blocks only. It edits and reads no `THIRD_PARTY.md` |
 | R-4 | D-14 account-swap UAT with a second Play Games account | qa-engineer | a second account (else a founder question) |
-| R-5 | `THIRD_PARTY.md` — U-1 and §5b closed by the release-branch dependency listing; the founder's store-artwork rows | release-manager; founder (Q-F3) | — |
-| R-6 | This file | tech-lead | done 2026-10-17; the R-2 figures transcribed at sign-off |
+| R-5 | `THIRD_PARTY.md` — U-1 and §5b closed by the release-branch dependency listing; the founder's store-artwork rows; before release-docs merges, the font rows carry `tech-lead-fonts.md`'s text and the research-analyst's OFL-1.1 verdict line; the Apache-2.0 text's row with the candy build | release-manager; research-analyst; founder (Q-F3) | — |
+| R-6 | This file | tech-lead | done 2026-10-17; synced 2026-10-18 (`tech-lead-design-sync.md`); the R-2 figures transcribed at sign-off |
 | R-7 | `FUZZ_SEEDS=100000 ./scripts/check.sh` on the release branch (exhaustive, §7.3), `domain/build/fuzz-failures.txt` absent, coverage figure recorded | release-manager | R-2 |
 | PLAT-08 | Cold start on a named physical phone, or the unverified record (§10) | qa-engineer; producer for the device question | — |
+
+**Merge order into `develop`** (`15-founder-feedback/tech-lead-signoff.md` Decision 4, 2026-10-18).
+It supersedes the R-2 brief's §0 and this table's earlier "R-2 before phase 15" (§17).
+1. `feature/phase-14-release-plan`: any time, once its reports exist. It carries `.planning/` and
+   `docs/` only, depends on nothing, and nothing depends on it.
+2. `feature/phase-15-ux-refresh` (after H-1 to H-4) and `feature/phase-14-gate-scope` (R-1), in either
+   order: first signed off, first merged. R-1 went first (`c3d3437`). The two share only
+   `app/build.gradle.kts`, in disjoint hunks. The branch that merges second takes `develop` in and
+   re-runs the Check. A clean merge with a green Check needs no new review; a conflict in a code file
+   goes to the code-auditor.
+3. `feature/phase-14-release-docs`, after phase 15, with the R-5 font rows and this file. Its order
+   relative to R-1 is free.
+4. `feature/phase-14-check-gates`, cut from `develop` only after R-1 and phase 15 have merged.
+5. `feature/audio-review`, after phase 15, merging `develop` in first.
+6. `bugfix/home-chip-arrival` (F-1), after phase 15 and before `release/3.0.0`.
+7. `feature/candy-backdrop`, last.
+
+Steps 4 to 6 run side by side in their own worktrees. Then the release-manager cuts `release/3.0.0`.
 
 ### 14.2 After v1.1 — recorded so none of it is rediscovered
 
@@ -762,7 +1035,12 @@ first false positive; ktlint/detekt over `build-logic` (§2.5); hoisting the pac
 split at the 25-minute measured threshold (§9.7); closing Diamond-41's opening-book gap (the honest
 lever on `check`'s 11 minutes); minSdk 26 when the Play statistics permit (§1.3) — *superseded
 2026-10-17 by Q-018: 24 stands until a technical need appears, so this is no longer backlog*; the in-app licences
-surface (§16); `docs/gdd.md` (game-designer); a `compose-performance-audit` before release
+surface (§16) — *scheduled 2026-10-17 with `feature/candy-backdrop` (§3.6), so no longer backlog*;
+**the held half of Kotlin and lint warnings as errors (§9.8)**: the `createComposeRule` v2 migration,
+the `kotlin-reflect` call in `GameScreenSoundTest`, `allWarningsAsErrors` on `:app`'s unit-test
+compilations and `warningsAsErrors` in lint — **due before the first `release/*` branch after
+`release/3.0.0` is cut**; rules/compose.md F-33's host-level `safeDrawingPadding()` (§3.5), only with a
+layout reason, since moving the insets re-opens every screen's geometry; `docs/gdd.md` (game-designer); a `compose-performance-audit` before release
 (rules/compose.md; O-B idle Home); the upstream Gradle issue for `hasResults()` validating existence
 but not validity (low priority); the `Pixel_9a` emulator fault preserved as a control (an environment
 fault — emulator DNS — not an app change).
@@ -781,8 +1059,12 @@ fault — emulator DNS — not an app change).
 | `InMemoryPreferencesDataStore` edited without its contract test | low / high | F-11 rule (§8.2) | code-auditor on any diff touching it |
 | The configuration cache is switched on without re-auditing the signing capture | low / medium | §9.2.7 names the fix shape | tech-lead on any `gradle.properties` change |
 | `ResultsViewModel` at detekt's function ceiling grows a `@Suppress` in a hurry | medium / low | F-4 extraction scheduled (§14.2) | android-game-dev |
-| Phase 15 and the R-2 branch both edit `gradle/libs.versions.toml` | medium / low | Disjoint regions; the R-2 branch merges first; phase 15 merges `develop` in | producer |
-| Fable is exhausted and a Fable-pinned review cannot run | observed / process | rules/studio.md: the step is not done; the founder's standing answers (Q-003, Q-011, Q-014) are scoped, not general | producer |
+| Phase 15 and the R-2 branch both edit `gradle/libs.versions.toml` | medium / low | Disjoint regions; phase 15 merges first; R-2 is cut after it (§14.1). *Superseded mitigation:* "the R-2 branch merges first; phase 15 merges `develop` in" | producer |
+| Fable is exhausted and a Fable-pinned review cannot run | observed / process | rules/studio.md: the step is not done; the founder's standing answers (Q-003, Q-011, Q-014) are scoped, not general. **Q-019 (2026-10-17): Opus for every Fable-pinned role until 3.0.0 is published**, the deviation recorded in every report. Reviewers then share the developer's model, so the mitigation is fresh reviewers that run the Check and their own mutation probes rather than trusting recorded results | producer |
+| 15e on the new bench VOIDs (unknown floor) or FAILs on the fonts' blocking load (estimate 10–40 ms against a threshold of at least 100 ms) | medium / low | A VOID is a re-run, never a verdict; a FAIL brings the fonts' share to the tech-lead before any art is removed (§11) | qa-engineer, tech-lead |
+| F-1, the Home layout jump, sits on `develop` until its fix lands | certain / low | `develop` ships nothing; the deadline holds it out of 3.0.0 (§14.1) | producer |
+| A branch merged after check-gates C7 carries a new main-compilation warning | medium / low | Its Check fails once it has taken `develop` in; it is fixed on that branch, never by a suppression or a compiler switch (§9.8 rule 3) | that branch's developer |
+| The B direction's gel mode cards reshape Home's tiles against phase 15's geometry (15g, 15k, 15p, 15r) | medium / medium | B's own surfaces get a fit ruling against D-03l clause 4 and the phase-15 suites before the build, and the phase-15 suites run unchanged (§3.5, §16 #16) | tech-lead, ux-designer |
 
 ## 16. Open items — each with an owner
 
@@ -792,16 +1074,21 @@ Every item the seeded file listed as "decided by nobody" is now either decided o
 |---|---|---|---|
 | 1 | `minSdk 24` vs the rule's 26 | **Decided** (§1.3): 24 for 3.0.0, with the reason recorded; the raise is a founder question (installed-base share) the producer queues, non-blocking, with the tech-lead's recommendation. **Answered 2026-10-17 (Q-018, option 3):** 24 indefinitely, unless a technical need appears; nothing is queued, and §1.3 defines what re-opens it | tech-lead, only on a recorded technical need (§1.3) |
 | 2 | R-2 / R-7 — kover and fuzz | **Designed** (§7.3, §8.4) and briefed; implementation is the next gate branch | android-game-dev → code-auditor → tech-lead |
-| 3 | R-1′ — the gate task | **Implemented** on `feature/phase-14-gate-scope`, auditor PASS; qa-engineer and tech-lead sign-off next; auditor F-2 ruled into the R-2 branch (§9.3) | producer sequencing |
-| 4 | In-app licences surface | Studio-rule gap, not a legal one: the OFL notice condition is met by the licence files in the APK, everything else is CC0, Apache-2.0 or a permitted SDK licence. **Backlog v1.1.1**, needs a ux-designer (a Settings row) and a developer | ux-designer, android-game-dev via producer |
+| 3 | R-1′ — the gate task | **Implemented** on `feature/phase-14-gate-scope`, auditor PASS; qa-engineer and tech-lead sign-off next; auditor F-2 ruled into the R-2 branch (§9.3). **Signed off PASS 2026-10-18** (`tech-lead-signoff-gate-scope.md`) and **merged** to `develop` (`c3d3437`). Its two non-blocking rulings ride check-gates as C3a and C3b; brief §4's C3 count is corrected by addendum A0 | closed |
+| 4 | In-app licences surface | Studio-rule gap, not a legal one: the OFL notice condition is met by the licence files in the APK, everything else is CC0, Apache-2.0 or a permitted SDK licence. **Backlog v1.1.1**, needs a ux-designer (a Settings row) and a developer. **Scheduled 2026-10-17** with `feature/candy-backdrop` (§3.6), no longer v1.1.1 backlog: `docs/ux/licences-screen.md` is specified | ux-designer, android-game-dev via producer; the Apache-2.0 text's `THIRD_PARTY.md` row is the release-manager's, its redistribution-terms line the research-analyst's |
 | 5 | `docs/gdd.md` | Not a technical item | game-designer via producer |
 | 6 | `THIRD_PARTY.md` §5b per-coordinate enumeration, U-1 | Closed on the release branch by `:app:dependencies --configuration releaseRuntimeClasspath` (checklist 3.5) | release-manager |
 | 7 | Post-v1.1 backlog | **Recorded** in §14.2 | producer carries it |
 | 8 | `AGENTS.md` | rules/stacks.md's scaffold contract wants it identical to `CLAUDE.md`; this product predates the contract and has none. Decision: add it as a copy when the Check command line changes (F2), so both are written once | producer |
 | 9 | Release-checklist alignment with R-2: 3.1's command becomes `FUZZ_SEEDS=100000 ./scripts/check.sh`; 3.2's path is `domain/build/fuzz-failures.txt`; 3.3 records the kover figure | Text edits on the release-manager's file | release-manager |
 | 10 | The named mid-range physical phone for the 2 s bar | Founder question (money), folded into the release track; decided default recorded in §10 | producer |
-| 11 | The phase-15 spec and design-system text the font and cold-start rulings require (`docs/ux-spec.md` §6.5, §6.3, §9, criteria 15e/18d; `docs/ui/DESIGN-SYSTEM.md` Typography) | Routed; until applied the rulings are the governing text | ux-designer via producer |
+| 11 | The phase-15 spec and design-system text the font and cold-start rulings require (`docs/ux-spec.md` §6.5, §6.3, §9, criteria 15e/18d; `docs/ui/DESIGN-SYSTEM.md` Typography) | Routed; until applied the rulings are the governing text. Added 2026-10-18: the fold of `15-founder-feedback/tech-lead-signoff.md` Decision 1 (§6.5 precondition 1 and a new precondition 9, the "Which builds" pointer, criterion 15e's AVD and arm A), and candy R1–R6's departures D1–D11 into the two candy specs, as far as the B rewrite keeps them | ux-designer via producer |
 | 12 | The plugin side of F2 (the stack's Check command carrying the lock) and OFL-1.1 in rules/ip-policy.md's matrix | Plugin changes, not product ones | producer → retro |
+| 13 | F-1: Home re-lays out ≈ 0.6 s after first paint when the Continue chips arrive | **Routed, not blocking** (`15-founder-feedback/tech-lead-signoff.md` Decision 3): it fails no written criterion, and its fix is a design decision first, namely what may move when a chip arrives. §6.5 forbids a blocking read before Home's first frame, so the chips always arrive late (§10). **Deadline: merged before `release/3.0.0` is cut** (§14.1) | ux-designer → android-game-dev → code-auditor + qa-engineer → tech-lead |
+| 14 | Kotlin and lint warnings as errors (plugin rules/kotlin-android.md 1.0.0) | **Decided 2026-10-18** (§9.8): check-gates C7 makes `:app`'s main compilations and all of `:domain` warning-free and gated; `:app`'s unit-test compilations and lint are a held deviation that ends before the first release branch after 3.0.0 | android-game-dev via producer (C7, then §14.2) |
+| 15 | How the timer is announced: TalkBack likely speaks "Elapsed time" without the value (O-A, A-8, I-2), plus criterion 26's spoken-order half | Routed (`15-founder-feedback/tech-lead-signoff.md`, routed after the merge). **Before the `release/3.0.0` QA closes** | ux-designer rules the spoken form; qa-engineer captures TalkBack's speech output; android-game-dev if the ruling changes code |
+| 16 | The fit of direction B's own surfaces (the gel mode cards, anything on Home's stage) with D-03l clause 4 and the phase-15 suites | Open: the B spec rewrite is in progress; candy R2's wing rulings are void (§3.5) | tech-lead, when the B spec lands; before the candy-backdrop developer dispatch |
+| 17 | The tutorial reading `hapticsOn` without breaking `TutorialViewModel`'s two-collaborator pin (the wrong-tap feedback's open question) | Open, owed by the tech-lead (candy R6 condition 5; `15-founder-feedback/tech-lead-signoff.md` Decision 4 row 5). It gates only the wrong-tap half of the audio branch | tech-lead, on dispatch |
 
 ## 17. Supersessions
 
@@ -824,3 +1111,14 @@ Nothing is deleted from this file; a superseded decision stays with a pointer to
 | The seeded §9 "Open — decided by nobody yet" (release-manager, 2026-09-21) | §16, each item decided or owned | §16 |
 | `versionCode = 3` | `30_000` (merged to `develop` as `feature/phase-14-version-code`) | §9.5 |
 | §1.3's routed recommendation: raise `minSdk` to 26 in the first minor after 3.0.0 whose Play statistics show API 24–25 under 1 % of active installs | The founder's Q-018 answer (option 3, 2026-10-17): 24 indefinitely, unless a technical need appears; §1.3 lists what counts | §1.3, §14.2, §16 #1 |
+| "`Pixel_9a` is the instrument of record and a `Pixel_9` sitting is VOID" (`tech-lead-fonts.md` Ruling 2) | `Pixel_9a_bench`: the same profile and image with a 16 GB data partition, `/data` free ≥ 4 GB; the 9a's partition was 95 % full and refused both arms | §10; `15-founder-feedback/tech-lead-signoff.md` Decision 1 |
+| 15e's arm A = "`develop`", and "runs once, on the phase-15 follow-up slice" | Arm A = the branch's merge-base with `develop` at the sitting; runs on phase 15 before its merge, and each later branch that changes Home's first frame carries its own sitting | §10, §3.5; same |
+| AC-F7's airplane-mode cold start | The dex and `resources.arsc` scan with a positive control; no literal airplane run, now or at release | §11; `tech-lead-signoff.md` Decision 2 |
+| "R-2 merges before phase 15, which then merges `develop` in" (`tech-lead-depthsweep.md` ruling 2; `tech-lead-r2-gate-brief.md` §0); phase 15 depending on "R-2 branch merged first" | Phase 15 merges first; R-2 is cut from `develop` after R-1 and phase 15 | §14.1, §15; `tech-lead-signoff.md` Decision 4 |
+| `shippedSourceRoots` = (main, release, debug) × {java, kotlin, res} | Every file under the three shipped source sets | §9.3; `tech-lead-signoff-gate-scope.md` ruling 2 (check-gates C3a) |
+| CI on push and PR to `develop` and `main` | `develop`, `release/**`, `main` | §9.7; `tech-lead-signoff-gate-scope.md` ruling 1 (check-gates C3b) |
+| The R-2 brief §4's C3 acceptance count, 55 | 54 at C3, since C3 deletes the test that pinned the pre-authorised source sets; 55 after C3a | §8.1, §14.1; `tech-lead-signoff-gate-scope.md` addendum A0 |
+| The R-2 brief §10's "any UI, ViewModel or `:app` production code" and "any phase-15 file" out of scope | Lifted for C7's ten main-source sites only | §9.8, §14.1; `tech-lead-design-sync.md` addendum A3 |
+| §3.1's "every screen has one `@HiltViewModel`" without exception | Except the Licenses list, which holds nothing | §3.1, §3.6; candy R4 |
+| §16 #4's in-app licences surface as "Backlog v1.1.1" | Scheduled with `feature/candy-backdrop` | §3.6, §13, §14.2, §16 #4 |
+| Candy R2, the stage wings (B-12), and R1's sweets-specific variants (Landscape, Quiet, Sparse and their layers) | Void for the wings, by the founder's Q-021 choice of direction B "Deep gloss"; the variants come from the B spec rewrite; R1's host, state, cross-fade, F-32 surface and insets, and R3's gate, stand | §3.5 |
