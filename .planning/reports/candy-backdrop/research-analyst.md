@@ -13,6 +13,7 @@ VERDICT: inspiration-only. Not escalated: nothing copyleft or unlicensed is to b
 A bright candy/sweets backdrop is a theme, which is an idea, so it is free to use. Candy Crush Saga's names, logos, characters, six-candy set, special candies, callouts, level-map art and scene paintings are King's live trademarks and copyrighted art, and must be neither used nor imitated.
 Recommended source: (a) draw the backdrops in-house as Compose Canvas or vector drawables, in the app's existing "Candy Clay" design system. Kenney's CC0 candy pack is a clean fallback or reference. AI-generated raster art is not recommended.
 No founder question is needed. Section 3's do / don't list needs no further judgement to follow.
+Addendum 2026-10-18 (end of file): the founder's direction B "Deep gloss" (Q-021) is clean under §2, on the conditions in A.3 and the word rules in A.4. A.5 replaces §6's "What was taken" cell.
 
 ## Verdict
 **VERDICT: inspiration-only** (`rules/ip-policy.md`).
@@ -99,6 +100,7 @@ Copying one specific design is copyright infringement. Assembling several generi
 
 ## 3. Do / don't list for the ux-designer and the developer
 Apply every line literally. Anything not covered comes back to the research-analyst through the producer.
+Amended 2026-10-18 for direction B: the addendum's A.1 adds to §2's free list, A.3 adds to 3b, and A.4 adds to 3a.
 
 ### 3a. Words: app UI, `strings.xml`, achievements, leaderboards, Play Games names, notifications, store listing, screenshot overlays, feature graphic
 **Never write any of these, in any language or casing, inside or outside another word:**
@@ -214,6 +216,8 @@ Conditions on any (b) asset:
 - the release-manager checking the listing text against §3a at every listing change.
 
 ## 6. THIRD_PARTY.md row text (idea row)
+Superseded 2026-10-18: the idea row's "What was taken" cell below is replaced by the addendum's A.5. Copy the row from A.5, not from here.
+
 THIRD_PARTY.md is not on `develop` or on this branch. It lives on `feature/phase-14-release-docs` (worktree `PegSolitarie-r5`, commit e5253f4), which this report does not touch. The row below goes into that file's **§1 "Ideas and mechanics"** table, whose columns are `| Item | Source | Licence | What was taken | Credit |`. Add it on whichever branch carries THIRD_PARTY.md when the backdrop merges, in the same review as the backdrop.
 
 ```
@@ -265,6 +269,7 @@ All read 2026-10-17 unless dated. "Refused" means the page blocked scripted acce
 
 ## Outputs
 - `.planning/reports/candy-backdrop/research-analyst.md`: this report. It holds the verdict, the do / don't list (§3), the asset verdicts (§4), the Play exposure (§5) and the THIRD_PARTY.md row text (§6). Nothing else was written to the repository. App code, THIRD_PARTY.md and every other branch are untouched, as dispatched. The Kenney zip and preview images were inspected in the session scratchpad only.
+- `.planning/reports/candy-backdrop/research-analyst.md` (addendum 2026-10-18): the direction B section at the end of this file. It holds the verdict, A.1's element table and free-list additions, A.3's conditions, A.4's word rules with the Candy Crush Solitaire fact, and A.5's row text. One pointer line each was added to the Summary, §3 and §6. Nothing else was written to the repository. The King store screenshots were viewed in the session scratchpad only, and deleted afterwards.
 
 ## Checks
 - `curl -sS -m 25 -A 'Mozilla/5.0' https://www.tmdn.org/tmview/api/trademark/detail/EM500000010718542`: fail (HTTP 403 `{"error":"Forbidden"}`; EU status not readable)
@@ -282,6 +287,19 @@ All read 2026-10-17 unless dated. "Refused" means the page blocked scripted acce
 - `grep -rniI -E 'candy|crush|saga|sweet|lollipop|jelly' --include='*.xml' --include='*.kt' --include='*.md' --include='*.txt' --include='*.json' .` and `grep -n 'app_name' app/src/main/res/values/strings.xml` (in the worktree): pass (no user-facing string contains these words; "candy" appears only in code comments, docs and `.planning/`; `app_name` is `Peg Solitaire`)
 - `git -C /Users/ermanergoz/Desktop/PegSolitarie-candy status --short` (before the commit): pass (only `?? .planning/reports/candy-backdrop/`, at develop tip 3f2af90)
 - `./gradlew check`: not run. This is a report-only change, with no code or resource touched.
+- (addendum 2026-10-18) `sed -n '36,56p;238,280p' docs/ux/backdrop-directions.html` and `sed -n '483,565p' docs/ux/backdrop-directions.html`: pass (B's tokens, styles and section #b read. Light alphas, centre against rim: 0.80/0.95 and 0.30/0.55. Dark: 0.14/0.24 and 0.16/0.28)
+- (addendum) `curl -sSL -m 30 -A 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/128 Safari/537.36' "https://play.google.com/store/apps/details?id=<pkg>&hl=en&gl=us"` for com.king.candycrushsodasaga, com.king.candycrushjellysaga and com.king.candycrushsaga: pass (200 each; titles "Candy Crush Soda Saga", "Candy Crush Jelly Saga" and "Candy Crush Saga - Apps on Google Play")
+- (addendum) the same command for com.king.candycrushsolitaire: fail (404; the id was a guess). For com.king.apps.candysolitaire, the id linked from the King listings: pass (200, "Candy Crush Solitaire - Apps on Google Play", developer "King", developer id 6577204690045492686, the same as Candy Crush Saga's)
+- (addendum) `curl -sSL -m 30 -A 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/128 Safari/537.36' "https://play.google.com/store/apps/dev?id=6577204690045492686&hl=en"`: pass (200, "Android Apps by King on Google Play"; 10 titles, none containing "gel")
+- (addendum) `curl -sSL -m 30 -o "img/<game>-<n>.png" "<screenshot url>=w540-h960-rw"`, 5 per listing, then `ffmpeg -i <5 files> -filter_complex "…hstack=inputs=5" sheet-<game>.jpg`: pass (four contact sheets, viewed in the session scratchpad; findings in A.1 and A.2; the files were deleted afterwards)
+- (addendum) `curl -sSL -m 25 -A 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/128 Safari/537.36' http://www.docketalarm.com/trademarks/86732458/`: pass (200; CANDY CRUSH JELLY SAGA, filed 2015-08-21, King.com Limited; status "An Office action suspending further action on the application has been sent (issued) to the applicant"; the mirror was last updated about ten years ago)
+- (addendum) `curl -sSL -m 25 -A 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/128 Safari/537.36' https://trademarks.justia.com/owners/king-com-limited-3012933`: fail (HTTP 403, Cloudflare challenge)
+- (addendum) `curl -sSL -m 25 -A 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/128 Safari/537.36' https://tsdr.uspto.gov/ts/cd/casestatus/sn86732458/info.xml`: fail (HTTP 429 Too Many Requests)
+- (addendum) `curl -sSL -m 20 -A 'Mozilla/5.0' https://raw.githubusercontent.com/facebookarchive/shimmer-android/main/README.md`: pass (200; "add a shimmer effect to any view", "originally developed for Facebook Home", BSD License)
+- (addendum) WebFetch of https://en.wikipedia.org/wiki/Aqua_(user_interface), https://en.wikipedia.org/wiki/Frutiger_Aero, https://en.wikipedia.org/wiki/Peg_solitaire and https://www.apple.com/newsroom/2000/01/05Apple-Unveils-Mac-OS-X/: pass (the quotes used in A.1 and A.4)
+- (addendum) `git -C /Users/ermanergoz/Desktop/PegSolitarie-candy show feature/phase-14-release-docs:THIRD_PARTY.md | sed -n '79p'` and `… show develop:THIRD_PARTY.md`: pass (the row is at line 79 and carries the ship clause; develop c3d3437 has no THIRD_PARTY.md)
+- (addendum) `git -C /Users/ermanergoz/Desktop/PegSolitarie-candy status --short` and `… diff --cached --name-only` (before the commit): pass (only this report modified, nothing staged, at f36d375)
+- (addendum) `./gradlew check`: not run. Report-only change.
 
 ## Open issues / risks
 1. **EU register status unverified.** EUIPO and TMview refused scripted access. The EU CANDY word mark (and the outcome of ZeptoLab's 2014 cancellation) and the 2012–2013 CANDY CRUSH EUTMs are treated as live. No action is needed, because §3 avoids them all. Any future wish to put "candy" in user-facing text escalates here, and a human EUIPO eSearch lookup would settle it.
@@ -302,3 +320,153 @@ Next: producer:
 6. Relay the open-issue 5 line to the founder.
 
 Anything that wants a King element, the word "candy" in user-facing text, or an asset outside CC0/CC-BY comes back to the research-analyst as an escalation.
+
+## Addendum 2026-10-18 — direction B
+Date: 2026-10-18
+Branch: feature/candy-backdrop (report only)
+Skills loaded: ergoz-soft:standards (plugin rules v1.0.0 read in full, because the product snapshot is v0.6.2: studio, reporting, gitflow, skills-policy, logging, memory, puzzle-design, play-store, kotlin-android, compose, ip-policy; product `.claude/rules/lessons.md`), research-open-source, research-competitive, market-research
+Ran in parallel with: candy-backdrop spec rewrite for direction B (ux-designer), phase-15 H-2 developer fix
+Ran on: claude-opus-5-5 at effort xhigh
+Fan-out: none
+Loops: 0
+Lessons applied: none (the snapshot lists 0 active lessons; `.planning/recall/RECALL.md` does not exist)
+
+Inputs: the founder picked direction B "Deep gloss" (Q-021, 2026-10-18). Read: `docs/ux/backdrop-directions.html` (the B tokens at lines 40–52, the B styles at lines 238–278, section #b at lines 483–561), `.planning/reports/candy-backdrop/ux-designer-directions.md` (open issues 1, 3 and 4), and this report's §2 and §3.
+
+**VERDICT: clean.** Direction B "Deep gloss" (Q-021) is built from generic convention and passes §2's two-question test, on the conditions in A.3 and the word rules in A.4. The inspiration-only verdict stands. Not escalated: nothing is reused, and no King mark is used.
+
+### A.1 Element by element
+| B element, as drawn on the board | Already free under | Generic precedent | Nearest King look | Status |
+|---|---|---|---|---|
+| Deep violet gradient world (dark `#1C0E38` to `#3A0F48`; light lavender to pink-lilac) | §2 "bright saturated gradients"; §3c: colours are free, violet leads | The app's own violet `#7C3AED` system | Candy Crush Soda Saga's purple background, which is its "purple soda" [S33] [S44] | Clean, on A.3 (2) and (3) |
+| Two glossy colour waves low on the screen, bobbing on 9 s and 12 s | §2 gradients and glossy highlights; 3b "soft rounded hills", abstracted | Aurora and wave backgrounds: "aurorae" and "glossy textures" are named motifs of the Frutiger Aero interface style, 2004–2013 [S40] | Soda Saga's purple soda, whose wavy, lighter surface rises in the board and in a bottle meter [S33] [S45]; Candy Crush Jelly Saga's glossy pink jelly band along the foot of its store screenshots [S34] | Clean, on A.3 (2) and (3) |
+| Soft "bokeh" lights (9 on Home, 5 in game) rising and fading on 22–40 s loops | Closest: §2 "soft specular dots", 3b "slow-drifting soft blobs". Not word for word | Bokeh is the photographic term for out-of-focus discs of light [S41]; "bokeh effects" is a named Frutiger Aero motif [S40] | Soda Saga's background bubbles: hollow rings with a highlight, rising [S33] | Clean, on A.3 (1). Added to the free list below |
+| Wet gloss highlight and lip on panels | §2 "glossy highlights" and "a translucent or raised panel", word for word | Mac OS X Aqua (2000): "luminous and semi-transparent elements" [S39], "reflective effects and translucency" [S38]; glossy buttons were a Web 2.0 cliché by 2008 [S46] | King's glossy header bars (pink in Candy Crush, green in Jelly Saga): generic UI, not King's expression | Clean |
+| Gel mode cards: solid violet and pink gradients, white text, a shine lip, a sheen crossing every 10 s | §2 gradients and glossy highlights | Aqua's controls had "a 'glass' or 'gel' effect" until OS X Yosemite [S38]; a sheen band crossing a view is the common shimmer effect, e.g. Facebook's BSD-licensed Shimmer for Android, made for Facebook Home in 2013 [S42] | Candy Crush's glossy candy rendering, which is gloss on a set of small coloured tokens [S30]; Jelly Saga's translucent jelly cells and jelly blobs [S34] | Clean, on A.3 (4) to (6) |
+
+**Added to §2's free list** (convention and idea):
+- soft out-of-focus "bokeh" light discs, drifting or rising and fading;
+- broad glossy colour waves or bands;
+- a gloss or "wet" highlight and lip on panels;
+- gel-finish (Aqua-style) buttons and cards;
+- a single sheen or shimmer band crossing a control.
+
+### A.2 The two questions, applied to B's frames
+1. *Could any single element be traced to, or recognised as, a King design?* **No.** Each element is a convention that is older than Candy Crush (2012) or common across interface design: Aqua's gloss and gel (2000), Frutiger Aero's gloss, aurorae and bokeh (from 2004), the shimmer effect, and photographic bokeh. B draws no candy, character, tile grid, King lettering or King scene. The board, the pegs and the slab are unchanged and opaque.
+2. *Would a player shown one screenshot think it is Candy Crush, a spin-off, or a reskin?* **No, as drawn.** The nearest King look found is Soda Saga's purple-soda world: a violet background, a wavy liquid surface and rising ring bubbles [S33]. B differs on the three points that A.3 (1) to (3) lock down:
+   - its lights are filled discs, not rings;
+   - its waves are light behind the UI, not liquid in or around the board;
+   - nothing rises with game state.
+
+   Candy Crush Solitaire (A.4) is green felt, playing cards, candy pieces and coins [S32]. B draws none of these.
+
+How this was checked: I viewed five Play screenshots each of Candy Crush Saga, Soda Saga, Jelly Saga and Candy Crush Solitaire, in the session scratchpad only, and deleted them afterwards. §3b's rule is that no King image enters the repository, and none did.
+
+### A.3 What B must avoid (added to 3b; reviewers check each line)
+1. **Lights stay bokeh, not bubbles.**
+   - Each light is a filled disc whose edge fades out. Its centre alpha is at least half its rim alpha; the board draws 0.30 against 0.55 at the widest gap.
+   - No hollow ring, outline stroke, highlight dot or crescent.
+   - No clusters of tiny dots ("fizz"), and no popping or bursting.
+   - A light never appears to emerge from a wave crest.
+
+   Soda Saga's ring bubble is what makes violet plus rising read as soda.
+2. **Waves stay light, not liquid.**
+   - Broad smooth crests, with at most one lip and one soft highlight per wave, as drawn.
+   - No drips, droplets, splash or foam, and no bubbles on the crest.
+   - The only motion is the bob (a translate, as drawn). No wobble.
+   - A wave never rises or falls with game state: pegs left, moves, progress or level number.
+   - A wave is never drawn inside, over or through the board slab.
+   - Nothing anywhere in the app is shown as liquid filling a bottle, tube or meter. That is Soda Saga's soda level and bottle meter [S33] [S45].
+3. **No pink jelly band.**
+   - In the light theme, a wave's body stays lilac to violet below its pink crest (`#DD8BE6` to `#B98AF2`, as drawn).
+   - A wave is never a saturated, opaque hot-pink band with streak highlights along the foot of the screen, and never carries text or a caption. That is Jelly Saga's store art [S34].
+   - Violet stays the lead colour in both themes (§3c), and the violet Classic card stays above the pink Challenge card.
+   - Store screenshots stay plain captures (§3d).
+4. **Gel stays on UI containers**: the two mode cards, the panels and the dock discs.
+   - Never on pegs, holes, move dots, stars or any other small token. Gloss on a set of small coloured tokens is how Candy Crush renders its candies.
+   - Never more than the two gel colours, violet and pink, both from `Color.kt`.
+   - The board and the pegs stay exactly as they are today.
+5. **Gel cards stay cards**: opaque rounded rectangles with an icon and a label, as drawn.
+   - No twisted ends (a wrapped sweet), stripes, sprinkles, drips or wavy bottom edge.
+   - No see-through body.
+   - No squash-and-wobble ("jelly") motion, at idle or on press.
+   - The sheen stays one soft band, at most once per 10 s per card.
+6. **No translucent coloured layer on board cells.** That layer is exactly Candy Crush's "jelly" squares and Jelly Saga's spreading jelly. The slab's gloss stays one lip along its top edge.
+7. **No multi-hue colour field behind the board.** Candy Crush's in-level screens use large swooshes of yellow, red, orange, purple and green [S30]. B's hue arc of 250°–335° already keeps this out (the ux-designer's report, "Hue arc").
+8. **Everything in §3 still applies**: no tile grid, no candy lettering, no characters, and no King image in the repository or in a design file.
+
+### A.4 Words: "gel", "jelly", "Solitaire"
+**"gel"**
+- **Safe internally**: identifiers such as `GelCard` and `gelLip`, tokens, comments, docs and `.planning/`.
+- **User-facing, allowed only as a plain descriptive word in running text.** Never use it as the name of a mode, theme, setting, feature or achievement: a name would need a register lookup, and this machine cannot make one (USPTO and EUIPO refuse scripted access; see Checks).
+- Never pair it with a sweet word ("candy gel", "gel drops", "jelly gel").
+- No King title or filing found uses GEL. King's ten titles on its Play developer page [S35] and its jelly filings [S36] use JELLY.
+- In practice, no copy in the app needs the word.
+
+**"jelly"**
+- **Never user-facing**, anywhere 3a covers.
+- King publishes *Candy Crush Jelly Saga* [S34] and filed CANDY CRUSH JELLY SAGA (US serial 86732458) and CANDY CRUSH JELLY on 2015-08-21 [S36] [S37]. "Jelly" is also an objective inside Candy Crush Saga and Jelly Saga.
+- The US status shown by the mirror is an Office action suspending the application, last updated about ten years ago. The mark is therefore presumed live, as §1a does for the others.
+- Internal identifiers would be legally harmless, since they never reach a player. The spec's B-10 keeps the word out of them as well. Keep that; it costs nothing.
+
+**Added to 3a's never-write list**, in any use and not only as callouts: `jelly`, `soda`, `sugar`, `sweet`. King's titles use "jelly" and "soda", and its listings use "sweet" ("a delightful sweet twist" [S32]; "this sweet puzzle game" [S33]). "Sugar" is in King's "Sugar Crush" callout (§1b). B draws no sweets, so none of these words has an honest use.
+
+**New fact that §1 missed: Candy Crush Solitaire.**
+- King launched it worldwide on 2025-02-06 [S31].
+- It is on Play as `com.king.apps.candysolitaire`, by developer "King". Its short description reads "Enjoy TriPeaks solitaire - the classic card game with a delightful sweet twist!" [S32].
+- Our title `Peg Solitaire` is the game's generic name, documented since 1697 [S43]. It stays.
+- B's verdict does not change, but the stakes on words rise. In the title, the short and full descriptions, the release notes and any screenshot overlay:
+  - never put "Solitaire" next to a sweet word or a "twist" phrase;
+  - never decorate with playing cards or a green felt table.
+
+### A.5 THIRD_PARTY.md idea row (replaces §6's)
+**Where the row lives.** THIRD_PARTY.md is still not on `develop` (c3d3437). It is on `feature/phase-14-release-docs` (d11112d), with the row at line 79.
+
+**What changes.** The row's Item cell there carries the release-manager's ship clause: "**Ships from `feature/candy-backdrop` (not yet built)**; if it does not reach `release/3.0.0`, delete this row at checklist 1.4". Keep that clause. Only the "What was taken" cell changes. The Item, Source, Licence and Credit cells stay as they are.
+
+The new "What was taken" cell:
+
+```
+The idea of a lively, glossy backdrop behind the menu and the board, and nothing else. The look is direction B "Deep gloss" (Q-021): a deep violet gradient, two glossy colour waves low on the screen, soft out-of-focus lights that rise and fade, a gloss highlight on panels, and gel-finish Home mode cards with a passing sheen. These are generic glossy-UI conventions (the gel controls of Mac OS X Aqua, 2000; the gloss and bokeh of 2004–2013 interface design), and no candy, sweet, character or other King element is drawn. Every shape, colour stop, motion and composition is authored in this repo (`ui/theme/Color.kt` tokens, Compose Canvas)
+```
+
+The whole row, as §6 gave it, with the new cell in place (add the ship clause to the Item cell as the file has it):
+
+```
+| Candy-themed backdrop for the Home (menu) and gameplay screens | The candy-themed casual-game genre; the founder's named reference was *Candy Crush Saga* by King.com Limited — https://www.candycrush.com/ , https://play.google.com/store/apps/details?id=com.king.candycrushsaga | Not protected — a visual theme is an idea, not an expression (`rules/ip-policy.md`). King's names, logos, characters, candy designs and artwork are protected, and **none was taken** — verdict *inspiration only*, `.planning/reports/candy-backdrop/research-analyst.md` | The idea of a lively, glossy backdrop behind the menu and the board, and nothing else. The look is direction B "Deep gloss" (Q-021): a deep violet gradient, two glossy colour waves low on the screen, soft out-of-focus lights that rise and fade, a gloss highlight on panels, and gel-finish Home mode cards with a passing sheen. These are generic glossy-UI conventions (the gel controls of Mac OS X Aqua, 2000; the gloss and bokeh of 2004–2013 interface design), and no candy, sweet, character or other King element is drawn. Every shape, colour stop, motion and composition is authored in this repo (`ui/theme/Color.kt` tokens, Compose Canvas) | — deliberately not credited in the app: naming King in the app or the listing would imply a relationship Play's Impersonation policy forbids; this row stays out of any in-app licences screen |
+```
+
+### A.6 Open issues / risks
+1. **Register access refused again.** Justia returned 403 and USPTO TSDR returned 429 for the jelly filings. Both filings are treated as live, which costs nothing.
+2. **§1 missed Candy Crush Solitaire (2025).** A.4 corrects this. §1a's table is not re-cut; this line is the record.
+3. **Direction C is moot.** Had it been picked, its soap bubbles (rings with a highlight) would have needed the Soda Saga distinction in A.3 (1).
+4. **Play Console-only names.** The achievement and leaderboard names live only in the Play Console, which the in-repo grep cannot see. They need checking against A.4's words too.
+5. **Skill deviations, as in open issue 6.** The research skills' AskUserQuestion intake was skipped: the dispatch answered it, and only the producer addresses the founder. No `artifacts/research/` file was written, because this addendum is the single output.
+6. **Commit trailer, as in open issue 7.** `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>` was written by hand, because no prepare-commit-msg hook is installed.
+
+### A.7 Handoff
+Next: producer.
+1. **ux-designer** (rewriting `docs/ux/candy-backdrop.md` now): carry A.3 into BD-03 and the §10 verdict checklist, and A.4's words into B-10.
+2. **code-auditor and qa-engineer**: at the build's review, use §2's test, 3b, 3c and A.3 as acceptance items.
+3. **release-manager**: before the backdrop ships, swap A.5's cell into THIRD_PARTY.md line 79 on the branch that carries the file. Check the listing and the Play Console names against 3a and A.4.
+4. **Founder**: nothing to queue.
+
+### A.8 Sources (continuing the list above)
+All read 2026-10-18. "Search extract" means the claim comes from the search result's summary of that page, not from opening the page.
+
+- [S31] Business Wire, "A Beloved Classic Just Got Sweeter Than Ever; Candy Crush Solitaire™ Launches Worldwide" (2025-02-06): https://www.businesswire.com/news/home/20250206977362/en (search extract)
+- [S32] Google Play, Candy Crush Solitaire (developer "King"): https://play.google.com/store/apps/details?id=com.king.apps.candysolitaire
+- [S33] Google Play, Candy Crush Soda Saga: https://play.google.com/store/apps/details?id=com.king.candycrushsodasaga. Its screenshots show a purple gradient background, ring bubbles, purple soda with a wavy surface in the board, and a soda bottle meter. Short description: "Pop soda, crush cookies and keep matching candy in this sweet puzzle game!"
+- [S34] Google Play, Candy Crush Jelly Saga: https://play.google.com/store/apps/details?id=com.king.candycrushjellysaga. Its screenshots show the caption "Spread the jelly!", a glossy pink jelly band, jelly blobs and pink jelly cells. Short description: "A fun jellylicous match 3 game, solve the puzzles & defeat the Jelly Queen!"
+- [S35] Google Play, "Android Apps by King": https://play.google.com/store/apps/dev?id=6577204690045492686 (Blossom Blast Saga, Bubble Witch 2 Saga, Bubble Witch 3 Saga, Candy Crush Friends Saga, Candy Crush Jelly Saga, Candy Crush Saga, Candy Crush Soda Saga, Farm Heroes Saga, Farm Heroes Super Saga, Pet Rescue Saga)
+- [S36] Docket Alarm (USPTO mirror), CANDY CRUSH JELLY SAGA, serial 86732458: http://www.docketalarm.com/trademarks/86732458/
+- [S37] Justia Trademarks, King.com Limited owner listing: https://trademarks.justia.com/owners/king-com-limited-3012933 (refused; the CANDY CRUSH JELLY SAGA filing and the same-day CANDY CRUSH JELLY filing come from the search extract)
+- [S38] Wikipedia, Aqua (user interface): https://en.wikipedia.org/wiki/Aqua_(user_interface)
+- [S39] Apple Newsroom, "Apple Unveils Mac OS X" (2000-01-05): https://www.apple.com/newsroom/2000/01/05Apple-Unveils-Mac-OS-X/
+- [S40] Wikipedia, Frutiger Aero: https://en.wikipedia.org/wiki/Frutiger_Aero
+- [S41] Wikipedia, Bokeh: https://en.wikipedia.org/wiki/Bokeh (search extract)
+- [S42] Meta, Shimmer for Android, README and BSD licence: https://github.com/facebookarchive/shimmer-android
+- [S43] Wikipedia, Peg solitaire: https://en.wikipedia.org/wiki/Peg_solitaire
+- [S44] Pocket Gamer, King soft-launches Candy Crush Soda Saga on Android: https://www.pocketgamer.com/candy-crush-soda-saga/king-soft-launches-candy-crush-saga-spin-off-candy-crush-soda-saga-on-android/ (search extract: the purple soda seen in the background makes the candies float)
+- [S45] Giant Bomb, Candy Crush Soda Saga: https://www.giantbomb.com/games/3030-48504/ (search extract: matching bottle candies raises the soda level)
+- [S46] 24 ways, "Shiny happy buttons" (2008): https://24ways.org/2008/shiny-happy-buttons/ (search extract: Mac OS X popularised glossy buttons, a Web 2.0 cliché by 2008)
