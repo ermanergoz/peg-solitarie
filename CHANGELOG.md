@@ -38,8 +38,14 @@ Milestone **v1.1 ships as product version 3.0.0**, tag `v3.0.0`, versionCode `30
 ## [3.0.0] — unreleased
 
 *Date is filled in when `release/3.0.0` is merged and tagged; an unreleased section with a date is
-a false claim. Sources: `.planning/ROADMAP.md` phases 6–14 (success criteria, written in outcome
+a false claim. Sources: `.planning/ROADMAP.md` phases 6–15 (success criteria, written in outcome
 language) and the phase summaries under `.planning/phases/*/`.*
+
+*Entries marked **(pending: `<branch>`)** describe work on a branch that has not merged into
+`develop` yet. When the branch merges, the marker is removed. If it does not reach
+`release/3.0.0`, the entry is deleted at the release cut (checklist step 1.4), together with its
+line in `docs/store/` (see `docs/store/README.md`). This keeps the 3.0.0 section complete without
+claiming work that has not landed.*
 
 A complete rewrite of Peg Solitaire, and the first build of this codebase to reach the store. The
 game now has a voice, remembers you across devices, competes, and — where it was quietly guessing
@@ -47,6 +53,18 @@ before — tells you the truth.
 
 ### Added
 
+- **A tutorial you play, not read** *(pending: `feature/phase-15-ux-refresh`)*. A first-time player
+  learns on a live board: every step needs a real jump, and it covers both jump directions before
+  it ends. A wrong tap costs nothing, with no error and no red. Three taps without progress bring
+  more help, never a block. Skip is on every step, system back does the same, and the tutorial does
+  not come back on the next launch. Replay it from Settings › General.
+- **A colorblind palette** *(pending: `feature/candy-backdrop`)*. A switch in Settings › General, off
+  by default. Turned on, it makes the selection, the legal targets, the hint marks and the stars
+  readable by brightness and pattern as well as colour, for red-green and blue-yellow colour blindness
+  and for full colour blindness alike.
+- **A Licenses screen** *(pending: `feature/candy-backdrop`)* in Settings › About lists the fonts,
+  sounds and open-source software the game is made with, and opens their licence texts in the app,
+  offline.
 - **Sound.** Every meaningful action makes a sound: a pitch-varied jump that rises through a run,
   distinct peg removal, peg pick-up and put-down, undo, a quiet non-punishing tap on an illegal
   move, button presses, the win, and a rising star-pop that lands in step with the Results
@@ -100,6 +118,21 @@ before — tells you the truth.
 
 ### Changed
 
+- **A fuller Home screen** *(pending: `feature/phase-15-ux-refresh`)*: a title band, a three-pill
+  progress ribbon, and board art on the Classic and Challenge cards, both cards in the lower half of
+  the screen. The Challenge level, the Continue chips and the Classic stars are still on the first
+  screen, with nothing to open. The info button is gone; its help is now the tutorial.
+- **The gameplay screen has no top bar** *(pending: `feature/phase-15-ux-refresh`)*. A slim status
+  strip at the top keeps a labelled back control and the timer. Undo, Hint, Show moves and Restart
+  move to a dock in the lower half of the screen, within thumb reach. Show moves is now shown by
+  fill, not by colour alone, Hint has its own new icon, and no two controls share an icon.
+- **The game's typefaces are built in** *(pending: `feature/phase-15-ux-refresh`)*. Fredoka and
+  Nunito ship inside the app, so the first screen is drawn in the right fonts on every device,
+  offline and without Google Play services.
+- **A new glossy look** *(pending: `feature/candy-backdrop`)*. A deep violet backdrop with soft
+  colour waves and slowly drifting light sits behind the menu and the board, and the Home mode
+  cards have a glossy finish. The board and the pegs are unchanged. The motion stops when the
+  system's animations are turned off.
 - **Hints tell the truth on the hard boards.** Asking for a hint from a difficult early position on
   European-37, Asymmetric-39 or Wiegleb-45 now returns a real winning move inside the same
   one-and-a-half-second deadline, instead of folding to the "no winning move" banner. It is
@@ -112,6 +145,8 @@ before — tells you the truth.
 
 ### Fixed
 
+- **The status bar was unreadable in the light theme** *(pending: `feature/phase-15-ux-refresh`)*.
+  Its clock and icons were drawn light on the light background; they are now drawn dark there.
 - **Diamond-41's stars were unreachable.** Its bands assumed a one-peg finish that this board
   cannot reach from its centre start; the floor is two pegs, now proven — by a committed 38-move
   line replayed through the game's own rules, and by an exhaustive proof that one peg is
@@ -135,6 +170,10 @@ before — tells you the truth.
 *Nothing in this section is visible while playing; it is here for the next person to read the
 code.*
 
+- *(pending: `feature/phase-15-ux-refresh`)* The downloadable Google Fonts path is removed: the
+  `GoogleFont` provider, `font_certs.xml` and `ui-text-google-fonts`. Five static OFL-1.1 font
+  files load blocking from `res/font`, and their two licence texts ship in `assets/licenses/`
+  (`THIRD_PARTY.md` §2).
 - Release builds are minified and resource-shrunk by R8, with the sound files, the opening books
   and the downloadable-font certificates proved to survive the shrink.
 - Ad-unit and Play Games identifiers resolve from build configuration — test identifiers in debug,
