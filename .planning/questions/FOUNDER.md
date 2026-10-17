@@ -1,5 +1,55 @@
 # Founder questions (newest first)
 
+## Q-018 — minSdk 24 → 26: when, if ever?   (open)
+Date: 2026-10-17    Asked by: tech-lead
+Context: The studio rule names minSdk 26 for new products; this published app ships 3.0.0 at 24, and
+raising it drops API 24–25 installs from updates. Technically nothing forces either (docs/tech-design.md §1.3).
+Options: 1) raise to 26 in 3.0.0  2) raise in the first minor after 3.0.0 whose Play Console device
+statistics show API 24–25 under 1 % of active installs  3) hold 24 indefinitely
+Recommendation: tech-lead picks 2 — no technical cost is paid by waiting and no player is dropped on a guess.
+The design records 24 as the ruling for 3.0.0 either way.
+Blocks: nothing
+Answer:
+
+## Q-017 — Store-art provenance: achievement icons, listing icon, feature graphic   (answered)
+Date: 2026-10-17    Asked by: release-manager (Q-F3 / F-4)
+Context: THIRD_PARTY.md §7 holds four PENDING FOUNDER rows for art that lives only in the Play Console;
+rules/ip-policy.md blocks the release while a row lacks a licence.
+Options: 1) I drew them 2) generated with an AI tool 3) downloaded / bought 4) not sure (studio redraws)
+Recommendation: release-manager — an information request, not a decision.
+Blocks: THIRD_PARTY.md completeness → cutting release/3.0.0
+Answer: "you did it" (2026-10-17) — the studio produced them in its own sessions. The files are on the
+founder's Desktop, dated 2026-09-14/15: `PegSolitaire Achievement Icons/` (20 PNGs, a01..a20),
+`PegSolitaire Leaderboard Icons/` (7 PNGs), `peg-solitaire-icon-512.png`, `peg-solitaire-feature-1024x500.png`.
+Rows to be written as own work by the release-manager, with the files' sha256 and how they were made.
+
+## Q-016 — Store listing copy: rewrite for the new app, or keep?   (answered)
+Date: 2026-10-17    Asked by: release-manager
+Context: The live listing was written for the old app (versionCode 2), which had no Challenge ladder,
+leaderboards, cloud save or sound. Screenshots are already settled: the studio recaptures them after
+the candy backdrop lands. The copy and the ≤ 500-char release notes are taste.
+Options: 1) The studio drafts new short + full descriptions and the release notes into docs/store/;
+         you approve them at Gate 2  2) The current copy still fits; the studio drafts only the release
+         notes  3) You write the copy yourself; the studio checks the limits and checks it against the changelog
+Recommendation: release-manager picks 1. The rewrite is complete, so old copy almost certainly
+describes features that are gone and misses the ones that are new. Approval at Gate 2 adds no extra
+round trip.
+Blocks: nothing mechanical; the store-asset line of the Gate 2 summary
+Answer: 1 — the studio drafts new short + full descriptions and the release notes into docs/store/;
+founder approves them at Gate 2 (2026-10-17).
+
+## Q-015 — Play App Signing: keep your existing key or let Google make a new one?   (answered)
+Date: 2026-10-17    Asked by: release-manager
+Context: The first upload of 3.0.0 enrols the app in Play App Signing (D-21: not enrolled yet).
+Enrolment is one-way. The key you choose signs every copy players get from now on.
+Options: 1) Upload your existing release key as the app signing key; keep using it as the upload key
+         2) Let Google generate a new app signing key; your existing key becomes the upload key only
+Recommendation: release-manager picks 1. It keeps every copy of the old app installed today
+upgradable to 3.0.0, and it keeps the Play Games credential already registered for that key's SHA-1
+valid. Option 2 needs a new PGS credential before T-1 can pass, and gains nothing this release needs.
+Blocks: the first upload (F-3, F-11); nothing before it
+Answer: 1 — keep the existing release key as the app signing key and as the upload key (2026-10-17).
+
 ## Q-014 — Fable-pinned tech-lead and ux-designer rulings for the rest of phase 15   (answered)
 Date: 2026-09-29    Asked by: producer
 Context: The font fix (Q-013) needs a tech-lead ruling (bundle the OFL fonts vs repair the Google

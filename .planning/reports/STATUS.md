@@ -5,7 +5,16 @@ Q-901 and Q-902 were both answered 2026-09-21, both on their defaults.
 - **app-ads.txt / REL-03 — the crawl window has long since passed and the result is unread.** Founder set the listing's Website field and the listing published; the row went live on the public page as `https://ermanergoz.github.io` at 2026-09-21T01:29:28Z, 301ing to the correct file on the canonical host (Google documents cross-domain redirects as valid). The ≤ 24 h checkpoint was 2026-09-22 and the 48 h escalation 2026-09-23; **it is now 2026-09-28**, so AdMob has either verified or it has not. Founder to read AdMob → Apps → this app → App settings → `app-ads.txt`. If still unverified: switch the field to `https://ermanergoz.com` (bare apex) and check the AdMob app entry is linked to the Play listing. The file itself has been correct and live since 2026-09-02 — do not touch the website.
 
 ## In flight
-- **PAUSED by the founder, 2026-09-29 — resume on "continue".** Nothing is running; the emulator
+- **RESUMED 2026-10-17** on the founder's "finish this app and make it ready for the release", with a new
+  ask: "the game and the menu background to be like candy crush game" (track `candy-backdrop`, below).
+  Wave 1 dispatched 2026-10-17 (plugin rules v1.0.0, read from the plugin; snapshot still 0.6.2):
+  - phase-15 S11 loop 3 — code-auditor in PegSolitarie-p15 → `15-founder-feedback/code-auditor-loop3.md`;
+    qa-engineer building in detached worktree PegSolitarie-p15-qa (e1875cb) → `qa-engineer-loop3.md` + founder screenshots
+  - candy-backdrop — `feature/candy-backdrop` in PegSolitarie-candy (off develop 3f2af90): research-analyst IP verdict
+    → `.planning/reports/candy-backdrop/research-analyst.md`; next ux-designer spec, then build after phase 15 merges
+  - phase-14 — release-manager (THIRD_PARTY audio + bundled-font rows, founder-items list) and tech-lead (R-6
+    `docs/tech-design.md`, R-2 + check-gate concurrency brief), both in PegSolitarie-r5, uncommitted until both return
+- *(2026-09-29 record)* **PAUSED by the founder, 2026-09-29 — resume on "continue".** Nothing is running; the emulator
   `emulator-5560` (Pixel_9, windowed) is left up with the S11 loop-2 debug build installed.
   - **phase-15 S11 (founder feedback Q-004/Q-005: Home board stage, dock state language, bigger strip,
     and the Q-013 font fix)** — `feature/phase-15-ux-refresh` @ `e1875cb` in PegSolitarie-p15.
