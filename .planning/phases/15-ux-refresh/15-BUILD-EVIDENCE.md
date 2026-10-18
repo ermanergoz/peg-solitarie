@@ -7,6 +7,127 @@ Written by the android-game-dev executing S5–S8 of `15-PLAN.md`, 2026-09-28, o
 
 ## Cold-start measurement
 
+### Criterion 15e — the sitting of record, 2026-10-18 (qa-engineer, sign-off H-3) — **PASS**
+
+Run by the qa-engineer under `tech-lead-signoff.md` Decision 1 (P-1 to P-4), which amends Ruling 2 of
+`tech-lead-fonts.md`; verdict rule of `docs/ux-spec.md` §6.5, second edition. Report:
+`.planning/reports/15-founder-feedback/qa-engineer-15e.md`. Raw files (git-ignored):
+`.planning/qa/15-founder-feedback/h3/sitting/` (`samples.csv`, `swaps.csv`, `preconditions.txt`).
+The 2026-09-28 record further down is kept as it was written and is superseded by this sitting.
+
+**Verdict.** `median_B − median_A` = 424.0 − 391.0 = **33.0 ms** ≤ `max(2 × floor, 100 ms)` =
+**100 ms**, with `floor` = |438.5 − 435.5| = **3.0 ms** (VOID line 150 ms). **PASS.**
+
+#### The instrument: `Pixel_9a_bench`
+
+Created 2026-10-18 01:38 from `Pixel_9a`'s own files: `avdmanager` is not installed on this host
+(no `cmdline-tools` in the SDK), so P-1.1's command could not run. The AVD was written as
+`avdmanager` writes one, `~/.android/avd/Pixel_9a_bench.ini` plus `Pixel_9a_bench.avd/config.ini`,
+with `config.ini` copied from `Pixel_9a.avd/config.ini` and three keys changed. That is the
+deviation; P-1.2's diff is the check it is held to.
+
+`diff ~/.android/avd/Pixel_9a.avd/config.ini ~/.android/avd/Pixel_9a_bench.avd/config.ini`
+(the same after both boots):
+
+```
+1c1
+< AvdId=Pixel_9a
+---
+> AvdId=Pixel_9a_bench
+4c4
+< avd.ini.displayname=Pixel 9a
+---
+> avd.ini.displayname=Pixel 9a bench
+6c6
+< disk.dataPartition.size=6G
+---
+> disk.dataPartition.size=16G
+```
+
+`diff ~/.android/avd/Pixel_9a.ini ~/.android/avd/Pixel_9a_bench.ini`: only `path` and `path.rel`
+(`Pixel_9a.avd` → `Pixel_9a_bench.avd`). Every other key is equal, including
+`image.sysdir.1=system-images/android-36.1/google_apis_playstore_ps16k/arm64-v8a/`,
+`hw.device.name=pixel_9a`, `hw.cpu.ncore=4`, `hw.ramSize=2048`, `vm.heapSize=228`,
+`hw.lcd.width/height/density=1080/2424/420`, `hw.gpu.mode=auto`.
+
+| P-1 step | Recorded |
+|---|---|
+| 3. Cold boot, setup | `-no-snapshot-load`; booted to the launcher with `device_provisioned=1`, `user_setup_complete=1`; `dumpsys account`: **Accounts: 0** (no Google account added) |
+| 4. `cmd package bg-dexopt-job` | 01:39:24 → 01:40:12, "Job finished" |
+| 5. Arm B, first-run surfaces | consent form → "Consent"; tutorial → "Skip tutorial"; "Sign in to Play Games?" → "Not now". A relaunch showed Home with no first-run surface, and none appeared in any sample |
+| 6. Ladder | loop 3's 200-row ladder with one Classic save; Room identity hash `28f7b5a4…` = `app/schemas/…/2.json`; Home read **"Stars, 401"**, "Level, 111" |
+| 7. AC-F7 discriminator | "Level 111" ink **81.52 dp** (214 px at 2.625) — PASS at 82 ± 2 |
+| 8. Sitting boot | shut down (`adb emu kill`), cold-booted with `-no-snapshot-load -no-snapshot-save`, `sys.boot_completed=1` at 01:42:45; device state set; idle on the launcher until 01:45:51; sitting began 01:46:03 |
+
+#### Builds (P-2)
+
+| | Arm A | Arm B |
+|---|---|---|
+| Commit | `c3d3437` = `git merge-base develop feature/phase-15-ux-refresh` at the sitting (= `develop`) | `ee16a2a`, the branch's code head (H-2 `a62194f`/`3b27012` plus the R-1 merge); later commits `a8b07fb`, `e9c870b` touch `.planning/` only |
+| Build | `./gradlew --no-daemon -q :app:assembleDebug` in a detached worktree, then `--stop` | same |
+| APK sha256 | `8d8e3a5ac1c2f25e15f5112589da81d64e60d4c16aa7a953cc3ea96fa7aa3761` | `522258741b7a13dc0e9cf661d8bda9b3b3ee53de7dd3d157b856c53352c94f40` |
+| Signer (`apksigner`) | `8a4e64a3…c1a4a6` | `8a4e64a3…c1a4a6` |
+| `style/Theme.PegSolitaire` (`aapt2 dump resources`) | no `windowLightStatusBar` | `windowLightStatusBar` true, `(night)` false |
+
+Arm A's sha256 equals loop 3's arm A built from `develop` `3f2af90`: the R-1 merge did not change the APK.
+
+#### Preconditions (§6.5, with precondition 9 from Decision 1)
+
+| # | Precondition | Recorded value | Held? |
+|---|---|---|---|
+| 1 | `Pixel_9a_bench`, API 36, debug variant, animations off | `adb emu avd name` = Pixel_9a_bench; `ro.build.version.sdk` 36; `PAGE_SIZE` 16384; `sdk_gphone16k_arm64`; debug APKs; animation scales 0/0/0; font scale 1.0; `wm` 1080x2424 / 420 (reset) | Yes |
+| 2 | Exactly one emulator | `adb devices` 1; `qemu-system-aarch64` processes 1, before and after (`Pixel_9a` was shut down cleanly at 01:36) | Yes |
+| 3 | No Gradle build, no other measuring session | no `GradleDaemon`/`KotlinCompileDaemon`/`gradlew`/`gradle-wrapper` process before or after; quiet host declared by the producer | Yes |
+| 4 | 1-min load ≤ 5.0 (`hw.ncpu` 10 ÷ 2) at both ends | before (01:46, launcher idle > 3 min): `1.13 2.13 2.56`; after (01:52, 60 s after the last sample, app force-stopped, launcher in front): `1.84 2.48 2.64` | Yes |
+| 5 | ART normalised after every swap | `cmd package compile -m speed -f com.erman.pegsolitarie` after each of the 20 installs. The resulting state is `[status=verify] [reason=cmdline]` for **both** arms (read for arm B after the sitting, for arm A after the same command): ART caps a debuggable APK at `verify`, so both arms sit in the same state | Yes (same state both arms) |
+| 6 | Component resolved from the device | `com.erman.pegsolitarie/com.app.pegsolitaire.MainActivity` | Yes |
+| 7 | Arm swapped only at a block boundary | `adb install -r -d --no-incremental` at each block start; installed `base.apk` sha256 matched its label after **all 20** swaps (N1/N2/B → `52225874…4f40`, A → `8d8e3a5a…3761`); schema identical (`git diff --stat c3d3437 ee16a2a -- app/schemas` empty, no `*PreferencesKey` added or removed) | Yes |
+| 8 | ~200-level ladder | `SUM(stars)` 401 before; **401** after (200 rows), read from the pulled database | Yes |
+| 9 | `Data-Free` ≥ 4 GB at start and end | start `Data-Free: 13897764K / 16337876K total = 85% free`; end `Data-Free: 13765684K / 16337876K total = 84% free` | Yes |
+
+Every sample reported `LaunchState: COLD`.
+
+#### Null control (arm B's APK in both positions)
+
+| Field | N1 | N2 |
+|---|---|---|
+| Device | AVD `Pixel_9a_bench` (`emulator-5554`) | same |
+| API level | 36 | 36 |
+| Variant | debug | debug |
+| Command | per block: `adb install -r -d --no-incremental`, `cmd package compile -m speed -f`, sha check, `am force-stop`, 2 s; then 5 × (`adb shell am start -W -n "$(adb shell cmd package resolve-activity --brief com.erman.pegsolitarie \| tail -1)"`, `am force-stop`, 2 s) | same |
+| Samples | 5 blocks × 5, first of each block discarded, **20 recorded** | same |
+| Seeded Challenge rows | 200 (`SUM(stars)` 401) | same |
+| TotalTime min / median / max (ms) | 385 / **438.5** / 516 | 342 / **435.5** / 495 |
+| Raw samples (ms) | 417, 516, 443, 403, 466, 434, 431, 426, 499, 417, 422, 416, 446, 385, 457, 467, 477, 463, 472, 413 (discarded 522, 438, 499, 490, 550) | 487, 431, 438, 342, 458, 462, 432, 463, 431, 374, 439, 455, 398, 431, 419, 433, 495, 429, 462, 451 (discarded 526, 516, 543, 475, 538) |
+
+`floor` = |438.5 − 435.5| = **3.0 ms**.
+
+#### The two arms (interleaved A/B, blocks 1–10)
+
+| Field | Arm A (`c3d3437`) | Arm B (`ee16a2a`) |
+|---|---|---|
+| Device | AVD `Pixel_9a_bench` (`emulator-5554`) | same |
+| API level | 36 | 36 |
+| Variant | debug | debug |
+| Command | as the null control | same |
+| Samples | 5 blocks × 5, first of each block discarded, **20 recorded** | same |
+| Seeded Challenge rows | 200 (`SUM(stars)` 401) | same |
+| TotalTime min / median / max (ms) | 343 / **391.0** / 432 | 378 / **424.0** / 505 |
+| Raw samples (ms) | 360, 419, 400, 408, 404, 359, 402, 359, 398, 343, 355, 376, 408, 378, 363, 391, 403, 391, 432, 364 (discarded 446, 463, 490, 489, 508) | 448, 407, 431, 405, 414, 401, 420, 383, 452, 489, 437, 412, 438, 415, 402, 378, 460, 505, 439, 428 (discarded 556, 466, 494, 557, 523) |
+
+**Threshold** `max(2 × 3.0, 100)` = 100 ms. **Delta** 33.0 ms. **PASS.** Timings: null control
+01:46:03–01:48:43, arms 01:48:43–01:51:21.
+
+**Precision caveat (carried from `06-BUILD-EVIDENCE.md`):** `am start -W` displayed time is coarse,
+affected by host load and emulator state, and **not comparable across devices**. These absolute
+numbers (≈ 0.4 s) are evidence about this host and this AVD, not about a phone, and are no reading
+of the ≤ 2 s bar (§6.5, D-03j). Only the relative delta against the same-sitting null control is the
+gate's reading.
+
+---
+
+### Record of the 2026-09-28 attempt (superseded by the sitting above)
+
 **Status: NOT RUN — neither arm is recorded, and no delta is claimed.**
 
 The gate was attempted in full and abandoned at the calibration step, because the instrument was

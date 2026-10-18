@@ -1,6 +1,6 @@
 # Founder questions (newest first)
 
-## Q-022 — The Turkish store listing describes the old app   (open)
+## Q-022 — The Turkish store listing describes the old app   (answered)
 Date: 2026-10-18    Asked by: release-manager
 Context: The live Play listing has its own Turkish text ("5 farklı oyun modu") written for the old app;
 14 other languages show translated English (saved in the Console or automatic: only you can see which).
@@ -11,7 +11,7 @@ Options: 1) The studio drafts a tr-TR translation of the new copy for you to app
 Recommendation: release-manager picks 1 — a stale text describing features that are gone is a Play policy
 exposure, and a drafted translation costs no extra round trip at Gate 2.
 Blocks: nothing (the Gate 2 store-asset line)
-Answer:
+Answer: 1 — the studio drafts tr-TR for approval at Gate 2 (2026-10-18).
 
 ## Q-021 — Which look should the menu and game backgrounds take?   (answered)
 Date: 2026-10-18    Asked by: ux-designer
