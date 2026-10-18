@@ -5,6 +5,24 @@ Q-901 and Q-902 were both answered 2026-09-21, both on their defaults.
 - **app-ads.txt / REL-03 — the crawl window has long since passed and the result is unread.** Founder set the listing's Website field and the listing published; the row went live on the public page as `https://ermanergoz.github.io` at 2026-09-21T01:29:28Z, 301ing to the correct file on the canonical host (Google documents cross-domain redirects as valid). The ≤ 24 h checkpoint was 2026-09-22 and the 48 h escalation 2026-09-23; **it is now 2026-10-18**, so AdMob has either verified or it has not. Founder to read AdMob → Apps → this app → App settings → `app-ads.txt`. If still unverified: switch the field to `https://ermanergoz.com` (bare apex) and check the AdMob app entry is linked to the Play listing. The file itself has been correct and live since 2026-09-02 — do not touch the website.
 
 ## In flight
+- **PAUSED by the founder, 2026-10-18 (laptop sleep) — resume on "continue".** Nothing is running. The
+  phase-15 H-1 test-fix developer was stopped before it changed anything (tree clean at f7cb984); its step
+  is NOT done and is re-dispatched fresh on resume. `Pixel_9a_bench` (emulator-5554) may still be up.
+  **Resume order:**
+  1. phase-15: android-game-dev fix mode on `code-auditor-loop4.md` F-1..F-3 (test-only) →
+     `android-game-dev-h1-fix.md`; then a code-auditor re-audit of that delta → `code-auditor-loop5.md`; then a
+     short tech-lead dispatch to accept QA's D-1 (bench AVD made without avdmanager) and close the HOLD → PASS;
+     H-4 is done (screens page v2, light shots retaken, https://claude.ai/artifact/6No45gboNKX4qmeofmy3dr).
+     Then records + merge phase 15 into develop (merge order: tech-lead-signoff.md Decision 4).
+  2. Read in full before acting (committed, not yet read by the producer): `PegSolitarie-audio/.planning/reports/
+     audio-review/tech-lead-haptics.md` (17-item audio brief), `PegSolitarie-candy/.planning/reports/candy-backdrop/
+     tech-lead-direction-b.md` (B build brief; colour-vision and licences screen split to their own branches),
+     `PegSolitarie-r5/.planning/reports/phase-14/research-analyst-font-licences.md` (OFL CLEAN; Jakarta NOTICE;
+     missing §5b rows: OkHttp/Okio/Gson/Tink/Guava/protobuf/Cronet/checker-qual/hsdp — release-manager + tech-lead).
+  3. After phase 15 merges: cut feature/phase-14-check-gates (brief + addenda A0–A2 + A3/C7); audio integration
+     (merge develop in first); bugfix/home-chip-arrival (F-1, ux ruling first); feature/licences-screen;
+     feature/colour-vision; then candy-backdrop (direction B) last with its own 15e sitting. release-manager:
+     draft tr-TR store copy (Q-022). Then release/3.0.0.
 - **RESUMED 2026-10-17** on the founder's "finish this app and make it ready for the release", with a new
   ask: "the game and the menu background to be like candy crush game". Fable-pinned roles run on Opus until
   3.0.0 is published (Q-019). State on 2026-10-18:
