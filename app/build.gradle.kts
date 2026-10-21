@@ -82,14 +82,12 @@ val gamesIdLocal: Map<String, String> =
 //
 // The tradeoff, stated plainly: `./gradlew build`, `assemble` or `bundle` on a fresh
 // clone with no IDs configured fails with an actionable message, while `assembleDebug`,
-// `check`, `test` and IDE sync never do. `assemble`/`build`/`bundle` are named here
-// because they build BOTH variants; `elease` covers `assembleRelease`, `bundleRelease`
-// and their `:app:`-qualified forms.
-val wholeProjectTaskNames = setOf("assemble", "build", "bundle")
-val isReleaseInvocation =
-    gradle.startParameter.taskNames.any { requested ->
-        requested.contains("elease") || requested.substringAfterLast(':') in wholeProjectTaskNames
-    }
+// `check`, `test`, `lintRelease`, `detektRelease` and IDE sync never do. The predicate
+// itself — which names package a release and which merely analyse one — lives in
+// `build-logic/src/main/kotlin/ReleaseInvocation.kt` so it can be unit-tested (`:app` has
+// no `testReleaseUnitTest` under AGP 9.1.0); the rationale for the verb-prefix test that
+// replaced `contains("elease")` is on that object, and `ReleaseInvocationTest` pins it.
+val isReleaseInvocation = ReleaseInvocation.isReleaseInvocation(gradle.startParameter.taskNames)
 
 // The value the release variant carries when configuration ran outside a release
 // invocation and nothing was configured. Deliberately not a valid ID and deliberately
@@ -242,20 +240,33 @@ val verifyReleaseSigning =
         }
     }
 
-// One hook, three dependencies — both ID domains and the keystore are checked before
-// anything is packaged.
+// Two hooks, and the ORDER of the two matters more than the fact that there are two.
+//
+// `assembleRelease` and `bundleRelease` are LIFECYCLE tasks: a dependency added to them is a
+// SIBLING of the package task, and Gradle may run the two in either order. A `-m :app:bundleRelease`
+// dry run measured exactly that — both ID checks were listed AFTER `packageReleaseBundle`. With the
+// real upload key exported (which is precisely the state the release procedure puts the machine in)
+// that window leaves a SIGNED `app-release.aab` carrying `UNRESOLVED-see-local.properties.template`
+// in `BuildConfig` on disk after a build that then failed, which is the exact artifact that gets
+// uploaded by accident. So all three checks hang off the PACKAGE tasks, where signing and packaging
+// actually happen, and the lifecycle hook is kept as the second attachment: `matching {}` is silent
+// when a name does not exist, so if a future AGP renames the package tasks the checks still run
+// (late) rather than vanishing. Belt and braces, in that order.
+tasks.matching { it.name == "packageRelease" || it.name == "packageReleaseBundle" }.configureEach {
+    dependsOn(verifyReleaseAdIds, verifyReleaseGamesIds, verifyReleaseSigning)
+}
+
 tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }.configureEach {
     dependsOn(verifyReleaseAdIds, verifyReleaseGamesIds, verifyReleaseSigning)
 }
 
-// And a second, tighter hook for the signing check alone. `assembleRelease` is a LIFECYCLE
-// task: a dependency added to it is a sibling of `packageRelease` and Gradle may run the two
-// in either order, so the hook above guarantees the check runs but not that it runs *first*.
-// Signing happens inside the package task, so hanging the check off that is what actually
-// orders it before a byte is signed. Both hooks are kept: `matching {}` is silent when a name
-// does not exist, so if a future AGP renames the package tasks the check still runs (late)
-// rather than vanishing.
-tasks.matching { it.name == "packageRelease" || it.name == "packageReleaseBundle" }.configureEach {
+// Diagnostics, not security, and one line. AGP's own `validateSigningRelease` is a sibling of
+// `verifyReleaseSigning`, so on `assembleRelease` it may run first and report a mistyped keystore
+// path in its own register — which makes `SigningKeystoreProbe`'s four distinguishable messages
+// (missing file, wrong store password, absent alias, wrong key password) effectively unreachable on
+// the one command an operator runs. Ordering ours first costs nothing: it produces no artifact and
+// changes no signing behaviour.
+tasks.matching { it.name == "validateSigningRelease" }.configureEach {
     dependsOn(verifyReleaseSigning)
 }
 
@@ -379,13 +390,7 @@ android {
             // (-84.6%); the ~5.5 MB ads SDK and its transitives land in plan 06-09, so
             // minification has to exist before they arrive.
             isMinifyEnabled = true
-            // Safe here despite `font_certs.xml` being an array OF array references
-            // (`@array/..._dev` / `..._prod`) reached only as
-            // `R.array.com_google_android_gms_fonts_certs` from ui/theme/Type.kt: the
-            // shrinker follows resource->resource references, verified against the
-            // shrunk APK with `aapt2 dump resources`. If it had not, downloadable
-            // Fredoka/Nunito would silently fall back to the default font — the one
-            // player-visible thing R8 could plausibly break here.
+            // `res/font` is referenced from code through `R.font`, so the resource shrinker keeps it.
             isShrinkResources = true
             // `proguard-android-optimize.txt`, NOT the plain variant: the optimizing
             // baseline is AGP's current recommendation and is the maintained rule set,
@@ -478,8 +483,6 @@ dependencies {
     implementation(libs.bundles.compose)
     // Curated Material Symbols set — only Icons.Rounded.Refresh is used (top-bar restart).
     implementation(libs.androidx.compose.material.icons.core)
-    // Downloadable Fredoka/Nunito (Candy-Clay type scale); async with default-font fallback.
-    implementation(libs.androidx.compose.ui.text.google.fonts)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     // MVVM: ViewModel base for the StateFlow-driven UiState. Non-Compose artifact

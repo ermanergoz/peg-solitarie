@@ -1,8 +1,9 @@
 name: CI
 
 # Gitflow gate: every push and every PR targeting the long-lived integration
-# branches runs the full standards gate + domain tests + debug build. This covers
-# `feature/* -> develop`, `release/* -> main`, and `hotfix/* -> main` PRs.
+# branches runs the repo's Check command (`./gradlew check`, CLAUDE.md) plus the
+# build-logic unit tests and a debug APK build. This covers `feature/* -> develop`,
+# `release/* -> main`, and `hotfix/* -> main` PRs.
 on:
   push:
     branches: [develop, main]
@@ -18,7 +19,7 @@ concurrency:
 
 jobs:
   verify:
-    name: Standards gate + domain tests + debug build
+    name: Check command + build-logic tests + debug build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -41,14 +42,29 @@ jobs:
         # CI writes it from the runner's SDK root — no secrets required.
         run: echo "sdk.dir=${ANDROID_SDK_ROOT:-$ANDROID_HOME}" > local.properties
 
-      - name: Standards gate + domain tests + debug build
-        # QUAL-01/02/03 (ktlint, detekt, ArchUnit purity, dp/sp gate run under
-        # `check`/`test`) + QUAL-04 (:domain:test) + a debug APK build.
-        run: >-
-          ./gradlew
-          ktlintCheck
-          detekt
-          :domain:test
-          test
-          assembleDebug
-          --no-daemon --stacktrace
+      - name: Build-logic unit tests
+        # `build-logic` is an INCLUDED build, so its tests are not part of the root
+        # `check` below and have to be asked for by name. They are the contracts for
+        # the release gates themselves — which task names package a release
+        # (`ReleaseInvocation`), which source sets the literal gates scan
+        # (`SourceSetPolicy`), and the ad-ID / Play-Games-ID / signing resolutions,
+        # none of which can be tested from `:app` at all (AGP 9.1.0 creates no
+        # `testReleaseUnitTest`). Seconds, and first, so a broken gate fails fast.
+        run: ./gradlew -p build-logic test --no-daemon --stacktrace
+
+      - name: Check command + debug build
+        # `check` VERBATIM, because it is the Check command in CLAUDE.md and the
+        # studio's definition of done. This step used to name individual tasks
+        # (`ktlintCheck detekt :domain:test test`), which silently made the CI gate
+        # NARROWER than the local one: the four literal gates — the ad-unit-ID gate,
+        # the Play-Games-ID gate, the audio-focus gate and the dp/sp gate — are wired
+        # into `check` and only into `check`, so none of them had ever run on a pull
+        # request. Naming tasks here means every future gate has to be remembered
+        # twice; naming `check` means it cannot be forgotten once.
+        #
+        # Cost, stated rather than hidden: `check` also pulls in `:app:lint` and
+        # `:domain:depthSweep`, and the sweep alone is ~11 minutes locally (DEBT-01;
+        # it is a timing measurement, so it never runs up-to-date). If PR latency
+        # becomes the binding constraint, the fix is to give the sweep its own job —
+        # not to go back to a list of task names that drifts from `check`.
+        run: ./gradlew check assembleDebug --no-daemon --stacktrace

@@ -140,9 +140,6 @@ androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-
 # for the top-bar restart control (UI-SPEC); the heavy `material-icons-extended` set
 # is intentionally avoided.
 androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core" }
-# Downloadable Google Fonts (Fredoka + Nunito, Candy-Clay redesign). BOM-governed —
-# no version here, like every other androidx.compose.* artifact.
-androidx-compose-ui-text-google-fonts = { group = "androidx.compose.ui", name = "ui-text-google-fonts" }
 
 # --- AndroidX ---
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidxActivityCompose" }

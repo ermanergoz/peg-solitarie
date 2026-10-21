@@ -70,6 +70,7 @@ class SettingsPrivacyTest {
                     state = SettingsUiState(privacyOptionsRequired = privacyOptionsRequired),
                     onToggleSound = {},
                     onToggleHaptics = {},
+                    onShowHowToPlay = {},
                     onSignInToPlayGames = {},
                     onShowLeaderboards = {},
                     onShowAchievements = {},
@@ -103,7 +104,11 @@ class SettingsPrivacyTest {
         setContent(privacyOptionsRequired = false)
 
         composeRule.onNodeWithText(generalHeader).assertIsDisplayed()
-        composeRule.onNodeWithText(privacyHeader).assertIsDisplayed()
+        // Scrolled to first: Phase 15 added the "How to play" row above the Sound toggle, so on
+        // the default Robolectric viewport the Privacy header now starts below the fold. The
+        // claim is unchanged — both headers exist and are reachable — and it is asserted the
+        // way every row in this file already is.
+        composeRule.onNodeWithText(privacyHeader).performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -111,7 +116,11 @@ class SettingsPrivacyTest {
         setContent(privacyOptionsRequired = true)
 
         composeRule.onNodeWithText(generalHeader).assertIsDisplayed()
-        composeRule.onNodeWithText(privacyHeader).assertIsDisplayed()
+        // Scrolled to first: Phase 15 added the "How to play" row above the Sound toggle, so on
+        // the default Robolectric viewport the Privacy header now starts below the fold. The
+        // claim is unchanged — both headers exist and are reachable — and it is asserted the
+        // way every row in this file already is.
+        composeRule.onNodeWithText(privacyHeader).performScrollTo().assertIsDisplayed()
     }
 
     @Test
