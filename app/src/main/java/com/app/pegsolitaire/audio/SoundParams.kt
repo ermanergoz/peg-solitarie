@@ -114,8 +114,21 @@ object SoundParams {
     /** Priority of the win stinger and star pops — never stolen for a jump. */
     const val PRIORITY_CELEBRATION = 1
 
-    /** The signature jump pop, mixed loudest of the gameplay cues. */
-    const val VOLUME_JUMP = 0.9f
+    /**
+     * The signature jump pop, mixed loudest of the gameplay cues — at `SoundPool`'s full scale.
+     *
+     * **1.0 because of the peak rule (P4a), and only together with its asset.** The old
+     * `sfx_jump` peaked at −0.02 dBFS and broke rules/audio.md's −1 dBFS ceiling, so the asset
+     * was re-levelled to a −1.10 dBFS peak and this constant rose from 0.9 to 1.0 to keep the
+     * jump where the founder tuned it (−0.2 dB in game). The two halves must never land apart:
+     * this value alone would put the jump + removal layer at the clipping edge, and the asset
+     * alone would leave the jump a decibel quiet.
+     *
+     * **There is no code headroom left.** 1.0 is `SoundPool`'s ceiling, so a louder jump is an
+     * asset change, and that asset already sits 0.1 dB under the peak rule — it would take
+     * loudness processing, not gain.
+     */
+    const val VOLUME_JUMP = 1.0f
 
     /** The jumped-peg removal: a texture layer under [VOLUME_JUMP], not a competing hit. */
     const val VOLUME_REMOVAL = 0.45f
@@ -168,14 +181,19 @@ object SoundParams {
      * It is no longer the softest cue the game plays — [VOLUME_DESELECT] is, at `0.18972f`.
      * That is deliberate and does not weaken SOUND-02, whose point is that a
      * rejection must not punish the player *relative to the jump it denies* (0.3 against
-     * [VOLUME_JUMP]'s 0.9) — a relationship this constant still carries unchanged.
+     * [VOLUME_JUMP]) — a relationship this constant still carries unchanged.
      */
     const val VOLUME_INVALID = 0.3f
 
     /** Hint reveal: a chime at conversational level. */
     const val VOLUME_HINT = 0.6f
 
-    /** The win stinger: the loudest moment in the game, and the reference all others sit under. */
+    /**
+     * The win stinger: the loudest moment in the game, and no cue is mixed above it.
+     *
+     * [VOLUME_JUMP] now ties it at 1.0 (P4a) and the jump still sits about 8 LU under the win,
+     * because that level difference lives in the assets (`docs/audio-spec.md`, Mix).
+     */
     const val VOLUME_WIN = 1.0f
 
     /** Star pops: just under the stinger so the triad reads as its tail. */
