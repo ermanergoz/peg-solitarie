@@ -134,7 +134,7 @@ object SoundParams {
 
     /**
      * Putting a peg back down: the [VOLUME_SELECT] pop, reversed and a whole tone down
-     * (`sfx_deselect.ogg`), mixed 10 dB below its forward twin.
+     * (`sfx_deselect.wav`), mixed 10 dB below its forward twin.
      *
      * **Derived from [VOLUME_SELECT] rather than written as a bare float**, the same
      * reasoning [STAR_POP_BASE_RATE] uses: the two cannot drift apart, and re-levelling the
@@ -143,16 +143,18 @@ object SoundParams {
      * `0.19f` (−9.988 dB) would be.
      *
      * **Why the put-down sits below its forward twin rather than level with it.** The two
-     * assets are peak-matched **on disk on purpose** (both at −5.48 dBFS; see
+     * assets are peak-matched **on disk on purpose** (−5.48 and −5.46 dBFS; see
      * `docs/audio/CREDITS.md`), but equal peak is not equal loudness here: a reversed
      * transient is a slow swell rather than a sharp attack, and a swell carries more energy
-     * relative to its peak. Measured on the shipped files, the put-down's RMS is **1.92 dB
-     * higher** than the pick-up's (−24.536 dB against −26.459 dB) at that matched peak, so
-     * played at the same level it reads as the *more* prominent of the two — the opposite of
-     * what a put-down should be.
+     * relative to its peak. Measured on the shipped files over their designed lengths, the
+     * put-down's RMS is **0.73 dB higher** than the pick-up's (−24.53 dB against −25.26 dB)
+     * at that matched peak, so played at the same level it reads as the *more* prominent of
+     * the two — the opposite of what a put-down should be. (The 1.92 dB once quoted here
+     * counted 945 samples of Vorbis block padding into the pick-up; CREDITS.md records the
+     * correction, and the −10 dB below was tuned by ear either way.)
      *
      * **The whole level difference lives here, and must not also be baked into the asset.**
-     * Attenuating `sfx_deselect.ogg` on disk *and* keeping this constant applies −10 dB
+     * Attenuating `sfx_deselect.wav` on disk *and* keeping this constant applies −10 dB
      * twice. The file is deliberately not a quiet outlier; do not "fix" it to look like one.
      */
     const val VOLUME_DESELECT = VOLUME_SELECT * DESELECT_ATTENUATION
