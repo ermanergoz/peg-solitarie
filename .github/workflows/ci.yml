@@ -69,4 +69,10 @@ jobs:
         # it is a timing measurement, so it never runs up-to-date). If PR latency
         # becomes the binding constraint, the fix is to give the sweep its own job —
         # not to go back to a list of task names that drifts from `check`.
+        #
+        # FUZZ_SEEDS is explicit whatever the local default in domain/build.gradle.kts:
+        # 10,000 is the whole Challenge level space, so the PR gate is exhaustive
+        # (docs/tech-design.md §7.3).
+        env:
+          FUZZ_SEEDS: "10000"
         run: ./gradlew check assembleDebug --no-daemon --stacktrace
