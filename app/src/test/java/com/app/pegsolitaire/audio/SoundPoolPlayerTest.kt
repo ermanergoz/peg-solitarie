@@ -7,8 +7,10 @@ import com.app.pegsolitaire.data.SettingsRepository
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -35,7 +37,9 @@ private const val RUN_LENGTH = 3
 
 /**
  * Specification for [SoundPoolPlayer]: the media-volume attributes, the decode-before-play
- * guard, the pitch ladder reaching the pool, the SOUND-05 mute and the D-12 bypass.
+ * guard, the pitch ladder reaching the pool, the SOUND-05 mute, the D-12 bypass, and the
+ * Silent/Vibrate speaker gate (Q-010 option 2, `docs/tech/audio-silent-mode.md` §1.10), driven
+ * through a [FakeSystemAudioState] so each ringer and route change is one assignment.
  *
  * Runs JVM-side under Robolectric because `SoundPool` is a framework class; the shadow
  * records every `play` with its rate, so the ladder is asserted rather than eyeballed.
@@ -53,12 +57,9 @@ private const val RUN_LENGTH = 3
 class SoundPoolPlayerTest {
     private val settings = MutableSoundSettingsRepository()
 
-    private val player =
-        SoundPoolPlayer(
-            context = RuntimeEnvironment.getApplication(),
-            settingsRepository = settings,
-            scope = CoroutineScope(Dispatchers.Unconfined),
-        )
+    private val systemAudio = FakeSystemAudioState()
+
+    private val player = playerWith(systemAudio)
 
     private val recording: RecordingSoundPoolShadow get() = Shadow.extract(player.pool)
 
@@ -162,7 +163,7 @@ class SoundPoolPlayerTest {
     }
 
     @Test
-    fun theEnableConfirmationPopBypassesTheGate() {
+    fun theEnableConfirmationPopStillBypassesTheInAppMute() {
         preloadAndDecode(SoundCue.SoundEnabled)
         settings.soundOn.value = false
 
@@ -180,12 +181,196 @@ class SoundPoolPlayerTest {
         assertThat(player.trackedStreamIds()).hasSize(SoundParams.MAX_STREAMS)
     }
 
-    /** Loads every cue, then completes the decode of just [cues] so play-readiness is deterministic. */
-    private fun preloadAndDecode(vararg cues: SoundCue) {
-        player.preload()
-        cues.forEach { shadowOf(player.pool).notifyResourceLoaded(it.resId, true) }
-        shadowOf(player.pool).clearPlayed()
+    // ---- The Silent/Vibrate speaker gate (Q-010 option 2, design §1.1, §1.7, §1.9) --------
+
+    @Test
+    fun thePoolPlaysWithTheAttributesTheRouteQueryAsksAbout() {
+        // The speaker gate asks the platform where GameAudioAttributes would route; that answer
+        // is only about game sound if the pool really plays with those same attributes.
+        val attributes = ReflectionHelpers.getField<AudioAttributes>(player.pool, "mAttributes")
+
+        assertThat(attributes).isEqualTo(GameAudioAttributes.build())
     }
+
+    @Test
+    fun onVibrateThroughThePhoneSpeakerNothingPlays() {
+        preloadAndDecode(SoundCue.Select, SoundCue.Jump)
+        systemAudio.snapshot.value = VIBRATE_ON_THE_SPEAKER
+
+        player.play(SoundCue.Select)
+        player.playJump(runIndex = 0)
+
+        assertThat(shadowOf(player.pool).getResourcePlaybacks(R.raw.sfx_select)).isEmpty()
+        assertThat(shadowOf(player.pool).getResourcePlaybacks(R.raw.sfx_jump)).isEmpty()
+    }
+
+    @Test
+    fun onSilentThroughThePhoneSpeakerNothingPlays() {
+        preloadAndDecode(SoundCue.Select, SoundCue.StarPop)
+        systemAudio.snapshot.value = SILENT_ON_THE_SPEAKER
+
+        player.play(SoundCue.Select)
+        player.playStarPop(step = 0)
+
+        assertThat(shadowOf(player.pool).getResourcePlaybacks(R.raw.sfx_select)).isEmpty()
+        assertThat(shadowOf(player.pool).getResourcePlaybacks(R.raw.sfx_star_pop)).isEmpty()
+    }
+
+    @Test
+    fun onVibrateThroughHeadphonesCuesStillPlay() {
+        preloadAndDecode(SoundCue.Select)
+        systemAudio.snapshot.value = VIBRATE_ON_HEADPHONES
+
+        player.play(SoundCue.Select)
+
+        assertThat(shadowOf(player.pool).getResourcePlaybacks(R.raw.sfx_select)).hasSize(1)
+    }
+
+    @Test
+    fun switchingToVibrateOnThePhoneSpeakerStopsTheStreamsAlreadyInFlight() {
+        preloadAndDecode(SoundCue.Jump)
+        repeat(RUN_LENGTH) { player.playJump(runIndex = it) }
+        val inFlight = player.trackedStreamIds()
+
+        systemAudio.snapshot.value = VIBRATE_ON_THE_SPEAKER
+
+        assertThat(inFlight).isNotEmpty()
+        assertThat(recording.stoppedStreams).containsExactlyElementsIn(inFlight)
+        assertThat(recording.autoPauseCalls).isAtLeast(1)
+        assertThat(player.trackedStreamIds()).isEmpty()
+    }
+
+    @Test
+    fun unpluggingHeadphonesOnVibrateStopsTheStreamsAlreadyInFlight() {
+        systemAudio.snapshot.value = VIBRATE_ON_HEADPHONES
+        preloadAndDecode(SoundCue.StarPop)
+        repeat(RUN_LENGTH) { player.playStarPop(step = it) }
+        val inFlight = player.trackedStreamIds()
+
+        systemAudio.snapshot.value = VIBRATE_ON_THE_SPEAKER
+
+        assertThat(inFlight).hasSize(RUN_LENGTH)
+        assertThat(recording.stoppedStreams).containsExactlyElementsIn(inFlight)
+        assertThat(player.trackedStreamIds()).isEmpty()
+    }
+
+    @Test
+    fun pluggingHeadphonesInOnVibrateLetsTheNextCuePlay() {
+        preloadAndDecode(SoundCue.Select)
+        systemAudio.snapshot.value = VIBRATE_ON_THE_SPEAKER
+        player.play(SoundCue.Select)
+
+        systemAudio.snapshot.value = VIBRATE_ON_HEADPHONES
+        player.play(SoundCue.Select)
+
+        // Exactly the one cue played after the plug-in; the muted one is not replayed.
+        assertThat(shadowOf(player.pool).getResourcePlaybacks(R.raw.sfx_select)).hasSize(1)
+    }
+
+    @Test
+    fun leavingSilentLetsTheNextCuePlayWithoutReplayingAnything() {
+        preloadAndDecode(SoundCue.Select)
+        systemAudio.snapshot.value = SILENT_ON_THE_SPEAKER
+        player.play(SoundCue.Select)
+
+        systemAudio.snapshot.value = SystemAudioSnapshot.Unmuted
+        assertThat(shadowOf(player.pool).getResourcePlaybacks(R.raw.sfx_select)).isEmpty()
+
+        player.play(SoundCue.Select)
+        assertThat(shadowOf(player.pool).getResourcePlaybacks(R.raw.sfx_select)).hasSize(1)
+    }
+
+    @Test
+    fun theEnableConfirmationPopIsMutedOnVibrateThroughThePhoneSpeaker() {
+        // D-12's bypass skips only the in-app mute, because the DataStore write has not
+        // round-tripped yet; it was never meant to override the system (design §1.7).
+        preloadAndDecode(SoundCue.SoundEnabled)
+        settings.soundOn.value = false
+        systemAudio.snapshot.value = VIBRATE_ON_THE_SPEAKER
+
+        player.playSoundEnabledConfirmation()
+
+        assertThat(shadowOf(player.pool).wasResourcePlayed(R.raw.sfx_sound_enabled)).isFalse()
+    }
+
+    @Test
+    fun leavingVibrateDoesNotOverrideTheInAppMute() {
+        preloadAndDecode(SoundCue.Select)
+        settings.soundOn.value = false
+        systemAudio.snapshot.value = VIBRATE_ON_THE_SPEAKER
+
+        systemAudio.snapshot.value = SystemAudioSnapshot.Unmuted
+        player.play(SoundCue.Select)
+
+        assertThat(shadowOf(player.pool).getResourcePlaybacks(R.raw.sfx_select)).isEmpty()
+    }
+
+    @Test
+    fun aSystemReaderThatThrowsLeavesSoundPlayingAndTheInAppMuteWorking() {
+        val failOpen = playerWith(ThrowingSystemAudioState())
+        preloadAndDecode(failOpen, SoundCue.Select)
+
+        failOpen.play(SoundCue.Select)
+        assertThat(shadowOf(failOpen.pool).getResourcePlaybacks(R.raw.sfx_select)).hasSize(1)
+
+        settings.soundOn.value = false
+        failOpen.play(SoundCue.Select)
+        assertThat(shadowOf(failOpen.pool).getResourcePlaybacks(R.raw.sfx_select)).hasSize(1)
+    }
+
+    @Test
+    fun aSystemReaderThatNeverEmitsLeavesTheInAppMuteWorking() {
+        // One collector per input, never `combine`: a combined gate would wait for this reader
+        // forever, and the in-app mute would wait with it (design §1.6).
+        val failOpen = playerWith(NeverEmittingSystemAudioState())
+        preloadAndDecode(failOpen, SoundCue.Select)
+
+        failOpen.play(SoundCue.Select)
+        assertThat(shadowOf(failOpen.pool).getResourcePlaybacks(R.raw.sfx_select)).hasSize(1)
+
+        settings.soundOn.value = false
+        failOpen.play(SoundCue.Select)
+        assertThat(shadowOf(failOpen.pool).getResourcePlaybacks(R.raw.sfx_select)).hasSize(1)
+    }
+
+    /** A player over this test's settings, driven synchronously; [systemAudio] is the reader under test. */
+    private fun playerWith(systemAudio: SystemAudioState): SoundPoolPlayer =
+        SoundPoolPlayer(
+            context = RuntimeEnvironment.getApplication(),
+            settingsRepository = settings,
+            systemAudio = systemAudio,
+            scope = CoroutineScope(Dispatchers.Unconfined),
+        )
+
+    /** Loads every cue, then completes the decode of just [cues] so play-readiness is deterministic. */
+    private fun preloadAndDecode(vararg cues: SoundCue) = preloadAndDecode(player, *cues)
+
+    private fun preloadAndDecode(
+        target: SoundPoolPlayer,
+        vararg cues: SoundCue,
+    ) {
+        target.preload()
+        cues.forEach { shadowOf(target.pool).notifyResourceLoaded(it.resId, true) }
+        shadowOf(target.pool).clearPlayed()
+    }
+}
+
+/** Silent/Vibrate with the phone's own speaker: the one state Q-010 mutes. */
+private val VIBRATE_ON_THE_SPEAKER = SystemAudioSnapshot(RingerMode.Vibrate, OutputRoute.BuiltIn)
+
+private val SILENT_ON_THE_SPEAKER = SystemAudioSnapshot(RingerMode.Silent, OutputRoute.BuiltIn)
+
+/** Vibrate with headphones: Q-010 keeps sound here. */
+private val VIBRATE_ON_HEADPHONES = SystemAudioSnapshot(RingerMode.Vibrate, OutputRoute.External)
+
+/** A reader whose flow fails at once, as a platform reader that cannot register would. */
+private class ThrowingSystemAudioState : SystemAudioState {
+    override val snapshots: Flow<SystemAudioSnapshot> = flow { throw IllegalStateException("reader failed") }
+}
+
+/** A reader that never produces a reading. */
+private class NeverEmittingSystemAudioState : SystemAudioState {
+    override val snapshots: Flow<SystemAudioSnapshot> = flow { awaitCancellation() }
 }
 
 /**

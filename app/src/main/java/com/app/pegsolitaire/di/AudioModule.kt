@@ -1,7 +1,9 @@
 package com.app.pegsolitaire.di
 
+import com.app.pegsolitaire.audio.AndroidSystemAudioState
 import com.app.pegsolitaire.audio.SoundPlayer
 import com.app.pegsolitaire.audio.SoundPoolPlayer
+import com.app.pegsolitaire.audio.SystemAudioState
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -30,4 +32,13 @@ abstract class AudioModule {
     @Binds
     @Singleton
     abstract fun bindSoundPlayer(impl: SoundPoolPlayer): SoundPlayer
+
+    /**
+     * The ringer and output-route reader behind the Silent/Vibrate speaker gate (Q-010 option 2,
+     * `docs/tech/audio-silent-mode.md` §1.5). In `audio/`, not `platform/`, for the reason this
+     * module's KDoc gives: `AudioManager` is a framework API with no SDK and no Activity.
+     */
+    @Binds
+    @Singleton
+    abstract fun bindSystemAudioState(impl: AndroidSystemAudioState): SystemAudioState
 }
