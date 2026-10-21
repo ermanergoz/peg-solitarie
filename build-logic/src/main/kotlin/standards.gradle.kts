@@ -21,6 +21,9 @@ import org.gradle.api.GradleException
  * "Shipped source" is `SourceSetPolicy.shippedSourceRoots()` — `src/main`, `src/release`
  * and `src/debug`, test source sets deliberately excluded — and a configuration-time
  * tripwire below fails the build the day a source set appears that neither list classifies.
+ *
+ * It also makes every `Test` task in both modules self-heal a truncated result store (F1,
+ * below), so a clobbered or interrupted run can never wedge a later one.
  */
 plugins {
     id("dev.detekt")
@@ -32,6 +35,28 @@ extensions.configure<DetektExtension> {
     ignoreFailures.set(false)
     parallel.set(true)
     config.setFrom(rootProject.files("config/detekt/detekt.yml"))
+}
+
+// ---- F1: self-heal a truncated test-result store (docs/tech-design.md §9.6) ----------
+// A store truncated by an interrupted or clobbered run makes Gradle's own
+// SerializableTestResultStore.hasResults() throw EOFException before any test runs, and it
+// does so on every later invocation until the directory is deleted by hand (M2 in
+// .planning/reports/phase-15/tech-lead-depthsweep.md). AbstractTestTask.executeTests() reads
+// the previous store — for previously-failed-first ordering — BEFORE it deletes the binary
+// directory, so the task cannot recover from a file it is about to discard. `doFirst` runs
+// before the task action, which is early enough; `--rerun-tasks` does not help, because the
+// read happens inside the action whatever made the task run.
+//
+// Why here and not per module: this plugin is applied by both `:app` and `:domain`, so one
+// block covers `:domain:test`, `:domain:depthSweep`, `:domain:fuzz` and
+// `:app:testDebugUnitTest`, and every Test task registered later. Per-module copies are the
+// copy-paste a convention plugin exists to prevent. Cost: these tasks forfeit
+// previously-failed-first ordering, which is immaterial here. It captures only the task's own
+// DirectoryProperty — no Project reference at execution time — so it stays
+// configuration-cache safe.
+tasks.withType<Test>().configureEach {
+    val binaryResults = binaryResultsDirectory
+    doFirst { binaryResults.get().asFile.deleteRecursively() }
 }
 
 // ---- detekt must see the build-type source sets, not just src/main -----------
