@@ -5,24 +5,19 @@ Q-901 and Q-902 were both answered 2026-09-21, both on their defaults.
 - **app-ads.txt / REL-03 — the crawl window has long since passed and the result is unread.** Founder set the listing's Website field and the listing published; the row went live on the public page as `https://ermanergoz.github.io` at 2026-09-21T01:29:28Z, 301ing to the correct file on the canonical host (Google documents cross-domain redirects as valid). The ≤ 24 h checkpoint was 2026-09-22 and the 48 h escalation 2026-09-23; **it is now 2026-10-18**, so AdMob has either verified or it has not. Founder to read AdMob → Apps → this app → App settings → `app-ads.txt`. If still unverified: switch the field to `https://ermanergoz.com` (bare apex) and check the AdMob app entry is linked to the Play listing. The file itself has been correct and live since 2026-09-02 — do not touch the website.
 
 ## In flight
-- **PAUSED by the founder, 2026-10-18 (laptop sleep) — resume on "continue".** Nothing is running. The
-  phase-15 H-1 test-fix developer was stopped before it changed anything (tree clean at f7cb984); its step
-  is NOT done and is re-dispatched fresh on resume. `Pixel_9a_bench` (emulator-5554) may still be up.
-  **Resume order:**
-  1. phase-15: android-game-dev fix mode on `code-auditor-loop4.md` F-1..F-3 (test-only) →
-     `android-game-dev-h1-fix.md`; then a code-auditor re-audit of that delta → `code-auditor-loop5.md`; then a
-     short tech-lead dispatch to accept QA's D-1 (bench AVD made without avdmanager) and close the HOLD → PASS;
-     H-4 is done (screens page v2, light shots retaken, https://claude.ai/artifact/6No45gboNKX4qmeofmy3dr).
-     Then records + merge phase 15 into develop (merge order: tech-lead-signoff.md Decision 4).
-  2. Read in full before acting (committed, not yet read by the producer): `PegSolitarie-audio/.planning/reports/
-     audio-review/tech-lead-haptics.md` (17-item audio brief), `PegSolitarie-candy/.planning/reports/candy-backdrop/
-     tech-lead-direction-b.md` (B build brief; colour-vision and licences screen split to their own branches),
-     `PegSolitarie-r5/.planning/reports/phase-14/research-analyst-font-licences.md` (OFL CLEAN; Jakarta NOTICE;
-     missing §5b rows: OkHttp/Okio/Gson/Tink/Guava/protobuf/Cronet/checker-qual/hsdp — release-manager + tech-lead).
-  3. After phase 15 merges: cut feature/phase-14-check-gates (brief + addenda A0–A2 + A3/C7); audio integration
-     (merge develop in first); bugfix/home-chip-arrival (F-1, ux ruling first); feature/licences-screen;
-     feature/colour-vision; then candy-backdrop (direction B) last with its own 15e sitting. release-manager:
-     draft tr-TR store copy (Q-022). Then release/3.0.0.
+- **2026-10-21 — phase 15 merged.** Next, in Decision 4's order (tech-lead-signoff.md, tech-lead-signoff-close.md):
+  1. tech-lead: tech-design §10/§14.1/§16/§17 additions on feature/phase-14-release-docs; then merge release-docs
+     and feature/phase-14-release-plan (docs only).
+  2. android-game-dev: feature/phase-14-check-gates off develop (brief tech-lead-r2-gate-brief.md + A0–A2 in
+     tech-lead-signoff-gate-scope.md + A3/C7 in tech-lead-design-sync.md) → code-auditor → qa-engineer → tech-lead.
+  3. audio integration on feature/audio-review (merge develop in first; brief = tech-lead-haptics.md, 17 items).
+  4. ux-designer: spec folds a–e (tech-lead-signoff-close.md) + the F-1 ruling + 15e O-1; then
+     bugfix/home-chip-arrival (F-1 + loop-5 INFO rows 1, 3, 4, 5).
+  5. feature/licences-screen and feature/colour-vision (tech-lead-direction-b.md split), then feature/candy-backdrop
+     (direction B) last, with its own 15e sitting on Pixel_9a_bench (bench reserved; record the P-1.2 diff).
+  6. Unread by the producer, read before acting: tech-lead-haptics.md, tech-lead-direction-b.md,
+     research-analyst-font-licences.md, release-manager-store-copy-tr.md.
+  Then release/3.0.0, Q-PUBLISH-3.0.0.
 - **RESUMED 2026-10-17** on the founder's "finish this app and make it ready for the release", with a new
   ask: "the game and the menu background to be like candy crush game". Fable-pinned roles run on Opus until
   3.0.0 is published (Q-019). State on 2026-10-18:
@@ -107,6 +102,7 @@ Q-901 and Q-902 were both answered 2026-09-21, both on their defaults.
   5. **`docs/audio-spec.md` has never existed on any branch** (`git log --all --diff-filter=A` → 0 commits) although rules/audio.md makes it the cue list of record — its absence is why the D-01h/SOUND-01 contradiction stayed invisible through a full design pass. No sound-designer is staffed on this product, so the qa-engineer stood in under a recorded recusal. Owner: sound-designer if staffed, else tech-lead. Predates phase 15 and does not block it.
 
 ## Done
+2026-10-21 | phase-15 ux-refresh (S1–S11, H-1..H-4) | android-game-dev, code-auditor, qa-engineer, ux-designer, tech-lead, game-designer (reviews on Opus under Q-003/Q-019) | PASS; 15e PASS on Pixel_9a_bench (33 ms); merged to develop --no-ff | .planning/reports/15-founder-feedback/code-auditor-loop4.md, code-auditor-loop5.md, qa-engineer-15e.md, tech-lead-signoff.md, tech-lead-signoff-close.md, producer.md
 2026-10-18 | phase-14 R-1 gate scope | android-game-dev, code-auditor, qa-engineer, tech-lead | PASS (QA and tech-lead on Opus under Q-019); merged to develop --no-ff; QA open issues routed to check-gates C3a/C3b | .planning/reports/phase-14/code-auditor-gate-scope.md, qa-engineer-gate-scope.md, tech-lead-signoff-gate-scope.md, producer-gate-scope.md
 2026-09-29 | rules snapshot v0.5.1 → 0.6.2 (Q-007) | producer | merged to develop 3f2af90 | .claude/rules/ (feature/sync-rules-062, deleted)
 2026-09-29 | phase-15 S11 rulings: fonts bundle + 15e E-1; 15p D-03m; §6.5 fold + D-03m check | tech-lead, ux-designer ×2 (Opus, Q-014) | ruled; D-03m text FAIL fixed in-commit | .planning/reports/15-founder-feedback/tech-lead-fonts.md, ux-designer-15p.md, ux-designer-6-5-and-d03m-check.md
