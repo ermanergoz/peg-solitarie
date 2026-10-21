@@ -5,7 +5,9 @@
   the stack's tool elsewhere).
 - Games: table-driven tests for every Move type, invalid moves, terminal
   states; property tests over ≥ 1,000 seeds; fuzz harness ≥ 10,000 seeds in
-  CI and ≥ 100,000 before release (rules/puzzle-design.md).
+  CI and ≥ 100,000 before release (rules/puzzle-design.md). The developer
+  writes and extends the harness on opus; QA sets its invariants and seed
+  counts in `docs/qa-plan.md` and reviews it (rules/studio.md, rule 1).
 - Apps: every acceptance criterion (Given/When/Then) maps to a named test;
   repositories tested against fakes; ViewModels/state holders tested with
   Turbine or the stack's equivalent.
