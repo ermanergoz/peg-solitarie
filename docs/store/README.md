@@ -13,6 +13,20 @@ The texts follow `fastlane supply`'s metadata layout, so the files can be upload
 | `en-US/short_description.txt` | Short description | 80 | 76 |
 | `en-US/full_description.txt` | Full description | 4,000 | 2,222 |
 | `en-US/changelogs/30000.txt` | Release notes ("What's new"), versionCode 30000 | 500 | 427 |
+| `tr-TR/title.txt` | App name (Turkish translation) | 30 | 13 |
+| `tr-TR/short_description.txt` | Short description (Turkish) | 80 | 71 |
+| `tr-TR/full_description.txt` | Full description (Turkish) | 4,000 | 2,521 |
+| `tr-TR/changelogs/30000.txt` | Release notes (Turkish), versionCode 30000 | 500 | 447 |
+
+The tr-TR texts were drafted on 2026-10-21 for Q-022 (founder, 2026-10-18: the studio drafts tr-TR for
+approval at Gate 2). They translate the en-US texts line for line, with one addition: the full
+description ends with "Oyunun arayüzü İngilizcedir." ("The game's interface is in English."), because the
+app has no Turkish strings (no `values-tr` on `develop` or any open branch) and the listing should not
+suggest otherwise. The founder may delete that line at Gate 2. Button names are given with the app's
+English label in brackets, e.g. "İpucu (Hint)", "Ayarlar'dan (Settings)", so a Turkish player can find
+them. The title stays "Peg Solitaire": the live Turkish listing uses that title too (public page,
+`hl=tr&gl=TR`, read 2026-10-21). "Piyon" (peg), "delik" (hole) and "tahta" (board) are the words the
+founder's own live Turkish text uses.
 
 Lengths are Unicode characters, counted without the file's final newline (`python3`, `len()`).
 
@@ -30,6 +44,14 @@ branch does not reach `release/3.0.0`, delete its lines at the release cut** (ch
 | `feature/phase-15-ux-refresh` | the "Learn by playing" section; the "Undo, Hint and the other game controls…" bullet | "A hands-on tutorial, a fuller Home screen and game controls within thumb reach" |
 | `feature/candy-backdrop` (backdrop direction B, colour-blind palette) | the "colorblind palette" bullet; the "glossy new look" bullet | "A glossy new look and a colorblind palette option" |
 | `feature/audio-review` | nothing (sound itself is on `develop`; this branch only changes the files) | nothing |
+
+The same branches own these tr-TR lines. Delete them together with their en-US lines:
+
+| Branch | tr-TR full description | tr-TR release notes |
+|---|---|---|
+| `feature/phase-15-ux-refresh` | the "Oynayarak öğrenin" section; the "Geri al, İpucu ve diğer oyun düğmeleri…" bullet | "Uygulamalı bir eğitim, daha dolu bir ana ekran ve başparmağınızın ulaştığı oyun düğmeleri" |
+| `feature/candy-backdrop` | the "Ayarlar'da renk körlüğüne uygun bir renk paleti seçeneği…" bullet; the "Parlak yeni bir görünüm…" bullet | "Parlak yeni bir görünüm ve renk körlüğüne uygun palet seçeneği" |
+| `feature/audio-review` | nothing | nothing |
 
 The backdrop is described only in neutral terms ("glossy", "soft light"), as Q-021's direction B requires.
 
@@ -52,6 +74,18 @@ Re-run the check after any edit, from the repo root. It must print nothing:
 grep -inE 'candy|crush|saga|sugar|sweet|jelly|soda|king|gel|twist|tasty|delicious|divine|like |inspired|fans of|style|activision|microsoft|tiffi|toffee|yeti|odus|cards?|felt' docs/store/en-US/*.txt docs/store/en-US/changelogs/*.txt
 ```
 
+The tr-TR texts follow the same rules in Turkish: no şeker or şekerleme (candy, sugar), tatlı (sweet),
+jöle or jel (jelly, gel), soda, ezmek (crush), destan (saga), kral (King), lezzetli, nefis, enfes or
+ilahi (callouts), no "gibi", "benzeri", "esinlenen", "hayranları" or "tarzı" comparison, no "dokunuş"
+(twist) phrase, no kart, iskambil or keçe (cards, felt). "Solitaire" appears only in "Peg Solitaire".
+The English grep above also runs on them, so the Turkish copy avoids "gel" even inside other words
+(no "geleneksel", "gelir"). Both commands must print nothing:
+
+```sh
+LC_ALL=en_US.UTF-8 grep -inE 'candy|crush|saga|sugar|sweet|jelly|soda|king|gel|twist|tasty|delicious|divine|like |inspired|fans of|style|activision|microsoft|tiffi|toffee|yeti|odus|cards?|felt' docs/store/tr-TR/*.txt docs/store/tr-TR/changelogs/*.txt
+LC_ALL=en_US.UTF-8 grep -inE 'şeker|seker|bonbon|lolipop|karamel|çikolata|şurup|tatlı|tatli|jöle|jole|jel|soda|ezme|ezil|ezer|destan|kral|lezzet|nefis|enfes|leziz|ilahi|şahane|dokunuş|farklı bir yorum|bükül|gibi|benzer|esinlen|ilham|hayran|tarz|kart|iskambil|keçe|çuha|yeşil masa' docs/store/tr-TR/*.txt docs/store/tr-TR/changelogs/*.txt
+```
+
 ## Languages on the live listing
 
 Read from the public page on 2026-10-18, with `hl=` set to 16 languages:
@@ -61,8 +95,9 @@ Read from the public page on 2026-10-18, with `hl=` set to 16 languages:
 - **Turkish has its own text.** It is not a translation of the English ("Peg Solitaire, kendi kendine
   oynanır…", which ends "5 farklı oyun modu bulunmaktadır ve koyu tema desteklenir"). So a tr-TR
   translation is very likely in the Console. It describes the old app, so it has to be replaced or
-  removed for 3.0.0, or Turkish players see the old copy. This draft has no Turkish text. The founder
-  either writes it, asks the studio for a tr-TR draft, or deletes the translation.
+  removed for 3.0.0, or Turkish players see the old copy. The founder chose a studio draft (Q-022,
+  2026-10-18): it is in `tr-TR/`, for approval at Gate 2. The live Turkish title is "Peg Solitaire"
+  (re-read 2026-10-21), so the draft keeps it.
 - The other 14 languages tried (en-GB, de, fr, es, it, pt-BR, ru, ja, ko, zh-CN, ar, hi, nl, pl) show the
   English text, translated. The public page cannot tell whether these are translations in the Console or
   Play's automatic translation. The founder checks in Play Console → Grow → Store presence → Store
