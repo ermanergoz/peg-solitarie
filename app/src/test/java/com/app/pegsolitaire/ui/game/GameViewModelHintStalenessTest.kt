@@ -15,6 +15,7 @@ import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
+import com.app.pegsolitaire.domain.usecase.HintOutcome
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
 import com.app.pegsolitaire.platform.ads.RewardOutcome
@@ -250,7 +251,7 @@ class GameViewModelHintStalenessTest {
                 val searched = firstArg<Board>()
                 searchedBoards += searched
                 searchedMoveCounts += thirdArg<Int>()
-                RulesEngine.legalMoves(searched).firstOrNull()
+                RulesEngine.legalMoves(searched).firstOrNull()?.let { HintOutcome.Found(it) } ?: HintOutcome.ProvenDead
             }
 
             // Half 1 — left undisturbed, the hint resolves, and the inputs the search was

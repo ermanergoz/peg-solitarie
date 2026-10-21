@@ -32,6 +32,7 @@ import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.app.pegsolitaire.domain.solver.SolverBudget
 import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
+import com.app.pegsolitaire.domain.usecase.HintOutcome
 import com.app.pegsolitaire.navigation.Gameplay
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
@@ -1359,7 +1360,7 @@ class GameViewModel
                     val boardForHint = _uiState.value.board
                     val solutionForHint = solution.takeIf { onRecordedLine }
                     val movesPlayedForHint = moveHistory.size
-                    val move =
+                    val outcome =
                         withContext(defaultDispatcher) {
                             getHintUseCase(
                                 board = boardForHint,
@@ -1378,13 +1379,16 @@ class GameViewModel
                     }
                     // ADS-06, and the whole point of searching first: the answer is already
                     // known, so a position with no winning move is answered for FREE — no
-                    // allowance unit, no ad, no gateway call at all. A solver budget miss
-                    // also returns null and is likewise free: the player was told "no winning
-                    // move" and must not be charged for it, whatever the reason.
-                    if (move == null) {
-                        _uiState.update { it.copy(noWinningMove = true, solverThinking = false) }
-                        return@launch
-                    }
+                    // allowance unit, no ad, no gateway call at all. An Undecided search is
+                    // likewise free, and still raises the same "no winning move" state.
+                    val move =
+                        when (outcome) {
+                            is HintOutcome.Found -> outcome.move
+                            HintOutcome.ProvenDead, HintOutcome.Undecided -> {
+                                _uiState.update { it.copy(noWinningMove = true, solverThinking = false) }
+                                return@launch
+                            }
+                        }
                     // A real assist was found, so this one IS chargeable. Stash it — with the
                     // board it was computed for — before charging: the reveal may happen on
                     // the far side of an ad the player spends thirty seconds watching, from

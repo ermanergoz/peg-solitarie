@@ -146,16 +146,6 @@ object Solver {
     }
 
     /**
-     * Transitional: [decide]'s move, or `null` for both of its other outcomes. It exists
-     * only while `GetHintUseCase` still calls it, and goes with that last caller.
-     */
-    fun firstWinningMove(
-        board: Board,
-        budget: SolverBudget,
-        shouldCancel: () -> Boolean = { false },
-    ): Move? = (decide(board, budget, shouldCancel) as? SolverOutcome.Found)?.move
-
-    /**
      * Runs up to [MAX_ATTEMPTS] deterministically-seeded searches, the first capped at
      * [SolverBudget.perAttemptMaxNodes] and each subsequent one at
      * [ATTEMPT_CAP_GROWTH] times its predecessor, returning the first winning move found.

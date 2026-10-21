@@ -16,6 +16,7 @@ import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
+import com.app.pegsolitaire.domain.usecase.HintOutcome
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
 import com.app.pegsolitaire.platform.ads.RewardOutcome
@@ -166,7 +167,7 @@ class GameViewModelAssistOrderingTest {
             // (Phase 4 D-04), on a board that may well be winnable. The player is told "no
             // winning move" either way, so under this ordering the budget miss is free too.
             val missedBudget = mockk<GetHintUseCase>()
-            every { missedBudget.invoke(any(), any(), any(), any(), any()) } returns null
+            every { missedBudget.invoke(any(), any(), any(), any(), any()) } returns HintOutcome.Undecided
 
             val gateway = RecordingAdGateway()
             val viewModel = viewModelFor(winnableStrip(), gateway, getHintUseCase = missedBudget)
