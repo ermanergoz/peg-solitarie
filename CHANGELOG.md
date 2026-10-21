@@ -8,8 +8,9 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 **Why this convention.** Keep a Changelog is written for the person who uses the software, not the
 person who wrote it — one section per release, grouped by *Added / Changed / Fixed / Removed*, one
 bullet per delivered capability rather than one per commit. That is the right shape here: this
-release carries 647 commits since `v1.0`, and a dump of even the 132 `feat` subjects would be a
-log, not a changelog. Each release section therefore has two layers:
+release carries 810 commits since `v1.0` (`develop` 0582e3f, 2026-10-21; re-counted at the cut,
+checklist item 1.6), and a dump of even its 154 `feat` subjects would be a log, not a
+changelog. Each release section therefore has two layers:
 
 1. **the player's layer** — *Added / Changed / Fixed*, written for someone who plays the game and
    has never seen the code;
@@ -43,7 +44,7 @@ language) and the phase summaries under `.planning/phases/*/`.*
 
 *Entries marked **(pending: `<branch>`)** describe work on a branch that has not merged into
 `develop` yet. When the branch merges, the marker is removed. If it does not reach
-`release/3.0.0`, the entry is deleted at the release cut (checklist step 1.4), together with its
+`release/3.0.0`, the entry is deleted at the release cut (checklist item 2.4a), together with its
 line in `docs/store/` (see `docs/store/README.md`). This keeps the 3.0.0 section complete without
 claiming work that has not landed.*
 
@@ -53,7 +54,7 @@ before — tells you the truth.
 
 ### Added
 
-- **A tutorial you play, not read** *(pending: `feature/phase-15-ux-refresh`)*. A first-time player
+- **A tutorial you play, not read**. A first-time player
   learns on a live board: every step needs a real jump, and it covers both jump directions before
   it ends. A wrong tap costs nothing, with no error and no red. Three taps without progress bring
   more help, never a block. Skip is on every step, system back does the same, and the tutorial does
@@ -118,15 +119,15 @@ before — tells you the truth.
 
 ### Changed
 
-- **A fuller Home screen** *(pending: `feature/phase-15-ux-refresh`)*: a title band, a three-pill
+- **A fuller Home screen**: a title band, a three-pill
   progress ribbon, and board art on the Classic and Challenge cards, both cards in the lower half of
   the screen. The Challenge level, the Continue chips and the Classic stars are still on the first
   screen, with nothing to open. The info button is gone; its help is now the tutorial.
-- **The gameplay screen has no top bar** *(pending: `feature/phase-15-ux-refresh`)*. A slim status
+- **The gameplay screen has no top bar**. A slim status
   strip at the top keeps a labelled back control and the timer. Undo, Hint, Show moves and Restart
   move to a dock in the lower half of the screen, within thumb reach. Show moves is now shown by
   fill, not by colour alone, Hint has its own new icon, and no two controls share an icon.
-- **The game's typefaces are built in** *(pending: `feature/phase-15-ux-refresh`)*. Fredoka and
+- **The game's typefaces are built in**. Fredoka and
   Nunito ship inside the app, so the first screen is drawn in the right fonts on every device,
   offline and without Google Play services.
 - **A new glossy look** *(pending: `feature/candy-backdrop`)*. A deep violet backdrop with soft
@@ -136,8 +137,8 @@ before — tells you the truth.
 - **Hints tell the truth on the hard boards.** Asking for a hint from a difficult early position on
   European-37, Asymmetric-39 or Wiegleb-45 now returns a real winning move inside the same
   one-and-a-half-second deadline, instead of folding to the "no winning move" banner. It is
-  answered from a built-in opening book for the first four moves and by a rebuilt solver beyond
-  it, so "no winning move" now means *proven*, not *gave up*.
+  answered from a built-in opening book for the first four moves (three on Wiegleb-45) and by a
+  rebuilt solver beyond it, so "no winning move" now means *proven*, not *gave up*.
 - **Star ratings are measured against what each board can actually reach.** Every board's star
   bands are derived from that board's own fewest-peg floor rather than from one shared assumption.
 - **A hint you ask for while the board is changing is cancelled**, rather than arriving late and
@@ -145,7 +146,7 @@ before — tells you the truth.
 
 ### Fixed
 
-- **The status bar was unreadable in the light theme** *(pending: `feature/phase-15-ux-refresh`)*.
+- **The status bar was unreadable in the light theme**.
   Its clock and icons were drawn light on the light background; they are now drawn dark there.
 - **Diamond-41's stars were unreachable.** Its bands assumed a one-peg finish that this board
   cannot reach from its centre start; the floor is two pegs, now proven — by a committed 38-move
@@ -170,12 +171,12 @@ before — tells you the truth.
 *Nothing in this section is visible while playing; it is here for the next person to read the
 code.*
 
-- *(pending: `feature/phase-15-ux-refresh`)* The downloadable Google Fonts path is removed: the
-  `GoogleFont` provider, `font_certs.xml` and `ui-text-google-fonts`. Five static OFL-1.1 font
-  files load blocking from `res/font`, and their two licence texts ship in `assets/licenses/`
-  (`THIRD_PARTY.md` §2).
-- Release builds are minified and resource-shrunk by R8, with the sound files, the opening books
-  and the downloadable-font certificates proved to survive the shrink.
+- The downloadable Google Fonts path is removed: the `GoogleFont` provider, `font_certs.xml` and
+  `ui-text-google-fonts`. Five static OFL-1.1 font files load blocking from `res/font`, and their
+  two licence texts ship in `assets/licenses/` (`THIRD_PARTY.md` §2).
+- Release builds are minified and resource-shrunk by R8, with the sound files and the opening books
+  proved to survive the shrink. The bundled fonts are reached through `R.font`, and the release
+  branch checks that the bundle keeps all five and their licence texts.
 - Ad-unit and Play Games identifiers resolve from build configuration — test identifiers in debug,
   real ones in release — with build gates that fail a release build outright when a real
   identifier is missing, and that refuse to let an identifier literal into shipped source.

@@ -2,8 +2,10 @@
 
 Drafted by the release-manager on 2026-10-18 for Q-016 (founder, 2026-10-17): the studio drafts the
 short and full descriptions and the release notes, and the founder approves them at Gate 2. **Nothing
-here is live.** The founder pastes it into the Play Console, or `scripts/play-upload.sh` uploads it
-with `fastlane supply` once the publish approval exists.
+here is live.** The founder pastes it into the Play Console. A gated upload script,
+`scripts/play-upload.sh` with `fastlane supply`, is planned to upload it once the publish approval
+exists, but that script does not exist yet on `develop` or on any branch; it is owed on a `feature/*`
+branch before Gate 2 (`docs/release-checklist.md` item 1.7 and the note under its §4).
 
 The texts follow `fastlane supply`'s metadata layout, so the files can be uploaded as they are:
 
@@ -36,12 +38,14 @@ The App content answers (Data safety, Ads, Target audience, Content rating, Adve
 ## What the texts describe
 
 Only what 3.0.0 ships: `CHANGELOG.md` §3.0.0, ROADMAP phases 6–15, `THIRD_PARTY.md`. Every line of the
-release notes maps to a CHANGELOG bullet. Three lines depend on branches that have not merged yet. **If a
-branch does not reach `release/3.0.0`, delete its lines at the release cut** (checklist step 1.4):
+release notes maps to a CHANGELOG bullet. Some lines depend on branches that have not merged yet. **If a
+branch does not reach `release/3.0.0`, delete its lines at the release cut** (checklist item 2.4a).
+`feature/phase-15-ux-refresh` merged into `develop` at c9228a9, so its lines (the "Learn by playing"
+section, the game-controls bullet and the tutorial release-note line, and their tr-TR equivalents) are
+no longer conditional:
 
 | Branch | Full description | Release notes |
 |---|---|---|
-| `feature/phase-15-ux-refresh` | the "Learn by playing" section; the "Undo, Hint and the other game controls…" bullet | "A hands-on tutorial, a fuller Home screen and game controls within thumb reach" |
 | `feature/candy-backdrop` (backdrop direction B, colour-blind palette) | the "colorblind palette" bullet; the "glossy new look" bullet | "A glossy new look and a colorblind palette option" |
 | `feature/audio-review` | nothing (sound itself is on `develop`; this branch only changes the files) | nothing |
 
@@ -49,7 +53,6 @@ The same branches own these tr-TR lines. Delete them together with their en-US l
 
 | Branch | tr-TR full description | tr-TR release notes |
 |---|---|---|
-| `feature/phase-15-ux-refresh` | the "Oynayarak öğrenin" section; the "Geri al, İpucu ve diğer oyun düğmeleri…" bullet | "Uygulamalı bir eğitim, daha dolu bir ana ekran ve başparmağınızın ulaştığı oyun düğmeleri" |
 | `feature/candy-backdrop` | the "Ayarlar'da renk körlüğüne uygun bir renk paleti seçeneği…" bullet; the "Parlak yeni bir görünüm…" bullet | "Parlak yeni bir görünüm ve renk körlüğüne uygun palet seçeneği" |
 | `feature/audio-review` | nothing | nothing |
 
@@ -108,7 +111,7 @@ Read from the public page on 2026-10-18, with `hl=` set to 16 languages:
 
 Plain captures of the 3.0.0 release candidate on a phone, with no added art, text overlay or frame
 (candy-backdrop verdict §3d; Play Metadata policy). Nothing is drawn behind a capture. They are
-captured after the backdrop and the phase-15 refresh have merged. Recommended, in listing order:
+captured after the backdrop merges (the phase-15 refresh is on `develop` since c9228a9). Recommended, in listing order:
 
 1. **Home**, light theme: the title band, the progress ribbon, the Classic and Challenge cards and the
    backdrop.

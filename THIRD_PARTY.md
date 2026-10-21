@@ -7,7 +7,7 @@ oversight to be papered over.
 
 Created on `feature/phase-14-release-docs` for v1.1 / product version **3.0.0** (release blocker
 R-5, `.planning/reports/phase-14/tech-lead-signoff-r3-signing.md` §G). Re-checked at every release
-branch cut — `docs/release-checklist.md` step 6.
+branch cut — `docs/release-checklist.md` items 3.5 (the dependency listing) and 3.5a (the NOTICE scan).
 
 **Rows describe what 3.0.0 will ship, not what `develop` holds today** (updated 2026-10-21). Two
 asset changes are still on unmerged branches, and each affected row names its branch. The bundled
@@ -22,7 +22,7 @@ now carries the five font files and their two OFL texts, and no longer carries `
 | An in-app Licenses screen (Settings › About) and its new `assets/licenses/Apache-2.0.txt` (§2 row) | `feature/candy-backdrop` (**not yet built**: `docs/ux/licences-screen.md` only) | no licences screen, no Apache text |
 
 If any of these branches does not reach `release/3.0.0`, its rows below are wrong for the release
-and are re-cut at checklist step 1.4.
+and are re-cut at checklist item 2.4a.
 
 ---
 
@@ -36,10 +36,10 @@ two module build files:
 
 | Configuration | Ships? | Why |
 |---|---|---|
-| `implementation(...)` in `app/build.gradle.kts:465-537` | **yes** | on the release runtime classpath, packaged into the AAB |
+| `implementation(...)` in `app/build.gradle.kts:478-547` (`develop` 0582e3f) | **yes** | on the release runtime classpath, packaged into the AAB |
 | `implementation(project(":domain"))` | **yes** (own code) | `:domain` declares **no** non-test dependency at all (`domain/build.gradle.kts:7-10`) |
 | `ksp(...)` — `hilt-compiler`, `room-compiler` | no | annotation processors; run at compile time, emit code, are not packaged |
-| `compileOnly(...)` — `error_prone_annotations` | no | CLASS-retention annotations; the declaration's own comment records "nothing is added to the APK" (`app/build.gradle.kts:490-495`) |
+| `compileOnly(...)` — `error_prone_annotations` | no | CLASS-retention annotations; the declaration's own comment records "nothing is added to the APK" (`app/build.gradle.kts:500-505`, `develop` 0582e3f) |
 | `testImplementation(...)` — JUnit, Truth, Turbine, MockK, coroutines-test, ArchUnit, Robolectric, Room testing, Compose ui-test-junit4 | no | JVM unit-test classpath only; never in a variant's runtime classpath |
 | `debugImplementation(...)` — `ui-tooling`, `ui-test-manifest` | no | debug variant only; the release variant's source sets and classpath are disjoint from debug's (proved at class-output and minified-`classes.dex` level for the debug snapshot picker, `.planning/reports/phase-14/code-auditor-prerelease-fixes.md`) |
 | `[plugins]` block + `build-logic/` classpath — AGP, Kotlin, KSP, Hilt, Room, detekt, ktlint Gradle plugins; kover (pending feature/phase-14-check-gates) | no | build tooling; runs on the build machine |
@@ -56,10 +56,14 @@ actually on this app's graph. The authoritative per-coordinate enumeration is
 ```
 
 which is **not run in this document** (this branch is a documentation task under an explicit
-"avoid Gradle" constraint). `docs/release-checklist.md` step 6 runs it on the release branch and
-requires that every coordinate it prints falls under a family row below. Until that run happens,
-§5b is licence-complete by publisher and *unenumerated by coordinate* — stated plainly rather than
-implied.
+"avoid Gradle" constraint). `docs/release-checklist.md` item 3.5 runs it on the release branch and
+requires that every coordinate it prints falls under a family row below. **§5b is not complete
+today (2026-10-21), by licence or by coordinate.** The research-analyst's reading of the
+2026-09-15 release dependency report found families on the graph that §5b does not list, including
+BSD-3-Clause, MIT and MPL-2.0 ones and one Google SDK whose licence is unverified
+(`.planning/reports/phase-14/research-analyst-font-licences.md`, open issue 1). Their rows come
+with the research-analyst's per-family verdict; the notice duties they carry are open item §16 #20
+of `docs/tech-design.md`.
 
 **How a licence was established.** In order of strength: (1) the `<licenses>` block of the
 artifact's own POM in the local Gradle module cache; (2) a `LICENSE`/`NOTICE` file inside the
@@ -78,8 +82,8 @@ them recorded anyway.
 |---|---|---|---|---|
 | Peg solitaire as a game | Traditional; documented from the 17th century | Not protected — a game mechanic is an idea, not an expression | The rule set: orthogonal jump over an adjacent peg into an empty hole, jumped peg removed | Named as the game |
 | The five Classic board footprints — English-33, European-37, Asymmetric-39, Diamond-41, Wiegleb-45 | Historical published board geometries (Wiegleb's 45-hole cross dates from 1779) | Not protected — board geometry is an idea | Hole layouts only; every coordinate table is authored in this repo (`domain/.../model`) | Board names in-game |
-| Rules and board fidelity reference | The founder's own earlier peg-solitaire repository | Own work | Rule behaviour and board fidelity checked against it | — |
-| Candy-themed backdrop for the Home (menu) and gameplay screens. **Ships from `feature/candy-backdrop` (not yet built)**; if it does not reach `release/3.0.0`, delete this row at checklist 1.4 | The candy-themed casual-game genre; the founder's named reference was *Candy Crush Saga* by King.com Limited — https://www.candycrush.com/ , https://play.google.com/store/apps/details?id=com.king.candycrushsaga | Not protected — a visual theme is an idea, not an expression (`rules/ip-policy.md`). King's names, logos, characters, candy designs and artwork are protected, and **none was taken** — verdict *inspiration only*, `.planning/reports/candy-backdrop/research-analyst.md` | The idea of a lively, glossy backdrop behind the menu and the board, and nothing else. The look is direction B "Deep gloss" (Q-021): a deep violet gradient, two glossy colour waves low on the screen, soft out-of-focus lights that rise and fade, a gloss highlight on panels, and gel-finish Home mode cards with a passing sheen. These are generic glossy-UI conventions (the gel controls of Mac OS X Aqua, 2000; the gloss and bokeh of 2004–2013 interface design), and no candy, sweet, character or other King element is drawn. Every shape, colour stop, motion and composition is authored in this repo (`ui/theme/Color.kt` tokens, Compose Canvas) | — deliberately not credited in the app: naming King in the app or the listing would imply a relationship Play's Impersonation policy forbids; this row stays out of any in-app licences screen |
+| Rules and board fidelity reference | The founder's own earlier peg-solitaire repository — https://github.com/ermanergoz/peg-solitarie (recorded in `.planning/phases/06-platform-foundation-build-hardening/06-CONTEXT.md`) | Own work | Rule behaviour and board fidelity checked against it | — |
+| Candy-themed backdrop for the Home (menu) and gameplay screens. **Ships from `feature/candy-backdrop` (not yet built)**; if it does not reach `release/3.0.0`, delete this row at checklist item 2.4a | The candy-themed casual-game genre; the founder's named reference was *Candy Crush Saga* by King.com Limited — https://www.candycrush.com/ , https://play.google.com/store/apps/details?id=com.king.candycrushsaga | Not protected — a visual theme is an idea, not an expression (`rules/ip-policy.md`). King's names, logos, characters, candy designs and artwork are protected, and **none was taken** — verdict *inspiration only*, `.planning/reports/candy-backdrop/research-analyst.md` | The idea of a lively, glossy backdrop behind the menu and the board, and nothing else. The look is direction B "Deep gloss" (Q-021): a deep violet gradient, two glossy colour waves low on the screen, soft out-of-focus lights that rise and fade, a gloss highlight on panels, and gel-finish Home mode cards with a passing sheen. These are generic glossy-UI conventions (the gel controls of Mac OS X Aqua, 2000; the gloss and bokeh of 2004–2013 interface design), and no candy, sweet, character or other King element is drawn. Every shape, colour stop, motion and composition is authored in this repo (`ui/theme/Color.kt` tokens, Compose Canvas) | — deliberately not credited in the app: naming King in the app or the listing would imply a relationship Play's Impersonation policy forbids; this row stays out of any in-app licences screen |
 
 ## 2. Assets shipped in the artifact
 
@@ -140,8 +144,8 @@ OFL-FAQ 1.1-update7, https://openfontlicense.org/ofl-faq/ . Report:
 | `sfx_btn_dismiss.wav` | Kenney, *Interface Sounds* 1.0, `Audio/back_004.ogg` — https://kenney.nl/assets/interface-sounds | **CC0 1.0** | as `sfx_jump.wav`; verdict **CLEAN** (row 6) | same |
 | `sfx_sound_enabled.wav` | Kenney, *Interface Sounds* 1.0, `Audio/confirmation_001.ogg` — https://kenney.nl/assets/interface-sounds | **CC0 1.0** | as `sfx_jump.wav`; verdict **CLEAN** (row 7) | same |
 | Fredoka Medium, Fredoka SemiBold — `res/font/fredoka_medium.ttf`, `fredoka_semibold.ttf`, **bundled in the artifact** | Google Fonts, Fredoka **v17** static instances, unmodified (renamed only): https://fonts.google.com/download/list?family=Fredoka, entries `static/Fredoka-Medium.ttf` (sha256 `8143bd54…2304ae6fa`) and `static/Fredoka-SemiBold.ttf` (sha256 `021e30b2…d7688e43a8`; full hashes in `tech-lead-fonts.md` D1). Upstream https://github.com/hafontia/Fredoka-One. © 2016 The Fredoka Project Authors | **OFL-1.1**, no Reserved Font Name; the font stays under OFL-1.1, never under the app's terms (OFL §5) | The `OFL.txt` from the same family download (copyright line + full OFL 1.1 text); the files' own `name` table carries the same copyright (nameID 0) and an OFL-1.1 licence pointer (nameIDs 13/14). Research-analyst OFL-1.1 verdict: **CLEAN** (2026-10-18, note above) | **OFL §2 condition met by stand-alone text files in every copy:** `assets/licenses/Fredoka-OFL.txt` ships in the APK/AAB beside the fonts. Not shown on any screen — OFL does not require display; the studio's licences-screen rule is a separate gap, §7 |
-| Nunito Regular, SemiBold, Bold — `res/font/nunito_regular.ttf`, `nunito_semibold.ttf`, `nunito_bold.ttf`, **bundled in the artifact** | Google Fonts, Nunito **v32** static instances, unmodified (renamed only): https://fonts.google.com/download/list?family=Nunito, entries `static/Nunito-Regular.ttf`, `static/Nunito-SemiBold.ttf`, `static/Nunito-Bold.ttf` (hashes in `tech-lead-fonts.md` D1). Upstream https://github.com/googlefonts/nunito. © 2014 The Nunito Project Authors | **OFL-1.1**, no Reserved Font Name; stays under OFL-1.1 (§5) | The `OFL.txt` from the same family download; `name` table as for Fredoka. Research-analyst OFL-1.1 verdict: **CLEAN** (2026-10-18, note above) | **OFL §2 met the same way:** `assets/licenses/Nunito-OFL.txt` in the APK/AAB. Checked at the release branch that the AAB keeps all five fonts and both texts (`tech-lead-fonts.md` AC-F5; release-checklist 1.4) |
-| `assets/licenses/Apache-2.0.txt`: the Apache License 2.0 text, verbatim and unedited, opened from the Licenses screen's open-source entries. **Ships from `feature/candy-backdrop` (not yet built)**; if it does not reach `release/3.0.0`, delete this row at checklist 1.4 | The Apache Software Foundation, https://www.apache.org/licenses/LICENSE-2.0.txt | The licence document's own terms. It is the text that Apache-2.0 §4(a) asks to be given to recipients of the AndroidX, Kotlin, kotlinx and Dagger/Hilt artifacts in §4 and §5b | Not yet: the file does not exist. At the build, its sha256 is compared with the file at the URL (`cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30` on 2026-10-18). **Research-analyst, 2026-10-18: CLEAN, the text may ship verbatim.** The ASF's licence FAQ answers "May I re-use (and modify) the Apache License 2.0 itself?" with "You may re-use our license unchanged" (https://www.apache.org/foundation/license-faq.html); only an altered text loses the Apache name, and re-flowing lines on screen (`licences-screen.md` LS-07) is one of the FAQ's own cosmetic examples ("changing the font or line spacing"). **NOTICE files: one must be reproduced.** `jakarta.inject:jakarta.inject-api:2.0.1` (on the release graph; the Mobile Ads SDK lists it among its components) carries `META-INF/NOTICE.md`, and Apache-2.0 §4(d) asks that its attribution notices travel with the app: in a NOTICE file shipped with it, in its documentation, or in its notices display. Today the file survives packaging intact (sha256 `992ed62d…512214df540`, the same as in the jar), but only because AGP 9.1.0's default excludes strip `META-INF/NOTICE` and `NOTICE.txt` and not `.md`. So the Licenses screen bundles it verbatim as `assets/licenses/Jakarta-Inject-NOTICE.md` and opens it from its own entry (`licences-screen.md` §9 item 4). No other Apache artifact in the last release build's graph carries a NOTICE file: 141 artifacts scanned for 192 coordinates; the 51 not in the Gradle cache (AndroidX, Compose, kotlinx metadata, Okio) are checked at checklist step 6. OkHttp's `okhttp3/internal/publicsuffix/NOTICE` is an MPL-2.0 notice for bundled data, not an Apache NOTICE (`.planning/reports/phase-14/research-analyst-font-licences.md`, open issue 1) | Not a credit itself: it is the licence text behind the Licenses screen's "Apache License 2.0" entries (`licences-screen.md` §3.2) |
+| Nunito Regular, SemiBold, Bold — `res/font/nunito_regular.ttf`, `nunito_semibold.ttf`, `nunito_bold.ttf`, **bundled in the artifact** | Google Fonts, Nunito **v32** static instances, unmodified (renamed only): https://fonts.google.com/download/list?family=Nunito, entries `static/Nunito-Regular.ttf`, `static/Nunito-SemiBold.ttf`, `static/Nunito-Bold.ttf` (hashes in `tech-lead-fonts.md` D1). Upstream https://github.com/googlefonts/nunito. © 2014 The Nunito Project Authors | **OFL-1.1**, no Reserved Font Name; stays under OFL-1.1 (§5) | The `OFL.txt` from the same family download; `name` table as for Fredoka. Research-analyst OFL-1.1 verdict: **CLEAN** (2026-10-18, note above) | **OFL §2 met the same way:** `assets/licenses/Nunito-OFL.txt` in the APK/AAB. Checked at the release branch that the AAB keeps all five fonts and both texts (`tech-lead-fonts.md` AC-F5; release-checklist item 4.6a) |
+| `assets/licenses/Apache-2.0.txt`: the Apache License 2.0 text, verbatim and unedited, opened from the Licenses screen's open-source entries. **Ships from `feature/candy-backdrop` (not yet built)**; if it does not reach `release/3.0.0`, delete this row at checklist item 2.4a | The Apache Software Foundation, https://www.apache.org/licenses/LICENSE-2.0.txt | The licence document's own terms. It is the text that Apache-2.0 §4(a) asks to be given to recipients of the AndroidX, Kotlin, kotlinx and Dagger/Hilt artifacts in §4 and §5b | Not yet: the file does not exist. At the build, its sha256 is compared with the file at the URL (`cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30` on 2026-10-18). **Research-analyst, 2026-10-18: CLEAN, the text may ship verbatim.** The ASF's licence FAQ answers "May I re-use (and modify) the Apache License 2.0 itself?" with "You may re-use our license unchanged" (https://www.apache.org/foundation/license-faq.html); only an altered text loses the Apache name, and re-flowing lines on screen (`licences-screen.md` LS-07) is one of the FAQ's own cosmetic examples ("changing the font or line spacing"). **NOTICE files: one must be reproduced.** `jakarta.inject:jakarta.inject-api:2.0.1` (on the release graph; the Mobile Ads SDK lists it among its components) carries `META-INF/NOTICE.md`, and Apache-2.0 §4(d) asks that its attribution notices travel with the app: in a NOTICE file shipped with it, in its documentation, or in its notices display. Today the file survives packaging intact (sha256 `992ed62d…512214df540`, the same as in the jar), but only because AGP 9.1.0's default excludes strip `META-INF/NOTICE` and `NOTICE.txt` and not `.md`. So the Licenses screen bundles it verbatim as `assets/licenses/Jakarta-Inject-NOTICE.md` and opens it from its own entry (`licences-screen.md` §9 item 4). No other Apache artifact in the last release build's graph carries a NOTICE file: 141 artifacts scanned for 192 coordinates; the 51 not in the Gradle cache (AndroidX, Compose, kotlinx metadata, Okio) are checked at checklist item 3.5a. OkHttp's `okhttp3/internal/publicsuffix/NOTICE` is an MPL-2.0 notice for bundled data, not an Apache NOTICE (`.planning/reports/phase-14/research-analyst-font-licences.md`, open issue 1) | Not a credit itself: it is the licence text behind the Licenses screen's "Apache License 2.0" entries (`licences-screen.md` §3.2) |
 | Launcher icon, monochrome icon, cloud-save cover | Drawn in this repo as vector XML | Own work | — | — |
 | Opening books (`domain/src/main/resources/golden/book/*.txt`), recorded solution fixtures, the Diamond-41 floor line | Authored in-house in phase 8 by beam search | Own work | `.planning/phases/08-assist-generator-quality-debt/08-BOOK-EVIDENCE.md` | — |
 
@@ -219,21 +223,31 @@ its members are published under and the evidence for it.
 | `com.google.android.gms:*` (play-services-basement, -base, -tasks, -auth-*, and the Games v2 siblings) | Play Games v2 | Android Software Development Kit License Agreement — proprietary, redistribution permitted | the `play-services-games-v2` POM declares it; every artifact in this family is distributed under the same Android SDK terms |
 | `com.google.guava:*`, `com.google.errorprone:*`, `org.checkerframework:*`, `javax.inject:*` (if present via Dagger/Play services) | small annotation/utility libraries | Apache-2.0 (checkerframework annotations: MIT) | Publishers' published terms — **not individually verified here**; the release-branch dependency listing (§0) is what confirms whether they are on the classpath at all |
 
-**Open item, non-blocking for licence completeness, blocking for enumeration:** §5b has not been
-checked against a real `releaseRuntimeClasspath` listing. Every family above is permissively or
-permittedly licensed, so no *licence* risk hides in the gap; what hides in it is a coordinate from
-a family nobody listed. `docs/release-checklist.md` step 6 closes it on the release branch.
+**Open item: this table is incomplete, and it blocks the release.** §5b has not been checked
+against a real `releaseRuntimeClasspath` listing, and it is already known to miss families. The
+2026-09-15 release dependency report names families with no row here: OkHttp, Okio, Gson, Tink,
+`jakarta.inject-api` and further annotation libraries (Apache-2.0 per their publishers, not
+verified here); `protobuf-javalite` and Chromium's Cronet (BSD-3-Clause); OkHttp's bundled
+public-suffix data (MPL-2.0, with its own NOTICE); and the Google SDK `com.google.android.play:hsdp`,
+whose licence is **unverified**. It also confirms Guava and `checker-qual` (MIT) on the graph, which
+the last row above names but has not verified
+(`.planning/reports/phase-14/research-analyst-font-licences.md`, open issue 1). Separately, every
+Google SDK AAR carries a `third_party_licenses.txt` that the build does not package (same report,
+open issue 2). BSD-3 and MIT make the notice a condition of redistribution, so the gap is a notice
+duty, not only a missing coordinate. The rows are added with the research-analyst's per-family
+verdict; the notice duties are `docs/tech-design.md` §16 #20, due before `release/3.0.0` is cut.
+`docs/release-checklist.md` items 3.5, 3.5a and 3.5b re-check the result on the release branch.
 
 ## 6. Unverified — the release gate's open rows
 
 | # | Item | Why unverified | What would settle it |
 |---|---|---|---|
-| U-1 | `com.google.android.ump:user-messaging-platform:4.0.0` | No POM in the local Gradle module cache (the artifact resolves through Gradle module metadata); the AAR's `third_party_licenses.txt` covers its dependencies, not itself. Its two sibling Google SDKs declare the Android SDK Licence, but that is an inference about a different artifact | Read the `<licenses>` block of `user-messaging-platform-4.0.0.pom` from `dl.google.com` / `maven.google.com`, **or** run `./gradlew :app:dependencies` once online and read the resolved module's metadata. One command, and it is on the release-branch checklist |
+| U-1 | `com.google.android.ump:user-messaging-platform:4.0.0` | No POM in the local Gradle module cache (the artifact resolves through Gradle module metadata); the AAR's `third_party_licenses.txt` covers its dependencies, not itself. Its two sibling Google SDKs declare the Android SDK Licence, but that is an inference about a different artifact | Read the `<licenses>` block of `user-messaging-platform-4.0.0.pom` from `dl.google.com` / `maven.google.com`, **or** run `./gradlew :app:dependencies` once online and read the resolved module's metadata. One command, and it is on the release-branch checklist (item 3.5b) |
 | U-2 | **The 20 achievement icons** (512×512, uploaded to the Play Console in phase 12) | They exist only in the Play Console. Nothing in this repository records their origin — there is no raster image in `app/src/main/res` at all | **Closed 2026-10-17** — founder answer to Q-017: studio-produced; own-work rows with hashes in §7 |
 | U-3 | **The listing 512×512 icon** | Same — Console only | **Closed 2026-10-17** — same answer; §7 |
 | U-4 | **The 1024×500 feature graphic** | Same — Console only | **Closed 2026-10-17** — same answer; §7 |
 | U-5 | **Any store screenshot that is not a plain capture of this app** | Same — Console only | **Closed 2026-10-17** — the listing screenshots are plain captures the studio recaptures after the candy backdrop lands (Q-016); §7 |
-| U-6 | Per-coordinate enumeration of §5b | The resolved release runtime classpath has not been listed (Gradle deliberately not run on this branch) | `./gradlew :app:dependencies --configuration releaseRuntimeClasspath`, on the release branch, output recorded in the release report |
+| U-6 | Per-coordinate enumeration of §5b | The resolved release runtime classpath has not been listed (Gradle deliberately not run on this branch). Known incomplete: the families named under §5b's open item have no row yet, `hsdp` among them with an unverified licence | `./gradlew :app:dependencies --configuration releaseRuntimeClasspath`, on the release branch, output recorded in the release report |
 
 ## 7. Store artwork provenance (Play Console assets)
 
@@ -324,10 +338,13 @@ Two related items, recorded here so they are not rediscovered:
 - **No in-app licences screen exists.** `rules/ip-policy.md` asks for attribution "in
   `THIRD_PARTY.md` **and** in the product's licences screen or page". Settings today has the two
   privacy rows (REL-05 / CONS-03) and no licences row. Every shipped asset is CC0, OFL or own
-  work, and every dependency is Apache-2.0 or a permitted Google SDK. The two bundled font
-  families carry OFL-1.1's notice condition; it is met by the stand-alone licence files in the
-  artifact (§2), so **nothing shipped carries an unmet attribution obligation** and this is not a
-  legal blocker for 3.0.0 — it is a studio-rule gap. **Routed, not fixed here:** either a Settings
+  work, and the two bundled font families' OFL-1.1 notice condition is met by the stand-alone
+  licence files in the artifact (§2). **The dependencies are not all accounted for.** The release
+  graph carries BSD-3-Clause, MIT and MPL-2.0 families that §5b does not list yet, and the Google
+  SDKs' own `third_party_licenses.txt` notices are not packaged (§5b open item). Whether an
+  attribution obligation is unmet today is open, and is `docs/tech-design.md` §16 #20 (owners there;
+  deadline before `release/3.0.0` is cut). Until it closes, this record does not claim that nothing
+  shipped carries an unmet obligation. **Routed, not fixed here:** either a Settings
   licences row (a UI change: a developer with a ux-designer review) or a licences *page* on the
   developer website linked from the listing (the rule says "screen or page"; website work is
   founder-only); the producer decides which, and whether it is pulled into 3.0.0 or left for

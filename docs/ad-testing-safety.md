@@ -168,9 +168,12 @@ cannot be applied to an artifact that has already been uploaded.
 
 ### 3a. The founder-facing steps, ready to lift into `14-OPERATOR-CHECKLIST.md`
 
-`.planning/phases/14-release-readiness/14-OPERATOR-CHECKLIST.md` is owned by the phase-14 plan and
-does not exist on this branch yet; when it is written, these are its ad steps, and checklist row 5.0
-is the studio-side gate that depends on them. They are founder-only because the AdMob UI is.
+`.planning/phases/14-release-readiness/14-OPERATOR-CHECKLIST.md` is on `develop` since its merge at
+0582e3f, but it does not carry these steps yet: it has no test-device registration and no "Test Ad"
+check. Lifting Steps A–E into it, before its Step 8 installs the internal-track build, is owed by the
+release-manager in a pass that may edit that file. Until then the founder's own list lacks the step
+that checklist row 5.0 gates on, so row 5.0 cannot be ticked from the operator checklist alone. These
+are the ad steps, and they are founder-only because the AdMob UI is.
 
     [ ] Step A — at least 24 h before the REL-02 session, and before installing the internal-track
         build on the phone:

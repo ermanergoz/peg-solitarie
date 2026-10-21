@@ -4,8 +4,8 @@
 
 This is *not* the founder's list. What only the founder can reach — the Play Console, the AdMob
 UI, the developer website, the keystore, a second Google account — lives in
-`.planning/phases/14-release-readiness/14-OPERATOR-CHECKLIST.md`, and the two lists meet in exactly
-three places, flagged **[F]** below. A `[F]` item that is still unticked when the artifact is ready
+`.planning/phases/14-release-readiness/14-OPERATOR-CHECKLIST.md`, and the two lists meet at every
+item flagged **[F]** below. A `[F]` item that is still unticked when the artifact is ready
 is an **escalation**, not a judgement the studio may make on the founder's behalf
 (`rules/studio.md`: only the producer talks to the founder).
 
@@ -31,9 +31,10 @@ is short enough to put here — **never tap an ad that does not carry the "Test 
 | 1.1 | [ ] `develop` is clean and every release blocker on the tech-lead's ordered list is merged or explicitly deferred with a named owner | [S] | `git status --porcelain` empty; the blocker table in the latest `.planning/reports/phase-*/tech-lead-*.md` has no open row marked **branch cut** |
 | 1.2 | [ ] The **Check command passes at release settings** on `develop`, on the merged tree — not on any contributing branch | [S] | `FUZZ_SEEDS=100000 ./scripts/check.sh` exits 0 (the Check command once `feature/phase-14-check-gates` lands; `docs/tech-design.md` §16 item 9). Record the wall-clock time and the seed count actually honoured |
 | 1.3 | [ ] No disabled, ignored or suppressed test, and no new baseline, entered the release range without a code-auditor line | [S] | `git diff v<previous>..develop -- '*/src/*' \| grep -cE '^\+.*(@Suppress\|@Ignore\|Disabled\|!!)'` reviewed hit by hit |
-| 1.4 | [ ] `THIRD_PARTY.md` exists and **no shipped row lacks a licence** | [S] + [F] for store artwork | Every row in `THIRD_PARTY.md` §§1–5 has a licence; §6 has no row that is both unverified and shipped; §7 has no `PENDING FOUNDER` left |
+| 1.4 | [ ] `THIRD_PARTY.md` exists and **no shipped row lacks a licence** | [S] + [F] for store artwork | Every row in `THIRD_PARTY.md` §§1–5 has a licence; §6 has no row that is both unverified and shipped; §7 has no `PENDING FOUNDER` left; §5b's open item is closed (the families it names have rows with the research-analyst's verdict) and `docs/tech-design.md` §16 #20, the notice duties, is closed, since its deadline is this cut |
 | 1.5 | [ ] Every founder question that blocks the cut is answered | [S] reads, [F] answers | `.planning/questions/FOUNDER.md` — no `## Q-…  (open)` whose `Blocks:` line names the release |
 | 1.6 | [ ] The changelog source range is known | [S] | `git rev-list v<previous>..develop --count` recorded; `git log --no-merges --grep='^feat' --grep='^fix' --grep='^perf' -E` captured as raw material |
+| 1.7 | [ ] The gated upload script `scripts/play-upload.sh` is on `develop`, reviewed and merged, and refuses to run without `.planning/approvals/publish-$(cat VERSION).approved`, **or** the producer has recorded that this release is uploaded by the founder in the Console (operator checklist Step 8 item 1) | [S] | `git ls-tree develop scripts/play-upload.sh` prints the file, and its code-auditor PASS and tech-lead sign-off exist. **Today it does not exist** on `develop` or on any branch (see the note under §4). It is code, so it is never written on the release branch |
 
 **If 1.2 cannot be run green at release settings, stop and say so.** `rules/gitflow.md` makes it a
 precondition of the branch, and a release cut over a red or a *weaker-than-required* Check is the
@@ -48,12 +49,13 @@ own gates (coverage, fuzz) is a *recorded* gap with a named owner, never a silen
 | 2.2 | [ ] Root `VERSION` equals `<X.Y.Z>` | [S] | `cat VERSION` |
 | 2.3 | [ ] `versionName` equals `VERSION`, and `versionCode` equals `X*10000 + Y*100 + Z` and is **strictly greater** than the highest versionCode ever published | [S] | the two lines in `app/build.gradle.kts`; the published value read from the Console by the founder **[F]** |
 | 2.4 | [ ] `CHANGELOG.md` has a `## [<X.Y.Z>] — <date>` section and the date is today | [S] | the file |
+| 2.4a | [ ] **Pending-branch clean-up.** For every branch named as pending in `CHANGELOG.md` (*(pending: …)* markers), in `THIRD_PARTY.md` (the branch table at the top, and rows marked "delete this row at checklist item 2.4a") and in `docs/store/README.md` (its two branch tables): if the branch merged into `develop` before the cut, its markers and pending notes are removed; if it did not, its changelog bullets, its `THIRD_PARTY.md` rows and its en-US and tr-TR store lines are deleted | [S] | `git merge-base --is-ancestor <branch> release/<X.Y.Z>` per branch, result recorded; `grep -n 'pending:' CHANGELOG.md` prints nothing; the listing lengths re-counted and the word-rule greps in `docs/store/README.md` re-run and silent |
 | 2.5 | [ ] Every claim in the store release notes maps to a changelog bullet | [S] | read side by side; a note promising something the changelog does not carry is a listing that promises a feature that is not there |
 | 2.6 | [ ] `CLAUDE.md`'s Build command names the artifact actually uploaded | [S] | `grep 'Build command' CLAUDE.md` |
 | 2.7 | [ ] One commit: `chore(release): <X.Y.Z>` | [S] | `git log --oneline -1` |
 
 Only `VERSION`, `versionCode`/`versionName`, `CHANGELOG.md`, this checklist, `THIRD_PARTY.md`,
-`docs/store/` and `docs/` live on the release branch. **A release branch is not where a feature
+`docs/store/`, `docs/` and `CLAUDE.md`'s Build command line (item 2.6) change on the release branch. **A release branch is not where a feature
 gets finished.** A documentation commit (for example `docs/tech-design.md`) may land here; a
 behaviour change may not — it goes back to `develop` through a `feature/*` branch, and the branch
 is re-cut.
@@ -66,7 +68,9 @@ is re-cut.
 | 3.2 | [ ] Fuzz harness at the release tier, failing seeds file **absent** | [S] | `domain/build/fuzz-failures.txt` does not exist (`docs/tech-design.md` §7.3, §16 item 9). Any failing seed blocks the release (`rules/puzzle-design.md` invariant 8) |
 | 3.3 | [ ] Coverage gate green at its recorded threshold | [S] | `koverVerify` inside `check`; record the measured figure, not just "passed" |
 | 3.4 | [ ] The four literal gates ran — ad-ID, Play-Games-ID, audio-focus, dp/sp | [S] | they are wired into `check`; confirm the task list actually invoked them |
-| 3.5 | [ ] Every shipped dependency coordinate falls under a `THIRD_PARTY.md` row | [S] | `./gradlew :app:dependencies --configuration releaseRuntimeClasspath` — every coordinate printed maps to a row or a family row; **this is the run that closes `THIRD_PARTY.md` §5b** |
+| 3.5 | [ ] Every shipped dependency coordinate falls under a `THIRD_PARTY.md` row | [S] | `./gradlew :app:dependencies --configuration releaseRuntimeClasspath` — every coordinate printed maps to a row or a family row, the families in §5b's open item and `com.google.android.play:hsdp` included; **this is the run that closes `THIRD_PARTY.md` §5b and U-6** |
+| 3.5a | [ ] **NOTICE scan.** Every artifact 3.5 prints was searched for a NOTICE file, and each one found travels with the app | [S] | for each coordinate, `unzip -l` of its jar (for an AAR, the AAR and its `classes.jar`) filtered for `NOTICE`, including the 51 coordinates the 2026-10-18 scan could not reach (`THIRD_PARTY.md` §2, Apache-2.0 text row); record the count scanned and every hit. Once 4.3 has built the bundle, each hit is either in it (`unzip -l <aab> \| grep -i notice`) or bundled under `assets/licenses/` |
+| 3.5b | [ ] The Google SDKs' licences are read from their own POMs, not inferred: `play-services-games-v2`, `ads-mobile-sdk`, `user-messaging-platform` (U-1) and `hsdp` | [S] | the `<licenses>` block of each `<artifact>-<version>.pom` under `https://dl.google.com/android/maven2/`; the local Gradle cache holds only the AARs of the first three (`.planning/reports/phase-14/code-auditor-release-docs.md` I-1). Each licence name and URL recorded in `THIRD_PARTY.md` §4 or §6 |
 | 3.6 | [ ] No secret, path, account identifier or credential entered a tracked file in the release range | [S] | `git diff v<previous>..HEAD \| grep -nE 'BEGIN [A-Z ]*PRIVATE KEY\|\.jks\|/Users/\|password'` reviewed hit by hit |
 | 3.7 | [ ] `git status --porcelain` clean, no keystore anywhere in the working tree | [S] | plus `find . -name '*.jks' -o -name '*.keystore' -o -name 'keystore.properties'` → empty |
 
@@ -81,14 +85,25 @@ is re-cut.
 | 4.4 | [ ] The bundle is signed with the **upload** certificate, not the debug key | [S] verifies, **[F]** supplies the comparand | `jarsigner -verify -verbose:summary -certs <aab>`; the SHA-1 must equal the upload key certificate in the Console (read by the founder) |
 | 4.5 | [ ] R8 evidence | [S] | `app/build/outputs/mapping/release/missing_rules.txt` **absent**; the Play Games classes present in `mapping.txt` (kept, not stripped) |
 | 4.6 | [ ] Artifact identity recorded | [S] | `shasum -a 256 <aab>`, and the versionName read back out of the bundle's own manifest |
+| 4.6a | [ ] The bundle keeps the five bundled fonts and their two OFL texts (`.planning/reports/15-founder-feedback/tech-lead-fonts.md` AC-F5, its release half) | [S] | `bundletool dump resources --bundle <aab> \| grep 'font/'` lists `fredoka_medium`, `fredoka_semibold`, `nunito_regular`, `nunito_semibold` and `nunito_bold`; `unzip -l <aab> \| grep 'base/assets/licenses/'` lists `Fredoka-OFL.txt` and `Nunito-OFL.txt` |
 | 4.7 | [ ] No release artifact left on disk from a failed or throwaway-signed build | [S] | `ls app/build/outputs/bundle/release/ app/build/outputs/apk/release/` — a signed artifact sitting there after a failed build is exactly what gets uploaded by accident |
 | 4.8 | [ ] The one-screen founder summary is written: version, changelog, checklist state, store-asset state, and the **exact** upload command | [S] | `.planning/reports/release-<X.Y.Z>/release-manager.md` |
 
 **The studio stops here.** Upload requires `.planning/approvals/publish-<X.Y.Z>.approved`, which
-the founder creates at Gate 2 and **the studio must never create**. The publish hook enforces it;
-the gated script (`scripts/play-upload.sh`) refuses without it as well, belt and braces. The
-approval file lives on `develop`, not on `main` and not on the tag, so the upload is run from a
-`develop` checkout after the approval merge — the hook blocks it anywhere else.
+the founder creates at Gate 2 and **the studio must never create**. The publish hook enforces it.
+The approval file is merged into `develop`, not into `main` or the tag, so the upload is run from a
+checkout of `feature/publish-<X.Y.Z>-done`, which the producer cuts from `develop` after the
+approval merge; the hook blocks the command on `main` and on the tag.
+
+**The gated upload script does not exist yet.** `rules/play-store.md` and
+`.planning/phases/14-release-readiness/14-RELEASE-PLAN.md` item 2 name `scripts/play-upload.sh`
+(`fastlane supply` with `PLAY_SERVICE_ACCOUNT_JSON`, track `internal`, refusing to run without the
+approval file), but there is no `scripts/` directory on `develop` (0582e3f) or on any branch. The
+release plan puts it on the release branch; it cannot go there, because it is code and the release
+branch takes no code (§2). It is owed on a `feature/*` branch off `develop`: the tech-lead assigns it
+to the android-game-dev, the code-auditor reviews it and the tech-lead signs it off, routed by the
+producer, before Gate 2 (item 1.7). Until it merges, the only upload route is the founder's own
+Console upload, operator checklist Step 8 item 1.
 
 ## 5. Verified from a real track download — not from this machine
 
@@ -114,7 +129,7 @@ verifies more than live ads do — reasoning, policy text and sources in `docs/a
 | 5.8 | [ ] The **real** interstitial unit — in test mode, per 5.0 — appears only after Continue, never on loss or restart, with the clock paused | qa-engineer |
 | 5.8a | [ ] Ad inspector was opened on the test device and shows both real units requesting and filling — it launches only on a registered test device, so 5.0 is its prerequisite (`ad-testing-safety.md` §6) | qa-engineer |
 | 5.8b | [ ] No ad was tapped that did not carry the "Test Ad" label; if one was, `docs/ad-testing-safety.md` §5 was followed and the incident is recorded as a `result:` line in the UAT sheet | qa-engineer, **[F]** for his own device |
-| 5.9 | [ ] Sound, hints from the opening book, resume, and the downloadable fonts all survive the shrink **on the store copy** | qa-engineer |
+| 5.9 | [ ] Sound, hints from the opening book, resume, and the bundled Fredoka and Nunito fonts (the first screen drawn in them, with the device offline) all survive the shrink **on the store copy** | qa-engineer |
 | 5.10 | [ ] The account-swap wipe: keep-local preserves, replace-with-cloud replaces, and every walk-away route keeps | qa-engineer, needs **[F]** second account |
 
 Results are recorded with an observed `result:` line per test in the phase's UAT sheet. Never a
