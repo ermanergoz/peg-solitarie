@@ -1,14 +1,16 @@
 name: CI
 
 # Gitflow gate: every push and every PR targeting the long-lived integration
-# branches runs the repo's Check command (`./gradlew check`, CLAUDE.md) plus the
-# build-logic unit tests and a debug APK build. This covers `feature/* -> develop`,
-# `release/* -> main`, and `hotfix/* -> main` PRs.
+# branches or a release branch runs `./gradlew check` (what the Check command in
+# CLAUDE.md, `./scripts/check.sh`, runs under its per-worktree lock; one build per
+# runner needs no lock) plus the build-logic unit tests and a debug APK build. This
+# covers `feature/* -> develop`, `bugfix/* -> release/*`, `release/* -> main` and
+# `hotfix/* -> main` PRs, and pushes to `develop`, a `release/**` branch and `main`.
 on:
   push:
-    branches: [develop, main]
+    branches: [develop, 'release/**', main]
   pull_request:
-    branches: [develop, main]
+    branches: [develop, 'release/**', main]
 
 permissions:
   contents: read
