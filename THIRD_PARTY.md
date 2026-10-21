@@ -9,13 +9,15 @@ Created on `feature/phase-14-release-docs` for v1.1 / product version **3.0.0** 
 R-5, `.planning/reports/phase-14/tech-lead-signoff-r3-signing.md` §G). Re-checked at every release
 branch cut — `docs/release-checklist.md` step 6.
 
-**Rows describe what 3.0.0 will ship, not what `develop` holds today** (updated 2026-10-17). Two
-asset changes are still on unmerged branches, and each affected row names its branch:
+**Rows describe what 3.0.0 will ship, not what `develop` holds today** (updated 2026-10-21). Two
+asset changes are still on unmerged branches, and each affected row names its branch. The bundled
+fonts were the third: `feature/phase-15-ux-refresh` merged into `develop` at c9228a9, so `develop`
+now carries the five font files and their two OFL texts, and no longer carries `font_certs.xml` or
+`ui-text-google-fonts` (checked 2026-10-21 against `develop` 0582e3f).
 
-| Change | Branch today | What `develop` (3f2af90) still holds |
+| Change | Branch today | What `develop` (0582e3f) still holds |
 |---|---|---|
 | Twelve sound cues as WAV; the wrong-tap and hint cues now rendered in-house instead of taken from the Kenney pack | `feature/audio-review` (d1c6e9b, af2b554; verdicts 3a1fce7) | the twelve-file `.ogg` set described by the earlier revision of this file |
-| Fredoka and Nunito **bundled** as five static font files plus their OFL texts; downloadable-font provider, `font_certs.xml` and `ui-text-google-fonts` removed | `feature/phase-15-ux-refresh` (472835f, b5836ac) | the downloadable-font path, nothing bundled |
 | A glossy backdrop behind the Home and gameplay screens, drawn in-repo: direction B "Deep gloss" (Q-021, 2026-10-18; §1 idea row) | `feature/candy-backdrop` (**not yet built**: verdict, its direction-B addendum and the UX spec only) | no backdrop |
 | An in-app Licenses screen (Settings › About) and its new `assets/licenses/Apache-2.0.txt` (§2 row) | `feature/candy-backdrop` (**not yet built**: `docs/ux/licences-screen.md` only) | no licences screen, no Apache text |
 
@@ -90,7 +92,7 @@ XML authored in this repo (`app/src/main/res/drawable/`, `mipmap-anydpi-v26/`).
 
 **Audio rows: on `feature/audio-review` today** (WAV set d1c6e9b, in-house renders af2b554,
 verdicts `docs/audio/licence-verdicts.md` 3a1fce7, research-analyst verdict 2026-09-29).
-**Font rows: on `feature/phase-15-ux-refresh` today** (472835f; tech-lead ruling
+**Font rows: on `develop` since c9228a9** (merge of `feature/phase-15-ux-refresh`, 472835f and b5836ac; tech-lead ruling
 `.planning/reports/15-founder-feedback/tech-lead-fonts.md` D1–D2). Re-checked against that ruling's
 replacement text on 2026-10-18: same items, sources, hashes, upstreams, copyright lines and licence,
 with more evidence in How verified and Credit.
@@ -102,7 +104,7 @@ the Font Software and never the program it ships in. OFL-FAQ 1.3: "Only the port
 Software are required to be released under the OFL. The intent of the license is to allow aggregation
 or bundling with software under restricted licensing as well." OFL-FAQ 1.4 names "games and
 entertainment software, mobile device applications" among the permitted bundles, sale included.
-Conditions, all met by the files on `feature/phase-15-ux-refresh` (checked 2026-10-18):
+Conditions, all met by the files on `feature/phase-15-ux-refresh` (checked 2026-10-18; the same blobs are on `develop` since c9228a9):
 (1) **§1, no sale alone:** the fonts are never sold or offered by themselves, only inside the app.
 (2) **§2, notice and licence in every copy:** `assets/licenses/Fredoka-OFL.txt` (sha256 `782c3137…cf31f7e0`)
 and `Nunito-OFL.txt` (`66db16f4…829734a2`) ship in the APK/AAB. Each is the family download's `OFL.txt`,
@@ -162,9 +164,9 @@ in OFL requires the notice to be displayed in the UI.
 
 ## 3. Code snippets copied into this repo
 
-| Item | Source | Licence | How verified | Credit |
-|---|---|---|---|---|
-| `app/src/main/res/values/font_certs.xml` — the dev and prod certificate arrays for the Google Play services font provider. **Does not ship in 3.0.0:** deleted on `feature/phase-15-ux-refresh` (b5836ac) when the fonts were bundled; the row stays only while `develop` still carries the file | The standard certificate block published in the Android downloadable-fonts documentation (the file's own header records this) | **Apache-2.0** — developer.android.com sample code is published under Apache-2.0 | Project's published terms (Android developer site content licence). The certificates themselves are public key material, not a copyrightable work | This row |
+None. The one row this section held, the downloadable-fonts certificate file, was deleted on
+2026-10-21: the file left `develop` with the bundled fonts at c9228a9
+(`.planning/reports/15-founder-feedback/tech-lead-fonts.md` D5).
 
 ## 4. Direct shipped dependencies
 
@@ -177,7 +179,6 @@ One row per coordinate declared at `implementation` in `app/build.gradle.kts`. V
 | `androidx.compose.ui:ui` | BOM 2026.06.00 | Apache-2.0 | POM `<licenses>` |
 | `androidx.compose.ui:ui-tooling-preview` | BOM 2026.06.00 | Apache-2.0 | AndroidX published terms (family row §5b) |
 | `androidx.compose.material:material-icons-core` | BOM 2026.06.00 | Apache-2.0 | AndroidX published terms |
-| `androidx.compose.ui:ui-text-google-fonts` — **does not ship in 3.0.0**: removed on `feature/phase-15-ux-refresh` (b5836ac); listed while `develop` still declares it | BOM 2026.06.00 | Apache-2.0 | POM `<licenses>` |
 | `androidx.activity:activity-compose` | 1.13.0 | Apache-2.0 | POM `<licenses>` |
 | `androidx.core:core-ktx` | 1.18.0 (forced) | Apache-2.0 | POM `<licenses>` |
 | `androidx.lifecycle:lifecycle-viewmodel` | 2.9.4 | Apache-2.0 | AndroidX published terms |
