@@ -27,7 +27,7 @@ private object SoundPoolApi {
 }
 
 /**
- * The `SoundPool`-backed [SoundPlayer]: one pool for the whole process, two mute gates, one
+ * The `SoundPool`-backed [SoundPlayer]: one pool for the whole process, three mute gates, one
  * bounded record of the streams currently in flight.
  *
  * Four design points, each of which pre-empts a plausible "simplification":
@@ -47,13 +47,16 @@ private object SoundPoolApi {
  * [SettingsRepository.soundOn] directly on the application scope, so it is correct even
  * when no screen is composed.
  *
- * **The second gate is the phone's: Silent or Vibrate on its own speaker** (Q-010 option 2,
- * `docs/tech/audio-silent-mode.md` §1). It reads [SystemAudioState] the same way and to the
- * same standard: entering the muted state stops what is in flight, and leaving it replays
- * nothing. The two gates combine as an AND and neither overrides the other. Each input has
- * **its own collector**, never a `combine`: `combine` waits for every input, so a system
- * reader that never emitted would also switch off the in-app mute. A reader that fails reads as
- * unmuted (fail-open), so it can never silence the game or touch the in-app mute.
+ * **Two more gates follow the same pattern.** The phone's: Silent or Vibrate while the sound
+ * would come out of its own speaker (Q-010 option 2, `docs/tech/audio-silent-mode.md` §1),
+ * read through [SystemAudioState]. The process's: the app in the background (P8, §2.1), read
+ * through [AppVisibility] — and *refusing* there matters as much as stopping, because the star
+ * pops' coroutine keeps its delays running after the app leaves. All three hold to SOUND-05's
+ * standard: closing a gate stops what is in flight, and opening it replays nothing. They
+ * combine as an AND, and none overrides another. Each input has **its own collector**, never a
+ * `combine`: `combine` waits for every input, so a system reader that never emitted would also
+ * switch off the in-app mute. A system reader that fails reads as unmuted (fail-open), so it
+ * can never silence the game or touch the in-app mute.
  *
  * **No audio focus is ever requested.** See the comment at the pool construction site: the
  * absence *is* the implementation of SOUND-06, and it is enforced for good by the
@@ -73,6 +76,7 @@ class SoundPoolPlayer
         @param:ApplicationContext private val context: Context,
         settingsRepository: SettingsRepository,
         systemAudio: SystemAudioState,
+        appVisibility: AppVisibility,
         @param:ApplicationScope private val scope: CoroutineScope,
     ) : SoundPlayer {
         // SOUND-06, first half: USAGE_GAME is what routes this pool to STREAM_MUSIC — the
@@ -122,6 +126,14 @@ class SoundPoolPlayer
         private var speakerMuted = false
 
         /**
+         * The background gate (P8). Fail-open `true` until the first reading; the process
+         * lifecycle then reports CREATED until `MainActivity` starts, which is harmless because
+         * no cue exists before it does.
+         */
+        @Volatile
+        private var inForeground = true
+
+        /**
          * Stream ids currently believed to be in flight, newest last.
          *
          * Bounded to [SoundParams.MAX_STREAMS] and evicting oldest-first, so rapid tapping
@@ -159,6 +171,12 @@ class SoundPoolPlayer
                         if (muted) silenceNow()
                     }
             }
+            scope.launch {
+                appVisibility.inForeground.collect { foreground ->
+                    inForeground = foreground
+                    if (!foreground) silenceNow()
+                }
+            }
         }
 
         override fun preload() {
@@ -184,22 +202,22 @@ class SoundPoolPlayer
          * call would be swallowed entirely (RESEARCH Pitfall 3). Load readiness is still
          * respected.
          *
-         * The speaker gate still applies (design §1.7, a tech-lead decision): the bypass exists
-         * because of the DataStore round trip, not to override the phone. On Vibrate through
-         * the phone's speaker, switching Sound on gives no pop, and the switch moving is the
-         * visual partner; with headphones the pop plays.
+         * The speaker and background gates still apply (design §1.7 and §2.1, tech-lead
+         * decisions): the bypass exists because of the DataStore round trip, not to override the
+         * phone. On Vibrate through the phone's speaker, switching Sound on gives no pop, and the
+         * switch moving is the visual partner; with headphones the pop plays.
          */
         override fun playSoundEnabledConfirmation() {
-            if (speakerMuted) return
+            if (speakerMuted || !inForeground) return
             playNow(SoundCue.SoundEnabled, SoundParams.JUMP_BASE_RATE)
         }
 
-        /** The gated path every public cue goes through: both gates must be open. */
+        /** The gated path every public cue goes through: all three gates must be open. */
         private fun play(
             cue: SoundCue,
             rate: Float,
         ) {
-            if (!soundOn || speakerMuted) return
+            if (!soundOn || speakerMuted || !inForeground) return
             playNow(cue, rate)
         }
 

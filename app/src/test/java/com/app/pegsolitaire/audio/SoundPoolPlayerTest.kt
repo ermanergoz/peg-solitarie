@@ -38,8 +38,9 @@ private const val RUN_LENGTH = 3
 /**
  * Specification for [SoundPoolPlayer]: the media-volume attributes, the decode-before-play
  * guard, the pitch ladder reaching the pool, the SOUND-05 mute, the D-12 bypass, and the
- * Silent/Vibrate speaker gate (Q-010 option 2, `docs/tech/audio-silent-mode.md` §1.10), driven
- * through a [FakeSystemAudioState] so each ringer and route change is one assignment.
+ * Silent/Vibrate speaker gate (Q-010 option 2, `docs/tech/audio-silent-mode.md` §1.10) and the
+ * background gate (P8, §2.1), driven through a [FakeSystemAudioState] and a [FakeAppVisibility]
+ * so each ringer, route or process change is one assignment.
  *
  * Runs JVM-side under Robolectric because `SoundPool` is a framework class; the shadow
  * records every `play` with its rate, so the ladder is asserted rather than eyeballed.
@@ -58,6 +59,8 @@ class SoundPoolPlayerTest {
     private val settings = MutableSoundSettingsRepository()
 
     private val systemAudio = FakeSystemAudioState()
+
+    private val visibility = FakeAppVisibility()
 
     private val player = playerWith(systemAudio)
 
@@ -333,12 +336,60 @@ class SoundPoolPlayerTest {
         assertThat(shadowOf(failOpen.pool).getResourcePlaybacks(R.raw.sfx_select)).hasSize(1)
     }
 
-    /** A player over this test's settings, driven synchronously; [systemAudio] is the reader under test. */
+    // ---- Background (P8, design §2.1) -------------------------------------------------
+
+    @Test
+    fun goingToTheBackgroundStopsTheStreamsAlreadyInFlight() {
+        preloadAndDecode(SoundCue.StarPop)
+        repeat(RUN_LENGTH) { player.playStarPop(step = it) }
+        val inFlight = player.trackedStreamIds()
+
+        visibility.foreground.value = false
+
+        assertThat(inFlight).hasSize(RUN_LENGTH)
+        assertThat(recording.stoppedStreams).containsExactlyElementsIn(inFlight)
+        assertThat(recording.autoPauseCalls).isAtLeast(1)
+        assertThat(player.trackedStreamIds()).isEmpty()
+    }
+
+    @Test
+    fun nothingPlaysWhileTheAppIsInTheBackground() {
+        // The star pops' coroutine keeps its delays running after the app leaves, so stopping
+        // what is in flight is not enough: new cues must be refused too, the enable pop included.
+        preloadAndDecode(SoundCue.StarPop, SoundCue.SoundEnabled)
+        visibility.foreground.value = false
+
+        player.playStarPop(step = 1)
+        player.playSoundEnabledConfirmation()
+
+        assertThat(shadowOf(player.pool).getResourcePlaybacks(R.raw.sfx_star_pop)).isEmpty()
+        assertThat(shadowOf(player.pool).wasResourcePlayed(R.raw.sfx_sound_enabled)).isFalse()
+    }
+
+    @Test
+    fun returningToTheForegroundLetsTheNextCuePlay() {
+        preloadAndDecode(SoundCue.StarPop)
+        visibility.foreground.value = false
+        player.playStarPop(step = 0)
+
+        visibility.foreground.value = true
+        // Nothing refused in the background is replayed on return.
+        assertThat(shadowOf(player.pool).getResourcePlaybacks(R.raw.sfx_star_pop)).isEmpty()
+
+        player.playStarPop(step = 2)
+        assertThat(shadowOf(player.pool).getResourcePlaybacks(R.raw.sfx_star_pop)).hasSize(1)
+    }
+
+    /**
+     * A player over this test's settings and process visibility, driven synchronously;
+     * [systemAudio] is the speaker-gate reader under test.
+     */
     private fun playerWith(systemAudio: SystemAudioState): SoundPoolPlayer =
         SoundPoolPlayer(
             context = RuntimeEnvironment.getApplication(),
             settingsRepository = settings,
             systemAudio = systemAudio,
+            appVisibility = visibility,
             scope = CoroutineScope(Dispatchers.Unconfined),
         )
 

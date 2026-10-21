@@ -1,6 +1,8 @@
 package com.app.pegsolitaire.di
 
 import com.app.pegsolitaire.audio.AndroidSystemAudioState
+import com.app.pegsolitaire.audio.AppVisibility
+import com.app.pegsolitaire.audio.ProcessAppVisibility
 import com.app.pegsolitaire.audio.SoundPlayer
 import com.app.pegsolitaire.audio.SoundPoolPlayer
 import com.app.pegsolitaire.audio.SystemAudioState
@@ -41,4 +43,13 @@ abstract class AudioModule {
     @Binds
     @Singleton
     abstract fun bindSystemAudioState(impl: AndroidSystemAudioState): SystemAudioState
+
+    /**
+     * Whether the process is in the foreground, for P8's background gate
+     * (`docs/tech/audio-silent-mode.md` §2.1). Read from `ProcessLifecycleOwner` directly, not
+     * through `platform`'s `AppForegroundTracker`, which is the interstitial session boundary.
+     */
+    @Binds
+    @Singleton
+    abstract fun bindAppVisibility(impl: ProcessAppVisibility): AppVisibility
 }
