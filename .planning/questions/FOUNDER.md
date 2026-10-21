@@ -1,5 +1,19 @@
 # Founder questions (newest first)
 
+## Q-023 — Make the board playable with TalkBack in 3.0.0?   (open)
+Date: 2026-10-21    Asked by: game-designer (via producer)
+Context: With TalkBack on, the board can't be heard or played, in the game or the tutorial: a blind player can open 3.0.0
+but never make a move. The studio rule is that every app meets its platform's accessibility rules before it ships; this
+misses it. Making the board playable is one small branch that can run alongside the rest of the 3.0.0 work.
+Options: 1) Make the board playable with TalkBack in 3.0.0; the release waits for it only if it is the last thing left
+2) Ship 3.0.0 with the board named and its peg count spoken, but not playable; playable in 3.1
+3) Ship 3.0.0 as it is; fix it later. (Options 2 and 3 ship below the studio's accessibility rule and need your explicit OK.)
+Recommendation: game-designer picks 1 — the only option that meets the rule; likely costs no release time (runs in
+parallel); under 2 and 3 a blind player can still spend hints and watch an ad for one they cannot use. If at Gate 2 the
+board is the only item left, "wait, or ship option 2" goes into Q-PUBLISH-3.0.0. (.planning/reports/ux-spec-folds/game-designer-talkback-board.md)
+Blocks: nothing now (the studio proceeds with 1 by default); release/3.0.0 reads the answer before its cut
+Answer:
+
 ## Q-022 — The Turkish store listing describes the old app   (answered)
 Date: 2026-10-18    Asked by: release-manager
 Context: The live Play listing has its own Turkish text ("5 farklı oyun modu") written for the old app;
