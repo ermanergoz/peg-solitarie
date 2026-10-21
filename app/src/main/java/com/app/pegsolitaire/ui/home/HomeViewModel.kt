@@ -3,6 +3,8 @@ package com.app.pegsolitaire.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.app.pegsolitaire.data.ChallengeProgress
+import com.app.pegsolitaire.data.ClassicLevelDescriptor
+import com.app.pegsolitaire.data.HomeProgress
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.OnboardingRepository
 import com.app.pegsolitaire.data.PlayGamesOptInRepository
@@ -22,14 +24,19 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * Drives the Home mode-select screen and gates the first-run onboarding overlay
+ * Drives the Home mode-select screen and carries the standing first-run tutorial flag
  * (NAV-01, ONB-01) over an immutable [StateFlow]<[HomeUiState]>.
  *
- * It collects [OnboardingRepository.onboardingSeen]: while the flag is `false` (first
- * launch, or a fail-open corrupt read — D-16) the overlay is visible (D-14). The
- * permanent How-to-play affordance ([onShowHowToPlay]) forces it visible again at any
- * time independent of the flag (D-15); dismissing it ([onDismissOnboarding]) persists
- * `markSeen()` and hides it (D-13).
+ * It collects [OnboardingRepository.onboardingSeen] into [HomeUiState.tutorialPending]:
+ * while the flag is `false` (first launch, or a fail-open corrupt read — D-16) the tutorial
+ * is still owed, and `HomeRoute` auto-starts the `Tutorial` destination once (D-02a).
+ *
+ * **This ViewModel no longer writes that flag** (Phase 15, D-01f/D-02b). The tutorial is a
+ * nav destination with its own state holder, and `TutorialViewModel` persists `markSeen()`
+ * — awaited, on the application scope — before it emits its exit signal. Home therefore has
+ * exactly one reader and no writer, which is the property the Phase-15 guard rests on: the
+ * profile-swap question can be *withheld* by a pending tutorial but can never be raised
+ * early by one, because nothing here can flip the flag back.
  *
  * It also mirrors [ChallengeProgress.currentLevel] into
  * [HomeUiState.challengeCurrentLevel] (CHAL-05 / PERS-02): the Challenge tile is labelled
@@ -80,7 +87,7 @@ import javax.inject.Inject
 class HomeViewModel
     @Inject
     constructor(
-        private val onboardingRepository: OnboardingRepository,
+        onboardingRepository: OnboardingRepository,
         challengeProgress: ChallengeProgress,
         progressRepository: ProgressRepository,
         levelRepository: LevelRepository,
@@ -94,11 +101,12 @@ class HomeViewModel
         val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
         init {
-            // First-launch gate (D-14): mirror the persisted flag into visibility. Once
-            // markSeen() flips it true, the overlay hides; until then it shows.
+            // First-launch gate (D-14, D-02a): mirror the persisted flag. Once the tutorial's
+            // own markSeen() flips it true, nothing is owed; until then the destination is
+            // auto-started once and the two questions behind it are withheld.
             viewModelScope.launch {
                 onboardingRepository.onboardingSeen.collect { seen ->
-                    _uiState.update { it.copy(onboardingVisible = !seen) }
+                    _uiState.update { it.copy(tutorialPending = !seen) }
                 }
             }
             // The one-time Play Games opt-in prompt (D-15). Its visibility is a pure
@@ -166,6 +174,31 @@ class HomeViewModel
                     _uiState.update { it.copy(challengeCurrentLevel = level) }
                 }
             }
+            // The progress ribbon's two values (§7 R-1/R-2, D-03c). ONE collector over ONE
+            // aggregated row: the Stars and Boards pills read the same emission, so they
+            // structurally cannot disagree, and there is no second query for the second pill.
+            //
+            // A SIXTH INDEPENDENT collector, deliberately — not a `combine` over all inputs.
+            // `combine` emits nothing until every input has emitted once, which would make
+            // the whole Home state wait on a database round trip and would destroy the
+            // placeholder rule structurally rather than merely in practice. The independent
+            // collectors over one MutableStateFlow(HomeUiState()) are what make "the ribbon
+            // paints '—' and fills in" true by construction (D-03g).
+            //
+            // The values stay `null` until this emits; a FAILED read arrives as
+            // HomeProgress.UNKNOWN and is mapped back to `null` here, so "not yet" and "the
+            // read failed" are indistinguishable on screen and neither renders as 0 (D-03h).
+            viewModelScope.launch {
+                progressRepository.observeHomeProgress().collect { progress ->
+                    val known = progress != HomeProgress.UNKNOWN
+                    _uiState.update {
+                        it.copy(
+                            totalStars = progress.totalStars.takeIf { known },
+                            classicBoardsCleared = progress.classicBoardsCleared.takeIf { known },
+                        )
+                    }
+                }
+            }
             // Which modes can be continued (PERS-03, D-01/D-03). Collecting the mode list —
             // rather than polling on every Home render — means a snapshot saved while
             // backgrounding, or cleared by a solve, is reflected the next time Home is shown.
@@ -175,9 +208,9 @@ class HomeViewModel
             // before it may be offered (CR-01) — a stale id is purged, never navigated.
             viewModelScope.launch {
                 progressRepository.observeResumeModes().collect { modes ->
-                    val classicLevelId =
+                    val classicResume =
                         if (ProgressPersistenceKeys.MODE_CLASSIC in modes) {
-                            resumableClassicLevelId(progressRepository, levelRepository)
+                            resumableClassicBoard(progressRepository, levelRepository)
                         } else {
                             null
                         }
@@ -197,7 +230,8 @@ class HomeViewModel
                         }
                     _uiState.update {
                         it.copy(
-                            classicResumeLevelId = classicLevelId,
+                            classicResumeLevelId = classicResume?.id,
+                            classicResumeBoard = classicResume?.previewBoard,
                             challengeResumeLevel = challengeResumeLevel,
                         )
                     }
@@ -206,32 +240,28 @@ class HomeViewModel
         }
 
         /**
-         * The Classic board id a Continue may safely resume into, or `null` when the stored
-         * snapshot is absent, unreadable, or points at a board the catalog no longer knows
-         * (CR-01). A decodable blob with an unknown id is affirmatively stale — the row is
-         * purged so the phantom Continue cannot come back on the next emission.
+         * The Classic catalogue **descriptor** a Continue may safely resume into, or `null`
+         * when the stored snapshot is absent, unreadable, or points at a board the catalog no
+         * longer knows (CR-01). A decodable blob with an unknown id is affirmatively stale —
+         * the row is purged so the phantom Continue cannot come back on the next emission.
+         *
+         * It returns the descriptor rather than the bare id because the catalogue lookup that
+         * validates the id already has the board in hand, and Phase 15's Continue chip renders
+         * that board as its thumbnail (§4.2 band 3). Reaching for the id alone and mapping it
+         * back to a board in the UI would be a **second** id-to-board translation, in the
+         * layer QUAL-01 keeps id strings out of — and would read the static catalogue twice on
+         * the start destination for a value this call already knows (D-03g).
          */
-        private suspend fun resumableClassicLevelId(
+        private suspend fun resumableClassicBoard(
             progressRepository: ProgressRepository,
             levelRepository: LevelRepository,
-        ): String? {
+        ): ClassicLevelDescriptor? {
             val storedLevelId =
                 progressRepository.loadSnapshot(ProgressPersistenceKeys.MODE_CLASSIC)?.levelId
                     ?: return null
-            val known = levelRepository.classicCatalog().any { it.id == storedLevelId }
-            if (!known) progressRepository.clearSnapshot(ProgressPersistenceKeys.MODE_CLASSIC)
-            return storedLevelId.takeIf { known }
-        }
-
-        /** Re-opens the how-to-play overlay any time, independent of the seen flag (D-15). */
-        fun onShowHowToPlay() {
-            _uiState.update { it.copy(onboardingVisible = true) }
-        }
-
-        /** Dismisses the overlay: persists that it has been seen and hides it (D-13). */
-        fun onDismissOnboarding() {
-            viewModelScope.launch { onboardingRepository.markSeen() }
-            _uiState.update { it.copy(onboardingVisible = false) }
+            val descriptor = levelRepository.classicCatalog().firstOrNull { it.id == storedLevelId }
+            if (descriptor == null) progressRepository.clearSnapshot(ProgressPersistenceKeys.MODE_CLASSIC)
+            return descriptor
         }
 
         /**

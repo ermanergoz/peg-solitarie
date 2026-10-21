@@ -8,6 +8,7 @@ import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.data.FakePlayGamesOptInRepository
 import com.app.pegsolitaire.data.FakeProgressSubmitter
+import com.app.pegsolitaire.data.HomeProgress
 import com.app.pegsolitaire.data.ImportOutcome
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
@@ -33,6 +34,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
@@ -81,53 +83,102 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun onboardingIsVisibleOnFirstLaunchWhenNotYetSeen() =
+    fun theTutorialIsPendingOnFirstLaunchWhenItHasNotBeenSeen() =
         runTest(testDispatcher) {
             val repository = FakeOnboardingRepository(initiallySeen = false)
             val viewModel = viewModelFor(repository)
             runCurrent()
 
-            assertThat(viewModel.uiState.value.onboardingVisible).isTrue()
+            assertThat(viewModel.uiState.value.tutorialPending).isTrue()
         }
 
     @Test
-    fun onboardingIsHiddenWhenAlreadySeen() =
+    fun theTutorialIsNotPendingOnceItHasBeenSeen() =
         runTest(testDispatcher) {
             val repository = FakeOnboardingRepository(initiallySeen = true)
             val viewModel = viewModelFor(repository)
             runCurrent()
 
-            assertThat(viewModel.uiState.value.onboardingVisible).isFalse()
+            assertThat(viewModel.uiState.value.tutorialPending).isFalse()
         }
 
+    /**
+     * The flag stops standing the moment the **tutorial's own** write lands (D-01g/D-02b).
+     *
+     * This is the retarget of `dismissOnboardingPersistsSeenAndHidesTheOverlay`: the write is
+     * `TutorialViewModel`'s now, not Home's, so the test drives the repository the way that
+     * ViewModel does and asserts Home follows. It matters because `tutorialPending` is a pure
+     * mirror of `!seen` — Home has no writer of its own left to set it false locally, and if
+     * the mirror did not follow the store, Home would re-push the tutorial forever.
+     */
     @Test
-    fun showHowToPlayForcesTheOverlayVisibleEvenAfterItHasBeenSeen() =
-        runTest(testDispatcher) {
-            val repository = FakeOnboardingRepository(initiallySeen = true)
-            val viewModel = viewModelFor(repository)
-            runCurrent()
-            assertThat(viewModel.uiState.value.onboardingVisible).isFalse()
-
-            viewModel.onShowHowToPlay()
-            runCurrent()
-
-            assertThat(viewModel.uiState.value.onboardingVisible).isTrue()
-        }
-
-    @Test
-    fun dismissOnboardingPersistsSeenAndHidesTheOverlay() =
+    fun theTutorialStopsBeingPendingWhenTheSeenFlagIsPersistedByTheTutorial() =
         runTest(testDispatcher) {
             val repository = FakeOnboardingRepository(initiallySeen = false)
             val viewModel = viewModelFor(repository)
             runCurrent()
-            assertThat(viewModel.uiState.value.onboardingVisible).isTrue()
+            assertThat(viewModel.uiState.value.tutorialPending).isTrue()
 
-            viewModel.onDismissOnboarding()
+            repository.markSeen()
             runCurrent()
 
-            assertThat(viewModel.uiState.value.onboardingVisible).isFalse()
+            assertThat(viewModel.uiState.value.tutorialPending).isFalse()
+        }
+
+    /**
+     * Offered once, and never again from Home (D-02/D-02a/D-02b).
+     *
+     * The retarget of `showHowToPlayForcesTheOverlayVisibleEvenAfterItHasBeenSeen`, whose
+     * subject — the permanent Home affordance that forced the overlay open at any time — is
+     * deleted by D-02. What replaces it is the property that deletion buys: the persisted flag
+     * is the **only** writer, so no re-emission and no Home interaction can re-raise the
+     * tutorial once it is seen. Settings › How to play is the one later way in, and it
+     * navigates rather than flipping this flag.
+     */
+    @Test
+    fun theTutorialIsOfferedOnceAndNeverAgainOnceTheFlagIsPersisted() =
+        runTest(testDispatcher) {
+            val repository = FakeOnboardingRepository(initiallySeen = false)
+            val viewModel = viewModelFor(repository)
+            runCurrent()
+            assertThat(viewModel.uiState.value.tutorialPending).isTrue()
+
+            repository.markSeen()
+            runCurrent()
+            assertThat(viewModel.uiState.value.tutorialPending).isFalse()
+
+            // An unrelated store write re-emits the unchanged flag: still not pending.
+            repository.seen.value = true
+            runCurrent()
+            assertThat(viewModel.uiState.value.tutorialPending).isFalse()
             assertThat(repository.markSeenCount).isEqualTo(1)
-            assertThat(repository.seen.value).isTrue()
+        }
+
+    // ---- The Home progress ribbon (§7 R-1/R-2, D-03c) ----------------------
+
+    @Test
+    fun theRibbonValuesAreNullUntilTheFirstProgressEmission() =
+        runTest(testDispatcher) {
+            val progress = FakeResumeProgressRepository()
+            val viewModel =
+                viewModelFor(FakeOnboardingRepository(initiallySeen = true), progress = progress)
+
+            viewModel.uiState.test {
+                // D-03c as an assertion rather than a paragraph: the pills paint "—"
+                // before the database has answered, and Home never waits on the read.
+                val initial = awaitItem()
+                assertThat(initial.totalStars).isNull()
+                assertThat(initial.classicBoardsCleared).isNull()
+
+                runCurrent()
+                progress.emitHomeProgress(HomeProgress(totalStars = RIBBON_STARS, classicBoardsCleared = RIBBON_BOARDS))
+                runCurrent()
+
+                val filled = expectMostRecentItem()
+                assertThat(filled.totalStars).isEqualTo(RIBBON_STARS)
+                assertThat(filled.classicBoardsCleared).isEqualTo(RIBBON_BOARDS)
+                cancelAndIgnoreRemainingEvents()
+            }
         }
 
     // ---- Persisted Challenge level (CHAL-05 / PERS-02) ----------------------
@@ -317,14 +368,14 @@ class HomeViewModelTest {
     // ---- Play Games opt-in prompt (PGS-01, D-15/D-17/D-18) --------------------
 
     @Test
-    fun theOptInPromptStaysHiddenWhileTheOnboardingOverlayIsStillShowing() =
+    fun theOptInPromptStaysHiddenWhileTheTutorialIsStillPending() =
         runTest(testDispatcher) {
-            // D-15: the two first-run surfaces never stack — onboarding goes first.
+            // D-15: the two first-run surfaces never stack — the tutorial goes first.
             val optIn = FakePlayGamesOptInRepository()
             val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = false), optIn = optIn)
             runCurrent()
 
-            assertThat(viewModel.uiState.value.onboardingVisible).isTrue()
+            assertThat(viewModel.uiState.value.tutorialPending).isTrue()
             assertThat(viewModel.uiState.value.playGamesPromptVisible).isFalse()
         }
 
@@ -339,19 +390,22 @@ class HomeViewModelTest {
         }
 
     @Test
-    fun dismissingOnboardingHandsOverToTheOptInPrompt() =
+    fun finishingTheTutorialHandsOverToTheOptInPrompt() =
         runTest(testDispatcher) {
-            // The real first-run sequence: overlay first, then the prompt takes its place.
+            // The real first-run sequence: the tutorial first, then the prompt takes its
+            // place. The handover is the PERSISTED flag (D-01f), which is why the tutorial
+            // awaits its write before it pops — a dropped write would withhold this prompt
+            // for an extra launch.
             val optIn = FakePlayGamesOptInRepository()
             val onboarding = FakeOnboardingRepository(initiallySeen = false)
             val viewModel = viewModelFor(onboarding, optIn = optIn)
             runCurrent()
             assertThat(viewModel.uiState.value.playGamesPromptVisible).isFalse()
 
-            viewModel.onDismissOnboarding()
+            onboarding.markSeen()
             runCurrent()
 
-            assertThat(viewModel.uiState.value.onboardingVisible).isFalse()
+            assertThat(viewModel.uiState.value.tutorialPending).isFalse()
             assertThat(viewModel.uiState.value.playGamesPromptVisible).isTrue()
         }
 
@@ -367,17 +421,33 @@ class HomeViewModelTest {
             assertThat(viewModel.uiState.value.playGamesPromptVisible).isFalse()
         }
 
+    /**
+     * The retarget of `theOptInPromptStaysRetiredEvenWhenTheHelpAffordanceReopensOnboarding`.
+     *
+     * That test staged the second writer D-02b deletes — the Home affordance that forced the
+     * overlay open — so its premise is gone. What survives, and is the property that actually
+     * mattered, is that an unrelated re-emission of the two already-answered flags cannot
+     * resurrect the retired prompt (WR-07).
+     */
     @Test
-    fun theOptInPromptStaysRetiredEvenWhenTheHelpAffordanceReopensOnboarding() =
+    fun theOptInPromptStaysRetiredAcrossFurtherFlagEmissions() =
         runTest(testDispatcher) {
             val optIn = FakePlayGamesOptInRepository(initiallyAnswered = true)
-            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), optIn = optIn)
+            val onboarding = FakeOnboardingRepository(initiallySeen = true)
+            val viewModel = viewModelFor(onboarding, optIn = optIn)
             runCurrent()
 
-            viewModel.onShowHowToPlay()
+            // A genuine re-emission in both directions — the fail-open shape a corrupt read
+            // then a recovered one produces. Neither swing may resurrect an answered prompt.
+            onboarding.seen.value = false
+            runCurrent()
+            assertThat(viewModel.uiState.value.tutorialPending).isTrue()
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isFalse()
+
+            onboarding.seen.value = true
             runCurrent()
 
-            assertThat(viewModel.uiState.value.onboardingVisible).isTrue()
+            assertThat(viewModel.uiState.value.tutorialPending).isFalse()
             assertThat(viewModel.uiState.value.playGamesPromptVisible).isFalse()
         }
 
@@ -633,6 +703,18 @@ private class FakeResumeProgressRepository : ProgressRepository {
 
     override fun observeResults(mode: String): Flow<List<LevelResult>> = flowOf(emptyList())
 
+    /**
+     * The Home ribbon aggregate, settable so a test can drive the placeholder → value
+     * transition. Starts at [HomeProgress.UNKNOWN]'s absence: nothing emitted yet.
+     */
+    private val homeProgress = MutableSharedFlow<HomeProgress>(replay = 1)
+
+    fun emitHomeProgress(progress: HomeProgress) {
+        homeProgress.tryEmit(progress)
+    }
+
+    override fun observeHomeProgress(): Flow<HomeProgress> = homeProgress
+
     override suspend fun saveSnapshot(
         dto: ResumeSnapshotDto,
         nowMs: Long,
@@ -675,6 +757,12 @@ private class FakeResumeProgressRepository : ProgressRepository {
             elapsedMs = 0L,
         )
 }
+
+/** The ribbon's star total once the aggregate answers — distinct from every other fixture number. */
+private const val RIBBON_STARS = 41
+
+/** The ribbon's cleared-board count once the aggregate answers. */
+private const val RIBBON_BOARDS = 3
 
 /** A persisted level well past the on-ramp, so "continues at the stored level" is unambiguous. */
 private const val PERSISTED_LEVEL = 7

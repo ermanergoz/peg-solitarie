@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      The dark theme's half of F-2 (see res/values/themes.xml): the same style and
+      parent, with light status-bar icons on the dark background. Dark mode follows
+      the system, through AppTheme(darkTheme = isSystemInDarkTheme()), so this
+      qualifier is exact. This file overrides nothing else.
+    -->
+    <style name="Theme.PegSolitaire" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

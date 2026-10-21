@@ -2,75 +2,31 @@ package com.app.pegsolitaire.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.googlefonts.Font
-import androidx.compose.ui.text.googlefonts.GoogleFont
-import com.app.pegsolitaire.R
 
 /**
- * "Candy Clay" type scale: Fredoka (headings/display, Medium–SemiBold) + Nunito
- * (body/labels, Regular–Bold) via downloadable Google Fonts (DESIGN-SYSTEM.md
+ * "Candy Clay" type scale: Fredoka (headings/display, Medium–SemiBold) + Nunito (body/labels,
+ * Regular–Bold), bundled as static font files in `res/font` ([AppFonts]; DESIGN-SYSTEM.md
  * §Typography).
  *
- * The fonts are resolved asynchronously through the GMS font provider
- * ([FontProviderSpec]); Compose's async font pipeline renders with
- * [FontFamily.Default] until a font arrives and **falls back to it permanently
- * when resolution fails** (offline, no GMS, Robolectric) — a failed fetch can
- * therefore restyle text but never crash. Sizes/line heights stay the stock M3
- * scale (all sp live inside `Typography()`, never inline — QUAL-03).
+ * The faces load blocking on first use, so the first frame is drawn in them on every device,
+ * online or offline, with or without Play services, and nothing lays out again when they arrive.
+ * The only fallback left is the platform's own, glyph by glyph, for a character the faces lack
+ * (Fredoka has no Cyrillic, for one). Sizes and line heights stay the stock M3 scale (all sp live
+ * inside `Typography()`, never inline — QUAL-03).
  */
 internal val AppTypography = clayTypography()
 
-/** Fredoka — rounded, chunky display face for headings and titles. */
-internal val FredokaFamily = googleFontFamily(FREDOKA_FONT, FontWeight.Medium, FontWeight.SemiBold)
-
-/** Nunito — friendly rounded body face for body copy and labels. */
-internal val NunitoFamily =
-    googleFontFamily(
-        NUNITO_FONT,
-        FontWeight.Normal,
-        FontWeight.Medium,
-        FontWeight.SemiBold,
-        FontWeight.Bold,
-    )
-
 /**
- * Opts a value/timer style into tabular (fixed-width) figures so ticking digits
- * never jitter horizontally (DESIGN-SYSTEM.md: tabular figures for timer/score).
+ * Opts a value/timer style into tabular (fixed-width) figures so ticking digits never jitter
+ * horizontally (DESIGN-SYSTEM.md: tabular figures for timer/score). Nunito's digits are tabular by
+ * design; Fredoka has no `tnum` feature, so the timer sets its digits in fixed cells as well
+ * (`TimerDigits`).
  */
 internal fun TextStyle.withTabularFigures(): TextStyle = copy(fontFeatureSettings = TABULAR_FIGURES_FEATURE)
 
 /** The OpenType feature tag enabling tabular figures. */
 private const val TABULAR_FIGURES_FEATURE = "tnum"
-
-/** Downloadable-font names served by the GMS provider. */
-private const val FREDOKA_FONT = "Fredoka"
-private const val NUNITO_FONT = "Nunito"
-
-/** The Google Play services downloadable-font provider (certs via `R.array`). */
-private object FontProviderSpec {
-    const val AUTHORITY = "com.google.android.gms.fonts"
-    const val PACKAGE = "com.google.android.gms"
-
-    val provider =
-        GoogleFont.Provider(
-            providerAuthority = AUTHORITY,
-            providerPackage = PACKAGE,
-            certificates = R.array.com_google_android_gms_fonts_certs,
-        )
-}
-
-/** A [FontFamily] of one downloadable [GoogleFont] at each requested weight. */
-private fun googleFontFamily(
-    name: String,
-    vararg weights: FontWeight,
-): FontFamily =
-    FontFamily(
-        weights.map { weight ->
-            Font(googleFont = GoogleFont(name), fontProvider = FontProviderSpec.provider, weight = weight)
-        },
-    )
 
 /**
  * Maps the two families onto the M3 roles: display/headline/title = Fredoka
@@ -98,6 +54,6 @@ private fun clayTypography(): Typography {
     )
 }
 
-private fun TextStyle.heading(weight: FontWeight): TextStyle = copy(fontFamily = FredokaFamily, fontWeight = weight)
+private fun TextStyle.heading(weight: FontWeight): TextStyle = copy(fontFamily = AppFonts.Fredoka, fontWeight = weight)
 
-private fun TextStyle.body(weight: FontWeight): TextStyle = copy(fontFamily = NunitoFamily, fontWeight = weight)
+private fun TextStyle.body(weight: FontWeight): TextStyle = copy(fontFamily = AppFonts.Nunito, fontWeight = weight)
