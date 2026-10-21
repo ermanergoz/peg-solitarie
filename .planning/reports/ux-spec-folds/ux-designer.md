@@ -4,9 +4,9 @@ Branch: feature/ux-spec-folds (committed by the producer)
 Skills loaded: ergoz-soft:standards (role ux-designer). The product's rules snapshot is 0.6.2 and the plugin is 1.0.0, so I read the plugin 1.0.0 copies in full: studio, reporting, gitflow, skills-policy, logging, memory, puzzle-design, play-store, kotlin-android, compose and dispatch. I also read the product's `.claude/rules/lessons.md`. Then ui-ux-pro-max, android-accessibility and compose-skill.
 Ran in parallel with: none known to this role
 Ran on: claude-opus-5-5 at effort xhigh (the agent file's effort). **Staffing deviation:** the ux-designer is pinned to fable. This ran on Opus under the founder's Q-019 (2026-10-17: "Opus for every Fable-pinned role until 3.0.0 is published"), in `.planning/questions/FOUNDER.md`.
-Fan-out: none. I dispatched no studio role. Seven read-only Explore helpers on haiku (five in loop 0, two in loop 1) ran greps and `git status` for me, because this role has no Bash (rules/dispatch.md).
-Loops: 1
-Read in full: `.planning/reports/ux-spec-folds/ux-designer-check.md` (loop 1's input)
+Fan-out: none. I dispatched no studio role. Eight read-only Explore helpers on haiku (five in loop 0, two in loop 1, one in loop 2) ran greps and `git status` for me, because this role has no Bash (rules/dispatch.md).
+Loops: 2
+Read in full: `.planning/reports/ux-spec-folds/ux-designer-check.md` (loop 1's input), `ux-designer-check-loop2.md` (loop 2's input)
 Lessons applied: none (the snapshot holds 0 active lessons, and `.planning/recall/RECALL.md` does not exist)
 
 ## Summary
@@ -188,9 +188,73 @@ Each command was run read-only by a haiku Explore helper in `/Users/ermanergoz/D
 - The Check command was not run: this is docs only, and this role has no Bash.
 
 ### Loop 1 — open issues added
-- **A TalkBack player cannot play the board.** This predates phase 15 and is outside 3.0.0. Recorded in §11, and drafted here for the producer to put on the post-3.0.0 backlog: a design item for the ux-designer with the game-designer (cell focus, per-cell peg/hole/selected state, jump actions), then the developer.
+- **A TalkBack player cannot play the board.** This predates phase 15. *(Superseded in loop 2: "outside 3.0.0" was a release-scope call that is not this role's. The producer has routed it to the game-designer and the founder; see Loop 2.)* The design item stands for whenever it is scheduled: the ux-designer with the game-designer (cell focus, per-cell peg/hole/selected state, jump actions), then the developer.
 - **The F-1 ruling reads a passed criterion more precisely.** It is a UX ruling inside this role's authority, not a lowered bar: on the build loop 3 measured, both readings pass. The next checker should judge it against 15g's intent as §4.2.5 argues it.
 - **F-3's reading rests on the tech-lead's own close-report text.** If the tech-lead's `docs/tech-design.md` §10 lists the start-path files differently, that text governs, as the note says.
 
 ### Loop 1 handoff
 Next: producer — commit `docs/ux-spec.md` and this report on `feature/ux-spec-folds`, then dispatch a fresh ux-designer check of the amended revision (loop 2). Steps 2–5 of the handoff above are unchanged once that check passes. Step 4's device checks now run after the branch's own 15e sitting, in the same session.
+
+## Loop 2 — the second fresh check's findings
+Input: `.planning/reports/ux-spec-folds/ux-designer-check-loop2.md` (VERDICT FAIL; committed in `d518a98`), read in full. It closed loop 1's F-1 to F-10, and it judged the F-1 reading of 15g faithful. I edited only `docs/ux-spec.md`, plus this report.
+
+**How the edits were made.** As in loop 1:
+- Older decisions and criteria — 26, 15g's existing note, the §12 range and two §13 rows — were only **appended to**, with dated pointers.
+- Text this revision wrote — 15v, the §11 note, 26b, §4.2.5 "The motion", §10's new row and the revision index — was **corrected in place**, because it is still the revision under review.
+- **The first edition's §11 traversal orders were not touched.**
+
+| Finding | Severity | What I did | Where |
+|---|---|---|---|
+| F-11 — 15v can't pass with animations on, because §10's entrance cascade moves the hero, ribbon and tiles after first paint | MAJOR | 15v is restructured. Each state is recorded twice, animations off and on. (1) With animations off, the position read: every frame is the layout. (2) With animations on, the motion read: two motions are allowed, the cascade and the room. Position is read from the first frame in which every band drawn at first paint has settled its entrance, and the settled pixels must equal the animations-off recording's (±1px). (3) If the chips land mid-cascade, no entrance restarts or changes its target. Every band ends where it sits with animations off, and the read starts once both the cascade and the room have settled. A band that ends elsewhere, or re-enters, fails. (4) The whole-picture rule applies in every frame, the cascade included. §4.2.5 gains "The entrance cascade and the room are independent": the cascade is a `graphicsLayer` offset, never a layout move, so 15s and 15u are untouched | criterion 15v; §4.2.5 "The motion" and the new paragraph after it |
+| F-12 — the §11 note decided 3.0.0's scope, re-read the first edition, and left 26's scope over the tutorial board unstated | MAJOR | (a) **The scope decision is removed.** The note now reads: "Release scope is routed by the producer to the game-designer (and the founder); the ruling is pending at `.planning/reports/ux-spec-folds/game-designer-talkback-board.md`. Until it lands, this document rules neither the board's semantics nor its release." (b) **The gap is recorded honestly.** The first-edition orders listed the board as a stop and the build has never met that. Those orders stand as written, as the design statement the build falls short of. The note also names the shortfall against rules/compose.md's "contentDescription or semantics role on every interactive element". 26b's order describes today's build so that the device pass can be read, and does not relax the first edition. The words "names a position, not a focus stop" are gone. (c) **Criterion 26 gains a dated pointer**: whether the tutorial board is inside 26 is pending the same ruling, and a pass of 26 records the board's result separately without deciding it. The gameplay board predates the refresh and is covered by the §11 gap. 26b's paragraph now points to the same pending ruling instead of calling the board "a separate item" | §11 "Screen-reader traversal" (recorded gap); criterion 26 pointer; criterion 26b's board paragraph; the revision index |
+| F-13 — 15g's pointer over-states ("no footer that keeps the tiles still can pass") | INFO | Fixed, to the true claim: no footer ratio meets that reading and 15p part 1 together, except on a knife edge under 0.1dp wide on one window (§4.2.5) | criterion 15g's 2026-10-21 note |
+| F-14 — a late chip's room opens ≈0.1 s before the chip can be seen | INFO | Ruled, because it is cheap and makes §4.2.5's "no gap appears ahead of its chip" true to the eye. **A chip that arrives after first paint takes no stagger delay**, so its fade starts in the frame its room starts opening. A chip present at first composition keeps its cascade order | §4.2.5 "The motion"; §10's D-03n row |
+| F-15 — §12's tall-phone range is pre-D-03n | INFO | A dated pointer: the range is the 3 : 1 split's, and under D-03n the stage is 326.3 / 230.3 / 134.3dp on QA's window, with the tiles fixed | §12 |
+| F-16 — a bare "R-3" in the revision index | INFO | Fixed: "O-2 and `ux-designer-15p.md` R-3 (not §7's R-3)". The same line now says the shape is decided "but for one named edge case" by the labels, which matches §4.2.6 rule 4 | revision index, D-03o bullet |
+| F-17 — two superseded §13 rows have no pointer of their own | INFO | Fixed: a dated "Superseded 2026-10-21 — D-05e" note in each row's Fix cell, pointing to the 2026-10-21 table | §13, both `GameFlowTest.kt:129` rows |
+| F-18 — 15v's bench use rests on precedent | INFO | Fixed. 15v now adds "if the tech-lead's text says otherwise, it governs", and "QA restores `wm size`, `wm density` and the seeded saves, as H-3 did" | criterion 15v |
+
+The revision index gains a dated "after a second fresh check" paragraph listing these changes.
+
+### Drafted for the producer: the board's TalkBack gap (F-12), the UX recommendation
+The producer has routed release scope to the game-designer (and the founder), with the ruling pending at `.planning/reports/ux-spec-folds/game-designer-talkback-board.md`. The spec rules nothing on it. As input to that ruling, the ux-designer's view:
+
+**Options:**
+1. Ship 3.0.0 with the gap recorded as a rules/compose.md deviation.
+2. Give the board minimal semantics in 3.0.0. That means one labelled node per board saying what it is and its state, for example "Board, English 33, 12 pegs left"; on the tutorial, the step's board and its peg count. It would have its own criterion, and a developer task on `bugfix/home-chip-arrival`, which already sits a 15e. It does not make the game playable without sight.
+3. Full TalkBack play: cell focus, per-cell peg/hole/selected state, and jump actions. This is a design of its own and too large for the 3.0.0 deadline.
+
+**Recommendation:** option 2 now, and option 3 as a scheduled post-3.0.0 design (ux-designer with game-designer).
+- It meets the letter of rules/compose.md for the one interactive element that misses it.
+- It tells a TalkBack player what the region is instead of skipping it silently.
+- It costs one semantics node per board, on a branch that is already reshaping these screens.
+- Option 1 ships a known rule gap on the screens the player uses most.
+
+If the ruling picks option 2, I write the decision and its criterion in a follow-up spec pass.
+
+### Loop 2 checks
+Each command was run read-only by a haiku Explore helper in `/Users/ermanergoz/Desktop/PegSolitarie-ux`, after the last loop-2 edit to `docs/ux-spec.md`:
+- `grep -n 'once with OS animations off and once with them on' docs/ux-spec.md` — pass, :4721 (F-11).
+- `grep -n -E 'If the chips land while the cascade is still running|The entrance cascade and the room are independent' docs/ux-spec.md` — pass. Hits at :2576 and :2578 (§4.2.5) and :4735 (15v part 3) (F-11).
+- `grep -n 'takes no' docs/ux-spec.md` — pass. :2570 holds the late chip's zero stagger (F-14); :340 is the revision index; :3961 is an older unrelated line.
+- `grep -n -E 'outside 3\.0\.0|names a$|names a position, not a focus stop' docs/ux-spec.md` — pass, no hit, exit 1: the scope decision and the re-reading are gone (F-12).
+- `grep -n 'game-designer-talkback-board.md' docs/ux-spec.md` — pass, three hits: the §11 note :4077, criterion 26's pointer :4876, and 26b :4917 (F-12).
+- `grep -n 'Recorded gap, 2026-10-21' docs/ux-spec.md` — pass, :4066 (F-12).
+- `grep -n -E 'Tutorial order: pips → Skip → board → caption → CTA|back → title → timer → board → dock' docs/ux-spec.md` — pass, :4058 and :4059: the first-edition orders are unchanged (F-12).
+- `grep -n 'Whether the \*\*tutorial board\*\*' docs/ux-spec.md` — pass, :4873, criterion 26's pointer (F-12).
+- `grep -n 'knife edge under 0.1dp wide on one window' docs/ux-spec.md` — pass, :4503 (F-13). `grep -n 'no footer that keeps the' docs/ux-spec.md` — pass, no hit, exit 1.
+- `grep -n "The ≈150–280dp range above is the 3 : 1 split's" docs/ux-spec.md` — pass, :4142 (F-15).
+- `grep -n -E 'O-2/R-3|\(R-3\)' docs/ux-spec.md` — pass, no hit, exit 1 (F-16).
+- `grep -n 'Superseded 2026-10-21 — D-05e, §4.3.2' docs/ux-spec.md` — pass, :4157 and :4223 (F-17).
+- `grep -n "if the tech-lead.s" docs/ux-spec.md` — pass, :4719; and `grep -n 'restores `wm size`' docs/ux-spec.md` — pass, :4723 (F-18).
+- `grep -o -E '^(1[0-9][a-z]?|2[0-9][a-z]?)\. ' docs/ux-spec.md | sort | uniq -d` — pass, empty: no duplicate criterion label.
+- `git status --short` — ` M .planning/reports/ux-spec-folds/ux-designer.md`, ` M docs/ux-spec.md`. `docs/ui/DESIGN-SYSTEM.md` was not touched.
+- `git diff --stat` (against `d518a98`) — `docs/ux-spec.md | 114`, with 88 insertions and 34 deletions across both files. The deleted spec lines are this revision's own text, corrected as the table lists. No first-edition or earlier-amendment line was removed.
+- `git log -2 --oneline` — `d518a98` (check loop 2), `de3477c` (this report, loop 1). Nothing is committed by me.
+- The Check command was not run: this is docs only, and this role has no Bash.
+
+### Loop 2 handoff
+Next: producer —
+1. Commit `docs/ux-spec.md` and this report on `feature/ux-spec-folds`, then dispatch a fresh ux-designer check (loop 3).
+2. The board's TalkBack gap waits on the game-designer's ruling at `.planning/reports/ux-spec-folds/game-designer-talkback-board.md`, and on the founder if it reaches Gate 2. My recommendation is above. That ruling does not block this branch: the spec now records the gap and rules nothing on it.
+3. Steps 2–5 of the original handoff stand. Add option 2's node and criterion to `bugfix/home-chip-arrival` only if the ruling picks it and I have written it into the spec.
