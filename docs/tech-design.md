@@ -12,7 +12,10 @@ architecture rulings (`.planning/reports/candy-backdrop/tech-lead-architecture.m
 `feature/candy-backdrop`). Synced again on 2026-10-21 (`.planning/reports/phase-14/tech-lead-design-close.md`)
 with two more: the phase-15 close (`.planning/reports/15-founder-feedback/tech-lead-signoff-close.md`, on
 `develop`) and the tutorial haptics ruling (`.planning/reports/audio-review/tech-lead-haptics.md`, on
-`feature/audio-review`). Every decision below is a tech-lead decision or a transcription of a recorded ruling; each names where
+`feature/audio-review`). Corrected on 2026-10-21 against `develop` at `0582e3f`
+(`.planning/reports/phase-14/tech-lead-release-docs-f8.md`): the code-auditor's F-8 and the tech-design
+side of its F-1 (`.planning/reports/phase-14/code-auditor-release-docs.md`), and the AC-F4 pattern the
+release-manager found (`.planning/reports/phase-14/release-manager-font-rows.md`). Every decision below is a tech-lead decision or a transcription of a recorded ruling; each names where
 it was decided. Entries are never deleted: a superseded entry gets a "superseded by" line and the
 supersession is listed in §17.
 
@@ -149,7 +152,7 @@ build parallelism this ~100-file app does not need and is not scheduled.
 
 | Module | Plugins | Role | Depends on |
 |---|---|---|---|
-| `:domain` | `kotlin-jvm` (convention), `standards` | The game core: `model/` (`Board` as a `Long` bitmask, `BoardSpec`, `Move`, `GameStatus`), `rules/RulesEngine`, `generator/` (`LevelGenerator`, `DifficultyTiers`, `GeneratorConstants`, `ChallengeLevelBounds`, freeform footprints), `solver/`, `assist/` (opening book, `GetHintUseCase`), `scoring/`, `progress/` (the cloud merge law), `achievement/`, `ads/` (the cadence policy as pure logic), `telemetry/`, `usecase/`. Committed opening-book resources under `src/main/resources/golden/book/` | **Nothing but the Kotlin stdlib.** Test-only: JUnit, Truth |
+| `:domain` | `kotlin-jvm` (convention), `standards` | The game core: `model/` (`Board` as a `Long` bitmask, `BoardSpec`, `Move`, `GameStatus`), `rules/RulesEngine`, `generator/` (`LevelGenerator`, `DifficultyTiers`, `GeneratorConstants`, `ChallengeLevelBounds`, freeform footprints), `solver/`, `assist/` (`OpeningBook`, `OpeningBookFormat`, `AssistAllowance`), `scoring/`, `progress/` (the cloud merge law), `achievement/`, `ads/` (the cadence policy as pure logic), `telemetry/`, `tutorial/` (`TutorialBoards`, the tutorial's own footprints, §3.3), `usecase/` (`GetHintUseCase`, §7.2). Committed opening-book resources under `src/main/resources/golden/book/`. *(Corrected 2026-10-21, code-auditor F-8: this cell omitted `tutorial/` and put `GetHintUseCase` in `assist/`.)* | **Nothing but the Kotlin stdlib.** Test-only: JUnit, Truth |
 | `:app` | `android-app` (convention), `standards`, KSP, Hilt, Room, serialization | `ui/` (home, classic, game, results, settings, onboarding, components, theme), `navigation/`, `data/` (repositories, `db/`, `resume/`, `cloud/`, DataStore stores), `platform/` (ads, games, lifecycle, activity), `audio/`, `di/` (six Hilt modules), `App`, `MainActivity` | `:domain`, AndroidX, Compose BOM, Hilt, Room, DataStore, Play Games v2, GMA, UMP |
 | `build-logic` | `kotlin-dsl` | Convention plugins `kotlin-jvm`, `android-app`, `standards`; Gradle-free objects `AdIdResolution`, `GamesIdResolution`, `SigningResolution`, `SigningKeystoreProbe`, `ReleaseInvocation`, `SourceSetPolicy`, each with JUnit tests | catalog plugins |
 
@@ -250,11 +253,17 @@ The onboarding tutorial is a `@Serializable data object Tutorial` destination re
   `GameScreen`; its state holder is `TutorialViewModel`, never `GameViewModel` (whose `Won` path
   clears the mode's resume snapshot and advances the Challenge ladder); its only outbound edge is
   `popBackStack()`, so it can never reach Results or `recordResult`; `TutorialBoards` lives in
-  `:domain` beside `Boards.kt` and is absent from `Boards.CLASSIC_SPECS`; its completion predicate is
+  `:domain`'s own `tutorial/` package (`domain/tutorial/TutorialBoards.kt`), not in `model/` with
+  `Boards.kt`, and is absent from `Boards.CLASSIC_SPECS`; its completion predicate is
   `board.pegCount == 1` on its own state with no `GameStatus` and no `minimumPegs`. Each prohibition
   is one `grep` over `ui/onboarding/`. The tutorial board is silent by default (every sound cue is
   played by a private effect in `GameScreen`), which rules/audio.md makes compliant; the ux-designer
   and sound-designer own any cue it gains.
+  *(Corrected 2026-10-21, code-auditor F-8: this bullet read "lives in `:domain` beside `Boards.kt`",
+  the 2026-09-21 ruling's own words. Phase 15 built it in `tutorial/` and was signed off so. What the
+  ruling binds is that a tutorial board is never a Classic board, and that holds: `CLASSIC_SPECS` is
+  the five Classic boards (`Boards.kt:323-324`). The package is accepted as built, a tech-lead
+  decision.)*
 
 ### 3.4 Ruling — Home reads aggregates, never folds
 
@@ -532,11 +541,40 @@ look.
 
 | Decision | Why | Decided in |
 |---|---|---|
-| Hints answer from a **committed depth-4 opening book** first (`src/main/resources/golden/book/`) and fall through to a bitboard solver with a restart policy under a 1.5 s deadline; a book "no winning move" is a **proof**, a book miss is a fall-through | A strengthened solver alone cannot meet the deadline for Wiegleb-45: 0 of 76 depth-≤4 positions resolved even at ~15M nodes/s | ROADMAP phase 8, escalation resolved 2026-08-29; `08-BOOK-EVIDENCE.md` |
+| Classic hints answer from a **committed opening book** first (`src/main/resources/golden/book/`), one per board at that board's own depth (`OpeningBook.CATALOG`, `OpeningBook.kt:121-159`): **depth 4** for English-33, European-37, Asymmetric-39 and Diamond-41, **depth 3 for Wiegleb-45** (`wiegleb45-k3.txt`). A depth-K book holds the positions up to K moves from the start (the frontier `DepthSweepTest` re-derives by BFS), so along a line that avoids its gap it answers the first K + 1 hints: five on the depth-4 boards, four on Wiegleb-45. Two books have a documented gap, positions inside their depth that are absent: 440 on Diamond-41 (`diamond41-k4.txt:2`) and 4 on Wiegleb-45 (`wiegleb45-k3.txt:2`). A Challenge level still on its recorded line answers from that line. Everything else falls through to a bitboard solver with a restart policy under a 1.5 s deadline (`SolverBudget.DEFAULT_DEADLINE`). A book "no winning move" is a **proof**, and only English-33's book has any: 4 positions. A book miss is a fall-through. What the player is told when the solver finds nothing is set out below the table | A strengthened solver alone cannot meet the deadline for Wiegleb-45: 0 of 76 depth-≤4 positions resolved even at ~15M nodes/s | ROADMAP phase 8, escalation resolved 2026-08-29; `08-BOOK-EVIDENCE.md`; Wiegleb-45's depth 3 is plan 08-08's checkpoint rescope (`OpeningBook.kt:124-129`). *(Corrected 2026-10-21, code-auditor F-8 and F-1: this row read "committed depth-4 opening book" for all five boards.)* |
 | **Diamond-41's fewest-pegs floor is 2, not 1**, proved two ways: a committed 38-move line replayed through `RulesEngine`, and the GF(4) colour invariant checked over all 41 single-peg targets | Star bands anchored on an unreachable one-peg target made the top rating impossible | ROADMAP phase 8 (D-06); plan `08-06` |
 | Star bands are derived **per board** from that board's own `minimumPegs` | One shared assumption cannot be right for five geometries | plan `08-07` |
 | `DepthSweepTest` runs in its own `:domain:depthSweep` task wired into `check`, double-gated by `TestFlags.RUN_SWEEP` (task property **and** body check), `outputs.upToDateWhen { false }` because it asserts per-call latency against the deadline on this host | The sweep costs ~11 minutes (Diamond-41's 440 off-book positions); the per-commit `:domain:test` gate is held to seconds; neither half silently disables the other | `domain/build.gradle.kts`; `DepthSweepTest` KDoc |
 | The sweep stays in `check` at full cost; the honest lever on the 11 minutes is closing Diamond-41's opening-book gap, **not** dropping `upToDateWhen { false }` (a timing gate inheriting a green measured on a differently loaded host is meaningless) | — | `tech-lead-depthsweep.md`, Open issues |
+
+**What "No winning move" means today.** This is a transcription of `develop` at `0582e3f`, not a
+ruling; added 2026-10-21 for code-auditor F-1.
+- `GameViewModel.onHintRequested` raises the rescue banner "No winning move — undo or restart"
+  (`nowin_message`, `strings.xml:108`, chosen at `GameScreen.kt:241`) on **any** `null` from
+  `GetHintUseCase` (`GameViewModel.kt:1384-1385`). That `null` has two sources, and they differ in
+  strength:
+  - **The book's `NoWinningMove` is a proof.** It comes from a search that completed at authoring
+    time, and it short-circuits without a solver call.
+  - **The solver's `null` is not a proof.** It folds an unsolvable position, a budget miss and a
+    cancellation into one `null` (D-04, `GetHintUseCase.kt:30-34`). So it means "no winning move found
+    within 1.5 s". The ViewModel's own comment says a budget miss reaches the banner
+    (`GameViewModel.kt:1381-1383`). Such a hint is never charged (ADS-06).
+- **So the banner is a proof only when the book gave the answer.** Wherever the solver answers, it
+  can appear on a winnable position:
+  - past each book's depth, on every Classic board;
+  - in Diamond-41's and Wiegleb-45's gaps;
+  - on a Challenge level once the player has left the recorded line.
+- **The measured worst case is Wiegleb-45.** Before the book, none of its 76 depth-≤4 positions
+  resolved inside the deadline on the measured host (`GetHintUseCase.kt:54-58`; `DepthSweepTest`
+  KDoc). Its book stops at depth 3, so every position four moves from the start is a book miss and
+  goes to a search that found no answer in time on any of them.
+- **What the tests prove.** Over every covered position, `DepthSweepTest` asserts three things: a
+  book hit is legal on its board, a book proof is served without a search, and a solver answer is
+  either `null` or a legal move. It does not, and cannot, make a solver `null` a proof. Nothing else
+  in the code does either, so no text should describe one as a proof.
+- **The product question stays open (§16 #21).** Whether the banner's wording or the behaviour on a
+  budget miss should change belongs to the game-designer and the ux-designer
+  (`code-auditor-release-docs.md`, Open issues). Any code change that ruling needs comes back here.
 
 ### 7.3 The fuzz harness — design (R-2, tech-lead ruling 2026-10-17)
 
@@ -776,8 +814,11 @@ memory, a timeout, a killed worker or the diff. Latent since phase 8, filed in p
 ### 9.7 CI runs `check`, verbatim
 
 `.github/workflows/ci.yml` runs `./gradlew -p build-logic test` (first, fail-fast) then
-`./gradlew check assembleDebug` on every push and PR to `develop`, `release/**` and `main`
-(rules/stacks.md scaffold contract 8; check-gates C3b; `tech-lead-signoff-gate-scope.md` ruling 1).
+`./gradlew check assembleDebug` on every push and PR to `develop` and `main`: those are the only
+triggers on `develop` today (`ci.yml:7-11`). **`release/**` is ruled but not built.** It is added
+by check-gates C3b (rules/stacks.md scaffold contract 8; `tech-lead-signoff-gate-scope.md` ruling 1;
+§14.1). Until that branch merges, a push to a `release/*` branch would trigger no CI run.
+*(Corrected 2026-10-21, code-auditor F-8: this paragraph stated `release/**` as a current trigger.)*
 Push as well as pull request, because the studio merges locally with `git merge --no-ff`: once a
 remote exists, a pushed branch is the only event GitHub sees. The repository has no git remote today,
 so the workflow has never run. The local Check is the only gate that has executed, and the 25-minute
@@ -868,10 +909,10 @@ check` on `feature/phase-15-ux-refresh` at `e1875cb` (2026-10-17): green, 98 of 
 |---|---|---|---|
 | **Cold start, the gate** | **< 2 s on a named mid-range physical phone** (rules/studio.md product baseline) | **Never measured on a physical device** — every number in the repo is from an emulator. Owner: PLAT-08 / phase 14; the reference device is named in the release evidence. *Decided default if no physical device is available:* the release proceeds on the interleaved emulator gate below plus the Macrobenchmark follow-up, with the absolute bar recorded as **unverified**, never silently passed. Buying a test phone is a founder question the producer folds into the release track | `tech-lead-coldstart-gate.md` §4, Open issues |
 | Cold start, tracked target | ≤ 950 ms `am start -W` TotalTime on AVD `Pixel_9a` API 36, debug | **Demoted from gate to tracked target.** It derives from a pre-SDK 633 ms baseline and a different `applicationId`; the same AVD read 957 ms and 1832 ms with nothing changing but host load (1.83×), so an absolute emulator reading is a property of the host, not the app | same §2, §4 |
-| Cold-start regression (criterion 15e) | Interleaved A/B gate: `median_B − median_A ≤ max(2 × floor, 100 ms)` with `floor = |median(N1) − median(N2)|` from a **same-sitting null control** of one build in both positions; **VOID** (not pass, not fail) when `floor > 150 ms`; ≥ 20 kept samples per arm in blocks of 5, first of each block discarded, `am force-stop` + 2 s between samples; ART normalised with `cmd package compile -m speed -f`; animations off; exactly one emulator; no Gradle daemon anywhere; 1-minute load ≤ half the host's logical cores (5.0 on the studio's 10-core M4) read before and after with the launcher idle; arms share one `applicationId`, so each arm is swapped in **only at a block boundary** and the null control swaps the same way; valid only while both arms share the Room schema and DataStore keys; **`Pixel_9a_bench`** is the instrument of record: the `Pixel_9a`'s profile and image (`android-36.1` `google_apis_playstore_ps16k`, arm64, 16 KB pages, 4 cores, 2 GB RAM, 1080×2424 at 420 dpi) with a 16 GB data partition, no Google account, and used for no other testing; `/data` free ≥ 4 GB (`dumpsys diskstats`, `Data-Free`) at the start and the end of the sitting, both recorded; a sitting on any other AVD is VOID, the `Pixel_9` and the `Pixel_9a` included; arm A = the branch's merge-base with `develop` at the sitting, so A..B is exactly the branch's diff; a later `develop` merge-in leaves a sitting standing unless it changes a start-path file (`App.kt`, `MainActivity.kt`, `di/`, `navigation/`, `ui/home/`, `ui/theme/`, `res/font/`, `res/values/themes.xml`, `AndroidManifest.xml`, and since H-2 `res/values-night/themes.xml`; `res/values-v27/themes.xml` and `res/values-night-v27/themes.xml` too if §16 #18's change lands); a test-only commit leaves it standing. *Instrument note (2026-10-21, `tech-lead-signoff-close.md` D-1):* the bench was written from `Pixel_9a.avd`'s own `config.ini` and `.ini`, since `avdmanager` is not installed. `avdmanager` and the copy are both valid. Either way the sitting records the diff against `Pixel_9a.avd`, and only `AvdId`, `avd.ini.displayname`, `disk.dataPartition.size` and the `.ini`'s `path`/`path.rel` may differ. An extra key makes the sitting VOID. *ART note (same):* a debuggable APK stays at `[status=verify]` after `compile -m speed -f`. The ART precondition holds when both arms read the same status | Replaces the ill-posed ≤ 50 ms delta (a within-arm range promoted to a between-arm threshold — the tech-lead's own specification error). Runs once on phase 15 before its merge (H-3). Sat 2026-10-18 on `Pixel_9a_bench`: **PASS**, delta 33.0 ms, floor 3.0 ms, arm A `c3d3437`, arm B `ee16a2a` (`.planning/phases/15-ux-refresh/15-BUILD-EVIDENCE.md`). Each later branch that changes Home's first frame carries its own sitting on the bench: candy-backdrop (§3.5), and F-1 if its fix changes the first frame. A VOID is re-run, never reported as a pass or a fail | `tech-lead-coldstart-gate.md` §3; `15-founder-feedback/tech-lead-fonts.md` Ruling 2; `15-founder-feedback/tech-lead-signoff.md` Decision 1; `15-founder-feedback/tech-lead-signoff-close.md` D-1 |
+| Cold-start regression (criterion 15e) | Interleaved A/B gate: `median_B − median_A ≤ max(2 × floor, 100 ms)` with `floor = \|median(N1) − median(N2)\|` from a **same-sitting null control** of one build in both positions; **VOID** (not pass, not fail) when `floor > 150 ms`; ≥ 20 kept samples per arm in blocks of 5, first of each block discarded, `am force-stop` + 2 s between samples; ART normalised with `cmd package compile -m speed -f`; animations off; exactly one emulator; no Gradle daemon anywhere; 1-minute load ≤ half the host's logical cores (5.0 on the studio's 10-core M4) read before and after with the launcher idle; arms share one `applicationId`, so each arm is swapped in **only at a block boundary** and the null control swaps the same way; valid only while both arms share the Room schema and DataStore keys; **`Pixel_9a_bench`** is the instrument of record: the `Pixel_9a`'s profile and image (`android-36.1` `google_apis_playstore_ps16k`, arm64, 16 KB pages, 4 cores, 2 GB RAM, 1080×2424 at 420 dpi) with a 16 GB data partition, no Google account, and used for no other testing; `/data` free ≥ 4 GB (`dumpsys diskstats`, `Data-Free`) at the start and the end of the sitting, both recorded; a sitting on any other AVD is VOID, the `Pixel_9` and the `Pixel_9a` included; arm A = the branch's merge-base with `develop` at the sitting, so A..B is exactly the branch's diff; a later `develop` merge-in leaves a sitting standing unless it changes a start-path file (`App.kt`, `MainActivity.kt`, `di/`, `navigation/`, `ui/home/`, `ui/theme/`, `res/font/`, `res/values/themes.xml`, `AndroidManifest.xml`, and since H-2 `res/values-night/themes.xml`; `res/values-v27/themes.xml` and `res/values-night-v27/themes.xml` too if §16 #18's change lands); a test-only commit leaves it standing. *Instrument note (2026-10-21, `tech-lead-signoff-close.md` D-1):* the bench was written from `Pixel_9a.avd`'s own `config.ini` and `.ini`, since `avdmanager` is not installed. `avdmanager` and the copy are both valid. Either way the sitting records the diff against `Pixel_9a.avd`, and only `AvdId`, `avd.ini.displayname`, `disk.dataPartition.size` and the `.ini`'s `path`/`path.rel` may differ. An extra key makes the sitting VOID. *ART note (same):* a debuggable APK stays at `[status=verify]` after `compile -m speed -f`. The ART precondition holds when both arms read the same status | Replaces the ill-posed ≤ 50 ms delta (a within-arm range promoted to a between-arm threshold — the tech-lead's own specification error). Runs once on phase 15 before its merge (H-3). Sat 2026-10-18 on `Pixel_9a_bench`: **PASS**, delta 33.0 ms, floor 3.0 ms, arm A `c3d3437`, arm B `ee16a2a` (`.planning/phases/15-ux-refresh/15-BUILD-EVIDENCE.md`). Each later branch that changes Home's first frame carries its own sitting on the bench: candy-backdrop (§3.5), and F-1 if its fix changes the first frame. A VOID is re-run, never reported as a pass or a fail | `tech-lead-coldstart-gate.md` §3; `15-founder-feedback/tech-lead-fonts.md` Ruling 2; `15-founder-feedback/tech-lead-signoff.md` Decision 1; `15-founder-feedback/tech-lead-signoff-close.md` D-1 |
 | Instrument succession | `:macrobenchmark` module (`androidx.benchmark`, Apache-2.0) with `StartupTimingMetric`, `StartupMode.COLD`, `CompilationMode.Full()`, ≥ 10 iterations, physical device; plus `reportFullyDrawn()` in `MainActivity` so time-to-full-display becomes measurable (criterion 15f's real subject) | **Scheduled, not phase 15's**; producer schedules, android-game-dev implements, qa-engineer runs. `reportFullyDrawn()` is its own small plan | `tech-lead-coldstart-gate.md` §6 |
 | Home's first frame | No blocking read, no image decode, no asset load, no bitmap, no new SDK call — **one named exception: the five bundled type faces** (§11), which load blocking on first use so the first frame is final; the progress ribbon fills asynchronously into a placeholder; the backdrop's gated layer is off frame 1 (§3.5); the Continue chips arrive after first paint by design, because their collector decodes both resume snapshots before it emits (the WR-02/CR-01 phantom-chip guard), and what moves when they arrive is F-1 (§16 #13) | Held structurally by the independent-collector shape (§3.4) | `docs/ux-spec.md` §6.5 as amended; `15-founder-feedback/tech-lead-signoff.md` Decision 3 |
-| Hint latency | 1.5 s deadline per `GetHintUseCase` call; book hits in single-digit ms; `depthSweep` measures it exhaustively over every covered frontier | Diamond-41's 440 off-book positions wait out the deadline — the honest cost of the book's documented gap | §7.2 |
+| Hint latency | 1.5 s deadline per `GetHintUseCase` call; book hits in single-digit ms; `depthSweep` measures it exhaustively over every covered frontier | Diamond-41's 440 off-book positions wait out the deadline — the honest cost of the book's documented gap. Past each book's depth (4, or 3 on Wiegleb-45), every Classic hint is a solver call of up to the full deadline, and a miss reads "No winning move" (§7.2) | §7.2 |
 | `check` wall clock | ≈ 11 min today; the fuzz default tier adds ≤ 60 s (§7.3); no second multi-minute gate | — | §7.3, §9.7 |
 | APK size | Baselined, not gated (D-12): last recorded release APK 2,038,611 B at phase 7, before the ads and PGS SDKs; the fonts add ≈ 229 KiB compressed | — | `06-CONTEXT.md:42`; §11 |
 | Cue path | `play()` is one volatile read, zero IPC, zero allocation; no audio work on the main thread beyond the play call | — | §12 |
@@ -920,15 +961,42 @@ release half (the AAB keeps the five fonts, `bundletool dump resources`) is the 
 faces, the tech-lead rules on their share **before** any art is removed: removing art cannot pay for
 type.
 
+*Amended 2026-10-21 (`.planning/reports/phase-14/release-manager-font-rows.md`, Open issues; tech-lead
+correction):* **AC-F4** as written in `tech-lead-fonts.md` can never return 0 hits on a correct tree.
+Its `googlefonts` token matches line 1 of `assets/licenses/Nunito-OFL.txt`, which reads "Copyright
+2014 The Nunito Project Authors (https://github.com/googlefonts/nunito)". OFL-1.1 requires that text
+to ship unmodified. AC-F4 now reads: this command returns 0 hits.
+
+    git grep -n -E "ui\.text\.googlefonts|GoogleFont|font_certs|ui-text-google-fonts|fixtures/fonts|shippedFaceFile" -- app gradle
+
+- The narrowed token is the Compose package `androidx.compose.ui.text.googlefonts`, which is what the
+  token was there to catch. It also catches the package's `Font` import, which `GoogleFont` alone
+  would miss.
+- On `develop` (`0582e3f`) the corrected pattern returns no hits.
+- Positive control: on `c9228a9^1`, the tree before phase 15, it still hits `Type.kt` (5 lines),
+  `font_certs.xml`, `app/build.gradle.kts` and `gradle/libs.versions.toml`.
+- AC-F7's scan is unaffected, because the licence text is an asset and sits in neither the dex nor
+  `resources.arsc`.
+
 ## 12. Audio
 
 Playback is owned by one UI-layer class, `audio/SoundPoolPlayer` (`SoundPlayer` interface; cues in
 `SoundCue`, mix constants in `SoundParams`), preloaded through `SoundPool` with `USAGE_GAME` +
-`CONTENT_TYPE_SONIFICATION` attributes (`GameAudioAttributes`, the one definition the pool and the
-route query share). **No audio focus is ever requested** (SOUND-06: an app that holds no focus cannot
-duck the player's music), proved by `audioFocusLiteralCheck`. Assets: twelve mono 16-bit 44.1 kHz WAVs
-under `res/raw`, each with a `docs/audio/CREDITS.md` row and, for in-house sounds, a committed
-`audio/recipes/<cue>.json`. `:domain` plays nothing.
+`CONTENT_TYPE_SONIFICATION` attributes (inline in `SoundPoolPlayer` on `develop`; on
+`feature/audio-review`, `GameAudioAttributes`, the one definition the pool and the route query share). **No audio focus is ever requested** (SOUND-06: an app that holds no focus cannot
+duck the player's music), proved by `audioFocusLiteralCheck`. Assets: twelve cue files under
+`res/raw`, each with a `docs/audio/CREDITS.md` row.
+- **On `develop` today:** twelve `.ogg` files, all CC0 1.0. Nine come from Kenney *Interface Sounds*.
+  Three come from two freesound sounds, since `sfx_deselect` is derived from `sfx_select`'s source.
+- **On `feature/audio-review`:** twelve mono 16-bit 44.1 kHz WAVs.
+  - Seven are Kenney and three are freesound-derived, all CC0 1.0.
+  - Two are rendered in-house (`sfx_invalid`, `sfx_hint`), each from a committed
+    `audio/recipes/<cue>.json`.
+  - This is the set 3.0.0 ships if that branch merges before `release/3.0.0` is cut (§14.1, merge
+    order step 5).
+
+`:domain` plays nothing. *(Corrected 2026-10-21, code-auditor F-8: this paragraph described the
+audio-review branch's WAV set, and its `GameAudioAttributes`, as current.)*
 
 **The silent-mode design** (`docs/tech/audio-silent-mode.md`, tech-lead, 2026-09-29, Q-010 option 2;
 builds on `feature/audio-review` only after `develop` contains phase 15 — C1):
@@ -975,7 +1043,7 @@ family; it does not duplicate the rows.
 | Google Mobile Ads Next-Gen | `com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk` 1.4.0 | Android SDK Licence (proprietary, permitted) | no | behind `AdGateway`; read the coordinate character for character — the legacy `play-services-ads` is a different artifact and is never reintroduced |
 | User Messaging Platform | `com.google.android.ump:user-messaging-platform` 4.0.0 | **unverified (U-1)** — the AAR carries its dependencies' licences and no licence of its own; one online dependency listing settles it | — | release-checklist 3.5 |
 | Fonts | Fredoka v17 (Medium, SemiBold), Nunito v32 (Regular, SemiBold, Bold), static, unmodified | OFL-1.1, no Reserved Font Name | file-level only; **not** an escalation (§11) | notice shipped in `assets/licenses/` |
-| Sounds | 9 Kenney + 3 freesound borrows, per `docs/audio/CREDITS.md` | CC0 1.0 | no | attribution a courtesy |
+| Sounds | **For 3.0.0** (twelve WAVs, once `feature/audio-review` merges, §12): 7 Kenney *Interface Sounds* + 3 freesound-derived + 2 rendered in-house from `audio/recipes/`. **On `develop` today:** twelve `.ogg`, 9 Kenney + 3 freesound, per `docs/audio/CREDITS.md` | CC0 1.0 for the sourced files; own work for the two in-house renders | no | attribution a courtesy; `THIRD_PARTY.md` §2 carries the 3.0.0 rows. *(Corrected 2026-10-21, code-auditor F-8: this row gave only the `develop` count, as if it were the 3.0.0 set.)* |
 | Licence text (candy-backdrop, §3.6) | `assets/licenses/Apache-2.0.txt`, byte-identical to apache.org's (sha256 `cfc7749b…3d30`) | the text's own redistribution terms (the research-analyst confirms them in one line) | no | an asset, not a dependency; its `THIRD_PARTY.md` row is the release-manager's |
 | Test-only | JUnit 4 (EPL-1.0), Truth, Turbine, MockK, kotlinx-coroutines-test, Robolectric, ArchUnit, Room testing, Compose ui-test | various permissive | no | never on a variant's runtime classpath |
 | Build-only | AGP, Kotlin, KSP, Hilt, Room, detekt, ktlint Gradle plugins; **kover (R-2, Apache-2.0, JetBrains)** | permissive | no | run on the build machine; kover joins `THIRD_PARTY.md`'s build-tooling row when R-2 lands (release-manager's file) |
@@ -1076,6 +1144,7 @@ fault — emulator DNS — not an app change).
 | Phase 15 and the R-2 branch both edit `gradle/libs.versions.toml` | medium / low | Disjoint regions; phase 15 merges first; R-2 is cut after it (§14.1). *Superseded mitigation:* "the R-2 branch merges first; phase 15 merges `develop` in" | producer |
 | Fable is exhausted and a Fable-pinned review cannot run | observed / process | rules/studio.md: the step is not done; the founder's standing answers (Q-003, Q-011, Q-014) are scoped, not general. **Q-019 (2026-10-17): Opus for every Fable-pinned role until 3.0.0 is published**, the deviation recorded in every report. Reviewers then share the developer's model, so the mitigation is fresh reviewers that run the Check and their own mutation probes rather than trusting recorded results | producer |
 | 15e on the new bench VOIDs (unknown floor) or FAILs on the fonts' blocking load (estimate 10–40 ms against a threshold of at least 100 ms) | medium / low | A VOID is a re-run, never a verdict; a FAIL brings the fonts' share to the tech-lead before any art is removed (§11). *2026-10-21:* phase 15's sitting passed (delta 33.0 ms, floor 3.0 ms, §10), so the fonts' share was never reopened. The row stands for the bench's next sittings: candy-backdrop's, and F-1's if it carries one | qa-engineer, tech-lead |
+| Hint shows "No winning move" on a solver budget miss, on a position that may be winnable: past each Classic book's depth, in Diamond-41's and Wiegleb-45's gaps, and off a Challenge level's recorded line (§7.2) | high (measured on Wiegleb-45: none of its depth-≤4 positions resolved inside the deadline before the book) / medium (player trust; a misleading-claims exposure where a text calls it a proof) | Texts describe only what the code proves (code-auditor F-1, the release-manager's store and changelog fixes); the banner and behaviour question is open (§16 #21) | game-designer and ux-designer for the ruling; release-manager for the texts |
 | F-1, the Home layout jump, sits on `develop` until its fix lands | certain / low | `develop` ships nothing; the deadline holds it out of 3.0.0 (§14.1) | producer |
 | A branch merged after check-gates C7 carries a new main-compilation warning | medium / low | Its Check fails once it has taken `develop` in; it is fixed on that branch, never by a suppression or a compiler switch (§9.8 rule 3) | that branch's developer |
 | The B direction's gel mode cards reshape Home's tiles against phase 15's geometry (15g, 15k, 15p, 15r) | medium / medium | B's own surfaces get a fit ruling against D-03l clause 4 and the phase-15 suites before the build, and the phase-15 suites run unchanged (§3.5, §16 #16) | tech-lead, ux-designer |
@@ -1106,6 +1175,7 @@ Every item the seeded file listed as "decided by nobody" is now either decided o
 | 18 | **15e O-1:** in dark mode the three-button navigation bar shows the platform's light grey scrim (`#cdccd0`, buttons `#666666` at 3.59:1). Pre-existing: arm A is pixel-identical (`15-founder-feedback/qa-engineer-15e.md`, Findings) | **Not a defect** (`15-founder-feedback/tech-lead-signoff-close.md`, INFO row 9): it fails no criterion, and 3.59:1 clears the 3:1 bar for UI components. Whether a dark three-button bar is wanted is the ux-designer's decision (§16 #11). **If it is wanted, the mechanism is the window theme, as for the F-2 status-bar fix** (`windowLightStatusBar` in `res/values/` and `res/values-night/themes.xml`, pinned by `WindowThemeTest`): `android:windowLightNavigationBar` true in light and false in night. That attribute is API 27 and minSdk is 24 (§1.3), so it goes in `res/values-v27/themes.xml` and `res/values-night-v27/themes.xml`, each restating the whole style, since styles do not merge across qualifiers. A `WindowThemeTest` case pins it. Both files are start-path files (§10), so the change rides a branch that runs its own 15e sitting on the bench: `bugfix/home-chip-arrival` if that branch runs one, else `feature/candy-backdrop`. Its device check covers three-button and gesture modes in both themes. **Deadline:** the ruling before `release/3.0.0`; the change only if it is ruled wanted, otherwise post-3.0.0 | ux-designer rules; then android-game-dev → code-auditor + qa-engineer → tech-lead |
 | 19 | A Fable re-audit of phase 15's diff: both phase-15 audits say one "is owed when the policy allows" (`15-founder-feedback/code-auditor-loop4.md` and `code-auditor-loop5.md`, Open issues) | **Not a merge condition** (`15-founder-feedback/tech-lead-signoff-close.md`, INFO row 10). Q-019 is the founder's answer: Opus for the review chain until 3.0.0 is published, with fresh reviewers, the Check and mutation probes run by the reviewer (§15, the Fable row). Both audits did exactly that. Whether phase 15's diff gets a Fable re-audit after 3.0.0 is a policy and money question. **When:** after 3.0.0 is published | producer → the 3.0.0 retro; a non-blocking founder question if it costs money |
 | 20 | The notice duties beyond the fonts: BSD-3 (`protobuf-javalite`, Cronet), MIT (`checker-qual`) and MPL-2.0 data (OkHttp's public-suffix list) on the release graph, the Jakarta Inject `NOTICE.md`, and the `third_party_licenses.txt` that every Google SDK AAR carries and AGP never packages (`.planning/reports/phase-14/research-analyst-font-licences.md`, open issues 1–3) | **Open, recorded 2026-10-21.** It puts §13's "nothing shipped carries an unmet attribution obligation" under review. The research-analyst expects no escalation under the matrix. Owed: a tech-lead ruling on the Google SDK notices (bundle the texts behind the Google entry, or revisit LS-03 and adopt the oss-licenses data), a research-analyst verdict per family against the release-branch listing, and the ux-designer's `licences-screen.md` amendments. **Deadline (tech-lead decision, 2026-10-21):** with the Licenses screen, before `release/3.0.0` is cut, because BSD-3 and MIT make the notice a condition of redistribution, not a courtesy | tech-lead (the Google-notice ruling), research-analyst, ux-designer, via producer; `THIRD_PARTY.md` §5b and §7 wording, release-manager |
+| 21 | Hint's "No winning move" banner on a solver budget miss (`code-auditor-release-docs.md` F-1, Open issues): the banner is raised on any `null` from `GetHintUseCase`, and the solver's `null` folds a budget miss and a cancellation in with a true dead end (§7.2) | **Open, recorded 2026-10-21. Not ruled here.** Whether the wording or the behaviour should change is a product question. A game-designer is ruling it, with the ux-designer for the banner. If the ruling needs code, the tech-lead then rules the mechanism and records it in §7.2. Until then, §7.2's transcription is what the code does | game-designer, ux-designer via producer; then tech-lead if code changes |
 
 ## 17. Supersessions
 
@@ -1133,10 +1203,12 @@ Nothing is deleted from this file; a superseded decision stays with a pointer to
 | AC-F7's airplane-mode cold start | The dex and `resources.arsc` scan with a positive control; no literal airplane run, now or at release | §11; `tech-lead-signoff.md` Decision 2 |
 | "R-2 merges before phase 15, which then merges `develop` in" (`tech-lead-depthsweep.md` ruling 2; `tech-lead-r2-gate-brief.md` §0); phase 15 depending on "R-2 branch merged first" | Phase 15 merges first; R-2 is cut from `develop` after R-1 and phase 15 | §14.1, §15; `tech-lead-signoff.md` Decision 4 |
 | `shippedSourceRoots` = (main, release, debug) × {java, kotlin, res} | Every file under the three shipped source sets | §9.3; `tech-lead-signoff-gate-scope.md` ruling 2 (check-gates C3a) |
-| CI on push and PR to `develop` and `main` | `develop`, `release/**`, `main` | §9.7; `tech-lead-signoff-gate-scope.md` ruling 1 (check-gates C3b) |
+| CI on push and PR to `develop` and `main` | `develop`, `release/**`, `main` (ruled; not built until check-gates C3b merges, so `develop`'s `ci.yml` still triggers on `develop` and `main` only) | §9.7; `tech-lead-signoff-gate-scope.md` ruling 1 (check-gates C3b) |
 | The R-2 brief §4's C3 acceptance count, 55 | 54 at C3, since C3 deletes the test that pinned the pre-authorised source sets; 55 after C3a | §8.1, §14.1; `tech-lead-signoff-gate-scope.md` addendum A0 |
 | The R-2 brief §10's "any UI, ViewModel or `:app` production code" and "any phase-15 file" out of scope | Lifted for C7's ten main-source sites only | §9.8, §14.1; `tech-lead-design-sync.md` addendum A3 |
 | §3.1's "every screen has one `@HiltViewModel`" without exception | Except the Licenses list, which holds nothing | §3.1, §3.6; candy R4 |
 | §16 #4's in-app licences surface as "Backlog v1.1.1" | Scheduled with `feature/candy-backdrop` | §3.6, §13, §14.2, §16 #4 |
 | Candy R2, the stage wings (B-12), and R1's sweets-specific variants (Landscape, Quiet, Sparse and their layers) | Void for the wings, by the founder's Q-021 choice of direction B "Deep gloss"; the variants come from the B spec rewrite; R1's host, state, cross-fade, F-32 surface and insets, and R3's gate, stand | §3.5 |
 | P-1.1 "`avdmanager create avd -n Pixel_9a_bench …`" as the only route to the bench (`tech-lead-signoff.md` Decision 1) | `avdmanager`, or a copy of `Pixel_9a.avd`'s `config.ini` and `.ini`; either is closed by the P-1.2 diff, which every sitting records | §10; `tech-lead-signoff-close.md` D-1 |
+| AC-F4's `googlefonts` token (`15-founder-feedback/tech-lead-fonts.md` AC-F4), which matches the OFL text's upstream URL | `ui\.text\.googlefonts`; the rest of the pattern is unchanged | §11; `release-manager-font-rows.md`, Open issues |
+| §3.3's "`TutorialBoards` lives in `:domain` beside `Boards.kt`" (`phase-15/tech-lead-architecture.md` §1) | Its own `tutorial/` package, as built and signed off; the binding half, absent from `CLASSIC_SPECS`, stands | §2.1, §3.3; code-auditor F-8 |
