@@ -226,6 +226,8 @@ fun GameScreen(
                             onCellTap = onCellTap,
                             onAnimationFinished = onAnimationFinished,
                             modifier = Modifier.padding(dimensionResource(R.dimen.spacing_md)),
+                            // D-06: the gameplay board corrects a wrong tap on the tapped cell.
+                            wrongTapCorrection = true,
                         )
                     }
                 }

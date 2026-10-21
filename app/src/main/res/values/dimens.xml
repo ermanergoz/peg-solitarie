@@ -192,6 +192,12 @@
       peg geometry. Do not round these up.
     -->
     <dimen name="peg_selected_ring_width">3dp</dimen>
+    <!--
+      D-06a. The stroke of the reduced-motion wrong-tap mark, the dashed ring drawn on the tapped
+      cell when animations are off. The same value as peg_selected_ring_width and the same sub-4dp
+      exception, but a token of its own (one token per owner).
+    -->
+    <dimen name="wrong_tap_mark_width">3dp</dimen>
 
     <!--
       Candy-Clay M3 Shapes override (DESIGN-SYSTEM.md §Shape): the five corner
