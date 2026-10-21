@@ -21,11 +21,13 @@ import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.ui.home.HOME_PROGRESS_RIBBON_TEST_TAG
 import com.app.pegsolitaire.ui.home.HomeScreen
 import com.app.pegsolitaire.ui.home.HomeUiState
+import com.app.pegsolitaire.ui.theme.AppTheme
 import org.robolectric.RuntimeEnvironment
 
 /*
- * The fixture `HomeScreenTest` and `HomeLayoutTest` share: one way to render Home, one definition
- * of its busiest legitimate state, and one set of accessors for the progress ribbon.
+ * The fixture `HomeScreenTest` and `HomeLayoutTest` share: one way to render Home (in the app's own
+ * light theme, so a suite under NATIVE graphics measures the bundled faces), one definition of its
+ * busiest legitimate state, and one set of accessors for the progress ribbon.
  *
  * It exists because the two classes must agree. `HomeLayoutTest` measures the same screen in the
  * same state that `HomeScreenTest` interrogates, and criterion 15m's whole claim is that the
@@ -149,19 +151,25 @@ internal fun ComposeContentTestRule.renderHome(
         CompositionLocalProvider(
             LocalDensity provides Density(density = LocalDensity.current.density, fontScale = fontScale),
         ) {
-            HomeScreen(
-                state = state.value,
-                onPlayClassic = {},
-                onPlayChallenge = onPlayChallenge,
-                onResumeClassic = onResumeClassic,
-                onResumeChallenge = onResumeChallenge,
-                onAcceptPlayGamesPrompt = {},
-                onDeclinePlayGamesPrompt = {},
-                onKeepDeviceProgress = onKeepDeviceProgress,
-                onUseCloudProgress = onUseCloudProgress,
-                onPlayGamesSignInErrorShown = {},
-                onOpenSettings = {},
-            )
+            // In the app's own theme, as `MainActivity` draws it: without it every role falls back
+            // to Material 3's baseline faces, weights, shapes and colours, so a suite under NATIVE
+            // graphics would measure text a player never sees. Light, stated rather than read from
+            // the configuration, so no test depends on the host's night mode.
+            AppTheme(darkTheme = false) {
+                HomeScreen(
+                    state = state.value,
+                    onPlayClassic = {},
+                    onPlayChallenge = onPlayChallenge,
+                    onResumeClassic = onResumeClassic,
+                    onResumeChallenge = onResumeChallenge,
+                    onAcceptPlayGamesPrompt = {},
+                    onDeclinePlayGamesPrompt = {},
+                    onKeepDeviceProgress = onKeepDeviceProgress,
+                    onUseCloudProgress = onUseCloudProgress,
+                    onPlayGamesSignInErrorShown = {},
+                    onOpenSettings = {},
+                )
+            }
         }
     }
     waitForIdle()
