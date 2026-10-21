@@ -45,26 +45,22 @@ object SourceSetPolicy {
     val VARIANT_LANGUAGE_DIRS = listOf("java", "kotlin")
 
     /**
-     * Every source-set name this project is known to have or that AGP may create, INCLUDING the
-     * test ones the literal gates exclude: the tripwire's question is "has anyone classified this
-     * directory?", not "is it scanned?". A name outside this set means a new build type, a new
-     * product flavour or a new test dimension — and in every one of those cases both lists above
-     * need a decision from a human.
+     * The source sets that exist in this repository, each decided for BOTH lists above, and no
+     * other name. The tripwire's question is "has anyone classified this directory?", not "is it
+     * scanned?", so a name is known only once it exists on disk AND both [shippedSourceRoots] and
+     * [variantSourceRoots] have been decided for it, test source sets included. A name outside this
+     * set means a new build type, a new product flavour or a new test dimension, and in every one
+     * of those cases both lists need a decision from a human.
+     *
+     * This set once also pre-authorised the source sets AGP could create but this repository does
+     * not have: `androidTest`, `androidTestDebug`, `androidTestRelease`, `screenshotTest`,
+     * `screenshotTestDebug` and `testRelease`. That was a hole (auditor F-2, docs/tech-design.md
+     * §9.3): only [VARIANT_SOURCE_SET_NAMES] widens the detekt task, so the Kotlin in a
+     * pre-authorised `src/androidTest` would have been read by no detekt task while the tripwire
+     * stayed silent. Now the day `src/androidTest` appears (the golden-image suite, design §8.5),
+     * the wire trips and forces both decisions.
      */
-    val KNOWN_SOURCE_SET_NAMES =
-        setOf(
-            "main",
-            "test",
-            "debug",
-            "release",
-            "testDebug",
-            "testRelease",
-            "androidTest",
-            "androidTestDebug",
-            "androidTestRelease",
-            "screenshotTest",
-            "screenshotTestDebug",
-        )
+    val KNOWN_SOURCE_SET_NAMES = setOf("main", "test", "debug", "release", "testDebug")
 
     /** Module-relative roots the three literal gates scan, unfiltered — the caller drops absentees. */
     fun shippedSourceRoots(): List<String> = roots(SHIPPED_SOURCE_SET_NAMES, SHIPPED_LANGUAGE_DIRS)

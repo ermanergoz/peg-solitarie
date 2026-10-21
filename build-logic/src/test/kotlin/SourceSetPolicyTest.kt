@@ -79,10 +79,20 @@ class SourceSetPolicyTest {
     }
 
     @Test
-    fun theAgpCreatedTestSourceSetsAreKnownSoTheyDoNotFalselyTripTheWire() {
-        val agpCreated = listOf("androidTest", "androidTestDebug", "screenshotTest", "testRelease")
+    fun aTestDimensionNobodyHasClassifiedTripsTheWire() {
+        val unclassified =
+            listOf(
+                "androidTest",
+                "androidTestDebug",
+                "androidTestRelease",
+                "screenshotTest",
+                "screenshotTestDebug",
+                "testRelease",
+            )
 
-        assertThat(SourceSetPolicy.unknownSourceSetNames(agpCreated)).isEmpty()
+        assertThat(SourceSetPolicy.unknownSourceSetNames(listOf("main", "test") + unclassified))
+            .containsExactlyElementsIn(unclassified)
+            .inOrder()
     }
 
     @Test
