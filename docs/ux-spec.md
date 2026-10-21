@@ -311,9 +311,9 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 >   ≈0.6s after first paint, **nothing a player can tap moves**. The footer becomes one fifth of the
 >   no-chip slack, fixed for the window; the stage gives up the chips' room; the ribbon rides on the
 >   stage's edge; the room opens smoothly; and the first frame draws the stage and the tile art whole.
-> - **D-03o** (§4.2.6; criterion **15w**) — on O-2/R-3: **no word in a progress pill is ever broken**;
->   once a label no longer fits in half its pill, all three pills stack, decided by the labels and never
->   by the values.
+> - **D-03o** (§4.2.6; criterion **15w**) — on O-2 and `ux-designer-15p.md` R-3 (not §7's R-3): **no
+>   word in a progress pill is ever broken**; once a label no longer fits in half its pill, all three
+>   pills stack, decided by the labels and, but for one named edge case, never by the values.
 > - **D-05e** (§4.3.2; criteria **18f**, **18g**, **26b**) — on O-A/A-8/I-2: **the timer speaks its
 >   value**, "Elapsed time, 5 minutes, 12 seconds", never on its own; and criterion 26's spoken order is
 >   written out per screen.
@@ -328,10 +328,18 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > *(Same day, after a fresh checker's review, `.planning/reports/ux-spec-folds/ux-designer-check.md`.)*
 > Criterion 15g's "the screen's unused space" is ruled to be the no-chip slack S₀ (§4.2.5), so the
 > D-03n footer meets it in every state; 15g and §13 carry it. Criterion 26b no longer counts the board
-> as a TalkBack stop, which it is not on this branch, and §11 records the board's own accessibility as
-> a later item. 15v waits for the branch's own 15e sitting on the bench. The start-path list reads every
+> as a TalkBack stop, which it is not on this branch, and §11 records the board's TalkBack gap against
+> the first edition's order, its release scope routed to the game-designer (and the founder). 15v waits
+> for the branch's own 15e sitting on the bench. The start-path list reads every
 > `res/values*/themes.xml`. Superseded 3 : 1 and "the label wraps" passages gain pointers, as do the two
 > LEGACY "scrolls" headlines, and criterion 29 names its qualifiers.
+>
+> *(Same day, after a second fresh check, `.planning/reports/ux-spec-folds/ux-designer-check-loop2.md`.)*
+> Criterion 15v reads position with animations off, and with them on only once §10's entrance cascade
+> has settled; a chip that lands mid-cascade restarts no entrance. A chip arriving after first paint
+> takes no stagger delay. The §11 gap no longer rules the board's release: it is routed, pending the
+> game-designer's ruling, and criterion 26 gains a pointer for the tutorial board. 15g's pointer, §12's
+> tall-phone range, two §13 rows and the revision index's "R-3" are corrected.
 
 ---
 
@@ -2559,8 +2567,18 @@ hold (the table above).
 with `ClayAnim.ENTRANCE_EASING` and no overshoot. The room includes the chip's band gap, so no gap
 appears a frame ahead of its chip. In the same frames the stage gives up the same height, its art
 follows the stage's size, and the ribbon rides up on the stage's edge. The chip itself enters with its
-existing `clayEntrance`, as it always has. Because the stage gives up in each frame exactly what the room
-takes, the tiles hold still in every frame, not only at the end. A chip leaving runs the same motion in
+existing `clayEntrance` fade and slide, with one change: **a chip that arrives after first paint takes no
+stagger delay**. Its fade starts in the frame its room starts opening, so no empty room shows ahead of
+it. A chip present at first composition keeps its cascade order, 2..3, as §10 has it. Because the stage
+gives up in each frame exactly what the room takes, the tiles hold still in every frame, not only at the
+end.
+
+**The entrance cascade and the room are independent.** §10's cascade moves a band by a drawing offset
+(`graphicsLayer` alpha and translation) and never moves its layout position, so it does not touch the
+bounds 15s and 15u pin. If the chips land while the cascade is still running, no band's entrance
+restarts or changes its target, and each band finishes its entrance at its D-03n position. Criterion 15v
+reads the device recordings that way: position with animations off, and position after the cascade
+settles with them on. A chip leaving runs the same motion in
 reverse. With OS animations off (`rememberAnimationsEnabled()` false) the room is open, settled, in the
 next frame. The motion exists only when a chip arrives or leaves while Home is drawn; when the chips are
 already in `HomeUiState` as Home is composed, Home's first frame is the settled layout. Nothing is
@@ -3887,7 +3905,7 @@ All new motion reuses the Candy Clay vocabulary; nothing invents a curve.
 | Tutorial completion star | `ClayAnim.STAR_POP_MS` + `overshootSpring()` + `goldGradientFill()` |
 | Hero board art | idle — no ambient motion of its own; the two existing `HomeBlobs` remain the only drifting elements |
 | **Hero stage art** *(2026-09-28, D-03l — replaces the row above)* | static on every frame: no selection, no dots, no hint, so nothing on the board pulses or pops; enters with the hero (`clayEntrance(HERO_ENTRANCE_ORDER)`); the blobs remain the only drifting elements |
-| **A Continue chip arriving or leaving after first paint** *(2026-10-21, D-03n)* | the chip's room opens from 0 over `ClayAnim.ENTRANCE_MS` with `ClayAnim.ENTRANCE_EASING`, no overshoot; the stage gives up the same height in the same frames, its art following the stage's size (the pegs on it do not move relative to the board), and the ribbon rides on the stage's edge; the chip enters with its existing `clayEntrance`; the hero row and the mode tiles hold still in every frame (§4.2.5) |
+| **A Continue chip arriving or leaving after first paint** *(2026-10-21, D-03n)* | the chip's room opens from 0 over `ClayAnim.ENTRANCE_MS` with `ClayAnim.ENTRANCE_EASING`, no overshoot; the stage gives up the same height in the same frames, its art following the stage's size (the pegs on it do not move relative to the board), and the ribbon rides on the stage's edge; the chip enters with its existing `clayEntrance` but with no stagger delay, its fade starting with its room; the hero row and the mode tiles hold still in every frame; the entrance cascade above is independent of it and is never restarted by it (§4.2.5) |
 | **Show-moves On ↔ Off** *(2026-09-28, D-04e — replaces "Show-moves toggling ON/OFF")* | fill and ring cross-fade over `ClayAnim.PRESS_IN_MS`; glyph cross-fades to its variant (slashed / plain) over the same; the on mark scales in with `overshootSpring()` and out without overshoot |
 | **Dock action Available ↔ Unavailable** *(D-04e)* | fill, shadow and glyph strength cross-fade over `ClayAnim.PRESS_IN_MS`; Available → Working is instant (it confirms the tap) |
 
@@ -4045,14 +4063,19 @@ Home order: title → gear → ribbon pills → Continue chips → mode tiles. T
 seconds", and is never announced on its own (§4.3.2). A Continue chip arriving after first paint is not
 announced either and moves no stop a player is on; it joins the order in its place. Criterion 26b lists
 the stops, in order, with the string each speaks, for the device pass.
-*(Pointer 2026-10-21 — criterion 26b.)* "Board" in the tutorial and gameplay orders above names a
-position, not a focus stop. The board has no semantics on this branch (`BoardCanvas.kt:196-212`), so
-TalkBack goes from Skip to the caption and from the timer to the dock, and 26b expects exactly that.
-That a TalkBack player can neither hear the board nor play it — no cell is reachable, no peg can be
-selected — predates this refresh, is not changed by it, and is outside 3.0.0. It is recorded
-here as an open accessibility item for a later version: making the board playable without sight is a
-design of its own (cell focus, a peg/hole/selected state per cell, and jump actions), owned by this role
-with the game-designer, and needs its own decision and criteria.
+*(Recorded gap, 2026-10-21 — criterion 26b.)* **The two orders above list the board as a TalkBack
+stop, and the build has never met that.** On this branch the board carries no label, text, role or
+action (`BoardCanvas.kt:196-212`; `GameScreen.kt:193-207`, whose three custom keys are test-only;
+`TutorialScreen.kt:245-263`), so TalkBack goes from Skip to the caption and from the timer to the dock,
+and a TalkBack player can neither hear the board nor play it: no cell is reachable, and no peg can be
+selected. The board is interactive on both screens, so this is also short of rules/compose.md's
+"contentDescription or semantics role on every interactive element". The gap predates phase 15, which
+neither made it nor closed it. The first-edition orders above stand as written; they are the design
+statement the build falls short of, not a description of today's build. Criterion 26b's order, which
+leaves the board out, describes today's build so that the device pass can be read; it does not relax
+the orders above. **Release scope is routed by the producer to the game-designer (and the founder);
+the ruling is pending at `.planning/reports/ux-spec-folds/game-designer-talkback-board.md`.** Until
+it lands, this document rules neither the board's semantics nor its release.
 
 **Sound is never the only feedback** (rules/audio.md). Every cue in this refresh is paired: the
 jump has the slide and the removal; selection has the ring and the pulse; the invalid tap has the
@@ -4116,6 +4139,10 @@ is 0 and 15k's numbers stand. **Gameplay, every size**: each system bar is appli
 §4.3.1), which is what lets the larger title and timer cost the board nothing on a 360×640dp phone
 at both 1.0 and 2.0 font scale.
 
+*(Pointer 2026-10-21 — D-03n, §4.2.5.)* The ≈150–280dp range above is the 3 : 1 split's. Under D-03n
+the stage on QA's 6.7-inch window is 326.3, 230.3 and 134.3dp with no, one and both chips (the art
+capped at 320dp), and the tiles hold the same place in all three states.
+
 ---
 
 ## 13. Test impact (read this before writing code)
@@ -4127,7 +4154,7 @@ Existing tests this refresh **will** break, with the fix:
 | `ButtonSoundTest.kt:105-123` `theHomeTopBarHowToPlayAndSettingsIconsMakeNoSound` | Clicks `R.string.how_to_play` by content description; that button and that string are deleted (D-02) | Retarget **narrowed, not moved**: keep the gear half (still silent, still on Home) and **drop** the how-to-play half rather than pointing it at the Settings row — that row is a navigational CTA and deliberately **plays** `SoundCue.ButtonForward` (§4.5, D-09), so re-aiming a *makes-no-sound* assertion at it would assert the opposite of the contract. The row's cue is covered positively by criterion 9 and by SOUND-04 (§16). |
 | `HomeScreenTest.kt:148-159` `theProfileSwapDialogIsNeverStackedOnTheOnboardingOverlay` | Locates the overlay by the hardcoded literal `"Got it"` (`:367`) and the overlay stops being hosted by Home (D-01f/D-01g) | **Retarget, never delete:** `theProfileSwapDialogIsNeverRaisedWhileTheTutorialIsStillPending`, finding the dialog by `PROFILE_SWAP_DIALOG_TEST_TAG` as today and the pending state by the state field — never by button copy |
 | `ButtonSoundTest.kt:226-244` | Clicks `navigate_back` and `show_moves_on` on the game screen | **Passes unchanged** — both content descriptions are deliberately preserved (D-05b, §4.4) |
-| `GameFlowTest.kt:129` | Finds the timer by `elapsed_time` | **Passes unchanged** — deliberately preserved (§4.3) |
+| `GameFlowTest.kt:129` | Finds the timer by `elapsed_time` | **Passes unchanged** — deliberately preserved (§4.3). *(Superseded 2026-10-21 — D-05e, §4.3.2: the description now starts with `elapsed_time` and goes on to the spoken duration, so this test is retargeted; see the 2026-10-21 table below.)* |
 
 **Device checklist that must keep working.** `11-HUMAN-UAT.md` tests 10, 11 and 13 read their
 pass/fail off the three Home readouts in §4.2.1. This refresh is designed so those tests run
@@ -4193,7 +4220,7 @@ D-03l / D-04e / D-05d)*:
 | Test | Effect | Fix |
 |------|--------|-----|
 | `ButtonSoundTest.kt:226-244` | Finds the back chip by `navigate_back` and the toggle by `show_moves_on` | **Passes unedited** — both descriptions survive, and `show_moves_on` is now the toggle's name in both states. If it needs an edit, a description drifted; fix the production code. |
-| `GameFlowTest.kt:129` | Finds the timer by `elapsed_time` | **Passes unedited.** |
+| `GameFlowTest.kt:129` | Finds the timer by `elapsed_time` | **Passes unedited.** *(Superseded 2026-10-21 — D-05e, §4.3.2: retargeted, never deleted; see the 2026-10-21 table below.)* |
 | `GameScreenChromeTest.showMovesCarriesItsStateByFillAndNotByTintAlone` (a phase-15 test) | Reads `DockActionFilledKey` and the `show_moves_on`/`show_moves_off` pair; the key is replaced and the off string deleted | **Retarget, never delete or `@Ignore`:** assert the On/Off look property, the `ToggleableState`, `Role.Switch` and the constant name. A name that says what it now proves, e.g. `showMovesCarriesItsStateByFillRingMarkAndSwitchStateNeverByTint`. |
 | Any other test reading `DockActionFilledKey` | The key is replaced by the look property | Retarget to the look property. |
 | `HomeLayoutTest` / `HomeScreenTest` assertions (Home's geometry moved to `HomeLayoutTest` in the S10 slice) that the hero art is present on a tall window, absent on the narrow baseline, or that the compact hero is a separate shape (criteria 15k part 4, 15l's third window) | There is no hero art on any window and one hero shape | Retarget "hero art present" to "stage art present" and "hero art absent" to "no stage art on an overflowing column"; the full/compact distinction is now spacing and pill shape only. Retarget, never delete or `@Ignore`. |
@@ -4472,9 +4499,9 @@ which build all three apply to.
      for the window, and "the empty space left below the second mode tile" is the footer, without the
      band gap after the tile or the column's bottom padding. Under D-03n the footer is a fifth of S₀ in
      every state, so the clause holds in both. Read against the slack left once the chips are in, the
-     same footer would be 38 % on QA's native window with both chips, and no footer that keeps the
-     tiles still can pass that reading; it was the right reading only while the footer moved with the
-     chips. The midpoint, the bottom edge and the largest-gap clauses are unchanged, and the loop-3
+     same footer would be 38 % on QA's native window with both chips. No footer ratio meets that
+     reading and 15p part 1 together, except on a knife edge under 0.1dp wide on one window (§4.2.5);
+     that reading worked only while the footer moved with the chips. The midpoint, the bottom edge and the largest-gap clauses are unchanged, and the loop-3
      PASS stands on both readings for the build it measured.)*
 
 15h. *(**RETIRED 2026-09-28 — D-03k, §4.2.3. It is not achievable, and it was certified by an
@@ -4689,12 +4716,31 @@ and retro-certify nothing. Every criterion above stands; 15r gains a pointer.
 15v. **On the device, Home holds still and draws whole.** On `Pixel_9a_bench` at its native window and
      at 360×640dp (`wm size` / `wm density`) — **only after the branch's own 15e sitting, in the same
      session**, as the tech-lead's H-3 ran its device checks, because the bench is otherwise reserved
-     for 15e (§6.5 precondition 1; `tech-lead-signoff-close.md` D-1 condition 3) — the qa-engineer
-     screen-records a cold start for a player with one save and for one with two, and reads it frame
-     by frame from first paint until the chips have settled: the hero row and both mode tiles sit on the same pixels (±1px) in every frame; the
-     ribbon moves only upward, by the chips' room, and only while the chips arrive; the first frame that
-     draws the stage slab draws its pegs; and the first frame that draws a mode tile draws its art. One
-     recording is repeated with OS animations off. (D-03n parts 1, 3 and 4; criteria 15f, 25)
+     for 15e (§6.5 precondition 1; `tech-lead-signoff-close.md` D-1 condition 3; if the tech-lead's
+     text says otherwise, it governs) — the qa-engineer screen-records a cold start for a player with
+     one save and for one with two, **twice each: once with OS animations off and once with them on**,
+     and reads each recording frame by frame from first paint until the chips have settled. Afterwards
+     QA restores `wm size`, `wm density` and the seeded saves, as H-3 did.
+     1. **With animations off — the position read.** Every frame is the layout. The hero row and both
+        mode tiles sit on the same pixels (±1px) in every frame. The ribbon moves only upward, by the
+        chips' room, and only in the frame the chips arrive.
+     2. **With animations on — the motion read.** Two motions are allowed and no third. One is §10's
+        entrance cascade, in which each band drawn at first paint fades and slides up into place over
+        `ClayAnim.ENTRANCE_MS` after its stagger. The other is the chips' room opening (§4.2.5, "The
+        motion"). The cascade is a drawing offset, not a layout change, so position is read from the
+        first frame in which every band drawn at first paint has finished its entrance. From that frame
+        on, part 1's rules apply, with the ribbon allowed to glide upward while the room opens. In the
+        settled frames, the hero row's and the tiles' pixels equal those of the animations-off recording
+        of the same window and state (±1px).
+     3. **If the chips land while the cascade is still running** — possible on a phone that decodes the
+        snapshots quickly — no band's entrance restarts or changes its target. Every band finishes its
+        entrance at the position it holds in the animations-off recording, and the position read starts
+        from the first frame in which both the cascade and the room have settled. A band that ends its
+        entrance somewhere else, or whose entrance starts again, fails.
+     4. **In every frame of both recordings, the cascade included:** the first frame that draws the stage
+        slab draws its pegs (they fade together, at one alpha), and the first frame that draws a mode tile
+        draws its art.
+     (D-03n parts 1, 3 and 4; §10; criteria 15f, 15u, 25)
 
 15w. **No word breaks; one shape per ribbon.** Given Home on `w360dp-h640dp`, insets supplied, with
      NATIVE text metrics in the app theme (the real faces), at font scales 1.0, 1.3 and 2.0, with Stars
@@ -4824,6 +4870,12 @@ criteria 19–24 above stand unchanged; these seven make "on or off" legible and
     expected consequence of reduced motion. (rules/compose.md, §10, §14 7c)
 26. Every new interactive element is at least 48dp, at least 8dp from its neighbours, and reachable
     by TalkBack with a meaningful label, in both light and dark. (rules/compose.md, §11)
+    *(Pointer 2026-10-21 — §11's recorded gap.)* Whether the **tutorial board** — §4.1's one
+    interactive element, on a screen this refresh made new — is inside this criterion is **pending the
+    same ruling**: release scope is routed by the producer to the game-designer (and the founder), at
+    `.planning/reports/ux-spec-folds/game-designer-talkback-board.md`. Until it lands, a pass of 26
+    records the board's result separately and does not decide it either way. The gameplay board predates
+    this refresh and is not a "new" element. It is covered by the same recorded gap in §11.
 
 26a. **How 26 is checked, and what does not count as failing it** *(added 2026-09-28, §11 "The
      unmerged tree is not the contract")*. Criterion 26 is checked with **TalkBack running on a
@@ -4858,9 +4910,11 @@ criteria 19–24 above stand unchanged; these seven make "on or off" legible and
      **The board is not a stop, on gameplay or in the tutorial.** On this branch it carries no label,
      text, role or action (`BoardCanvas.kt:196-212`; `GameScreen.kt:193-207`, whose three custom keys
      are test-only; `TutorialScreen.kt:245-263`), so TalkBack's swipe goes from the timer to Undo and
-     from Skip to the caption, and that is the order this criterion expects. If a later change gives the
-     board semantics, it is visited in its screen position — after the timer, after Skip — and is
-     neither required nor judged here; the board's own accessibility is a separate item (§11).
+     from Skip to the caption, and that is the order this criterion expects of today's build. If a
+     later change gives the board semantics, it is visited in its screen position — after the timer,
+     after Skip — and is neither required nor judged here. Whether the board must become a stop, and
+     whether 3.0.0 ships without it, is §11's recorded gap, pending the ruling routed to the
+     game-designer (and the founder) at `.planning/reports/ux-spec-folds/game-designer-talkback-board.md`.
      A missing stop, an extra stop, a stop out of this order, two stops for one control, or a stop that
      speaks no label fails; 26a's other lines apply unchanged. Run once in light and once in dark, at
      default font scale, in the same sitting as 18g. (D-05e, §11, criteria 26, 26a)
