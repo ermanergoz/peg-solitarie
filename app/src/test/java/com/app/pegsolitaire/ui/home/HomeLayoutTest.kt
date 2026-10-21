@@ -1,6 +1,10 @@
 package com.app.pegsolitaire.ui.home
 
 import androidx.annotation.DimenRes
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertHasClickAction
@@ -8,6 +12,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -17,9 +22,11 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.testing.applySystemBarInsets
+import com.app.pegsolitaire.testing.renderedWindow
 import com.app.pegsolitaire.ui.home.fixture.BOARDS_PILL
 import com.app.pegsolitaire.ui.home.fixture.CONTINUE_LABEL
 import com.app.pegsolitaire.ui.home.fixture.DOUBLE_FONT_SCALE
@@ -46,6 +53,7 @@ import com.app.pegsolitaire.ui.home.fixture.renderedValues
 import com.app.pegsolitaire.ui.home.fixture.ribbonPillCount
 import com.app.pegsolitaire.ui.home.fixture.settingsLabel
 import com.app.pegsolitaire.ui.home.fixture.starsLabel
+import com.app.pegsolitaire.ui.theme.LightColors
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Rule
@@ -55,6 +63,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import kotlin.math.abs
+import kotlin.math.ceil
+import kotlin.math.floor
 
 /**
  * Home's **geometry**: the vertical slack (D-03i, §4.2.2, criteria 15g–15j) and the narrow window
@@ -370,16 +381,17 @@ class HomeLayoutTest {
      * Criterion 15m — the last yield costs no readout, half one: the pill's label sits **beside**
      * its value on one line, and the decorative glyph is not composed.
      *
-     * The glyph carries `contentDescription = null` inside a `clearAndSetSemantics` node, so it
-     * has no semantics node in either tree and cannot be asserted absent directly. What is
-     * observable is the consequence, and it is the stronger claim anyway: label and value share a
-     * line (their vertical extents overlap, which stacked text cannot do) with the label before
-     * the value, and the whole band measures no more than [COMPACT_RIBBON_MAX_HEIGHT_DP]. A
-     * stacked pill with a 20dp glyph over two text lines fails both.
+     * The shape is read on the Boards pill, whose label and value are both unique strings on the
+     * screen — the Stars total and the ladder level are the same number in [bothResumesState], and
+     * a locator that matched two nodes would prove nothing. Label and value share a line (their
+     * vertical extents overlap, which stacked text cannot do), the label first, and the whole band
+     * measures no more than [COMPACT_RIBBON_MAX_HEIGHT_DP].
      *
-     * The Boards pill is the one interrogated because its label and its value are both unique
-     * strings on the screen — the Stars total and the ladder level are the same number in
-     * [bothResumesState], and a locator that matched two nodes would prove nothing.
+     * **None of that sees a glyph.** Put back inline before the label, a 20dp glyph changes neither
+     * the line nor the band's height (the H-1 audit's M3b, under which every Home suite stayed
+     * green), and as `contentDescription = null` decoration it leaves no description and no text in
+     * either semantics tree. What a glyph cannot avoid is being drawn, so the absence is read off
+     * the pixels ([assertEachPillPaintsOnlyItsSurfaceAndItsTexts]), on all three pills.
      */
     @Test
     @Config(qualifiers = SHORT_PHONE_QUALIFIER)
@@ -395,6 +407,8 @@ class HomeLayoutTest {
         // Label first, which is also the order the pill speaks them in.
         assertThat(label.right).isAtMost(value.left)
         assertThat(ribbonHeight()).isAtMost(COMPACT_RIBBON_MAX_HEIGHT_DP.dp)
+        // No glyph: inside its padding, each pill paints its surface and its two texts, nothing else.
+        assertEachPillPaintsOnlyItsSurfaceAndItsTexts()
     }
 
     /**
@@ -590,6 +604,78 @@ class HomeLayoutTest {
         return with(composeRule.density) { range.maxValue().toDp() }
     }
 
+    /**
+     * Criterion 15m's "no decorative glyph", read where a glyph cannot hide: in what the pill paints.
+     *
+     * Each pill is read inside its own padding (`spacing_sm`, the box its content is laid out in),
+     * skipping its label's and its value's own bounds, each widened by [TEXT_INK_MARGIN_DP] for the
+     * text's anti-aliased edge. Every pixel left must be the pill's `surfaceContainerHigh` in the
+     * light scheme the fixture draws in; any other is something else the pill paints. Read from the
+     * flat render ([renderedWindow]), where a fill is exact and no elevation shadow reaches into a
+     * pill. The texts are found by their text semantics alone, so a glyph that did carry a node
+     * would still be read.
+     */
+    private fun assertEachPillPaintsOnlyItsSurfaceAndItsTexts() {
+        val window = composeRule.renderedWindow()
+        val surface = LightColors.surfaceContainerHigh.toArgb()
+        val padding = with(composeRule.density) { dimen(R.dimen.spacing_sm).toPx() }
+        val inkMargin = with(composeRule.density) { TEXT_INK_MARGIN_DP.dp.toPx() }
+        val pills =
+            composeRule
+                .onNode(hasTestTag(HOME_PROGRESS_RIBBON_TEST_TAG), useUnmergedTree = true)
+                .fetchSemanticsNode()
+                .children
+        assertThat(pills).hasSize(RIBBON_PILLS)
+
+        pills.forEachIndexed { index, pill ->
+            val texts = pill.textsWithin().map { it.boundsInRoot.inflate(inkMargin) }
+            val read =
+                pill.boundsInRoot
+                    .deflate(padding)
+                    .wholePixels()
+                    .filter { pixel -> texts.none { it.contains(pixel.centre()) } }
+            val strays = read.filterNot { isPaintedIn(window.getPixel(it.x, it.y), surface) }
+
+            assertWithMessage("pill $index: pixels read outside its texts").that(read).isNotEmpty()
+            assertWithMessage(
+                "pill $index paints ${strays.size} px besides its surface and its texts, ${spanOf(strays)}",
+            ).that(strays.size)
+                .isEqualTo(0)
+        }
+    }
+
+    /** Every descendant carrying text: the pill's label and its value. */
+    private fun SemanticsNode.textsWithin(): List<SemanticsNode> =
+        children.flatMap { child ->
+            listOfNotNull(child.takeIf { SemanticsProperties.Text in it.config }) + child.textsWithin()
+        }
+
+    /** The pixels lying wholly inside this rect, in px. */
+    private fun Rect.wholePixels(): List<IntOffset> =
+        (ceil(top).toInt() until floor(bottom).toInt()).flatMap { y ->
+            (ceil(left).toInt() until floor(right).toInt()).map { x -> IntOffset(x, y) }
+        }
+
+    private fun IntOffset.centre(): Offset = Offset(x + HALF_PIXEL, y + HALF_PIXEL)
+
+    /** Where a set of pixels lies, for a failure message: "x 199..214, y 323..336 (px)". */
+    private fun spanOf(pixels: List<IntOffset>): String =
+        if (pixels.isEmpty()) {
+            "none"
+        } else {
+            "x ${pixels.minOf { it.x }}..${pixels.maxOf { it.x }}, " +
+                "y ${pixels.minOf { it.y }}..${pixels.maxOf { it.y }} (px)"
+        }
+
+    /** Whether [pixel] is [colour] to within [PAINT_TOLERANCE] a channel: a flat fill renders exact. */
+    private fun isPaintedIn(
+        pixel: Int,
+        colour: Int,
+    ): Boolean =
+        COLOUR_CHANNEL_SHIFTS.all { shift ->
+            abs((pixel shr shift and CHANNEL_MASK) - (colour shr shift and CHANNEL_MASK)) <= PAINT_TOLERANCE
+        }
+
     /** The progress ribbon band's measured height — criterion 15m's ceiling is on this. */
     private fun ribbonHeight(): Dp {
         val bounds = composeRule.onNodeWithTag(HOME_PROGRESS_RIBBON_TEST_TAG).getBoundsInRoot()
@@ -690,6 +776,22 @@ private const val NARROW_MAX_OVERFLOW_DP = 120
 
 /** Criterion 15m: the compact-narrow ribbon band's design target at default font scale. */
 private const val COMPACT_RIBBON_MAX_HEIGHT_DP = 56
+
+/**
+ * How far a text's ink may stray past its layout bounds on the anti-aliased edge, in dp. Measured
+ * clean at 1dp; 2dp is still half the `spacing_xs` a glyph beside a label would sit at.
+ */
+private const val TEXT_INK_MARGIN_DP = 2
+
+/** A pixel's centre, from its top-left corner. */
+private const val HALF_PIXEL = 0.5f
+
+/** The red, green and blue channels of an ARGB pixel, by their bit shift; alpha is not read. */
+private val COLOUR_CHANNEL_SHIFTS = listOf(0, 8, 16)
+private const val CHANNEL_MASK = 0xFF
+
+/** One level a channel: a flat fill renders exact in the software path. */
+private const val PAINT_TOLERANCE = 1
 
 /** Two halves of a screen — the midpoint criterion 15g is asserted against. */
 private const val HALVES = 2f
