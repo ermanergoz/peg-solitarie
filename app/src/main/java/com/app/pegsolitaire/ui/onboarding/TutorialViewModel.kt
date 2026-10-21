@@ -162,7 +162,7 @@ class TutorialViewModel
                 selected != null && position in state.board.legalTargets -> jump(from = selected, to = position)
                 // A peg selects only while NOTHING is held — the game's rule, above.
                 selected == null && board.cellAt(position) == Cell.Peg -> select(position)
-                else -> registerNonProgressingTap()
+                else -> registerNonProgressingTap(position)
             }
         }
 
@@ -269,7 +269,15 @@ class TutorialViewModel
                     // replaced: a fresh step board starts at the fail-open `true`, and the
                     // DataStore flow does not re-emit an unchanged value, so a value captured
                     // outside the lambda could lose a collector emission landing between the two.
-                    _uiState.update { TutorialUiState.forStep(nextIndex, hapticsOn = it.board.hapticsOn) }
+                    // The wrong-tap ordinal is carried the same way, under the house tick rule the
+                    // gameplay board's four install sites follow (D-06, §3.7).
+                    _uiState.update {
+                        TutorialUiState.forStep(
+                            index = nextIndex,
+                            hapticsOn = it.board.hapticsOn,
+                            rejectedTapTick = it.board.rejectedTapTick,
+                        )
+                    }
                     armNudge()
                 }
             }
@@ -285,8 +293,19 @@ class TutorialViewModel
          * A tap that changed nothing (§4.4 classes 1 and 2). It is never a failure: the
          * selection and the board are untouched, nothing is announced as wrong, and on the
          * third such tap the coach escalates once.
+         *
+         * It records the same wrong-tap signal as the gameplay board — the ordinal and the
+         * tapped cell, on the board's own state — because the board's redirect is drawn from it
+         * (D-01j(2)): the held peg's dots re-pop, or its ring nudges. That is assistance ("look
+         * here"), never correction: the canvas draws no shake or mark here, and this screen hosts
+         * no reject haptic, cue or announcement.
          */
-        private fun registerNonProgressingTap() {
+        private fun registerNonProgressingTap(position: Position) {
+            _uiState.update {
+                it.withBoard(
+                    it.board.copy(rejectedTapTick = it.board.rejectedTapTick + 1, rejectedTapCell = position),
+                )
+            }
             nonProgressingTaps += 1
             if (nonProgressingTaps >= TutorialAnim.NON_PROGRESSING_TAPS_BEFORE_COACH) {
                 escalateCoach()

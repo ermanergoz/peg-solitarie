@@ -103,7 +103,9 @@ class TutorialHapticsTest {
         tapCell(T2_IMMOVABLE_PEG) // T-W2: a different peg while one is held
         tapCell(T2_ILLEGAL_HOLE) // T-W3: a hole that is not a destination while one is held
 
-        // The taps landed: the held peg is still held, so none of them moved anything.
+        // The three taps landed as wrong taps — recorded on the board, which drew its redirect —
+        // and the held peg is still held, so none of them moved anything.
+        assertThat(viewModel.uiState.value.board.rejectedTapTick).isEqualTo(THREE_WRONG_TAPS)
         assertThat(viewModel.uiState.value.board.selected).isEqualTo(T2_MOVABLE_PEG)
         assertThat(haptics.events).isEmpty()
     }
@@ -146,6 +148,9 @@ class TutorialHapticsTest {
 
         /** The OS animator duration scale a player with reduced motion has set (criterion 25). */
         const val ANIMATIONS_OFF = 0f
+
+        /** T-W1, T-W2 and T-W3, one each. */
+        const val THREE_WRONG_TAPS = 3
 
         /** T2's only movable peg. */
         val T2_MOVABLE_PEG = Position(row = 0, col = 1)
