@@ -49,8 +49,8 @@ line in `docs/store/` (see `docs/store/README.md`). This keeps the 3.0.0 section
 claiming work that has not landed.*
 
 A complete rewrite of Peg Solitaire, and the first build of this codebase to reach the store. The
-game now has a voice, remembers you across devices, competes, and — where it was quietly guessing
-before — tells you the truth.
+game now has a voice, remembers you across devices, competes, and answers hints on the big boards
+from a built-in opening book.
 
 ### Added
 
@@ -102,7 +102,7 @@ before — tells you the truth.
   it earned.
 - **The clock stops for every ad.** The elapsed game clock is frozen for the whole time an ad is on
   screen and resumes when it is dismissed, so watching one can never cost you score. A hint that
-  honestly answers "there is no winning move from here" costs neither an allowance nor an ad.
+  shows no move costs neither an allowance nor an ad.
 - **If an ad cannot load, you still get the assist.** No-fill, a failed load or a failed consent
   flow all hand you the hint or the undo anyway, with a brief explanation. There is no dead end.
 - **Ads consent, before anything is requested.** On a fresh install in a region that requires it,
@@ -134,11 +134,10 @@ before — tells you the truth.
   colour waves and slowly drifting light sits behind the menu and the board, and the Home mode
   cards have a glossy finish. The board and the pegs are unchanged. The motion stops when the
   system's animations are turned off.
-- **Hints tell the truth on the hard boards.** Asking for a hint from a difficult early position on
+- **Faster hints on the big boards.** Asking for a hint from the opening positions of
   European-37, Asymmetric-39 or Wiegleb-45 now returns a real winning move inside the same
-  one-and-a-half-second deadline, instead of folding to the "no winning move" banner. It is
-  answered from a built-in opening book for the first four moves (three on Wiegleb-45) and by a
-  rebuilt solver beyond it, so "no winning move" now means *proven*, not *gave up*.
+  one-and-a-half-second deadline. It is answered from an opening book that covers the first moves
+  of every Classic board, and by a rebuilt solver beyond it.
 - **Star ratings are measured against what each board can actually reach.** Every board's star
   bands are derived from that board's own fewest-peg floor rather than from one shared assumption.
 - **A hint you ask for while the board is changing is cancelled**, rather than arriving late and

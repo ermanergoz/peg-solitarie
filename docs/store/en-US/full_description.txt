@@ -12,7 +12,7 @@ A short tutorial teaches the rules on a real board, one jump at a time. A wrong 
 
 Help when you want it
 
-Hint shows a real winning move, and when it says there is no winning move, there is none from that position. Undo takes back your last jump. Every level gives you a free allowance of both. Once it is spent, you can choose to watch an ad for one more, or carry on without.
+Hint shows a real winning move. Undo takes back your last jump. Every level gives you a free allowance of both. Once it is spent, you can choose to watch an ad for one more, or carry on without.
 
 Stars and bests
 

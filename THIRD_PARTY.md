@@ -57,13 +57,13 @@ actually on this app's graph. The authoritative per-coordinate enumeration is
 
 which is **not run in this document** (this branch is a documentation task under an explicit
 "avoid Gradle" constraint). `docs/release-checklist.md` item 3.5 runs it on the release branch and
-requires that every coordinate it prints falls under a family row below. **§5b is not complete
-today (2026-10-21), by licence or by coordinate.** The research-analyst's reading of the
-2026-09-15 release dependency report found families on the graph that §5b does not list, including
-BSD-3-Clause, MIT and MPL-2.0 ones and one Google SDK whose licence is unverified
-(`.planning/reports/phase-14/research-analyst-font-licences.md`, open issue 1). Their rows come
-with the research-analyst's per-family verdict; the notice duties they carry are open item §16 #20
-of `docs/tech-design.md`.
+requires that every coordinate it prints falls under a family row below. **§5b is complete by
+licence, not yet by coordinate (2026-10-21).** The research-analyst resolved the POM of every one
+of the 192 coordinates in the 2026-09-15 release dependency report, following parent chains: none
+has an unknown licence and none is copyleft (`.planning/reports/phase-14/research-analyst-release-docs-licences.md`).
+The families that §5b used to miss (BSD-3-Clause, MIT, MPL-2.0 and the Google SDK `hsdp`) now have
+rows with that verdict. Two things stay open: the per-coordinate listing on the release branch
+(U-6, §6), and the notice duties those rows carry, open item §16 #20 of `docs/tech-design.md`.
 
 **How a licence was established.** In order of strength: (1) the `<licenses>` block of the
 artifact's own POM in the local Gradle module cache; (2) a `LICENSE`/`NOTICE` file inside the
@@ -196,14 +196,20 @@ One row per coordinate declared at `implementation` in `app/build.gradle.kts`. V
 | `com.google.dagger:hilt-android` | 2.60 | Apache-2.0 | POM `<licenses>` ("Apache 2.0") |
 | `org.jetbrains.kotlinx:kotlinx-serialization-json` | 1.11.0 | Apache-2.0 | JetBrains published terms for kotlinx.serialization; no POM and no bundled licence file for the `-jvm` variant in the local cache |
 | `org.jetbrains.kotlinx:kotlinx-coroutines-play-services` | 1.11.0 | Apache-2.0 | POM `<licenses>` ("Apache-2.0") |
-| `com.google.android.gms:play-services-games-v2` | 22.0.0 | **Android Software Development Kit License Agreement** — proprietary, redistribution permitted as part of an application | POM `<licenses>`: *Android Software Development Kit License*, https://developer.android.com/studio/terms.html |
-| `com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk` (Google Mobile Ads, Next-Gen) | 1.4.0 | **Android Software Development Kit License Agreement** — proprietary, redistribution permitted as part of an application | POM `<licenses>`, same text as above |
-| `com.google.android.ump:user-messaging-platform` | 4.0.0 | **unverified** — see §6 | No POM in the local Gradle cache; the AAR carries `third_party_licenses.txt` for its *dependencies* but no licence of its own |
+| `com.google.android.gms:play-services-games-v2` | 22.0.0 | **Android Software Development Kit License Agreement** (declared in the POM) — proprietary Google SDK, not open source; licensed for building Android apps and published by Google on its Maven repository for inclusion in them; shipped unmodified | POM `<licenses>`: *Android Software Development Kit License*, https://developer.android.com/studio/terms.html. POM fetched again 2026-10-21 from https://dl.google.com/dl/android/maven2/com/google/android/gms/play-services-games-v2/22.0.0/play-services-games-v2-22.0.0.pom (row C; I-1 closed, `.planning/reports/phase-14/research-analyst-release-docs-licences.md`) |
+| `com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk` (Google Mobile Ads, Next-Gen) | 1.4.0 | **Android Software Development Kit License Agreement** (declared in the POM) — proprietary Google SDK, not open source; licensed for building Android apps and published by Google on its Maven repository for inclusion in them; shipped unmodified | POM `<licenses>`, same text as above. POM fetched again 2026-10-21 from https://dl.google.com/dl/android/maven2/com/google/android/libraries/ads/mobile/sdk/ads-mobile-sdk/1.4.0/ads-mobile-sdk-1.4.0.pom (row D; I-1 closed). 98 bundled components in its `third_party_licenses.txt` |
+| `com.google.android.ump:user-messaging-platform` | 4.0.0 | **Android Software Development Kit License Agreement** (declared in the POM) — proprietary Google SDK, not open source; licensed for building Android apps and published by Google on its Maven repository for inclusion in them; shipped unmodified | POM `<licenses>`: *Android Software Development Kit License*, fetched 2026-10-21 from https://dl.google.com/dl/android/maven2/com/google/android/ump/user-messaging-platform/4.0.0/user-messaging-platform-4.0.0.pom (row B). **U-1 closed** (§6). Its AAR's `third_party_licenses.txt` (59 bundled components) covers its dependencies |
 
 **Not Apache-2.0, and that matters.** The three Google SDK coordinates above are *not* open source.
 Recording them as Apache-2.0 because the rest of the table is Apache-2.0 would be a false row in
-the exact document the release gate reads. They are permitted — their own terms allow
-redistribution inside an application — and they are proprietary.
+the exact document the release gate reads. The Android SDK License Agreement grants a licence "to
+use the SDK solely to develop applications for compatible implementations of Android" (§3.1) and
+bars redistributing "the SDK or any part of the SDK" except as third-party licences require
+(§3.4). No clause expressly says "you may ship these libraries inside your app". The permission to
+ship rests on Google publishing these artifacts on its Maven repository as app dependencies, with
+integration guides that tell developers to include them; §3.8 asks that Google's notices stay
+intact. The research-analyst's verdict is **CLEAN** (known licence from the rights holder, not
+copyleft, shipped unmodified), not an escalation (`.planning/reports/phase-14/research-analyst-release-docs-licences.md`, verdicts #1 to #3).
 
 ## 5. Transitive dependencies
 
@@ -216,38 +222,58 @@ its members are published under and the evidence for it.
 
 | Family | Examples on this graph | Licence | How verified |
 |---|---|---|---|
-| `androidx.*` (Compose runtime/foundation/animation/graphics, annotation, collection, arch.core, savedstate, lifecycle-*, sqlite, startup, profileinstaller, emoji2, tracing, versionedparcelable …) | pulled by Compose, Room, DataStore, Navigation, Activity | Apache-2.0 | AndroidX is published under Apache-2.0; six member POMs read directly from the local cache all declare "The Apache Software License, Version 2.0", and `room-runtime` ships the full text inside its AAR |
+| `androidx.*` (Compose runtime/foundation/animation/graphics, annotation, collection, arch.core, savedstate, lifecycle-*, sqlite, startup, profileinstaller, emoji2, tracing, versionedparcelable …) | pulled by Compose, Room, DataStore, Navigation, Activity | Apache-2.0, **except** `androidx.datastore:datastore-preferences-external-protobuf` 1.2.1, which is **BSD-3-Clause** (row G below) | AndroidX is published under Apache-2.0; six member POMs read directly from the local cache all declare "The Apache Software License, Version 2.0", and `room-runtime` ships the full text inside its AAR. The exception's own POM declares BSD-3-Clause ("Repackaged proto-lite dependency for use by datastore preferences"), and its in-APK `LICENSE.txt` has no copyright line (row G) |
 | `org.jetbrains.kotlin:*` (kotlin-stdlib and friends) | required by every Kotlin artifact | Apache-2.0 | POM `<licenses>`: "Apache-2.0" |
 | `org.jetbrains.kotlinx:*` (coroutines-core-jvm, coroutines-android, serialization-core-jvm, atomicfu) | coroutines and serialization runtimes | Apache-2.0 | `kotlinx-coroutines-play-services` POM declares Apache-2.0; the rest are siblings from the same publisher under the same published terms |
 | `com.google.dagger:*` (dagger, dagger-lint-aar) | Hilt runtime | Apache-2.0 | POM `<licenses>` |
-| `com.google.android.gms:*` (play-services-basement, -base, -tasks, -auth-*, and the Games v2 siblings) | Play Games v2 | Android Software Development Kit License Agreement — proprietary, redistribution permitted | the `play-services-games-v2` POM declares it; every artifact in this family is distributed under the same Android SDK terms |
-| `com.google.guava:*`, `com.google.errorprone:*`, `org.checkerframework:*`, `javax.inject:*` (if present via Dagger/Play services) | small annotation/utility libraries | Apache-2.0 (checkerframework annotations: MIT) | Publishers' published terms — **not individually verified here**; the release-branch dependency listing (§0) is what confirms whether they are on the classpath at all |
+| `com.google.android.gms:*` (play-services-basement, -base, -tasks, -ads-identifier, -appset, -cronet; no `-auth-*` artifact is on this graph) | Play Games v2, Mobile Ads, UMP, hsdp | Android Software Development Kit License Agreement (declared in each POM) — proprietary Google SDK, not open source; shipped unmodified | Each member's POM read 2026-10-21; row E below |
+| `com.google.guava:*`, `com.google.errorprone:*`, `javax.inject:*`, and the other Apache-2.0 libraries in the third table below | small annotation/utility libraries | Apache-2.0 | Each POM read 2026-10-21 (third table below). `org.checkerframework:checker-qual` is **MIT**, row I |
 
-**Open item: this table is incomplete, and it blocks the release.** §5b has not been checked
-against a real `releaseRuntimeClasspath` listing, and it is already known to miss families. The
-2026-09-15 release dependency report names families with no row here: OkHttp, Okio, Gson, Tink,
-`jakarta.inject-api` and further annotation libraries (Apache-2.0 per their publishers, not
-verified here); `protobuf-javalite` and Chromium's Cronet (BSD-3-Clause); OkHttp's bundled
-public-suffix data (MPL-2.0, with its own NOTICE); and the Google SDK `com.google.android.play:hsdp`,
-whose licence is **unverified**. It also confirms Guava and `checker-qual` (MIT) on the graph, which
-the last row above names but has not verified
-(`.planning/reports/phase-14/research-analyst-font-licences.md`, open issue 1). Separately, every
-Google SDK AAR carries a `third_party_licenses.txt` that the build does not package (same report,
-open issue 2). BSD-3 and MIT make the notice a condition of redistribution, so the gap is a notice
-duty, not only a missing coordinate. The rows are added with the research-analyst's per-family
-verdict; the notice duties are `docs/tech-design.md` §16 #20, due before `release/3.0.0` is cut.
+**Families verified on 2026-10-21** (research-analyst, `.planning/reports/phase-14/research-analyst-release-docs-licences.md`, "Table for THIRD_PARTY.md", transcribed as given). Rows B, C and D of that table are the three Google SDK rows in §4. "Licenses screen" means the Settings › About screen specified in `docs/ux/licences-screen.md` on `feature/candy-backdrop`. It is not built yet, and its entries for rows F to J need the ux-designer's amendment (§16 #20).
+
+| Name | Coordinates@version | Source URL | Licence | What is used | How credited |
+|---|---|---|---|---|---|
+| A. Google Play HSDP (Play inline-install "half sheet details page" library) | `com.google.android.play:hsdp@2.0.1` | https://dl.google.com/dl/android/maven2/com/google/android/play/hsdp/2.0.1/hsdp-2.0.1.pom | Android Software Development Kit License Agreement, https://developer.android.com/studio/terms (proprietary Google SDK; not open source). It belongs to the Play Core set, whose *Play Core SDK Terms of Service* expressly allow copying and distributing Redistributable Code "solely for inclusion as part of your API Client" | The library, unmodified. It comes in transitively through `ads-mobile-sdk` 1.4.0, and no app code calls it | The SDK licence requires no credit, only that Google's notices stay intact (§3.8). Its bundled `third_party_licenses.txt` (70 components) falls under the Google-SDK notices ruling (font report, open issue 2; `docs/tech-design.md` §16 #20) |
+| E. Google Play services siblings (family) | `com.google.android.gms:` `play-services-basement@18.9.0`, `-base@18.5.0`, `-tasks@18.2.0`, `-ads-identifier@18.0.0`, `-appset@16.0.1`, `-cronet@18.0.1` | https://dl.google.com/dl/android/maven2/com/google/android/gms/ (each `<artifact>/<version>/<artifact>-<version>.pom`) | as A; each POM was read | Transitive, unmodified (Games v2, Mobile Ads, UMP, hsdp) | As A |
+| F. Protocol Buffers (Java Lite runtime) | `com.google.protobuf:protobuf-javalite@3.22.3` | https://github.com/protocolbuffers/protobuf/blob/v22.3/LICENSE ; POM https://repo1.maven.org/maven2/com/google/protobuf/protobuf-parent/3.22.3/protobuf-parent-3.22.3.pom | BSD-3-Clause | The runtime library, unmodified. It is pulled at runtime scope by `org.chromium.net:cronet-shared` 143.7445.0 (73 classes after R8) | Licenses screen entry "Protocol Buffers": "Copyright 2008 Google Inc. All rights reserved.", the three conditions and the disclaimer. Text: the v22.3 LICENSE verbatim (1,732 B, sha256 `6e5e117324afd944…`) |
+| G. Protocol Buffers, repackaged by AndroidX DataStore | `androidx.datastore:datastore-preferences-external-protobuf@1.2.1` | https://dl.google.com/dl/android/maven2/androidx/datastore/datastore-preferences-external-protobuf/1.2.1/datastore-preferences-external-protobuf-1.2.1.pom | BSD-3-Clause (the exception in the `androidx.*` row above) | protobuf-lite repackaged as `androidx.datastore.preferences.protobuf`, unmodified, through `datastore-preferences` 1.2.1 (79 classes after R8). Its own `LICENSE.txt` ships in the APK but carries no copyright line | The same "Protocol Buffers" entry as F, which names both copies. The copyright line that its bundled text lacks comes from F |
+| H. Chromium Cronet (Java API, fallback and HttpEngine provider) | `org.chromium.net:cronet-api`, `cronet-shared`, `cronet-common`, `cronet-fallback`, `httpengine-native-provider`, all `@143.7445.0` | https://github.com/chromium/chromium/blob/143.0.7445.0/LICENSE ; the POMs' licence file: https://storage.googleapis.com/chromium-cronet/android/143.0.7445.0/Release/cronet/LICENSE | BSD-3-Clause (Chromium) | The Java-only Cronet classes, unmodified, through `ads-mobile-sdk` 1.4.0 (151 classes after R8). No native library ships | Licenses screen entry "Chromium (Cronet)": "Copyright 2015 The Chromium Authors", the three conditions and the disclaimer. Text: Chromium's LICENSE at 143.0.7445.0 verbatim (1,536 B, sha256 `368cca1106be99d3…`) |
+| I. Checker Framework qualifiers | `org.checkerframework:checker-qual@3.33.0` | https://github.com/typetools/checker-framework/blob/checker-framework-3.33.0/checker-qual/LICENSE.txt ; POM https://repo1.maven.org/maven2/org/checkerframework/checker-qual/3.33.0/checker-qual-3.33.0.pom | MIT | Annotations, on the graph through Guava 32.0.0. **Nothing ships:** the 2026-09-21 release kept 0 classes, and AGP excludes its `META-INF/LICENSE.txt` | No duty while nothing ships. Recommended: a Licenses screen entry "Checker Framework qualifiers" with its MIT text verbatim (1,126 B, sha256 `e90eaa08dea089df…`), so no per-release R8 check is needed. Until that entry exists, checklist item 3.5a greps the release mapping for `org.checkerframework.` |
+| J. Public Suffix List (data compiled into OkHttp) | `com.squareup.okhttp3:okhttp@4.11.0`, file `okhttp3/internal/publicsuffix/publicsuffixes.gz` (41,394 B) with its `NOTICE` (218 B) | https://publicsuffix.org/list/public_suffix_list.dat ; https://github.com/square/okhttp/blob/parent-4.11.0/okhttp/src/main/resources/okhttp3/internal/publicsuffix/NOTICE | MPL-2.0 (this data file only; OkHttp's code is Apache-2.0). The file ships unmodified, so the file-level copyleft binds only that file and never the app (MPL-2.0 §3.3) | The compiled suffix list, unmodified, inside OkHttp, through `ads-mobile-sdk` 1.4.0. Both files ship as Java resources in the release APK | Licenses screen entry "Public Suffix List": "Mozilla Public License 2.0", OkHttp's NOTICE verbatim (sha256 `8a9c58fbded5ea34…`), which names the source and https://mozilla.org/MPL/2.0/ (the source pointer MPL-2.0 §3.2(a) asks for). Optionally the MPL-2.0 text (16,726 B, sha256 `3f3d9e0024b1921b…`) |
+
+**Apache-2.0 libraries on the graph** (same report; every POM below was read and declares Apache-2.0). Their credit is the Apache-2.0 text the Licenses screen already plans (§2), plus the Jakarta NOTICE (§2, the `Apache-2.0.txt` row).
+
+| Coordinates@version | POM licence name |
+|---|---|
+| `com.squareup.okhttp3:okhttp@4.11.0` | The Apache Software License, Version 2.0 |
+| `com.squareup.okio:okio@3.9.1`, `okio-jvm@3.9.1` | The Apache Software License, Version 2.0 |
+| `com.google.code.gson:gson@2.13.2` | Apache-2.0 |
+| `com.google.crypto.tink:tink-android@1.20.0` | Apache License, Version 2.0 |
+| `com.google.guava:guava@32.0.0-jre` (via `guava-parent`), `failureaccess@1.0.1`, `listenablefuture@9999.0-empty-to-avoid-conflict-with-guava` | Apache License, Version 2.0 / The Apache Software License, Version 2.0 |
+| `com.google.code.findbugs:jsr305@3.0.2` | The Apache Software License, Version 2.0 |
+| `com.google.errorprone:error_prone_annotations@2.41.0` | Apache 2.0 |
+| `com.google.j2objc:j2objc-annotations@2.8` | Apache License, Version 2.0 |
+| `org.jspecify:jspecify@1.0.0` | The Apache License, Version 2.0 |
+| `org.jetbrains:annotations@23.0.0` | The Apache Software License, Version 2.0 |
+| `jakarta.inject:jakarta.inject-api@2.0.1` (NOTICE.md ships; §2) | The Apache Software License, Version 2.0 |
+| `javax.inject:javax.inject@1` | The Apache Software License, Version 2.0 |
+
+**Open item: the licences are settled; the listing and the notices are not.** Every coordinate in the 2026-09-15 release dependency report (192 of 192) now falls under a row with a known licence: 174 Apache-2.0, 10 Android SDK License, 5 Chromium BSD-3, 2 BSD-3-Clause, 1 MIT; none unknown, none copyleft. Two things remain, and both block the release:
+- **U-6 (§6):** the per-coordinate listing of `releaseRuntimeClasspath` on `release/3.0.0` (checklist item 3.5). Any coordinate it prints that is not among those 192 needs a verdict before the release. It also confirms that Cronet stays Java-only: a native `cronet-embedded` would bring in the native sections of Chromium's 326 KB LICENSE (BoringSSL, zlib and more).
+- **The notice duties**, `docs/tech-design.md` §16 #20, due before `release/3.0.0` is cut: the Licenses screen entries for rows F to J (ux-designer amendment, then the developer bundles the texts at the hashes given), and the tech-lead's ruling on the Google SDKs' `third_party_licenses.txt` notices, which the build does not package (font report, open issue 2). That ruling now covers hsdp (70 components) and UMP (59) as well as Mobile Ads and Games v2. BSD-3 and MPL-2.0 make the notice a condition of redistribution.
+
 `docs/release-checklist.md` items 3.5, 3.5a and 3.5b re-check the result on the release branch.
 
 ## 6. Unverified — the release gate's open rows
 
 | # | Item | Why unverified | What would settle it |
 |---|---|---|---|
-| U-1 | `com.google.android.ump:user-messaging-platform:4.0.0` | No POM in the local Gradle module cache (the artifact resolves through Gradle module metadata); the AAR's `third_party_licenses.txt` covers its dependencies, not itself. Its two sibling Google SDKs declare the Android SDK Licence, but that is an inference about a different artifact | Read the `<licenses>` block of `user-messaging-platform-4.0.0.pom` from `dl.google.com` / `maven.google.com`, **or** run `./gradlew :app:dependencies` once online and read the resolved module's metadata. One command, and it is on the release-branch checklist (item 3.5b) |
+| U-1 | `com.google.android.ump:user-messaging-platform:4.0.0` | No POM in the local Gradle module cache (the artifact resolves through Gradle module metadata); the AAR's `third_party_licenses.txt` covers its dependencies, not itself | **Closed 2026-10-21** — the research-analyst fetched `user-messaging-platform-4.0.0.pom` from `dl.google.com`: it declares the *Android Software Development Kit License* (§4 row; row B, `.planning/reports/phase-14/research-analyst-release-docs-licences.md`). Verdict CLEAN, no escalation |
 | U-2 | **The 20 achievement icons** (512×512, uploaded to the Play Console in phase 12) | They exist only in the Play Console. Nothing in this repository records their origin — there is no raster image in `app/src/main/res` at all | **Closed 2026-10-17** — founder answer to Q-017: studio-produced; own-work rows with hashes in §7 |
 | U-3 | **The listing 512×512 icon** | Same — Console only | **Closed 2026-10-17** — same answer; §7 |
 | U-4 | **The 1024×500 feature graphic** | Same — Console only | **Closed 2026-10-17** — same answer; §7 |
 | U-5 | **Any store screenshot that is not a plain capture of this app** | Same — Console only | **Closed 2026-10-17** — the listing screenshots are plain captures the studio recaptures after the candy backdrop lands (Q-016); §7 |
-| U-6 | Per-coordinate enumeration of §5b | The resolved release runtime classpath has not been listed (Gradle deliberately not run on this branch). Known incomplete: the families named under §5b's open item have no row yet, `hsdp` among them with an unverified licence | `./gradlew :app:dependencies --configuration releaseRuntimeClasspath`, on the release branch, output recorded in the release report |
+| U-6 | Per-coordinate enumeration of §5b | The resolved release runtime classpath has not been listed (Gradle deliberately not run on this branch). Every family in the 2026-09-15 report (192 coordinates) now has a row with a known licence, `hsdp` included (row A), but that report predates the release branch | `./gradlew :app:dependencies --configuration releaseRuntimeClasspath`, on the release branch, output recorded in the release report; any coordinate outside the 192 gets a verdict before the release. **Still open** |
 
 ## 7. Store artwork provenance (Play Console assets)
 
@@ -339,10 +365,11 @@ Two related items, recorded here so they are not rediscovered:
   `THIRD_PARTY.md` **and** in the product's licences screen or page". Settings today has the two
   privacy rows (REL-05 / CONS-03) and no licences row. Every shipped asset is CC0, OFL or own
   work, and the two bundled font families' OFL-1.1 notice condition is met by the stand-alone
-  licence files in the artifact (§2). **The dependencies are not all accounted for.** The release
-  graph carries BSD-3-Clause, MIT and MPL-2.0 families that §5b does not list yet, and the Google
-  SDKs' own `third_party_licenses.txt` notices are not packaged (§5b open item). Whether an
-  attribution obligation is unmet today is open, and is `docs/tech-design.md` §16 #20 (owners there;
+  licence files in the artifact (§2). **The dependencies' notices are not all met.** Their licences
+  are now all known (§5b, 2026-10-21), and the BSD-3-Clause (Protocol Buffers, Chromium Cronet) and
+  MPL-2.0 (Public Suffix List) rows carry notice duties that no screen meets yet; the Google SDKs'
+  own `third_party_licenses.txt` notices are not packaged (§5b open item). These attribution
+  obligations are unmet today, and are `docs/tech-design.md` §16 #20 (owners there;
   deadline before `release/3.0.0` is cut). Until it closes, this record does not claim that nothing
   shipped carries an unmet obligation. **Routed, not fixed here:** either a Settings
   licences row (a UI change: a developer with a ux-designer review) or a licences *page* on the

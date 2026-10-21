@@ -12,7 +12,7 @@ Kısa bir eğitim, kuralları gerçek bir tahta üzerinde, her adımda tek bir a
 
 İstediğinizde yardım
 
-İpucu (Hint), kazandıran gerçek bir hamle gösterir; bu konumdan kazandıran bir hamle olmadığını söylüyorsa, gerçekten yoktur. Geri al (Undo), son atlamanızı geri alır. Her seviyede ikisi için de ücretsiz haklarınız vardır. Haklarınız bitince, bir hak daha için reklam izlemeyi seçebilir ya da izlemeden devam edebilirsiniz.
+İpucu (Hint), kazandıran gerçek bir hamle gösterir. Geri al (Undo), son atlamanızı geri alır. Her seviyede ikisi için de ücretsiz haklarınız vardır. Haklarınız bitince, bir hak daha için reklam izlemeyi seçebilir ya da izlemeden devam edebilirsiniz.
 
 Yıldızlar ve rekorlar
 

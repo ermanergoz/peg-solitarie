@@ -255,7 +255,7 @@ listing ends up promising something that is not there.
 
 ## 4. Signed build procedure
 
-### 4a. What is missing from the build and gets added on the release branch
+### 4a. What is missing from the build, and where each piece is added
 
 1. **A `signingConfig`.** *Done 2026-10-17: merged to `develop` as
    `feature/phase-14-signing-config` (9ca3829), with the `verifyReleaseSigning` backstop. The
@@ -275,8 +275,17 @@ listing ends up promising something that is not there.
      they are environment-only — unlike the ad and Play Games keys, these *are* cryptographic
      secrets and must never appear in `local.properties`.
 
-2. **`scripts/play-upload.sh`.** The repo has **no `scripts/` directory at all**, so the gated
-   upload script the studio's rules assume does not exist. It is created on the release branch:
+2. **`scripts/play-upload.sh`.** The repo has **no `scripts/` directory at all** (`develop`
+   0582e3f, and no branch carries one), so the gated upload script the studio's rules assume does
+   not exist. **It is not created on the release branch:** it is code, and the release branch
+   takes no code (`docs/release-checklist.md` §2, "A release branch is not where a feature gets
+   finished"). *Corrected 2026-10-21; this item earlier said "created on the release branch".*
+   It is owed on a `feature/*` branch off `develop`, **before Gate 2**: the tech-lead assigns it
+   to the android-game-dev, the code-auditor reviews it, the tech-lead signs it off, and the
+   producer routes and merges it (`docs/release-checklist.md` item 1.7 and the note under its §4).
+   Until it merges, the only upload route is the founder's own Console upload
+   (`14-OPERATOR-CHECKLIST.md` Step 8 item 1), and the producer records which route this release
+   uses (checklist item 1.7). Its specification is unchanged:
    `fastlane supply` against `PLAY_SERVICE_ACCOUNT_JSON`, target track `internal`, and a hard
    refusal to run unless `.planning/approvals/publish-$(cat VERSION).approved` exists — belt as
    well as the plugin hook's braces.

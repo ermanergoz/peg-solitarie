@@ -166,14 +166,15 @@ path the ad unit IDs already take:
 For REL-02 the UI route is the correct one and the programmatic route should not be used at all: it
 cannot be applied to an artifact that has already been uploaded.
 
-### 3a. The founder-facing steps, ready to lift into `14-OPERATOR-CHECKLIST.md`
+### 3a. The founder-facing steps, as lifted into `14-OPERATOR-CHECKLIST.md`
 
-`.planning/phases/14-release-readiness/14-OPERATOR-CHECKLIST.md` is on `develop` since its merge at
-0582e3f, but it does not carry these steps yet: it has no test-device registration and no "Test Ad"
-check. Lifting Steps A–E into it, before its Step 8 installs the internal-track build, is owed by the
-release-manager in a pass that may edit that file. Until then the founder's own list lacks the step
-that checklist row 5.0 gates on, so row 5.0 cannot be ticked from the operator checklist alone. These
-are the ad steps, and they are founder-only because the AdMob UI is.
+Steps A–E below are in `.planning/phases/14-release-readiness/14-OPERATOR-CHECKLIST.md` as
+**Step 7a**, before its Step 8 installs the internal-track build (lifted 2026-10-21 on
+`feature/phase-14-release-docs`). Step 8 item 4 now checks that Step A is at least 24 hours old
+before the install, and item 6 runs Step B on the first ad. Release-checklist row 5.0 is ticked
+from Step 7a: item A's saved time and item B's observed label. The operator checklist is the
+founder's tick-list; this block is the source text it was lifted from, and a change to either is
+made in both. These are the ad steps, and they are founder-only because the AdMob UI is.
 
     [ ] Step A — at least 24 h before the REL-02 session, and before installing the internal-track
         build on the phone:

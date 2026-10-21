@@ -13,12 +13,12 @@ The texts follow `fastlane supply`'s metadata layout, so the files can be upload
 |---|---|---|---|
 | `en-US/title.txt` | App name | 30 | 13 |
 | `en-US/short_description.txt` | Short description | 80 | 76 |
-| `en-US/full_description.txt` | Full description | 4,000 | 2,222 |
-| `en-US/changelogs/30000.txt` | Release notes ("What's new"), versionCode 30000 | 500 | 427 |
+| `en-US/full_description.txt` | Full description | 4,000 | 2,145 |
+| `en-US/changelogs/30000.txt` | Release notes ("What's new"), versionCode 30000 | 500 | 456 |
 | `tr-TR/title.txt` | App name (Turkish translation) | 30 | 13 |
 | `tr-TR/short_description.txt` | Short description (Turkish) | 80 | 71 |
-| `tr-TR/full_description.txt` | Full description (Turkish) | 4,000 | 2,521 |
-| `tr-TR/changelogs/30000.txt` | Release notes (Turkish), versionCode 30000 | 500 | 447 |
+| `tr-TR/full_description.txt` | Full description (Turkish) | 4,000 | 2,447 |
+| `tr-TR/changelogs/30000.txt` | Release notes (Turkish), versionCode 30000 | 500 | 477 |
 
 The tr-TR texts were drafted on 2026-10-21 for Q-022 (founder, 2026-10-18: the studio drafts tr-TR for
 approval at Gate 2). They translate the en-US texts line for line, with one addition: the full
@@ -30,7 +30,15 @@ them. The title stays "Peg Solitaire": the live Turkish listing uses that title 
 `hl=tr&gl=TR`, read 2026-10-21). "Piyon" (peg), "delik" (hole) and "tahta" (board) are the words the
 founder's own live Turkish text uses.
 
-Lengths are Unicode characters, counted without the file's final newline (`python3`, `len()`).
+Lengths are Unicode characters, counted without the file's final newline (`python3`, `len()`); re-counted
+2026-10-21 after the hint lines were rewritten.
+
+**Hint claims follow the game-designer's ruling** (`.planning/reports/phase-14/game-designer-hint-timeout.md`
+§4, "Today" column): the texts say that a shown hint is a real winning move, and never that "no winning
+move" is proven, because on `develop` a hint search that runs out of time still shows that banner. When
+`bugfix/hint-undecided` (R1) merges, the copy may be raised to the "After R1 merges" column before Gate 2
+(`docs/release-checklist.md` item 2.5a, optional). "Hints that tell the truth on every board" is not used
+in either case.
 
 The App content answers (Data safety, Ads, Target audience, Content rating, Advertising ID) are drafted in
 `app-content.md`.

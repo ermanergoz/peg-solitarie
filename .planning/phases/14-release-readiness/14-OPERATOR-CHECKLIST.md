@@ -45,7 +45,8 @@ Two corrections to what you may remember about this list:
 
 Work top to bottom. The order is lead time, longest first — not importance. Steps 0 through 4
 have latency you cannot compress and should be started in one sitting today; Steps 5 through 8
-are quick but sequenced behind something.
+are quick but sequenced behind something. One exception: Step 7a item A (registering the test
+phone with AdMob) needs 24 hours to propagate, so do it in that same first sitting.
 
 Every checkbox starts unticked. Tick one only after you have observed the thing yourself: a
 pre-ticked box in an operator checklist is a false claim about a system nobody else can see.
@@ -425,6 +426,52 @@ and IDE sync never need them. The studio cannot supply their values.
 
 ---
 
+## Step 7a — Register the test phone as an AdMob test device, and check the "Test Ad" label
+
+**Blocks:** `docs/release-checklist.md` row 5.0, and therefore 5.6, 5.7, 5.8 and 5.8a: every ad
+check on the store copy.
+**Time:** 5 minutes of work, then **24 hours of propagation**. Item A has the second-longest lead
+time on this page: do it in the same sitting as Steps 0 to 4, and in any case at least 24 hours
+before Step 8 item 4 installs the internal-track build on the phone.
+**Why:** a release build carries the real ad unit IDs. On a phone that is not a registered test
+device it serves **live** ads, and a verification session's worth of live impressions, or one tap
+on a live ad, is invalid traffic that can close the AdMob account for good, AdSense with it. The
+reasoning, the policy text and the sources are in `docs/ad-testing-safety.md` (§3 for these steps,
+§4 for the policy). The one rule: **never tap an ad that does not carry the "Test Ad" label.**
+
+These are the ad steps A to E, lifted from `docs/ad-testing-safety.md` §3a. They are yours because
+the AdMob UI is. Do not write the advertising ID or any ad unit ID into this file, a report, a
+commit message or any file in the repo: the advertising ID is a personal identifier.
+
+A. [ ] At least 24 h before the REL-02 session, and before installing the internal-track build on
+       the phone:
+       1. On the phone: Settings → Google → Ads. Copy the advertising ID.
+       2. https://admob.google.com → Settings → Test devices → Add test device.
+       3. Name it (visible to anyone with account access), platform Android, paste the
+          advertising ID, gesture = Shake (that gesture opens ad inspector later). Save.
+       4. Note the wall-clock time. Nothing below is valid until 24 h have passed.
+B. [ ] After Step 8 installs the build: the first ad in the app must show the **"Test Ad"** label
+       at the top.
+       - Label present → everything in release-checklist section 5 is safe, including tapping
+         the ad.
+       - Label absent → **STOP.** Tap nothing. Back out of the ad. The registration has not
+         propagated (or the wrong ID was pasted). Re-check item A and wait.
+C. [ ] Read the three ad unit IDs out of the installed build and compare them, character by
+       character, against the app's ad units in the AdMob Console (release-checklist 4.1a). Do
+       not write any of the IDs into a file in the repo, a report, or a commit message.
+D. [ ] Leave the device registered after the session. Removing it takes up to 24 h and resumes
+       live ads on that phone.
+E. [ ] If an ad without the "Test Ad" label is ever tapped, follow §5 of
+       `docs/ad-testing-safety.md` and tell the producer. Do not click again, and do not click
+       more to "even it out".
+
+**How to tell it is done:** item A was saved at least 24 hours before the session, and item B
+observed the "Test Ad" label on the first ad. Those two together tick release-checklist row 5.0
+(the qa-engineer confirms the label when QA drives the session). Items C to E hold for the rest of
+the session.
+
+---
+
 ## Step 8 — The internal testing track, and a download that is not an `adb install`
 
 **Blocks:** REL-02, ROADMAP success criterion 1 — the whole point of the phase.
@@ -450,8 +497,9 @@ at Gate 2, not a step on this list.
 3. [ ] Add the tester accounts (yours and Step 4's second one) to the internal track's tester
        list — this is a **different list** from the Play Games Services tester list in Step 3
        item 6. Both are needed.
-4. [ ] Open the **opt-in URL** on the test device, accept, and **install from the Play Store
-       app**. Not from a file, not over `adb`. If the store page offers "Update" rather than
+4. [ ] **First confirm Step 7a item A was saved at least 24 hours ago** for this phone; if not,
+       wait before installing. Then open the **opt-in URL** on the test device, accept, and
+       **install from the Play Store app**. Not from a file, not over `adb`. If the store page offers "Update" rather than
        "Install", uninstall the local build first — a locally signed copy of the same
        `applicationId` blocks the store install with a signature mismatch.
 5. [ ] Confirm the installed build is the store copy:
@@ -460,7 +508,8 @@ at Gate 2, not a step on this list.
 
        The installer must be `com.android.vending`. If it says `null` or a shell package, you are
        still testing the wrong artifact and criterion 1 is not satisfied.
-6. [ ] Hand the device (or the emulator, signed in as the tester) to the studio's verification
+6. [ ] Do Step 7a item B on the first ad before any other ad is touched. Then hand the device
+       (or the emulator, signed in as the tester) to the studio's verification
        script in `14-RELEASE-PLAN.md`. Executing that script is QA's job; providing the
        store-installed build is yours.
 
@@ -523,6 +572,9 @@ The founder-side gate. Every line here is something only you can observe.
       SHA-1 among {app signing, upload, debug}; PGS configuration **Published**, no draft.
 - [ ] **Step 6 / Step 7** — the release IDs and the keystore are in place, and
       `./gradlew :app:verifyReleaseAdIds :app:verifyReleaseGamesIds` exits 0.
+- [ ] **Step 7a** — the test phone was registered as an AdMob test device at least 24 hours
+      before the session, and the first ad on the store copy carried the "Test Ad" label.
+      (release-checklist 5.0)
 - [ ] **Step 8** — a tester has the build with `installer=com.android.vending`, and the studio's
       verification script has been run against it. (REL-02)
 - [ ] **Step 4** — the second Google account exists and is propagated, and the account-swap /
