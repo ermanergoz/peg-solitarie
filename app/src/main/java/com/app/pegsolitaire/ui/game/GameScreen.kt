@@ -1,5 +1,6 @@
 package com.app.pegsolitaire.ui.game
 
+import android.os.Build
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -25,6 +26,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
@@ -165,6 +168,7 @@ fun GameScreen(
     DeselectionSound(deselectionTick = state.deselectionTick)
     UndoSound(undoTick = state.undoTick)
     InvalidTapSound(rejectedTapTick = state.rejectedTapTick)
+    WrongTapHaptic(rejectedTapTick = state.rejectedTapTick, hapticsOn = state.hapticsOn)
     HintSound(hintSource = state.hintSource)
     WinSound(status = state.status)
     AdMessageSnackbarEffect(
@@ -348,6 +352,31 @@ private fun InvalidTapSound(rejectedTapTick: Int) {
     val sound = LocalSoundPlayer.current
     LaunchedEffect(rejectedTapTick) {
         if (rejectedTapTick > 0) sound.play(SoundCue.InvalidTap)
+    }
+}
+
+/**
+ * The wrong tap's reject haptic (D-06b, `docs/ux/invalid-tap-feedback.md` §3.4): one
+ * [HapticFeedbackType.Reject] per wrong tap, at the tap — the platform's own `REJECT`, two short
+ * pulses — and never on a selection, a put-down or a jump. Gated by [wrongTapHapticFires] on
+ * `hapticsOn` and API 30, checked here in our own code; no ignore-global-setting flag, as for the
+ * jump. Nothing else gates it: with Sound off or the ringer on Vibrate the tap still buzzes.
+ *
+ * Private to the gameplay screen, beside [InvalidTapSound], so the tutorial — which answers a
+ * wrong tap with its redirect alone (D-01j(2), tech-lead Ruling 3) — cannot call it. Keyed through
+ * [NewOrdinalEffect] rather than the `> 0` guard the cues use, so a screen recomposed from scratch
+ * with a carried ordinal (a rotation) does not buzz for a tap made before it.
+ */
+@Composable
+private fun WrongTapHaptic(
+    rejectedTapTick: Int,
+    hapticsOn: Boolean,
+) {
+    val haptics = LocalHapticFeedback.current
+    NewOrdinalEffect(rejectedTapTick) {
+        if (wrongTapHapticFires(hapticsOn, Build.VERSION.SDK_INT)) {
+            haptics.performHapticFeedback(HapticFeedbackType.Reject)
+        }
     }
 }
 

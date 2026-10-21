@@ -1,5 +1,6 @@
 package com.app.pegsolitaire.ui.game
 
+import android.os.Build
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.Cell
 import com.app.pegsolitaire.domain.model.Position
@@ -75,3 +76,20 @@ internal fun wrongTapRedirectFor(
         kind == WrongTapKind.NotADestination && showHints && heldDestinations > 0 -> WrongTapRedirect.DotRePop
         else -> WrongTapRedirect.RingNudge
     }
+
+/**
+ * Whether a wrong tap is felt (D-06b, `docs/ux/invalid-tap-feedback.md` §3.4): only while Haptics is
+ * on, and only from API 30 ([Build.VERSION_CODES.R]), where Compose's `HapticFeedbackType.Reject`
+ * reaches the platform's own `REJECT`.
+ *
+ * The API check is load-bearing (tech-lead Ruling 4): below 30 the pinned androidx.core rewrites
+ * `REJECT` to the heavy `LONG_PRESS`, which §3.4 forbids, so the gate holds here, in our own code,
+ * and a wrong tap below API 30 is felt by nothing. The same `hapticsOn` gates the jump haptic, and
+ * nothing else gates either: not Sound, not the ringer (silent-mode design §1.7).
+ *
+ * @param sdkInt the running platform's API level; the screen passes `Build.VERSION.SDK_INT`.
+ */
+internal fun wrongTapHapticFires(
+    hapticsOn: Boolean,
+    sdkInt: Int,
+): Boolean = hapticsOn && sdkInt >= Build.VERSION_CODES.R
