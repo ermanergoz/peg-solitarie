@@ -9,11 +9,13 @@ import kotlin.random.Random
 /**
  * The production, pure-`:domain` winning-move engine (ASST-01 / ASST-03).
  *
- * [firstWinningMove] returns a legal move that begins a line reducing an arbitrary
- * mid-game [Board] to its board's [BoardSpec.minimumPegs] target, or `null` when the
- * position is genuinely unsolvable (or the search is budget-missed / cancelled — folded
- * to the same `null` per D-04). It powers the Challenge deviation hint and every Classic
- * hint, and answers the "no winning move" state.
+ * [decide] answers one of three [SolverOutcome]s (GD-HT-1): [SolverOutcome.Found], a legal
+ * move that begins a line reducing an arbitrary mid-game [Board] to its board's
+ * [BoardSpec.minimumPegs] target; [SolverOutcome.ProvenDead], when the position is proved
+ * to have no such line; or [SolverOutcome.Undecided], when the search stopped — cancelled,
+ * or out of budget — without proving either. D-04 used to fold the last two into one
+ * `null`. It powers the Challenge deviation hint and every Classic hint, and only its
+ * ProvenDead may answer the "no winning move" state.
  *
  * The search is a memoised, symmetry-canonical depth-first search whose move authority
  * is [SolverTables] — precomputed FROM
@@ -27,7 +29,7 @@ import kotlin.random.Random
  * **The goal is per-board, not a hardcoded one peg.** `pegCount <= spec.minimumPegs`
  * is what lets Diamond-41 (proven floor two, DEBT-02) get a truthful hint at all. The
  * `<=` form makes a forged sub-target dangerous — a `minimumPegs <= 0` would make the
- * goal test trivially true and every hint permanently `null` — so two guards are
+ * goal test trivially true and every hint permanently ProvenDead — so two guards are
  * load-bearing here and must not be removed: [BoardSpec] validates
  * `minimumPegs in 1..size` at construction, and `SnapshotMapper` fail-closes a forged
  * resume blob before a spec is ever constructed from it (threat T-08-13).
@@ -52,10 +54,11 @@ import kotlin.random.Random
  * deterministic (same board ⇒ same move) and pure (`kotlin.random.Random` is
  * Android-free).
  *
- * **Proving `null` is preserved.** An attempt that fully exhausts the reachable forward
+ * **The proof is preserved.** An attempt that fully exhausts the reachable forward
  * subtree WITHOUT hitting its cap proves no solution exists (reordering moves changes
- * the visit order but never reachability), so the search stops and returns `null`
- * immediately — restarts are only spent when an attempt is CUT SHORT by its cap.
+ * the visit order but never reachability), so the search stops and returns
+ * [SolverOutcome.ProvenDead] immediately — restarts are only spent when an attempt is
+ * CUT SHORT by its cap, and a search whose every attempt was cut short proved nothing.
  *
  * **What this rewrite does NOT fix.** Wiegleb-45's early positions remain outside the
  * 1.5s deadline by roughly four orders of magnitude: RESEARCH measured 0 of 76 of its
@@ -67,7 +70,7 @@ object Solver {
     /** Fixed base seed for the per-attempt move ordering — keeps the restarts reproducible. */
     private const val ATTEMPT_SEED_BASE = 0x5150_2602L
 
-    /** Deterministic restart budget: distinct orderings tried before giving up (→ `null`, D-04). */
+    /** Deterministic restart budget: distinct orderings tried before giving up undecided. */
     private const val MAX_ATTEMPTS = 40
 
     /**
@@ -76,7 +79,7 @@ object Solver {
      * A FLAT cap is not a usable restart schedule, and this is measured rather than
      * theoretical: Wiegleb-45's mid-line position needs a single 830k-position dive,
      * which it completes in ~269ms — but under a flat 200k cap none of the 40 orderings
-     * can reach it, so the solver burns ~2.1s and answers "no winning move" for a
+     * can reach it, so the solver burns ~2.1s and gives up undecided on a
      * position it can actually decide well inside the deadline. That is the classic
      * heavy-tail result (Luby/Sinclair/Zuckerman): a restart strategy whose run lengths
      * are bounded can never solve instances whose solution lies past the bound. Doubling
@@ -110,25 +113,47 @@ object Solver {
         private set
 
     /**
-     * The first move of a winning line from [board], or `null` if [board] is already at
-     * its target, provably unsolvable (pagoda / fully exhausted), or every attempt is
-     * budget-missed / cancelled.
+     * What a search from [board] proves (GD-HT-1): [SolverOutcome.Found] with the first
+     * move of a winning line; [SolverOutcome.ProvenDead] when [board] is already at its
+     * target, the [Pagoda] condition rejects it, or an attempt exhausted its whole forward
+     * subtree; [SolverOutcome.Undecided] for every stop that proved nothing — the cancel
+     * latch, [MAX_ATTEMPTS] spent, or the cumulative [SolverBudget.maxNodes] reached
+     * (including a budget so small that no attempt runs at all).
+     *
+     * A board at its target is ProvenDead to keep the old behaviour: a reachable board at
+     * its target has no legal move to give. It is unreachable in play, because a Won
+     * board routes to Results before a hint can be asked for.
+     *
+     * The solver reports what it proved, never why it stopped: a deadline and a
+     * superseded request set the same latch, and both are Undecided here. Telling them
+     * apart is the caller's job, and the caller already does — a superseded search is
+     * never observed.
      *
      * @param shouldCancel polled cooperatively (~every 4096 nodes); returning `true`
-     *   abandons the search and yields `null`. Kept a plain lambda so no coroutine
-     *   type crosses the domain boundary (QUAL-01 purity).
+     *   abandons the search, which then yields [SolverOutcome.Undecided]. Kept a plain
+     *   lambda so no coroutine type crosses the domain boundary (QUAL-01 purity).
+     */
+    fun decide(
+        board: Board,
+        budget: SolverBudget,
+        shouldCancel: () -> Boolean = { false },
+    ): SolverOutcome {
+        if (board.pegCount <= board.spec.minimumPegs || !Pagoda.mayBeSolvable(board)) {
+            lastVisited = 0
+            return SolverOutcome.ProvenDead
+        }
+        return searchWithRestarts(board, budget, shouldCancel)
+    }
+
+    /**
+     * Transitional: [decide]'s move, or `null` for both of its other outcomes. It exists
+     * only while `GetHintUseCase` still calls it, and goes with that last caller.
      */
     fun firstWinningMove(
         board: Board,
         budget: SolverBudget,
         shouldCancel: () -> Boolean = { false },
-    ): Move? {
-        if (board.pegCount <= board.spec.minimumPegs || !Pagoda.mayBeSolvable(board)) {
-            lastVisited = 0
-            return null
-        }
-        return searchWithRestarts(board, budget, shouldCancel)
-    }
+    ): Move? = (decide(board, budget, shouldCancel) as? SolverOutcome.Found)?.move
 
     /**
      * Runs up to [MAX_ATTEMPTS] deterministically-seeded searches, the first capped at
@@ -138,15 +163,18 @@ object Solver {
      * Stops when a move is found, the caller cancelled, unsolvability is proven (an
      * attempt exhausted its subtree without hitting its cap), [MAX_ATTEMPTS] is spent,
      * or the CUMULATIVE node total reaches [SolverBudget.maxNodes] — the safety ceiling
-     * that keeps the worst case bounded no matter how far the schedule escalates.
+     * that keeps the worst case bounded no matter how far the schedule escalates. A found
+     * move and a proof are the only answers; every other stop is
+     * [SolverOutcome.Undecided].
      */
     private fun searchWithRestarts(
         board: Board,
         budget: SolverBudget,
         shouldCancel: () -> Boolean,
-    ): Move? {
+    ): SolverOutcome {
         val tables = SolverTables.forSpec(board.spec)
         var result: Move? = null
+        var provenUnsolvable = false
         var attempt = 0
         var totalVisited = 0L
         var attemptCap = minOf(budget.perAttemptMaxNodes, budget.maxNodes)
@@ -157,12 +185,16 @@ object Solver {
             lastVisited = search.visited
             totalVisited += search.visited
             result = line?.firstOrNull()
-            val provenUnsolvable = line == null && !search.cancelled && !search.hitBudget
+            provenUnsolvable = line == null && !search.cancelled && !search.hitBudget
             if (result != null || search.cancelled || provenUnsolvable) break
             if (attempt < MAX_CAP_ESCALATIONS) attemptCap = escalate(attemptCap, budget.maxNodes)
             attempt++
         }
-        return result
+        return when {
+            result != null -> SolverOutcome.Found(result)
+            provenUnsolvable -> SolverOutcome.ProvenDead
+            else -> SolverOutcome.Undecided
+        }
     }
 
     /** The next attempt's cap: [current] grown by [ATTEMPT_CAP_GROWTH], never past [ceiling]. */
