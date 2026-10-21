@@ -46,6 +46,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.core.net.toUri
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.audio.SoundCue
+import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.platform.games.GamesSignInState
 import com.app.pegsolitaire.ui.components.ClaySnackbarHost
 import com.app.pegsolitaire.ui.theme.clayEntrance
@@ -98,6 +100,9 @@ import kotlinx.coroutines.launch
  *   and the Play Games session plus its error ordinal).
  * @param onToggleSound persists the new sound choice (SET-01).
  * @param onToggleHaptics persists the new haptics choice (SET-02).
+ * @param onShowHowToPlay opens the interactive tutorial (ONB-01, D-02a) — the **one**
+ *   permanent entry point to it, since Home's help icon is deleted. A hoisted lambda
+ *   supplied by `AppNavHost`; the screen never sees a controller.
  * @param onSignInToPlayGames signs the player in to Play Games and records the opt-in
  *   (PGS-03, D-10/D-19). Reached only from the signed-out row.
  * @param onShowLeaderboards opens the stock all-leaderboards picker (PGSL-06, D-14).
@@ -117,6 +122,7 @@ fun SettingsScreen(
     state: SettingsUiState,
     onToggleSound: (Boolean) -> Unit,
     onToggleHaptics: (Boolean) -> Unit,
+    onShowHowToPlay: () -> Unit,
     onSignInToPlayGames: () -> Unit,
     onShowLeaderboards: () -> Unit,
     onShowAchievements: () -> Unit,
@@ -166,6 +172,7 @@ fun SettingsScreen(
                     hapticsOn = state.hapticsOn,
                     onToggleSound = onToggleSound,
                     onToggleHaptics = onToggleHaptics,
+                    onShowHowToPlay = onShowHowToPlay,
                 )
                 PlayGamesSection(
                     gamesSignInState = state.gamesSignInState,
@@ -184,11 +191,26 @@ fun SettingsScreen(
 }
 
 /**
- * The "General" group: the header over the two existing, unchanged toggle rows.
+ * The "General" group: the header, the "How to play" row, and the two unchanged toggle rows.
  *
  * Emits its children straight into the caller's [Column], so the screen's
  * `Arrangement.spacedBy` and the [clayEntrance] cascade still apply — extracting the group
  * changes how the file reads, not how the screen lays out.
+ *
+ * ## The "How to play" row (ONB-01, D-02a, ux-spec §4.5)
+ *
+ * It opens the group, **above** Sound, because it is the only row here that goes somewhere:
+ * the two toggles are settings the player adjusts in place, and a navigational row buried
+ * under them reads as an afterthought. It is also the tutorial's one permanent entry point
+ * now that Home's help icon is deleted (D-02), which is why it is a `SettingsLinkRow` — the
+ * exact peer chrome of the toggles — rather than a bespoke card that would read as a
+ * different kind of thing.
+ *
+ * Unlike every other row on this screen it **speaks**: `SoundCue.ButtonForward`, because
+ * D-09 gives a navigational CTA the forward press cue and withholds it from toggles and
+ * back-navigation. The cue is attached at this call site through the house `withClickSound`
+ * idiom, never to the shared `claySquish()` below it — that modifier is also on the silent
+ * back nav and on both switches.
  */
 @Composable
 private fun GeneralSection(
@@ -196,10 +218,18 @@ private fun GeneralSection(
     hapticsOn: Boolean,
     onToggleSound: (Boolean) -> Unit,
     onToggleHaptics: (Boolean) -> Unit,
+    onShowHowToPlay: () -> Unit,
 ) {
     SettingsSectionHeader(
         title = stringResource(R.string.settings_section_general),
         entranceOrder = GENERAL_HEADER_ORDER,
+    )
+    SettingsLinkRow(
+        label = stringResource(R.string.settings_how_to_play_label),
+        supporting = stringResource(R.string.settings_how_to_play_supporting),
+        entranceOrder = HOW_TO_PLAY_ROW_ORDER,
+        trailingIcon = null,
+        onClick = withClickSound(SoundCue.ButtonForward, onShowHowToPlay),
     )
     SettingsToggleRow(
         label = stringResource(R.string.settings_sound_label),
@@ -647,7 +677,7 @@ private fun SettingsLinkRow(
 /**
  * Entrance stagger order of every element in the Settings column, top to bottom (UI-SPEC §3).
  *
- * Named constants rather than literals (CLAUDE.md: no magic numbers), and a contiguous 0-9
+ * Named constants rather than literals (CLAUDE.md: no magic numbers), and a contiguous 0-10
  * set including the headers, so the [clayEntrance] cascade reads strictly downward. The
  * conditional elements keep their orders even when they are not rendered — the orders
  * describe position in the layout, not the count of visible children, which is also why the
@@ -656,18 +686,25 @@ private fun SettingsLinkRow(
  *
  * Inserting anything above Privacy is therefore a **renumbering**, not an append. Play Games
  * arriving between General and Privacy shifted the three Privacy constants up by two; the
- * Phase-12 stock-UI rows shifted them by two again, to 7-9. Privacy stays pinned last
- * (Phase 9 D-14), so new rows go above it and never between it and the bottom. That is the
+ * Phase-12 stock-UI rows shifted them by two again, to 7-9; the Phase-15 "How to play" row
+ * opening the General group shifted **every** later constant by one, to 2-10. Privacy stays
+ * pinned last (Phase 9 D-14), so new rows go above it and never between it and the bottom.
+ * That is the
  * price of the one invariant this block exists to keep — position in the column and stagger
  * order are the same ordering, so nothing can fade in above something that arrived before it.
+ *
+ * A **half**-renumbering is the failure mode worth naming: it shows only as two rows entering
+ * together, which no cue, callback or copy assertion can see. `SettingsScreenTest` reads the
+ * rendered top coordinates instead, so it fails on a half-renumbering and survives a whole one.
  */
 private const val GENERAL_HEADER_ORDER = 0
-private const val SOUND_ROW_ORDER = 1
-private const val HAPTICS_ROW_ORDER = 2
-private const val PLAY_GAMES_HEADER_ORDER = 3
-private const val PLAY_GAMES_ROW_ORDER = 4
-private const val PLAY_GAMES_LEADERBOARDS_ROW_ORDER = 5
-private const val PLAY_GAMES_ACHIEVEMENTS_ROW_ORDER = 6
-private const val PRIVACY_HEADER_ORDER = 7
-private const val PRIVACY_POLICY_ROW_ORDER = 8
-private const val PRIVACY_CHOICES_ROW_ORDER = 9
+private const val HOW_TO_PLAY_ROW_ORDER = 1
+private const val SOUND_ROW_ORDER = 2
+private const val HAPTICS_ROW_ORDER = 3
+private const val PLAY_GAMES_HEADER_ORDER = 4
+private const val PLAY_GAMES_ROW_ORDER = 5
+private const val PLAY_GAMES_LEADERBOARDS_ROW_ORDER = 6
+private const val PLAY_GAMES_ACHIEVEMENTS_ROW_ORDER = 7
+private const val PRIVACY_HEADER_ORDER = 8
+private const val PRIVACY_POLICY_ROW_ORDER = 9
+private const val PRIVACY_CHOICES_ROW_ORDER = 10

@@ -58,7 +58,7 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { onPlayClassic, _, _, _, _ -> StubDestination(HOME_TAG, onPlayClassic) },
+                homeContent = { onPlayClassic, _, _, _, _, _ -> StubDestination(HOME_TAG, onPlayClassic) },
                 catalogContent = { onSelect, _ -> StubDestination(CATALOG_TAG) { onSelect(SELECTED_LEVEL_ID) } },
                 gameplayContent = { onFinished, _ -> StubDestination(GAMEPLAY_TAG) { onFinished(sampleResults()) } },
                 resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
@@ -98,7 +98,7 @@ class NavFlowTest {
                 // The Home tile supplies the level from its UiState (the persisted
                 // ChallengeProgress.currentLevel) — the host must carry it through, not
                 // substitute a hardcoded entry level (CHAL-05).
-                homeContent = { _, onPlayChallenge, _, _, _ ->
+                homeContent = { _, onPlayChallenge, _, _, _, _ ->
                     StubDestination(HOME_TAG) { onPlayChallenge(PERSISTED_CHALLENGE_LEVEL) }
                 },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
@@ -127,7 +127,7 @@ class NavFlowTest {
                 // The Continue affordance carries the board its snapshot was taken on
                 // (PERS-03); the host must route to THAT board with resume = true, never
                 // to a fresh start.
-                homeContent = { _, _, onResumeClassic, _, _ ->
+                homeContent = { _, _, onResumeClassic, _, _, _ ->
                     StubDestination(HOME_TAG) { onResumeClassic(SELECTED_LEVEL_ID) }
                 },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
@@ -152,7 +152,7 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { _, _, _, onResumeChallenge, _ ->
+                homeContent = { _, _, _, onResumeChallenge, _, _ ->
                     StubDestination(HOME_TAG) { onResumeChallenge(PERSISTED_CHALLENGE_LEVEL) }
                 },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
@@ -179,7 +179,7 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { _, onPlayChallenge, _, _, _ ->
+                homeContent = { _, onPlayChallenge, _, _, _, _ ->
                     StubDestination(HOME_TAG) { onPlayChallenge(PERSISTED_CHALLENGE_LEVEL) }
                 },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
@@ -201,11 +201,11 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { _, _, _, _, onOpenSettings -> StubDestination(HOME_TAG) { onOpenSettings() } },
+                homeContent = { _, _, _, _, onOpenSettings, _ -> StubDestination(HOME_TAG) { onOpenSettings() } },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
                 gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
                 resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
-                settingsContent = { onBack -> StubDestination(SETTINGS_TAG) { onBack() } },
+                settingsContent = { onBack, _ -> StubDestination(SETTINGS_TAG) { onBack() } },
             )
         }
 
@@ -224,12 +224,135 @@ class NavFlowTest {
     }
 
     @Test
+    fun theTutorialDestinationPopsBackToWhereItWasEnteredFrom() {
+        composeRule.setContent {
+            navController = rememberNavController()
+            AppNavHost(
+                navController = navController,
+                homeContent = { _, _, _, _, onOpenSettings, _ -> StubDestination(HOME_TAG) { onOpenSettings() } },
+                catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
+                gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
+                resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
+                settingsContent = { _, _ -> StubDestination(SETTINGS_TAG) {} },
+                tutorialContent = { onExit -> StubDestination(TUTORIAL_TAG) { onExit() } },
+            )
+        }
+
+        // Entered from Home (the first-run auto-start path) → pops back to Home.
+        composeRule.waitForIdle()
+        openTutorial()
+        assertThat(currentRoute()).contains(TUTORIAL_ROUTE)
+        composeRule.onNodeWithTag(TUTORIAL_TAG).performClick()
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(HOME_ROUTE)
+
+        // Entered from Settings (the D-02a replay path) → pops back to SETTINGS, not Home.
+        composeRule.onNodeWithTag(HOME_TAG).performClick()
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(SETTINGS_ROUTE)
+        openTutorial()
+        assertThat(currentRoute()).contains(TUTORIAL_ROUTE)
+        composeRule.onNodeWithTag(TUTORIAL_TAG).performClick()
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(SETTINGS_ROUTE)
+    }
+
+    /**
+     * The two **production** routes into the tutorial (D-02a): Home's first-run auto-start and
+     * the Settings › How to play row. The two tests above drive the destination from the test
+     * body on purpose — they are about the destination and its single outbound edge — so
+     * without this one the two `navigate(Tutorial)` call sites this host owns would be
+     * untested, which is the invisible-feature trap: the tutorial could exist, pop correctly
+     * and never be reachable by a player at all.
+     *
+     * Each stub fires the slot it is given, so what is asserted is the lambda `AppNavHost`
+     * supplies rather than a navigation the test performed itself.
+     */
+    @Test
+    fun bothProductionEntryPointsPushTheTutorialAndItPopsBackToEachOne() {
+        composeRule.setContent {
+            navController = rememberNavController()
+            AppNavHost(
+                navController = navController,
+                // The Home stub's tap stands in for the auto-start effect, which in production
+                // fires from HomeRoute while `tutorialPending` stands rather than from a
+                // control — Home has no tutorial affordance (D-02).
+                homeContent = { _, _, _, _, _, onStartTutorial ->
+                    StubDestination(HOME_TAG) { onStartTutorial() }
+                },
+                catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
+                gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
+                resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
+                settingsContent = { _, onShowHowToPlay ->
+                    StubDestination(SETTINGS_TAG) { onShowHowToPlay() }
+                },
+                tutorialContent = { onExit -> StubDestination(TUTORIAL_TAG) { onExit() } },
+            )
+        }
+
+        // First run: Home's auto-start pushes the tutorial, and the exit lands back on Home.
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(HOME_TAG).performClick()
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(TUTORIAL_ROUTE)
+        composeRule.onNodeWithTag(TUTORIAL_TAG).performClick()
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(HOME_ROUTE)
+
+        // The replay path needs Settings on top first, which the Home stub can no longer
+        // reach (its one action is the auto-start), so the gear is driven directly.
+        composeRule.runOnUiThread { navController.navigate(Settings) }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(SETTINGS_TAG).performClick()
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(TUTORIAL_ROUTE)
+        composeRule.onNodeWithTag(TUTORIAL_TAG).performClick()
+        composeRule.waitForIdle()
+        assertThat(currentRoute()).contains(SETTINGS_ROUTE)
+    }
+
+    @Test
+    fun theTutorialDestinationsOnlyOutboundEdgeIsAPopBackToItsEntryPoint() {
+        composeRule.setContent {
+            navController = rememberNavController()
+            AppNavHost(
+                navController = navController,
+                homeContent = { _, _, _, _, _, _ -> StubDestination(HOME_TAG) {} },
+                catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
+                gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
+                resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
+                settingsContent = { _, _ -> StubDestination(SETTINGS_TAG) {} },
+                tutorialContent = { onExit -> StubDestination(TUTORIAL_TAG) { onExit() } },
+            )
+        }
+
+        composeRule.waitForIdle()
+        openTutorial()
+
+        // §5.1 prohibition 4: the destination's ONE action is the exit, and firing it lands
+        // on the entry point — never on Results, Gameplay or the catalogue. A tutorial that
+        // could reach Results could bank a star, and a banked tutorial star corrupts the
+        // Home Stars pill on the player's very first launch.
+        composeRule.onNodeWithTag(TUTORIAL_TAG).performClick()
+        composeRule.waitForIdle()
+
+        val route = currentRoute()
+        assertThat(route).contains(HOME_ROUTE)
+        listOf(RESULTS_ROUTE, GAMEPLAY_ROUTE, CATALOG_ROUTE).forEach { forbidden ->
+            assertThat(route).doesNotContain(forbidden)
+        }
+        // And the tutorial entry is genuinely off the stack, not merely covered.
+        assertThat(navController.currentBackStack.value.mapNotNull { it.destination.route })
+            .doesNotContain(TUTORIAL_ROUTE)
+    }
+
+    @Test
     fun challengeRetryReloadsSameBoardWithoutGrowingBackStack() {
         composeRule.setContent {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { _, onPlayChallenge, _, _, _ ->
+                homeContent = { _, onPlayChallenge, _, _, _, _ ->
                     StubDestination(HOME_TAG) { onPlayChallenge(PERSISTED_CHALLENGE_LEVEL) }
                 },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
@@ -268,7 +391,7 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { onPlayClassic, _, _, _, _ -> StubDestination(HOME_TAG, onPlayClassic) },
+                homeContent = { onPlayClassic, _, _, _, _, _ -> StubDestination(HOME_TAG, onPlayClassic) },
                 catalogContent = { onSelect, _ -> StubDestination(CATALOG_TAG) { onSelect(SELECTED_LEVEL_ID) } },
                 gameplayContent = { onFinished, _ -> StubDestination(GAMEPLAY_TAG) { onFinished(sampleResults()) } },
                 resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
@@ -295,7 +418,7 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { _, onPlayChallenge, _, _, _ ->
+                homeContent = { _, onPlayChallenge, _, _, _, _ ->
                     StubDestination(HOME_TAG) { onPlayChallenge(PERSISTED_CHALLENGE_LEVEL) }
                 },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
@@ -327,7 +450,7 @@ class NavFlowTest {
             navController = rememberNavController()
             AppNavHost(
                 navController = navController,
-                homeContent = { _, _, onResumeClassic, _, _ ->
+                homeContent = { _, _, onResumeClassic, _, _, _ ->
                     StubDestination(HOME_TAG) { onResumeClassic(SELECTED_LEVEL_ID) }
                 },
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
@@ -372,6 +495,19 @@ class NavFlowTest {
 
     /** The current destination's serialized route pattern (its `@Serializable` qualified name). */
     private fun currentRoute(): String = navController.currentDestination?.route.orEmpty()
+
+    /**
+     * Pushes the Tutorial destination from whatever is currently on top.
+     *
+     * Driven from the test rather than from a production affordance on purpose: the two
+     * `navigate(Tutorial)` call sites (Home's first-run auto-start and the Settings row) land
+     * in the entry-point slice. What this slice owns — and what these two tests are about — is
+     * the destination itself and its single outbound edge.
+     */
+    private fun openTutorial() {
+        composeRule.runOnUiThread { navController.navigate(Tutorial) }
+        composeRule.waitForIdle()
+    }
 
     /** The route pattern one entry down — where system Back from the current screen lands. */
     private fun previousRoute(): String =
@@ -444,6 +580,9 @@ private const val GAMEPLAY_TAG = "stub_gameplay"
 private const val RESULTS_TAG = "stub_results"
 private const val SETTINGS_TAG = "stub_settings"
 
+/** The Tutorial stand-in destination's tag; its one action is the exit (D-01g). */
+private const val TUTORIAL_TAG = "stub_tutorial"
+
 // Each route's serialized pattern is its fully-qualified class name; the simple name is
 // a stable, unambiguous substring of `currentDestination.route` for the reachability check.
 private const val HOME_ROUTE = "Home"
@@ -451,6 +590,9 @@ private const val CATALOG_ROUTE = "ClassicCatalog"
 private const val GAMEPLAY_ROUTE = "Gameplay"
 private const val RESULTS_ROUTE = "Results"
 private const val SETTINGS_ROUTE = "Settings"
+
+/** The Tutorial route's serial name fragment. */
+private const val TUTORIAL_ROUTE = "Tutorial"
 
 /** A real catalog id, proving navigation carries the selected board through the graph. */
 private val SELECTED_LEVEL_ID = ClassicLevelIds.EUROPEAN37

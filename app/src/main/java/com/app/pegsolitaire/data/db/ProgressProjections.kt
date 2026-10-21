@@ -47,6 +47,29 @@ data class LevelResultTotals(
 )
 
 /**
+ * The two derived values the Home progress ribbon reads, in ONE row (§7 R-1/R-2).
+ *
+ * A separate projection from [LevelResultTotals] rather than a widening of it, because the
+ * two answer different questions: `totals()` is a `suspend` one-shot for the achievement
+ * submission pass, and its `totalStars` deliberately carries no `WHERE`, so it structurally
+ * cannot count Classic boards. This one is `Flow`-returning — Home must not go stale after a
+ * solve — and is the *only* read on the start destination.
+ *
+ * @property totalStars `SUM(stars)` across BOTH modes, coalesced to `0`. Both-modes on
+ *   purpose: the pill's label is "Stars", a total, and it is the same number the D-03 star
+ *   tiers count. `COALESCE` because `SUM` over an empty table is SQL `NULL` and a brand-new
+ *   player has zero stars, not an unknown number of them.
+ * @property classicBoardsCleared `COUNT(*)` over Classic rows at or above the bound star
+ *   floor — `ProgressConstants.ANY_STARS`, the same predicate the achievement aggregate's
+ *   cleared set uses. A stored row means the board was cleared regardless of how well, so
+ *   the floor is `0` and not `1`. `COUNT` never yields `NULL`.
+ */
+data class HomeProgressTotals(
+    val totalStars: Int,
+    val classicBoardsCleared: Int,
+)
+
+/**
  * One stored Classic board's standing — the row behind the cleared set, the perfect set
  * and the per-board bests of PGSL-03, all three read from the SAME query.
  *

@@ -7,6 +7,7 @@ import com.app.pegsolitaire.data.ChallengeProgress
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.FakePlayGamesOptInRepository
 import com.app.pegsolitaire.data.FakeProgressSubmitter
+import com.app.pegsolitaire.data.HomeProgress
 import com.app.pegsolitaire.data.ImportOutcome
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
@@ -134,7 +135,7 @@ class HomeViewModelCloudTest {
     // ---- Never stacked with the two first-run surfaces (D-15) -----------------
 
     @Test
-    fun aSwapIsNotAskedWhileTheOnboardingOverlayIsUp() =
+    fun aSwapIsNotAskedWhileTheTutorialIsStillPending() =
         runTest(testDispatcher) {
             // A brand-new player must not be asked to choose between two accounts' progress
             // before they have seen how the game is played.
@@ -146,7 +147,7 @@ class HomeViewModelCloudTest {
                 )
             runCurrent()
 
-            assertThat(viewModel.uiState.value.onboardingVisible).isTrue()
+            assertThat(viewModel.uiState.value.tutorialPending).isTrue()
             assertThat(viewModel.uiState.value.profileSwapVisible).isFalse()
         }
 
@@ -179,10 +180,11 @@ class HomeViewModelCloudTest {
             runCurrent()
             assertThat(viewModel.uiState.value.profileSwapVisible).isFalse()
 
-            viewModel.onDismissOnboarding()
+            // The tutorial's own write, which is the only writer of the flag after D-02b.
+            onboarding.markSeen()
             runCurrent()
 
-            assertThat(viewModel.uiState.value.onboardingVisible).isFalse()
+            assertThat(viewModel.uiState.value.tutorialPending).isFalse()
             assertThat(viewModel.uiState.value.profileSwapVisible).isTrue()
         }
 
@@ -349,6 +351,8 @@ private object NoResumeProgressRepository : ProgressRepository {
     override suspend fun aggregate(): ProgressAggregate = ProgressAggregate()
 
     override suspend fun classicBests(): Map<ClassicBoard, Int> = emptyMap()
+
+    override fun observeHomeProgress(): Flow<HomeProgress> = flowOf(HomeProgress.UNKNOWN)
 
     override fun observeResults(mode: String): Flow<List<LevelResult>> = flowOf(emptyList())
 

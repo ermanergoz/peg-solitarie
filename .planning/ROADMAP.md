@@ -33,6 +33,7 @@ Full details: [milestones/v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md) · Audit:
 - [x] **Phase 12: Leaderboards & Achievements** - 7 leaderboards, 10+ achievements, per-session telemetry migration (completed 2026-09-13)
 - [ ] **Phase 13: Cloud Save** - Bests + ladder synced via Saved Games with deterministic monotonic merge
 - [ ] **Phase 14: Release Readiness** - Play Console declarations, signed-track verification, `app-ads.txt`, cold-start budget
+- [ ] **Phase 15: UX Refresh** - Interactive tutorial, info button removed, fuller Home, gameplay top app bar replaced by a status strip and a thumb-zone action dock (founder request, 2026-09-21)
 
 ## External Prerequisites (start Day 1, not at release)
 
@@ -395,6 +396,28 @@ Plans:
 **Plans**: TBD
 **Notes**: Two PGS OAuth credentials must both be verified — the debug/upload keystore SHA-1 **and** the Play App Signing SHA-1. They are different certificates, and only the second one is exercised by a real track download; this is the classic "works on my machine, fails from Play" failure. REL-04's policy text and REL-01's Data-safety answers are a single source of truth split across two systems: the ads SDK pulls in the `com.google.android.gms.permission.AD_ID` permission (recorded in Phase 6's build evidence), so advertising-ID collection must be declared in both and worded consistently. Write the Data-safety answers *from* the policy, not alongside it.
 
+### Phase 15: UX Refresh
+
+**Goal**: A new player is taught by playing rather than by reading, and the three surfaces they spend their time on — Home, the tutorial, and the gameplay chrome — look and feel finished.
+**Depends on**: Phases 5, 7, 13 (Home reads persisted progress; the refresh reuses the existing 12-cue sound set; Home's readouts are cloud-save's device-test oracles)
+**Requirements**: ONB-01, NAV-01, PERS-03, CHAL-05, CLAS-01, CLAS-02, ASST-01, ASST-02, SCOR-02, PLAT-08 (C1), plus proposed UX-01/UX-02/UX-03
+**Design contract**: `docs/ux-spec.md` — decisions D-01…D-05 and 34 acceptance criteria (§14). The criteria below are the phase-level subset; §14 is the checkable list QA works from.
+**Success Criteria** (what must be TRUE):
+
+  1. A first-time player reaches a tutorial that cannot be advanced by a Next or Continue button — every step requires completing a real jump on a live board — and it covers both jump axes before it ends. (ONB-01, D-01)
+  2. A wrong tap during the tutorial produces no error, no red and no lost progress; three taps without progress escalate the help offered rather than blocking the player. (D-01c, rules/puzzle-design.md "first failure impossible")
+  3. Skip is reachable on every tutorial step, system back does the same thing, and after either the tutorial does not reappear on the next launch. (D-01d)
+  4. There is no information or help icon anywhere on Home, and the tutorial is reachable from Settings › General by a player who has already finished it. (D-02, D-02a)
+  5. Home shows a titled hero band, a three-pill progress ribbon and board art on the mode tiles, with both mode tiles in the lower half of a 6.7-inch phone. (D-03)
+  6. Home's three load-bearing readouts survive unchanged: the Challenge tile's level chip, the Continue chips, and the one-tap path to the Classic catalogue's per-board star pips — none behind a tap, expander or scroll. `11-HUMAN-UAT.md` tests 10/11/13 read their pass/fail off these. (D-03f, PERS-03, CHAL-05, CLAS-01)
+  7. Cold start to an interactive Home is ≤ 950 ms on the reference device with the fuller Home in place, and first paint shows "—" placeholders rather than a spinner, a blank band or a blocked screen. (PLAT-08 C1, D-03g)
+  8. The gameplay screen has no Material top app bar — no bar background, elevation or title row — while a visible labelled back control, the elapsed timer, Undo, Hint, Show-moves and Restart all remain, with the four actions in the lower half of the screen. (D-04, D-05, D-05a, D-05b)
+  9. Show-moves state is carried by fill and not by colour alone, the Hint control no longer uses a magnifying-glass glyph, and no two controls share a glyph. (D-04a, D-04b — three existing accessibility/UI defects this phase fixes)
+  10. Every new interactive element is ≥ 48dp with ≥ 8dp spacing, TalkBack-labelled, 4.5:1/3:1 contrast in both light and dark, usable with OS animations off, and never sound-only for feedback. (rules/compose.md, rules/audio.md)
+
+**Plans**: TBD
+**Notes**: "Redesign the icons on the top" and "remove toolbar" are **the same surface** — `GameScreen.kt:502` is one `TopAppBar` holding the back arrow, the title and all five controls, and there is no second control row. D-05 deletes the bar and keeps every control, split into a chrome-free status strip (top) and a thumb-zone action dock (bottom); a visible back control is mandatory because gameplay back is a bare `popBackStack()` with no `BackHandler`. Two existing tests break by design (`ButtonSoundTest.kt:105-123`, `HomeScreenTest.kt:148-159`) and must be rewritten with the implementation; two others pass unchanged because their content descriptions were deliberately preserved. The repo has **no screenshot tests** (no Roborazzi/Paparazzi, no `androidTest`) despite CLAUDE.md naming Roborazzi primary — a five-screen visual refresh is exactly what a golden-image suite protects; raised for the tech-lead, not decided here. Sequencing against Phase 14 is ruled in `.planning/reports/phase-15/release-manager-sequencing.md`: this phase lands **before** the release cut and ships inside 3.0.0, and **must not touch the root `VERSION`** (both the publish hook and `scripts/play-upload.sh` resolve the approval file from it at run time).
+
 ## Progress
 
 **Execution Order:**
@@ -418,3 +441,4 @@ Parallelizable tracks (parallelization is enabled in config): Phases 7 and 8 hav
 | 12. Leaderboards & Achievements | v1.1 | 8/8 | Complete   | 2026-09-13 |
 | 13. Cloud Save | v1.1 | 10/11 | In Progress|  |
 | 14. Release Readiness | v1.1 | 0/TBD | Not started | - |
+| 15. UX Refresh | v1.1 | 0/TBD | Designed — not planned | - |
