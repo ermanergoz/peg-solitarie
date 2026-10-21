@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.data.HomeProgress
 import com.app.pegsolitaire.data.ImportOutcome
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
@@ -621,6 +622,8 @@ private class RecordingProgressRepository : ProgressRepository {
 
     /** Unused by this screen — no per-board leaderboard read happens here. */
     override suspend fun classicBests(): Map<ClassicBoard, Int> = emptyMap()
+
+    override fun observeHomeProgress(): Flow<HomeProgress> = flowOf(HomeProgress.UNKNOWN)
 
     override fun observeResults(mode: String): Flow<List<LevelResult>> = flowOf(emptyList())
 

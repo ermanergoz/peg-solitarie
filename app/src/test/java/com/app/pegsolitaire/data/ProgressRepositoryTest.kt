@@ -313,6 +313,64 @@ class ProgressRepositoryTest {
             assertThat(storedSessions()).isEmpty()
         }
 
+    // ---- The Home progress ribbon's single aggregate (§7 R-1/R-2, D-03c) ----
+
+    @Test
+    fun theHomeProgressFlowSumsStarsAcrossBothModesAndCountsOnlyClearedClassicBoards() =
+        runTest {
+            // Classic AND Challenge rows, so both the absent WHERE (stars) and the
+            // present one (boards) are pinned by the same fixture.
+            storeResult(ProgressPersistenceKeys.MODE_CLASSIC, ClassicLevelIds.ENGLISH33, stars = GOOD_STARS)
+            storeResult(ProgressPersistenceKeys.MODE_CLASSIC, ClassicLevelIds.EUROPEAN37, stars = POOR_STARS)
+            // A stored row means the board was CLEARED regardless of how well — the
+            // cleared predicate binds ProgressConstants.ANY_STARS (0), not 1. A later
+            // reader must not "fix" `>= 0` into `>= 1`: that would silently drop this
+            // board from a number the player already reads on Home.
+            storeResult(ProgressPersistenceKeys.MODE_CLASSIC, ClassicLevelIds.DIAMOND41, stars = NO_STARS)
+            storeResult(ProgressPersistenceKeys.MODE_CHALLENGE, CHALLENGE_LEVEL_ID, stars = CHALLENGE_STARS)
+
+            val progress = repository.observeHomeProgress().first()
+
+            assertThat(progress.totalStars)
+                .isEqualTo(GOOD_STARS + POOR_STARS + NO_STARS + CHALLENGE_STARS)
+            assertThat(progress.classicBoardsCleared).isEqualTo(CLEARED_CLASSIC_BOARDS)
+            // Parity with the existing cleared predicate, asserted rather than assumed:
+            // the ribbon must not be able to disagree with the achievement aggregate.
+            assertThat(progress.classicBoardsCleared)
+                .isEqualTo(repository.aggregate().clearedClassicBoards.size)
+        }
+
+    @Test
+    fun theHomeProgressFlowReEmitsWhenANewResultIsStored() =
+        runTest {
+            repository.observeHomeProgress().test {
+                assertThat(awaitItem().totalStars).isEqualTo(NO_STARS)
+
+                storeResult(ProgressPersistenceKeys.MODE_CHALLENGE, CHALLENGE_LEVEL_ID, stars = CHALLENGE_STARS)
+
+                // Room invalidates the Flow on any write, so the ribbon cannot go stale
+                // after a solve — the property `aggregate()` structurally cannot have.
+                assertThat(awaitItem().totalStars).isEqualTo(CHALLENGE_STARS)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    /** Stores one banked result directly, so a fixture needs no score/telemetry ceremony. */
+    private suspend fun storeResult(
+        mode: String,
+        levelId: String,
+        stars: Int,
+    ) = database.levelResultDao().upsert(
+        LevelResultEntity(
+            mode = mode,
+            levelId = levelId,
+            stars = stars,
+            bestTimeMs = GOOD_SECONDS * MILLIS_IN_SECOND,
+            bestScore = GOOD_SCORE,
+            completedAt = NOW_MS,
+        ),
+    )
+
     private suspend fun storedResults(mode: String = MODE): List<LevelResult> = repository.observeResults(mode).first()
 
     private fun storedSessions(): List<PlaySessionEntity> {
@@ -412,6 +470,18 @@ class ProgressRepositoryTest {
 
         const val NOW_MS = 1_700_000_000_000L
         const val LATER_MS = 1_700_000_900_000L
+
+        /** A banked board the player cleared without earning a star. */
+        const val NO_STARS = 0
+
+        /** The Challenge row's star rating — distinct from every Classic value above. */
+        const val CHALLENGE_STARS = 2
+
+        /** A Challenge level id: the level number as text (`ResultsViewModel`'s own form). */
+        const val CHALLENGE_LEVEL_ID = "12"
+
+        /** The three Classic rows stored above — a stored row IS a cleared board. */
+        const val CLEARED_CLASSIC_BOARDS = 3
 
         const val NO_ASSISTS = 0
         const val SOME_HINTS = 2

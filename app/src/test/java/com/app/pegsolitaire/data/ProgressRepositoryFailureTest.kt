@@ -2,6 +2,7 @@ package com.app.pegsolitaire.data
 
 import android.database.sqlite.SQLiteException
 import androidx.room.Room
+import com.app.pegsolitaire.data.db.HomeProgressTotals
 import com.app.pegsolitaire.data.db.LevelResultDao
 import com.app.pegsolitaire.data.db.LevelResultEntity
 import com.app.pegsolitaire.data.db.PegSolitaireDatabase
@@ -100,6 +101,18 @@ class ProgressRepositoryFailureTest {
             val repository = repositoryWith(resumeDao = ThrowingClearResumeDao(database.resumeDao()))
 
             assertThat(repository.loadSnapshot(ProgressPersistenceKeys.MODE_CLASSIC)).isNull()
+        }
+
+    @Test
+    fun theHomeProgressFlowDegradesToUnknownWhenTheDatabaseReadThrows() =
+        runTest {
+            val throwingDao = ThrowingHomeProgressLevelResultDao(database.levelResultDao())
+            val repository = repositoryWith(levelResultDao = throwingDao)
+
+            // D-03h / criterion 13a: the ribbon must read "not yet known", so the pills
+            // paint "—". Never `0` — a player with forty stars told they have none, on
+            // the very first screen they see, is the failure this degradation prevents.
+            assertThat(repository.observeHomeProgress().first()).isEqualTo(HomeProgress.UNKNOWN)
         }
 
     @Test
@@ -210,6 +223,16 @@ class ProgressRepositoryFailureTest {
         private val delegate: LevelResultDao,
     ) : LevelResultDao by delegate {
         override fun observe(mode: String): Flow<List<LevelResultEntity>> = flow { throw SQLiteException(DISK_FAILURE) }
+    }
+
+    /** A [LevelResultDao] whose Home ribbon aggregate fails; every other read is real. */
+    private class ThrowingHomeProgressLevelResultDao(
+        private val delegate: LevelResultDao,
+    ) : LevelResultDao by delegate {
+        override fun observeHomeProgress(
+            classicMode: String,
+            minStars: Int,
+        ): Flow<HomeProgressTotals> = flow { throw SQLiteException(DISK_FAILURE) }
     }
 
     /** A [ResumeDao] whose reads fail like a corrupt/unreadable database file. */
