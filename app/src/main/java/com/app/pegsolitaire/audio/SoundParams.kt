@@ -99,12 +99,15 @@ object SoundParams {
      * Re-checked when the star pop became a 1.65 s cue at the 500 ms spacing of
      * [com.app.pegsolitaire.ui.theme.ClayAnim.STAR_STAGGER_MS]. That worst case used to be
      * hypothetical — a 0.135 s pop every 260 ms could never overlap the previous one — and is
-     * now genuinely reached: the pops fire 250 / 750 / 1250 ms after Results entry and ring
-     * until 1900 / 2400 / 2900 ms, so all three sound together between 1250 and 1900 ms, with
-     * the 0.54 s win stinger still able to be under the first. Four voices against eight, so
-     * the budget keeps 2x headroom and the oldest-first eviction `SoundPoolPlayer` runs at
-     * `activeStreams.size >= MAX_STREAMS` is never reached. Shortening it would start stealing
-     * celebration voices from a real overlap rather than an imagined one.
+     * now genuinely reached: the pops fire 250 / 750 / 1250 ms after Results entry; the first
+     * two play slowed (rates 0.63 and 0.79, [starPopRate]), so they last 2.62 s and 2.08 s rather
+     * than 1.65 s, and all three sound together from 1250 ms until about 2830 ms, the last tail
+     * ending at about 2900 ms (with animations off, the 625 ms fallback stagger moves that window
+     * to 1500–2870 ms and the end to about 3150 ms). The 0.54 s win stinger can still be under
+     * the first. Four voices against eight, so the budget keeps 2x headroom and the
+     * oldest-first eviction `SoundPoolPlayer` runs at `activeStreams.size >= MAX_STREAMS` is
+     * never reached. Shortening it would start stealing celebration voices from a real overlap
+     * rather than an imagined one.
      */
     const val MAX_STREAMS = 8
 
