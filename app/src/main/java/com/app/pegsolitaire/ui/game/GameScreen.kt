@@ -161,6 +161,7 @@ fun GameScreen(
     challengeLevel: Int? = null,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    val wrongTapAnnouncement = rememberWrongTapAnnouncement(state)
 
     JumpHapticEffect(animatingMoveId = state.animating?.id, hapticsOn = state.hapticsOn)
     JumpSoundEffect(transition = state.animating)
@@ -229,7 +230,11 @@ fun GameScreen(
                             state = state,
                             onCellTap = onCellTap,
                             onAnimationFinished = onAnimationFinished,
-                            modifier = Modifier.padding(dimensionResource(R.dimen.spacing_md)),
+                            modifier =
+                                Modifier
+                                    .padding(dimensionResource(R.dimen.spacing_md))
+                                    // D-06c: the board itself is the polite live region; no new node.
+                                    .wrongTapAnnouncement(wrongTapAnnouncement),
                             // D-06: the gameplay board corrects a wrong tap on the tapped cell.
                             wrongTapCorrection = true,
                         )

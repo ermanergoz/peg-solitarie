@@ -9,12 +9,16 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.app.pegsolitaire.R
 import com.app.pegsolitaire.audio.FakeSoundPlayer
 import com.app.pegsolitaire.audio.LocalSoundPlayer
 import com.app.pegsolitaire.audio.SoundCue
@@ -45,6 +49,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import kotlin.math.abs
@@ -121,13 +126,72 @@ class GameScreenWrongTapTest {
     }
 
     @Test
-    fun aScreenComposedWithACarriedWrongTapDoesNotFeelIt() {
+    fun aScreenComposedWithACarriedWrongTapNeitherFeelsNorAnnouncesIt() {
         // WT-6: a rotation recreates the screen while the ViewModel keeps its state, ordinal
-        // included. The house `> 0` guard would buzz again for a tap made before the rotation.
+        // included. The house `> 0` guard would buzz and speak again for a tap made before it.
         val carried = GameUiState.initial(Boards.english33Initial)
         showState(carried.copy(rejectedTapTick = CARRIED_ORDINAL, rejectedTapCell = CENTRE))
 
         assertThat(haptics.events).isEmpty()
+        assertThat(boardAnnouncement()).isNull()
+    }
+
+    // ---- The announcement (D-06c; WT-14's JVM half) ------------------------------------------
+
+    @Test
+    fun eachWrongTapPutsItsOwnSentenceOnTheBoardsPoliteLiveRegion() {
+        startGame(WrongTapSettings(soundOn = true, hapticsOn = true))
+
+        tapCell(CENTRE) // W1
+        assertAnnounced(R.string.wrong_tap_empty_hole)
+        tapCell(LEFT_PEG)
+        tapCell(TOP_PEG) // W2
+        assertAnnounced(R.string.wrong_tap_other_peg)
+        tapCell(LEFT_PEG)
+        jumpLeftPegIntoTheCentre()
+        tapCell(RIGHT_PEG)
+        tapCell(LEFT_PEG) // W3
+        assertAnnounced(R.string.wrong_tap_not_a_destination)
+    }
+
+    @Test
+    fun aSecondIdenticalWrongTapChangesTheLiveRegionSoItIsSpokenAgain() {
+        // A live region speaks only when its content changes, so an identical repeat must change it.
+        startGame(WrongTapSettings(soundOn = true, hapticsOn = true))
+
+        tapCell(CENTRE)
+        val first = boardAnnouncement()
+        tapCell(CENTRE)
+        val second = boardAnnouncement()
+
+        assertThat(second).isNotEqualTo(first)
+        assertAnnounced(R.string.wrong_tap_empty_hole)
+    }
+
+    @Test
+    fun theSentenceIsWithdrawnAfterItsHoldSoTheBoardIsNoFocusStopAfterwards() {
+        startGame(WrongTapSettings(soundOn = true, hapticsOn = true))
+        tapCell(CENTRE)
+        assertAnnounced(R.string.wrong_tap_empty_hole)
+
+        composeRule.mainClock.advanceTimeBy(PAST_THE_HOLD_MS)
+        composeRule.waitForIdle()
+
+        // Nothing left to read on a later swipe: no description, no text, no action.
+        val board = composeRule.onNodeWithTag(BOARD_CANVAS_TEST_TAG).fetchSemanticsNode().config
+        assertThat(board.getOrNull(SemanticsProperties.ContentDescription)).isNull()
+        assertThat(board.getOrNull(SemanticsProperties.Text)).isNull()
+        assertThat(board.getOrNull(SemanticsProperties.LiveRegion)).isEqualTo(LiveRegionMode.Polite)
+    }
+
+    @Test
+    fun aSelectionOrAPutDownAnnouncesNothing() {
+        startGame(WrongTapSettings(soundOn = true, hapticsOn = true))
+
+        tapCell(LEFT_PEG)
+        assertThat(boardAnnouncement()).isNull()
+        tapCell(LEFT_PEG)
+        assertThat(boardAnnouncement()).isNull()
     }
 
     // ---- Sound is not a gate (§3.5; WT-13) ------------------------------------------------
@@ -232,6 +296,26 @@ class GameScreenWrongTapTest {
         composeRule.waitForIdle()
     }
 
+    /** The board's live-region text right now, or `null` when it carries none. */
+    private fun boardAnnouncement(): String? =
+        composeRule
+            .onNodeWithTag(BOARD_CANVAS_TEST_TAG)
+            .fetchSemanticsNode()
+            .config
+            .getOrNull(SemanticsProperties.ContentDescription)
+            ?.single()
+
+    /** The board is a polite live region whose text is [sentence], as a screen reader reads it. */
+    private fun assertAnnounced(sentence: Int) {
+        val board = composeRule.onNodeWithTag(BOARD_CANVAS_TEST_TAG).fetchSemanticsNode().config
+        val expected = RuntimeEnvironment.getApplication().getString(sentence)
+        assertThat(board.getOrNull(SemanticsProperties.LiveRegion)).isEqualTo(LiveRegionMode.Polite)
+        assertThat(boardAnnouncement()?.let(::spoken)).isEqualTo(expected)
+    }
+
+    /** What a speech engine says for [text]: the repeat marker is a zero-width space, unspoken. */
+    private fun spoken(text: String): String = text.replace(ZERO_WIDTH_SPACE, "").trim()
+
     private fun jumpLeftPegIntoTheCentre() {
         tapCell(LEFT_PEG)
         tapCell(CENTRE)
@@ -313,6 +397,10 @@ class GameScreenWrongTapTest {
 
         const val THREE_WRONG_TAPS = 3
         const val CARRIED_ORDINAL = 3
+
+        /** Comfortably past the announcement's hold. */
+        const val PAST_THE_HOLD_MS = 2_000L
+        const val ZERO_WIDTH_SPACE = "\u200B"
         const val ENGLISH33_GRID = 7
         const val LEVEL_ID_ARG = "levelId"
 
