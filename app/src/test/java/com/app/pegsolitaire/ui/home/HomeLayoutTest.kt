@@ -1,5 +1,6 @@
 package com.app.pegsolitaire.ui.home
 
+import androidx.annotation.DimenRes
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertHasClickAction
@@ -46,12 +47,14 @@ import com.app.pegsolitaire.ui.home.fixture.ribbonPillCount
 import com.app.pegsolitaire.ui.home.fixture.settingsLabel
 import com.app.pegsolitaire.ui.home.fixture.starsLabel
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * Home's **geometry**: the vertical slack (D-03i, §4.2.2, criteria 15g–15j) and the narrow window
@@ -63,6 +66,15 @@ import org.robolectric.annotation.Config
  * window qualifiers, supplied insets, and bounds read past `getBoundsInRoot()`'s clipping. Both
  * classes render through the same [renderHome] fixture, so they cannot disagree about the screen
  * they are describing.
+ *
+ * ## Measured on NATIVE graphics, in the app's own faces
+ *
+ * Every band here wraps and measures as the bundled Fredoka and Nunito make it on a device: the
+ * class runs under NATIVE graphics and [renderHome] draws Home in the app's light theme.
+ * Robolectric's default LEGACY mode fakes text metrics, and it over-wraps: on 15k's own window it
+ * measured 44dp of overflow, with the Challenge tile cut by the fold, where NATIVE and the device
+ * both measure **0** (the H-1 audit's F-1). A geometry claim read off fake metrics is MB-1's class
+ * of defect — a JVM reading the device contradicts.
  *
  * ## The two idioms this file must never reach for (§13, from the re-audit's MB-1)
  *
@@ -80,6 +92,7 @@ import org.robolectric.annotation.Config
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [HOME_ROBOLECTRIC_SDK])
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class HomeLayoutTest {
     @get:Rule
     val composeRule = createComposeRule()
@@ -209,10 +222,18 @@ class HomeLayoutTest {
     }
 
     // ---- Home on the narrow class (D-03k, §4.2.3, criteria 15k-15m) ----------
+    //
+    // Criterion 15k is written for a 360x640dp phone, and on real text metrics that phone's
+    // column FITS: every band whole, 30dp of clear space below the Challenge tile, 0dp of overflow
+    // (NATIVE here, and the device in QA's loop 3). Parts 2 and 3 are stated conditionally on the
+    // column overflowing, so on that window their overflow halves cannot fail. Each 15k test
+    // therefore runs twice: on the criterion's own window, where the conditional is read as it
+    // falls, and on OVERFLOWING_PHONE_QUALIFIER, where the column must overflow into a band, so
+    // the overflow halves are the ones being read.
 
     /**
-     * Criterion 15k parts 1 and 4 — and the replacement for the assertion the re-audit blocked
-     * on (MB-1).
+     * Criterion 15k parts 1 and 4 on the criterion's own window — and the replacement for the
+     * assertion the re-audit blocked on (MB-1).
      *
      * ## What was wrong with the assertion this replaces
      *
@@ -230,65 +251,54 @@ class HomeLayoutTest {
      * and a 48dp three-button navigation bar actually offers, not the 640dp no player holds. And
      * "complete in the first viewport" is asserted as **"a scroll does not move this node"**
      * ([assertAScrollDoesNotMove]), which is a property of the layout rather than of the clipping.
-     *
-     * Part 4's half that belongs here: no decorative art on the overflowing column — the stage
-     * measures 0 and draws nothing (retargeted from "the hero composes no art", which D-03l made
-     * true of every window) — and all three ribbon readouts are rendered rather than dropped or
-     * truncated to fit.
      */
     @Test
     @Config(qualifiers = SHORT_PHONE_QUALIFIER)
     fun theChipsAndTheFirstTileAreCompleteInTheFirstViewportOnTheNarrowBaseline() {
-        composeRule.renderHome(state = bothResumesState())
-        composeRule.applySystemBarInsets(top = statusBarInset, bottom = navigationBarInset)
+        renderTheNarrowClassWithInsets()
 
-        // The geometry FIRST, and top to bottom: a node that does move cannot then be masked by
-        // an earlier scroll, and no cheaper assertion can return before the geometry is read.
-        // (The re-audit's probe 3d found the old shape of this test reporting on its hero-art
-        // assertion and never reaching its layout one at all.)
-        assertAScrollDoesNotMove(composeRule.onNodeWithText(appName))
-        assertAScrollDoesNotMove(composeRule.onNodeWithTag(HOME_PROGRESS_RIBBON_TEST_TAG))
-        assertAScrollDoesNotMove(composeRule.onNodeWithText(RESUME_CLASSIC_LABEL))
-        assertAScrollDoesNotMove(composeRule.onNodeWithText(RESUME_CHALLENGE_LABEL))
-        assertAScrollDoesNotMove(composeRule.onNodeWithText(classicTileTitle))
-
-        composeRule.onNodeWithTag(HOME_STAGE_ART_TEST_TAG).assertDoesNotExist()
-        assertThat(composeRule.renderedValues())
-            .containsAtLeast(EARNED_STARS.toString(), boardsValue, PERSISTED_LEVEL.toString())
+        assertTheFirstViewportHoldsEverythingAboveTheSecondTile()
     }
 
     /**
-     * Criterion 15k part 2 — the fold cuts through a band and not through a gap.
-     *
-     * A fold landing in a gap is a **false bottom**, and a false bottom is how a readout becomes
-     * hidden without anyone collapsing it. §4.2.3 requires the cut rather than merely permitting
-     * it, so this test fails as surely on a tile that sits exactly at the fold as on one pushed
-     * entirely below it.
-     *
-     * Both halves are asserted past `getBoundsInRoot()`'s clipping, which is what makes them
-     * decidable. **Part of the tile shows:** it is displayed, and its top edge is inside the
-     * viewport. **Part of it does not:** a scroll moves it — the honest form of "its bottom edge
-     * is below the fold" once the clipping has replaced that edge with the fold itself.
+     * Criterion 15k parts 1 and 4 where the column overflows, which is where part 1 can fail on
+     * real metrics: a band grown taller pushes the first tile across the fold here long before it
+     * does on the criterion's own window.
+     */
+    @Test
+    @Config(qualifiers = OVERFLOWING_PHONE_QUALIFIER)
+    fun theChipsAndTheFirstTileAreCompleteInTheFirstViewportOnANarrowPhoneThatOverflows() {
+        renderTheOverflowingNarrowWindow()
+
+        assertTheFirstViewportHoldsEverythingAboveTheSecondTile()
+    }
+
+    /**
+     * Criterion 15k part 2 on the criterion's own window, read **conditionally**, as the criterion
+     * states it: if the column overflows into a band, the fold cuts through that band and not
+     * through a gap; if every band fits, there is no fold to place and nothing may hide below it.
+     * On real metrics this window fits, so the second branch is the one read here — and it is a
+     * real assertion, not a pass by default (see [assertTheFoldLeavesNoFalseBottom]).
      */
     @Test
     @Config(qualifiers = SHORT_PHONE_QUALIFIER)
-    fun theFoldCutsThroughTheSecondModeTileAndNotThroughAGap() {
-        composeRule.renderHome(state = bothResumesState())
-        composeRule.applySystemBarInsets(top = statusBarInset, bottom = navigationBarInset)
+    fun theFoldLeavesNoFalseBottomOnTheNarrowBaseline() {
+        renderTheNarrowClassWithInsets()
 
-        val fold = composeRule.onRoot().getBoundsInRoot().bottom - navigationBarInset
-        composeRule.onNodeWithText(challengeTileTitle).assertIsDisplayed()
-        val unscrolled = composeRule.onNodeWithText(challengeTileTitle).getBoundsInRoot()
-        assertThat(unscrolled.top).isLessThan(fold)
-        assertThat(unscrolled.top).isAtLeast(statusBarInset)
+        assertTheFoldLeavesNoFalseBottom()
+    }
 
-        val scrolledTop =
-            composeRule
-                .onNodeWithText(challengeTileTitle)
-                .performScrollTo()
-                .getBoundsInRoot()
-                .top
-        assertThat(scrolledTop).isLessThan(unscrolled.top)
+    /**
+     * Criterion 15k part 2's overflow branch, kept live: on a narrow phone whose column does
+     * overflow, the fold cuts through the second mode tile — its top edge above the fold, its
+     * bottom edge below it — so Home presents no false bottom.
+     */
+    @Test
+    @Config(qualifiers = OVERFLOWING_PHONE_QUALIFIER)
+    fun theFoldCutsThroughTheSecondModeTileOnANarrowPhoneThatOverflows() {
+        renderTheOverflowingNarrowWindow()
+
+        assertTheFoldLeavesNoFalseBottom()
     }
 
     /**
@@ -303,17 +313,26 @@ class HomeLayoutTest {
      * The scroll involves no tap, no expander and no state change: `performScrollTo` is a scroll
      * of the existing column, and the Challenge tile's level chip — oracle 1's readout — is
      * already composed, asserted here by reading it after the scroll.
+     *
+     * Both branches of 15k hold here at once: where the column fits, the overflow is 0 and the
+     * scroll moves nothing, which is this window on real metrics; where it overflows, the bound
+     * and the scroll are read for real, which is [OVERFLOWING_PHONE_QUALIFIER].
      */
     @Test
     @Config(qualifiers = SHORT_PHONE_QUALIFIER)
     fun oneShortScrollCompletesHomeOnTheNarrowBaseline() {
-        composeRule.renderHome(state = bothResumesState())
-        composeRule.applySystemBarInsets(top = statusBarInset, bottom = navigationBarInset)
+        renderTheNarrowClassWithInsets()
 
-        assertThat(scrollableOverflow()).isAtMost(NARROW_MAX_OVERFLOW_DP.dp)
+        assertOneShortScrollCompletesHome()
+    }
 
-        composeRule.onNodeWithText(challengeTileTitle).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText(CONTINUE_LABEL).assertIsDisplayed()
+    /** Criterion 15k part 3 where the scroll has something to do: the bound and the reveal, read live. */
+    @Test
+    @Config(qualifiers = OVERFLOWING_PHONE_QUALIFIER)
+    fun oneShortScrollCompletesHomeOnANarrowPhoneThatOverflows() {
+        renderTheOverflowingNarrowWindow()
+
+        assertOneShortScrollCompletesHome()
     }
 
     /**
@@ -422,6 +441,116 @@ class HomeLayoutTest {
         repeat(RIBBON_PILLS) { index -> assertThat(composeRule.pillClickAction(index)).isNull() }
     }
 
+    // ---- Criterion 15k, asserted once and read on two windows ------------------
+
+    /** Home's busiest state on the current window, with the design baseline's system bars supplied. */
+    private fun renderTheNarrowClassWithInsets() {
+        composeRule.renderHome(state = bothResumesState())
+        composeRule.applySystemBarInsets(top = statusBarInset, bottom = navigationBarInset)
+    }
+
+    /**
+     * [renderTheNarrowClassWithInsets] on [OVERFLOWING_PHONE_QUALIFIER], with the precondition that
+     * gives that window its job: the column overflows past its own trailing space, so the fold
+     * cuts into a band and 15k's overflow halves are the ones read. If a layout change ever lets
+     * the column fit here, this fails rather than letting those halves pass unread — pick a
+     * shorter window then.
+     */
+    private fun renderTheOverflowingNarrowWindow() {
+        renderTheNarrowClassWithInsets()
+        assertWithMessage(
+            "$OVERFLOWING_PHONE_QUALIFIER keeps 15k's overflow branch live, so its column must overflow past its " +
+                "trailing space into a band",
+        ).that(scrollableOverflow()).isGreaterThan(compactTrailingSpace)
+    }
+
+    /**
+     * Criterion 15k part 1, and part 4's halves that belong with it, on the current window.
+     *
+     * **Part 1:** the hero row, the whole ribbon, both Continue chips and the first mode tile are
+     * complete in the first viewport, with no scrolling — top to bottom, and the geometry FIRST, so
+     * a node that does move cannot be masked by an earlier scroll and no cheaper assertion can
+     * return before the geometry is read (the re-audit's probe 3d found an older shape of this
+     * test reporting on its art assertion and never reaching its layout one at all).
+     *
+     * **Part 4:** all three ribbon readouts are rendered rather than dropped or truncated to fit,
+     * and an overflowing column shows no decorative art — the stage measures 0 there and draws
+     * nothing (§13 retargets "the hero shows no decorative art", which D-03l made true of every
+     * window, to "no stage art on an overflowing column"). That half is conditional on the column
+     * overflowing at all, trailing space included: the stage holds weight, so any overflow leaves
+     * it nothing, while a column that fits may hand it slack, and a board drawn there is §4.2.4's
+     * intent rather than a defect.
+     */
+    private fun assertTheFirstViewportHoldsEverythingAboveTheSecondTile() {
+        assertAScrollDoesNotMove(composeRule.onNodeWithText(appName))
+        assertAScrollDoesNotMove(composeRule.onNodeWithTag(HOME_PROGRESS_RIBBON_TEST_TAG))
+        assertAScrollDoesNotMove(composeRule.onNodeWithText(RESUME_CLASSIC_LABEL))
+        assertAScrollDoesNotMove(composeRule.onNodeWithText(RESUME_CHALLENGE_LABEL))
+        assertAScrollDoesNotMove(composeRule.onNodeWithText(classicTileTitle))
+
+        assertThat(composeRule.renderedValues())
+            .containsAtLeast(EARNED_STARS.toString(), boardsValue, PERSISTED_LEVEL.toString())
+        if (scrollableOverflow() > 0.dp) composeRule.onNodeWithTag(HOME_STAGE_ART_TEST_TAG).assertDoesNotExist()
+    }
+
+    /**
+     * Criterion 15k part 2, as the criterion states it — **conditionally**: if the column overflows
+     * into a band, the fold cuts through that band and not through a gap.
+     *
+     * It is read on the second mode tile, the last band, because part 1 holds every band above it
+     * complete. In **both** branches the tile's top edge is inside the first viewport — it is
+     * displayed, and its clipped top lies between the status bar and the fold — because a fold
+     * above that edge is a fold through the gap above the tile, which is a false bottom whether or
+     * not anything else overflows. A scroll then decides the branch:
+     *
+     * - **It moves the tile:** part of the tile was past the fold, so the fold cut through it — top
+     *   above the fold, bottom below it. A false bottom is how a readout becomes hidden without
+     *   anyone collapsing it, and this is the branch that rules one out.
+     * - **It does not:** every band is whole, and the only thing that may lie past the fold is the
+     *   column's own trailing space ([compactTrailingSpace]). Anything more is something hidden
+     *   below a gap, which this branch fails.
+     *
+     * ## The trailing space is not a band (the H-1 audit's LEGACY ruling, item 5)
+     *
+     * The column's scrollable overflow includes the gap after its last band and its bottom padding.
+     * So a column whose last band ends within that distance of the fold overflows with nothing
+     * hidden, and read literally, "if the column overflows at all, the fold cuts through a band"
+     * fails it for a fold that hides nothing. That reading is rejected on purpose: §4.2.3 defines a
+     * false bottom as a fold in a gap **between two bands**, which hides the lower one, and below
+     * the trailing space there is no band. So "overflows" here means "overflows into a band", and a
+     * column that overflows by its trailing space alone is read as fitting — every band whole,
+     * nothing below the fold but space. (S9's full geometry measured exactly that on NATIVE: 12dp
+     * of overflow below a wholly visible tile.)
+     */
+    private fun assertTheFoldLeavesNoFalseBottom() {
+        val fold = composeRule.onRoot().getBoundsInRoot().bottom - navigationBarInset
+        val lastBand = composeRule.onNodeWithText(challengeTileTitle)
+
+        lastBand.assertIsDisplayed()
+        val unscrolled = lastBand.getBoundsInRoot()
+        assertThat(unscrolled.top).isAtLeast(statusBarInset)
+        assertThat(unscrolled.top).isLessThan(fold)
+
+        val scrolledTop = lastBand.performScrollTo().getBoundsInRoot().top
+        if (scrolledTop == unscrolled.top) {
+            assertWithMessage("every band is whole, so only the column's trailing space may lie past the fold")
+                .that(scrollableOverflow())
+                .isAtMost(compactTrailingSpace)
+        } else {
+            assertWithMessage("the scroll that completes the cut tile moves it up")
+                .that(scrolledTop)
+                .isLessThan(unscrolled.top)
+        }
+    }
+
+    /** Criterion 15k part 3 on the current window: see [oneShortScrollCompletesHomeOnTheNarrowBaseline]. */
+    private fun assertOneShortScrollCompletesHome() {
+        assertThat(scrollableOverflow()).isAtMost(NARROW_MAX_OVERFLOW_DP.dp)
+
+        composeRule.onNodeWithText(challengeTileTitle).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText(CONTINUE_LABEL).assertIsDisplayed()
+    }
+
     // ---- Measurement helpers -------------------------------------------------
 
     private fun topOf(text: String): Dp = composeRule.onNodeWithText(text).getBoundsInRoot().top
@@ -487,8 +616,28 @@ class HomeLayoutTest {
         return (root.bottom - root.top) / HALVES
     }
 
+    /** A `dimens.xml` token in dp, read from the resources rather than retyped. */
+    private fun dimen(
+        @DimenRes id: Int,
+    ): Dp {
+        val px = RuntimeEnvironment.getApplication().resources.getDimension(id)
+        return with(composeRule.density) { px.toDp() }
+    }
+
     private val contentMaxWidthPx: Int
         get() = RuntimeEnvironment.getApplication().resources.getDimensionPixelSize(R.dimen.content_max_width)
+
+    /**
+     * The compact column's own trailing space: the band gap after its last band (before the empty
+     * footer, which measures 0 once the column overflows) and the column's bottom padding, both
+     * `spacing_sm` in the compact set (§4.2.2). Space, not a band — see [assertTheFoldLeavesNoFalseBottom].
+     */
+    private val compactTrailingSpace: Dp
+        get() {
+            val gapAfterTheLastBand = dimen(R.dimen.spacing_sm)
+            val bottomPadding = dimen(R.dimen.spacing_sm)
+            return gapAfterTheLastBand + bottomPadding
+        }
 
     /** The design baseline's own insets (`ux-spec.md:1170-1178`): 24dp status, 48dp navigation. */
     private val statusBarInset: Dp get() = STATUS_BAR_INSET_DP.dp
@@ -504,6 +653,16 @@ class HomeLayoutTest {
  */
 private const val TALL_PHONE_QUALIFIER = "w411dp-h915dp"
 private const val SHORT_PHONE_QUALIFIER = "w360dp-h640dp"
+
+/**
+ * The window that keeps criterion 15k's overflow halves live: a 360dp phone 80dp shorter than
+ * [SHORT_PHONE_QUALIFIER], with the same system bars, so 488dp of usable height. On real text
+ * metrics its compact column overflows by 24dp, with the Challenge tile cut by the fold (424..520
+ * against 512) — which the criterion's own window, fitting with 30dp to spare, never shows. It is
+ * no device the criterion names; it is the window on which those halves can fail
+ * ([renderTheOverflowingNarrowWindow] holds it to that).
+ */
+private const val OVERFLOWING_PHONE_QUALIFIER = "w360dp-h560dp"
 
 /**
  * Criterion 15l's own three windows. `w412dp-h915dp` is the wide class the criterion names, and
