@@ -9,8 +9,11 @@ import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.SettingsRepository
+import com.app.pegsolitaire.domain.assist.AssistAllowanceLimits
+import com.app.pegsolitaire.domain.assist.OpeningBook
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardSpec
+import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
@@ -20,6 +23,7 @@ import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
 import com.app.pegsolitaire.platform.ads.RewardOutcome
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CoroutineDispatcher
@@ -44,6 +48,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import kotlin.coroutines.CoroutineContext
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TestTimeSource
 
 /**
@@ -91,6 +96,12 @@ class GameViewModelHintStalenessTest {
 
     /** The parked background dispatcher every hint search in this spec suspends on. */
     private val gate = GatedDispatcher()
+
+    /**
+     * The monotonic clock every ViewModel in this spec marks its hint deadline against,
+     * held here so a test can move it past the deadline while a search is parked (AC-11).
+     */
+    private val timeSource = TestTimeSource()
 
     @Before
     fun setUp() {
@@ -349,7 +360,282 @@ class GameViewModelHintStalenessTest {
             assertThat(hinted).isNotNull()
         }
 
+    // ---- Undecided: the deadline is not a cancel (GD-HT-3) --------------------
+
+    /**
+     * AC-11. The deadline and a superseded request set the same latch in the solver, so a
+     * search the deadline stopped comes back Undecided — and on an unchanged board it must
+     * be SHOWN, never swallowed as if it had been cancelled: a spinner that vanishes with
+     * nothing said would be a fourth, worse state.
+     *
+     * The search is the real one, on a Wiegleb-45 position one ply past its book (the book
+     * miss is asserted). It is parked at the dispatcher hop, the clock is moved past the
+     * deadline, and only then is it released, so its first poll sees the deadline passed.
+     */
+    @Test
+    fun theDeadlinePassingOnAnUnchangedBoardShowsTheUndecidedNoticeNotSilence() =
+        hintTest {
+            val board = wiegleb45FourJumpsIn()
+            assertThat(OpeningBook.lookup(board)).isNull()
+            val viewModel = viewModelFor(board)
+            runCurrent()
+
+            viewModel.onHintRequested()
+            runCurrent()
+            assertThat(gate.pending).isEqualTo(1)
+
+            timeSource += PAST_THE_DEADLINE
+            gate.releaseAll()
+            runCurrent()
+
+            val state = viewModel.uiState.value
+            assertThat(state.noWinningMove).isFalse()
+            assertThat(state.showRescueBanner).isFalse()
+            assertThat(state.hintUndecided).isTrue()
+            assertThat(state.solverThinking).isFalse()
+            assertThat(state.board).isEqualTo(board)
+        }
+
+    /**
+     * AC-12. A search superseded by a jump, an undo, a restart or a second Hint is silent:
+     * it raises neither the notice nor the banner, and charges nothing.
+     *
+     * The stub answers like the real use case under cancellation — a search its cancel
+     * poll cuts short is Undecided, an uncut one finds the first legal move — so if a
+     * superseded search's answer ever reached the screen, it would be the notice. Only the
+     * second Hint leaves the board unchanged, so there only the cancellation stands between
+     * the old answer and the screen; its own, uncut search is the one that answers.
+     */
+    @Test
+    fun aSupersededSearchShowsNoNoticeAndChargesNothing() =
+        hintTest {
+            superseding("a jump", jumpFirst = false) { jump(it, fromCol = LEFT_PEG_COL, toCol = JUMP_TARGET_COL) }
+            superseding("an undo", jumpFirst = true) { it.onUndo() }
+            superseding("a restart", jumpFirst = true) {
+                it.onRestart()
+                it.onConfirmRestart()
+            }
+
+            val viewModel = viewModelFor(playableStrip(), getHintUseCase = cutShortIsUndecided())
+            runCurrent()
+            viewModel.onHintRequested()
+            runCurrent()
+            viewModel.onHintRequested()
+            runCurrent()
+            assertThat(gate.pending).isEqualTo(2)
+            gate.releaseAll()
+            runCurrent()
+
+            val state = viewModel.uiState.value
+            assertWithMessage("a second Hint: the notice").that(state.hintUndecided).isFalse()
+            assertWithMessage("a second Hint: the banner").that(state.noWinningMove).isFalse()
+            assertWithMessage("a second Hint: its own search answers")
+                .that(state.hintSource)
+                .isEqualTo(at(LEFT_PEG_COL))
+            assertWithMessage("a second Hint: no offer").that(state.pendingAdOffer).isNull()
+            assertWithMessage("a second Hint: the spinner").that(state.solverThinking).isFalse()
+        }
+
+    /**
+     * AC-13 and the first half of criterion 23f: once up, the notice goes with the next
+     * jump (in the very update that starts the slide), the next undo that steps the board
+     * back, the next restart that resets it, and the next Hint request (at the tap, before
+     * the new search answers).
+     */
+    @Test
+    fun theUndecidedNoticeClearsOnTheNextJumpUndoRestartOrHint() =
+        hintTest {
+            val afterJump = undecidedViewModel(jumpFirst = false)
+            jump(afterJump, fromCol = LEFT_PEG_COL, toCol = JUMP_TARGET_COL)
+            runCurrent()
+            assertWithMessage("a jump").that(afterJump.uiState.value.hintUndecided).isFalse()
+            assertWithMessage("a jump: the same update starts the slide")
+                .that(afterJump.uiState.value.animating)
+                .isNotNull()
+            cancelTickers()
+
+            val afterUndo = undecidedViewModel(jumpFirst = true)
+            afterUndo.onUndo()
+            runCurrent()
+            assertWithMessage("an undo").that(afterUndo.uiState.value.hintUndecided).isFalse()
+            assertWithMessage("an undo: the board stepped back").that(afterUndo.uiState.value.canUndo).isFalse()
+            cancelTickers()
+
+            val afterRestart = undecidedViewModel(jumpFirst = true)
+            afterRestart.onRestart()
+            afterRestart.onConfirmRestart()
+            runCurrent()
+            assertWithMessage("a restart").that(afterRestart.uiState.value.hintUndecided).isFalse()
+            cancelTickers()
+
+            val afterHint = undecidedViewModel(jumpFirst = false)
+            afterHint.onHintRequested()
+            runCurrent()
+            assertWithMessage("a Hint request: the new search is in flight").that(gate.pending).isEqualTo(1)
+            assertWithMessage("a Hint request").that(afterHint.uiState.value.hintUndecided).isFalse()
+            assertWithMessage("a Hint request: Working").that(afterHint.uiState.value.solverThinking).isTrue()
+        }
+
+    /**
+     * The second half of criterion 23f (with AC-13): acting on the board without moving it
+     * leaves the notice up. A selection, a deselection, a rejected tap, a Show-moves toggle,
+     * and an Undo or a Restart tap that only opens the offer dialog or the confirm — none
+     * of them ends it, and neither does backing out of either dialog.
+     */
+    @Test
+    fun theUndecidedNoticeStaysThroughEveryTapThatLeavesTheBoardAsItWas() =
+        hintTest {
+            val viewModel = viewModelFor(playableStrip(), getHintUseCase = alwaysUndecided())
+            runCurrent()
+            // Spend the free undos first, so the Undo tap below can only open the offer.
+            repeat(AssistAllowanceLimits.FREE_UNDOS) {
+                jump(viewModel, fromCol = LEFT_PEG_COL, toCol = JUMP_TARGET_COL)
+                runCurrent()
+                viewModel.onUndo()
+                runCurrent()
+            }
+            jump(viewModel, fromCol = LEFT_PEG_COL, toCol = JUMP_TARGET_COL)
+            runCurrent()
+            raiseTheNotice(viewModel)
+
+            viewModel.onCellTap(at(JUMP_TARGET_COL))
+            assertThat(viewModel.uiState.value.selected).isEqualTo(at(JUMP_TARGET_COL))
+            assertNoticeStillUp(viewModel, "a selection")
+            viewModel.onCellTap(at(JUMP_TARGET_COL))
+            assertThat(viewModel.uiState.value.selected).isNull()
+            assertNoticeStillUp(viewModel, "a deselection")
+            val rejectedBefore = viewModel.uiState.value.rejectedTapTick
+            viewModel.onCellTap(at(LEFT_PEG_COL))
+            assertThat(viewModel.uiState.value.rejectedTapTick).isEqualTo(rejectedBefore + 1)
+            assertNoticeStillUp(viewModel, "a rejected tap")
+            viewModel.onToggleHints()
+            runCurrent()
+            assertNoticeStillUp(viewModel, "a Show-moves toggle")
+
+            viewModel.onUndo()
+            runCurrent()
+            assertThat(viewModel.uiState.value.pendingAdOffer).isEqualTo(AdReason.UNDO)
+            assertNoticeStillUp(viewModel, "an Undo tap that only opens the offer")
+            viewModel.onDismissAdOffer()
+            assertNoticeStillUp(viewModel, "backing out of the offer")
+
+            viewModel.onRestart()
+            assertThat(viewModel.uiState.value.confirmRestart).isTrue()
+            assertNoticeStillUp(viewModel, "a Restart tap that only opens the confirm")
+            viewModel.onDismissRestart()
+            assertNoticeStillUp(viewModel, "backing out of the confirm")
+        }
+
     // ---- Helpers -------------------------------------------------------------
+
+    /**
+     * One AC-12 case: a fresh ViewModel (one jump in when [jumpFirst]), a search parked in
+     * flight, [supersede] applied, and only then the parked search released.
+     */
+    private fun TestScope.superseding(
+        label: String,
+        jumpFirst: Boolean,
+        supersede: (GameViewModel) -> Unit,
+    ) {
+        val viewModel = viewModelFor(playableStrip(), getHintUseCase = cutShortIsUndecided())
+        runCurrent()
+        if (jumpFirst) {
+            jump(viewModel, fromCol = LEFT_PEG_COL, toCol = JUMP_TARGET_COL)
+            runCurrent()
+        }
+        viewModel.onHintRequested()
+        runCurrent()
+        assertWithMessage("%s: the search is in flight", label).that(gate.pending).isEqualTo(1)
+
+        supersede(viewModel)
+        runCurrent()
+        gate.releaseAll()
+        runCurrent()
+
+        val state = viewModel.uiState.value
+        assertWithMessage("%s: the notice", label).that(state.hintUndecided).isFalse()
+        assertWithMessage("%s: the banner", label).that(state.noWinningMove).isFalse()
+        assertWithMessage("%s: the rescue banner", label).that(state.showRescueBanner).isFalse()
+        assertWithMessage("%s: no hint revealed", label).that(state.hintSource).isNull()
+        assertWithMessage("%s: no offer", label).that(state.pendingAdOffer).isNull()
+        assertWithMessage("%s: the spinner", label).that(state.solverThinking).isFalse()
+        cancelTickers()
+    }
+
+    /** A ViewModel on [playableStrip] (one jump in when [jumpFirst]) with the notice up. */
+    private fun TestScope.undecidedViewModel(jumpFirst: Boolean): GameViewModel {
+        val viewModel = viewModelFor(playableStrip(), getHintUseCase = alwaysUndecided())
+        runCurrent()
+        if (jumpFirst) {
+            jump(viewModel, fromCol = LEFT_PEG_COL, toCol = JUMP_TARGET_COL)
+            runCurrent()
+        }
+        raiseTheNotice(viewModel)
+        return viewModel
+    }
+
+    /**
+     * Requests a hint and lets its Undecided answer land, asserting the notice is up and
+     * the banner is not — the starting point of every notice test.
+     */
+    private fun TestScope.raiseTheNotice(viewModel: GameViewModel) {
+        viewModel.onHintRequested()
+        runCurrent()
+        gate.releaseAll()
+        runCurrent()
+        assertWithMessage("an Undecided answer must not raise the banner")
+            .that(viewModel.uiState.value.noWinningMove)
+            .isFalse()
+        assertWithMessage("an Undecided answer must raise the notice")
+            .that(viewModel.uiState.value.hintUndecided)
+            .isTrue()
+    }
+
+    private fun assertNoticeStillUp(
+        viewModel: GameViewModel,
+        label: String,
+    ) {
+        assertWithMessage("the notice after %s", label).that(viewModel.uiState.value.hintUndecided).isTrue()
+    }
+
+    /** A hint use case whose every search stops undecided — the outcome is the fixture. */
+    private fun alwaysUndecided(): GetHintUseCase {
+        val useCase = mockk<GetHintUseCase>()
+        every { useCase.invoke(any(), any(), any(), any(), any()) } returns HintOutcome.Undecided
+        return useCase
+    }
+
+    /**
+     * A hint use case that answers as the real one does under cancellation: it polls its
+     * cancel lambda once, answers Undecided when that poll says stop — all a search cut
+     * short can say — and otherwise finds the first legal move.
+     */
+    private fun cutShortIsUndecided(): GetHintUseCase {
+        val useCase = mockk<GetHintUseCase>()
+        every { useCase.invoke(any(), any(), any(), any(), any()) } answers {
+            val shouldCancel = arg<() -> Boolean>(SHOULD_CANCEL_ARG)
+            if (shouldCancel()) {
+                HintOutcome.Undecided
+            } else {
+                HintOutcome.Found(RulesEngine.legalMoves(firstArg()).first())
+            }
+        }
+        return useCase
+    }
+
+    /**
+     * Wiegleb-45 four jumps in, one ply past its depth-3 book and off its committed line —
+     * sequence B of AC-18, the same jumps `GetHintUseCaseTest` replays.
+     */
+    private fun wiegleb45FourJumpsIn(): Board =
+        listOf(
+            Position(row = 6, col = 4) to Position(row = 4, col = 4),
+            Position(row = 8, col = 4) to Position(row = 6, col = 4),
+            Position(row = 5, col = 6) to Position(row = 5, col = 4),
+            Position(row = 7, col = 5) to Position(row = 5, col = 5),
+        ).fold(Boards.wiegleb45Initial) { board, (from, to) ->
+            RulesEngine.applyMove(board, RulesEngine.legalMoves(board).single { it.from == from && it.to == to })
+        }
 
     /**
      * Runs [body] on the test dispatcher and ALWAYS cancels the ViewModel store afterwards.
@@ -426,7 +712,7 @@ class GameViewModelHintStalenessTest {
                         settingsRepository = HintSettings,
                         challengeProgress = mockk(relaxed = true),
                         progressRepository = mockk(relaxed = true),
-                        timeSource = TestTimeSource(),
+                        timeSource = timeSource,
                         defaultDispatcher = gate,
                         adGateway = HintAdGateway,
                         getHintUseCase = getHintUseCase,
@@ -545,6 +831,12 @@ private const val THIRD_PEG_COL = 3
 
 /** The move count at the moment a hint is requested on a freshly loaded board. */
 private const val NO_MOVES_PLAYED = 0
+
+/** Comfortably past `SolverBudget.DEFAULT.deadline` (1.5 s), so the first poll sees it passed. */
+private val PAST_THE_DEADLINE = 2.seconds
+
+/** `GetHintUseCase.invoke`'s cancel lambda: board, solution, movesPlayed, budget, shouldCancel. */
+private const val SHOULD_CANCEL_ARG = 4
 
 /**
  * A [LevelRepository] serving one fixed board through Classic. `loadChallenge` is an
