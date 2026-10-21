@@ -50,13 +50,20 @@ import org.junit.Test
  *
  * ## Measured (this sweep, post-book)
  *
- * | Board | k | examined | canonical | book-served | authoritative dead | solver fallback | max/call |
- * |-------|---|----------|-----------|-------------|--------------------|-----------------|----------|
- * | English-33 | 4 | 373 | 51 | 369 | 4 | **0** | 9 ms |
- * | European-37 | 4 | 609 | 312 | 609 | 0 | **0** | 2 ms |
- * | Asymmetric-39 | 4 | 461 | 233 | 461 | 0 | **0** | 1 ms |
- * | Diamond-41 | 4 | 785 | 107 | 345 | 0 | 440 | 1511 ms |
- * | Wiegleb-45 | 3 | 101 | 16 | 97 | 0 | 4 | 1500 ms |
+ * | Board | k | examined | canonical | book-served | authoritative dead | solver fallback | undecided | max/call |
+ * |-------|---|----------|-----------|-------------|--------------------|-----------------|-----------|----------|
+ * | English-33 | 4 | 373 | 51 | 369 | 4 | **0** | 0 | 9 ms |
+ * | European-37 | 4 | 609 | 312 | 609 | 0 | **0** | 0 | 2 ms |
+ * | Asymmetric-39 | 4 | 461 | 233 | 461 | 0 | **0** | 0 | 1 ms |
+ * | Diamond-41 | 4 | 785 | 107 | 345 | 0 | 440 | 440 | 1511 ms |
+ * | Wiegleb-45 | 3 | 101 | 16 | 97 | 0 | 4 | 4 | 1500 ms |
+ *
+ * The "undecided" column, the solver fallbacks that came back Undecided, is from a later
+ * green sweep (`bugfix/hint-undecided`, 2026-10-21, 22:58–23:09, load averages 5.39 / 5.81 /
+ * 6.63 at the start, two other worktrees building): every fallback was Undecided, none was
+ * found and none proved dead. Each of those 444 positions was shown "no winning move"
+ * before GD-HT-1. The count depends on the host's speed under a wall-clock deadline, so the
+ * sweep prints it and never pins it.
  *
  * Against RESEARCH's PRE-book measurement of the same frontiers: European-37 took 158.6 s
  * and left 57 positions unresolved, Asymmetric-39 73.2 s and 26 unresolved, Wiegleb-45
