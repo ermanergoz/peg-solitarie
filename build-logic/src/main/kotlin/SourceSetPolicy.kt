@@ -5,13 +5,18 @@
  * Two lists, deliberately different, and the difference is the whole point:
  *  - [shippedSourceRoots] feeds `adIdLiteralCheck` (PLAT-06 / D-05), `gamesIdLiteralCheck`
  *    (PLAT-06 / D-17) and `audioFocusLiteralCheck` (SOUND-06). It covers every source set whose
- *    content SHIPS in an artifact — `src/main`, `src/release`, `src/debug` — and deliberately
- *    excludes every test source set. Each of those three gates has the same recorded reason for
- *    skipping `src/test`: it legitimately asserts on Google's test-publisher prefix, it spells
- *    Play Games key names (`BuildConfigIdsTest`), and it may name the audio-focus API in an
- *    assertion. `src/testDebug` is a second spelling of the same exemption, so it is excluded too.
- *    This is the opposite of the detekt widening below, and on purpose: style rules apply to test
- *    code, "no production credential in source" does not.
+ *    content SHIPS in an artifact — `src/main`, `src/release`, `src/debug` — WHOLE: the gates read
+ *    every file under each directory, whatever its content type, and deliberately exclude every
+ *    test source set. Whole, because a per-directory list had a hole at the most likely paste site
+ *    (docs/tech-design.md §9.3, amended 2026-10-18): the manifest is where AdMob's setup puts the
+ *    app ID, and `assets/` (the licence texts) and `:domain`'s Java `resources/` (the opening book)
+ *    ship too, yet none of them was under `java`, `kotlin` or `res`. Scanning the whole source set
+ *    makes the source-set list the only list, and the tripwire below guards it. Each of the three
+ *    gates has the same recorded reason for skipping `src/test`: it legitimately asserts on
+ *    Google's test-publisher prefix, it spells Play Games key names (`BuildConfigIdsTest`), and it
+ *    may name the audio-focus API in an assertion. `src/testDebug` is a second spelling of the
+ *    same exemption, so it is excluded too. This is the opposite of the detekt widening below, and
+ *    on purpose: style rules apply to test code, "no production credential in source" does not.
  *  - [variantSourceRoots] feeds the plain `detekt` task, whose own defaults see only
  *    `src/main` + `src/test`. It covers the build-type source sets detekt would otherwise treat as
  *    an undeclared blanket suppression, test source sets INCLUDED.
@@ -34,9 +39,6 @@ object SourceSetPolicy {
 
     /** Source sets whose content ships inside an artifact. */
     val SHIPPED_SOURCE_SET_NAMES = listOf("main", "release", "debug")
-
-    /** The per-source-set directories the literal gates read: code and resources both. */
-    val SHIPPED_LANGUAGE_DIRS = listOf("java", "kotlin", "res")
 
     /** Source sets detekt's own defaults miss. `main` and `test` are already covered by them. */
     val VARIANT_SOURCE_SET_NAMES = listOf("debug", "release", "testDebug")
@@ -62,8 +64,12 @@ object SourceSetPolicy {
      */
     val KNOWN_SOURCE_SET_NAMES = setOf("main", "test", "debug", "release", "testDebug")
 
-    /** Module-relative roots the three literal gates scan, unfiltered — the caller drops absentees. */
-    fun shippedSourceRoots(): List<String> = roots(SHIPPED_SOURCE_SET_NAMES, SHIPPED_LANGUAGE_DIRS)
+    /**
+     * Module-relative roots the three literal gates scan, unfiltered — the caller drops absentees.
+     * Each root is a whole source-set directory: the manifest, `assets/`, Java `resources/` and any
+     * content type a later AGP adds are read with the code, so no second list can fall behind.
+     */
+    fun shippedSourceRoots(): List<String> = SHIPPED_SOURCE_SET_NAMES.map { "$SOURCE_DIR/$it" }
 
     /** Module-relative roots added to the plain `detekt` task, unfiltered. */
     fun variantSourceRoots(): List<String> = roots(VARIANT_SOURCE_SET_NAMES, VARIANT_LANGUAGE_DIRS)
@@ -73,8 +79,7 @@ object SourceSetPolicy {
      * scope is how F-1's false claim happened, so this is derived from the list, never retyped.
      */
     val SHIPPED_SOURCE_ROOTS_DESCRIPTION: String =
-        SHIPPED_SOURCE_SET_NAMES.joinToString(", ") { "$SOURCE_DIR/$it" } +
-            " (" + SHIPPED_LANGUAGE_DIRS.joinToString(", ") + ")"
+        "every file under " + shippedSourceRoots().joinToString(", ")
 
     /** The existing `src/<name>` directory names nobody has classified, in the order given. */
     fun unknownSourceSetNames(existingSourceSetNames: Iterable<String>): List<String> =

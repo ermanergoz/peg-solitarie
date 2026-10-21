@@ -18,9 +18,10 @@ import org.gradle.api.GradleException
  *  - a custom `audioFocusLiteralCheck` — no audio-focus request anywhere in shipped source
  *    (SOUND-06; holding no focus is what stops the game ducking the user's music).
  *
- * "Shipped source" is `SourceSetPolicy.shippedSourceRoots()` — `src/main`, `src/release`
- * and `src/debug`, test source sets deliberately excluded — and a configuration-time
- * tripwire below fails the build the day a source set appears that neither list classifies.
+ * "Shipped source" is `SourceSetPolicy.shippedSourceRoots()` — every file under `src/main`,
+ * `src/release` and `src/debug`, test source sets deliberately excluded — and a
+ * configuration-time tripwire below fails the build the day a source set appears that
+ * neither list classifies.
  *
  * It also makes every `Test` task in both modules self-heal a truncated result store (F1,
  * below), so a clobbered or interrupted run can never wedge a later one.
@@ -175,8 +176,11 @@ val dpSpLiteralCheck =
 // what makes that a rule rather than a convention: it fails the build on any
 // `ca-app-pub-` substring in shipped source or resources.
 //
-// It scans every SHIPPED source set — `src/main`, `src/release`, `src/debug` — and no test
-// source set. `src/release` is the half that reaches the store; `src/debug` is not cosmetic
+// It reads every file of every SHIPPED source set — `src/main`, `src/release`, `src/debug` —
+// and no test source set. Every file, not a code-and-res subset: the manifest is where
+// AdMob's setup puts the app ID, and `assets/` and Java `resources/` ship too, so the
+// source-set list is the only list and the tripwire guards it (design §9.3, amended
+// 2026-10-18). `src/release` is the half that reaches the store; `src/debug` is not cosmetic
 // either, because D-05's rule is "Google's test units in debug, real untracked ones in
 // release", so a real unit id there serves real ads to a developer's own build, which is
 // AdMob invalid traffic. `src/test` and `src/testDebug` are excluded on purpose: they
@@ -255,9 +259,11 @@ val adIdLiteralCheck =
 // The games sibling of `adIdLiteralCheck`, and it exists because that gate cannot cover
 // this: it scans for `ca-app-pub-`, which no leaderboard or achievement ID contains.
 // Same 27 values, same rule — they are per-build-type `buildConfigField`s resolved from
-// an untracked `local.properties`, never source. Reuses `shippedSourceRoots`, so it scans
-// `src/main`, `src/release` and `src/debug`, and no test source set: `src/test` legitimately
-// spells key names (see `BuildConfigIdsTest`) and `src/testDebug` is the same exemption.
+// an untracked `local.properties`, never source. Reuses `shippedSourceRoots`, so it reads
+// every file under `src/main`, `src/release` and `src/debug` — the manifest, `assets/` and
+// Java `resources/` included, wherever an ID could be pasted — and no test source set:
+// `src/test` legitimately spells key names (see `BuildConfigIdsTest`) and `src/testDebug`
+// is the same exemption.
 val gamesIdLiteralCheck =
     tasks.register("gamesIdLiteralCheck") {
         group = "verification"
@@ -298,8 +304,9 @@ val gamesIdLiteralCheck =
 // request, so an app that holds no focus can neither duck nor be ducked. An omission
 // with no gate rots the first time someone adds a focus request "to be polite". This
 // makes "the player's podcast never dips" a fact CI re-proves on every commit rather
-// than a one-off UAT observation. It reuses `shippedSourceRoots`, so it scans `src/main`,
-// `src/release` and `src/debug` — `src/debug` matters most here, because SOUND-06's evidence
+// than a one-off UAT observation. It reuses `shippedSourceRoots`, so it reads every file under
+// `src/main`, `src/release` and `src/debug`, whatever its content type — `src/debug` matters
+// most here, because SOUND-06's evidence
 // is gathered on debug builds and a focus request added there would silently falsify every
 // "the player's podcast never dips" observation. No test source set is scanned: `src/test`
 // may still name the API in an assertion.

@@ -1,4 +1,5 @@
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Test
 
 /**
@@ -6,9 +7,10 @@ import org.junit.Test
  * tripwire that keeps that scope honest (F-8 / F-9).
  *
  * Two halves, and the second is as deliberate as the first:
- *  - every SHIPPED source set is scanned — `src/main`, `src/release` and `src/debug`. A real ad
- *    unit id pasted into `src/release` reaches the store; one pasted into `src/debug` cannot reach
- *    the store but serves real ads to a developer's own build, which is AdMob invalid traffic.
+ *  - every SHIPPED source set is scanned whole — every file under `src/main`, `src/release` and
+ *    `src/debug`, the manifest, `assets/` and Java `resources/` included. A real ad unit id pasted
+ *    into `src/release` reaches the store; one pasted into `src/debug` cannot reach the store but
+ *    serves real ads to a developer's own build, which is AdMob invalid traffic.
  *  - every TEST source set is excluded — `src/test` legitimately asserts on Google's test-publisher
  *    prefix, spells Play Games key names and may name the audio-focus API in an assertion, and
  *    `src/testDebug` is simply a second spelling of the same exemption.
@@ -19,20 +21,28 @@ import org.junit.Test
  */
 class SourceSetPolicyTest {
     @Test
-    fun everyShippedSourceSetIsScannedInAllThreeLanguageDirectories() {
+    fun everyShippedSourceSetIsScannedAsAWholeDirectory() {
         val roots = SourceSetPolicy.shippedSourceRoots()
 
-        assertThat(roots).containsExactly(
-            "src/main/java",
-            "src/main/kotlin",
-            "src/main/res",
-            "src/release/java",
-            "src/release/kotlin",
-            "src/release/res",
-            "src/debug/java",
-            "src/debug/kotlin",
-            "src/debug/res",
-        )
+        assertThat(roots).containsExactly("src/main", "src/release", "src/debug")
+    }
+
+    @Test
+    fun everyFileOfAShippedSourceSetIsUnderAScannedRoot() {
+        val roots = SourceSetPolicy.shippedSourceRoots()
+        val shippedFiles =
+            listOf(
+                "src/main/AndroidManifest.xml",
+                "src/main/assets/licenses/x.txt",
+                "src/main/resources/golden/book/x.txt",
+                "src/debug/AndroidManifest.xml",
+            )
+
+        shippedFiles.forEach { file ->
+            assertWithMessage("%s must lie under one of %s", file, roots)
+                .that(roots.any { root -> file.startsWith("$root/") })
+                .isTrue()
+        }
     }
 
     @Test
@@ -109,9 +119,11 @@ class SourceSetPolicyTest {
     fun theGateFailureMessagesCanNameTheRootsTheyActuallyScanned() {
         val description = SourceSetPolicy.SHIPPED_SOURCE_ROOTS_DESCRIPTION
 
+        assertThat(description).contains("every file under")
         assertThat(description).contains("src/main")
         assertThat(description).contains("src/release")
         assertThat(description).contains("src/debug")
         assertThat(description).doesNotContain("src/test")
+        assertThat(description).doesNotContain("java")
     }
 }
