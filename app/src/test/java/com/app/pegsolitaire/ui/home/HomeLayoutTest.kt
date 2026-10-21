@@ -45,6 +45,7 @@ import com.app.pegsolitaire.ui.home.fixture.boardsValue
 import com.app.pegsolitaire.ui.home.fixture.bothResumesState
 import com.app.pegsolitaire.ui.home.fixture.challengeTileTitle
 import com.app.pegsolitaire.ui.home.fixture.classicTileTitle
+import com.app.pegsolitaire.ui.home.fixture.columnBoundsOf
 import com.app.pegsolitaire.ui.home.fixture.levelLabel
 import com.app.pegsolitaire.ui.home.fixture.pillClickAction
 import com.app.pegsolitaire.ui.home.fixture.pillDescriptions
@@ -147,10 +148,17 @@ class HomeLayoutTest {
      * `home_compact_threshold_width` nothing D-03k added changes behaviour, so a 6.7-inch phone
      * keeps the full band set — and its slack holds the stage's board.
      *
+     * **"Full" is read from the band spacing.** Since D-03l the two sets differ at this width in
+     * one thing only: `spacing_md` between the bands and around the column, where the compact set
+     * has `spacing_sm`. Neither the pill shape nor the stage art can tell them apart here: the
+     * compact pill needs the narrow class as well as the compact set, and the compact set draws a
+     * stage board too wherever it has slack. So the gap between the two mode tiles, one band gap
+     * with no weighted child inside it, must be the full set's. A set forced compact at or above
+     * 400dp halves it (the H-1 audit's M5, under which the stage-art assertion alone stayed green).
+     *
      * Retargeted, not deleted (ux-spec §13's founder-feedback table): this asserted the hero's
      * decorative art, which D-03l withdrew on every window. 15l's "with the hero's decorative art
-     * present" now reads "with the stage art present" (§14), and the full/compact distinction is
-     * spacing and pill shape alone.
+     * present" now reads "with the stage art present" (§14).
      *
      * The qualifier is 15l's own `w412dp-h915dp` rather than [TALL_PHONE_QUALIFIER]'s 411dp — the
      * same side of the 400dp boundary, named as the criterion names it so the width term's
@@ -158,9 +166,13 @@ class HomeLayoutTest {
      */
     @Test
     @Config(qualifiers = WIDE_PHONE_QUALIFIER)
-    fun theStageArtIsPresentOnAPhoneAboveTheCompactThreshold() {
+    fun aWidePhoneKeepsTheFullBandSetWithTheStageArtPresent() {
         composeRule.renderHome(state = bothResumesState())
 
+        assertWithMessage("the band gap between the two mode tiles, in dp")
+            .that(gapBetweenTheModeTiles().value)
+            .isWithin(BAND_GAP_TOLERANCE_DP)
+            .of(dimen(R.dimen.spacing_md).value)
         composeRule.onNodeWithTag(HOME_STAGE_ART_TEST_TAG).assertExists()
     }
 
@@ -676,6 +688,16 @@ class HomeLayoutTest {
             abs((pixel shr shift and CHANNEL_MASK) - (colour shr shift and CHANNEL_MASK)) <= PAINT_TOLERANCE
         }
 
+    /**
+     * One band gap of whichever set Home took: from the Classic tile's bottom edge to the Challenge
+     * tile's top edge, both read along the column so neither edge is the viewport's.
+     */
+    private fun gapBetweenTheModeTiles(): Dp {
+        val first = composeRule.columnBoundsOf(composeRule.onNodeWithText(classicTileTitle))
+        val second = composeRule.columnBoundsOf(composeRule.onNodeWithText(challengeTileTitle))
+        return second.top - first.bottom
+    }
+
     /** The progress ribbon band's measured height — criterion 15m's ceiling is on this. */
     private fun ribbonHeight(): Dp {
         val bounds = composeRule.onNodeWithTag(HOME_PROGRESS_RIBBON_TEST_TAG).getBoundsInRoot()
@@ -782,6 +804,12 @@ private const val COMPACT_RIBBON_MAX_HEIGHT_DP = 56
  * clean at 1dp; 2dp is still half the `spacing_xs` a glyph beside a label would sit at.
  */
 private const val TEXT_INK_MARGIN_DP = 2
+
+/**
+ * Rounding the band-gap read allows, in dp: far below the 8dp between the full set's `spacing_md`
+ * and the compact set's `spacing_sm`.
+ */
+private const val BAND_GAP_TOLERANCE_DP = 0.5f
 
 /** A pixel's centre, from its top-left corner. */
 private const val HALF_PIXEL = 0.5f
