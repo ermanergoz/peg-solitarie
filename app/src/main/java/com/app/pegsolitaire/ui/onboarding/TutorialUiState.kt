@@ -74,11 +74,27 @@ data class TutorialUiState(
         /** Step indices are 0-based; the pip row counts from 1. */
         private const val STEP_NUMBER_OFFSET = 1
 
-        /** The tutorial as it opens, and as a replay from Settings always re-opens: T1. */
-        fun initial(): TutorialUiState = forStep(FIRST_STEP)
+        /**
+         * Haptics before the persisted switch has been read: on (D-17), the value
+         * `GameUiState.initial()` starts the gameplay board with.
+         */
+        private const val HAPTICS_BEFORE_FIRST_READ = true
 
-        /** The state that installs step [index]: its board, its caption, a cleared coach. */
-        fun forStep(index: Int): TutorialUiState =
+        /** The tutorial as it opens, and as a replay from Settings always re-opens: T1. */
+        fun initial(): TutorialUiState = forStep(FIRST_STEP, hapticsOn = HAPTICS_BEFORE_FIRST_READ)
+
+        /**
+         * The state that installs step [index]: its board, its caption, a cleared coach.
+         *
+         * This is the tutorial's only board install, and [hapticsOn] is required, with no default,
+         * so every install site has to decide what it carries: the rebuilt board would otherwise
+         * start at the fail-open `true` and buzz for a player who switched Haptics off
+         * (tech-lead ruling 2026-10-18).
+         */
+        fun forStep(
+            index: Int,
+            hapticsOn: Boolean,
+        ): TutorialUiState =
             TutorialUiState(
                 stepIndex = index,
                 board =
@@ -86,6 +102,7 @@ data class TutorialUiState(
                         // D-01b: forced on regardless of the persisted setting, so legal
                         // destinations are always visible and no step is a guessing game.
                         showHints = true,
+                        hapticsOn = hapticsOn,
                     ),
                 captionRes = CAPTIONS[index],
             )

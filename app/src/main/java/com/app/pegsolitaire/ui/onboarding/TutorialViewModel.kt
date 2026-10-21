@@ -2,6 +2,7 @@ package com.app.pegsolitaire.ui.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.app.pegsolitaire.data.HapticsSetting
 import com.app.pegsolitaire.data.OnboardingRepository
 import com.app.pegsolitaire.di.ApplicationScope
 import com.app.pegsolitaire.domain.model.Cell
@@ -35,9 +36,12 @@ import javax.inject.Inject
  * routing the tutorial through it would fire that path three times per run and destroy two of
  * the three cloud-save device oracles — a failure that looks correct on screen and is wrong in
  * the database. This class
- * therefore has exactly **two** collaborators, [OnboardingRepository] and the application
- * scope, and `TutorialViewModelTest` pins that by reflection over this constructor rather
- * than by a grep, so a later refactor that injects a progress dependency fails a test.
+ * therefore has exactly **three** collaborators, [OnboardingRepository], [HapticsSetting] and the
+ * application scope, and `TutorialViewModelTest` pins that by reflection over this constructor
+ * rather than by a grep, so a later refactor that injects a progress dependency fails a test.
+ * The third is allowed because it is not a progress dependency: it is a read-only seam over one
+ * setting, Haptics, which the jump the player feels honours exactly as on the gameplay board
+ * (D-01j), and a second test keeps that seam to its single member (tech-lead ruling 2026-10-18).
  *
  * For the same reason a step's completion is `board.pegCount == 1` evaluated here and not a
  * `GameStatus`: reaching for the game's status type is the first step down that same path
@@ -64,6 +68,9 @@ import javax.inject.Inject
  *
  * @param onboardingRepository the DataStore-backed seen flag — the single source of truth for
  *   whether the tutorial is still owed, and the only thing this screen persists.
+ * @param hapticsSetting the persisted Haptics switch (SET-02), collected into
+ *   `board.hapticsOn` exactly as the gameplay board collects it, so the shared jump haptic reads
+ *   the same gate on both boards.
  * @param applicationScope the process-lifetime scope the seen flag is written on, so the
  *   write outlives the screen that requested it (the same reasoning
  *   `ProgressSubmitter.onProfileSwapResolved` already records for the wipe).
@@ -73,7 +80,10 @@ class TutorialViewModel
     @Inject
     constructor(
         private val onboardingRepository: OnboardingRepository,
-        @ApplicationScope private val applicationScope: CoroutineScope,
+        hapticsSetting: HapticsSetting,
+        // `@param:`, as in SoundPoolPlayer: Dagger reads the parameter annotation, and the
+        // default use-site target is changing (KT-73255), which Kotlin 2.3 warns about.
+        @param:ApplicationScope private val applicationScope: CoroutineScope,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(TutorialUiState.initial())
 
@@ -108,6 +118,14 @@ class TutorialViewModel
         private var nudgeJob: Job? = null
 
         init {
+            // Same contract as the gameplay board (SET-02, D-15): the board's state carries the
+            // persisted switch and the screen fires the tick; fail-open ON until the first
+            // emission. No `catch` of its own: the repository's read already fails open (D-17).
+            viewModelScope.launch {
+                hapticsSetting.hapticsOn.collect { on ->
+                    _uiState.update { it.withBoard(it.board.copy(hapticsOn = on)) }
+                }
+            }
             armNudge()
         }
 
@@ -247,7 +265,11 @@ class TutorialViewModel
                     _uiState.update { it.completed() }
                 } else {
                     resetStepCursors()
-                    _uiState.update { TutorialUiState.forStep(nextIndex) }
+                    // The persisted Haptics value is read INSIDE the update, from the board being
+                    // replaced: a fresh step board starts at the fail-open `true`, and the
+                    // DataStore flow does not re-emit an unchanged value, so a value captured
+                    // outside the lambda could lose a collector emission landing between the two.
+                    _uiState.update { TutorialUiState.forStep(nextIndex, hapticsOn = it.board.hapticsOn) }
                     armNudge()
                 }
             }
