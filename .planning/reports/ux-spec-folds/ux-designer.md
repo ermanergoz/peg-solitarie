@@ -2,11 +2,11 @@
 Date: 2026-10-21
 Branch: feature/ux-spec-folds (committed by the producer)
 Skills loaded: ergoz-soft:standards (role ux-designer). The product's rules snapshot is 0.6.2 and the plugin is 1.0.0, so I read the plugin 1.0.0 copies in full: studio, reporting, gitflow, skills-policy, logging, memory, puzzle-design, play-store, kotlin-android, compose and dispatch. I also read the product's `.claude/rules/lessons.md`. Then ui-ux-pro-max, android-accessibility and compose-skill.
-Ran in parallel with: none known to this role
+Ran in parallel with: none known to this role in loops 0–2; in loops 3–4, talkback-board (the tech-lead's build brief on `feature/talkback-board`, whose §1 is an input to loop 4)
 Ran on: claude-opus-5-5 at effort xhigh (the agent file's effort). **Staffing deviation:** the ux-designer is pinned to fable. This ran on Opus under the founder's Q-019 (2026-10-17: "Opus for every Fable-pinned role until 3.0.0 is published"), in `.planning/questions/FOUNDER.md`.
-Fan-out: none. I dispatched no studio role. Ten read-only Explore helpers on haiku ran greps, file reads and `git status` for me, because this role has no Bash (rules/dispatch.md): five in loop 0, two in loop 1, one in loop 2 and two in loop 3.
-Loops: 3
-Read in full: `.planning/reports/ux-spec-folds/ux-designer-check.md` (loop 1's input), `ux-designer-check-loop2.md` (loop 2's input), `ux-designer-check-loop3.md` and `game-designer-talkback-board.md` (loop 3's inputs); `.planning/questions/FOUNDER.md` Q-023
+Fan-out: none. I dispatched no studio role. Seventeen read-only Explore helpers on haiku ran greps and file reads for me, because this role has no Bash (rules/dispatch.md): five in loop 0, two in loop 1, one in loop 2, two in loop 3 and seven in loop 4. Earlier loops' helpers also ran `git status`. The loop-4 helpers were told to run no git command at all. None committed.
+Loops: 4
+Read in full: `.planning/reports/ux-spec-folds/ux-designer-check.md` (loop 1's input), `ux-designer-check-loop2.md` (loop 2's input), `ux-designer-check-loop3.md` and `game-designer-talkback-board.md` (loop 3's inputs); `.planning/questions/FOUNDER.md` Q-023; `ux-designer-check-loop4.md`, `PegSolitarie-tb/.planning/reports/talkback-board/tech-lead-brief.md` and `PegSolitarie-audio/docs/ux/invalid-tap-feedback.md` (loop 4's inputs)
 Lessons applied: none (the snapshot holds 0 active lessons, and `.planning/recall/RECALL.md` does not exist)
 
 ## Summary
@@ -351,3 +351,99 @@ Next: producer —
 2. The tech-lead writing the `feature/talkback-board` brief reads §11.1, §8's D-TB table, TB-1 to TB-12 and §13's D-TB rows. Those, not my loop-2 recommendation, are the contract.
 3. The android-game-dev on `feature/talkback-board` builds D-TB test-first against TB-1 to TB-12. Then the code-auditor; then the qa-engineer's TalkBack device pass (TB-7, TB-9, TB-10 and 26b, with a working TTS engine confirmed first); then the tech-lead's sign-off.
 4. `bugfix/home-chip-arrival`'s scope is unchanged by this loop, apart from the 15u, 15v and F-25 refinements to D-03n, which its developer and QA read from the spec.
+
+## Loop 4 — the fourth check, the build brief, and two other branches' rulings
+Date: 2026-10-23. Inputs, all read in full unless a range is given:
+- `.planning/reports/ux-spec-folds/ux-designer-check-loop4.md` (VERDICT FAIL: F-27 and F-28 MAJOR, F-29 to F-33 MINOR, F-34 to F-37 INFO);
+- the tech-lead's build brief, `PegSolitarie-tb/.planning/reports/talkback-board/tech-lead-brief.md` (its §1, F-TB-1 to F-TB-6, sent mid-loop by the coordinator);
+- the hint branch's spec, `PegSolitarie-hint/docs/ux-spec.md`, in part: the revision index `:286-370`, D-04f and D-04g `:1064-1120`, §4.4.2's TalkBack and banner parts `:2884-2960`, §11 `:3840-3912`, criteria 23h to 23k `:4618-4686`;
+- the audio amendment, `PegSolitarie-audio/docs/ux/invalid-tap-feedback.md` (D-06 to D-06d, D-01j, §3.6, §3.7, §6, WT-1 to WT-19), and on that branch `WrongTapAnnouncement.kt` and `TutorialSourceGuardTest.kt`;
+- on this branch: `GameScreen.kt:186-264`, `BoardGeometry.kt`, `BoardMetrics.kt`, `TutorialScreen.kt:236-265`, `ResultsViewModel.kt:500-540`, and `TutorialBoards.kt` through a helper.
+
+I edited only `docs/ux-spec.md`, plus this report.
+
+**How the edits were made.** A new decision, **D-TBa** (§3, right after D-TB), amends D-TB item by item, in the way D-04g amends D-04f on the hint branch. Every changed passage of §11.1 carries "(loop 4)". The sentences it replaced are quoted in a new "First wording" list at the end of §11.1. Criteria 26a, 26b, TB-1, TB-4, TB-6, TB-7, TB-8, TB-9 and TB-11 keep their text and gain a dated "Amended … loop 4" note below it. D-TB itself gains a one-line pointer. Older decisions (D-01c, §4.4 class 2, §11's touch-target and traversal lines) gain dated pointers only.
+
+### The check's findings
+| Finding | Severity | What I did | Where |
+|---|---|---|---|
+| F-27 — the banner after the dock; the Undecided notice unplaced; D-04g not cited | MAJOR | Ruled one gameplay order (D-TBa item 1): timer → board stop → cells → the raised banner (message, Undo, Restart, Home) or the Undecided notice → dock. This is D-04g item 6's order with D-TB's stops inserted. It is pinned by the slab being one traversal group, so a banner over the lowest rows cannot interleave with the cells. The banner and notice get no traversal index, as D-04g rules. While a Challenge board loads, `loading_level` stands in for the board | §3 D-TBa 1; §11 new "Ruled … loop 4" pointer; §11.1 paragraph after the stops table and focus table; 26b gameplay line, with the old ending quoted |
+| F-28 — two sentence sets for one event; the tutorial contradiction; repeats; the tutorial's signal | MAJOR | D-TB's three lines win and **supersede D-06c's three sentences**. D-06c's properties carry over: polite, identical repeats spoken, no focus stop, no re-read. **The tutorial speaks them**, superseding D-06c's "in the game only" and D-01j(2)'s "no announcement" for the announcement only. Its signal is audio §3.7's ordinal and cell as built (`rejectedTapTick`, `rejectedTapCell`). The built code on `feature/audio-review` changes nothing; the fold is `feature/talkback-board`'s (below) | §3 D-TBa 2–3 and its "What the built code … must change" paragraph; §8 note; §11.1 rejected-tap bullet; §13 rows; TB-4 note |
+| F-29 — the banner announced on both branches; "replaces" against "each once" | MINOR | The banner's line is 23k's region and the notice's is 23d's. D-TB adds neither, and TB-6 counts 23k's once. "Replaces" is scoped to the board's own channel. A stranding jump speaks two lines, each once, in either order (the jump's first is the intent); a repeat or a cut-off fails | §3 D-TBa 4; §11.1 lead, table rows, bullets; TB-6 note |
+| F-30 — "which the build now meets" | MINOR | Now "The branch that lands D-TB meets them"; the false clause is quoted under "First wording" | §11.1 |
+| F-31 — the "essential exception" basis | MINOR | Withdrawn. §11.1 "Cell size" records a **studio-rule deviation**: SC 2.5.8 met; rules/compose.md's 48dp not met by gameplay cells (42.3, 37.0, 32.9dp at 360dp for 7/8/9-wide grids; 48dp reached at 400, 448, 496dp windows; 64, 56, 49.8dp at the slab cap). Finger targets are the inscribed circle and touch their neighbours, so there is no spacing. The tutorial's cells, ≈83dp, meet it. 26a and §11's touch-target line gain pointers. The producer carries it to Q-PUBLISH-3.0.0 | §3 D-TBa 10; §11.1 "Cell size"; 26a pointer; §11 touch targets pointer |
+| F-32 — cell semantics not scoped to interactive boards | MINOR | Scoped: only `interactive = true` boards (gameplay, tutorial) have stops; Home stage, Continue thumbnail, tile art and previews have none | §3 D-TBa 9; §11.1 status; TB-1 and TB-11 notes; §13 owed |
+| F-33 — the board stop's double-tap mechanism | MINOR | Named: a no-op click action, no label, no role, **built from the start**. TalkBack's default "double-tap to activate" is accepted. It is a semantics action, so TB-11's "no pointer input" stands. 26a's "cannot be activated" clause does not judge the board stop | §3 D-TBa 8; §11.1 stops table; TB-1 note; 26a pointer |
+| F-34 — "Put down row 2, column 4." reads as an instruction | INFO | Value now `Peg put down, row %1$d, column %2$d.`; old value recorded | §8 row and note; §11.1 table; TB-6 note |
+| F-35 — three focus cases; the re-read of a changed focused cell | INFO | Added rows: the coach release (unchanged), a Challenge board loading (not moved, not announced), the opt-in dialog (declined: the dock control; accepted with an ad: TalkBack's own placement), and the Undecided notice rising and put away. Pre-ruled: if TalkBack re-reads a focused cell whose text changed, the selection line is withdrawn for focused-cell selections | §11.1 focus table and "A focused cell whose text changes"; TB-6, TB-7 notes |
+| F-36 — §13 omits TB-9's Compose test; §16's SCOR-03; the id style | INFO | §13 owes TB-9's Compose half plus new TB-1, TB-6 and TB-11 assertions. SCOR-03 is in neither §16's table nor `.planning/REQUIREMENTS.md` (helper grep), and is withdrawn with a note. The D-TB and D-TBa id style is recorded | §13; §16 note |
+| F-37 — D-01c and §4.4 class 2 carry no pointer | INFO | Both gain dated pointers: the neutral lines keep "never a failure" and "nothing announced as wrong" true by ear, and "Silent" is about cues | §3 D-01c; §4.4 after the class table |
+
+### The build brief's findings
+| Finding | Ruling | Where |
+|---|---|---|
+| F-TB-1 — four programmatic focus moves need input focus | **Accepted**, with one condition: the cells and the board stop take input focus **only while TalkBack runs**, so Tab and D-pad traversal with TalkBack off are today's (TB-11 now covers keyboard traversal). Device check: TB-7 records, for each of the four moves, whether TalkBack follows. The brief's fallback is accepted as written | §3 D-TBa 5; §11.1 "How focus moves"; TB-7, TB-11 notes |
+| F-TB-2 — D-TB's lines against D-06c's | **D-TB wins** on both boards (as F-28) | as F-28 |
+| F-TB-3 — the board stop's double-tap | **The no-op click is required from the first build**, not only if the device shows the fallback; its hint is accepted | as F-33 |
+| F-TB-4 — the build waits on `feature/audio-review` | No spec change. The tutorial's signal is named as audio's (D-TBa item 3) | — |
+| F-TB-5 — the first step's focus move | **Corrected**: the first step's line is spoken on opening, but focus does **not** move on the first step. Steps 2 and 3 move it to the board stop | §3 D-TBa 6; §11.1 focus table and tutorial note; TB-9 note |
+| F-TB-6 — "opens" keyed to `playCelebration` | **Confirmed** | §3 D-TBa 7; §11.1 Results; TB-8 note |
+| "Not findings": 26b's banner position | Ruled with F-27 | as F-27 |
+
+### Change list for the tech-lead's brief (`feature/talkback-board`)
+Each line names what changed in the contract and the brief section it touches. Anything not listed stands as the brief has it.
+1. **§2 `Modifier.boardStop`.** Was: "no role, no onClick (F-TB-3's fix is the only addition allowed)". Now: a no-op `onClick` with no label and no role is **required from B2**. TB-1's Compose test asserts that it is present and that performing it changes nothing.
+2. **§2 and §6 `focusable()`.** The cells and the board stop are focusable **only while TalkBack (touch exploration) is running**; with it off they take no input focus. The mechanism is the developer's. TB-11 gains the assertion "with TalkBack off, no cell or board stop can take input focus".
+3. **§5 `StepAnnouncements` and §6.** The step line is still announced on first composition. **No `requestFocus()` on the first step**, only on steps 2 and 3.
+4. **§5, §9 and §13.3 strings.** `board_a11y_announce_put_down`'s value is now `Peg put down, row %1$d, column %2$d.`. The other 28 strings and two plurals are unchanged. F-TB-2 is settled as the brief built it: D-TB's names and values, `wrong_tap_*` removed.
+5. **§13.3 tests on audio's files.** `GameScreenWrongTapTest`: retarget the announcement cases, keeping the identical-repeat case. `TutorialSourceGuardTest`: **keep every forbidden token** (`liveRegion`, `wrong_tap_`, `wrongTapAnnouncement` …). Correct only its KDoc. `TutorialScreen.kt` must not name those tokens, in code or comments. `TutorialWrongTapTest`: retarget wherever it asserts that the tutorial announces nothing. List all three in the developer's report for the code-auditor.
+6. **§5 announcer.** The banner and the notice are never on the board's channel (TB-6 asserts it). "Replaces one not yet spoken" stays as built: inside the board's channel only. Identical repeats change the channel, and audio's `REPEAT_MARK` idea serves. A stranding jump passes in either order.
+7. **§6 the re-read pre-rule.** If the device shows TalkBack re-reading a focused cell whose description changed, drop the selection line for selections made on the focused cell. This is a one-commit answer, like F-TB-1's fallback.
+8. **§1 "not findings" — 26b's banner.** Ruled: banner or notice after the last cell, before Undo. The slab's traversal group pins it, and the banner gets no `traversalIndex`.
+9. **§10 device questions after this loop:** (1) TalkBack follows input focus, per move (TB-7); (2) announcement-then-focus order; (3) the re-read of a changed focused cell (TB-6); (4) the stranding jump's two lines, recorded (either order passes); (5) TTS health. The board-stop double-tap is no longer a question; TB-1's device pass only confirms it.
+10. **§10 tests owed (spec §13).** TB-9's Compose test also covers the tutorial's rejected-tap line and the first step's lack of a focus move. TB-11 also covers "a read-only board has no stop".
+
+### Loop 4 checks
+Each command was run read-only by a haiku Explore helper, with no git command. Six small edits came after the helper ran:
+- §11's traversal pointer;
+- §11.1's paragraph after the stops table;
+- D-TBa item 6's "this document";
+- 26a's spacing clause;
+- "five focus cases", in the index and in D-TBa item 11.
+
+They change no match below, but they move some line numbers by up to three. `F` is `/Users/ermanergoz/Desktop/PegSolitarie-ux/docs/ux-spec.md`.
+
+**The findings:**
+- `grep -n -E 'after the dock|essential exception|exempt' $F` — pass. Every remaining hit is either a quotation of replaced text or unrelated: D-TBa item 10's "withdrawn" (:1374), the "First wording" quotations (:4703-4707), 26b's quoted old ending (:5591), and two unrelated WCAG notes on disabled controls (:3316, :4340) (F-27, F-31).
+- `grep -n -E 'which the build now meets|branch that lands D-TB meets' $F` — :4470 is the new sentence; :4692 is the quotation under "First wording" (F-30).
+- `grep -n -E 'Put down row|Peg put down' $F` — the new value at §8 :4083, §11.1 :4553, D-TBa :1376 and TB-6's note :5701. The old value appears only in records: §8's note :4101, "First wording" :4698, TB-6's own first text :5693 and its note (F-34).
+- `grep -n -E 'D-04g' $F` — 13 hits: the index, D-TBa, §11, §11.1 and 26b (F-27). `grep -c 'D-06c' $F` — 17 (F-28).
+- `grep -n -E 'interactive = true' $F` — :1366 (D-TBa 9) and :4447 (§11.1 scope) (F-32).
+- `grep -n -E 'no-op|does nothing, with no label' $F` — D-TBa 8 :1357, the stops table :4464, TB-11's note :4688, §13 :4896, TB-1's note :5650 and TB-11's note :5772 (F-33).
+- `grep -n -E 'Q-PUBLISH-3\.0\.0' $F` — :1374, :4676 and :5568 (F-31's hand-off).
+- `grep -n -E 'SCOR-03' $F` — :5924 (the 2026-10-23 note, kept as the record) and :5929 (its correction) (F-36). `grep -n -E 'SCOR-0[0-9]' .planning/REQUIREMENTS.md` — no hit.
+- `grep -n -E 'only while TalkBack' $F` — :374, :1338, :4616, :4687 (F-TB-1). `grep -n -E 'first step' $F` — D-TBa 6 :1348, the focus table :4607, §11.1's tutorial note :4644, §13 :4895 and TB-9's note :5752 (F-TB-5).
+- `grep -n -E 'Pointer 2026-10-23' $F` — D-01c :494 and §4.4 class 2 :3180 (F-37), §11 touch targets :4261 and 26a :5566 (F-31).
+- `grep -n -E 'Amended 2026-10-23, loop 4' $F` — eight notes: 26b :5592, TB-1 :5649, TB-4 :5681, TB-6 :5703, TB-7 :5720, TB-8 :5739, TB-9 :5751 and TB-11 :5769.
+
+**Ids, strings and the document:**
+- `grep -n -E '^- \*\*D-TBa\*\*|^- \*\*D-TB\*\*' $F` — :1241 and :1273. `grep -c 'D-TBa'` — 42 here, and 0 in `PegSolitarie-hint/docs/ux-spec.md` and in `PegSolitarie-audio/docs/ux/invalid-tap-feedback.md`: the id is unique.
+- `grep -o -E '^(1[0-9][a-z]?|2[0-9][a-z]?|TB-[0-9]+)\. ' $F | sort | uniq -d` — empty: no duplicate criterion label.
+- `grep -o -E 'board_a11y_[a-z_]+|results_a11y_summary' $F | sort -u | wc -l` — 32, one more than loop 3's 31. `… | sort | uniq -c` shows the extra token is `board_a11y_rejected_`, once: the pattern "`board_a11y_rejected_*`" in §8's new note. The other 31 are §8's 29 strings and two plurals. No string is added.
+- `grep -n -E 'name="(rescue_restart|action_home|undo_action|loading_level|stuck_message|nowin_message)"' app/src/main/res/values/strings.xml` — all six exist (:89, :100, :108, :109, :110, :122). On the hint branch, `hint_undecided_message` is at :116. These are the names 26b now cites.
+- `wc -l` — `docs/ux-spec.md` 5,957 lines (5,529 at loop 3); this report 421 before this section was filled. `ls -la docs/ui/DESIGN-SYSTEM.md` — Oct 21 21:50, 7,200 B: not touched in loop 4.
+- The Check command was not run: this is docs only, and this role has no Bash. Nothing is committed by me.
+
+### Loop 4 — open issues
+- **The cell-size deviation goes to the founder.** Gameplay cells are below rules/compose.md's 48dp, for touch and for TalkBack focus: 42.3, 37.0 and 32.9dp on a 360dp phone for 7-, 8- and 9-wide grids. They meet WCAG 2.2 SC 2.5.8. This was always true of the finger targets. **The producer carries it in the Q-PUBLISH-3.0.0 summary** with §11.1's "Cell size" table. No change is proposed for 3.0.0.
+- **Two routed follow-ups on the audio amendment.** When `docs/ux/invalid-tap-feedback.md` is folded into `docs/ux-spec.md`, WT-14 (the three sentences) and WT-16 (the tutorial's "no announcement" and its grep) must be amended to D-TBa items 2 and 3. That fold is this role's. The producer schedules it after `feature/audio-review` merges, so the WT criteria do not land contradicting D-TBa.
+- **The brief needs three edits** (change-list items 1–3) before the developer starts. They change the brief's own text, not its architecture.
+- **Gating focus on TalkBack** adds a code path that listens for touch exploration. If the tech-lead finds no clean way to do it in the pinned Compose, it comes back to me. The fallback would be: no input focus at all, which is the brief's own F-TB-1 fallback.
+- **Merge text.** The hint branch's revision index also has a "Tenth revision — 2026-10-21". Both are kept on merge, as recorded in this branch's loop-4 index note. 26a (both branches add a dated note) and §11's traversal line (both add a correction) will conflict textually; keep both sides of each.
+
+### Loop 4 handoff
+Next: producer —
+1. Commit `docs/ux-spec.md` and this report on `feature/ux-spec-folds`, then dispatch the fresh Fable check (loop 5). Folds a–e and F-1 to F-26 need no re-reading. F-27 to F-37 and F-TB-1 to F-TB-6 are answered above.
+2. tech-lead (`feature/talkback-board`): apply the change list above to the brief.
+3. Q-PUBLISH-3.0.0: carry the cell-size deviation, §11.1 "Cell size", in the summary.
+4. Schedule the audio amendment's fold-in to this document, with WT-14 and WT-16 amended to D-TBa, once `feature/audio-review` merges.
