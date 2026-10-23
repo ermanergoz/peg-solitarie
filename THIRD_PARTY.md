@@ -42,7 +42,8 @@ two module build files:
 | `compileOnly(...)` — `error_prone_annotations` | no | CLASS-retention annotations; the declaration's own comment records "nothing is added to the APK" (`app/build.gradle.kts:500-505`, `develop` 0582e3f) |
 | `testImplementation(...)` — JUnit, Truth, Turbine, MockK, coroutines-test, ArchUnit, Robolectric, Room testing, Compose ui-test-junit4 | no | JVM unit-test classpath only; never in a variant's runtime classpath |
 | `debugImplementation(...)` — `ui-tooling`, `ui-test-manifest` | no | debug variant only; the release variant's source sets and classpath are disjoint from debug's (proved at class-output and minified-`classes.dex` level for the debug snapshot picker, `.planning/reports/phase-14/code-auditor-prerelease-fixes.md`) |
-| `[plugins]` block + `build-logic/` classpath — AGP, Kotlin, KSP, Hilt, Room, detekt, ktlint Gradle plugins; kover (pending feature/phase-14-check-gates) | no | build tooling; runs on the build machine |
+| `[plugins]` block + `build-logic/` classpath — AGP, Kotlin, KSP, Hilt, Room, detekt, ktlint Gradle plugins; kover | no | build tooling; runs on the build machine |
+| ↳ kover: Gradle plugin `org.jetbrains.kotlinx.kover` 0.9.11 (resolves `org.jetbrains.kotlinx:kover-gradle-plugin`, `kover-features-jvm`, `kover-jvm-agent` 0.9.11), JetBrains, https://github.com/Kotlin/kotlinx-kover | no | build-only: measures and verifies `:domain` line coverage (`koverVerify`, applied in `domain/build.gradle.kts`); its JVM agent instruments the unit-test JVM only, and nothing of it is on `releaseRuntimeClasspath` or in the AAB. **Licence: Apache-2.0** — POM `<licenses>` "The Apache Software License, Version 2.0" in all four 0.9.11 POMs in the local Gradle cache, and in https://repo1.maven.org/maven2/org/jetbrains/kotlinx/kover-gradle-plugin/0.9.11/kover-gradle-plugin-0.9.11.pom (fetched 2026-10-24); the repository's own `LICENSE.TXT` at tag `v0.9.11` is the Apache License 2.0 text (https://github.com/Kotlin/kotlinx-kover/blob/v0.9.11/LICENSE.TXT). **Credit:** this row; not distributed, so no NOTICE or Licenses-screen entry is owed |
 | `platform(libs.androidx.compose.bom)` | no artifact of its own | a BOM is a version constraint; the Compose artifacts it governs are listed below |
 
 **Transitive dependencies ship too**, and there are many more of them than direct ones (the local
@@ -392,7 +393,7 @@ For the avoidance of doubt, and so a reader does not re-derive §0: JUnit 4 (`ju
 `androidx.room:room-testing`, `androidx.compose.ui:ui-test-junit4`,
 `androidx.compose.ui:ui-test-manifest`, `androidx.compose.ui:ui-tooling`,
 `com.google.errorprone:error_prone_annotations` (compileOnly), the Hilt and Room KSP processors,
-and every Gradle plugin in `[plugins]` are **test-, debug-, compile- or build-only**. None is in a
+and every Gradle plugin in `[plugins]` (kover 0.9.11, Apache-2.0, included; §0 row) are **test-, debug-, compile- or build-only**. None is in a
 release artifact and none is distributed, so no notice or source obligation attaches to anything
 that ships — including JUnit's EPL, which `rules/ip-policy.md` does not list and which needs no
 escalation for exactly that reason.
