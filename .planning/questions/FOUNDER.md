@@ -1,5 +1,17 @@
 # Founder questions (newest first)
 
+## Q-024 — A physical phone for the silent-mode and headphone checks   (open)
+Date: 2026-10-23    Asked by: producer (for qa-engineer)
+Context: The audio build mutes the speaker on Silent/Vibrate but keeps sound on headphones (Q-010). Ten device checks
+(D1–D10) need a real phone with wired and Bluetooth headphones; only emulators are attached. Everything else runs on
+emulators, and unit tests cover the logic.
+Options: 1) Connect an Android phone by USB with USB debugging on, when convenient; QA runs D1–D10 itself (the founder
+never tests by hand) 2) Accept emulator + unit-test evidence for the phone-only halves; recorded as unverified in the
+3.0.0 release notes to you, never silently passed
+Recommendation: producer picks 1 — the speaker/headphone split is exactly the kind of behaviour emulators fake.
+Blocks: nothing now; audio's QA verdict carries the phone-only items as BLOCKED until answered
+Answer:
+
 ## Q-022 — The Turkish store listing describes the old app   (answered)
 Date: 2026-10-18    Asked by: release-manager
 Context: The live Play listing has its own Turkish text ("5 farklı oyun modu") written for the old app;
