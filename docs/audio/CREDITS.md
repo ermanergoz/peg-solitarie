@@ -13,6 +13,10 @@ sourced and **two** are made in-house:
   `sfx_hint.wav` (the "soft glint"). The founder chose both in Q-008. They replace Kenney's
   `bong_001` and `pluck_002`, which no longer ship.
 
+The files and their hashes have not changed since. On 2026-10-23 the prose about
+`AudioCreditsTest` was brought up to the test the android-game-dev rewrote on this branch
+(44b14bb); [Verification](#verification) says what it enforces.
+
 How each WAV was made, and the sha256 that pins it, is in
 [WAV conversion and in-house renders](#wav-conversion-and-in-house-renders-2026-09-29). **The
 sections after that are the record of the OGG set curated on 2026-08-28.** They are kept as
@@ -59,7 +63,11 @@ rendered from.
 ## Files
 
 One row per file in `app/src/main/res/raw/`, and no other table in this document names a
-`res/raw` filename (see the pick-up/put-down section for why).
+`res/raw` filename (see the pick-up/put-down section for why). This table is the one
+`AudioCreditsTest` reads: the first table under the `## Files` heading, columns found by their
+header text. Keep the heading, the header names (`res/raw filename`, `original filename`,
+`source`, `licence`, `sha256`) and the backticked file names as they are. See
+[Verification](#verification) for what the test enforces.
 
 | res/raw filename | original filename | source | licence | author | sha256 |
 |------------------|-------------------|--------|---------|--------|--------|
@@ -187,9 +195,11 @@ Term by term:
 
 **Pinned output.** PCM output is deterministic, so unlike the old OGGs these files **can** be
 verified by hash. The `sha256` column of the Files table pins every file:
-`shasum -a 256 app/src/main/res/raw/*.wav` must print the same twelve values. The hashes hold for
-ffmpeg 9.0.2 and the ergoz-soft 0.6.2 synthesizer. A different ffmpeg build may round
-differently, and then the measured properties below are the gate.
+`shasum -a 256 app/src/main/res/raw/*.wav` must print the same twelve values, and since 44b14bb
+`AudioCreditsTest` checks every committed file against its row's hash on each Check. The hashes
+hold for ffmpeg 9.0.2 and the ergoz-soft 0.6.2 synthesizer. A different ffmpeg build may round
+differently; then the measured properties below are the gate, and a re-render that changes bytes
+updates the row's hash in the same commit.
 
 **Measured properties.** `ffprobe` reports `pcm_s16le`, 1 channel, 44,100 Hz for all twelve.
 
@@ -211,18 +221,19 @@ differently, and then the measured properties below are the gate.
   decode of it. That decode runs 945 samples of Vorbis block padding past the sound's 2,959, which
   lowers the RMS by 1.2 dB. So the put-down's RMS lead at equal peak is **0.73 dB, not 1.92 dB**.
   The audio did not change, only the measurement window. The −10 dB `DESELECT_ATTENUATION` was
-  tuned by ear and stands (its re-check is P4c), but any KDoc that quotes the old RMS pair should
-  quote these figures.
+  tuned by ear and stands (its re-check is P4c). `SoundParams.VOLUME_DESELECT`'s KDoc quotes
+  these figures since 1572197.
 - **Resource ids are unchanged.** `R.raw.sfx_*` resolves by resource name, not by extension, and the
   debug APK packages all twelve `res/raw/sfx_*.wav`. The release shrink check below was run on the
   OGG set, but it still holds for the same reason the star-pop swap gave: only the bytes behind
   each unchanged id changed.
 
-**What the conversion leaves for others.** `AudioCreditsTest` scans only `*.ogg`, so it now finds
-no sound files and fails its non-empty assertion. It also requires an `https://` source, and the
-two in-house rows have a recipe path instead. Both are the android-game-dev's changes to make; the
-test is not edited here. The KDoc in `SoundCue.kt` and `SoundParams.kt` still names
-`sfx_deselect.ogg`.
+**What the conversion left for others, and where it landed.** On 2026-09-29 `AudioCreditsTest`
+still scanned only `*.ogg` and required an `https://` source, so it found no sound files and
+failed, and the KDoc in `SoundCue.kt` and `SoundParams.kt` still named `sfx_deselect.ogg`. The
+android-game-dev closed both on `feature/audio-review` (44b14bb, 6b4eb08, 1572197), to the
+contract in `docs/tech/audio-silent-mode.md` §2.3; [Verification](#verification) says what the
+test now enforces.
 
 ### Star pop replacement (2026-08-28)
 
@@ -363,8 +374,10 @@ document: these cues are ~70 ms against its ~3 s analysis window.
 
 **The shipped pair, measured.** Given as prose rather than as a second markdown table on purpose:
 the Files table above is the single provenance record, and exactly one table row may exist per
-filename (`AudioCreditsTest` matches the first table line containing a filename, and a duplicate
-row would be a second, unpoliced place for a provenance claim to drift).
+filename. A duplicate row elsewhere would be a second, unpoliced place for a provenance claim to
+drift: `AudioCreditsTest` reads only the first table under `## Files` (it matched "the first table
+line containing a filename" when this was written, and since 44b14bb it matches exact file-name
+cells in that one table).
 
 - `sfx_select.ogg` — vorbis, 1 ch, 44100 Hz, 0.067098 s, 4,595 B, peak −5.483288 dBFS,
   RMS −26.459491 dB.
@@ -457,8 +470,9 @@ different md5s. A hash gate on the `.ogg` would fail spuriously on any re-encode
 
 ## Verification
 
-*For the OGG set of 2026-08-28. The WAV set's checks (pack hash, listing, codec, hashes) are in
-the conversion section above.*
+*For the OGG set of 2026-08-28, except the last bullet ("Completeness is enforced"), which
+describes the test as it is today. The WAV set's curation checks (pack hash, listing, codec,
+hashes) are in the conversion section above.*
 
 Checks performed at commit time, mitigating T-07-01 (tampering across the internet → repository
 trust boundary):
@@ -508,10 +522,22 @@ trust boundary):
   `sfx_deselect.ogg` needs no separate confirmation of its own: it is a derivative of the same
   CC0 source (506546) and inherits that dedication, as explained in the pick-up/put-down section
   above.
-- **Completeness is enforced.** `AudioCreditsTest` fails the build if any file in
-  `app/src/main/res/raw/` lacks a row here, or if a row omits an HTTPS source or a licence.
-  (As of 2026-09-29 the test still scans `*.ogg` only. It must learn `*.wav` and recipe-path
-  sources before it polices the WAV set again; see the conversion section.)
+- **Completeness is enforced**, on every Check, for the WAV set too. Since 44b14bb
+  (`docs/tech/audio-silent-mode.md` §2.3) `AudioCreditsTest` reads the `## Files` table by its
+  header names and fails the build when:
+  - a file in `app/src/main/res/raw/`, whatever its extension, has no row or more than one, or a
+    row names a file that is not committed (rows match exact backticked file-name cells);
+  - a row is neither **sourced** (an `https://` source, a licence from the allowlist, today
+    exactly `CC0 1.0`, and an original filename) nor **in-house** (its source is
+    `audio/recipes/<stem>.json` and that recipe is committed);
+  - a recipe in `audio/recipes/` is named by no row;
+  - a committed file's bytes do not match its row's `sha256`.
+
+  `AudioAssetFormatTest` adds the rules/audio.md asset checks: every file is a mono 16-bit
+  44.1 kHz PCM WAV of at most 200 KB peaking at or under −1 dBFS, and `res/raw` holds as many
+  files as `SoundCue` has entries. An edit to this file or to `audio/recipes/` re-runs both (6b4eb08). Not
+  checked by any test: the byte-identical re-render of an in-house WAV from its recipe, which needs
+  the studio's `sfx-synth.sh`; the sound-designer re-runs it at each review.
 
 ## Release shrink verification
 
