@@ -116,3 +116,36 @@ Ran on: claude-opus-5-5 at effort medium. Loops: 0. Lessons applied: none.
 
 ### Handoff
 Next: producer. Commit the two files and this report. The code-auditor can re-check 1.1, 1.7 and plan item 2 against §14.1 and plugin `rules/stacks.md` contract 9. Route a short THIRD_PARTY/README pass for the candy-to-licences-screen wording.
+
+## Pass 4 — licences branch wording, TalkBack (2026-10-23)
+Branch: feature/phase-14-release-docs, on head `1afae9f` (pass 3 committed as `ecdc4ad`; committed by the producer). Inputs: `docs/tech-design.md` §3.6 and §14.1, and Q-023 in `.planning/questions/FOUNDER.md` on `feature/ux-spec-folds` (`415e5b2`, read with `git show`). Files edited: `THIRD_PARTY.md`, `docs/store/README.md`, `CHANGELOG.md`, `docs/release-checklist.md` and this report. No commit, no Gradle.
+Ran on: claude-opus-5-5 at effort medium. Loops: 0. Lessons applied: none.
+
+### Summary
+- Every line that put the licences screens on `feature/candy-backdrop` now names `feature/licences-screen`. `THIRD_PARTY.md`'s branch table carries that branch.
+- The colour-blind palette had the same stale owner: §14.1 moved it to `feature/colour-vision` (A9). Its `CHANGELOG.md` pending marker and the store README's 2.4a branch tables now name that branch.
+- Q-023 (option 1): no store text or `CHANGELOG.md` bullet claims TalkBack or screen-reader support. New checklist item 1.1a requires `feature/talkback-board` to be merged before the cut, and `docs/store/README.md` has a rule against claiming TalkBack support before that.
+
+### Per-item table
+| # | Item | What changed | Status |
+|---|---|---|---|
+| 1 | Licences screens → `feature/licences-screen` | **`THIRD_PARTY.md`:** the branch-table row is now `feature/licences-screen`, off develop (not yet built; tech-design §3.6 and §14.1 LN; it left candy-backdrop on 2026-10-18, A9). The row lists the notices it carries (rows F–J, the Jakarta NOTICE, the Google SDK notices LN-1 to LN-8). The intro is "Three changes are still on unmerged branches" (it was "Two asset changes"), dated 2026-10-23. Also moved to the new branch: §2's intro sentence, the Apache-2.0 text note, the Apache-2.0 row's "Ships from", and the definition of "Licenses screen" above the rows-A–J table. In §7's bullet, the dated update now names the branch and says LN blocks the cut, so "or left for 3.0.1" no longer applies. **`CHANGELOG.md`:** the Licenses screen's pending marker is now `feature/licences-screen`. **`docs/store/README.md`:** no store line describes the licences screen, so nothing moved there | done |
+| 1b | Colour-blind palette → `feature/colour-vision` (found in this pass) | `CHANGELOG.md:62` pending marker. In both README branch tables (en-US and tr-TR), candy-backdrop now owns only the glossy-look lines, and a new `feature/colour-vision` row owns the palette bullet and its half of the release-note line. Without this, item 2.4a would keep or delete the palette lines with the wrong branch | done |
+| 2 | TalkBack, Q-023 option 1 | **Over-claim audit:** `grep -rn -i -E 'talkback|screen reader|screen-reader'` over `CHANGELOG.md` and all eight store texts finds nothing. The accessibility claims that remain are the palette (pending its branch), the themes and the thumb-reach controls (on develop). **`docs/store/README.md`:** a new "Accessibility claims" paragraph says no TalkBack or screen-reader claim before `feature/talkback-board` merges. Any such line needs a CHANGELOG bullet behind it (2.5) and the founder's Gate 2 approval. **`docs/release-checklist.md` 1.1a** (new, §1): `feature/talkback-board` is merged into develop before the cut, checked with `git merge-base --is-ancestor`, with its code-auditor PASS, its QA PASS with TalkBack on a device, and the tech-lead's sign-off. The release waits for it even as the last item. Option 2 or 3 is the founder's call, through `Q-PUBLISH-3.0.0`. 1.1a is read alongside 1.1 | done |
+
+### Checks
+- `git show 415e5b2:.planning/questions/FOUNDER.md` — pass (Q-023 answered option 1, 2026-10-21).
+- `sed -n` over `docs/tech-design.md` §3.6 and the §14.1 candy row — pass (licences on `feature/licences-screen`; palette on `feature/colour-vision`, A9).
+- `grep -n -i candy THIRD_PARTY.md docs/store/README.md CHANGELOG.md docs/release-checklist.md` — pass. Only backdrop lines name `feature/candy-backdrop`; no licences or palette line does.
+- `grep -rn -i -E 'talkback|screen reader|screen-reader' CHANGELOG.md docs/store/en-US docs/store/tr-TR` — pass (no output).
+- A table-shape check (`python3 -I`) over `THIRD_PARTY.md`, `docs/release-checklist.md` and `docs/store/README.md` — pass (0 mismatches each).
+- `git diff --check` — pass. `git status --short` lists only the four permitted files, plus this report once written.
+- The store `.txt` files are unchanged in this pass, so their lengths and word-rule greps stand as in pass 2.
+
+### Open issues / risks
+- `git branch -a` shows `feature/talkback-board` but neither `feature/licences-screen` nor `feature/colour-vision`. Both are named as owed branches ("not yet built"). If the palette is renamed or dropped, the README tables and `CHANGELOG.md:62` follow it at 2.4a.
+- `docs/tech-design.md` §14.1 has no talkback row that I can see, so 1.1a stands on its own. The tech-lead may add a "Blocks the branch cut" row, and 1.1 would then read it too.
+- No TalkBack bullet is drafted for `CHANGELOG.md` or the store. It waits for the branch to merge.
+
+### Handoff
+Next: producer. Commit the four files and this report. Then the fresh Fable code-auditor re-reviews the whole branch. The tech-lead may add §14.1's talkback row.

@@ -54,15 +54,25 @@ no longer conditional:
 
 | Branch | Full description | Release notes |
 |---|---|---|
-| `feature/candy-backdrop` (backdrop direction B, colour-blind palette) | the "colorblind palette" bullet; the "glossy new look" bullet | "A glossy new look and a colorblind palette option" |
+| `feature/candy-backdrop` (backdrop direction B) | the "glossy new look" bullet | the "A glossy new look" half of "A glossy new look and a colorblind palette option" |
+| `feature/colour-vision` (the colour-blind palette; it left `feature/candy-backdrop`, `docs/tech-design.md` §14.1) | the "colorblind palette" bullet | the "a colorblind palette option" half of the same line |
 | `feature/audio-review` | nothing (sound itself is on `develop`; this branch only changes the files) | nothing |
 
 The same branches own these tr-TR lines. Delete them together with their en-US lines:
 
 | Branch | tr-TR full description | tr-TR release notes |
 |---|---|---|
-| `feature/candy-backdrop` | the "Ayarlar'da renk körlüğüne uygun bir renk paleti seçeneği…" bullet; the "Parlak yeni bir görünüm…" bullet | "Parlak yeni bir görünüm ve renk körlüğüne uygun palet seçeneği" |
+| `feature/candy-backdrop` | the "Parlak yeni bir görünüm…" bullet | the "Parlak yeni bir görünüm" half of "Parlak yeni bir görünüm ve renk körlüğüne uygun palet seçeneği" |
+| `feature/colour-vision` | the "Ayarlar'da renk körlüğüne uygun bir renk paleti seçeneği…" bullet | the "renk körlüğüne uygun palet seçeneği" half of the same line |
 | `feature/audio-review` | nothing | nothing |
+
+**Accessibility claims.** No text claims screen-reader or TalkBack support. The founder chose (Q-023,
+2026-10-21, option 1) to make the board playable with TalkBack in 3.0.0 on `feature/talkback-board`, which
+has not merged. Until it merges into `develop`, no en-US or tr-TR text, and no `CHANGELOG.md` bullet, may
+say that the game works with TalkBack or a screen reader. The only accessibility claims are the
+colour-blind palette (owned by `feature/colour-vision`, above), the themes and the thumb-reach controls,
+which are on `develop`. A TalkBack line is added only after that branch merges, with a CHANGELOG bullet
+behind it (item 2.5), for the founder's approval at Gate 2.
 
 The backdrop is described only in neutral terms ("glossy", "soft light"), as Q-021's direction B requires.
 

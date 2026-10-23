@@ -59,11 +59,11 @@ from a built-in opening book.
   it ends. A wrong tap costs nothing, with no error and no red. Three taps without progress bring
   more help, never a block. Skip is on every step, system back does the same, and the tutorial does
   not come back on the next launch. Replay it from Settings › General.
-- **A colorblind palette** *(pending: `feature/candy-backdrop`)*. A switch in Settings › General, off
+- **A colorblind palette** *(pending: `feature/colour-vision`)*. A switch in Settings › General, off
   by default. Turned on, it makes the selection, the legal targets, the hint marks and the stars
   readable by brightness and pattern as well as colour, for red-green and blue-yellow colour blindness
   and for full colour blindness alike.
-- **A Licenses screen** *(pending: `feature/candy-backdrop`)* in Settings › About lists the fonts,
+- **A Licenses screen** *(pending: `feature/licences-screen`)* in Settings › About lists the fonts,
   sounds and open-source software the game is made with, and opens their licence texts in the app,
   offline.
 - **Sound.** Every meaningful action makes a sound: a pitch-varied jump that rises through a run,
