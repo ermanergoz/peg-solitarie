@@ -4,7 +4,7 @@ phase: 15
 slug: ux-refresh
 status: draft
 created: 2026-09-21
-revised: 2026-10-23
+revised: 2026-10-24
 stack: android-compose-game
 design-system: docs/ui/DESIGN-SYSTEM.md
 ---
@@ -385,6 +385,23 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > kept on merge; their titles tell them apart. **Not reopened:** D-TB's scope, its cell text, its
 > action rule, its 29 strings and two plurals, D-04f/D-04g's notice, D-06's shake, mark, redirect and
 > haptic, and every earlier decision.
+>
+> **Eleventh revision, loop 5 — 2026-10-24 — AMENDMENT (the fifth check's MINORs).**
+> `.planning/reports/ux-spec-folds/ux-designer-check-loop5.md` returned PASS with three MINOR findings
+> and four INFO, all closed by dated lines appended to D-TBa (§3):
+> - the board-before-banner order is pinned by one traversal index (F-38);
+> - the focus gate is touch exploration, and the two classes it leaves out are recorded under W5
+>   (F-39);
+> - the merge adds four pointers on the other branches (F-40);
+> - the tutorial's ≈93dp gets a pointer (F-41);
+> - the first step's opening line gets a pre-ruled answer (F-42);
+> - D-06c's carry-over names its one narrowing (F-43);
+> - the audio amendment's §3.8 placement rule is ruled for its fold-in (F-44).
+>
+> **For the merge:** the role that merges `feature/talkback-board` after `bugfix/hint-undecided` and
+> `feature/audio-review` adds the four pointers D-TBa names: on the hint branch, §4.4.2's "TalkBack"
+> bullet, 23j item 5 and 23k's device half; on the audio branch, §3.6's traversal line. **Not
+> reopened:** anything else. No string, token, colour or id is added.
 
 ---
 
@@ -1414,6 +1431,60 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   WT-14 and WT-16 are amended to match when the audio amendment is folded into this document; the
   producer routes both.
 
+  *(Amended 2026-10-24, loop 5 — the fifth check's F-38 to F-44,
+  `.planning/reports/ux-spec-folds/ux-designer-check-loop5.md`, which returned PASS. Each line adds to
+  the item it names; the text above stands as written except where a line says it is superseded.)*
+  - **Item 1, the order is pinned (F-38).** The geometry gives the ruled order only where the board is
+    limited by width. In landscape, on a short window such as `w360dp-h560dp`, and on any window wider
+    than 512dp, the full-width banner's left edge is outside the slab's, and the banner would be read
+    first. So the order is **pinned**: the board region is one traversal group, and inside it the
+    slab's group carries a traversal index that puts it before the banner or the notice on every
+    window. "The banner and the notice … gain no traversal index" is superseded by that one index.
+    The banner keeps D-04g's look and its width; the mechanism is the developer's.
+  - **Item 5, the gate is a condition, not a product (F-39).** "While TalkBack is running" means
+    **while touch exploration is enabled** (`AccessibilityManager.isTouchExplorationEnabled`), the
+    platform's screen-reader signal, which TalkBack always sets. A Robolectric test can set it, so
+    TB-11 has a seam. **The four focus moves are attempted only under the same gate**: with it
+    closed, no `requestFocus()` is made.
+  - **Two classes the gate leaves out, recorded under the ruling's W5.** W5 defers Switch Access,
+    keyboard and D-pad as their own judged paths, asking only that M4 and M5 serve them.
+    - A screen reader with touch exploration off keeps every stop, description, click action and jump
+      action, and loses the four focus moves. Its focus after them is the platform's own placement.
+    - Switch Access keeps every click action and jump action through its own scanning, and loses the
+      four focus moves.
+
+    Neither is a failure of D-TBa on the device.
+  - **Item 2, one narrowing (F-43).** D-06c's properties carry over **with one narrowing**, not
+    "unchanged": a rejected tap's line, like any line on the board's channel, can be replaced by a
+    newer board event before it is spoken. D-06c and WT-14 had no such clause, and the WT-14 fold
+    takes this one.
+  - **Item 4, where the board's region sits (F-44).** The audio amendment's §3.8 says `BoardCanvas`
+    "gains no `SoundCue`, no haptic call and no announcement". That rule kept the correction channels
+    out of the tutorial, which shares the canvas. Under D-TBa both boards announce through one
+    channel, so this role accepts either placement:
+    - the live region on the canvas node, fed by the screen-level announcer;
+    - the region on the host's modifier, as the audio branch built it.
+
+    In both cases the canvas only carries text it is given and chooses no wording. The audio fold-in
+    amends §3.8 to say so.
+  - **The merge adds four pointers (F-40).** Four passages on other branches judge a build without
+    D-TB and stand as records. Whichever role merges `feature/talkback-board` after them adds a dated
+    pointer to D-TBa beside each:
+    - on `bugfix/hint-undecided`, §4.4.2's "TalkBack" bullet ("back → title → timer → the notice →
+      Undo …", "The board has no focus stop of its own", "with no `traversalIndex` and no
+      `isTraversalGroup` added");
+    - on the same branch, criterion 23j item 5's second bullet ("Swiping forward from the timer
+      reaches the notice …");
+    - on the same branch, 23k's device half ("swiping forward from the timer reaches the banner's
+      message …");
+    - on `feature/audio-review`, the audio amendment's §3.6 line "Gameplay traversal stays back →
+      title → timer → board → dock → banner (§11)".
+
+    Each pointer says three things:
+    - "from the timer" reads "from the last cell" once `feature/talkback-board` merges;
+    - the board's lack of a focus stop describes the build until then;
+    - the slab-before-banner order is pinned by item 1 above.
+
 ---
 
 ## 4. Interaction contract — new surfaces (Phase 15)
@@ -1439,6 +1510,8 @@ square aspect at every scale rather than shrinking — a 3×3 board there is ≈
 compressing the one interactive element to win vertical space is the wrong trade. What yields at
 200% font scale is the caption's growth pushing the footer below the fold, which is harmless
 because the footer is empty until T3 completes.
+*(Pointer 2026-10-24 — the loop-5 check's F-41.)* The drawn cell is ≈82.7dp, not ≈93dp: the canvas
+sits inside the slab's `spacing_md` padding (248 ÷ 3; §11.1 "Cell size"). It still clears 48dp.
 
 **Step pips.** Three pips, `tutorial_step_pip_size`. Done = solid `GoldGradient` disc; current =
 outlined disc with a `primary` ring; upcoming = outlined disc, `outlineVariant`. Filled-vs-outlined
@@ -1464,7 +1537,8 @@ carries the state, so colour is not the only channel. The row is one semantics n
 >
 > Two consequences for the screen, both this role's to state. **First, the footprints fit:** the
 > largest is 3×3, which inside `tutorial_board_size` 280dp gives ≈93dp cells — comfortably above
-> §11's 48dp floor, so no token changes (§6.1 stands). **Second, T1 and T2 each have exactly one
+> §11's 48dp floor, so no token changes (§6.1 stands). *(Pointer 2026-10-24, loop-5 F-41: ≈82.7dp
+> once the slab's `spacing_md` padding is counted; the conclusion stands.)* **Second, T1 and T2 each have exactly one
 > legal move.** That is deliberate — a step teaching one mechanic pays nothing for ambiguity — but
 > it means the coach must never read as a puzzle refusing the player: with `showHints` forced on
 > (D-01b), selecting the only movable peg draws exactly one destination dot, and §4.4's escalation
@@ -3474,7 +3548,7 @@ declared even where an existing token shares its value. All multiples of 4.
 
 | Token | Value | Owner |
 |-------|-------|-------|
-| `tutorial_board_size` | 280dp | The tutorial's interactive board slab — the largest footprint is 3×3, so ≈93dp cells, well above §11's 48dp floor |
+| `tutorial_board_size` | 280dp | The tutorial's interactive board slab — the largest footprint is 3×3, so ≈93dp cells, well above §11's 48dp floor. *(Pointer 2026-10-24, loop-5 F-41: ≈82.7dp once the slab's `spacing_md` padding is counted; still above 48dp.)* |
 | `tutorial_caption_min_height` | 48dp | Reserved caption height (1↔2 line swap must not reflow the board) |
 | `tutorial_step_pip_size` | 12dp | One progress pip |
 | `game_status_strip_height` | 56dp | The gameplay status strip |
@@ -4450,6 +4524,14 @@ invalid-tap cues as the design and the present jump cue as required by SOUND-01 
 > (`interactive = true`): gameplay and the tutorial. A read-only board gains no stop and no
 > announcement. That covers the Home stage, the Continue thumbnail, the tile art and the catalogue
 > previews.
+>
+> *(Loop 5, 2026-10-24 — D-TBa's loop-5 lines, the check's F-39.)* **Under W5, two classes are
+> recorded:**
+> - a screen reader with touch exploration off;
+> - Switch Access.
+>
+> Each keeps every stop, description, click action and jump action, and loses only the four focus
+> moves. Those moves are gated on touch exploration (below), and losing them is not a failure here.
 
 **Coordinates.** A cell is "row *r*, column *c*": *r* counts from 1 at the top and *c* from 1 at the
 left of the board's grid as drawn (`Position.row + 1`, `Position.col + 1`). Blocked grid cells keep
@@ -4476,6 +4558,11 @@ M3 `Surface` is already one. So every cell is read before anything that overlaps
 a banner or notice over the lowest rows. The banner and the notice keep their geometric place and
 gain no traversal index. While a Challenge board loads there is no board stop and no cell stop, and
 the `loading_level` indicator stands in their place.
+*(Loop 5, 2026-10-24 — the check's F-38.)* The geometry alone gives this order only on a board limited
+by width. In landscape, on short windows and on tablets, the full-width banner would be read before
+the slab. So the order is **pinned**: the board region is one traversal group, and inside it a
+traversal index puts the slab's group before the banner or the notice on every window. "Gain no
+traversal index" above is superseded by that one index; the banner's look and width are unchanged.
 
 A cell's focus rectangle is its own rectangle on the board — the geometry that already draws the
 cell and maps a finger's tap to it — so touching a cell finds that cell, by explore-by-touch. The
@@ -4624,6 +4711,10 @@ input focus, and TalkBack follows input focus.
     names the destination;
   - the other three moves are left to TalkBack's own placement;
   - input focus is removed.
+- *(Loop 5, 2026-10-24 — the check's F-39.)* "While TalkBack is running" means **while touch
+  exploration is enabled** (`AccessibilityManager.isTouchExplorationEnabled`). That is the platform's
+  screen-reader signal, which TalkBack always sets, and a test can set it. The four "Moved" rows
+  apply only under the same gate: with it closed, no focus is requested.
 
 *(Loop 4, D-TBa item 11.)* **A focused cell whose text changes.** After a selection, the focused cell's
 own text gains "selected" in the same frame as the selection line is announced. TB-6's device half
@@ -4645,6 +4736,10 @@ coach escalation's hint line, all in the table above. Its captions keep the word
 read it as "activate" (the ruling's W6).
 *(Loop 4, D-TBa items 3 and 6.)* Its rejected taps are spoken in the same three lines as gameplay's.
 The first step's line is spoken when the tutorial opens, but focus is not moved then.
+*(Loop 5, 2026-10-24 — the check's F-42.)* On opening, that line's "Step 1 of 3" and the pip row's
+own `tutorial_step_progress` can both be heard within a second. TB-9's speech log records whether
+they are. If they are, the first step's opening line drops its `tutorial_step_progress` part and
+speaks the caption alone. Steps 2 and 3 keep both parts.
 
 **Cell size: a recorded deviation from the studio's 48dp** *(loop 4, D-TBa item 10; this replaces the
 "Focus rectangles on the board" paragraph, quoted under "First wording").*
@@ -4668,6 +4763,9 @@ The first step's line is spoken when the tutorial opens, but focus is not moved 
   targets touch.
 - **The tutorial meets it.** Its 280dp slab gives a 248dp canvas over grids three cells wide, so each
   cell is about 83dp.
+  *(Loop 5, 2026-10-24 — the check's F-41.)* §4.1's and §6.1's "≈93dp per cell" is 280 ÷ 3, from
+  before the canvas's `spacing_md` padding was counted. 82.7dp is the drawn cell. Both clear 48dp,
+  and no criterion changes.
 - **This is not new with D-TB.** The gameplay board's finger targets have always been these sizes.
   §11's "the board's own hit-testing is unchanged (`board_min_touch_target`)" never meant a 48dp cell.
   D-TB's focus rectangles take the same geometry, which is what makes explore-by-touch find the
@@ -4902,6 +5000,12 @@ of the first step moving no focus. Also owed:
   two identical rejected taps in a row, each let settle, change the channel twice;
 - **TB-11** asserts that a read-only board has no board stop and no cell node, and that with TalkBack
   off no cell or board stop can take input focus.
+
+*(Loop 5, 2026-10-24 — the check's F-38 and F-39.)* Two more assertions are owed:
+- **26b's pin**, as a Compose traversal test on a window that limits the board by height (for
+  example `w640dp-h360dp`) with a banner raised: the last cell's node comes before the banner's
+  message;
+- **TB-11's "TalkBack off"**, set as touch exploration disabled, where no focus move is requested.
 
 **Owed, new** — every one watched fail once before it is trusted: criteria **15n–15r** (Home, §4.2.4,
 including the unit test that replays the stage's recorded move list from the English start),
@@ -5599,6 +5703,10 @@ criteria 19–24 above stand unchanged; these seven make "on or off" legible and
        composed in the board region, above the dock. On a build without D-TB the banner or notice
        follows the timer directly, which is D-04g's own order. The notice is judged here only once
        `bugfix/hint-undecided` has merged.)*
+       *(Amended 2026-10-24, loop 5 — the check's F-38.)* On a D-TB build the order is pinned, not
+       geometric (D-TBa's loop-5 lines). So it is read once more, with a banner raised, on a board
+       limited by height: a phone in landscape, or a window wider than 512dp. The banner must still
+       follow the last cell.
      - **Home:** `app_name`, as a heading → `settings_action` → the Stars, Boards and Level pills, each
        once, as "label, value" (`home_stat_pill_desc`) → each Continue chip present, with its title
        (`resume_classic_title`, `resume_challenge_title`) → the Classic tile (`classic_tile_title`) →
@@ -5734,6 +5842,10 @@ TB-7. **Focus stays on the board.** After a selection, a put-down or a rejected 
         the board stop.
       - Focus does not move when the Undecided notice rises, when a coach escalation puts a held peg
         down, or when a Challenge board finishes loading.
+      *(Amended 2026-10-24, loop 5 — the check's F-39.)* The keyboard check runs with touch
+      exploration disabled, which is the state "TalkBack off" names. A screen reader with touch
+      exploration off, and Switch Access, are recorded under W5 (§11.1): neither gets the four moves,
+      and that is not judged here.
 
 TB-8. **The result is spoken.** When Results opens after a finished game, `results_a11y_summary` is
       announced once — the headline, `catalog_stars_earned` with a total of 3, and
@@ -5775,6 +5887,10 @@ TB-11. **Sighted play is untouched.** With TalkBack off, finger taps, the drawin
          stop can take input focus.
        - The board stop's no-op click is a semantics action and adds no pointer input.
        - A read-only board composes no stop. §13 names the extra assertions.
+       *(Amended 2026-10-24, loop 5 — the check's F-39.)* "With TalkBack off" is read as **touch
+       exploration disabled** (`AccessibilityManager.isTouchExplorationEnabled` false). The Robolectric
+       test sets that state, asserts that no cell and no board stop can take input focus, and asserts
+       that no focus move is requested.
 
 TB-12. **Nothing spoken leaks a winning move.** In every state, every cell text, action label and
        announcement is built only from the board, the selection, `legalTargets`, the move just made or

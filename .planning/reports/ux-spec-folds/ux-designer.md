@@ -4,9 +4,9 @@ Branch: feature/ux-spec-folds (committed by the producer)
 Skills loaded: ergoz-soft:standards (role ux-designer). The product's rules snapshot is 0.6.2 and the plugin is 1.0.0, so I read the plugin 1.0.0 copies in full: studio, reporting, gitflow, skills-policy, logging, memory, puzzle-design, play-store, kotlin-android, compose and dispatch. I also read the product's `.claude/rules/lessons.md`. Then ui-ux-pro-max, android-accessibility and compose-skill.
 Ran in parallel with: none known to this role in loops 0–2; in loops 3–4, talkback-board (the tech-lead's build brief on `feature/talkback-board`, whose §1 is an input to loop 4)
 Ran on: claude-opus-5-5 at effort xhigh (the agent file's effort). **Staffing deviation:** the ux-designer is pinned to fable. This ran on Opus under the founder's Q-019 (2026-10-17: "Opus for every Fable-pinned role until 3.0.0 is published"), in `.planning/questions/FOUNDER.md`.
-Fan-out: none. I dispatched no studio role. Seventeen read-only Explore helpers on haiku ran greps and file reads for me, because this role has no Bash (rules/dispatch.md): five in loop 0, two in loop 1, one in loop 2, two in loop 3 and seven in loop 4. Earlier loops' helpers also ran `git status`. The loop-4 helpers were told to run no git command at all. None committed.
-Loops: 4
-Read in full: `.planning/reports/ux-spec-folds/ux-designer-check.md` (loop 1's input), `ux-designer-check-loop2.md` (loop 2's input), `ux-designer-check-loop3.md` and `game-designer-talkback-board.md` (loop 3's inputs); `.planning/questions/FOUNDER.md` Q-023; `ux-designer-check-loop4.md`, `PegSolitarie-tb/.planning/reports/talkback-board/tech-lead-brief.md` and `PegSolitarie-audio/docs/ux/invalid-tap-feedback.md` (loop 4's inputs)
+Fan-out: none. I dispatched no studio role. Eighteen read-only Explore helpers on haiku ran greps and file reads for me, because this role has no Bash (rules/dispatch.md): five in loop 0, two in loop 1, one in loop 2, two in loop 3, seven in loop 4 and one in loop 5. Earlier loops' helpers also ran `git status`. The loop-4 helpers were told to run no git command at all. None committed.
+Loops: 5
+Read in full: `.planning/reports/ux-spec-folds/ux-designer-check.md` (loop 1's input), `ux-designer-check-loop2.md` (loop 2's input), `ux-designer-check-loop3.md` and `game-designer-talkback-board.md` (loop 3's inputs); `.planning/questions/FOUNDER.md` Q-023; `ux-designer-check-loop4.md`, `PegSolitarie-tb/.planning/reports/talkback-board/tech-lead-brief.md` and `PegSolitarie-audio/docs/ux/invalid-tap-feedback.md` (loop 4's inputs); `ux-designer-check-loop5.md` (loop 5's input)
 Lessons applied: none (the snapshot holds 0 active lessons, and `.planning/recall/RECALL.md` does not exist)
 
 ## Summary
@@ -447,3 +447,55 @@ Next: producer —
 2. tech-lead (`feature/talkback-board`): apply the change list above to the brief.
 3. Q-PUBLISH-3.0.0: carry the cell-size deviation, §11.1 "Cell size", in the summary.
 4. Schedule the audio amendment's fold-in to this document, with WT-14 and WT-16 amended to D-TBa, once `feature/audio-review` merges.
+
+## Loop 5 — the fifth check's MINORs (PASS)
+Date: 2026-10-24. Input, read in full: `.planning/reports/ux-spec-folds/ux-designer-check-loop5.md` (VERDICT PASS; F-38 to F-40 MINOR, F-41 to F-44 INFO). I edited only `docs/ux-spec.md`, plus this report. Every closure is **additive**: a dated "(loop 5, 2026-10-24)" line beside the text it qualifies, and no earlier sentence is rewritten. The home of the closures is a block appended to **D-TBa** in §3, "Amended 2026-10-24, loop 5". The revision index gains an "Eleventh revision, loop 5" paragraph with the merge note, and the frontmatter reads `revised: 2026-10-24`.
+
+### The check's findings
+| Finding | Severity | What I did | Where |
+|---|---|---|---|
+| F-38 — the board-before-banner order holds only where the board is width-limited | MINOR | **Pinned, as the checker recommends.** The board region is one traversal group, and inside it one traversal index puts the slab's group before the banner or notice on every window. "Gain no traversal index" is superseded by that one index. The banner's look and width are unchanged. 26b adds one read with a banner raised on a height-limited window (landscape, or wider than 512dp). §13 owes a Compose traversal test on such a window (e.g. `w640dp-h360dp`) | D-TBa loop-5 block; §11.1 after the stops table; 26b's loop-5 note; §13 |
+| F-39 — "while TalkBack is running" names a product | MINOR | The condition is now **touch exploration enabled** (`AccessibilityManager.isTouchExplorationEnabled`), which TalkBack always sets and a test can set. The four focus moves are requested only under the same gate. Under W5, two classes are recorded: a screen reader with touch exploration off, and Switch Access. Each keeps every stop, description, click and jump action, and loses only the four moves, which is not a failure | D-TBa loop-5 block; §11.1 status (W5 record) and "How focus moves"; TB-7 and TB-11 loop-5 notes; §13 |
+| F-40 — passages on other branches contradict 26b on a D-TB build | MINOR | The merge instruction names the four passages: on the hint branch, §4.4.2's "TalkBack" bullet (its order, "The board has no focus stop of its own" and "no `traversalIndex` and no `isTraversalGroup` added"), 23j item 5's second bullet and 23k's device half; on the audio branch, §3.6's traversal line. Each pointer says "from the timer" reads "from the last cell" once `feature/talkback-board` merges, that the old wording describes the build until then, and that the order is pinned. The instruction is in the revision index too | D-TBa loop-5 block; revision index, loop 5 |
+| F-41 — 93dp and 83dp for the tutorial's cells | INFO | Pointers on all three "≈93dp": 280 ÷ 3 before the canvas's `spacing_md` padding, so the drawn cell is ≈82.7dp. It still clears 48dp | §4.1 layout paragraph; §4.1 R-4 note; §6.1 `tutorial_board_size` row; §11.1 "Cell size" |
+| F-42 — "Step 1 of 3" heard twice on opening | INFO | Pre-ruled: TB-9's speech log records it. If both are heard, the first step's opening line speaks the caption alone. Steps 2 and 3 keep both parts | §11.1 "The tutorial" |
+| F-43 — "carry over unchanged" with a narrowing | INFO | D-TBa item 2 now says the properties carry over **with one narrowing**: a line can be replaced by a newer board event before it is spoken. The WT-14 fold takes it | D-TBa loop-5 block |
+| F-44 — the brief's Amendment 1 puts the region on `BoardCanvas` against audio §3.8 | INFO | Ruled from the UX side. §3.8's rule kept correction channels out of the tutorial, and under D-TBa both boards announce through one channel. This role accepts either the region on the canvas node, fed by the screen-level announcer, or the region on the host's modifier. In both cases the canvas carries only the text it is given and chooses no wording. The audio fold-in amends §3.8 to say so | D-TBa loop-5 block |
+
+### Change list for the tech-lead's brief (loop 5 only)
+1. **The order pin (F-38).** The board region `Box` becomes a traversal group. Inside it, a traversal index orders the slab before `NoWinBanner` and the Undecided notice. This adds one `isTraversalGroup` and one index; the banner is otherwise untouched. A Compose test checks the order on a height-limited window with a banner raised.
+2. **The gate (F-39).** It is exactly `AccessibilityManager.isTouchExplorationEnabled`, as the brief's Amendment 1 reads it. No `requestFocus()` is made while it is false. TB-11's Robolectric test sets the state.
+3. **F-44.** The brief's `BoardCanvas(announcement = …)` placement is acceptable to this role. The canvas must not choose wording.
+4. **F-42 is a pre-ruled one-commit answer**, like F-TB-1's fallback: if the device log shows "Step 1 of 3" twice, drop `tutorial_step_progress` from the first step's opening line only.
+
+### Loop 5 checks
+Run read-only by a haiku Explore helper with no git command. `F` is `docs/ux-spec.md` in `PegSolitarie-ux`.
+- `grep -n '2026-10-24' $F` — 16 hits:
+  - frontmatter `revised:` (:7) and the index's loop-5 paragraph (:389);
+  - the D-TBa loop-5 block (:1434);
+  - the three F-41 pointers (:1513, :1540, :3551);
+  - §11.1's W5 record (:4528), its order pin (:4559), its gate (:4712), its first-step line (:4737) and its cell size (:4764);
+  - §13 (:5002);
+  - 26b (:5704), TB-7 (:5843) and TB-11 (:5888).
+
+  Each finding has at least one.
+- `grep -n 'isTouchExplorationEnabled' $F` — D-TBa :1445, §11.1 :4713, TB-11 :5889 (F-39). `grep -n 'Switch Access' $F` — :1449, :1453, :4531, :5845 (F-39's W5 record).
+- `grep -n -E 'pinned' $F` — the new hits are :392, :1437, :1440, :1486, :4561 and :5704 (F-38). The other hits are older and unrelated.
+- `grep -n 'from the last cell' $F` — :1484 (F-40's pointer text). `grep -n 'one narrowing' $F` — :398, :1457 (F-43). `grep -n '§3\.8' $F` — :399, :1461, :1469 (F-44).
+- `grep -n -E '93dp|82\.7dp' $F` — each tutorial "≈93dp" (:1509, :1539, :3551) now has an 82.7dp pointer beside it (:1513, :1540, :3551), plus §11.1 :4764 (F-41). The hits at :1082 and :2958 are Home's pill widths, unrelated.
+- `grep -o -E '^(1[0-9][a-z]?|2[0-9][a-z]?|TB-[0-9]+)\. ' $F | sort | uniq -d` — empty: no duplicate criterion label. `grep -c 'D-TBa' $F` — 49 (42 at loop 4). No new id.
+- `wc -l` — `docs/ux-spec.md` 6,075 lines (5,961 at the loop-5 check). `ls -la docs/ui/DESIGN-SYSTEM.md` — Oct 21 21:50, 7,200 B: untouched.
+- **One defect, caught by my own re-read after the helper ran, and fixed.** My edit to §11.1's status block had swallowed the "**Coordinates.**" lead-in, so the W5 record ran into the coordinates paragraph. The lead-in and its blank line are restored. That adds two lines after :4534 and changes no grep result above.
+- The Check command was not run: docs only, and this role has no Bash. Nothing is committed by me.
+
+### Loop 5 — open issues
+- **The four pointers on the other branches** are not written yet. They go in with the merge of `feature/talkback-board`, on text that is not this branch's; D-TBa's loop-5 block is the instruction.
+- **The audio fold-in now carries three of this role's amendments:** WT-14 (D-TB's lines, with the one narrowing), WT-16 (the tutorial announces), and §3.8 (either placement). It also carries §3.6's traversal pointer.
+- **Loop 4's open issues stand**: the cell-size deviation goes to Q-PUBLISH-3.0.0.
+
+### Loop 5 handoff
+Next: producer —
+1. Commit `docs/ux-spec.md` and this report on `feature/ux-spec-folds`. The checker's verdict is PASS, and it states that no sixth fresh check is required if the producer reads these closures against the owed text in its F-38 to F-40.
+2. tech-lead (`feature/talkback-board`): the four-item loop-5 change list above.
+3. The merger of `feature/talkback-board`: the four pointers D-TBa's loop-5 block names.
+4. Unchanged from loop 4: the Q-PUBLISH-3.0.0 cell-size line, and the audio fold-in with WT-14, WT-16, §3.6 and §3.8.
