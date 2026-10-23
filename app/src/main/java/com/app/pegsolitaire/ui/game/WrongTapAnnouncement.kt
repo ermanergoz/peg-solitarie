@@ -77,4 +77,4 @@ private fun WrongTapKind.sentence(): Int =
 private const val ANNOUNCEMENT_HOLD_MS = 1_000L
 
 /** U+200B, a zero-width space: unspoken and unseen, but a change of content. */
-private const val REPEAT_MARK = "​"
+private const val REPEAT_MARK = "\u200B"
