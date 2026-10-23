@@ -13,7 +13,12 @@ Lessons applied: none. The snapshot holds 0 active lessons, and the product has 
 - The solver does not tell a deadline from a cancellation, and must not. Any stop it did not prove is Undecided. The ViewModel already tells the two apart: a superseded job never resumes past `withContext`, and the board guard is a second lock. A deadline on an unchanged board is therefore the only latched stop that reaches the screen.
 - Five commits, red-first: each reproduces today's fold in a test before removing it. No generator, book, budget, deadline, ad-funnel or start-path change. No 15e sitting.
 - Merge order: this branch, then check-gates, then audio-review, then home-chip-arrival. The branch that merges second merges `develop` in and re-runs the other branch's named tests.
-- **Amendment 1 (2026-10-21):** criterion 23k rides this branch, as commit H4b. The seam is the committed spec's: one Boolean, no tick, no announcement string, an inline notice.
+- **Amendments:**
+  - **Amendment 1 (2026-10-21):** criterion 23k rides this branch, as commit H4b. The seam is the spec's: one Boolean, no tick, no announcement string, an inline notice.
+  - **Amendment 2 (2026-10-23):**
+    - The notice takes its own taps (D-04g): a plain `Row`, a tap detector, a Dismiss action, and dismissal handled by the screen.
+    - §6's freeze beats §7 item 4.
+    - The ruling's walks A–C replace the developer's positions, in a new commit H3a.
 
 ## Amendment 1 — 2026-10-21: criterion 23k, and the seam aligned with the committed spec
 
@@ -60,7 +65,7 @@ The one effect outside the hint path is that the stuck banner, raised by a jump,
 | `hintUndecidedTick: Int` | **Not added.** The form is inline. Every clause about a tick is void: §3.4's last bullet but one, §3.5's one-shot bullet, H3's "plus a tick…" in §5, §8's conditional row, the tick sentences in §10.1 and §10.3, and the Open-issues bullet about H4. |
 | `hint_undecided_announcement` | **Not added.** TalkBack speaks the visible string (§4.4.2, "What is spoken is what is shown"). |
 | `hint_undecided_message` | **Added**, with the en-US text verbatim from spec §8 and the apostrophe escaped (`couldn\'t`). No `values-tr`: the app has no Turkish locale, and the tr-TR text is copy of record only. |
-| Form | **Inline:** `HintUndecidedNotice` in `ui/game/HintUndecidedNotice.kt`, tag `HINT_UNDECIDED_NOTICE_TEST_TAG`, a polite live region, and **not an M3 `Surface`**, so that touches pass through to the board. §4.4.2's layout table governs everything else. |
+| Form | *(Superseded by Amendment 2, A2.1: D-04g makes the notice take the taps that land on it. It is still not a `Surface`, now for a different reason, and it gains `onDismiss`.)* **Inline:** `HintUndecidedNotice` in `ui/game/HintUndecidedNotice.kt`, tag `HINT_UNDECIDED_NOTICE_TEST_TAG`, a polite live region, and **not an M3 `Surface`**, so that touches pass through to the board. §4.4.2's layout table governs everything else. |
 
 ### A1.5 Further alignment with the spec (binding)
 - **Timing state lives in the screen.** The display timer (`calculateRecommendedTimeoutMillis`), the saveable "this raise has timed out" memory and the raise count belong to the screen (§4.4.2, R-7). Keep them in `GameScreen`, or in a small remembered holder it owns.
@@ -76,9 +81,101 @@ The one effect outside the hint path is that the stuck banner, raised by a jump,
   - **23f** extends H3's AC-13 test with its negative half. A selection, a deselection, a rejected tap, a Show-moves toggle, and an Undo or Restart tap that only opens a dialog must leave `hintUndecided` raised. That already holds: `performUndo` and the reset run only when the board really moves.
   - **23g** pairs with AC-15 (`StateRestorationTester` plus the resume test).
   - **One test where two ids overlap:** where a ruling AC and a spec criterion assert the same property (AC-16 and AC-17 with 23a), write one test named for the criterion and cite both ids in its KDoc.
-- **H4's JVM list** becomes 23a–23i plus 21a's two rows. **23j** and **23k's device half** are the qa-engineer's. §14 of the spec asks that each test be watched failing once, the same red-first rule as §5.
+- **H4's JVM list** becomes 23a–23i plus 21a's two rows *(Amendment 2, A2.2: 23c, 23e and 23g as revised by D-04g)*. **23j** and **23k's device half** are the qa-engineer's. §14 of the spec asks that each test be watched failing once, the same red-first rule as §5.
 - **`GameScreen`'s `LongMethod` comment** names "Undecided notice" (§3.5).
 - **The spec has landed.** H4 no longer waits; the gate row in §5 is satisfied at `f221ae4`.
+
+## Amendment 2 — 2026-10-23: D-04g's tappable notice, the frozen comment, and AC-18's walks
+
+*Read this before §0, after Amendment 1. It overrides the sections it names; overridden lines are marked "(Amendment 2)" in place.* Inputs:
+- the spec at `cdf618c`: D-04g items 1–6, and §4.4.2's revised Input, Height, "What it covers", item 6 of "How long it stays", "Touch targets" and "TalkBack", plus criteria 23c, 23g and 23j as revised;
+- the ux-designer's loop-1 report;
+- the game-designer's ruling, Amendment 1 (`1afae9f` on `feature/phase-14-release-docs`): AC-2, AC-2c, AC-11 and AC-18a–d, and walks A, B and C;
+- H1–H3 at `596ac7f`, with the Check green there.
+
+### A2.1 The notice's form, re-ruled for D-04g
+D-04g reverses D-04f's pass-through. A touch on the notice is the notice's own: a tap puts it away and does nothing else. A2.1 replaces A1.4's "Form" row and §3.5's inline-form bullet.
+
+- **Signature:** `HintUndecidedNotice(message: String, onDismiss: () -> Unit, modifier: Modifier = Modifier)` in `ui/game/HintUndecidedNotice.kt`. It is still a stateless leaf (rules/compose.md, state hoisting).
+- **Built on a plain container, not an M3 `Surface`.** The spec leaves this to the developer; I am taking the choice so that there is one way to build it and one thing to review. The container is a `Row` with the spec's background, shape, `clayShadow`, padding, `widthIn(max = board_max_size)` and `heightIn(min = hint_notice_min_height)`.
+  - The new token `hint_notice_min_height` (48dp) is an addition to `values/dimens.xml`, which §9's tripwire allows.
+  - Why not `Surface`: it adds `isTraversalGroup`, and the spec's TalkBack bullet says none is added. It also brings its own touch-blocking pointer handler, which would give the notice two owners of its input.
+- **Input:** `Modifier.pointerInput(Unit) { detectTapGestures(onTap = { currentOnDismiss() }) }`, with `val currentOnDismiss by rememberUpdatedState(onDismiss)`. Pass `onTap` and nothing else.
+  - Compose hit-tests the siblings of the board region's `Box` topmost first, and stops at the first one with a pointer-input node under the touch. So the board slab beneath never receives a touch that lands on the notice (D-04g item 1). A touch anywhere else reaches the board exactly as today.
+  - **No `clickable`, `combinedClickable`, `toggleable` or `Button`.** They add `OnClick` or `Role` semantics, which 23a ("no node inside the notice has a click action") and 23c forbid.
+- **Semantics:** one merged node, `Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite; dismiss { currentOnDismiss(); true } }`.
+  - It has no `role`, no `onClick`, no `traversalIndex` and no `isTraversalGroup`. TalkBack's order follows the layout (D-04g item 6: after the timer, before the dock).
+  - The glyph keeps `contentDescription = null`.
+- **Who handles `onDismiss`: the screen, not the ViewModel.** The spec puts the timeout (item 1) and the put-away (item 6) with the screen, and nothing is reported back to the ViewModel (R-7).
+  - The tap ends the current raise in the same remembered, saveable memory that the timeout uses (A1.5). The notice leaves with its exit fade.
+  - `hintUndecided` stays true until a ViewModel clearing event (§3.3).
+  - So **`GameScreen` gains no parameter, and `GameRoute.kt` is not touched.** That matters because `GameRoute.kt` is one of check-gates' C7 files.
+- **The accessibility timeout** still lengthens the display, and only while the notice is left alone (D-04g item 4). A tap or a Dismiss ends it at any time.
+- Everything else in A1.5 stands: the raise count, the saveable memory, the tokens, previews (now with an `onDismiss` no-op), and the `LongMethod` comment.
+
+### A2.2 H4's tests, revised for D-04g
+In `GameScreenHintNoticeTest.kt` unless named otherwise.
+
+- **23c, as revised:**
+  1. The notice is one node with its text, one `SemanticsActions.Dismiss`, and no `OnClick`, `Role` or toggleable state.
+  2. A tap at a point inside both the notice and an in-play cell makes the notice leave (after its exit) and does **not** invoke `onCellTap`.
+     - **Control half:** the same point, with the notice not raised, **does** invoke `onCellTap`. Without it, the negative proves nothing.
+     - Pick a cell whose centre lies inside the notice's bounds. Choose the window and font scale so that one exists, for example 360×640dp at font scale 2.0, and fail the test if none does.
+  3. A tap on the board outside the notice reaches `onCellTap` and leaves the notice up.
+  4. `performSemanticsAction(SemanticsActions.Dismiss)` makes it leave.
+  5. The notice is at least 48dp tall at font scale 1.0 on a `w600dp` window, where it is one line. Use Compose's `DeviceConfigurationOverride` (`ForcedSize`, `FontScale`) or a Robolectric `qualifiers` config. Still no `@Config(sdk = …)`.
+  6. Its bottom edge is above the dock slab's top edge.
+- **23g:** the recreation case runs twice, once after a timeout and once after a tap-away (`StateRestorationTester`). Neither shows nor announces the notice again.
+- **23e:** as the spec now reads, including its loop-1 additions: a `null` `LocalAccessibilityManager`, and `ANIMATOR_DURATION_SCALE` 0. Add one case: a tap during an accessibility-lengthened display ends the notice at once (D-04g item 4).
+- **23a, 23b, 23d, 23f, 23h, 23i and 21a's rows:** as Amendment 1 placed them. 23a's "no click action" now also guards A2.1's ban on `clickable`.
+- **Red first, as before:** write 23c's tap test before the input modifier exists. Today the notice passes taps through, so `onCellTap` fires and the test fails; then add the modifier.
+- **Device (qa-engineer): 23j as revised.** Item 1: a tap on the notice changes nothing on the board. Item 5: the traversal order and Dismiss. Item 7: 200% font scale with a 2-minute timeout.
+
+### A2.3 §7 item 4 against §6's freeze: the freeze wins
+- **The conflict.** One `firstWinningMove` mention remains, in a KDoc at `domain/src/test/kotlin/com/app/pegsolitaire/domain/golden/solutions/AuthoringSolver.kt:250`, inside `SolutionFixtures.ONE_PEG`. §6 freezes `domain/src/test/.../golden` (an empty diff), and §7 item 4 asks for 0 hits.
+- **Ruling: §6 wins, and the comment stays.**
+  - §6's freeze is a mechanical guarantee over the evidence for the generator contract and the books. An exception for one comment would turn "the diff is empty" into "read the diff", in the folder where that matters most.
+  - Item 4's purpose is "no caller of the deleted API is left". A comment calls nothing, and the compiler has already proved there are no callers.
+  - The comment is historical anyway: it describes the plan 08-02 state ("until plans 08-04 and 08-05 land").
+- **§7 item 4 now reads:** `git grep -n "firstWinningMove" -- domain app ':!domain/src/test/kotlin/com/app/pegsolitaire/domain/golden'` — 0 hits. Also `git grep -n "firstWinningMove" -- domain/src/test/kotlin/com/app/pegsolitaire/domain/golden` — exactly 1 hit, `AuthoringSolver.kt:250`, as expected.
+- **The fix is owed in 3.1.** It is a one-line comment edit that rides the 3.1 R2/R2b item (GD-HT-6), which re-authors the books in that folder and lifts its freeze for its own branch (Handoff).
+
+### A2.4 AC-18's walks: the ruling's walks A–C are the only Wiegleb-45 positions
+**The two sets:**
+- The ruling's Amendment 1 defines **walks A, B and C**. Each plays the first four golden moves under one symmetry of the board (the left–right mirror, the 180° rotation, the transpose). Each lands on a position that is a guaranteed book miss and **winnable by construction**.
+- The developer's `WIEGLEB_45_FOUR_JUMPS_IN` (`GetHintUseCaseTest.kt:619-624`) also names its positions "A", "B" and "C". They are book misses four jumps in, built independently, but with **no winnability proof**.
+- The developer's finding behind them, that the book holds every golden-line state so following Hint never leaves the book (`:326-331`), is the same as the ruling's §16 #22. Credit it in your report.
+
+**Ruling: the ruling's walks A–C are used for AC-2, AC-11 and AC-18b–d, in the tests and on the device. The developer's three are retired.**
+- The ruling binds these positions by name. AC-2's "Given" is "each of the positions after Amendment 1's walks A, B and C", and AC-11's is walk A.
+- AC-18's pass line ("No winning move must never appear: the position is winnable by construction") needs winnability proven. On a position not known to be winnable, a correct proof would read as a failure.
+- One name must mean one position. Two different "walk A"s would send QA down the wrong jumps.
+
+**Reconciling, as a new commit H3a before H4:** `test(hint): replay the ruling's Wiegleb-45 walks A to C`. It is test-only.
+1. **`GetHintUseCaseTest`:**
+   - `WIEGLEB_45_FOUR_JUMPS_IN` becomes `WIEGLEB_45_WALKS`, holding walks A, B and C exactly as the ruling's table lists them, in (row, col) from → to.
+   - Rename `aWiegleb45PositionFourJumpsInIsNeverReportedDead` to the ruling's `aWinnableWiegleb45PositionOffTheGoldenLineIsNeverReportedDead`. It asserts the ruling's three preconditions per walk:
+     - a book miss;
+     - not the golden depth-4 state (empty holes (0,4), (1,4), (3,5), (3,7) and (3,8));
+     - winnable: the walk's symmetry, applied to golden moves 5–43 from `RecordedSolutions.load("wiegleb45")` and replayed through `RulesEngine`, ends at one peg.
+   - Also assert that each walk's four jumps equal its symmetry's image of golden moves 1–4. That ties the literal to its construction. Keep the forced cancel, `polls > 0` and `Undecided`.
+2. **The four spare images, pre-verified.** A second test, `everyOtherSymmetryImageOfTheGoldenOpeningIsAWinnableBookMiss`, covers the top–bottom mirror, the anti-transpose and the 90° and 270° rotations. It uses the same preconditions and the same forced cancel, with outcome `Undecided`. If a walk fails on the device, the replacement the ruling's pass line calls for is already proven, which saves a round trip.
+3. **AC-2b** uses walk A's first three jumps, with the book hit as a precondition. It fails loudly if that position is one of the four gap positions.
+4. **AC-2c**, which the ruling's Amendment 1 adds and no commit holds yet, is `followingHintFromEachClassicStartStaysOnTheBookToTheEnd`.
+   - Run all five Classic starts with a cancel spy, playing each Found answer until the board reaches its target.
+   - Every outcome is Found, with zero polls, and equals the golden move at that depth.
+5. **KDoc:**
+   - `FOUR_JUMPS` (`:591`) and `THREE_JUMPS` (`:594`) lose "the fifth/fourth hint along a line". Following Hint never gets there (ruling §16 #22).
+   - `aWiegleb45PositionThreeJumpsInIsStillABookAnswer`'s KDoc names walk A.
+6. **`GameViewModelHintStalenessTest`:** `wiegleb45FourJumpsIn()` (`:627-638`, the developer's B) becomes walk A, with its book miss still asserted, for AC-11. Winnability is proven once, in `:domain`. `:app` tests cannot see the golden fixture, so the KDoc cites `GetHintUseCaseTest`'s proof.
+7. **Red first** does not fit pinning tests of behaviour H1–H3 already gives. Instead, watch each new assertion fail once under a temporary local mutation, and revert it: an off-by-one golden index for AC-2c, the wrong symmetry for a walk's winnability. Record each in your report; no mutation is committed.
+8. **Green on:** `./gradlew :domain:test` and `./gradlew :app:testDebugUnitTest --tests '*GameViewModelHintStalenessTest'`.
+
+**For QA (your H5 report):**
+- AC-18a has no sequence: follow Hint from the untouched start for the level's free hints. State that number.
+- AC-18b–d: walks A–C, copied verbatim from the ruling's table, with its "Walk A in words".
+- The four pre-verified spares, in the same notation, for the ruling's replacement rule.
+- AC-19, AC-20 and 23k's Stuck sequence, as before.
 
 ## 0. Read first
 
@@ -193,8 +290,8 @@ A `Cancelled` domain value would be produced only for results that point 1 makes
 ### 3.5 UI — `GameScreen.kt`, `GameScreenPreviews.kt`, `strings.xml`, and a new composable if the form is inline
 - **Build what `docs/ux-spec.md` specifies** for the notice: its form, text, placement and announcement. Choose no word and no form yourself. Commit H4 (§5) waits for the ux-designer's spec commit on this branch. *(It landed at `f221ae4`: D-04f, §4.4.2. Amendment 1.)*
 - **`NoWinBanner` and its message choice** (`GameScreen.kt:237-251`, `:241`) are unchanged. The banner stays gated by `showRescueBanner`.
-- **Inline form** *(the spec's form; §4.4.2's layout table governs, and the notice is not an M3 `Surface`. Amendment 1)*: a new stateless composable, `HintUndecidedNotice(message: String, modifier: Modifier = Modifier)`, in `ui/game/HintUndecidedNotice.kt`.
-  - It has no actions.
+- **Inline form** *(the spec's form; §4.4.2's layout table governs, and the notice is not an M3 `Surface`. Amendment 1)*: a new stateless composable, `HintUndecidedNotice(message: String, modifier: Modifier = Modifier)`, in `ui/game/HintUndecidedNotice.kt`. *(Amendment 2, A2.1: the signature gains `onDismiss`, the notice takes its own taps, and it is built on a plain `Row`.)*
+  - It has no actions. *(Amendment 2: no button and no `OnClick`, but a tap puts it away, and it carries one `dismiss` semantics action.)*
   - Dimensions come from `dimens.xml` and colours from the theme.
   - Its semantics are as the spec says. If the spec wants an announcement, prefer a live region (`Modifier.semantics { liveRegion = … }`) to any View-level announce call. No API that compiles with a deprecation warning: after C7 that fails `:app`'s main compilation.
   - Light and dark `@Preview`s (rules/compose.md). Add a notice state to `GameScreenPreviews.kt`.
@@ -236,10 +333,10 @@ If one of them turns Undecided, its board is not as small as it looks. Stop and 
 | AC | Where | Notes |
 |---|---|---|
 | Solver layer: `aSearchCancelledOnItsFirstPollIsUndecided`, `aSearchThatSpendsItsCumulativeCeilingIsUndecided`, `aBudgetThatAllowsNoAttemptIsUndecided` (`maxNodes = 0`) | `SolverTest.kt` | These pin the mapping where it lives. The use-case ACs pin it again end to end. |
-| AC-1, AC-2, AC-2b, AC-3, AC-4, AC-5, AC-6 | `GetHintUseCaseTest.kt` | AC-4's board needs ≥ 1 legal move and Pagoda's admission, both asserted as preconditions, and a never-cancelling spy that records **polls > 0**. Otherwise AC-4 tests the pagoda path again. AC-5 asserts **0 polls**. Build AC-2's and AC-3's positions from explicit move sequences from the start: QA replays them on a device (AC-18, AC-19). |
+| AC-1, AC-2, AC-2b, AC-3, AC-4, AC-5, AC-6 | `GetHintUseCaseTest.kt` | AC-4's board needs ≥ 1 legal move and Pagoda's admission, both asserted as preconditions, and a never-cancelling spy that records **polls > 0**. Otherwise AC-4 tests the pagoda path again. AC-5 asserts **0 polls**. Build AC-2's and AC-3's positions from explicit move sequences from the start: QA replays them on a device (AC-18, AC-19). *(Amendment 2, A2.4: AC-2's positions are the ruling's walks A–C, with its three preconditions; AC-2c is added.)* |
 | `aDiamond41GapPositionIsNeverReportedDead` (forced cancel → Undecided, book miss asserted) | `GetHintUseCaseTest.kt` | Not in the ruling's list. It is AC-20's domain half and gives QA its move sequence. |
 | AC-10 | `GameViewModelAssistOrderingTest.kt`, beside AC-9 | Stub returns `ProvenDead`; everything exactly as today. |
-| AC-11 | `GameViewModelHintStalenessTest.kt` | It already parks the search on its `GatedDispatcher` (`:92`, `:488`). Hoist the inline `TestTimeSource()` (`:428`) into a field the test holds. Use the real `GetHintUseCase` on an off-book Wiegleb-45 position, with the book miss asserted. Request the hint, `runCurrent()`, then `timeSource += 2.seconds`, then `gate.releaseAll()`: the first poll sees the deadline passed. Assert the notice is up and the banner is not. |
+| AC-11 | `GameViewModelHintStalenessTest.kt` | It already parks the search on its `GatedDispatcher` (`:92`, `:488`). Hoist the inline `TestTimeSource()` (`:428`) into a field the test holds. Use the real `GetHintUseCase` on an off-book Wiegleb-45 position, with the book miss asserted *(Amendment 2, A2.4: the position after the ruling's walk A)*. Request the hint, `runCurrent()`, then `timeSource += 2.seconds`, then `gate.releaseAll()`: the first poll sees the deadline passed. Assert the notice is up and the banner is not. |
 | AC-12, AC-13 | `GameViewModelHintStalenessTest.kt` | AC-12: for each of jump, undo, restart and a second Hint, the parked search is released afterwards, neither flag is raised by it, and nothing is charged. AC-13: the notice, once up, is cleared by each of the four. |
 | AC-15 | `GameViewModelResumeTest.kt` | Its restore machinery is already there |
 | AC-21 | `GameViewModelAssistOrderingTest.kt` | Spend the free hints with its `exhaustFreeHints`; the stub returns `Undecided`; no offer, no gateway request |
@@ -272,7 +369,8 @@ Each commit compiles and is green on its targeted tasks. **Red-first means repro
 | H2 | `refactor(hint): return a HintOutcome from GetHintUseCase` | `HintOutcome`; the use case; `firstWinningMove` deleted; `GetHintUseCaseTest` migrated, with AC-1 to AC-6 and the Diamond gap test; `DepthSweepTest` (AC-8); the four `:app` stubs (the three `answers` stubs in §4.1, plus `AssistOrderingTest:169`'s `returns null`, which becomes `returns HintOutcome.Undecided` until H3 rewrites that test); the ViewModel's `when` with **ProvenDead and Undecided both still raising `noWinningMove`**. That is today's behaviour, kept deliberately so this commit is a pure type migration. | First map `SolverOutcome.Undecided` to `HintOutcome.ProvenDead` in the use case and watch AC-1, AC-2, AC-6 and the Diamond gap test fail. Then map one to one. | `./gradlew :domain:test`, `./gradlew :app:testDebugUnitTest --tests 'com.app.pegsolitaire.ui.game.*'`, and `./gradlew :domain:depthSweep` once (≈ 11 min, quiet host) |
 | H3 | `fix(hint): never raise "no winning move" on an undecided search` | `GameUiState.hintUndecided` (no tick: Amendment 1); 23f's negative half; the ViewModel's Undecided branch and the three clearing sites; the KDoc; AC-9 (the rewrite) to AC-15 and AC-21 | Write AC-9, AC-11 and AC-13 on top of H2: they fail, because the banner is raised. Then split the branch. | `./gradlew :app:testDebugUnitTest --tests 'com.app.pegsolitaire.ui.game.*'` |
 | — | *(ux-designer's spec commit on this branch)* | H4 starts only after it lands. If it has not landed when H3 is green, report and wait. Do not draft words. **Landed at `f221ae4` (Amendment 1).** | | |
-| H4 | `feat(hint): show the notice when a hint is undecided` | The strings (§8); the composable or the snackbar effect; the `GameScreen` wiring and the suppression-comment amendment; previews; `GameScreenHintNoticeTest` (AC-16, AC-17) | Write AC-16 and AC-17 first: AC-16 fails, because no node carries the spec's text. *(Amendment 1: H4's tests are 23a–23i plus 21a's two rows.)* | the same task |
+| H3a | `test(hint): replay the ruling's Wiegleb-45 walks A to C` | *(Added by Amendment 2, A2.4.)* Test-only: walks A–C and the four spares, AC-2c, the AC-2b and AC-11 positions, KDoc | Each new assertion is watched failing once under a temporary local mutation, then reverted | `./gradlew :domain:test`; `./gradlew :app:testDebugUnitTest --tests '*GameViewModelHintStalenessTest'` |
+| H4 | `feat(hint): show the notice when a hint is undecided` *(Amendment 2, A2.1–A2.2: the tappable notice of D-04g)* | The strings (§8); the composable or the snackbar effect; the `GameScreen` wiring and the suppression-comment amendment; previews; `GameScreenHintNoticeTest` (AC-16, AC-17) | Write AC-16 and AC-17 first: AC-16 fails, because no node carries the spec's text. *(Amendment 1: H4's tests are 23a–23i plus 21a's two rows.)* | the same task |
 | H4b | `feat(hint): announce the rescue banner politely` | Criterion 23k's Compose half: Amendment 1, A1.2 and A1.3 | The new `NoWinBannerTest` test fails on the missing live region | the same task, then the full Check (§7) |
 | H5 | `docs(hint): add the android-game-dev report` | `.planning/reports/hint-undecided/android-game-dev.md`, in its own commit (rules/reporting.md) | | |
 
@@ -300,7 +398,7 @@ Conventional commits, imperative, one studio trailer, as `rules/gitflow.md` and 
 1. `./gradlew check` (or `./scripts/check.sh`) — green; ≈ 11 min or more.
 2. `./gradlew :domain:depthSweep` — green. Paste the five printed board lines, with the deferred split (found / undecided / proven-dead) and `uptime`.
 3. **Warning-free where C7 will gate.** Run `./gradlew :domain:compileKotlin --rerun :domain:compileTestKotlin --rerun :app:compileDebugKotlin --rerun :app:compileReleaseKotlin --rerun 2>&1 | grep -E '^w: '` and filter for `/src/main/`, `/src/release/` or `domain/`: 0 lines. `:app`'s unit-test warnings are a held deviation (design §9.8), but add none of your own.
-4. `git grep -n "firstWinningMove" -- domain app` — 0 hits.
+4. `git grep -n "firstWinningMove" -- domain app` — 0 hits. *(Amended, Amendment 2, A2.3: 0 hits outside `domain/src/test/.../golden`, and exactly 1 hit inside it, the frozen comment at `AuthoringSolver.kt:250`.)*
 5. `git grep -nE "noWinningMove = true" -- app/src/main` — exactly 1 hit, inside the `ProvenDead` branch.
 6. `git grep -nE "hintUndecided = true" -- app/src/main` — exactly 1 hit, inside the `Undecided` branch.
 7. `git grep -c "hintUndecided = false" -- app/src/main/java/com/app/pegsolitaire/ui/game/GameViewModel.kt` — at least the count of `noWinningMove = false` in the same file, with each pair in the same `copy(...)`.
@@ -311,7 +409,7 @@ Conventional commits, imperative, one studio trailer, as `rules/gitflow.md` and 
 12. `./gradlew :app:testDebugUnitTest --tests 'com.app.pegsolitaire.ui.game.*'` and `./gradlew :domain:test` — green, with the count of tests run.
 
 **Device (qa-engineer, AC-18 to AC-21).** Your report gives QA everything it needs to run them without reading code:
-- AC-18: the three Wiegleb-45 sequences four jumps in, including the two reached without following Hint;
+- AC-18: the three Wiegleb-45 sequences four jumps in, including the two reached without following Hint; *(Superseded, Amendment 2, A2.4. Following Hint from the start never leaves the book, so AC-18 is now 18a–d: AC-18a follows Hint from the start as a control, and AC-18b–d play the ruling's walks A–C with no Hint until the fourth jump. The four pre-verified spares are listed too.)*
 - AC-19: the English-33 sequence to a book-proven dead position;
 - AC-20: the Diamond-41 sequence to a gap position;
 - each one in the on-screen notation, and each the same sequence the domain tests in §4.2 use.
@@ -439,10 +537,21 @@ Reads and greps against `develop` at `0582e3f` (this worktree) unless named othe
 - *(Amendment 1, 2026-10-21.)* `git log --oneline -5` — the spec landed at `f221ae4`, and the ux-designer's report at `ad7b83d`, on top of this brief's `61c4bb4`.
 - *(Amendment 1.)* `sed -n 2591,2830p docs/ux-spec.md` (§4.4.2 in full), the criteria 23a–23k (`:4370-4448`), R-7 (`:3381`), the §8 string row (`:3422`) and the D-04f test table (`:3892-3902`) — pass:
   - one Boolean, no tick, no announcement string;
-  - an inline, pass-through notice in the banner's slot;
+  - an inline, pass-through notice in the banner's slot *(superseded by D-04g at `cdf618c`: it takes its own taps; Amendment 2)*;
   - 23k names `NoWinBanner.kt`'s message node.
 - *(Amendment 1.)* `Read NoWinBanner.kt` (all 111 lines) — the KDoc at `:29-31` still names "a budget miss, D-04". The message `Text` is at `:68-72`, and the three `TextButton`s are siblings in a `Row`, so a live region on the `Text` leaves them outside it.
 - *(Amendment 1.)* `git diff --name-only` from the merge-base for audio-review, candy-backdrop, ux-spec-folds and check-gates, and `git status` in the audio, candy and gates worktrees, for `NoWinBanner.kt` and `NoWinBannerTest.kt` — pass: no hits.
+- *(Amendment 2, 2026-10-23.)* `git log --oneline -15` — H1 `4b54f77`, H2 `de7abd4`, sweep table `fecf13b`, H3 `596ac7f`, then D-04g `cdf618c` and the ux-designer's loop-1 report `ddb6e23`.
+- *(Amendment 2.)* Read D-04g (`docs/ux-spec.md`, the decision bullet) and §4.4.2's revised Layout, "What it covers", "How long it stays", "TalkBack" and "Touch targets", plus criteria 23a–23k as revised — pass:
+  - a tap puts the notice away and reaches nothing else;
+  - a `dismiss` action, with no `OnClick` and no `Role`;
+  - a 48dp minimum;
+  - no `isTraversalGroup`; order back → title → timer → notice → dock;
+  - dismissal belongs to the screen.
+- *(Amendment 2.)* `git grep -n firstWinningMove -- domain app` — 1 hit, `AuthoringSolver.kt:250`, a KDoc in `SolutionFixtures.ONE_PEG` (last changed in `a0eb7f0`, plan 08-06), inside §6's frozen golden folder.
+- *(Amendment 2.)* Read the ruling's Amendment 1 (`1afae9f`; `:21-73` and AC-2 to AC-18 at `:176-285`) — pass. Walks A–C are the left–right mirror, the 180° rotation and the transpose of golden moves 1–4. AC-2 needs three preconditions, AC-2c is new, AC-11 is walk A, and AC-18 is split into 18a–d.
+- *(Amendment 2.)* `GetHintUseCaseTest.kt:319-347` and `:613-630`, and `GameViewModelHintStalenessTest.kt:365-385` and `:622-640` at `596ac7f` — the developer's `WIEGLEB_45_FOUR_JUMPS_IN` has its own A, B and C, which are not the ruling's walks and carry no winnability precondition. AC-11 uses the developer's B. `git grep "AC-2c\|StaysOnTheBook"` — 0 hits, so AC-2c is not written.
+- *(Amendment 2.)* `RecordedSolutions.kt` exposes `load(fixtureName): List<Move>`, and `golden/solutions/wiegleb45.txt` exists, which H3a's winnability precondition needs.
 - *(Amendment 1.)* `grep -rln` for `GameAnim`, `ClayAnim` and `clayEntrance`, and for criterion 21a's test — `GameAnim.kt` is in `ui/game` (off the tripwire), `ClayAnim.kt` and `Clay.kt` are in `ui/theme` (reuse only), and 21a's table is `DockStateLanguageTest.kt`.
 
 ## Open issues / risks
@@ -467,6 +576,11 @@ Reads and greps against `develop` at `0582e3f` (this worktree) unless named othe
 Next: producer. Route the following.
 - **android-game-dev** (opus, `PegSolitarie-hint`): this brief plus the ruling (§0). Build H1 to H3 now, and H4 after the ux-designer's spec commit. Report to `.planning/reports/hint-undecided/android-game-dev.md`.
 - **ux-designer:** §8 is the seam. Name the text, the form, the placement, the announcement and the §4.4 row against `hintUndecided`, `hint_undecided_message` and, if needed, `hint_undecided_announcement` / `hintUndecidedTick`. *(Done at `f221ae4`. Amendment 1 resolves the seam and rules 23k onto this branch.)*
+- *(Amendment 2.)* **android-game-dev:** from `596ac7f`, build H3a (A2.4), then H4 (A2.1–A2.2), H4b and H5. Inputs: this brief with both amendments, the ruling with its Amendment 1 (`1afae9f`), and the spec at `cdf618c`.
+- *(Amendment 2.)* **3.1, R2/R2b (GD-HT-6):** that branch lifts §6's freeze on `domain/src/test/.../golden` for its own book re-authoring. It also takes the one-line KDoc fix at `AuthoringSolver.kt:250`, the stale `Solver.firstWinningMove` mention (A2.3).
+- *(Amendment 2.)* **Tech-design pass, the book counts (on `feature/phase-14-release-docs`, with the §7.2 rewrite):** the developer explained the mismatch. Each header's entry count also counts the committed line's states past the book's depth: Wiegleb-45 136 = 97 + 39, Diamond-41 378 = 345 + 33, English-33 399 = 373 + 26 (373 includes its 4 proven-dead entries).
+  - This agrees with the ruling's Amendment 1 (101 and 785 positions at depth ≤ K) and with §7.2's "The book counts, reconciled" on that branch.
+  - The pass checks the three figures there match these, and closes this brief's Open-issues bullet on the mismatch.
 - *(Amendment 1.)* **android-game-dev:** this brief including Amendment 1 (H1–H4, then H4b), the ruling, and spec §4.4.2 with criteria 23a–23k. **qa-engineer:** AC-18 to AC-21, plus 23j and 23k's device half, recording the TalkBack traversal order it observes (ux-designer open issue 7).
 - **code-auditor, then qa-engineer:** review against the ruling's AC-1 to AC-17 and §6 and §7 here. QA runs AC-18 to AC-21 on a device from the developer's sequences. No 15e sitting unless the §9 tripwire prints.
 - **tech-lead:** sign-off after both reports.
