@@ -40,6 +40,31 @@ human_verification:
 **Status:** human_needed
 **Re-verification:** Yes — after gap closure (plan 08-12, commits `5c299eb` test / `b6e6704` fix)
 
+## Correction — 2026-10-21: override 1's "not an untruthfulness defect" is overturned (GD-HT-1)
+
+The tech-lead added this note on the game-designer's ruling (`.planning/reports/phase-14/game-designer-hint-timeout.md`,
+§1 and decision GD-HT-1). The rest of this record is unchanged and stands as it was made on 2026-08-30.
+
+- **What override 1 says.** The residual positions "fall through to the solver, which honestly answers null after
+  the full 1.5s deadline and shows the rescue banner — a documented completeness gap, not an untruthfulness
+  defect."
+- **Why that is overturned.** The solver's `null` is honest. The banner the game builds from it, "No winning move —
+  undo or restart", is not: it says a position has no winning line when nothing proved that. A gap counts as a
+  completeness gap only while the game presents it as "I don't know".
+- **The ruling.** The game-designer ruled it a **defect, severity MAJOR**. It breaks ASST-03, design spec §6, this
+  phase's own goal ("the hint system tells the truth on every shipped board") and the fairness rule in
+  `rules/puzzle-design.md`. The override's wording was accepted by the developer, never by the designer.
+- **Phase 4 D-04 is void.** D-04 folded a budget miss into "no winning move" on the condition that the budget
+  essentially never misses on solvable full-size positions. This phase's own measurement falsifies that
+  condition: before the book, 0 of 76 Wiegleb-45 positions at depth ≤ 4 resolved within 1.5 s.
+- **The fix.** It is R1 on `bugfix/hint-undecided`, not a re-opening of this phase. A hint has three outcomes,
+  Found, ProvenDead and Undecided, and only ProvenDead raises the banner. R1 must merge before `release/3.0.0` is
+  cut (`docs/tech-design.md` §14.1 R1 and §16 #21). Its mechanism is
+  `.planning/reports/hint-undecided/tech-lead-brief.md`, on that branch.
+- **What this note does not change.** The rescope half of override 1 stands: Wiegleb-45 ships a K=3 book, and
+  Diamond-41 ships with its documented gap. So does truth 6's override status for DEBT-01's coverage literal.
+  Only the claim that the residual is no truthfulness defect is withdrawn.
+
 ## Re-verification Summary
 
 The previous verification (`status: gaps_found`, 2026-08-29T22:11:45Z) found exactly one blocking gap:

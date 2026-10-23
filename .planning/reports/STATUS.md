@@ -2,9 +2,28 @@
 
 ## Waiting on founder
 Q-901 and Q-902 were both answered 2026-09-21, both on their defaults.
-- **app-ads.txt / REL-03 — the crawl window has long since passed and the result is unread.** Founder set the listing's Website field and the listing published; the row went live on the public page as `https://ermanergoz.github.io` at 2026-09-21T01:29:28Z, 301ing to the correct file on the canonical host (Google documents cross-domain redirects as valid). The ≤ 24 h checkpoint was 2026-09-22 and the 48 h escalation 2026-09-23; **it is now 2026-10-18**, so AdMob has either verified or it has not. Founder to read AdMob → Apps → this app → App settings → `app-ads.txt`. If still unverified: switch the field to `https://ermanergoz.com` (bare apex) and check the AdMob app entry is linked to the Play listing. The file itself has been correct and live since 2026-09-02 — do not touch the website.
+- **app-ads.txt / REL-03 — the crawl window has long since passed and the result is unread.** Founder set the listing's Website field and the listing published; the row went live on the public page as `https://ermanergoz.github.io` at 2026-09-21T01:29:28Z, 301ing to the correct file on the canonical host (Google documents cross-domain redirects as valid). The ≤ 24 h checkpoint was 2026-09-22 and the 48 h escalation 2026-09-23; **it is now 2026-10-23**, so AdMob has either verified or it has not. Founder to read AdMob → Apps → this app → App settings → `app-ads.txt`. If still unverified: switch the field to `https://ermanergoz.com` (bare apex) and check the AdMob app entry is linked to the Play listing. The file itself has been correct and live since 2026-09-02 — do not touch the website.
 
 ## In flight
+- **2026-10-23 — state after the resume** (founder: "continue"; Fable back for supervision 2026-10-23, Q-019 addendum).
+  Merge order into develop (tech-design §14.1): release-docs → R1 hint-undecided → check-gates → audio → F-1
+  home-chip-arrival → licences-screen / colour-vision / talkback-board / play-upload → candy-backdrop last.
+  - **bugfix/hint-undecided** (PegSolitarie-hint) — R1, MAJOR fairness defect (game-designer-hint-timeout.md), blocks the
+    cut. H1–H3, H3a done, Check green at 596ac7f; H4/H4b in build. Spec D-04f/D-04g PASS (ux-designer-check-loop2.md).
+    Next: developer report → code-auditor → qa-engineer (23j/23k, AC-18a–d walks) → tech-lead → merge develop in first.
+  - **feature/phase-14-check-gates** (PegSolitarie-gates) — C1–C5 committed; §7 fuzz timings, C6, C7, final Check in build.
+  - **feature/audio-review** (PegSolitarie-audio) — develop merged in (62c774d); items 1–15 committed, 16–17 + Check +
+    report in build. Then code-auditor, qa-engineer (physical phone D1–D10), sound-designer and ux-designer reviews.
+  - **feature/ux-spec-folds** (PegSolitarie-ux) — folds a–e, F-1 (D-03n), timer (D-05e), 200 % (D-03o), dark nav (D-05f),
+    TalkBack board contract (D-TB); check loops 1–3 FAIL, all closed; loop 4 (Fable) running. Then merge; then
+    bugfix/home-chip-arrival (needs its own 15e sitting) and feature/talkback-board build from it.
+  - **feature/talkback-board** (PegSolitarie-tb) — Q-023 answered 1 (playable in 3.0.0, blocks the cut via checklist 1.1a);
+    tech-lead brief in writing.
+  - **Release-docs follow-ups** (tech-lead-signoff-release-docs.md): N-1a, N-1b, N-2a, N-7 before release/3.0.0; N-2b, N-4
+    before their QA; N-3, N-5, N-6, N-8 any time.
+  - **Owed, not yet cut:** feature/licences-screen (LN, blocks the cut; §13.1), feature/colour-vision, feature/play-upload
+    (PU, blocks Gate 2), feature/candy-backdrop (direction B, last).
+  - Backlog after 3.0.0: hint-line continuity and deeper books (R2/R5), Fable re-audit question (3.0.0 retro).
 - **2026-10-21 — phase 15 merged.** Next, in Decision 4's order (tech-lead-signoff.md, tech-lead-signoff-close.md):
   1. tech-lead: tech-design §10/§14.1/§16/§17 additions on feature/phase-14-release-docs; then merge release-docs
      and feature/phase-14-release-plan (docs only).
@@ -102,6 +121,8 @@ Q-901 and Q-902 were both answered 2026-09-21, both on their defaults.
   5. **`docs/audio-spec.md` has never existed on any branch** (`git log --all --diff-filter=A` → 0 commits) although rules/audio.md makes it the cue list of record — its absence is why the D-01h/SOUND-01 contradiction stayed invisible through a full design pass. No sound-designer is staffed on this product, so the qa-engineer stood in under a recorded recusal. Owner: sound-designer if staffed, else tech-lead. Predates phase 15 and does not block it.
 
 ## Done
+2026-10-23 | phase-14 release-docs (THIRD_PARTY, CHANGELOG, tech design, release checklist, store copy en-US/tr-TR, ad safety) | release-manager, tech-lead, research-analyst, game-designer, code-auditor | PASS (loop 1 FAIL on F-1 false hint claim → hint ruled a MAJOR defect, R1; loop 2 PASS on Fable); tech-lead sign-off PASS, QA n/a (docs only); merged to develop --no-ff | .planning/reports/phase-14/code-auditor-release-docs.md, code-auditor-release-docs-loop2.md, tech-lead-signoff-release-docs.md, game-designer-hint-timeout.md
+2026-10-21 | phase-14 release-plan (docs only) | producer | merged to develop --no-ff 0582e3f, no new Check (tech-lead-signoff-close.md) | .planning/phases/14-release-readiness/
 2026-10-21 | phase-15 ux-refresh (S1–S11, H-1..H-4) | android-game-dev, code-auditor, qa-engineer, ux-designer, tech-lead, game-designer (reviews on Opus under Q-003/Q-019) | PASS; 15e PASS on Pixel_9a_bench (33 ms); merged to develop --no-ff | .planning/reports/15-founder-feedback/code-auditor-loop4.md, code-auditor-loop5.md, qa-engineer-15e.md, tech-lead-signoff.md, tech-lead-signoff-close.md, producer.md
 2026-10-18 | phase-14 R-1 gate scope | android-game-dev, code-auditor, qa-engineer, tech-lead | PASS (QA and tech-lead on Opus under Q-019); merged to develop --no-ff; QA open issues routed to check-gates C3a/C3b | .planning/reports/phase-14/code-auditor-gate-scope.md, qa-engineer-gate-scope.md, tech-lead-signoff-gate-scope.md, producer-gate-scope.md
 2026-09-29 | rules snapshot v0.5.1 → 0.6.2 (Q-007) | producer | merged to develop 3f2af90 | .claude/rules/ (feature/sync-rules-062, deleted)
