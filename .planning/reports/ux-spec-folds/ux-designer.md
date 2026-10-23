@@ -4,9 +4,9 @@ Branch: feature/ux-spec-folds (committed by the producer)
 Skills loaded: ergoz-soft:standards (role ux-designer). The product's rules snapshot is 0.6.2 and the plugin is 1.0.0, so I read the plugin 1.0.0 copies in full: studio, reporting, gitflow, skills-policy, logging, memory, puzzle-design, play-store, kotlin-android, compose and dispatch. I also read the product's `.claude/rules/lessons.md`. Then ui-ux-pro-max, android-accessibility and compose-skill.
 Ran in parallel with: none known to this role
 Ran on: claude-opus-5-5 at effort xhigh (the agent file's effort). **Staffing deviation:** the ux-designer is pinned to fable. This ran on Opus under the founder's Q-019 (2026-10-17: "Opus for every Fable-pinned role until 3.0.0 is published"), in `.planning/questions/FOUNDER.md`.
-Fan-out: none. I dispatched no studio role. Eight read-only Explore helpers on haiku (five in loop 0, two in loop 1, one in loop 2) ran greps and `git status` for me, because this role has no Bash (rules/dispatch.md).
-Loops: 2
-Read in full: `.planning/reports/ux-spec-folds/ux-designer-check.md` (loop 1's input), `ux-designer-check-loop2.md` (loop 2's input)
+Fan-out: none. I dispatched no studio role. Ten read-only Explore helpers on haiku ran greps, file reads and `git status` for me, because this role has no Bash (rules/dispatch.md): five in loop 0, two in loop 1, one in loop 2 and two in loop 3.
+Loops: 3
+Read in full: `.planning/reports/ux-spec-folds/ux-designer-check.md` (loop 1's input), `ux-designer-check-loop2.md` (loop 2's input), `ux-designer-check-loop3.md` and `game-designer-talkback-board.md` (loop 3's inputs); `.planning/questions/FOUNDER.md` Q-023
 Lessons applied: none (the snapshot holds 0 active lessons, and `.planning/recall/RECALL.md` does not exist)
 
 ## Summary
@@ -258,3 +258,96 @@ Next: producer —
 1. Commit `docs/ux-spec.md` and this report on `feature/ux-spec-folds`, then dispatch a fresh ux-designer check (loop 3).
 2. The board's TalkBack gap waits on the game-designer's ruling at `.planning/reports/ux-spec-folds/game-designer-talkback-board.md`, and on the founder if it reaches Gate 2. My recommendation is above. That ruling does not block this branch: the spec now records the gap and rules nothing on it.
 3. Steps 2–5 of the original handoff stand. Add option 2's node and criterion to `bugfix/home-chip-arrival` only if the ruling picks it and I have written it into the spec.
+
+## Loop 3 — the third check, and the TalkBack board contract
+Date: 2026-10-23. Inputs, all read in full:
+- `.planning/reports/ux-spec-folds/ux-designer-check-loop3.md` (VERDICT FAIL; `f53cb4e`);
+- the game-designer's scope ruling, `game-designer-talkback-board.md` (GD-TB-1 to GD-TB-5, M1–M8, TB-1 to TB-12);
+- the founder's answer to Q-023, option 1: the board becomes playable with TalkBack in 3.0.0 (`.planning/questions/FOUNDER.md`, `415e5b2`).
+
+The ruling supersedes my loop-2 recommendation of minimal semantics only. I edited only `docs/ux-spec.md`, plus this report.
+
+**How the edits were made.**
+- Older text was only **appended to**, with dated pointers: §6.5, criteria 26 and 15s's header note, the §11 first-edition orders (untouched), and §4.2.5's reason 1.
+- Text this revision wrote and the check found wrong was **corrected in place**, each with a dated note where the wording changed meaning:
+  - §11's recorded-gap paragraph: the replaced sentence is quoted in a note;
+  - 26b: the superseded paragraph is quoted in its amendment note;
+  - 15v and 15u, and §4.2.5's motion and cascade paragraphs: the corrected claim is named in a note;
+  - §4.2.5's footer row and §10's D-03n row and reduced-motion bullet;
+  - the 15s–15w block header: its old words are quoted.
+- **New decision id: D-TB**, for the board's spoken contract. A grep finds it only in the new text, and finds no `D-04f`, `D-04g` or `D-06x` anywhere in the spec. Criteria keep the game-designer's ids, TB-1 to TB-12, so the ruling, the tech-lead's build brief and QA name the same things. A grep finds no duplicate criterion label.
+
+### The check's findings
+| Finding | Severity | What I did | Where |
+|---|---|---|---|
+| F-19 — §11 said the board's gap "predates phase 15, which neither made it nor closed it", which is false for the tutorial board | MAJOR | §11's record is now **split by board**. The **gameplay board**'s gap predates phase 15: it had no semantics before, and phase 15 gave it none. The **tutorial board**'s gap is **phase 15's own**: phase 15 built its live board (`interactive = true`, D-01a) with no label, role or action, against its own first-edition order, which named the board a stop. Before phase 15, onboarding was a static `BoardPreview` sheet. The replaced sentence is quoted in a dated note. Criterion 26's new pointer now agrees: by 26's words the tutorial board is a new interactive element that fails 26 today | §11 "Screen-reader traversal", the recorded gap; criterion 26's 2026-10-23 pointer |
+| F-20 — 15v part 2's "no third motion" and pixel comparison fail a correct build (the blobs; the late chip's own entrance) | MINOR | The two allowed motions are limited to Home's **bands**, and the blobs are named outside the read. The second motion is "the chips' arrival": the room opening together with the late chip's own fade and slide. Positions are read from **edges**, never from pixel values inside the hero row and the tiles, which the blobs change | criterion 15v (preamble and parts 1–2) |
+| F-21 — under three-button navigation, 360×640dp breaks 15v part 1, and §4.2.5's "9.6dp behind a 48dp bar" named the wrong window | MINOR | 15v now records **in gesture navigation**, the bench's resting mode, as loop 3 and H-3 did. A new part 5 rules the three-button window: 540dp usable, S₀ 204dp, ⅘ S₀ 163.2dp against both chips' 176dp. The tiles move 12.8dp there (44dp under 3 : 1); that is 15t's shortfall case, read by 15t's rule if recorded. §4.2.5 reason 1 names both windows — 6.4dp on QA's device in gesture navigation, 9.6dp on 15s's 24 + 48dp window — and records the one short window and why no ratio fixes it without breaking 15p part 1 | criterion 15v part 5; §4.2.5 reason 1 |
+| F-22 — a band's test bounds move with the entrance's `graphicsLayer` offset | MINOR | §4.2.5 now says the cascade moves a band's **drawn** position and not its **layout**, and that Compose's bounds (`getBoundsInRoot()`, `positionInRoot()`) map through the layer, so a bounds test lets the cascade settle first. The corrected 2026-10-21 claim is named in a note. 15u composes Home and advances the clock past the cascade before the emission; a chip that lands mid-cascade is 15v part 3's device read | §4.2.5 "The entrance cascade and the room are independent"; criterion 15u |
+| F-23 — three statements say the tiles or the footer always hold still | INFO | Fixed. Each now holds "wherever the stage can give the room", with the shortfall behaviour stated | §4.2.5 footer row and the motion paragraph; §10's D-03n row; §10's reduced-motion bullet |
+| F-24 — §6.5 keeps the 3 : 1 range | INFO | Fixed: a dated pointer. Under D-03n, step 3 would leave 134.3–326.3dp blank on QA's window | §6.5, after the D-03l note |
+| F-25 — the stage art drops out in one frame mid-transition | INFO | Ruled, because it is cheap. When a transition's final stage height is below `home_stage_art_min_size`, the art **fades out over the same `ENTRANCE_MS`** while it shrinks, and a chip leaving fades it back in. Above the minimum it only follows the stage | §4.2.5, the new "The stage art at the end of its range"; §10's D-03n row |
+| F-26 — the 15s–15w header understates the pointers | INFO | Fixed. It names 15g's ruled reading, 15k part 2's record, and 15m's and 15r's pointers, and its old words are quoted | §14, the 15s–15w block header |
+
+### The TalkBack board contract (D-TB), as written
+- **§3 D-TB** — the decision and its reasons. The words, the order, focus and announcements are this role's; what must be said and operable is the game-designer's (M1–M8, GD-TB-2 to GD-TB-5).
+- **§11.1** — the contract, on both boards:
+  - **coordinates:** row and column from 1, as drawn, never mirrored; "up" is towards row 1;
+  - **the board stop:** "Board, 32 pegs left", with no role, and a double-tap on it changes nothing;
+  - **one stop per in-play cell,** row-major, with the cell's own rectangle as its focus rectangle, so explore-by-touch works;
+  - **what a cell says,** in fixed order: position, content, "selected", the jump count (spoken with Show-moves on or off), "jump target", and the hint parts;
+  - **the tap as the accessibility click,** with the action labels "select", "put down" and "jump here";
+  - **one custom action per legal jump,** "Jump up to row 4, column 4", offered while nothing is selected or on the selected peg, and never on another peg while one is held (GD-TB-5);
+  - **twelve announcement lines,** polite and once each, a newer one replacing an unspoken one. The three rejected-tap lines are neutral, so D-01c holds by ear;
+  - **the focus table** (M7), including the banner and tutorial cases;
+  - **Results:** the star row speaks "2 of 3 stars", and a summary is announced on opening;
+  - **the tutorial:** step, completion and coach lines;
+  - **a ruled exemption** from 26a's 48dp line for cell focus rectangles (≈42dp on 7 × 7 and ≈33dp on 9 × 9 at 360dp), on WCAG 2.2 SC 2.5.8's essential exception, because the board geometry cannot grow;
+  - **TB-11's sighted-play guarantee.**
+- **§8** — 29 strings and two plurals, all spoken and none drawn. `stuck_message`, `nowin_message`, `tutorial_step_progress`, the captions, `tutorial_done_caption` and `catalog_stars_earned` are reused.
+- **§14** — TB-1 to TB-12 with the exact strings. 26b is amended so that the board stop and the cells come after the timer and after Skip; its superseded words stay in the note. On a build without D-TB the board's absence is not a 26b failure.
+- **"Pending" pointers replaced.** §11, 26 and 26b now cite GD-TB-4, Q-023's answer (option 1, 2026-10-21) and the report path. The 2026-10-21 pointers stay as the record, each with a 2026-10-23 "Ruled" or "Amended" note below it.
+- **§13** — a D-TB retarget table and an owed list. **§16** — traceability. **Revision index** — an "Eleventh revision" paragraph.
+
+### Loop 3 checks
+Each command was run read-only by a haiku Explore helper in `/Users/ermanergoz/Desktop/PegSolitarie-ux`, after the last loop-3 edit but one. That last edit was a line re-wrap at §11 :4196-4198, which changes no grep result.
+
+**D-TB and the ruling's pointers:**
+- `grep -c -E 'D-TB\b' docs/ux-spec.md` — 40. `grep -n -E 'D-TB\b' …` shows every hit in the eleventh revision's own text: the index :347-348, §3 :1208-1236, §8 :3875, §11 :4205 and :4225-4311, §13 :4537 and :4546, 26 :5203, 26b :5240-5246, the TB block :5269-5363 and §16 :5509-5511. The id is unique.
+- `grep -n -E '^TB-([1-9]|1[0-2])\. ' docs/ux-spec.md` — pass: TB-1 to TB-12 at :5277 to :5359.
+- `grep -n -E 'D-04f|D-04g|D-06[a-z]' docs/ux-spec.md` — no hit, exit 1: no collision with the hint branch or the audio amendment.
+- `grep -o -E 'board_a11y_[a-z_]+|results_a11y_summary' docs/ux-spec.md | sort -u | wc -l` — 31 names, matching §8's table: 29 strings and two plurals.
+- `grep -n -E 'board stop\*\*, `board_a11y_label`|\*\*the board stop\*\*' docs/ux-spec.md` — :5226 (gameplay) and :5237 (tutorial): 26b places the board.
+- `grep -n -E 'Q-023' docs/ux-spec.md` — eight hits, in the index, §3, §11, §11.1, 26, 26b and §16.
+- `grep -n -E 'pending the|is pending|ruling is pending|pending at' docs/ux-spec.md` — two hits, both kept records: the loop-2 index paragraph :340, and criterion 26's 2026-10-21 pointer :5195, which its 2026-10-23 "Ruled" note answers. §11's "ruling is pending" sentence is gone; 26b's is quoted in its amendment note.
+
+**The check's findings:**
+- `grep -n 'which neither made it nor closed it' docs/ux-spec.md` — no hit, exit 1. The live sentence is gone; it survives only inside the correction note's quotation, which is wrapped across a line (F-19).
+- `grep -n -E "The \*\*tutorial board\*\*'s gap is phase 15's own|The \*\*gameplay board\*\*'s gap predates phase 15" docs/ux-spec.md` — :4187-4188 (F-19).
+- `grep -n -E 'Every recording is made in gesture navigation|Three-button navigation is not this criterion|outside this read|Positions are read from \*\*edges\*\*' docs/ux-spec.md` — :5034, :5045, :5058 (F-20, F-21).
+- `grep -n -E 'composed and the clock advanced past its entrance cascade|test bounds include|map through the layer' docs/ux-spec.md` — :2646 (§4.2.5), :5013-5014 (15u) and :358 (index) (F-22).
+- `grep -n -E 'wherever the stage can give the room' docs/ux-spec.md` — :2494, :2495, :4021 (F-23). The reduced-motion bullet carries "wherever the stage can give the room" across a line break.
+- `grep -n -E 'The stage art at the end of its range|134.3–326.3dp' docs/ux-spec.md` — :2636 (F-25) and :3514 (F-24).
+- `grep -n 'Header corrected 2026-10-23' docs/ux-spec.md` — :4986 (F-26).
+
+**Whole-document checks:**
+- `grep -o -E '^(1[0-9][a-z]?|2[0-9][a-z]?|TB-[0-9]+)\. ' docs/ux-spec.md | sort | uniq -d` — empty: no duplicate criterion label.
+- `grep -n -E '^revised: |Eleventh revision' docs/ux-spec.md` — :7 `revised: 2026-10-23`, :344.
+- `git status --short` — ` M docs/ux-spec.md`, then this report once written. `docs/ui/DESIGN-SYSTEM.md` was not touched in loop 3.
+- `git diff --stat` (against `415e5b2`) — `docs/ux-spec.md | 546`, with 491 insertions and 55 deletions. The deletions are the in-place corrections listed above, all of them tenth-revision text plus the frontmatter date. No first-edition or earlier-amendment line was removed.
+- `git log -3 --oneline` — `415e5b2` (Q-023's answer), `f53cb4e` (check loop 3) and `df37c3e` (Q-023 queued). Nothing is committed by me.
+- The Check command was not run: this is docs only, and this role has no Bash.
+
+### Loop 3 — open issues
+- **The cell focus-rectangle exemption is a ruling against 26a's letter.** It rests on WCAG 2.2 SC 2.5.8's essential exception and on swipe navigation. The next checker should judge it. If the tech-lead or QA finds a board-wide focus pattern that meets 48dp without changing the board, that is better, and it comes back to me.
+- **Timing between announcements and focus moves** — the jump by action, the step change, completion — is specified as "the announcement first, then the newly focused stop". Whether TalkBack keeps that order is for the device pass (TB-7, TB-9). If it cuts one off, the finding comes back to me with the speech log.
+- **The board stop's double-tap.** TB-1 requires that a double-tap on the board stop changes no cell. The game-designer flags that TalkBack may inject a tap at a non-clickable node's centre. The mechanism is the developer's, and the device pass decides it.
+- **26b's timing across two branches.** If `bugfix/home-chip-arrival`'s QA passes 26b before `feature/talkback-board` merges, the board's absence is not a 26b failure, as the amendment note says. The later branch's QA re-reads 26b with the board.
+- **`feature/talkback-board` and `feature/colour-vision` both touch `BoardCanvas.kt`,** as the game-designer notes. Their merge order is the tech-lead's.
+
+### Loop 3 handoff
+Next: producer —
+1. Commit `docs/ux-spec.md` and this report on `feature/ux-spec-folds`, then dispatch the fresh Fable check (loop 4).
+2. The tech-lead writing the `feature/talkback-board` brief reads §11.1, §8's D-TB table, TB-1 to TB-12 and §13's D-TB rows. Those, not my loop-2 recommendation, are the contract.
+3. The android-game-dev on `feature/talkback-board` builds D-TB test-first against TB-1 to TB-12. Then the code-auditor; then the qa-engineer's TalkBack device pass (TB-7, TB-9, TB-10 and 26b, with a working TTS engine confirmed first); then the tech-lead's sign-off.
+4. `bugfix/home-chip-arrival`'s scope is unchanged by this loop, apart from the 15u, 15v and F-25 refinements to D-03n, which its developer and QA read from the spec.
