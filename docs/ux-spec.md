@@ -4,7 +4,7 @@ phase: 15
 slug: ux-refresh
 status: draft
 created: 2026-09-21
-revised: 2026-10-21
+revised: 2026-10-23
 stack: android-compose-game
 design-system: docs/ui/DESIGN-SYSTEM.md
 ---
@@ -352,6 +352,21 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > reopened:** the words, the slot, the look, the timing, the brief's clearing events, the outcome
 > rules and the seam (`hintUndecided`, no tick). The only new way to end the notice is the player
 > putting it away, and it belongs to the screen. One token and no string are added.
+>
+> **Tenth revision, loop 2 — 2026-10-23 — AMENDMENT (two spec-text findings from the D-04g check).**
+> `.planning/reports/hint-undecided/ux-designer-check-loop2.md` is the Fable check of D-04g. It
+> returned PASS. Two of its findings are this document's:
+>
+> - **F-1.** Criterion 23j's device position followed the ruling's first AC-18 ("Wiegleb-45, the
+>   fifth Hint"). The ruling's Amendment 1 (`.planning/reports/phase-14/game-designer-hint-timeout.md`
+>   on `feature/phase-14-release-docs`, lines 21–73 and AC-18a–d) superseded it: following Hint from the untouched start never leaves the opening book.
+>   23j now runs at AC-18b–d's walks A–C, with AC-18a as the control, and its first wording is
+>   recorded in place.
+> - **F-4.** Criterion 26a gains a dated note: its "cannot be activated" clause does not apply to the
+>   role-less notice, and 23j item 5 is the notice's pass line.
+>
+> F-2 and F-3 (23c's test premises) are test-side and the developer's. **Not reopened:** D-04f,
+> D-04g and every other criterion. No string, token or id is added.
 
 ---
 
@@ -4533,7 +4548,9 @@ criteria 19–24 above stand unchanged; these seven make "on or off" legible and
 **What an Undecided Hint shows (D-04f, §4.4.2 — amendment, added 2026-10-21)** — criterion 23
 stands unchanged, and so does the rest of this section except criterion 21a, whose table gains two
 rows (the pointer under 21a; corrected in loop 1, the check's F-3). 23c and 23j are revised for
-D-04g in loop 1. These eleven sit beside the game-designer's AC-1 to AC-21
+D-04g in loop 1. *(Loop 2, 2026-10-23:)* 23j's device positions follow the ruling's Amendment 1,
+and criterion 26a gains a dated note on the notice. These eleven sit beside the game-designer's
+AC-1 to AC-21
 (`.planning/reports/phase-14/game-designer-hint-timeout.md` §3), which test the outcomes; these test
 what the player sees and hears.
 
@@ -4607,9 +4624,29 @@ what the player sees and hears.
 
 23j. **On a phone (qa-engineer).** *(Items 1 and 5 revised and item 7 added 2026-10-21, loop 1,
      D-04g. Item 1's first wording ended "a tap on a peg beneath it picks that peg up". Item 5's
-     second bullet had no order clause and no Dismiss.)* At the game-designer's AC-18 position
-     (Wiegleb-45, the fifth Hint) and at one AC-20 position (a Diamond-41 gap), check each of the
-     following:
+     second bullet had no order clause and no Dismiss.)* *(Positions revised 2026-10-23, loop 2 —
+     the check's F-1. The first wording was "At the game-designer's AC-18 position (Wiegleb-45, the
+     fifth Hint)". The ruling's Amendment 1 superseded that position: following Hint from the
+     untouched start never leaves the opening book, so the fifth hint is a book answer and the notice
+     never appears.)*
+
+     **Where to run it:**
+     - **First, the control, the ruling's AC-18a.** On Wiegleb-45 from its untouched start, follow
+       Hint for as many moves as the level's free hints allow. Every hint shows a move at once, and
+       neither the notice nor the banner appears.
+     - **Then the ruling's AC-18b, AC-18c and AC-18d.** On Wiegleb-45 from its untouched start, play
+       Amendment 1's walk A, B or C by hand, with no Hint until the fourth jump is done, then tap
+       Hint. Restart the level between walks. Walk A is written out in words for the device in the
+       ruling's Amendment 1, and the three walks are tabulated there in (row, col) coordinates.
+     - **Then one AC-20 position**, a Diamond-41 gap, from the developer's move sequence.
+
+     Run items 1 to 5 on each walk and on the AC-20 position. Run items 6 and 7 once, on walk A.
+     If a walk shows a move instead of the notice, follow AC-18's pass line rather than failing
+     23j: record the device and the walk, and rerun 23j on the replacement walk the developer
+     supplies. A move that appears at once means the book answered, so the screen's orientation
+     differs from the coordinates; report it before continuing.
+
+     Check each of the following:
      1. The notice appears above the dock in the frame the spinner clears and reads exactly as in
         23b. It covers no dock control. A tap on the notice puts it away and changes nothing on the
         board: no peg is picked up and no cue plays.
@@ -4623,6 +4660,8 @@ what the player sees and hears.
         - Swiping forward from the timer reaches **the notice, then Undo, Hint, Show-moves and
           Restart**, in that order. The notice is one stop that reads its text with no "button" and
           no "double-tap to activate". Its actions menu offers **Dismiss**, which puts it away.
+          *(Loop 2.)* This bullet is the notice's pass line for criteria 26 and 26a; see the note
+          under 26a. A double-tap on the notice is not judged either way.
         - With Accessibility › Time to take action set to 1 minute, the notice stays up for about a
           minute.
      6. In light and in dark theme, take a greyscale capture of the notice beside one of the rescue
@@ -4669,6 +4708,12 @@ what the player sees and hears.
      "fixed" (§11, reason 2). Run the pass over one untouched control as the control case — the
      Classic catalogue's back arrow (`ClassicCatalogScreen.kt:102-110`) — so a finding can be told
      apart from this app's baseline. (rules/compose.md, §11)
+     *(Added 2026-10-23 — loop 2, D-04g; the check's F-4.)* The Undecided notice is a status message
+     with no role and no click action, not a control. So 26a's "label on something that cannot be
+     activated" clause does not apply to it, and its pass line is criterion 23j item 5: one focus
+     stop that reads its text, no role, and **Dismiss** in the actions menu, which puts it away.
+     It still counts under criterion 26 for size and spacing (≥ 48dp, 32dp above the dock; §4.4.2
+     "Touch targets").
 27. Every text and glyph pair introduced by this refresh meets 4.5:1 / 3:1 contrast in both light
     and dark. (§11)
 28. No screen in this refresh plays a sound as its only feedback for an event. (rules/audio.md)

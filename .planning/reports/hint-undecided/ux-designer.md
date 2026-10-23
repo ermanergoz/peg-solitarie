@@ -245,3 +245,58 @@ Next: producer — read and commit `docs/ux-spec.md` and this report. Then route
 - **android-game-dev:** build H4 against revised 23c and 23j and the D-04g Layout rows. Build H4b as Amendment 1 says.
 - **qa-engineer:** run 23j items 1, 5 and 7 and 23k's device half, recording the observed TalkBack order.
 - **audio fold-in:** D-04f, D-04g and §4.4.2 are taken. Reconcile D-06c and its "dock → banner" line with §11's correction.
+
+---
+
+## Loop 2 — 2026-10-23: two spec-text findings from the Fable check of D-04g
+Date: 2026-10-23
+Branch: bugfix/hint-undecided (committed by the producer)
+Skills loaded: as above
+Ran in parallel with: the android-game-dev committing code in this worktree. I edited only `docs/ux-spec.md` and appended this section.
+Ran on: claude-opus-5-5 at effort xhigh. This is the Q-019 deviation; the pin is fable at xhigh.
+Fan-out: none. One haiku Explore helper ran read-only `wc`, `grep` and `diff`, and no git.
+Loops: 2
+Read in full: `.planning/reports/hint-undecided/ux-designer-check-loop2.md` (VERDICT: PASS). I also read `game-designer-hint-timeout.md` (in `PegSolitarie-r5`) at Amendment 1 (`:21-73`) and the replaced AC-18a–d (`:258-273`).
+Lessons applied: none
+
+### Summary
+- **F-1 is fixed.** Criterion 23j no longer sends QA to "Wiegleb-45, the fifth Hint", a position the ruling's Amendment 1 superseded because following Hint from the start never leaves the book.
+  - It now runs AC-18a as the control.
+  - Then AC-18b–d: walks A, B and C played by hand, with no Hint until the fourth jump. Walk A is written out in words in the ruling's Amendment 1.
+  - Then one AC-20 Diamond-41 gap.
+  - Items 1–5 run on each walk and on the AC-20 position; items 6–7 run once, on walk A.
+  - A walk that shows a move follows the ruling's AC-18 pass line and is not a 23j failure.
+  - The first wording is recorded in place.
+- **F-4 is fixed.** Criterion 26a has a dated note: the notice is a status message, so 26a's "label on something that cannot be activated" clause does not apply to it. Its pass line is 23j item 5, which now points to that note and says a double-tap on the notice is not judged.
+- **F-2 and F-3** (23c's test premises) are the developer's, as the coordinator directed. I left 23c untouched.
+- A "Tenth revision, loop 2" header paragraph, a pointer on the §14 D-04f group heading, and `revised: 2026-10-23` were added. No decision, string, token or id changed.
+
+### Outputs
+- `docs/ux-spec.md` — the header's loop-2 paragraph; 23j's position block (with the first wording recorded) and item 5's pointer; 26a's dated note; the group-heading pointer; the front-matter date.
+- `.planning/reports/hint-undecided/ux-designer.md` — this Loop 2 section.
+
+### Checks
+A haiku helper ran these with no git. One wording edit came after the run (the §14 D-04f group-heading pointer, two lines), and it adds no id.
+- `grep -n -i 'fifth' H` — pass. The phrase "fifth Hint" survives only inside the recorded first wording and its explanation (`:361`, `:4627-4628`). The other hits are unrelated ("Fifth revision", "a fifth of the", "A fifth surface").
+- `grep -n 'AC-18' H` — pass. 23j now names AC-18a as the control and AC-18b, AC-18c and AC-18d, plus AC-18's pass line (`:4632`, `:4635`, `:4642`), and the header names them (`:360-363`).
+- `grep -n 'Tenth revision, loop 2' H` — `:356`. `grep -n 'Added 2026-10-23 — loop 2' H` — `:4709`, the note under 26a. `grep -n 'pass line for criteria 26 and 26a' H` — `:4661`, in 23j item 5.
+- `grep -cE '^23[a-k]\. ' H` — 11. `grep -cE '^26a\. ' H` — 1. `grep -n '^- \*\*D-04[fg]\*\*' H` — one definition each (`:1067`, `:1093`). No id is added.
+- `diff D H | grep '^<'` — pass. The only removed line is develop's `revised: 2026-09-29`.
+- `diff D H | grep -c '^>'` — 738 added lines. Added lines ending in whitespace — 0. Tabs — 0.
+- **Not run:** `./gradlew check`. The change is docs only.
+
+### Open issues / risks
+1. **23c still carries the two premises the check flagged** (F-2: the 48dp floor tested on a window where the string is one line, which it never is; F-3: no positive control for "`onCellTap` is not invoked"). Per the coordinator the developer takes both in the test.
+   - If the developer's fix needs the criterion's wording to change, route it back to this role. The check's suggested wording would do: test the floor on the leaf with a short message, and add "the same point, with the notice absent, invokes `onCellTap`".
+   - Until then, the spec text of 23c and the test may differ on those two clauses.
+2. **The walk positions depend on the screen's orientation matching the ruling's coordinates.** The ruling's pass line covers this: a move shown at once means the book answered. 23j now repeats that line so QA does not log a false FAIL.
+3. Earlier loops' open issues are unchanged:
+   - the brief's A1.4 pass-through wording, which the check notes was in flight at `158ffaa`;
+   - the audio fold-in;
+   - the producer's git check for `main` and `feature/phase-14-kickoff`.
+
+### Handoff
+Next: producer — read and commit `docs/ux-spec.md` and this report. Then:
+- **qa-engineer:** run 23j as revised: AC-18a first, then walks A–C, then one AC-20 position. Read 26a's note for the notice.
+- **android-game-dev:** F-2 and F-3 in 23c's test, routing back here only if the criterion's wording must change.
+- No further spec work is owed from this check.
