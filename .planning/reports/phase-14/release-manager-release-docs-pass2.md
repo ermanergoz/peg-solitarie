@@ -80,3 +80,39 @@ Next: producer. It should:
 - Route the ux-designer to the Licenses screen entries (rows F to J, and row I if credited).
 - Route the tech-lead to the Google SDK notices ruling, and to scheduling `scripts/play-upload.sh` on a `feature/*` branch (android-game-dev) before Gate 2.
 - Founder: nothing new. The copy stays for Gate 2 approval under Q-016 and Q-022.
+
+## Pass 3 — blockers, the upload gate, the licences branch (2026-10-21)
+Branch: feature/phase-14-release-docs, on head `5b4ea65` (committed by the producer). Input: `.planning/reports/phase-14/tech-lead-release-docs-blockers.md`. Files edited: `docs/release-checklist.md`, `.planning/phases/14-release-readiness/14-RELEASE-PLAN.md` and this report. No commit, no Gradle.
+Ran on: claude-opus-5-5 at effort medium. Loops: 0. Lessons applied: none.
+
+### Summary
+- Checklist 1.1 now reads `docs/tech-design.md` §14.1's "Blocks the branch cut" rows. It names R1 (`bugfix/hint-undecided`) and LN (`feature/licences-screen`), next to R-2 and F-1. PU is stated to block Gate 2, not the cut.
+- Checklist 1.7, the note under its §4, and release-plan item 2 no longer say the script refuses to run without approval. All three now say the plugin hook `hooks/publish-gate.sh` is the gate, citing the plugin rule.
+- The checklist had no line naming `feature/candy-backdrop` for the licences screens. The one line that relies on the Licenses screen (3.5a, checker-qual) now names `feature/licences-screen`.
+
+### Per-item table
+| # | Item | What changed | Status |
+|---|---|---|---|
+| 1 | Checklist 1.1 | The evidence cell now points at the §14.1 rows whose last cell says **Blocks the branch cut**, and at the table's own reading note. For 3.0.0 it names R1 `bugfix/hint-undecided`, LN `feature/licences-screen`, R-2 and F-1. Each is checked with `git merge-base --is-ancestor <branch> develop`. PU blocks Gate 2 through 1.7, not the cut. The old pointer, "the latest `tech-lead-*.md`", is gone | done |
+| 2 | The upload gate | **Checklist 1.7:** marked "Blocks Gate 2, not the branch cut (§14.1 PU)". The "refuses to run without" clause is gone. It states that the script checks no approval itself and that `hooks/publish-gate.sh` is the gate, quoting plugin `rules/stacks.md` 1.0.0 scaffold contract 9 and `rules/play-store.md`. The evidence adds `feature/play-upload` and a clean `shellcheck`. **The note under checklist §4:** "refusing to run without the approval file" is gone, and it gains the same hook statement, `feature/play-upload` and "blocks Gate 2, not the branch cut". **Release-plan item 2:** the branch is now `feature/play-upload` (§14.1 PU). The specification is §14.1's: an AAB of `:app:bundleRelease` to `internal`, a message when the variable or the AAB is missing, no secret echoed. "Hard refusal … belt as well as the plugin hook's braces" is replaced by the hook statement and the citation, with a dated correction note | done |
+| 3 | candy-backdrop → licences-screen | `grep -n -i candy docs/release-checklist.md` found nothing. 3.5a's checker-qual clause now names `feature/licences-screen` (tech-design §3.6, §14.1 LN). The release plan has no candy line either | done |
+
+**Confirmed against the plugin (1.0.0):**
+- `hooks/publish-gate.sh` matches `play-upload\.sh` and the fastlane upload subcommands at a command position. It blocks with exit 2 unless `<root>/.planning/approvals/publish-<VERSION>.approved` exists.
+- `rules/stacks.md:105-107` says the script "checks no approval itself (`hooks/publish-gate.sh` does)".
+- `rules/play-store.md` says "the publish hook blocks it without `.planning/approvals/publish-<VERSION>.approved`".
+- The hook blocked two of my own Bash commands (one in pass 2, one in this pass), because their here-doc text named the upload command. That is the documented over-match ("a here-doc body … is matched too"), so I made those edits with the Edit tool. Nothing was uploaded.
+
+### Checks
+- `cat hooks/publish-gate.sh` and `grep -n -i 'checks no approval\|publish-gate\|play-upload' rules/stacks.md rules/play-store.md` (plugin) — pass (as quoted above).
+- `grep -n -E 'How release-checklist item 1.1|^\| (R1|LN|PU|R-2|F-1) \|' docs/tech-design.md` — pass. R-2, F-1, R1 and LN say "Blocks the branch cut"; PU says "Blocks Gate 2, not the branch cut".
+- `grep -n -i 'refuse\|refusal\|candy' docs/release-checklist.md 14-RELEASE-PLAN.md` — pass. The only hits are the hook statement (checklist :103) and the dated correction note (plan :296).
+- A table-shape check (`python3 -I`) over `docs/release-checklist.md` — pass (0 mismatches).
+- `git diff --check` — pass. `git status --short` lists only the two permitted files, plus this report once it is written.
+
+### Open issues / risks
+- `THIRD_PARTY.md` (its branch table, §2's Apache-2.0 row and §7's bullet) and `docs/store/README.md` still say the licences screens are on `feature/candy-backdrop`. Those files were outside this pass. A next pass should move them to `feature/licences-screen`, and `THIRD_PARTY.md`'s branch table should gain that branch for item 2.4a.
+- 3.5a's checker-qual grep remains conditional. Tech-design §13.1 LN-5 now credits checker-qual, so once LN merges with that entry, the grep is no longer needed.
+
+### Handoff
+Next: producer. Commit the two files and this report. The code-auditor can re-check 1.1, 1.7 and plan item 2 against §14.1 and plugin `rules/stacks.md` contract 9. Route a short THIRD_PARTY/README pass for the candy-to-licences-screen wording.

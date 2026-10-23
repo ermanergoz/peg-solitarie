@@ -280,15 +280,22 @@ listing ends up promising something that is not there.
    not exist. **It is not created on the release branch:** it is code, and the release branch
    takes no code (`docs/release-checklist.md` §2, "A release branch is not where a feature gets
    finished"). *Corrected 2026-10-21; this item earlier said "created on the release branch".*
-   It is owed on a `feature/*` branch off `develop`, **before Gate 2**: the tech-lead assigns it
-   to the android-game-dev, the code-auditor reviews it, the tech-lead signs it off, and the
-   producer routes and merges it (`docs/release-checklist.md` item 1.7 and the note under its §4).
-   Until it merges, the only upload route is the founder's own Console upload
-   (`14-OPERATOR-CHECKLIST.md` Step 8 item 1), and the producer records which route this release
-   uses (checklist item 1.7). Its specification is unchanged:
-   `fastlane supply` against `PLAY_SERVICE_ACCOUNT_JSON`, target track `internal`, and a hard
-   refusal to run unless `.planning/approvals/publish-$(cat VERSION).approved` exists — belt as
-   well as the plugin hook's braces.
+   It is owed on `feature/play-upload` off `develop` (`docs/tech-design.md` §14.1 PU), **before
+   Gate 2**: the tech-lead assigns it to the android-game-dev, the code-auditor reviews it, the
+   tech-lead signs it off, and the producer routes and merges it (`docs/release-checklist.md`
+   item 1.7 and the note under its §4). It blocks Gate 2, not the branch cut. Until it merges, the
+   only upload route is the founder's own Console upload (`14-OPERATOR-CHECKLIST.md` Step 8
+   item 1), and the producer records which route this release uses (checklist item 1.7).
+   Its specification: `fastlane supply` against `PLAY_SERVICE_ACCOUNT_JSON`, uploading the signed
+   AAB of `:app:bundleRelease` to the `internal` track, failing with a message when the variable or
+   the AAB is missing, and echoing no secret. **It checks no approval itself.** The gate is the
+   plugin hook `hooks/publish-gate.sh`, which blocks any command that runs `play-upload.sh` or
+   `fastlane supply` unless `.planning/approvals/publish-<VERSION>.approved` exists (plugin
+   `rules/stacks.md` 1.0.0, scaffold contract 9: "it checks no approval itself
+   (`hooks/publish-gate.sh` does)"; `rules/play-store.md`: "the publish hook blocks it").
+   *Corrected 2026-10-21 (pass 3): this item earlier asked for "a hard refusal to run unless the
+   approval file exists — belt as well as the plugin hook's braces". That contradicts the plugin
+   rule, and §14.1 PU and §17 of `docs/tech-design.md` record the supersession.*
 
 3. **`docs/release-checklist.md`.** Also missing. Created from the studio's Play rules with every
    item marked studio-verifiable or founder-only, so that "unticked founder-only item at publish
