@@ -135,3 +135,113 @@ Next: producer — read and commit `docs/ux-spec.md` and this report on `bugfix/
 - **game-designer:** open issues 8 and 9, non-blocking.
 - **release-manager:** after R1 merges, any copy describing this behaviour quotes the notice's wording (en-US, and tr-TR for the Turkish listing).
 - **ux-designer (review mode):** review the developer's UI diff and QA's captures against §4.4.2.
+
+---
+
+## Loop 1 — 2026-10-21: closing the fresh check's F-1 to F-5
+Date: 2026-10-21
+Branch: bugfix/hint-undecided (committed by the producer)
+Skills loaded: as above. No new skill was needed; ui-ux-pro-max's touch-target, toast and screen-reader rules were applied from the same load.
+Ran in parallel with: the android-game-dev writing code in this worktree. I edited only `docs/ux-spec.md` and this report.
+Ran on: claude-opus-5-5 at effort xhigh. This is the same Q-019 staffing deviation as above; the pin is fable at xhigh.
+Fan-out: none. One haiku Explore helper ran read-only `wc`, `grep` and `diff`, and no git.
+Loops: 1
+Read in full: `.planning/reports/hint-undecided/ux-designer-check.md` (`008d1c5`); `tech-lead-brief.md` Amendment 1 (`e8eb5f2`, A1.1–A1.5)
+Lessons applied: none
+
+### Summary
+- All five MINOR findings are closed in `docs/ux-spec.md`, filed as "Tenth revision, loop 1" with dated pointers. No decision is rewritten in place.
+- F-1 folds in the tech-lead's Amendment 1: 23k rides this branch as commit H4b.
+- F-2 and F-3 are corrections. F-4 and F-5 are ruled as a new decision, **D-04g**, which amends D-04f.
+- **D-04g reverses one property the check had passed:** a tap on the notice now puts it away and reaches nothing beneath. Before, taps passed through.
+- Six of the seven INFO notes are closed in the spec; I-1 is carried to the audio fold-in.
+
+### What changed, per finding
+- **F-1, the banner's announcement — settled.**
+  - "Criterion 23k is owed either way" is replaced in §4.4.2's last subsection by the tech-lead's ruling: Amendment 1, A1.1–A1.3, `e8eb5f2`.
+  - 23k rides `bugfix/hint-undecided` as commit H4b. It is one polite live region on the banner's message `Text` plus a KDoc fix, and the brief's freeze now allows exactly that hunk.
+  - 23k is judged on this branch. Its Compose half is `NoWinBannerTest.theBannersMessageIsAPoliteLiveRegionAndItsActionsAreOutsideIt`.
+  - Pointers were added to criterion 23k, §13 and the header.
+- **F-2, the Cancelled row.**
+  - In §4.4.1's row and §4.4.2's outcome table, the causes are now only a jump, an undo, a restart or leaving.
+  - The ruling's "new Hint tap" is noted as impossible in the UI: Hint is disabled while Working (D-04d, criterion 23).
+  - The row now states its state vector: idle's, with all three flags false. It re-asserts idle in 21a by design; the behaviour itself is the game-designer's AC-12.
+  - The "four ways (GD-HT-1)" citation now also names GD-HT-3 (I-5).
+- **F-3, criterion 21a.** It has a dated pointer naming its two new rows and their state vectors. The D-04f group heading in §14 no longer says the rest of the section is unchanged, and the §13 row names the state vectors.
+- **F-4, where TalkBack reads the notice — ruled, D-04g item 6.**
+  - The order is the geometric one the layout gives, with no `traversalIndex` or `isTraversalGroup` added: back → title → timer → the notice (or the banner: its message, then Undo, Restart, Home) → Undo → Hint → Show-moves → Restart.
+  - The board has no focus stop of its own.
+  - §11's old line, "dock → any raised banner", never described the build. It gains a dated correction and is not rewritten.
+  - 23c's bounds assertion is named as the precondition. 23j item 5 checks the order with TalkBack, and 23k checks the banner's.
+- **F-5, the notice at 200% — ruled, D-04g items 1–5.**
+  - A touch that lands on the notice is the notice's own. A tap puts it away and reaches nothing on the board, and TalkBack gets a `dismiss` semantics action (M3 `SnackbarHost`'s idiom; the platform supplies the "Dismiss" label, so no new string).
+  - The notice has a minimum height of `hint_notice_min_height` (48dp, new in §6.1).
+  - The accessibility timeout still applies, but only while the player leaves the notice alone.
+  - Covering up to ≈60% of the board at 200% is **accepted on three conditions**: one tap removes it, nothing under it can be touched by accident, and the strip, the dock and the top of the board stay live.
+  - Shrinking, truncating, translucency, relocating and capping the timeout were weighed and declined.
+  - **Why I reversed pass-through.** Tracing F-5 showed that an opaque notice which passes taps through turns the instinctive tap meant to put it away into a blind move. At worst that move is a jump, whose undo can lead to the opt-in dialog, and it happens at every scale, not only at 200%.
+  - The revised criteria are 23c (tap puts it away and `onCellTap` is not called; a board tap outside still plays; Dismiss works; ≥ 48dp) and 23j (item 1 revised, item 5 adds order and Dismiss, new item 7 for 200% with a 2-minute timeout). Their first wording is recorded beside them.
+- **INFO notes:**
+  - I-2: the tr-TR evidence is reworded to "no `values-tr*`/`values-b+tr*` in any worktree".
+  - I-3: a recreation mid-display may re-show the notice for a fresh time and speak it again. This is ruled acceptable.
+  - I-4: a null `LocalAccessibilityManager` falls back to 5 s, and 23e tests it.
+  - I-5: two citations are fixed.
+  - I-6: "not counted as a hint used (D-09)" is added to the outcome table.
+  - I-7: 23e gains a Robolectric reduced-motion variant with an unchanged display time.
+  - I-1: noted for the audio fold-in (D-04g taken too; reconcile D-06c and its traversal line).
+
+### Outputs
+- `docs/ux-spec.md` gains a loop-1 header paragraph; pointers at §2, D-04f, §5 (two), §11 (header and four bullets) and §12; and D-04g in §3.
+- §4.4.1 has a revised Cancelled row and note.
+- §4.4.2 changes:
+  - outcome table;
+  - I-5 and I-6 notes;
+  - Layout "Height" and "Input";
+  - new "What it covers, and why that is accepted";
+  - "How long" item 1's note and item 6;
+  - "What does not end it";
+  - "Never twice";
+  - the recreation note;
+  - TalkBack;
+  - Contrast note;
+  - Touch targets;
+  - the banner paragraph (F-1);
+  - "What this owes".
+- §6.1 has one token; §7 R-7 has a note; §11 has the traversal correction; §13 has the 21a row and the owed list.
+- §14: 21a's pointer and group heading; 23c and 23j revised; 23e, 23g and 23k notes.
+- §16: QUAL-03 and ASST-01.
+- `.planning/reports/hint-undecided/ux-designer.md` — this Loop 1 section.
+
+### Checks
+A haiku helper ran these with no git. Three wording-only edits followed this run: D-04g's cross-reference line, the §11 header pointer, and two "part"/"item" words in the header. They add no id, so the results stand.
+- `grep -c 'D-04g' H` — 35. `grep -n '^- \*\*D-04g\*\*' H` — one definition, at `:1077`.
+- `grep -c 'D-04f' H` — 49. `grep -cE '^23[a-k]\. ' H` — 11 criterion headings, unchanged.
+- `grep -n 'Tenth revision, loop 1' H` — `:323`.
+- `grep -n 'hint_notice_min_height' H` — six hits: the header, Layout, Touch targets, §6.1, §11 and §16.
+- `grep -n 'pass-through\|passes every touch\|blocks no tap\|picks that peg up\|owed either way\|new Hint tap' H` — pass. Every remaining hit is first-edition text with a D-04g pointer on it or right after it (`:305`, `:1059`→`:1073`, `:2748`, `:2916`→`:2918`, `:2968`, `:3865`, `:4606`), or a loop-1 note that names the impossible Hint tap (`:332`, `:2565`, `:2679`). "Owed either way" no longer appears.
+- `diff D H | grep '^<'` — pass. The only removed line is `revised: 2026-09-29`.
+- `diff D H | grep -c '^>'` — 692 added lines. `grep -cE '^> .*[[:space:]]$'` — 0. Tabs — 0.
+- `grep -c 'D-04g'` over the dev, ux, audio, r5 and gates copies of `docs/ux-spec.md`, and over `invalid-tap-feedback.md` — 0 in each. `grep -rn 'D-04g'` over five worktrees' `.planning/reports` — no output, so the id collides with nothing.
+- `grep -n 'pass through\|pass-through\|passes through' tech-lead-brief.md` — two hits (`:63`, A1.4's Form row, and `:442`, a check line). Both now contradict D-04g; see the open issue below.
+- **Not run:** `./gradlew check`. This change touches docs only.
+
+### Open issues / risks
+1. **The brief must follow D-04g before H4.** `tech-lead-brief.md:63` (A1.4) says the notice is "not an M3 `Surface`, so that touches pass through to the board", and `:442` records "an inline, pass-through notice".
+   - Under D-04g the property is: a tap on the notice puts it away and never reaches the board; a `dismiss` semantics action; a 48dp minimum height. Whether a `Surface` is used is the developer's choice.
+   - The tech-lead should amend A1.4 and point H4 at the revised 23c and 23j.
+   - If the developer has already built pass-through, the revised 23c fails it red, which is intended.
+2. **D-04g reverses a property the check passed.** Under rules/studio.md, a fresh check of D-04g by an agent that wrote neither D-04f nor D-04g is advisable before H4 merges: §4.4.2's Input, Covers, Touch targets and TalkBack, criteria 23c and 23j, and §11's correction. Under Q-019 that check runs on Opus.
+3. **The traversal order is ruled from the layout and Compose's geometric default, not observed.** 23j item 5 and 23k's device half are the observation. If the device shows a different order, the layout or the ruling changes, never the criterion's wording quietly.
+4. **Earlier open issues:**
+   - 3 (23k's branch) and 7 (§11's traversal line) are resolved by F-1 and F-4.
+   - The check's I-2 handoff is still the producer's: one git line for `main` and `feature/phase-14-kickoff`.
+   - 5 (audio fold-in) now also covers D-04g and the traversal correction.
+5. Nothing new for the founder.
+
+### Handoff
+Next: producer — read and commit `docs/ux-spec.md` and this report. Then route:
+- **tech-lead:** amend A1.4 and `:442` for D-04g (open issue 1) before H4.
+- **ux-designer (a fresh agent):** check D-04g (open issue 2).
+- **android-game-dev:** build H4 against revised 23c and 23j and the D-04g Layout rows. Build H4b as Amendment 1 says.
+- **qa-engineer:** run 23j items 1, 5 and 7 and 23k's device half, recording the observed TalkBack order.
+- **audio fold-in:** D-04f, D-04g and §4.4.2 are taken. Reconcile D-06c and its "dock → banner" line with §11's correction.
