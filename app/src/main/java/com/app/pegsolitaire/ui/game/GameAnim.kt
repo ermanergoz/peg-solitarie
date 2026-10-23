@@ -41,4 +41,14 @@ object GameAnim {
 
     /** Legal-destination dots settled scale. */
     const val DOT_POP_END = 1f
+
+    /**
+     * How long the Undecided notice stays up (ux-spec §4.4.2, §6.4): its reading time, before
+     * the system's accessibility timeout lengthens it. Functional, not decoration, so it holds
+     * with animations off as well.
+     */
+    const val HINT_NOTICE_DISPLAY_MS = 5_000
+
+    /** The Undecided notice's fade-out, two thirds of `ClayAnim.ENTRANCE_MS` (§6.4). */
+    const val HINT_NOTICE_EXIT_MS = 160
 }

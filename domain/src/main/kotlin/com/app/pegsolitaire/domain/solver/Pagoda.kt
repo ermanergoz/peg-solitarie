@@ -5,7 +5,7 @@ import com.app.pegsolitaire.domain.model.Board
 /**
  * A necessary-condition fast-reject for peg-solitaire solvability — the resource-count
  * / "pagoda" guard the [Solver] runs before any search so provably-dead positions
- * collapse to `null` without exploring a single node (threat T-04-SD).
+ * are answered [SolverOutcome.ProvenDead] without exploring a single node (threat T-04-SD).
  *
  * The condition is the mod-3 colour-parity invariant of the same GF(4)-style colour
  * family documented for Diamond-41 (`SolutionFixtures`). Colour every cell by
@@ -22,9 +22,9 @@ import com.app.pegsolitaire.domain.model.Board
  * **The target is per-board ([com.app.pegsolitaire.domain.model.BoardSpec.minimumPegs]),
  * not a hardcoded one peg.** Diamond-41's proven fewest-pegs floor is two, and while
  * this condition assumed a single-peg terminal it returned `false` for EVERY
- * Diamond-41 position — so `Solver.firstWinningMove` answered `null` in O(cells) with
- * zero search and the Diamond hint was structurally incapable of saying anything but
- * "no winning move" (DEBT-01).
+ * Diamond-41 position — so the [Solver] returned no move in O(cells) with zero search
+ * and the Diamond hint was structurally incapable of saying anything but "no winning
+ * move" (DEBT-01).
  *
  * **RESEARCH Pitfall 1 — the prune weakens sharply above one peg, and on three colour
  * classes it weakens all the way to nothing.** The parity half of the test is
