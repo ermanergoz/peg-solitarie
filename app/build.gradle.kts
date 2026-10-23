@@ -472,6 +472,18 @@ tasks.withType<Test>().configureEach {
         .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
+// TutorialSourceGuardTest reads the tutorial's own sources (D-01j(2), WT-16's grep), comments
+// included, and a comment-only edit there may change no class file the test task watches. Declared
+// as an input of every unit-test task, like the audio files above, so such an edit re-runs it.
+val tutorialSourceGuardInputs = files(layout.projectDirectory.dir("src/main/java/com/app/pegsolitaire/ui/onboarding"))
+
+tasks.withType<Test>().configureEach {
+    inputs
+        .files(tutorialSourceGuardInputs)
+        .withPropertyName("tutorialSources")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+}
+
 // Pin androidx.core to the highest line whose minCompileSdk is 36. The default
 // resolved version (1.19.0) requires compileSdk 37, which is not installable in
 // this environment. Version comes from the catalog — no hand-pinned literal here.
