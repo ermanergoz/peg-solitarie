@@ -368,14 +368,15 @@ class GameViewModelHintStalenessTest {
      * be SHOWN, never swallowed as if it had been cancelled: a spinner that vanishes with
      * nothing said would be a fourth, worse state.
      *
-     * The search is the real one, on a Wiegleb-45 position one ply past its book (the book
-     * miss is asserted). It is parked at the dispatcher hop, the clock is moved past the
-     * deadline, and only then is it released, so its first poll sees the deadline passed.
+     * The search is the real one, on the position after the ruling's walk A — winnable, and
+     * one ply past Wiegleb-45's book (the book miss is asserted here). It is parked at the
+     * dispatcher hop, the clock is moved past the deadline, and only then is it released, so
+     * its first poll sees the deadline passed.
      */
     @Test
     fun theDeadlinePassingOnAnUnchangedBoardShowsTheUndecidedNoticeNotSilence() =
         hintTest {
-            val board = wiegleb45FourJumpsIn()
+            val board = wiegleb45AfterWalkA()
             assertThat(OpeningBook.lookup(board)).isNull()
             val viewModel = viewModelFor(board)
             runCurrent()
@@ -624,15 +625,18 @@ class GameViewModelHintStalenessTest {
     }
 
     /**
-     * Wiegleb-45 four jumps in, one ply past its depth-3 book and off its committed line —
-     * sequence B of AC-18, the same jumps `GetHintUseCaseTest` replays.
+     * Wiegleb-45 after the ruling's walk A (its Amendment 1; AC-11, AC-18b): golden moves 1
+     * to 4 under the left-right mirror, four jumps in and off the golden line. Its book miss
+     * is asserted where it is used. Its winnability is proven once, in `:domain`, by
+     * `GetHintUseCaseTest.aWinnableWiegleb45PositionOffTheGoldenLineIsNeverReportedDead`:
+     * the golden fixture it replays is not visible from `:app`.
      */
-    private fun wiegleb45FourJumpsIn(): Board =
+    private fun wiegleb45AfterWalkA(): Board =
         listOf(
-            Position(row = 6, col = 4) to Position(row = 4, col = 4),
-            Position(row = 8, col = 4) to Position(row = 6, col = 4),
-            Position(row = 5, col = 6) to Position(row = 5, col = 4),
-            Position(row = 7, col = 5) to Position(row = 5, col = 5),
+            Position(row = 2, col = 4) to Position(row = 4, col = 4),
+            Position(row = 0, col = 4) to Position(row = 2, col = 4),
+            Position(row = 3, col = 2) to Position(row = 3, col = 4),
+            Position(row = 3, col = 0) to Position(row = 3, col = 2),
         ).fold(Boards.wiegleb45Initial) { board, (from, to) ->
             RulesEngine.applyMove(board, RulesEngine.legalMoves(board).single { it.from == from && it.to == to })
         }

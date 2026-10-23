@@ -9,6 +9,7 @@ import com.app.pegsolitaire.domain.golden.solutions.SolutionFixtures
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Boards
+import com.app.pegsolitaire.domain.model.Cell
 import com.app.pegsolitaire.domain.model.Move
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
@@ -323,39 +324,75 @@ class GetHintUseCaseTest {
     }
 
     /**
-     * AC-2: Wiegleb-45 one ply past its depth-3 book is never called dead by a search that
-     * was cut short. These are the three positions AC-18 replays on a device. Sequence A
-     * follows the book's first two hints and then leaves them; B and C are played without
-     * Hint. None is on the committed line, whose every position the book holds — so
-     * following Hint all the way from the start never leaves the book.
+     * AC-2 (the ruling's Amendment 1): the positions after walks A, B and C are never called
+     * dead by a search that was cut short. AC-18b to AC-18d replay these walks on a device.
+     *
+     * Following Hint from the start never reaches such a position, because the book holds
+     * every state of the golden line (AC-2c). Each walk instead plays golden moves 1 to 4
+     * under one symmetry of the board, so its position is the golden depth-4 state seen in a
+     * mirror. The literal is pinned to that construction, and to the empty holes the ruling's
+     * table lists, before the ruling's three preconditions: a book miss, not the golden
+     * line's own depth-4 state, and winnable.
      */
     @Test
-    fun aWiegleb45PositionFourJumpsInIsNeverReportedDead() {
-        WIEGLEB_45_FOUR_JUMPS_IN.forEach { (name, jumps) ->
-            val board = afterJumps(Boards.wiegleb45Initial, jumps)
+    fun aWinnableWiegleb45PositionOffTheGoldenLineIsNeverReportedDead() {
+        assertWithMessage("the golden line's own depth-4 state, as the ruling describes it")
+            .that(emptyHoles(wiegleb45GoldenStateAt(FOUR_JUMPS)))
+            .containsExactlyElementsIn(GOLDEN_DEPTH_4_EMPTY_HOLES)
+
+        WIEGLEB_45_WALKS.forEach { (name, walk) ->
+            assertWithMessage("walk %s must be its symmetry's image of golden moves 1 to 4", name)
+                .that(walk.jumps)
+                .isEqualTo(wiegleb45GoldenOpeningUnder(walk.symmetry))
+            val board = afterMoves(Boards.wiegleb45Initial, walk.jumps)
+            assertWithMessage("walk %s's empty holes, as the ruling's table lists them", name)
+                .that(emptyHoles(board))
+                .containsExactlyElementsIn(walk.emptyAfterwards)
+            assertIsAWinnableBookMissOffTheGoldenLine(board, walk.symmetry, "walk $name")
             val spy = SolverSpy(cancel = true)
-            assertWithMessage("Wiegleb-45 sequence %s must be four jumps in", name)
-                .that(Boards.wiegleb45Initial.pegCount - board.pegCount)
-                .isEqualTo(FOUR_JUMPS)
-            assertWithMessage("Wiegleb-45 sequence %s must be a book MISS", name)
-                .that(OpeningBook.lookup(board))
-                .isNull()
 
             val outcome = useCase(board = board, solution = null, movesPlayed = 0, shouldCancel = spy)
 
-            assertWithMessage("Wiegleb-45 sequence %s must reach the solver", name).that(spy.polls).isGreaterThan(0)
-            assertWithMessage("Wiegleb-45 sequence %s", name).that(outcome).isEqualTo(HintOutcome.Undecided)
+            assertWithMessage("walk %s must reach the solver", name).that(spy.polls).isGreaterThan(0)
+            assertWithMessage("walk %s", name).that(outcome).isEqualTo(HintOutcome.Undecided)
+        }
+    }
+
+    /**
+     * The four spare walks: the golden opening under the board's other four symmetries
+     * (the top-bottom mirror, the anti-transpose and the 90° and 270° rotations), checked
+     * exactly as walks A to C are. AC-18's pass line asks for a replacement walk if one
+     * shows a move on a device; these are the replacements, already proven.
+     */
+    @Test
+    fun everyOtherSymmetryImageOfTheGoldenOpeningIsAWinnableBookMiss() {
+        val spares = GridSymmetry.entries - WIEGLEB_45_WALKS.values.map { it.symmetry }.toSet()
+        assertWithMessage("the board's seven symmetries, less walks A to C").that(spares).hasSize(SPARE_WALKS)
+
+        spares.forEach { symmetry ->
+            val board = afterMoves(Boards.wiegleb45Initial, wiegleb45GoldenOpeningUnder(symmetry))
+            assertIsAWinnableBookMissOffTheGoldenLine(board, symmetry, symmetry.name)
+            val spy = SolverSpy(cancel = true)
+
+            val outcome = useCase(board = board, solution = null, movesPlayed = 0, shouldCancel = spy)
+
+            assertWithMessage("%s must reach the solver", symmetry.name).that(spy.polls).isGreaterThan(0)
+            assertWithMessage(symmetry.name).that(outcome).isEqualTo(HintOutcome.Undecided)
         }
     }
 
     /**
      * AC-2b, the boundary control: three jumps in, the book still answers, with zero
-     * solver polls. Sequence A's first three jumps reach a position that is not one of the
-     * book's four Wiegleb-45 gap positions.
+     * solver polls. Walk A's first three jumps reach a position inside the depth-3 frontier
+     * that is asserted to be a book hit — so if it were one of the book's four Wiegleb-45
+     * gap positions, this would fail loudly rather than test the solver instead.
      */
     @Test
     fun aWiegleb45PositionThreeJumpsInIsStillABookAnswer() {
-        val board = afterJumps(Boards.wiegleb45Initial, WIEGLEB_45_FOUR_JUMPS_IN.getValue("A").take(THREE_JUMPS))
+        val board = afterMoves(Boards.wiegleb45Initial, WIEGLEB_45_WALKS.getValue("A").jumps.take(THREE_JUMPS))
+        assertWithMessage("walk A three jumps in must be a book HIT, not a gap position")
+            .that(OpeningBook.lookup(board))
+            .isInstanceOf(BookAnswer.Hit::class.java)
         val spy = SolverSpy()
 
         val outcome = useCase(board = board, solution = null, movesPlayed = 0, shouldCancel = spy)
@@ -363,6 +400,38 @@ class GetHintUseCaseTest {
         val move = foundMove(outcome, "Wiegleb-45 three jumps in (book-served)")
         assertThat(spy.polls).isEqualTo(0)
         assertThat(RulesEngine.legalMoves(board)).contains(move)
+    }
+
+    /**
+     * AC-2c (the ruling's Amendment 1, §16 #22): a player who follows Hint from an untouched
+     * Classic start never reaches the solver. Each book holds every state of its board's
+     * golden line and answers that line's own move there, so every hint, all the way to the
+     * board's target, is Found, from the book, with zero polls.
+     */
+    @Test
+    fun followingHintFromEachClassicStartStaysOnTheBookToTheEnd() {
+        SolutionFixtures.ALL.forEach { fixture ->
+            val golden = RecordedSolutions.load(fixture.name)
+            var board = startBoardOf(fixture)
+
+            golden.forEachIndexed { depth, goldenMove ->
+                val spy = SolverSpy()
+
+                val outcome = useCase(board = board, solution = null, movesPlayed = 0, shouldCancel = spy)
+
+                assertWithMessage("%s, hint %s", fixture.name, depth + 1)
+                    .that(outcome)
+                    .isEqualTo(HintOutcome.Found(goldenMove))
+                assertWithMessage("%s, hint %s must not reach the solver", fixture.name, depth + 1)
+                    .that(spy.polls)
+                    .isEqualTo(0)
+                board = RulesEngine.applyMove(board, foundMove(outcome, "${fixture.name}, hint ${depth + 1}"))
+            }
+
+            assertWithMessage("following Hint on %s must reach its target", fixture.name)
+                .that(board.pegCount)
+                .isEqualTo(fixture.spec.minimumPegs)
+        }
     }
 
     /**
@@ -489,6 +558,36 @@ class GetHintUseCaseTest {
         }
     }
 
+    /** One of the ruling's walks: its symmetry, its four jumps and the holes it leaves empty. */
+    private data class Walk(
+        val symmetry: GridSymmetry,
+        val jumps: List<Move>,
+        val emptyAfterwards: List<Position>,
+    )
+
+    /**
+     * The seven symmetries of Wiegleb-45's 9x9 grid other than the identity (the square's
+     * D4 group), each a map on positions. The footprint is symmetric under every one of
+     * them, so each takes a legal line to a legal line. Walks A, B and C use the first three
+     * (the ruling's Amendment 1); the other four are the spares. The rotations turn clockwise.
+     */
+    private enum class GridSymmetry(
+        private val image: (row: Int, col: Int) -> Position,
+    ) {
+        LEFT_RIGHT_MIRROR({ row, col -> Position(row = row, col = LAST_GRID_INDEX - col) }),
+        ROTATION_180({ row, col -> Position(row = LAST_GRID_INDEX - row, col = LAST_GRID_INDEX - col) }),
+        TRANSPOSE({ row, col -> Position(row = col, col = row) }),
+        TOP_BOTTOM_MIRROR({ row, col -> Position(row = LAST_GRID_INDEX - row, col = col) }),
+        ANTI_TRANSPOSE({ row, col -> Position(row = LAST_GRID_INDEX - col, col = LAST_GRID_INDEX - row) }),
+        ROTATION_90({ row, col -> Position(row = col, col = LAST_GRID_INDEX - row) }),
+        ROTATION_270({ row, col -> Position(row = LAST_GRID_INDEX - col, col = row) }),
+        ;
+
+        fun of(position: Position): Position = image(position.row, position.col)
+
+        fun of(move: Move): Move = Move(from = of(move.from), over = of(move.over), to = of(move.to))
+    }
+
     /** [outcome]'s move, once it is asserted — under [label] — to be [HintOutcome.Found]. */
     private fun foundMove(
         outcome: HintOutcome,
@@ -509,6 +608,57 @@ class GetHintUseCaseTest {
         jumps.fold(start) { board, (from, to) ->
             RulesEngine.applyMove(board, RulesEngine.legalMoves(board).single { it.from == from && it.to == to })
         }
+
+    /**
+     * Plays [moves] — written from → over → to, as the golden files and the ruling write
+     * them — from [start], asserting that each is a legal jump on the board it is played on.
+     */
+    private fun afterMoves(
+        start: Board,
+        moves: List<Move>,
+    ): Board =
+        moves.fold(start) { board, move ->
+            assertWithMessage("%s must be legal where it is played", move)
+                .that(RulesEngine.legalMoves(board))
+                .contains(move)
+            RulesEngine.applyMove(board, move)
+        }
+
+    /** The in-play holes of [board] that hold no peg. */
+    private fun emptyHoles(board: Board): List<Position> = board.spec.inPlay.filter { board.cellAt(it) == Cell.Empty }
+
+    /** Wiegleb-45's golden line, played [depth] moves from the start. */
+    private fun wiegleb45GoldenStateAt(depth: Int): Board =
+        afterMoves(Boards.wiegleb45Initial, RecordedSolutions.load(WIEGLEB_45).take(depth))
+
+    /** Golden moves 1 to 4 of Wiegleb-45 under [symmetry]: how every walk is built. */
+    private fun wiegleb45GoldenOpeningUnder(symmetry: GridSymmetry): List<Move> =
+        RecordedSolutions.load(WIEGLEB_45).take(FOUR_JUMPS).map { symmetry.of(it) }
+
+    /**
+     * The ruling's three preconditions on a walk's position (AC-2), under [label]: a book
+     * miss; not the golden line's own depth-4 state; and winnable — [symmetry] applied to
+     * golden moves 5 to 43 and replayed move by move through [RulesEngine] ends at one peg.
+     * The symmetry is checked first to map the board's footprint onto itself.
+     */
+    private fun assertIsAWinnableBookMissOffTheGoldenLine(
+        board: Board,
+        symmetry: GridSymmetry,
+        label: String,
+    ) {
+        val footprint = Boards.Wiegleb45.footprint
+        assertWithMessage("%s: %s must map the footprint onto itself", label, symmetry.name)
+            .that(footprint.map { symmetry.of(it) })
+            .containsExactlyElementsIn(footprint)
+        assertWithMessage("%s must be a book MISS", label).that(OpeningBook.lookup(board)).isNull()
+        assertWithMessage("%s must not be the golden line's own depth-4 state", label)
+            .that(board)
+            .isNotEqualTo(wiegleb45GoldenStateAt(FOUR_JUMPS))
+        val tail = RecordedSolutions.load(WIEGLEB_45).drop(FOUR_JUMPS).map { symmetry.of(it) }
+        assertWithMessage("%s must be winnable: the image of golden moves 5 to 43 ends at one peg", label)
+            .that(afterMoves(board, tail).pegCount)
+            .isEqualTo(ONE_PEG)
+    }
 
     private fun startBoardOf(fixture: SolutionFixtures.Fixture): Board =
         fixture.spec.inPlay
@@ -588,11 +738,25 @@ class GetHintUseCaseTest {
         /** Two plies past the deepest frontier any committed book holds. */
         const val OFF_BOOK_PLIES = 6
 
-        /** One ply past Wiegleb-45's depth-3 book: the fifth hint along a line. */
+        /** Four jumps in: one ply past Wiegleb-45's depth-3 book, where every walk lands. */
         const val FOUR_JUMPS = 4
 
-        /** Wiegleb-45's book depth: the fourth hint along a line. */
+        /** Wiegleb-45's book depth. */
         const val THREE_JUMPS = 3
+
+        const val WIEGLEB_45 = "wiegleb45"
+
+        /** Wiegleb-45's proven target: a line from its start ends at one peg. */
+        const val ONE_PEG = 1
+
+        /** The board's seven symmetries, less the three that walks A to C use. */
+        const val SPARE_WALKS = 4
+
+        /** The last row and column index of Wiegleb-45's 9x9 grid. */
+        const val LAST_GRID_INDEX = 8
+
+        /** The separator between the cells of one jump, as the golden files write it. */
+        const val JUMP_ARROW = "->"
 
         /**
          * RESEARCH's independently-measured canonical depth-≤4 frontier size for
@@ -608,19 +772,55 @@ class GetHintUseCaseTest {
                 EUROPEAN_37 to Boards.european37Initial,
                 "asymmetric39" to Boards.asymmetric39Initial,
                 DIAMOND_41 to Boards.diamond41Initial,
-                "wiegleb45" to Boards.wiegleb45Initial,
+                WIEGLEB_45 to Boards.wiegleb45Initial,
             )
 
+        /** The golden line's own depth-4 state, by its empty holes, as the ruling gives them. */
+        val GOLDEN_DEPTH_4_EMPTY_HOLES: List<Position> = positions("(0,4)", "(1,4)", "(3,5)", "(3,7)", "(3,8)")
+
         /**
-         * AC-2 and AC-18: three Wiegleb-45 positions four jumps in, each a book MISS — the
-         * device sequences, as (row, col) counted from 0 at the top-left of the 9x9 grid.
-         * A takes the book's first two hints, then leaves them; B and C never ask for one.
+         * AC-2 and AC-18b to AC-18d: the ruling's walks A, B and C (Amendment 1), copied from
+         * its table — (row, col) counted from 0 at the top-left of the 9x9 grid, each jump
+         * from → over → to — with the empty holes the table lists for each.
          */
-        val WIEGLEB_45_FOUR_JUMPS_IN: Map<String, List<Pair<Position, Position>>> =
+        val WIEGLEB_45_WALKS: Map<String, Walk> =
             mapOf(
-                "A" to listOf(jump(2, 4, 4, 4), jump(0, 4, 2, 4), jump(3, 2, 3, 4), jump(1, 3, 3, 3)),
-                "B" to listOf(jump(6, 4, 4, 4), jump(8, 4, 6, 4), jump(5, 6, 5, 4), jump(7, 5, 5, 5)),
-                "C" to listOf(jump(4, 2, 4, 4), jump(6, 3, 4, 3), jump(4, 0, 4, 2), jump(8, 3, 6, 3)),
+                "A" to
+                    Walk(
+                        symmetry = GridSymmetry.LEFT_RIGHT_MIRROR,
+                        jumps =
+                            moves(
+                                "(2,4)->(3,4)->(4,4)",
+                                "(0,4)->(1,4)->(2,4)",
+                                "(3,2)->(3,3)->(3,4)",
+                                "(3,0)->(3,1)->(3,2)",
+                            ),
+                        emptyAfterwards = positions("(0,4)", "(1,4)", "(3,3)", "(3,1)", "(3,0)"),
+                    ),
+                "B" to
+                    Walk(
+                        symmetry = GridSymmetry.ROTATION_180,
+                        jumps =
+                            moves(
+                                "(6,4)->(5,4)->(4,4)",
+                                "(8,4)->(7,4)->(6,4)",
+                                "(5,2)->(5,3)->(5,4)",
+                                "(5,0)->(5,1)->(5,2)",
+                            ),
+                        emptyAfterwards = positions("(8,4)", "(7,4)", "(5,3)", "(5,1)", "(5,0)"),
+                    ),
+                "C" to
+                    Walk(
+                        symmetry = GridSymmetry.TRANSPOSE,
+                        jumps =
+                            moves(
+                                "(4,2)->(4,3)->(4,4)",
+                                "(4,0)->(4,1)->(4,2)",
+                                "(6,3)->(5,3)->(4,3)",
+                                "(8,3)->(7,3)->(6,3)",
+                            ),
+                        emptyAfterwards = positions("(4,0)", "(4,1)", "(5,3)", "(7,3)", "(8,3)"),
+                    ),
             )
 
         /** AC-3 and AC-19: English-33 to one of its four book-proven dead positions. */
@@ -638,5 +838,20 @@ class GetHintUseCaseTest {
             toRow: Int,
             toCol: Int,
         ): Pair<Position, Position> = Position(row = fromRow, col = fromCol) to Position(row = toRow, col = toCol)
+
+        /** Jumps written as the golden files write them: `(row,col)->(row,col)->(row,col)`. */
+        fun moves(vararg notations: String): List<Move> =
+            notations.map { notation ->
+                val (from, over, to) = notation.split(JUMP_ARROW).map { position(it) }
+                Move(from = from, over = over, to = to)
+            }
+
+        fun positions(vararg notations: String): List<Position> = notations.map { position(it) }
+
+        /** One cell written `(row,col)`. */
+        fun position(notation: String): Position {
+            val (row, col) = notation.removeSurrounding("(", ")").split(",").map { it.toInt() }
+            return Position(row = row, col = col)
+        }
     }
 }
