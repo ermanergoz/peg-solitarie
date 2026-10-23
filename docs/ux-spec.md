@@ -359,6 +359,32 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > shortfall qualifier, and §6.5's range gains a pointer. Stage art below its minimum fades out instead
 > of vanishing. The 15s–15w header names its pointers.
 > **Not reopened:** every earlier decision and bar, D-03n's ratio, the 15g reading, the folds a–e.
+>
+> **Eleventh revision, loop 4 — 2026-10-23 — AMENDMENT (D-TB meets the other branches' rulings and
+> the build brief).** Written on Opus under Q-019. Three inputs. **(1)** The fourth fresh check,
+> `.planning/reports/ux-spec-folds/ux-designer-check-loop4.md` (F-27 to F-37). **(2)** The tech-lead's
+> build brief for `feature/talkback-board`, `.planning/reports/talkback-board/tech-lead-brief.md` §1
+> (F-TB-1 to F-TB-6, on that branch). **(3)** Two rulings of this role on other branches that name the
+> same elements as D-TB: **D-04g** with criteria 23d and 23k (`bugfix/hint-undecided`, its
+> `docs/ux-spec.md`), and **D-06c** with **D-01j(2)** (`feature/audio-review`,
+> `docs/ux/invalid-tap-feedback.md`). Ruled as **D-TBa** (§3), which amends D-TB item by item:
+> - the gameplay order is D-04g's, with D-TB's stops between the timer and the banner or notice;
+> - D-TB's three rejected-tap lines supersede D-06c's three sentences, and the tutorial speaks them;
+> - the banner and the notice announce themselves (23k, 23d);
+> - focus moves by input focus, only while TalkBack runs;
+> - the first tutorial step moves no focus;
+> - the board stop consumes its double-tap;
+> - only interactive boards carry stops;
+> - the cells' size below 48dp is recorded as a studio-rule deviation, not a WCAG exception;
+> - the put-down line reports, and five focus cases are stated.
+>
+> Edits: §3 (D-TBa; pointers on D-01c and D-TB), §4.4 class 2 (a pointer), §8 (one value and a note),
+> §11 (two pointers), §11.1 (dated notes), §13, §14 (26a, 26b, TB-1, TB-4, TB-6, TB-7, TB-8, TB-9,
+> TB-11) and §16. No string, token or colour is added; one string value changes. **Numbering.** The hint
+> branch's index also has a "Tenth revision — 2026-10-21" (the Undecided notice). Both entries are
+> kept on merge; their titles tell them apart. **Not reopened:** D-TB's scope, its cell text, its
+> action rule, its 29 strings and two plurals, D-04f/D-04g's notice, D-06's shake, mark, redirect and
+> haptic, and every earlier decision.
 
 ---
 
@@ -465,6 +491,11 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   retry count, no score. The three wrong-tap classes are answered by escalating *assistance*, not
   by correction — see §4.4. — rules/puzzle-design.md: "first failure impossible before puzzle 5".
   The tutorial is puzzle 0; it must not be losable.
+  *(Pointer 2026-10-23 — D-TB as amended by D-TBa, item 3.)* With TalkBack on, a rejected tap in the
+  tutorial is now spoken, in one of three neutral lines: "No peg here.", "Not a jump target." or "Put
+  down the selected peg first." (§11.1). Each says what is on the board or what to do next, and none
+  says the tap was wrong. This decision holds by ear: there is still no error state, no red, no modal,
+  no count and no rejection sound.
 
 - **D-01d:** **Skip is available on every step** as a labelled text action, and exits immediately.
   System back does exactly what Skip does. Both persist `markSeen()`. — A tutorial the player
@@ -1234,6 +1265,154 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   The board is never mirrored, so "left", "right" and the column numbers mean the same thing in every
   locale. Nothing spoken names a winning move except a hint the player asked for and a tutorial coach
   escalation (GD-TB-2, TB-12).
+  *(Amended the same day by **D-TBa**, loop 4. A raised rescue banner or Undecided notice is read
+  after the last cell and before the dock. The banner speaks through its own region, not D-TB's. The
+  rejected-tap lines replace the audio branch's D-06c sentences on both boards. Everything else above
+  stands.)*
+
+- **D-TBa** *(2026-10-23 — **amendment, loop 4**. UX ruling on the fourth check's F-27 to F-37,
+  `.planning/reports/ux-spec-folds/ux-designer-check-loop4.md`, and on the tech-lead's build-brief
+  findings F-TB-1 to F-TB-6, `.planning/reports/talkback-board/tech-lead-brief.md` §1, on
+  `feature/talkback-board`. It reconciles D-TB with two rulings of this role on other branches:
+  **D-04g** (`bugfix/hint-undecided`, `docs/ux-spec.md`, D-04g, criteria 23d, 23j, 23k) and **D-06c**
+  with **D-01j(2)** (`feature/audio-review`, `docs/ux/invalid-tap-feedback.md` §2, §3.6, §6).
+  Specified by dated notes in §11.1. Criteria 26a, 26b, TB-1, TB-4, TB-6, TB-7, TB-8, TB-9 and TB-11
+  are amended, and their first wording is kept.)*: **D-TB fits the banner, the Undecided notice and the
+  wrong-tap channel that the other two branches built, and it names the mechanisms it accepts.**
+  1. **The gameplay order (F-27).** The order is:
+     - back → title → timer;
+     - the board stop, then each in-play cell;
+     - the raised rescue banner (its message, then its Undo, Restart and Home), or the Undecided
+       notice (one stop, with a Dismiss action);
+     - the dock (Undo → Hint → Show-moves → Restart).
+
+     This is D-04g item 6's order, "after the timer, before the dock", with D-TB's stops between the
+     timer and the banner. The slab is one traversal group, so every cell is read before anything that
+     overlaps the slab, including a banner or notice over the lowest rows. The board stop sits on the
+     slab, and an M3 `Surface` is already a traversal group. The banner and the notice keep D-04g's
+     geometric place and gain no traversal index. While a Challenge board loads there is no board stop
+     and no cell stop; the `loading_level` indicator stands in their place. The banner and the notice
+     are never up together (23h).
+  2. **One set of rejected-tap lines, on both boards (F-28, F-TB-2).** D-TB's three lines are the only
+     rejected-tap announcement:
+     - "No peg here." for D-06's W1, an empty hole while nothing is held;
+     - "Put down the selected peg first." for W2, another peg while one is held;
+     - "Not a jump target." for W3, a hole that is not a destination while a peg is held.
+
+     From this date they **supersede D-06c's three sentences**: `wrong_tap_empty_hole` "Empty hole.
+     Pick up a peg first.", `wrong_tap_other_peg` "Already holding a peg. Tap it again to put it
+     down." and `wrong_tap_not_a_destination` "Can't jump there.". D-06c's other properties carry over
+     unchanged to D-TB's one board channel:
+     - the line is polite;
+     - **every rejected tap is spoken once, including the second of two identical taps in a row**,
+       unless a newer board event replaces it before it is spoken (§11.1);
+     - it adds no focus stop, and a later swipe never re-reads it;
+     - nothing is spoken with TalkBack off.
+  3. **The tutorial speaks them too (F-28).** This **supersedes D-06c's "in the game only" and
+     D-01j(2)'s "no announcement"**, for the announcement and nothing else. In the tutorial the
+     redirect (ring nudge, dot re-pop) stays. There is still no shake, no mark, no reject haptic and no
+     invalid-tap sound (D-01c, D-01h, D-01i, D-01j(2)). The tutorial's line is driven by the signal
+     the audio amendment's §3.7 defines and `feature/audio-review` builds: the wrong-tap ordinal and
+     the tapped cell in the tutorial's board state (`rejectedTapTick`, `rejectedTapCell`, written by
+     `TutorialViewModel.registerNonProgressingTap`). The kind is read from the board and the selection
+     at the tap, as on gameplay.
+  4. **The banner and the notice announce themselves (F-29).** The rescue banner's message is
+     announced by its own polite live region (criterion 23k, `bugfix/hint-undecided`), and the
+     Undecided notice by its own (23d). D-TB adds no second announcement for either. TB-6's banner
+     line *is* 23k's region, counted once.
+     - "A newer announcement replaces one not yet spoken" holds inside the board's own channel only.
+       It never withdraws the banner's line or the notice's.
+     - When a jump strands the board, the jump's line and the banner's message are each spoken once.
+       The intended order is the jump's line first. Either order passes: the two lines come from two
+       regions raised by one state update, and no delay is added to force an order.
+     - A Hint that ends Undecided speaks only the notice. A Hint that proves the position lost speaks
+       only the banner. Neither reveals a hint, so the hint line does not fire.
+  5. **Focus moves by input focus (F-TB-1).** The focus table orders four moves:
+     - a jump by action → the destination cell;
+     - a tutorial step → the new board's board stop;
+     - the banner's Undo or Restart → the board stop;
+     - completion → "Got it".
+
+     Each is made by giving the target input focus, which TalkBack follows. That is the route the
+     pinned Compose offers, and it is accepted.
+     - **The cells and the board stop take input focus only while TalkBack is running.** With it off,
+       Tab and D-pad traversal stay as they are today. A keyboard player never walks 33 to 45 stops
+       that show no focus, and TB-11 covers keyboard traversal.
+     - Whether TalkBack follows is a device check (TB-7).
+     - If it does not, the brief's fallback is accepted, and §11.1's focus table is amended in the
+       same review loop:
+       - after a jump by action, focus stays on the source cell, which then says "empty"; the jump's
+         line names the destination;
+       - the other three moves are left to TalkBack's own placement;
+       - input focus is removed.
+  6. **The first tutorial step moves no focus (F-TB-5).** The first step's line is spoken when the
+     tutorial opens, but focus does not move. A screen that has just opened is met in its reading
+     order — pips, Skip, then the board — like every other screen this document designs, none of
+     which moves focus on opening. Skip stays the second stop (D-01d). Steps 2 and 3 move focus to the new board
+     stop, because the board the player was on has been replaced.
+  7. **Results opens once per result (F-TB-6).** Confirmed. The summary is spoken on the showing that
+     the D-16 latch `ResultsUiState.playCelebration` marks: once per result. It is not spoken again on
+     a rotation, a process-death restore or a back navigation onto the same Results entry.
+  8. **The board stop consumes its double-tap (F-33, F-TB-3).** From the first build, the board stop
+     carries a click action that does nothing, with no label of its own and no `Role`. TalkBack then
+     adds its default "double-tap to activate" to "Board, 32 pegs left", and that is accepted.
+     - Without a click action, TalkBack may fall back to a touch at the stop's centre, which is a cell.
+       Whether it does varies by platform and TalkBack version, so one device pass cannot rule it out.
+       A hint that promises nothing does less harm than a double-tap that selects a peg or speaks a
+       rejection.
+     - It is a semantics action, not pointer input, so TB-11's "takes no pointer input" stands.
+     - The board stop is not a control, so 26a's "cannot be activated" clause does not judge it. TB-1
+       is its pass line.
+  9. **Only interactive boards speak (F-32).** The board stop and the cell stops exist only on a board
+     that takes taps (`interactive = true`): gameplay and the tutorial. A read-only board gains no stop.
+     That covers the Home stage, the Continue thumbnail, the tile art and the catalogue previews, as
+     15r and 26b's Home order require.
+  10. **The gameplay cells are below the studio's 48dp: a recorded deviation (F-31).** Every cell
+      meets WCAG 2.2 SC 2.5.8 (AA, 24 × 24 CSS px). On a 360dp phone no gameplay cell meets
+      rules/compose.md's 48dp line, for touch or for TalkBack focus: 42dp on 7 × 7, 37dp on 8 × 8,
+      33dp on 9 × 9. That is the board's own geometry, which D-TB does not change. The tutorial's
+      cells, about 83dp, meet it. The producer carries the deviation to the founder in the
+      Q-PUBLISH-3.0.0 summary (§11.1). The earlier "essential exception" ground is withdrawn.
+  11. **Smaller items.**
+      - The put-down line reports instead of instructing: "Peg put down, row 2, column 4." (F-34).
+      - Five focus cases are stated (F-35): the Undecided notice rising and put away, a coach
+        escalation that puts a peg down, a Challenge board finishing loading, and the opt-in dialog.
+      - If TalkBack re-reads a focused cell whose description changed, the selection line is withdrawn
+        for a selection made on the focused cell (F-35, TB-6).
+      - D-01c and §4.4 class 2 gain pointers (F-37).
+      - §13 and §16 are corrected, and the id's style is recorded (F-36).
+  — Merged as written, two of this role's rulings would have named one banner and three taps
+  differently. The banner would have been read in two places, and every gameplay wrong tap spoken
+  twice. A listener can only learn one order and one sentence per event.
+  - **The order** follows D-04g, because it is what the layout and the eye give (WCAG 2.2 SC 1.3.2,
+    2.4.3).
+  - **The words** follow D-TB. Under D-TB the player hears "select", "selected", "put down" and "jump
+    target" on every cell and action label, so a rejection must use those words. D-06c's sentences
+    were written for a board with no spoken cells ("pick up", "holding", "tap it again", "there").
+    D-06c recorded that the announcement "becomes fully useful once the board gains per-cell
+    semantics" (§3.6, "A known limit").
+  - **The tutorial speaks** because a TalkBack player there double-taps a cell they cannot see.
+    Silence after a rejected tap cannot be told from a double-tap that did not register, and the first
+    thing they would hear is the coach, after three of them. D-06c's reason for silence, D-01c's
+    "nothing is announced as wrong", is met by the words: each line says what is on the board or what
+    to do next, and none says "wrong", "invalid" or "error".
+  - **The input-focus gate** keeps TB-11 true for keyboard players, the brief's consequence (a).
+  - **The board stop's no-op** settles before QA what a device pass could only sample.
+
+  **What the built code on `feature/audio-review` must change: nothing on that branch.** The fold
+  belongs to `feature/talkback-board`, at its first merge of `develop` (the brief's §13.3):
+  - one board announcer replaces `Modifier.wrongTapAnnouncement` and `rememberWrongTapAnnouncement`;
+  - the three `wrong_tap_*` strings are removed;
+  - `GameScreenWrongTapTest`'s announcement cases are retargeted to D-TB's lines;
+  - `TutorialSourceGuardTest` (WT-16's grep) keeps every token it forbids, `liveRegion` and
+    `wrong_tap_` included. The tutorial reaches the announcer only through the shared modifier in
+    `ui/components/` and names none of those tokens, in code or in comments. The guard's KDoc lists
+    "its live region" among the channels the tutorial may not use, so it is corrected to say the
+    tutorial announces through the shared board announcer. That is an edit to an existing test, named
+    for the code-auditor.
+
+  WT-14 and WT-16 are amended to match when the audio amendment is folded into this document; the
+  producer routes both.
 
 ---
 
@@ -2999,6 +3178,12 @@ never correction:
 | Tapped anything that is not a legal destination while a peg is selected — an illegal hole, an out-of-play cell, **or another peg** | The legal dots re-pop and the selection is kept. Nothing is lost, nothing is announced as wrong. **Another peg belongs to this class and is not a re-selection** (§4.1 "Tap semantics", ruled 2026-09-21): the held peg stays held, exactly as on the gameplay board (`GameViewModel.kt:788-796`, `:817`, `:823`), and recovery is the game's own — re-tap the held peg to put it down, then tap the other. **Silent** (D-01h, upheld by D-01i): the in-game `InvalidTap` cue is deliberately *not* carried into the tutorial, because a rejection sound is the one channel that would make a wrong tap feel like a failure — which D-01c forbids. This is the one reason in D-01h that carried its own weight, and D-01i upholds it without reservation. |
 | Three consecutive non-progressing taps in a step (`TutorialAnim.NON_PROGRESSING_TAPS_BEFORE_COACH`), or `TutorialAnim.NUDGE_DELAY_MS` of idleness | The coach escalates once: the source ring pulses **and** the destination dot brightens **and** the caption re-shows the step's own caption. It never escalates past this, it never blocks, and **it never mentions Undo** — no tutorial board can box the player in, so there is nothing to be rescued from, and promising a rescue from an impossible failure teaches the player to expect failure. |
 
+*(Pointer 2026-10-23 — D-TB as amended by D-TBa, items 2 and 3; §11.1.)* With TalkBack on, class 2's
+taps and an empty-hole tap with nothing held are each spoken in one of D-TB's neutral lines: "Not a
+jump target.", "Put down the selected peg first." or "No peg here.". "Nothing is announced as wrong"
+still holds, because no line says the tap was wrong. The rows' **Silent** is about cues and stays true:
+a spoken line is not a cue. Class 3's coach also speaks the hint line (§11.1).
+
 **The release clause** *(ruled 2026-09-21, with §4.1's tap semantics)*. **When the escalation fires
 while a peg is held that is *not* the peg the coach is about to point at, the escalation puts that
 peg back down**, silently, in the same state change that raises the ring — and it applies to both
@@ -3897,7 +4082,7 @@ third string only if the fallback is taken:
 | `board_a11y_direction_left` | `left` | A jump's direction |
 | `board_a11y_direction_right` | `right` | A jump's direction |
 | `board_a11y_announce_selected` | `Selected row %1$d, column %2$d, %3$s.` | A selection |
-| `board_a11y_announce_put_down` | `Put down row %1$d, column %2$d.` | A put-down |
+| `board_a11y_announce_put_down` | `Peg put down, row %1$d, column %2$d.` | A put-down *(value amended 2026-10-23, loop 4, D-TBa; below)* |
 | `board_a11y_announce_jump` | `Row %1$d, column %2$d to row %3$d, column %4$d. Removed row %5$d, column %6$d. %7$s.` | A jump |
 | `board_a11y_rejected_no_peg` | `No peg here.` | A rejected tap on an empty hole, nothing selected |
 | `board_a11y_rejected_not_target` | `Not a jump target.` | A rejected tap on a non-target hole, a peg selected |
@@ -3913,6 +4098,16 @@ and the step captions, `tutorial_done_caption`, and `catalog_stars_earned` ("%1$
 which the Results star row now speaks with a total of 3. The last is the same sentence with the same
 meaning as on the catalogue, so it is shared; `home_stat_pill_desc` was not, because its meaning
 differs.
+
+*(Amended 2026-10-23 — loop 4, D-TBa.)* Two changes, and the count stays 29 strings and two plurals:
+- **`board_a11y_announce_put_down`**'s value was `Put down row %1$d, column %2$d.` until this date. It
+  read as an instruction beside `board_a11y_rejected_put_down_first`'s "Put down the selected peg
+  first.", so it now reports: `Peg put down, row %1$d, column %2$d.` (the check's F-34).
+- **The three `board_a11y_rejected_*` strings replace the audio branch's three `wrong_tap_*`
+  strings** (D-06c, `docs/ux/invalid-tap-feedback.md` §6 on `feature/audio-review`: `wrong_tap_empty_hole`,
+  `wrong_tap_other_peg`, `wrong_tap_not_a_destination`). Those three are built on that branch and are
+  removed by `feature/talkback-board` in the same commit that retargets their test, so no unused
+  resource is left. They are spoken on gameplay and in the tutorial alike.
 
 *(D-05e's table, continued.)* `elapsed_time` ("Elapsed time") is unchanged and is the label
 `elapsed_time_spoken` starts with.
@@ -4064,6 +4259,9 @@ because they sit under the thumb during play. The back chip is 48dp
 `minimumInteractiveComponentSize()`. Settings rows are full-width at ≥ 72dp. Mode tiles are ≥ 96dp
 and tappable across their whole surface. The board's own hit-testing is unchanged
 (`board_min_touch_target`).
+*(Pointer 2026-10-23, loop 4 — D-TBa item 10.)* The gameplay board's cells are below this line's 48dp
+and have no spacing between their targets. That was always so, and it is now recorded as a studio-rule
+deviation with its sizes, in §11.1 "Cell size".
 
 **Labels.** Every interactive element carries a `contentDescription` or a text label; every
 decorative element carries `contentDescription = null`. Decorative: the hero board art, the tile
@@ -4206,6 +4404,17 @@ spoken contract is **D-TB**, specified in **§11.1** below, with criteria **TB-1
 on `feature/talkback-board`. When that branch merges, the gap recorded above is closed, and 26b's order
 includes the board (§14, 26b as amended).
 
+*(Ruled 2026-10-23, loop 4 — D-TBa item 1.)* The gameplay order above put "any raised banner" after
+the dock, and the layout never did. With D-TB the gameplay order is: back → title → timer → **the
+board stop → each in-play cell** → the raised rescue banner (its message, then its Undo, Restart and
+Home) or the Undecided notice → dock (Undo → Hint → Show-moves → Restart). This is the order D-04g
+item 6 rules on `bugfix/hint-undecided` ("after the timer, before the dock"), with D-TB's stops
+between the timer and the banner. That branch's dated correction under this same line gives the same
+order without the board. Its "The board has no focus stop of its own" describes the build until
+`feature/talkback-board` merges. The
+tutorial order is pips → Skip → **the board stop → each in-play cell** → caption → CTA. Criterion 26b
+lists both, string by string.
+
 **Sound is never the only feedback** (rules/audio.md). Every cue in this refresh is paired: the
 jump has the slide and the removal; selection has the ring and the pulse; the invalid tap has the
 dots staying put; Undo has the board stepping back; the completion cue has the star and the
@@ -4232,6 +4441,15 @@ invalid-tap cues as the design and the present jump cue as required by SOUND-01 
 > what must be operable is the game-designer's ruling; the words, their order, the focus rules and the
 > announcements are this role's. The ruling's "can wait" list, W1–W7, is out of scope by name. With
 > TalkBack off, nothing here changes what a player sees, hears or feels (TB-11).
+>
+> *(Loop 4, 2026-10-23 — **D-TBa**, §3.)* This section was amended the same day to fit the hint
+> branch's D-04g (the banner's and the notice's place and announcement) and the audio branch's D-06c
+> (the wrong-tap announcement), and to rule the build brief's F-TB-1 to F-TB-6. Changed passages carry
+> "(loop 4)". Every replaced sentence is quoted in "First wording" at the end of this section.
+> **Scope (D-TBa item 9):** everything here exists only on a board that takes taps
+> (`interactive = true`): gameplay and the tutorial. A read-only board gains no stop and no
+> announcement. That covers the Home stage, the Continue thumbnail, the tile art and the catalogue
+> previews.
 
 **Coordinates.** A cell is "row *r*, column *c*": *r* counts from 1 at the top and *c* from 1 at the
 left of the board's grid as drawn (`Position.row + 1`, `Position.col + 1`). Blocked grid cells keep
@@ -4245,14 +4463,23 @@ the column numbers mean the same in every locale. **Up** is towards row 1, **dow
 
 | # | Stop | It speaks | Activating it |
 |---|---|---|---|
-| 1 | **The board** | `board_a11y_label`: "Board, 32 pegs left" — the current count | Changes nothing. The stop has no role and is not presented as a button; a double-tap on it reaches no cell (TB-1) |
+| 1 | **The board** | `board_a11y_label`: "Board, 32 pegs left" — the current count | Changes nothing. The stop has no role and is not presented as a button. *(Loop 4, D-TBa item 8.)* It carries a click action that does nothing, with no label of its own and no role, so a double-tap is consumed and never falls through to a cell. TalkBack's default "double-tap to activate" follows its text, and that is accepted (TB-1) |
 | 2… | **Each in-play cell**, row by row from the top, left to right within a row. A blocked cell is never a stop | The cell's description, below | The tap, below; and on a peg, its jump actions |
 
-On gameplay the board stop follows the timer, and the last cell is followed by Undo. In the tutorial it
-follows Skip, and the last cell is followed by the caption. These are §11's first-edition orders,
-which the build now meets. A cell's focus rectangle is its own rectangle on the board — the geometry
-that already draws the cell and maps a finger's tap to it — so touching a cell finds that cell, by
-explore-by-touch. The board stop covers the slab, so a touch on the slab's rim finds the board.
+*(Loop 4, D-TBa item 1.)* On gameplay the board stop follows the timer. The last cell is followed by
+the raised rescue banner or Undecided notice when one is up, and by Undo otherwise; the banner or
+notice is followed by Undo. In the tutorial the
+board stop follows Skip, and the last cell is followed by the caption. These are §11's first-edition
+orders, with the banner's place corrected as D-04g item 6 rules on `bugfix/hint-undecided`. The
+branch that lands D-TB meets them. The slab is one traversal group: the board stop sits on it, and an
+M3 `Surface` is already one. So every cell is read before anything that overlaps the slab, including
+a banner or notice over the lowest rows. The banner and the notice keep their geometric place and
+gain no traversal index. While a Challenge board loads there is no board stop and no cell stop, and
+the `loading_level` indicator stands in their place.
+
+A cell's focus rectangle is its own rectangle on the board — the geometry that already draws the
+cell and maps a finger's tap to it — so touching a cell finds that cell, by explore-by-touch. The
+board stop covers the slab, so a touch on the slab's rim finds the board.
 
 **What a cell says.** Its parts are joined by `board_a11y_separator` (", "), in this order, and only the
 parts that apply are spoken:
@@ -4310,14 +4537,25 @@ rejection is spoken (below).
   destination. The move record, the cues (the selection cue, then the jump pair), the haptic, the undo
   step and the tutorial progress are therefore those of the taps (GD-TB-5, TB-5).
 
-**Every change is spoken once.** Each event makes one polite announcement. A newer event's announcement
-replaces one not yet spoken, so nothing is spoken late over the next event. Every announcement says
-only what the cells then say, so it is never the only record.
+**Every change is spoken once.** *(Loop 4, D-TBa items 2 and 4.)* Each board event makes one polite
+announcement, through **one channel per board**. That channel replaces the audio branch's
+wrong-tap-only one (D-06c).
+- Inside the channel, a newer event's announcement replaces one not yet spoken, so nothing is spoken
+  late over the next event.
+- An identical repeat is a new event. The second of two identical events in a row, such as two
+  rejected taps on the same hole, is spoken again. Like any line, it can be replaced by a newer
+  event before it is spoken.
+- The channel adds no focus stop, and a later swipe never re-reads it.
+- The rescue banner and the Undecided notice are not board events. Each announces itself through its
+  own polite region (23k and 23d, on `bugfix/hint-undecided`). D-TB adds nothing to them, and the
+  board's channel never withdraws them.
+
+Every announcement says only what the cells then say, so it is never the only record.
 
 | Event | Spoken | String |
 |---|---|---|
 | A peg selected | "Selected row 2, column 4, 1 jump." | `board_a11y_announce_selected` "Selected row %1$d, column %2$d, %3$s." (%3$s is the jumps part) |
-| A peg put down | "Put down row 2, column 4." | `board_a11y_announce_put_down` "Put down row %1$d, column %2$d." |
+| A peg put down | "Peg put down, row 2, column 4." *(loop 4)* | `board_a11y_announce_put_down` "Peg put down, row %1$d, column %2$d." |
 | A jump, by tap or by action | "Row 2, column 4 to row 4, column 4. Removed row 3, column 4. 31 pegs left." | `board_a11y_announce_jump` "Row %1$d, column %2$d to row %3$d, column %4$d. Removed row %5$d, column %6$d. %7$s." (%7$s is `board_a11y_pegs_left`) |
 | A rejected tap: nothing selected, on an empty hole | "No peg here." | `board_a11y_rejected_no_peg` |
 | A rejected tap: a peg selected, on an empty hole that is not a jump target | "Not a jump target." | `board_a11y_rejected_not_target` |
@@ -4325,15 +4563,31 @@ only what the cells then say, so it is never the only record.
 | An undo completed | "Undid row 2, column 4 to row 4, column 4. 32 pegs left." | `board_a11y_announce_undo` "Undid row %1$d, column %2$d to row %3$d, column %4$d. %5$s." |
 | A hint revealed (gameplay), or a coach escalation (tutorial) | "Hint: row 2, column 4, jump down to row 4, column 4." | `board_a11y_announce_hint` "Hint: row %1$d, column %2$d, jump %3$s to row %4$d, column %5$d." |
 | A restart completed | "Board restarted. 32 pegs left." | `board_a11y_announce_restart` "Board restarted. %1$s." |
-| The rescue banner rises | Its own message, verbatim: "No moves left — undo or restart", or "No winning move — undo or restart" | `stuck_message`, `nowin_message`, unchanged |
+| The rescue banner rises | Its own message, verbatim: "No moves left — undo or restart", or "No winning move — undo or restart" | `stuck_message`, `nowin_message`, unchanged. *(Loop 4.)* Spoken by the banner's own region (23k), not by the board's channel |
+| The Undecided notice rises (gameplay) *(loop 4)* | Its own text, verbatim: "Hint couldn't work this position out in time. It may still be winnable." | `hint_undecided_message` (`bugfix/hint-undecided`), spoken by the notice's own region (23d), not by the board's channel |
 | A tutorial step's board installed, the first step's included | "Step 2 of 3. Jumps work up, down, left and right — never diagonally." | `board_a11y_announce_step` "%1$s. %2$s" (`tutorial_step_progress`, then the step's caption) |
 | The tutorial completed | "That's the whole game. Go clear a board." | `tutorial_done_caption`, unchanged |
 
-- When a jump strands the board, the jump's line is spoken and then the banner's message, each once.
-  When a jump wins, the jump's line is followed by Results' summary when Results opens.
+- *(Loop 4, D-TBa item 4.)* When a jump strands the board, the jump's line and the banner's message
+  are each spoken once. The intended order is the jump's line first. Either order passes, because
+  one state update raises both, in two regions, and no delay is added to force an order. A repeated
+  line, or a line cut off, fails. When a jump wins, the jump's line is followed by Results' summary
+  when Results opens.
+- *(Loop 4, D-TBa item 4.)* A Hint that ends Undecided speaks only the notice, and one that proves the
+  position lost speaks only the banner. Neither reveals a hint, so the hint line does not fire.
 - The rejected-tap lines are the same on gameplay and in the tutorial, and none says "wrong",
   "invalid" or "error": by ear, as by eye, a wrong tap in the tutorial is never a failure (D-01c).
   They are words, not cues; the tutorial's silent invalid tap (D-01h, D-01i) is unchanged.
+  *(Loop 4, D-TBa items 2 and 3.)*
+  - These three lines are the only rejected-tap announcement on either board. They supersede the
+    audio branch's D-06c sentences (`wrong_tap_*`; `docs/ux/invalid-tap-feedback.md` §3.6 and §6, on
+    `feature/audio-review`).
+  - The tutorial speaks them, superseding D-06c's "in the game only" and D-01j(2)'s "no announcement".
+    D-01j(2)'s other answers stand in the tutorial: the redirect, and no shake, mark, reject haptic or
+    sound.
+  - The kind is read from the board and the selection at the tap: W1 "No peg here.", W2 "Put down the
+    selected peg first.", W3 "Not a jump target." In the tutorial, the tap is the wrong-tap ordinal and
+    cell that `feature/audio-review` writes (`rejectedTapTick`, `rejectedTapCell`).
 - The Hint control's own search state is not announced. Its description changes to `hint_thinking`
   as today (D-04d).
 - A coach escalation that also puts down a held peg (§4.4's release clause) speaks only the hint line;
@@ -4345,37 +4599,121 @@ only what the cells then say, so it is never the only record.
 |---|---|
 | A selection, a put-down or a rejected tap | The cell activated |
 | A jump by tap | The destination cell — the one activated — which now says "peg" |
-| A jump by action | The destination cell. Focus moves there, so both ways of jumping end on the peg that moved |
-| Undo, Hint or Restart from the dock (Restart once its confirm dialog closes) | That dock control |
-| Undo or Restart from the rescue banner | The board stop, because the banner leaves the screen with the button that had focus |
-| The rescue banner rising | Unchanged. The banner's message is announced, and its buttons are stops after the dock |
-| A tutorial step's board installed | The new board's board stop |
-| The tutorial completed | The completion button (`onboarding_got_it`), after the done caption is announced |
+| A jump by action | **Moved:** the destination cell. Focus moves there, so both ways of jumping end on the peg that moved |
+| Undo, Hint or Restart from the dock (Restart once its confirm dialog closes; *(loop 4)* Undo or Hint once the opt-in dialog is declined) | That dock control. *(Loop 4.)* When the opt-in dialog is accepted and an ad plays, the ad is its own screen, and focus on return is TalkBack's own placement; D-TB moves none |
+| Undo or Restart from the rescue banner | **Moved:** the board stop, because the banner leaves the screen with the button that had focus |
+| The rescue banner rising | Unchanged. *(Loop 4, D-TBa items 1 and 4.)* The banner's message is announced by its own region. Its message and its buttons are stops after the last cell and before the dock |
+| The Undecided notice rising *(loop 4)* | Unchanged: on the Hint control the player activated. The notice is announced by its own region, and it is one stop after the last cell and before the dock |
+| The Undecided notice put away *(loop 4)* | D-TB moves no focus. The notice is the hint branch's (§4.4.2 there) |
+| A coach escalation that also puts a held peg down *(loop 4)* | Unchanged: the stop TalkBack is on. The cells show the peg put down |
+| A Challenge board finishing loading *(loop 4)* | Not moved, and nothing is announced. The board stop and the cells take their place in the order, as a Continue chip does on Home (§11) |
+| A tutorial step's board installed | **Moved:** the new board's board stop, on steps 2 and 3. *(Loop 4, D-TBa item 6.)* On the first step focus is not moved: the screen is met in its order, pips → Skip → board |
+| The tutorial completed | **Moved:** the completion button (`onboarding_got_it`), after the done caption is announced |
 | A game won | Results, in its own order; its summary is announced (below) |
 
 When focus moves and an announcement is due, both are spoken: the announcement first, then the newly
 focused stop.
 
+*(Loop 4, D-TBa item 5.)* **How focus moves.** Four rows above say "Moved". Each move gives its target
+input focus, and TalkBack follows input focus.
+- The cells and the board stop take input focus **only while TalkBack is running**. With it off, Tab
+  and D-pad traversal stay as they are today.
+- Whether TalkBack follows input focus on a touch screen is checked on the device (TB-7).
+- If it does not, this table is amended in the same review loop:
+  - after a jump by action, focus stays on the source cell, which then says "empty"; the jump's line
+    names the destination;
+  - the other three moves are left to TalkBack's own placement;
+  - input focus is removed.
+
+*(Loop 4, D-TBa item 11.)* **A focused cell whose text changes.** After a selection, the focused cell's
+own text gains "selected" in the same frame as the selection line is announced. TB-6's device half
+records whether TalkBack re-reads a focused node whose description changed, as 18g does for the
+timer. If it does, the selection line is withdrawn for a selection made on the focused cell, because
+the re-read says the same thing. Every other line stays. A put-down's line says what the re-read does
+not, and a jump's line names the removed peg and the count.
+
 **Results.** The star row is one stop that speaks `catalog_stars_earned` with a total of 3: "2 of 3
 stars". The stars inside it stay decorative. When Results opens, one polite summary is announced,
 `results_a11y_summary` "%1$s — %2$s, %3$s.": the headline, the star count and the pegs left. For
 example: "Solved! — 2 of 3 stars, 2 pegs left."
+*(Loop 4, D-TBa item 7.)* "When Results opens" means the showing that the D-16 latch
+`ResultsUiState.playCelebration` marks: once per result. The summary is not spoken again on a
+rotation, a process-death restore or a back navigation onto the same Results entry.
 
 **The tutorial.** Its board follows this whole contract. It adds the step and completion lines and the
 coach escalation's hint line, all in the table above. Its captions keep the word "tap": TalkBack users
 read it as "activate" (the ruling's W6).
+*(Loop 4, D-TBa items 3 and 6.)* Its rejected taps are spoken in the same three lines as gameplay's.
+The first step's line is spoken when the tutorial opens, but focus is not moved then.
 
-**Focus rectangles on the board.** A cell's rectangle is the board's own geometry: on a 360dp phone
-about 42dp on a 7 × 7 grid and 33dp on a 9 × 9 one. It cannot reach 26a's 48dp without changing the
-board. The cells are therefore exempt from 26a's 48dp line, on two grounds. Their size is essential to
-the information they present (WCAG 2.2 SC 2.5.8's essential exception). And a TalkBack player reaches
-every cell by swiping and activates the focused cell with a double-tap anywhere on the screen. 26a's
-other lines apply to the cells, read as "one stop, its description and its action label". The board's
-finger hit-testing is unchanged (`board_min_touch_target`).
+**Cell size: a recorded deviation from the studio's 48dp** *(loop 4, D-TBa item 10; this replaces the
+"Focus rectangles on the board" paragraph, quoted under "First wording").*
+- **WCAG is met.** WCAG 2.2 SC 2.5.8 (AA) asks 24 × 24 CSS px, and every cell is larger. No WCAG
+  exception is claimed.
+- **The studio's rule is not met on gameplay.** rules/compose.md and criteria 26 and 26a ask ≥ 48dp
+  with ≥ 8dp spacing. A gameplay cell's TalkBack focus rectangle and its finger target are both set
+  by the board's geometry, which D-TB does not change. The target is the cell's inscribed circle,
+  `HIT_RADIUS_RATIO` 0.5 × the cell (`BoardMetrics.kt:68`, `BoardGeometry.kt:87-94`), so its diameter
+  is the cell size. Neighbouring targets touch, with no spacing. On a 360dp phone the canvas is 296dp
+  (360, less `board_screen_margin` 16dp and the slab's `spacing_md` 16dp on each side):
+
+  | Grid | Boards | Cell at 360dp | Window width where the cell reaches 48dp | Cell at the 480dp slab cap |
+  |---|---|---|---|---|
+  | 7 × 7 | English-33, European-37 | ≈ 42.3dp | 400dp | 64dp |
+  | 8 × 8 | Asymmetric 3-3-2-2 | 37.0dp | 448dp | 56dp |
+  | 9 × 9 | Diamond-41, Wiegleb-45 | ≈ 32.9dp | 496dp | ≈ 49.8dp |
+
+  The widths assume a board limited by width. A Challenge board follows its own grid by the same
+  arithmetic. The drawn pegs, 0.68 of a cell, stand about 10.5dp apart at 9 × 9 on 360dp, but the
+  targets touch.
+- **The tutorial meets it.** Its 280dp slab gives a 248dp canvas over grids three cells wide, so each
+  cell is about 83dp.
+- **This is not new with D-TB.** The gameplay board's finger targets have always been these sizes.
+  §11's "the board's own hit-testing is unchanged (`board_min_touch_target`)" never meant a 48dp cell.
+  D-TB's focus rectangles take the same geometry, which is what makes explore-by-touch find the
+  touched cell.
+- **What softens it.** A TalkBack player never has to hit a cell: they reach every cell by swiping
+  and activate the focused cell with a double-tap anywhere on the screen. Explore-by-touch that lands
+  on a neighbour is corrected by one swipe. For a finger, a tap in a cell's corner, outside its circle,
+  is dropped rather than given to a diagonal neighbour. A tap just past a cell's edge still reaches
+  the cell beside it.
+- **What would fix it.** A larger board, a zoomed board, or row-by-row navigation. Each changes the
+  board, and none is in D-TB's scope.
+- **Who carries it.** The producer carries this deviation to the founder in the Q-PUBLISH-3.0.0
+  summary, with the sizes above. 26a gains a dated pointer. 26a's other lines apply to a cell, read as
+  "one stop, its description and its action label".
 
 **What does not change (TB-11).** Finger taps, the drawing, every animation, sound and haptic, and the
 dock. The layer that carries the cells' semantics takes no pointer input. With TalkBack off, nothing is
 spoken. The custom semantics keys the tests read (`GameScreen.kt:193-207`) stay.
+*(Loop 4, D-TBa items 5, 8 and 9.)* With TalkBack off, keyboard and D-pad traversal also stay as they
+are today: the cells and the board stop take input focus only while TalkBack runs. The board stop's
+no-op click is a semantics action, not pointer input. A read-only board composes exactly what it
+composes today.
+
+**First wording** *(loop 4)*. The passages below were replaced on 2026-10-23 by D-TBa. They are kept as
+the record.
+- After the stops table: "On gameplay the board stop follows the timer, and the last cell is followed
+  by Undo. In the tutorial it follows Skip, and the last cell is followed by the caption. These are
+  §11's first-edition orders, which the build now meets." The last clause was false: no build met
+  them (the check's F-30).
+- The board stop's activation: "Changes nothing. The stop has no role and is not presented as a
+  button; a double-tap on it reaches no cell (TB-1)".
+- The announcements' lead: "Each event makes one polite announcement. A newer event's announcement
+  replaces one not yet spoken, so nothing is spoken late over the next event."
+- The put-down line: "Put down row 2, column 4." — `board_a11y_announce_put_down` "Put down row %1$d,
+  column %2$d."
+- The stranding jump: "When a jump strands the board, the jump's line is spoken and then the banner's
+  message, each once."
+- The focus table's banner row: "Unchanged. The banner's message is announced, and its buttons are
+  stops after the dock". Its step row: "The new board's board stop".
+- "Focus rectangles on the board": "A cell's rectangle is the board's own geometry: on a 360dp phone
+  about 42dp on a 7 × 7 grid and 33dp on a 9 × 9 one. It cannot reach 26a's 48dp without changing the
+  board. The cells are therefore exempt from 26a's 48dp line, on two grounds. Their size is essential
+  to the information they present (WCAG 2.2 SC 2.5.8's essential exception). And a TalkBack player
+  reaches every cell by swiping and activates the focused cell with a double-tap anywhere on the
+  screen. 26a's other lines apply to the cells, read as "one stop, its description and its action
+  label". The board's finger hit-testing is unchanged (`board_min_touch_target`)."
 
 ---
 
@@ -4542,6 +4880,9 @@ no zero-inset window.
 | Any test that counts or orders the gameplay or tutorial screen's TalkBack stops, 26b's included | The board stop and the cells now sit after the timer and after Skip | **Retarget** to 26b as amended |
 | `GameScreen.kt:193-207`'s three custom keys and every test that reads them | Unchanged: they stay test-only and are not the cells' semantics | None |
 | The tap tests (`GameViewModel`'s tap table, the tutorial's tap semantics) | Unchanged: an accessibility click calls the same `onCellTap` | None. TB-4 adds the click-versus-pointer comparison beside them |
+| *(Loop 4, D-TBa item 2.)* `GameScreenWrongTapTest`'s announcement cases (`feature/audio-review`) | They assert D-06c's `wrong_tap_*` sentences on the board's live region, and those sentences are superseded | **Retarget** to D-TB's three lines on the board's one channel, keeping the identical-repeat case. The shake, mark, redirect and haptic cases stand. Never delete or `@Ignore` |
+| *(Loop 4, D-TBa item 3.)* `TutorialSourceGuardTest` (`feature/audio-review`, WT-16's grep) | Its KDoc names the tutorial's live region as a forbidden channel, and the tutorial now announces | **Keep every forbidden token**, `liveRegion` and `wrong_tap_` included. The tutorial reaches the shared announcer without naming them, in code or comments. Correct the KDoc only |
+| *(Loop 4.)* Audio's `TutorialWrongTapTest`, wherever it asserts that the tutorial announces nothing on a wrong tap | The tutorial now speaks D-TB's line | **Retarget** to "speaks D-TB's line once, with no shake, mark, reject haptic or sound"; the redirect cases stand |
 
 **Owed, new, from D-TB** — every one watched failing once on today's code before it is trusted:
 - **TB-2, TB-3 and TB-12**: JVM tests of the model that turns `GameUiState` (or the tutorial's state)
@@ -4552,6 +4893,15 @@ no zero-inset window.
   the new layer.
 TB-7, TB-9 and TB-10 are the qa-engineer's, on a device, with TalkBack's speech log as the record; QA
 first confirms the AVD's text-to-speech engine works (it crashed once in phase 15).
+*(Loop 4, D-TBa; the check's F-36.)* The list above omitted TB-9's own Compose half: **TB-9** also owes
+a Compose test of the step, coach and completion lines, of the rejected-tap line in the tutorial, and
+of the first step moving no focus. Also owed:
+- **TB-1** asserts the board stop's no-op click: present, unlabelled, with no role, and changing
+  nothing when performed;
+- **TB-6** asserts that the board's channel never carries the banner's or the notice's text, and that
+  two identical rejected taps in a row, each let settle, change the channel twice;
+- **TB-11** asserts that a read-only board has no board stop and no cell node, and that with TalkBack
+  off no cell or board stop can take input focus.
 
 **Owed, new** — every one watched fail once before it is trusted: criteria **15n–15r** (Home, §4.2.4,
 including the unit test that replays the stage's recorded move list from the English start),
@@ -5216,6 +5566,17 @@ criteria 19–24 above stand unchanged; these seven make "on or off" legible and
      "fixed" (§11, reason 2). Run the pass over one untouched control as the control case — the
      Classic catalogue's back arrow (`ClassicCatalogScreen.kt:102-110`) — so a finding can be told
      apart from this app's baseline. (rules/compose.md, §11)
+     *(Pointer 2026-10-23, loop 4 — D-TBa items 8 and 10, §11.1 "Cell size".)* Two things about the
+     board's stops:
+     - **The gameplay cells do not meet "the focus rectangle is ≥ 48dp"**: 42, 37 and 33dp on a 360dp
+       phone for 7 × 7, 8 × 8 and 9 × 9 grids. Their finger targets touch, so 26's 8dp spacing is
+       not met either. They meet WCAG 2.2 SC 2.5.8. This is recorded as a
+       deviation from rules/compose.md, which the producer carries to the founder in the
+       Q-PUBLISH-3.0.0 summary. A pass of 26 records the measured sizes and does not fail the cells
+       on them. 26a's other lines judge a cell as "one stop, its description and its action label".
+       The tutorial's cells, about 83dp, are judged by every line.
+     - **The board stop is not a control.** Its activation deliberately does nothing, so "the label
+       sits on something that cannot be activated" does not judge it. TB-1 is its pass line.
 
 26b. **The spoken order** *(added 2026-10-21 — D-05e, §4.3.2; criterion 26's spoken-order half,
      routed by the tech-lead's phase-15 sign-off)*. With TalkBack on and its speech output displayed,
@@ -5225,10 +5586,19 @@ criteria 19–24 above stand unchanged; these seven make "on or off" legible and
      - **Gameplay, Classic:** `navigate_back` ("Navigate back") → `app_name` ("Peg Solitaire"), as a
        heading → the timer, with §4.3.2's sentence → **the board stop**, `board_a11y_label` ("Board, 32
        pegs left" at English-33's start) → **each in-play cell**, row by row from the top, left to right,
-       with its §11.1 description → `undo_action` → `hint_action`, or `hint_thinking`
-       while a hint is searched → `show_moves_on`, as a switch with its state → `restart_board` → any
-       raised banner. **Challenge:** the title's stop speaks `challenge_level_indicator_desc`
-       ("Challenge level N").
+       with its §11.1 description → **any raised rescue banner** (its message, `stuck_message` or
+       `nowin_message`, then `undo_action`, `rescue_restart` and `action_home`) **or the Undecided
+       notice** (`hint_undecided_message`, with a Dismiss action) → `undo_action` → `hint_action`, or
+       `hint_thinking` while a hint is searched → `show_moves_on`, as a switch with its state →
+       `restart_board`. **Challenge:** the title's stop speaks `challenge_level_indicator_desc`
+       ("Challenge level N"). While a Challenge board loads, `loading_level`'s indicator stands where
+       the board stop and the cells go.
+       *(Amended 2026-10-23, loop 4 — **D-TBa** item 1, agreeing with **D-04g** item 6 on
+       `bugfix/hint-undecided`. Until this amendment the line ended "… `show_moves_on`, as a switch with
+       its state → `restart_board` → any raised banner." The banner was never read after the dock: it is
+       composed in the board region, above the dock. On a build without D-TB the banner or notice
+       follows the timer directly, which is D-04g's own order. The notice is judged here only once
+       `bugfix/hint-undecided` has merged.)*
      - **Home:** `app_name`, as a heading → `settings_action` → the Stars, Boards and Level pills, each
        once, as "label, value" (`home_stat_pill_desc`) → each Continue chip present, with its title
        (`resume_classic_title`, `resume_challenge_title`) → the Classic tile (`classic_tile_title`) →
@@ -5280,6 +5650,12 @@ TB-1. **The board announces itself.** On both boards, with TalkBack on, swiping 
       role and no "button". Double-tapping it leaves the board state, the cues, the haptics and the undo
       history unchanged. *Compose semantics test on both screens, plus a device pass that double-taps the
       board stop.* (M1, D-TB)
+      *(Amended 2026-10-23, loop 4 — D-TBa items 8 and 9.)* The board stop carries a click action that
+      does nothing, with no label and no role. TalkBack's default "double-tap to activate" after its
+      text is expected and passes. Double-tapping it also speaks no board announcement. The Compose
+      test asserts the action is present and that performing it changes nothing. No read-only board —
+      the Home stage, the Continue thumbnail, the tile art, a catalogue preview — has a board stop or
+      a cell stop.
 
 TB-2. **One stop per playable cell.** On any board, the stops after the board stop are exactly its
       in-play cells, each once, row by row from the top and left to right within a row; no blocked cell
@@ -5306,6 +5682,10 @@ TB-4. **A double-tap is a tap.** From any state, activating any cell through its
       target." or "Put down the selected peg first.", one per case. *A Compose test runs one scripted
       sequence twice, through the click action and through pointer taps, and compares them state by
       state; plus a device pass.* (M4, D-TB)
+      *(Amended 2026-10-23, loop 4 — D-TBa items 2 and 3.)* Those three lines are the only rejected-tap
+      announcement on both boards. In the tutorial too, each is spoken once per rejected tap. On
+      gameplay none of the audio branch's `wrong_tap_*` sentences (D-06c) is spoken, before or after
+      D-TB's line.
 
 TB-5. **One action per legal jump.** While nothing is selected, every peg with legal jumps offers exactly
       one custom action per legal jump, labelled "Jump up to row 4, column 4" and so on, listed up, down,
@@ -5324,6 +5704,16 @@ TB-6. **Every change is spoken once.** With TalkBack on, each of these speaks it
       `nowin_message`, verbatim). A jump that strands the board speaks its line and then the banner's.
       *A Compose test on the announcement's text after each event, plus a device pass from the speech
       log.* (M6, D-TB)
+      *(Amended 2026-10-23, loop 4 — D-TBa items 2, 4 and 11.)*
+      - The put-down line is now "Peg put down, row 2, column 4.". It was "Put down row 2, column 4.".
+      - The banner's line is criterion 23k's region on `bugfix/hint-undecided`, and the Undecided
+        notice's is 23d's. The board's channel never carries either, and each is spoken once.
+      - A stranding jump speaks its line and the banner's, each once, in either order; a repeat or a
+        cut-off fails. The first wording, "its line and then the banner's", is replaced.
+      - Two identical rejected taps in a row, the second made after the first has been spoken, are
+        spoken twice.
+      - The device half also records whether TalkBack re-reads a focused cell whose text changed. If
+        it does, the selection line is withdrawn for a selection made on the focused cell (§11.1).
 
 TB-7. **Focus stays on the board.** After a selection, a put-down or a rejected tap, focus is on the cell
       activated. After a jump by tap or by action, it is on the destination cell. Undo, Hint and Restart
@@ -5331,12 +5721,29 @@ TB-7. **Focus stays on the board.** After a selection, a put-down or a rejected 
       rescue banner puts it on the board stop. When the banner rises, focus does not move. Focus is
       never on another control and never at the top of the screen after a board action. *Device pass.*
       (M7, D-TB)
+      *(Amended 2026-10-23, loop 4 — D-TBa items 5 and 11; the brief's F-TB-1.)*
+      - **The moves are made by input focus**, which TalkBack follows. The device pass records, for
+        each of the four moves, whether TalkBack's focus and speech land on the target:
+        - a jump by action → the destination cell;
+        - a tutorial step 2 or 3 → its board stop;
+        - the banner's Undo or Restart → the board stop;
+        - completion → "Got it".
+      - If TalkBack does not follow, §11.1's fallback applies and this criterion is read against the
+        amended table.
+      - With TalkBack off, Tab on an attached keyboard (or the emulator's) never lands on a cell or on
+        the board stop.
+      - Focus does not move when the Undecided notice rises, when a coach escalation puts a held peg
+        down, or when a Challenge board finishes loading.
 
 TB-8. **The result is spoken.** When Results opens after a finished game, `results_a11y_summary` is
       announced once — the headline, `catalog_stars_earned` with a total of 3, and
       `board_a11y_pegs_left`; for example "Solved! — 2 of 3 stars, 2 pegs left." — and the
       star row is one stop saying "2 of 3 stars". A game that ends on the rescue banner is TB-6's banner
       line. *A Compose test on `ResultsScreen`, plus a device pass.* (M8, D-TB)
+      *(Amended 2026-10-23, loop 4 — D-TBa item 7; the brief's F-TB-6.)* "Opens" is the showing that
+      the D-16 latch `ResultsUiState.playCelebration` marks. The Compose test asserts the summary with
+      the latch true and no summary with it false. On the device, a rotation on Results speaks no
+      second summary.
 
 TB-9. **The tutorial can be finished by ear.** On a fresh install with TalkBack on, a tester using
       TalkBack gestures only completes T1, T2 and T3 and reaches "Got it". Each step's board, the first
@@ -5345,6 +5752,14 @@ TB-9. **The tutorial can be finished by ear.** On a fresh install with TalkBack 
       board." and moves focus to "Got it". No spoken line says "wrong", "invalid" or "error" (D-01c).
       *A device pass, plus a Compose test for the step, coach and completion lines.* (GD-TB-1's tutorial
       items, D-TB)
+      *(Amended 2026-10-23, loop 4 — D-TBa items 3 and 6; the brief's F-TB-5.)*
+      - **The first step's board does not move focus.** Its line is spoken when the tutorial opens, and
+        swiping from the top reaches the pips, then Skip, then the board stop. Steps 2 and 3 move focus
+        to their board stop, as above. The first wording, "Each step's board, the first included, …
+        and focus moves to that board's board stop", is replaced for the first step only.
+      - A rejected tap in the tutorial speaks D-TB's line once, with no shake, no mark, no reject
+        haptic and no sound.
+      - The Compose test covers both.
 
 TB-10. **A whole game can be finished by ear.** On English-33 and on Challenge level 1, a tester using
        TalkBack gestures only — Hint and Undo allowed — plays from the first move to Results without
@@ -5355,6 +5770,11 @@ TB-11. **Sighted play is untouched.** With TalkBack off, finger taps, the drawin
        semantics takes no pointer input. The existing suite passes with zero diff, except the retargets
        §13 names for this decision. *The existing suite, plus a pointer-tap test through the new layer.*
        (D-TB)
+       *(Amended 2026-10-23, loop 4 — D-TBa items 5, 8 and 9.)*
+       - "Sighted play" includes keyboard and D-pad traversal. With TalkBack off, no cell and no board
+         stop can take input focus.
+       - The board stop's no-op click is a semantics action and adds no pointer input.
+       - A read-only board composes no stop. §13 names the extra assertions.
 
 TB-12. **Nothing spoken leaks a winning move.** In every state, every cell text, action label and
        announcement is built only from the board, the selection, `legalTargets`, the move just made or
@@ -5513,6 +5933,18 @@ and **ASST-02** gain TB-6's hint and undo lines. **SCOR-03**'s Results gains TB-
 summary. No requirement id names TalkBack (`.planning/REQUIREMENTS.md`), so the decision traces to the
 studio baseline (rules/studio.md, rules/compose.md) and to Q-023. **QUAL-03** gains 29 strings and two
 plurals (§8), all spoken and none drawn; no token, no colour, no dependency.
+
+*(Corrected 2026-10-23, loop 4 — D-TBa; the check's F-36.)* "**SCOR-03**'s Results gains TB-8's star
+count and summary" named a requirement that is neither a row of the table above nor an id in
+`.planning/REQUIREMENTS.md`, and it is withdrawn. TB-8's star count and summary trace, like the rest of
+D-TB, to the studio baseline and to Q-023. D-TBa changes no trace. The audio amendment's §9 traces the
+wrong tap's non-audio partners (D-06) to **SOUND-02**; that trace stands, and the announcement among
+those partners is now D-TB's line.
+**QUAL-03** still gains 29 strings and two plurals; one value changes, and the audio branch's three
+`wrong_tap_*` strings leave when `feature/talkback-board` folds them. **Ids.** "D-TB" and "D-TBa" sit
+outside the `D-nn` / `D-nna` style of §3's decision ids. They are kept because the build brief, the ruling
+and the checks cite them. Neither collides with an id on this branch, on `bugfix/hint-undecided` or in
+the audio amendment.
 
 ---
 
