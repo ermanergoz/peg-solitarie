@@ -4,11 +4,36 @@ plugins {
     // Pure Kotlin/JVM ONLY — no Android plugin. Structural domain-purity guarantee.
     id("kotlin-jvm")
     id("standards")
+    alias(libs.plugins.kover)
 }
 
 dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.truth)
+}
+
+// rules/testing.md: core logic carries >= 90 % line coverage, measured with kover
+// (docs/tech-design.md §8.4). The scope is :domain only; :app's coverage is not gated.
+// Measured 2026-10-23 before the bound was set: 896 of 905 lines (99.0 %), so the bound is the
+// rule's 90 — the design's procedure sets a lower floor only when the measurement is below it.
+val minimumLineCoveragePercent = 90
+
+kover {
+    currentProject {
+        instrumentation {
+            // The sweep and the fuzz harness are Test tasks of their own (below). Instrumenting
+            // them would put both in koverVerify's graph, and check's coverage step would re-run
+            // the 11-minute sweep; coverage is measured on :domain:test alone.
+            disabledForTestTasks.addAll("depthSweep", "fuzz")
+        }
+    }
+    reports {
+        verify {
+            rule {
+                minBound(minimumLineCoveragePercent)
+            }
+        }
+    }
 }
 
 // The shipped recorded-solution tests only REPLAY committed fixtures and need no
