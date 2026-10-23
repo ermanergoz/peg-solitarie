@@ -1,6 +1,6 @@
 # Founder questions (newest first)
 
-## Q-023 — Make the board playable with TalkBack in 3.0.0?   (open)
+## Q-023 — Make the board playable with TalkBack in 3.0.0?   (answered)
 Date: 2026-10-21    Asked by: game-designer (via producer)
 Context: With TalkBack on, the board can't be heard or played, in the game or the tutorial: a blind player can open 3.0.0
 but never make a move. The studio rule is that every app meets its platform's accessibility rules before it ships; this
@@ -12,7 +12,7 @@ Recommendation: game-designer picks 1 — the only option that meets the rule; l
 parallel); under 2 and 3 a blind player can still spend hints and watch an ad for one they cannot use. If at Gate 2 the
 board is the only item left, "wait, or ship option 2" goes into Q-PUBLISH-3.0.0. (.planning/reports/ux-spec-folds/game-designer-talkback-board.md)
 Blocks: nothing now (the studio proceeds with 1 by default); release/3.0.0 reads the answer before its cut
-Answer:
+Answer: 1 — make the board playable with TalkBack in 3.0.0 (2026-10-21, AskUserQuestion). The branch runs in parallel; release/3.0.0 waits for it only if it is the last item left.
 
 ## Q-022 — The Turkish store listing describes the old app   (answered)
 Date: 2026-10-18    Asked by: release-manager
@@ -74,6 +74,7 @@ Check and their own mutation probes rather than trusting recorded results.
 Blocks: candy-backdrop spec and build reviews, phase-14 R-1 QA and sign-off, check-gates reviews, the release QA
 Answer: 3 — Opus for every Fable-pinned role until 3.0.0 is published (2026-10-17). Recorded as a deviation
 from studio staffing in every report; mitigations: fresh reviewers, Check and mutation probes run by the reviewer.
+Addendum 2026-10-23 (founder, in chat): "all limits reset. continue. you can use fable as well for supervision now" — Fable is available again for the supervising roles (reviews, checks, sign-offs); dispatches from now run those roles on their pinned model. Authoring runs already in flight on Opus may finish on Opus.
 
 ## Q-018 — minSdk 24 → 26: when, if ever?   (answered)
 Date: 2026-10-17    Asked by: tech-lead
