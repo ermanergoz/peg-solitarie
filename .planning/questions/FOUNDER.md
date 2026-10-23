@@ -1,6 +1,6 @@
 # Founder questions (newest first)
 
-## Q-024 — A physical phone for the silent-mode and headphone checks   (open)
+## Q-024 — A physical phone for the silent-mode and headphone checks   (answered)
 Date: 2026-10-23    Asked by: producer (for qa-engineer)
 Context: The audio build mutes the speaker on Silent/Vibrate but keeps sound on headphones (Q-010). Ten device checks
 (D1–D10) need a real phone with wired and Bluetooth headphones; only emulators are attached. Everything else runs on
@@ -10,7 +10,7 @@ never tests by hand) 2) Accept emulator + unit-test evidence for the phone-only 
 3.0.0 release notes to you, never silently passed
 Recommendation: producer picks 1 — the speaker/headphone split is exactly the kind of behaviour emulators fake.
 Blocks: nothing now; audio's QA verdict carries the phone-only items as BLOCKED until answered
-Answer:
+Answer: 1 — the founder will connect an Android phone by USB with USB debugging on, when convenient (2026-10-23, AskUserQuestion); QA runs D1–D10 and the other phone-only halves itself.
 
 ## Q-022 — The Turkish store listing describes the old app   (answered)
 Date: 2026-10-18    Asked by: release-manager
