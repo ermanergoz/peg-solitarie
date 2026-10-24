@@ -3821,6 +3821,13 @@ the notice is visual and spoken.
   criterion 23c asserts. The rescue banner, an M3 `Surface` and so a traversal group, is read in
   the same place: its message, then its Undo, Restart and Home, then the dock. §11's traversal
   line is corrected to match, with a dated note.
+  *(Pointer 2026-10-24 — D-TBa's loop-5 lines, §3, added as `feature/talkback-board` merges.)* Three
+  things change with D-TB. "From the timer" reads "from the last cell" once `feature/talkback-board`
+  merges: the board stop and each in-play cell come between the timer and the notice or the banner.
+  "The board has no focus stop of its own" describes the build until then. The slab-before-banner
+  order is pinned by D-TBa item 1 (loop 5): the board region is one traversal group and the slab's
+  traversal index puts it first, so "no `traversalIndex` and no `isTraversalGroup` added" is
+  superseded there.
 - **Mechanism:** a polite live region on the notice, the idiom M3's own `SnackbarHost` uses. Not
   `View.announceForAccessibility`, which Android deprecates from API 36 in favour of live regions.
 - **Its display time honours the accessibility timeout** (above).
@@ -6327,6 +6334,9 @@ what the player sees and hears.
           no "double-tap to activate". Its actions menu offers **Dismiss**, which puts it away.
           *(Loop 2.)* This bullet is the notice's pass line for criteria 26 and 26a; see the note
           under 26a. A double-tap on the notice is not judged either way.
+          *(Pointer 2026-10-24 — D-TBa's loop-5 lines, §3.)* "From the timer" reads "from the last
+          cell" once `feature/talkback-board` merges. The board's lack of a focus stop describes the
+          build until then. The slab-before-banner order is pinned by D-TBa item 1 (loop 5).
         - With Accessibility › Time to take action set to 1 minute, the notice stays up for about a
           minute.
      6. In light and in dark theme, take a greyscale capture of the notice beside one of the rescue
@@ -6349,6 +6359,9 @@ what the player sees and hears.
      `NoWinBannerTest.theBannersMessageIsAPoliteLiveRegionAndItsActionsAreOutsideIt`. On the device,
      swiping forward from the timer reaches the banner's message, then its Undo, Restart and Home,
      and then the dock.
+     *(Pointer 2026-10-24 — D-TBa's loop-5 lines, §3.)* "From the timer" reads "from the last cell"
+     once `feature/talkback-board` merges. The board's lack of a focus stop describes the build until
+     then. The slab-before-banner order is pinned by D-TBa item 1 (loop 5).
 24. No control anywhere shows a hint or undo allowance count, badge or ad glyph. (§5)
 
 **Cross-cutting**
