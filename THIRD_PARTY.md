@@ -36,13 +36,14 @@ two module build files:
 
 | Configuration | Ships? | Why |
 |---|---|---|
-| `implementation(...)` in `app/build.gradle.kts:478-547` (`develop` 0582e3f) | **yes** | on the release runtime classpath, packaged into the AAB |
+| `implementation(...)` in `app/build.gradle.kts:478-551` (`feature/phase-14-check-gates` 9b04cf4) | **yes** | on the release runtime classpath, packaged into the AAB |
 | `implementation(project(":domain"))` | **yes** (own code) | `:domain` declares **no** non-test dependency at all (`domain/build.gradle.kts:7-10`) |
 | `ksp(...)` — `hilt-compiler`, `room-compiler` | no | annotation processors; run at compile time, emit code, are not packaged |
 | `compileOnly(...)` — `error_prone_annotations` | no | CLASS-retention annotations; the declaration's own comment records "nothing is added to the APK" (`app/build.gradle.kts:500-505`, `develop` 0582e3f) |
 | `testImplementation(...)` — JUnit, Truth, Turbine, MockK, coroutines-test, ArchUnit, Robolectric, Room testing, Compose ui-test-junit4 | no | JVM unit-test classpath only; never in a variant's runtime classpath |
 | `debugImplementation(...)` — `ui-tooling`, `ui-test-manifest` | no | debug variant only; the release variant's source sets and classpath are disjoint from debug's (proved at class-output and minified-`classes.dex` level for the debug snapshot picker, `.planning/reports/phase-14/code-auditor-prerelease-fixes.md`) |
-| `[plugins]` block + `build-logic/` classpath — AGP, Kotlin, KSP, Hilt, Room, detekt, ktlint Gradle plugins; kover (pending feature/phase-14-check-gates) | no | build tooling; runs on the build machine |
+| `[plugins]` block + `build-logic/` classpath — AGP, Kotlin, KSP, Hilt, Room, detekt, ktlint Gradle plugins; kover | no | build tooling; runs on the build machine |
+| ↳ kover: Gradle plugin `org.jetbrains.kotlinx.kover` 0.9.11 (resolves `org.jetbrains.kotlinx:kover-gradle-plugin`, `kover-features-jvm`, `kover-jvm-agent` 0.9.11), JetBrains, https://github.com/Kotlin/kotlinx-kover | no | build-only: measures and verifies `:domain` line coverage (`koverVerify`, applied in `domain/build.gradle.kts`); its JVM agent instruments the unit-test JVM only, and nothing of it is on `releaseRuntimeClasspath` or in the AAB. **Licence: Apache-2.0** — POM `<licenses>` "The Apache Software License, Version 2.0" in all four 0.9.11 POMs in the local Gradle cache, and in https://repo1.maven.org/maven2/org/jetbrains/kotlinx/kover-gradle-plugin/0.9.11/kover-gradle-plugin-0.9.11.pom (fetched 2026-10-24); the repository's own `LICENSE.TXT` at tag `v0.9.11` is the Apache License 2.0 text (https://github.com/Kotlin/kotlinx-kover/blob/v0.9.11/LICENSE.TXT). **Credit:** this row; not distributed, so no NOTICE or Licenses-screen entry is owed |
 | `platform(libs.androidx.compose.bom)` | no artifact of its own | a BOM is a version constraint; the Compose artifacts it governs are listed below |
 
 **Transitive dependencies ship too**, and there are many more of them than direct ones (the local
@@ -193,6 +194,7 @@ One row per coordinate declared at `implementation` in `app/build.gradle.kts`. V
 | `androidx.room:room-runtime` | 2.8.4 | Apache-2.0 | `META-INF/androidx/room/room-runtime/LICENSE.txt` **inside the AAR** — full Apache 2.0 text |
 | `androidx.room:room-ktx` | 2.8.4 | Apache-2.0 | AndroidX published terms |
 | `androidx.hilt:hilt-navigation-compose` | 1.3.0 | Apache-2.0 | POM `<licenses>` |
+| `androidx.hilt:hilt-lifecycle-viewmodel-compose` | 1.3.0 | Apache-2.0 | POM `<licenses>` "The Apache Software License, Version 2.0", fetched 2026-10-24 from https://dl.google.com/android/maven2/androidx/hilt/hilt-lifecycle-viewmodel-compose/1.3.0/hilt-lifecycle-viewmodel-compose-1.3.0.pom (no POM in the local cache); `META-INF/androidx/hilt/hilt-lifecycle-viewmodel-compose/LICENSE.txt` **inside the AAR** is the full Apache 2.0 text. Direct since `feature/phase-14-check-gates` (C7, `app/build.gradle.kts:511`); it was already on the release runtime classpath through `hilt-navigation-compose`, so the shipped set did not change |
 | `com.google.dagger:hilt-android` | 2.60 | Apache-2.0 | POM `<licenses>` ("Apache 2.0") |
 | `org.jetbrains.kotlinx:kotlinx-serialization-json` | 1.11.0 | Apache-2.0 | JetBrains published terms for kotlinx.serialization; no POM and no bundled licence file for the `-jvm` variant in the local cache |
 | `org.jetbrains.kotlinx:kotlinx-coroutines-play-services` | 1.11.0 | Apache-2.0 | POM `<licenses>` ("Apache-2.0") |
@@ -222,7 +224,7 @@ its members are published under and the evidence for it.
 
 | Family | Examples on this graph | Licence | How verified |
 |---|---|---|---|
-| `androidx.*` (Compose runtime/foundation/animation/graphics, annotation, collection, arch.core, savedstate, lifecycle-*, sqlite, startup, profileinstaller, emoji2, tracing, versionedparcelable …) | pulled by Compose, Room, DataStore, Navigation, Activity | Apache-2.0, **except** `androidx.datastore:datastore-preferences-external-protobuf` 1.2.1, which is **BSD-3-Clause** (row G below) | AndroidX is published under Apache-2.0; six member POMs read directly from the local cache all declare "The Apache Software License, Version 2.0", and `room-runtime` ships the full text inside its AAR. The exception's own POM declares BSD-3-Clause ("Repackaged proto-lite dependency for use by datastore preferences"), and its in-APK `LICENSE.txt` has no copyright line (row G) |
+| `androidx.*` (Compose runtime/foundation/animation/graphics, annotation, collection, arch.core, savedstate, lifecycle-*, sqlite, startup, profileinstaller, emoji2, tracing, versionedparcelable …; the direct `androidx.*` coordinates have their own §4 rows, `androidx.hilt:hilt-lifecycle-viewmodel-compose` included) | pulled by Compose, Room, DataStore, Navigation, Activity, Hilt Navigation | Apache-2.0, **except** `androidx.datastore:datastore-preferences-external-protobuf` 1.2.1, which is **BSD-3-Clause** (row G below) | AndroidX is published under Apache-2.0; six member POMs read directly from the local cache all declare "The Apache Software License, Version 2.0", and `room-runtime` ships the full text inside its AAR. The exception's own POM declares BSD-3-Clause ("Repackaged proto-lite dependency for use by datastore preferences"), and its in-APK `LICENSE.txt` has no copyright line (row G) |
 | `org.jetbrains.kotlin:*` (kotlin-stdlib and friends) | required by every Kotlin artifact | Apache-2.0 | POM `<licenses>`: "Apache-2.0" |
 | `org.jetbrains.kotlinx:*` (coroutines-core-jvm, coroutines-android, serialization-core-jvm, atomicfu) | coroutines and serialization runtimes | Apache-2.0 | `kotlinx-coroutines-play-services` POM declares Apache-2.0; the rest are siblings from the same publisher under the same published terms |
 | `com.google.dagger:*` (dagger, dagger-lint-aar) | Hilt runtime | Apache-2.0 | POM `<licenses>` |
@@ -393,7 +395,7 @@ For the avoidance of doubt, and so a reader does not re-derive §0: JUnit 4 (`ju
 `androidx.room:room-testing`, `androidx.compose.ui:ui-test-junit4`,
 `androidx.compose.ui:ui-test-manifest`, `androidx.compose.ui:ui-tooling`,
 `com.google.errorprone:error_prone_annotations` (compileOnly), the Hilt and Room KSP processors,
-and every Gradle plugin in `[plugins]` are **test-, debug-, compile- or build-only**. None is in a
+and every Gradle plugin in `[plugins]` (kover 0.9.11, Apache-2.0, included; §0 row) are **test-, debug-, compile- or build-only**. None is in a
 release artifact and none is distributed, so no notice or source obligation attaches to anything
 that ships — including JUnit's EPL, which `rules/ip-policy.md` does not list and which needs no
 escalation for exactly that reason.

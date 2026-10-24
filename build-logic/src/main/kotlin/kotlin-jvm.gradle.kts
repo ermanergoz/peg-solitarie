@@ -14,6 +14,11 @@ plugins {
 
 kotlin {
     jvmToolchain(17)
+    // Every compilation of a pure module — main and test alike — fails on a Kotlin warning
+    // (docs/tech-design.md §9.8). No exemption: :domain had none to fix.
+    compilerOptions {
+        allWarningsAsErrors.set(true)
+    }
 }
 
 java {
