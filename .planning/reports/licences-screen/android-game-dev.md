@@ -109,3 +109,15 @@ The seven fetched texts are LF with no trailing spaces.
 - **release-manager** — copy the full hashes above into THIRD_PARTY.md and checklist 4.6a (c), adding `MPL-2.0.txt`'s `3f3d9e00`; record the release AAB delta at 4.6 (LS-AC18 release half; the debug delta is +696,303 B); note the Jakarta credit wording.
 - **ux-designer** — confirm the Jakarta credit (F-16) and the U+2011 date.
 - **tech-lead** — sign off, reading deviations 1–12.
+
+## Loop 1 (2026-10-24; `9903a5d..c32172f`; Loops: 1)
+> Producer note: returned as text; appended by the producer, condensed with every check kept.
+- **F1** `9903a5d`: `@param:StringRes` at the seven constructor `val`s (`LicenseCatalog.kt`, `LicenseTextUiState.kt`). Red: `:app:compileDebugKotlin --rerun-tasks` printed the seven `ui/licenses` "applied to the value parameter only" lines; green: none from this branch.
+- **F2** `4948f3c`: fixture start 1, length `Long.MAX_VALUE`; with only the guard replaced by naive `start + length <= size`, `-p build-logic test` failed (99 tests, 1 failed); restored → pass.
+- **F3** `02af622`: sources joined once by `GoogleNotice.foundIn()` (the only `", "`); both ViewModels use it; `LicenseTextHeader.Notice` carries it; the screen only formats. `:app:check` pass (lint 0 errors, 58 warnings).
+- **Commit 16** `c32172f`: `git merge --no-ff develop` (`dbd0a6c`: check-gates C7 + `scripts/check.sh`, hint-undecided, ux-spec-folds, tech-design-sync) — no conflicts; `app/build.gradle.kts`, `SettingsRoute.kt`, `strings.xml` merged on disjoint hunks. Audio not merged yet: a second merge-in follows.
+- **C7:** `:app:compileDebugKotlin :app:compileReleaseKotlin --rerun-tasks` on `c32172f` → 0 main-code `w:` lines.
+- **`./scripts/check.sh --max-workers=4` on `c32172f`:** pass, 12m 5s, exit 0 — `:app` 1,207; `:domain` 294 + depth sweep + fuzz + koverVerify; build-logic 100; 0 failures, 0 skipped. Lint 0 errors, 59 warnings (the +1 is develop's `GradleDependency` on `hilt-lifecycle-viewmodel-compose` 1.3.0).
+- **Corrections to loop 0 (auditor F4):** LS-AC07's grep prints five `okhttp` identifier/KDoc lines (no `Intent`/`Uri`/`URL`/`Socket`); LS-AC14's literal `assets.open` grep prints 0 because ktlint splits the call — the only two opens are the two sources; the loop-0 overflow mutation replaced both clauses at once (F2 now pins the second); the loop-0 C7 claim missed the `@StringRes` vals (F1).
+- **Not taken (advisory):** F5 `GoogleNoticeText` name clash → tech-lead (recommend `GoogleNoticeTextAsset`); F6 stem-collision branch untestable; F7 `flatMap` negligible. Records: F8 (sound counts, release-manager), F9 (U+2011 accepted), F10 (untested branch accepted).
+- **Handoff:** code-auditor re-review `1f14267..c32172f` (three fixes + the merge's auto-merged hunks); then qa-engineer §8.2; tech-lead sign-off incl. F5.
