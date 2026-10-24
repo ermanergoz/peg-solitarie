@@ -2,11 +2,14 @@ package com.app.pegsolitaire.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.audio.FakeSoundPlayer
 import com.app.pegsolitaire.audio.LocalSoundPlayer
@@ -21,6 +24,9 @@ import com.app.pegsolitaire.ui.game.GameScreen
 import com.app.pegsolitaire.ui.game.GameUiState
 import com.app.pegsolitaire.ui.home.HomeScreen
 import com.app.pegsolitaire.ui.home.HomeUiState
+import com.app.pegsolitaire.ui.licenses.LICENSES_LIST_TAG
+import com.app.pegsolitaire.ui.licenses.LicenseCatalog
+import com.app.pegsolitaire.ui.licenses.LicensesScreen
 import com.app.pegsolitaire.ui.results.ResultsHeadlineTier
 import com.app.pegsolitaire.ui.results.ResultsScreen
 import com.app.pegsolitaire.ui.results.ResultsUiState
@@ -283,6 +289,42 @@ class ButtonSoundTest {
         assertThat(sounds.cues).isEmpty()
     }
 
+    // ---- The Licenses screen (LS-AC09, D-09) -----------------------------------
+
+    @Test
+    fun aLicenceEntryPlaysOneForwardClickAndOpensItsText() {
+        val opened = mutableListOf<String>()
+        renderLicenses(onOpenEntry = { opened += it })
+
+        clickText(R.string.licenses_fredoka_title)
+
+        assertThat(sounds.cues).containsExactly(SoundCue.ButtonForward)
+        assertThat(opened).containsExactly("fredoka")
+    }
+
+    @Test
+    fun anInertLicenceEntryMakesNoSound() {
+        renderLicenses()
+        composeRule
+            .onNodeWithTag(LICENSES_LIST_TAG)
+            .performScrollToNode(hasText(context.getString(R.string.licenses_kenney_title)))
+
+        clickText(R.string.licenses_kenney_title)
+
+        assertThat(sounds.cues).isEmpty()
+    }
+
+    @Test
+    fun theLicensesBackIconMakesNoSound() {
+        var leftLicenses = false
+        renderLicenses(onBack = { leftLicenses = true })
+
+        clickIcon(R.string.navigate_back)
+
+        assertThat(leftLicenses).isTrue()
+        assertThat(sounds.cues).isEmpty()
+    }
+
     // ---- Helpers -------------------------------------------------------------
 
     private fun clickText(resId: Int) {
@@ -356,6 +398,18 @@ class ButtonSoundTest {
             onPlayGamesSignInErrorShown = {},
             onManagePrivacyChoices = {},
             onBack = {},
+        )
+    }
+
+    private fun renderLicenses(
+        onOpenEntry: (String) -> Unit = {},
+        onBack: () -> Unit = {},
+    ) = render {
+        LicensesScreen(
+            sections = LicenseCatalog.sections,
+            onOpenEntry = onOpenEntry,
+            onOpenGoogleNotices = {},
+            onBack = onBack,
         )
     }
 
