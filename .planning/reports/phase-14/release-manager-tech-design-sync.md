@@ -111,3 +111,34 @@ I closed the six release-manager findings of `code-auditor-tech-design-sync.md` 
 
 ### Handoff
 Next: producer — have the code-auditor re-check pass 2, then commit it on `feature/tech-design-sync`.
+
+## Pass 3 — the tech-lead sign-off's 1.1a items and row J's citation (2026-10-24)
+Branch: feature/tech-design-sync (committed by the producer; uncommitted edits on top of `62c815c`, as dispatched)
+Ran on: claude-opus-5-5 at effort medium
+Loops: 2
+Lessons applied: none
+
+### Summary
+I made the two 1.1a edits in the exact text that `tech-lead-signoff-tech-design-sync.md` gives ("What the release-manager must change in 1.1a", items 1 and 2), and added the row J citation note the sign-off's INFO asks for. I made no commit and ran no Gradle.
+
+### Outputs
+- `docs/release-checklist.md:32` (1.1a):
+  - **Waiver vehicle (item cell):** "put to the founder through `Q-PUBLISH-3.0.0`" is replaced, word for word as the sign-off gives it, by row TB's one pre-cut `Q-<NNN>` ("wait, or ship option 2"). The producer queues it only when this item is the last unticked pre-cut item. While it is open the cut waits; on "ship", this item is deferred with a named owner under 1.1 and the no-claim clause binds.
+  - **S-1 (evidence condition 3):** the command now reads `git log --no-merges --first-parent --format=%h R..$M^2 -- app/`.
+- `THIRD_PARTY.md:242` (row J, How credited): the `research-analyst-mpl.md` citation now says "on `feature/licences-screen` until it merges; this note goes at checklist 2.4a".
+
+### Checks
+- `grep -c 'through \`Q-PUBLISH-3.0.0\`' docs/release-checklist.md` — 0.
+- `grep -n -o "row TB's one pre-cut \`Q-<NNN>\`" docs/release-checklist.md` — `:32`.
+- `grep -n -o -F 'git log --no-merges --first-parent --format=%h R..$M^2 -- app/' docs/release-checklist.md` — `:32`.
+- `grep -n -o 'on \`feature/licences-screen\` until it merges; this note goes at checklist 2.4a' THIRD_PARTY.md` — `:242`.
+- S-1 reproduced: `git log --no-merges --format=%h ecddc40..feature/licences-screen -- docs/ | wc -l` gives 7; the same command with `--first-parent` gives 1. This matches the sign-off.
+- Pipe count, with escaped `\|` excluded: checklist `:32` has 5, matching header `:29`; THIRD_PARTY `:242` has 7, matching header `:235`.
+- `git diff --check` — clean. `git diff --stat` — `docs/release-checklist.md` +1/−1, `THIRD_PARTY.md` +1/−1.
+
+### Open issues / risks
+- **`--first-parent` assumes merge-ins are made in the usual direction.** It follows the branch's own line only when each merge-in runs on the branch with `git merge develop`, so the branch is the first parent. §14.1 prescribes exactly that ("merges `develop` in (never a rebase)").
+- **At 2.4a,** remove row J's "until it merges" note once `feature/licences-screen` has merged.
+
+### Handoff
+Next: producer — commit pass 3 and merge `feature/tech-design-sync` into `develop` (`--no-ff`).
