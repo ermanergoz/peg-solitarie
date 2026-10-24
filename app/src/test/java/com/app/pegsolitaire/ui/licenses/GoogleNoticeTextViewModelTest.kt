@@ -54,12 +54,14 @@ class GoogleNoticeTextViewModelTest {
             advanceUntilIdle()
 
             val part = LoadedTextPart(heading = null, paragraphs = listOf("OkHttp notice wrapped.", "Second."))
-            assertThat(viewModel.uiState.value).isEqualTo(Loaded(Notice(OKHTTP, ordinal = null), listOf(part)))
+            assertThat(
+                viewModel.uiState.value,
+            ).isEqualTo(Loaded(Notice(OKHTTP, "ads-mobile-sdk", ordinal = null), listOf(part)))
             assertThat(texts.reads).containsExactly(GoogleNoticeText(STEM_B))
         }
 
     @Test
-    fun aRepeatedNameCarriesItsOrdinalInTheHeader() =
+    fun theHeaderCarriesTheJoinedSourcesAndTheOrdinalOfARepeatedName() =
         runTest(testDispatcher) {
             val texts = FakeLicenseTextSource(mapOf(GoogleNoticeText(STEM_C) to "Second Kotlin text.\n"))
             val viewModel = viewModel(KEY_C, texts = texts)
@@ -67,7 +69,7 @@ class GoogleNoticeTextViewModelTest {
             advanceUntilIdle()
 
             assertThat(viewModel.uiState.value.header)
-                .isEqualTo(Notice(KOTLIN_TWO, NoticeOrdinal(index = 2, count = 2)))
+                .isEqualTo(Notice(KOTLIN_TWO, "hsdp, user-messaging-platform", NoticeOrdinal(index = 2, count = 2)))
         }
 
     @Test
@@ -101,7 +103,7 @@ class GoogleNoticeTextViewModelTest {
 
             advanceUntilIdle()
 
-            assertThat(viewModel.uiState.value).isEqualTo(Failed(Notice(OKHTTP, ordinal = null)))
+            assertThat(viewModel.uiState.value).isEqualTo(Failed(Notice(OKHTTP, "ads-mobile-sdk", ordinal = null)))
         }
 
     @Test
@@ -162,5 +164,5 @@ private const val STEM_C = "c000000000000000"
 
 private val KOTLIN_ONE = fixtureNotice(KEY_A, "Kotlin", STEM_A, "ads-mobile-sdk")
 private val OKHTTP = fixtureNotice(KEY_B, "OkHttp", STEM_B, "ads-mobile-sdk")
-private val KOTLIN_TWO = fixtureNotice(KEY_C, "Kotlin", STEM_C, "hsdp")
+private val KOTLIN_TWO = fixtureNotice(KEY_C, "Kotlin", STEM_C, "hsdp", "user-messaging-platform")
 private val INDEX = listOf(KOTLIN_ONE, OKHTTP, KOTLIN_TWO)

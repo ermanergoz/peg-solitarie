@@ -42,15 +42,10 @@ class GoogleNoticesViewModel
                     GoogleNoticeRow(
                         key = notice.key,
                         name = notice.name,
-                        foundIn = notice.sources.joinToString(SOURCES_SEPARATOR),
+                        foundIn = notice.foundIn(),
                         ordinal = ordinals[notice.key],
                     )
                 },
             )
-        }
-
-        private companion object {
-            /** "Found in ads-mobile-sdk, hsdp" (spec LS-12): a comma and a space. */
-            const val SOURCES_SEPARATOR = ", "
         }
     }

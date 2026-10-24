@@ -61,7 +61,7 @@ class GoogleNoticeTextViewModel
                 state.value = Failed(header = null)
                 return
             }
-            val header = Notice(notice, index.noticeOrdinals()[notice.key])
+            val header = Notice(notice, notice.foundIn(), index.noticeOrdinals()[notice.key])
             state.value = Loading(header)
             val raw = textSource.read(GoogleNoticeText(notice.stem))
             state.value =

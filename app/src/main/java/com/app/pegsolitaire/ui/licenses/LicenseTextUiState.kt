@@ -13,12 +13,14 @@ sealed interface LicenseTextHeader {
     ) : LicenseTextHeader
 
     /**
-     * One Google notice (spec §4B), with its "Notice n of m" when its name occurs more than once in
-     * the index (spec LS-12 as amended, F-08).
+     * One Google notice (spec §4B): [foundIn], its sources joined once by the ViewModel for the
+     * "Found in" line (spec §6), and [ordinal], its "Notice n of m" when its name occurs more than
+     * once in the index (spec LS-12 as amended, F-08).
      */
     @Immutable
     data class Notice(
         val notice: GoogleNotice,
+        val foundIn: String,
         val ordinal: NoticeOrdinal?,
     ) : LicenseTextHeader
 }

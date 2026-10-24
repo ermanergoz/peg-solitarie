@@ -1,6 +1,7 @@
 package com.app.pegsolitaire.ui.licenses
 
 import androidx.compose.runtime.Immutable
+import com.app.pegsolitaire.data.licenses.GoogleNotice
 
 /** "Notice [index] of [count]", both 1-based (spec LS-12 as amended in loop 1, F-08). */
 @Immutable
@@ -25,6 +26,15 @@ data class GoogleNoticeRow(
     val foundIn: String,
     val ordinal: NoticeOrdinal?,
 )
+
+/**
+ * The notice's sources as its "Found in" line shows them (spec LS-12, §6): the artifactIds joined
+ * with a comma and a space. The one place the separator is written, so a notice reads the same on
+ * the list and on its text screen; both ViewModels build it once per load, never composition.
+ */
+internal fun GoogleNotice.foundIn(): String = sources.joinToString(SOURCES_SEPARATOR)
+
+private const val SOURCES_SEPARATOR = ", "
 
 /** The Google notices list's state (spec §4A, LS-09). */
 sealed interface GoogleNoticesUiState {

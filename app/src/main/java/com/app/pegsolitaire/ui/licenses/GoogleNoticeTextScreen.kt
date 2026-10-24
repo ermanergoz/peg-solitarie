@@ -90,7 +90,7 @@ fun GoogleNoticeTextScreen(
 private fun LazyListScope.noticeHeader(header: Notice) {
     item(key = FOUND_IN_KEY) {
         HeaderLine(
-            stringResource(R.string.google_notices_found_in, header.notice.sources.joinToString(SOURCES_SEPARATOR)),
+            stringResource(R.string.google_notices_found_in, header.foundIn),
         )
     }
     header.ordinal?.let { ordinal ->
@@ -132,9 +132,6 @@ private const val ERROR_KEY = "error"
 private const val END_KEY = "end"
 private const val PARAGRAPH_CONTENT_TYPE = "paragraph"
 
-/** "Found in ads-mobile-sdk, hsdp" (spec LS-12): a comma and a space. */
-private const val SOURCES_SEPARATOR = ", "
-
 @Preview(name = "Google notice text · light", showBackground = true)
 @Preview(name = "Google notice text · dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
@@ -144,7 +141,7 @@ private fun GoogleNoticeTextScreenPreview() {
         GoogleNoticeTextScreen(
             state =
                 LicenseTextUiState.Loaded(
-                    Notice(notice, NoticeOrdinal(index = 2, count = 4)),
+                    Notice(notice, foundIn = "ads-mobile-sdk, hsdp", ordinal = NoticeOrdinal(index = 2, count = 4)),
                     listOf(LoadedTextPart(heading = null, paragraphs = listOf(PREVIEW_PARAGRAPH, PREVIEW_PARAGRAPH))),
                 ),
             onBack = {},

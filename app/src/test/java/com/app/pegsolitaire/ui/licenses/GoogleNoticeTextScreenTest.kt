@@ -58,7 +58,9 @@ class GoogleNoticeTextScreenTest {
 
     @Test
     fun theOrdinalOfARepeatedNameFollowsTheSourcesLine() {
-        render(Loaded(Notice(NOTICE, NoticeOrdinal(2, 4)), listOf(LoadedTextPart(null, listOf(paragraph(1))))))
+        render(
+            Loaded(Notice(NOTICE, FOUND_IN, NoticeOrdinal(2, 4)), listOf(LoadedTextPart(null, listOf(paragraph(1))))),
+        )
 
         composeRule.onNodeWithText(app.getString(R.string.google_notices_ordinal, 2, 4)).assertIsDisplayed()
     }
@@ -72,7 +74,7 @@ class GoogleNoticeTextScreenTest {
     }
 
     private fun loaded(paragraphs: Int): LicenseTextUiState =
-        Loaded(Notice(NOTICE, ordinal = null), listOf(LoadedTextPart(null, (1..paragraphs).map(::paragraph))))
+        Loaded(Notice(NOTICE, FOUND_IN, ordinal = null), listOf(LoadedTextPart(null, (1..paragraphs).map(::paragraph))))
 
     private fun paragraph(index: Int): String = "Paragraph $index of the notice."
 
