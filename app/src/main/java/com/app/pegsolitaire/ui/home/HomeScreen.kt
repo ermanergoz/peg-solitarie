@@ -275,10 +275,12 @@ private fun PlayGamesSignInErrorSnackbarEffect(
  *
  * Home did **not** scroll before this refresh, and at 200% font scale with two Continue chips
  * it already overflowed, so the scroll is a fix rather than polish. It exists for the overflow
- * case only: the first-paint rule (D-03f) requires bands 3 and 4 — the Continue chips and both
- * mode tiles — to be fully within the first viewport at default font scale on a 360x640dp
- * phone, and on that window the **compact band set** below is what keeps them there. A
- * Continue chip reachable only by scrolling is a broken device oracle, not a layout compromise.
+ * case only: the first-paint rule (D-03f), as criterion 15k states it, requires the hero row, the
+ * whole ribbon, both Continue chips and the first mode tile complete in the first viewport at
+ * default font scale on a 360x640dp phone, and on that window the **compact band set** below does
+ * better than that — measured on NATIVE text metrics and on the device, the whole column fits it,
+ * 0dp over. A Continue chip reachable only by scrolling is a broken device oracle, not a layout
+ * compromise.
  *
  * ## The slack: four fifths to the stage, one fifth to the footer — of the slack with no chip
  *
@@ -353,22 +355,27 @@ private fun PlayGamesSignInErrorSnackbarEffect(
  * slack. 400dp is the boundary because 360dp is the narrowest supported window and the next common
  * width is the 412dp class, so no shipping device sits on it.
  *
- * ## What the narrow class still does not fit, and why the criterion says so
+ * ## What the narrow class fits, and why the criterion is written for the overflow
  *
- * After every yield that costs no readout the compact-narrow set is ≈640dp against the **568dp** a
- * 360x640dp phone offers (640 less a 24dp status bar and a 48dp three-button navigation bar), so
- * it is ~72dp over and **the screen scrolls**. Criterion 15h asserted a no-scroll fit and is
- * retired as false; 15k requires what is achievable and measurable instead — the hero row, the
- * whole ribbon, both Continue chips and the first mode tile complete in the first viewport, the
- * second mode tile **breaking the fold** so there is no false bottom, and the rest one plain
- * scroll of ≤ 120dp away. Every one of the remaining 72dp is a readout, a target or a route
- * (§4.2.3's table), so there is nothing left to take at a price this screen is willing to pay.
+ * §4.2.3's arithmetic put the compact-narrow set at ≈640dp against the **568dp** a 360x640dp phone
+ * offers (640 less a 24dp status bar and a 48dp three-button navigation bar), ~72dp over, and
+ * criterion 15h, a no-scroll fit, was retired as false on that reading. The reading was
+ * Robolectric's LEGACY text metrics, which over-wrap: on NATIVE metrics and on the device the
+ * column fits that window with **0dp** over, both Continue chips and both tiles whole (the H-1
+ * audit's F-1). 15k stands as written, for any window where the column does overflow — the hero
+ * row, the whole ribbon, both Continue chips and the first mode tile complete in the first
+ * viewport, the second mode tile **breaking the fold** so there is no false bottom, and the rest
+ * one plain scroll of ≤ 120dp away — and `HomeLayoutTest` reads it on a shorter window where the
+ * overflow is real. Every band the compact set keeps is a readout, a target or a route (§4.2.3's
+ * table), so there is nothing left to take at a price this screen is willing to pay.
  *
  * ## The entrance cascade
  *
  * `clayEntrance` order runs strictly downward — hero 0, ribbon 1, Continue chips 2..3, tiles
  * after — so nothing fades in above something that arrived before it (§10). Conditional chips
- * keep the ordering contiguous by counting only what is shown.
+ * keep the ordering contiguous by counting only what is shown. A chip that arrives after first
+ * paint takes no stagger, so its fade starts with its room ([ContinueChips], §4.2.5), and nothing
+ * a chip does restarts the cascade: the stage's entrance is the stage's own, run once with Home.
  */
 @Composable
 private fun HomeBands(
@@ -841,10 +848,11 @@ private fun HomeScreenDarkPreview() {
 /**
  * The compact-narrow band set (§4.2.2, §4.2.3), which is otherwise only visible on a short
  * narrow device: the same busiest state as the dark preview, on the design baseline's own
- * 360x640dp window. The hero row should sit directly above the ribbon with no stage between
- * them (the column overflows, so the stage is 0), each progress pill should read "label value"
- * on one line with no glyph, and the Challenge tile should be cut by the bottom edge rather than
- * sitting below it — that fold is criterion 15k part 2, not a clipping bug.
+ * 360x640dp window. Each progress pill should read "label value" on one line with no glyph, and
+ * both Continue chips and both mode tiles should be whole, with the footer's fifth of the slack
+ * below them (§4.2.5). A preview draws no system bars, so the column has all 640dp and the stage
+ * still holds a small board — 67dp, measured on NATIVE metrics — where the 568dp a phone with its
+ * bars offers leaves the stage 10dp with both chips in, and no board at all.
  *
  * In **both** themes, per rules/compose.md: the compact band set is the one a 360dp-wide phone
  * always gets (§4.2.3), so it is not a variant that only needs checking in one of them.

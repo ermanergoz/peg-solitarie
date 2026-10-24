@@ -40,13 +40,15 @@ internal data class HomeBandSet(
     val narrow: Boolean,
 ) {
     /**
-     * The compact **pill** — the fourth compact step (§4.2.3 part 2): no decorative glyph, label
-     * beside value on one line.
+     * The compact **pill** — the fourth compact step (§4.2.3 part 2): no decorative glyph, the label
+     * beside the value on one line, or over it once a label outgrows half its pill (§4.2.6,
+     * [ribbonShapeFor]).
      *
      * It is the one step gated on the width as well as the height, and it is taken *with* the
      * other three and never partially. The conjunction is not redundant: it says in code what
      * §4.2.3 says in prose, so a future window that is narrow but tall enough for the full set
-     * gets a full ribbon with it rather than a compact ribbon under a full hero.
+     * gets a full ribbon with it rather than a compact ribbon in a full band set. (The hero is one
+     * row on every window since D-03l, so no set changes it.)
      */
     val compactPills: Boolean get() = compact && narrow
 }
@@ -113,8 +115,9 @@ internal enum class RibbonShape {
  *
  * The pill's content width follows from the width this `BoxWithConstraints` already has: the ribbon
  * is the column's width less its padding, three equal pills share it less the two `spacing_sm` gaps,
- * and each pill's content is its width less its `spacing_sm` padding. The three labels are measured
- * once each, on Home's first frame, inside 15e's measured delta.
+ * and each pill's content is its width less its `spacing_sm` padding. On the narrow class the three
+ * labels are measured once each, on Home's first frame, inside 15e's measured delta; the full set
+ * measures none, since its shape is decided before any label is read.
  *
  * @param bandSet the band set Home takes.
  * @param availableWidth the `BoxWithConstraints` `maxWidth`.
