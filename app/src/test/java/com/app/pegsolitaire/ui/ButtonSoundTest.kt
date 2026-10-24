@@ -292,6 +292,18 @@ class ButtonSoundTest {
         assertThat(sounds.cues).isEmpty()
     }
 
+    /** LS-AC09: the Settings › About › Licenses row is a navigational CTA, so it speaks (D-09). */
+    @Test
+    fun theSettingsLicensesRowPlaysTheForwardCueAndOpensLicenses() {
+        var licensesOpened = false
+        renderSettings(onOpenLicenses = { licensesOpened = true })
+
+        clickSettingsRow(R.string.settings_licenses_label)
+
+        assertThat(sounds.cues).containsExactly(SoundCue.ButtonForward)
+        assertThat(licensesOpened).isTrue()
+    }
+
     // ---- The Licenses screen (LS-AC09, D-09) -----------------------------------
 
     @Test
@@ -408,12 +420,14 @@ class ButtonSoundTest {
     private fun renderSettings(
         onShowHowToPlay: () -> Unit = {},
         onToggleSound: (Boolean) -> Unit = {},
+        onOpenLicenses: () -> Unit = {},
     ) = render {
         SettingsScreen(
             state = SettingsUiState(),
             onToggleSound = onToggleSound,
             onToggleHaptics = {},
             onShowHowToPlay = onShowHowToPlay,
+            onOpenLicenses = onOpenLicenses,
             onSignInToPlayGames = {},
             onShowLeaderboards = {},
             onShowAchievements = {},

@@ -17,12 +17,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
  *
  * @param onBack leaves Settings (supplied by `AppNavHost`).
  * @param onShowHowToPlay opens the tutorial destination (supplied by `AppNavHost`, D-02a).
+ * @param onOpenLicenses opens the Licenses screen (supplied by `AppNavHost`, spec LS-01).
  * @param modifier layout modifier forwarded to [SettingsScreen].
  */
 @Composable
 fun SettingsRoute(
     onBack: () -> Unit,
     onShowHowToPlay: () -> Unit,
+    onOpenLicenses: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val viewModel: SettingsViewModel = hiltViewModel()
@@ -33,6 +35,7 @@ fun SettingsRoute(
         onToggleSound = viewModel::onToggleSound,
         onToggleHaptics = viewModel::onToggleHaptics,
         onShowHowToPlay = onShowHowToPlay,
+        onOpenLicenses = onOpenLicenses,
         onSignInToPlayGames = viewModel::onSignInToPlayGames,
         onShowLeaderboards = viewModel::onShowLeaderboards,
         onShowAchievements = viewModel::onShowAchievements,

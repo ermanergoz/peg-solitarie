@@ -54,6 +54,28 @@ class LicensesNavFlowTest {
     private val app get() = composeRule.activity
 
     @Test
+    fun settingsOpensLicensesAndBackReturnsToSettings() {
+        composeRule.setContent {
+            navController = rememberNavController()
+            AppNavHost(
+                navController = navController,
+                homeContent = { _, _, _, _, onOpenSettings, _ -> StandIn(HOME_STAND_IN, onOpenSettings) },
+                settingsContent = { _, _, onOpenLicenses -> StandIn(SETTINGS_STAND_IN, onOpenLicenses) },
+                licensesContent = { _, _, onBack -> StandIn(LICENSES_STAND_IN, onBack) },
+            )
+        }
+        composeRule.onNodeWithTag(HOME_STAND_IN).performClick()
+        composeRule.onNodeWithTag(SETTINGS_STAND_IN).performClick()
+        composeRule.waitForIdle()
+        assertThat(currentIs<Licenses>()).isTrue()
+
+        composeRule.onNodeWithTag(LICENSES_STAND_IN).performClick()
+        composeRule.waitForIdle()
+
+        assertThat(currentIs<Settings>()).isTrue()
+    }
+
+    @Test
     fun aTextEntryRoundTripKeepsTheListsPosition() {
         host()
         val checker = app.getString(R.string.licenses_checker_title)
@@ -174,6 +196,8 @@ private const val LICENSES_NAV_ROBOLECTRIC_SDK = 34
 
 private const val HOME_STAND_IN = "stand_in_home"
 private const val TEXT_STAND_IN = "stand_in_license_text"
+private const val SETTINGS_STAND_IN = "stand_in_settings"
+private const val LICENSES_STAND_IN = "stand_in_licenses"
 private const val NOTICE_STAND_IN = "stand_in_notice_text"
 private const val LEADING_ROWS = 20
 

@@ -44,6 +44,7 @@ class SettingsScreenTest {
     private fun setContent(
         onShowHowToPlay: () -> Unit = {},
         state: SettingsUiState = SettingsUiState(),
+        onOpenLicenses: () -> Unit = {},
     ) {
         composeRule.setContent {
             AppTheme {
@@ -52,6 +53,7 @@ class SettingsScreenTest {
                     onToggleSound = {},
                     onToggleHaptics = {},
                     onShowHowToPlay = onShowHowToPlay,
+                    onOpenLicenses = onOpenLicenses,
                     onSignInToPlayGames = {},
                     onShowLeaderboards = {},
                     onShowAchievements = {},
@@ -116,9 +118,54 @@ class SettingsScreenTest {
             .containsExactly(
                 app.getString(R.string.settings_section_general),
                 app.getString(R.string.settings_section_play_games),
+                app.getString(R.string.settings_section_about),
                 app.getString(R.string.settings_section_privacy),
             ).inOrder()
     }
+
+    /** Spec LS-AC01: About and its Licenses row sit after Play Games and before Privacy. */
+    @Test
+    fun theAboutHeaderAndLicensesRowSitBetweenPlayGamesAndPrivacy() {
+        val signedIn = GamesSignInState.SignedIn(playerId = "player", displayName = null)
+        setContent(state = SettingsUiState(gamesSignInState = signedIn))
+
+        val playGames = topOf(app.getString(R.string.settings_section_play_games))
+        val about = topOf(app.getString(R.string.settings_section_about))
+        val licenses = topOf(app.getString(R.string.settings_licenses_label))
+        val privacy = topOf(app.getString(R.string.settings_section_privacy))
+        assertThat(playGames).isLessThan(about)
+        assertThat(about).isLessThan(licenses)
+        assertThat(licenses).isLessThan(privacy)
+    }
+
+    /** With no Play Games section (D-11), About simply follows General. */
+    @Test
+    fun theAboutSectionFollowsGeneralWhenPlayGamesIsAbsent() {
+        setContent()
+
+        val haptics = topOf(app.getString(R.string.settings_haptics_label))
+        val about = topOf(app.getString(R.string.settings_section_about))
+        val privacy = topOf(app.getString(R.string.settings_section_privacy))
+        assertThat(haptics).isLessThan(about)
+        assertThat(about).isLessThan(privacy)
+    }
+
+    @Test
+    fun tappingTheLicensesRowOpensLicenses() {
+        var opened = 0
+        setContent(onOpenLicenses = { opened++ })
+
+        composeRule.onNodeWithText(app.getString(R.string.settings_licenses_label)).performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        assertThat(opened).isEqualTo(1)
+    }
+
+    private fun topOf(text: String): Float =
+        composeRule
+            .onNodeWithText(text, useUnmergedTree = true)
+            .fetchSemanticsNode()
+            .positionInRoot.y
 }
 
 /** Robolectric has no android-all jar for Android 16 (SDK 36) yet; emulate SDK 34. */

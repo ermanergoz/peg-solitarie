@@ -115,9 +115,9 @@ fun AppNavHost(
             onNavigateBack = onNavigateBack,
         )
     },
-    settingsContent: @Composable (onBack: () -> Unit, onShowHowToPlay: () -> Unit) -> Unit =
-        { onBack, onShowHowToPlay ->
-            SettingsRoute(onBack = onBack, onShowHowToPlay = onShowHowToPlay)
+    settingsContent: @Composable (onBack: () -> Unit, onShowHowToPlay: () -> Unit, onOpenLicenses: () -> Unit) -> Unit =
+        { onBack, onShowHowToPlay, onOpenLicenses ->
+            SettingsRoute(onBack = onBack, onShowHowToPlay = onShowHowToPlay, onOpenLicenses = onOpenLicenses)
         },
     tutorialContent: @Composable (onExit: () -> Unit) -> Unit = { onExit ->
         TutorialRoute(onExit = onExit)
@@ -150,8 +150,13 @@ fun AppNavHost(
         }
         composable<Settings> {
             // settingsContent slot: onBack (pops back to Home, D-14), onShowHowToPlay
-            // (the D-02a replay entry point — the tutorial's only permanent affordance).
-            settingsContent({ navController.popBackStack() }, { navController.toTutorial() })
+            // (the D-02a replay entry point — the tutorial's only permanent affordance),
+            // onOpenLicenses (Settings › About › Licenses, spec LS-01).
+            settingsContent(
+                { navController.popBackStack() },
+                { navController.toTutorial() },
+                { navController.toLicenses() },
+            )
         }
         composable<Tutorial> {
             // tutorialContent slot: onExit — and NOTHING else. `popBackStack()` is the
