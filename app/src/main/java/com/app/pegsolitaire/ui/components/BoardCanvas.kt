@@ -40,7 +40,6 @@ import com.app.pegsolitaire.ui.game.BoardMetrics
 import com.app.pegsolitaire.ui.game.GameAnim
 import com.app.pegsolitaire.ui.game.GameUiState
 import com.app.pegsolitaire.ui.game.MoveTransition
-import com.app.pegsolitaire.ui.game.wrongTapAnnouncement
 import com.app.pegsolitaire.ui.theme.ClayAnim
 import com.app.pegsolitaire.ui.theme.LocalClayColors
 import com.app.pegsolitaire.ui.theme.rememberAnimationsEnabled
@@ -82,9 +81,10 @@ private const val REMOVAL_START = 1f
  * wrong tap the state records, on the tapped cell, by drawing and by nothing else: while a peg
  * is held, a **redirect** — the held ring nudges, or the held peg's dots re-pop — and, when
  * [wrongTapCorrection] is on, a **correction** of the tapped cell: a head-shake, or with
- * animations off a still dashed mark. It plays no cue, fires no haptic and announces nothing
- * (§3.8): those are screen-level effects beside `GameScreen`, which the tutorial — sharing this
- * leaf — must not inherit. A read-only board never draws any of it.
+ * animations off a still dashed mark. It plays no cue and fires no haptic (§3.8): those are
+ * screen-level effects beside `GameScreen`, which the tutorial — sharing this leaf — must not
+ * inherit. Nor does it choose any words: the host's announcer does, and the canvas only carries the
+ * [announcement] it is given (§3.8 as D-TBa's F-44 reads it). A read-only board never draws any of it.
  *
  * @param state the immutable board state to render (single source of truth).
  * @param onCellTap emits the bounds-checked tapped [Position] up to the ViewModel
@@ -260,7 +260,7 @@ fun BoardCanvas(
                         .onSizeChanged { canvasSize = it.toSize() }
                         .pointerInput(geometry) {
                             detectTapGestures { offset -> geometry.positionAt(offset)?.let(onCellTap) }
-                        }.then(if (announces) Modifier.wrongTapAnnouncement(announcement) else Modifier),
+                        }.then(if (announces) Modifier.boardAnnouncement(announcement) else Modifier),
                 onDraw = draw,
             )
             // After the canvas, so the stops are above it for explore-by-touch.

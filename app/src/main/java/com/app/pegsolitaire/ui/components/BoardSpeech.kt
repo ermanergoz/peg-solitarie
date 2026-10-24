@@ -172,6 +172,12 @@ object BoardSpeechModel {
         return BoardSpeech(pegsLeft = board.pegCount, cells = cells)
     }
 
+    /** The legal jumps from [peg] as the rules engine counts them — the number its cell speaks. */
+    fun jumpsFrom(
+        board: Board,
+        peg: Position,
+    ): Int = RulesEngine.legalMoves(board).count { it.from == peg }
+
     /**
      * The taps a jump action is (GD-TB-5): a selection of [from], unless it is already [selected],
      * then the tap on [to]. Run in order through the same `onCellTap` a finger reaches.

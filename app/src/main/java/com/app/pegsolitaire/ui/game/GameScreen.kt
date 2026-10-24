@@ -35,7 +35,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.traversalIndex
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.audio.JumpSoundEffect
 import com.app.pegsolitaire.audio.LocalSoundPlayer
@@ -45,8 +47,10 @@ import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.ui.components.BoardCanvas
 import com.app.pegsolitaire.ui.components.ClaySnackbarHost
+import com.app.pegsolitaire.ui.components.GameplayBoardAnnouncements
 import com.app.pegsolitaire.ui.components.boardStop
 import com.app.pegsolitaire.ui.components.boardStopLabel
+import com.app.pegsolitaire.ui.components.rememberBoardAnnouncer
 import com.app.pegsolitaire.ui.components.rememberTouchExplorationEnabled
 import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
@@ -154,7 +158,8 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  * - the [Scaffold];
  * - the status strip, [GameStatusStrip];
  * - the snackbar host, [ClaySnackbarHost];
- * - the board panel, [BoardCanvas], with the wrong-tap answer and its live region (D-06, D-06c);
+ * - the board panel, [BoardCanvas], with the wrong-tap answer, its stops and its spoken channel (D-06, D-TB);
+ * - the rescue banner, [NoWinBanner];
  * - the Undecided notice, [UndecidedNoticeSlot];
  * - the action dock, [GameActionDock];
  * - the restart confirmation, `RestartConfirmDialog`;
@@ -181,9 +186,11 @@ fun GameScreen(
     challengeLevel: Int? = null,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
-    val wrongTapAnnouncement = rememberWrongTapAnnouncement(state)
     val boardStopFocus = remember { FocusRequester() }
     val touchExploration = rememberTouchExplorationEnabled()
+    // D-TB: the board's one polite channel, and every line it speaks.
+    val announcer = rememberBoardAnnouncer()
+    GameplayBoardAnnouncements(state = state, announcer = announcer)
 
     JumpHapticEffect(animatingMoveId = state.animating?.id, hapticsOn = state.hapticsOn)
     JumpSoundEffect(transition = state.animating)
@@ -229,6 +236,8 @@ fun GameScreen(
                             pegCountValue = state.board.pegCount
                             gameStatusValue = state.status.name
                             legalTargetCountValue = state.legalTargets.size
+                            // D-TBa loop 5 (F-38): one group, so the slab's index orders it first.
+                            isTraversalGroup = true
                         },
                 contentAlignment = Alignment.Center,
             ) {
@@ -252,7 +261,7 @@ fun GameScreen(
                                     label = boardStopLabel(state.board.pegCount),
                                     focusRequester = boardStopFocus,
                                     focusEnabled = touchExploration,
-                                ),
+                                ).semantics { traversalIndex = GameTraversal.BOARD_BEFORE_BANNER },
                     ) {
                         BoardCanvas(
                             state = state,
@@ -262,7 +271,7 @@ fun GameScreen(
                             // D-06: the gameplay board corrects a wrong tap on the tapped cell.
                             wrongTapCorrection = true,
                             // D-06c, D-TBa: the board's canvas itself is the polite live region; no new node.
-                            announcement = wrongTapAnnouncement,
+                            announcement = announcer.current,
                             announces = true,
                         )
                     }
@@ -280,8 +289,16 @@ fun GameScreen(
                             stringResource(
                                 if (state.noWinningMove) R.string.nowin_message else R.string.stuck_message,
                             ),
-                        onUndo = onUndo,
-                        onRestart = onRestart,
+                        // §11.1: the banner leaves with the button that had focus, so focus moves to
+                        // the board stop — only while touch exploration is on (D-TBa item 5, F-39).
+                        onUndo = {
+                            onUndo()
+                            if (touchExploration) boardStopFocus.requestFocus()
+                        },
+                        onRestart = {
+                            onRestart()
+                            if (touchExploration) boardStopFocus.requestFocus()
+                        },
                         onHome = onHome,
                         modifier =
                             Modifier

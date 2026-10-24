@@ -136,22 +136,22 @@ class GameScreenWrongTapTest {
         assertThat(boardAnnouncement()).isNull()
     }
 
-    // ---- The announcement (D-06c; WT-14's JVM half) ------------------------------------------
+    // ---- The announcement (D-06c as superseded by D-TBa items 2 and 3; WT-14's JVM half) ----
 
     @Test
     fun eachWrongTapPutsItsOwnSentenceOnTheBoardsPoliteLiveRegion() {
         startGame(WrongTapSettings(soundOn = true, hapticsOn = true))
 
         tapCell(CENTRE) // W1
-        assertAnnounced(R.string.wrong_tap_empty_hole)
+        assertAnnounced(R.string.board_a11y_rejected_no_peg)
         tapCell(LEFT_PEG)
         tapCell(TOP_PEG) // W2
-        assertAnnounced(R.string.wrong_tap_other_peg)
+        assertAnnounced(R.string.board_a11y_rejected_put_down_first)
         tapCell(LEFT_PEG)
         jumpLeftPegIntoTheCentre()
         tapCell(RIGHT_PEG)
         tapCell(LEFT_PEG) // W3
-        assertAnnounced(R.string.wrong_tap_not_a_destination)
+        assertAnnounced(R.string.board_a11y_rejected_not_target)
     }
 
     @Test
@@ -165,14 +165,14 @@ class GameScreenWrongTapTest {
         val second = boardAnnouncement()
 
         assertThat(second).isNotEqualTo(first)
-        assertAnnounced(R.string.wrong_tap_empty_hole)
+        assertAnnounced(R.string.board_a11y_rejected_no_peg)
     }
 
     @Test
     fun theSentenceIsWithdrawnAfterItsHoldSoTheBoardIsNoFocusStopAfterwards() {
         startGame(WrongTapSettings(soundOn = true, hapticsOn = true))
         tapCell(CENTRE)
-        assertAnnounced(R.string.wrong_tap_empty_hole)
+        assertAnnounced(R.string.board_a11y_rejected_no_peg)
 
         composeRule.mainClock.advanceTimeBy(PAST_THE_HOLD_MS)
         composeRule.waitForIdle()
@@ -185,13 +185,14 @@ class GameScreenWrongTapTest {
     }
 
     @Test
-    fun aSelectionOrAPutDownAnnouncesNothing() {
+    fun aSelectionAndAPutDownEachAnnounceTheirOwnLine() {
+        // D-TB: a selection and a put-down are board events, spoken on the same channel.
         startGame(WrongTapSettings(soundOn = true, hapticsOn = true))
 
         tapCell(LEFT_PEG)
-        assertThat(boardAnnouncement()).isNull()
+        assertThat(boardAnnouncement()?.let(::spoken)).isEqualTo("Selected row 4, column 2, 1 jump.")
         tapCell(LEFT_PEG)
-        assertThat(boardAnnouncement()).isNull()
+        assertThat(boardAnnouncement()?.let(::spoken)).isEqualTo("Peg put down, row 4, column 2.")
     }
 
     // ---- Sound is not a gate (§3.5; WT-13) ------------------------------------------------

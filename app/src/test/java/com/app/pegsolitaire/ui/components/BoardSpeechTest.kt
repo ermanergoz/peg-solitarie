@@ -173,6 +173,18 @@ class BoardSpeechTest {
     }
 
     @Test
+    fun aSelectionLineCountsTheJumpsTheSelectedPegsCellSpeaks() {
+        val star =
+            listOf(CENTRE, Position(2, 3), Position(4, 3))
+                .fold(Board(spec = Boards.English33, pegs = 0L)) { board, peg -> board.withPeg(peg) }
+
+        assertThat(BoardSpeechModel.jumpsFrom(Boards.english33Initial, ABOVE_CENTRE)).isEqualTo(1)
+        assertThat(BoardSpeechModel.jumpsFrom(Boards.english33Initial, FIRST_STOP)).isEqualTo(0)
+        assertThat(BoardSpeechModel.jumpsFrom(star, CENTRE)).isEqualTo(cellAt(speak(star), CENTRE).jumps)
+        assertThat(BoardSpeechModel.jumpsFrom(star, CENTRE)).isEqualTo(2)
+    }
+
+    @Test
     fun upIsTowardsRowOneAndLeftIsTowardsColumnOne() {
         assertThat(JumpDirection.of(from = CENTRE, to = Position(1, 3))).isEqualTo(JumpDirection.Up)
         assertThat(JumpDirection.of(from = CENTRE, to = Position(5, 3))).isEqualTo(JumpDirection.Down)
