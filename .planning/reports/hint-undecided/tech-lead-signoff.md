@@ -102,4 +102,41 @@ Next: **producer**, in this order.
 5. Route: **android-game-dev** — the GM6 Diamond-41 triage (§1.1) as its own task, and the `GameViewModelResumeTest` fragility after the cut's code branches; **ux-designer** — 23c clause 5 and the Height row (§2, finding 3) on a docs-only branch before the cut; **release-manager** — the "After R1" copy; **tech-lead** — `feature/tech-design-r1-close` (§4) before checklist 1.1; **qa-engineer** of row TB — the TalkBack-by-hand items; **retro** — QA's GM6-sleep and TalkBack-over-adb lessons, the developer's three harness lessons, and the brief-template corrections (§2).
 6. Merge order after this: `feature/phase-14-check-gates`, then `feature/audio-review` (keep-both in `GameAnim.kt`, the `LongMethod` move, this branch's seven named test classes re-run), as the brief's §10 and tech-design §14.1 order them.
 
+## Merge-in re-read — 2026-10-24 (Handoff step 3; this section replaces the separate `tech-lead-signoff-hunks.md`)
+Date: 2026-10-24
+Branch: bugfix/hint-undecided (report only; merge commit `df3dc2a`, parents `bd067e0` (this branch, my sign-off commit) and `2d045d1` (`develop`); subject `chore: merge develop (ux-spec folds) into hint-undecided`)
+Ran on: claude-fable-5-1 at effort xhigh
+Loops: 1 (the hunk re-read inside this step; the ux-designer's hunk read ran in parallel, unread by me)
+Lessons applied: none
+
+**The merge-in matches the ruling. VERDICT stands: PASS, now extended to `df3dc2a`.**
+
+**Method (hunk-only).** I compared the resolved `docs/ux-spec.md` at `df3dc2a` against the conflicted file of my own dry run (`git merge-tree` tree `797c139`, §3): for each of the eleven regions, the hint block and the folds block were searched as exact contiguous line sequences in the resolved file, and their order, contiguity, separator and, for region 8, position against `### 11.1` were checked by a script in the scratchpad (`hunkcheck.py`), then two junctions were read by eye.
+
+| # | Conflicted at | Resolved: hint block | Resolved: folds block | Between | Verdict |
+|---|---|---|---|---|---|
+| 1 | 7 | `revised: 2026-10-23` dropped | `revised: 2026-10-24` kept (line 7) | — | as ruled |
+| 2 | 295 | 291–369 (79 lines) | 371–484 (114 lines) | one `>` line | as ruled; the junction is inside the blockquoted revision index (every neighbouring line starts with `>`), so a blank quote line is the right separator — a plain blank line would have ended the quote |
+| 3 | 4108 | 4102–4105 | 4107–4131 | one blank line | as ruled |
+| 4 | 4167 | 4159–4165 | 4167–4170 | one blank line | as ruled |
+| 5 | 4611 | 4601–4608 | 4610–4677 | one blank line | as ruled |
+| 6 | 4809 | 4797–4799 | 4800–4803 | none | as ruled |
+| 7 | 4958 | 4943–4956 | 4957–4999 | none | as ruled |
+| 8 | 5035 | 5017–5049 (33 lines) | 5051–5357, opening with `### 11.1 The board with TalkBack` | one blank line | as ruled; **the load-bearing one holds**: the hint block ends at 5049, the `### 11.1` heading is at 5051, so the block reads as §11 body text |
+| 9 | 5425 | 5405–5414 | 5416–5418 | one blank line | as ruled |
+| 10 | 6409 | 6387–6392 | 6393–6450 | none | as ruled |
+| 11 | 6780 | 6755–6772 | 6774–6802 | one blank line | as ruled |
+
+Every hint block and every folds block occurs exactly once and contiguously; the hint side precedes the folds side in all ten keep-both regions; no interleaving anywhere. The seven separator lines are the developer's (regions 2, 3, 4, 5, 8, 9, 11, as the coordinator reported) and are the right Markdown in each place.
+
+**Whole-file reconciliation.**
+- `grep -cE '^(<<<<<<<|=======|>>>>>>>)'` — 0 markers.
+- `git diff --numstat 2d045d1 df3dc2a -- docs/ux-spec.md` — 739 added, **0 deleted**: `develop`'s spec is preserved line for line. The 739 added lines are, as a multiset, exactly this branch's own additions minus its `revised: 2026-10-23` line (`comm` of the two sorted addition lists in both directions: nothing added that the branch never added; nothing of the branch's missing but that one line).
+- `git diff bd067e0 df3dc2a -- docs/ux-spec.md` — 1938 added, 8 deleted; the 8 are the branch's `revised:` line and the seven merge-base lines that `develop`'s folds themselves edited (`git diff c5f2c54 2d045d1 -- docs/ux-spec.md` deletes exactly those seven plus its own `revised: 2026-09-29`), i.e. develop-side modifications that auto-merged, not lost hint text.
+- `git diff --stat 2d045d1 df3dc2a -- docs/tech-design.md` — empty: identical to `develop`'s (tech-design-sync) copy.
+- `git diff --stat bd067e0 df3dc2a -- app domain build-logic gradle scripts CLAUDE.md AGENTS.md` — empty: no code or build change, so the Check needs no re-run (its inputs are unchanged since the auditor's green run at `10f8bef`).
+- `git diff --name-status bd067e0 df3dc2a` outside `.planning/` additions — `FOUNDER.md`, `STATUS.md`, `THIRD_PARTY.md`, `docs/release-checklist.md`, `docs/tech-design.md`, `docs/ui/DESIGN-SYSTEM.md`, `docs/ux-spec.md`: `develop`'s files, none of which this branch had edited except the spec.
+
+**Still owed before the `--no-ff` merge:** the ux-designer's hunk read (running in parallel; it rules nothing, and the one placement it guards, region 8, holds here). Then Handoff step 4 as written.
+
 VERDICT: PASS
