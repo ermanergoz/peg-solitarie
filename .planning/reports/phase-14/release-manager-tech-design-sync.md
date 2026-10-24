@@ -54,3 +54,60 @@ I closed the five release-manager items from `tech-lead-signoff-release-docs.md`
 
 ## Handoff
 Next: producer — review the diff (code-auditor) and commit these three files on `feature/tech-design-sync` together with the tech-lead's `docs/tech-design.md` edit. N-1b, N-2a and N-7 are now ready for the cut. N-3 and N-6 are done ahead of 4.6a and 2.4a.
+
+## Pass 2 — code-auditor F-1, F-2, F-3, F-5, F-6, F-7 and the research-analyst's row J (2026-10-24)
+Branch: feature/tech-design-sync (committed by the producer; uncommitted edits on top of `5308d2e`, as dispatched)
+Ran on: claude-opus-5-5 at effort medium
+Loops: 1
+Lessons applied: none
+
+### Summary
+I closed the six release-manager findings of `code-auditor-tech-design-sync.md` and transcribed the research-analyst's row J changes (`PegSolitarie-lic/.planning/reports/licences-screen/research-analyst-mpl.md`, "Changes to transcribe"). I edited only `docs/release-checklist.md`, `THIRD_PARTY.md` and this report. I made no commit and ran no Gradle.
+
+### Outputs
+- `docs/release-checklist.md`:
+  - **1.1a, F-2:** the founder's words are now quoted exactly: "release/3.0.0 waits for it only if it is the last item left". The reversed paraphrase "even when" is gone.
+  - **1.1a (3), F-1 and F-5:** reworded to fit §14.1's pairwise path and brief §13.3.
+    - The code-auditor and qa-engineer each name the code head `R` they reviewed.
+    - After `R`, only merges of `develop` into the branch touch `app/` (`git log --no-merges R..$M^2 -- app/` is empty).
+    - The tech-lead sign-off names a commit whose `app/` tree equals the merged head and records its re-read of each merge-in's conflict hunks.
+    - The item now says "names as reviewed" instead of "`Branch:` range".
+  - **1.4, F-7:** the condition now reads "LN-7 green: items 1–3, 5 and 6", where item 6 is the branch's own check that it adds no coordinate.
+  - **4.6a (c), F-6:**
+    - The citation now reads: §2 for Apache-2.0 and the Jakarta NOTICE, §5b rows F–J for the rest.
+    - It also adds `MPL-2.0.txt` (`3f3d9e00`). LS-11 stands per the MPL verdict, so this text ships.
+  - **3.5:** adds the okhttp re-check. Row J's address holds only for okhttp 4.11.0. If the listing prints another okhttp, the research-analyst re-derives the address by git-blob match, then the release-manager updates row J.
+- `THIRD_PARTY.md`:
+  - **`:381`, F-3:** the branch is now described as "docs and reports only … and no code", backed by a `git diff --name-only` test, instead of "only its spec commit".
+  - **`:93`:** `MPL-2.0.txt` is added to the screen's texts.
+  - **Row J, Source URL:** now leads with the exact version shipped, `github.com/publicsuffix/list/blob/a312abe0e11421aff8fe909a5e02f36b7c5d28de/public_suffix_list.dat` (PSL 2023-02-15, sha256 `e8b273972eb5a70e…`, okhttp 4.11.0, re-derived at 3.5). The live list and the NOTICE address are kept.
+  - **Row J, How credited:** "Optionally the MPL-2.0 text" is replaced by the bundled `assets/licenses/MPL-2.0.txt` with its source and full hash, plus the CLEAN verdict and "names the exact version shipped". The NOTICE now carries its full hash.
+
+### Checks
+- `git diff --name-only develop...feature/licences-screen | grep -vcE '^(docs/|\.planning/)'` — 0. `git log --oneline develop..feature/licences-screen` — 6 commits (`0bf578d`, `e23a4b5`, `ddac9ab`, `ecddc40`, `4069b53`, `076fe3d`); this grounds F-3's new wording.
+- `sed -n 1396,1404p docs/tech-design.md` — read the pairwise rule, the ground for F-1. `sed -n 1286,1300p` — read LN-7 items 5 and 6, the ground for F-7.
+- Pipe count per edited row, with escaped `\|` excluded. All match their headers:
+  - checklist rows `:32`, `:35`, `:73`, `:90` — 5 pipes each, header `:29` has 5;
+  - THIRD_PARTY row J `:242` — 7 pipes, header `:235` has 7.
+- Greps that must hit:
+  - `grep -n -o 'waits for it only if it is the last item left' docs/release-checklist.md` — `:32`
+  - `grep -n -o "name the branch's code head they reviewed, \`R\`"` — `:32`
+  - `grep -n -o 'items 1–3, 5 and 6'` — `:35`
+  - `grep -n -o '§5b rows F–J for the rest'` — `:90`
+  - `grep -n -o 'okhttp re-check (row J)'` — `:73`
+  - `grep -n -o a312abe0e11421aff8fe909a5e02f36b7c5d28de THIRD_PARTY.md docs/release-checklist.md` — `THIRD_PARTY.md:242`, `docs/release-checklist.md:73`
+  - `grep -n -o 8a9c58fbded5ea3474315e4a9824ca8b1486098a1a03e897e0b19419d5e1876a THIRD_PARTY.md` — `:242`
+- Greps that must be empty:
+  - `grep -c 'even when it is the last item left' docs/release-checklist.md` — 0
+  - `grep -c 'end their \`Branch:\` range'` — 0
+  - `grep -c 'holds only its spec commit' THIRD_PARTY.md` — 0
+  - `grep -c 'Optionally the MPL-2.0 text' THIRD_PARTY.md` — 0
+- `git diff --check` — clean. `git diff --stat` — `THIRD_PARTY.md` +3/−3, `docs/release-checklist.md` +4/−4.
+
+### Open issues / risks
+- **`MPL-2.0.txt` was added beyond the coordinator's list.** I added it to 4.6a (c) and `:93` because the research verdict makes LS-11's bundled text a shipped asset. If the ux-designer drops LS-11, both mentions must go at 2.4a.
+- **4.6a (c) uses the asset's filename before the branch fixes it.** `MPL-2.0.txt` is the name in the verdict's transcription, and the branch has not fixed it in `BundledLicenseText` yet. 4.6a (c) already defers to that class's paths.
+- **F-4 and F-8 belong to the tech-lead.** I did not touch them.
+
+### Handoff
+Next: producer — have the code-auditor re-check pass 2, then commit it on `feature/tech-design-sync`.
