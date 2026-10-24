@@ -26,7 +26,8 @@ enum class BoardMarkPalette { Standard, Colorblind }
  * @property hintRing both hint rings and the connector (its alpha is the recipe's).
  * @property earnedStarFill the earned star's gradient stops.
  * @property earnedStarOutline the outline drawn over an earned star, or `null` for none.
- * @property unearnedStarOutline an unearned star's colour.
+ * @property unearnedStarOutline an unearned star's colour: the hollow star's band
+ *   (`onSurfaceVariant` in both palettes, Q-027).
  * @property donePipFill the tutorial's done step pip's gradient stops.
  */
 @Immutable
@@ -55,8 +56,9 @@ val LocalBoardMarks = compositionLocalOf { boardMarksFor(BoardMarkPalette.Standa
  * values of `Color.kt` and `Clay.kt` and composes nothing, so a JVM test can call it. Composables
  * read the result through [LocalBoardMarks], never by calling this.
  *
- * The Standard marks are exactly today's tokens; the Colorblind marks are §3.4's table, and its dark
- * column adds no hex.
+ * The Standard marks are today's tokens but one: the unearned star takes the Colorblind palette's
+ * `onSurfaceVariant`, the founder's Q-027 (option 2, "stars only"; the board is unchanged). The
+ * Colorblind marks are §3.4's table, and its dark column adds no hex.
  */
 internal fun boardMarksFor(
     palette: BoardMarkPalette,
@@ -64,6 +66,9 @@ internal fun boardMarksFor(
 ): BoardMarks {
     val scheme = if (darkTheme) DarkColors else LightColors
     val gold = (if (darkTheme) DarkClayColors else LightClayColors).goldGradient
+    // §3.4's unearned-star colour, which the standard palette shares (Q-027): its hollow star in
+    // `outlineVariant` read 1.20–1.50:1 and nearly vanished at 16dp (§12.6, F-CV4).
+    val unearnedStar = scheme.onSurfaceVariant
     return when (palette) {
         BoardMarkPalette.Standard ->
             BoardMarks(
@@ -74,7 +79,7 @@ internal fun boardMarksFor(
                 hintRing = scheme.tertiary,
                 earnedStarFill = gold,
                 earnedStarOutline = null,
-                unearnedStarOutline = scheme.outlineVariant,
+                unearnedStarOutline = unearnedStar,
                 donePipFill = gold,
             )
         BoardMarkPalette.Colorblind -> {
@@ -87,7 +92,7 @@ internal fun boardMarksFor(
                 hintRing = if (darkTheme) scheme.tertiary else LightColorblindHint,
                 earnedStarFill = amberFill,
                 earnedStarOutline = scheme.onTertiaryContainer,
-                unearnedStarOutline = scheme.onSurfaceVariant,
+                unearnedStarOutline = unearnedStar,
                 donePipFill = amberFill,
             )
         }

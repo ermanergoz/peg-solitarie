@@ -13,7 +13,11 @@ import org.junit.Test
  * A pure JVM test: [boardMarksFor] reads the colour schemes and clay values and composes nothing.
  */
 class BoardMarksTest {
-    /** CV-13: the standard palette is today's tokens — `primary`, `tertiary`, the gold gradient, `outlineVariant`. */
+    /**
+     * CV-13: the standard palette is today's tokens — `primary`, `tertiary`, the gold gradient — except
+     * the unearned star, which takes the colour-blind palette's `onSurfaceVariant` (founder Q-027,
+     * option 2: "stars only"; the board is unchanged).
+     */
     @Test
     fun theStandardMarksAreTodaysTokensInTheLightTheme() {
         assertThat(boardMarksFor(BoardMarkPalette.Standard, darkTheme = false))
@@ -26,7 +30,7 @@ class BoardMarksTest {
                     hintRing = Color(0xFFF59E0B),
                     earnedStarFill = listOf(Color(0xFFFDE68A), Color(0xFFF59E0B)),
                     earnedStarOutline = null,
-                    unearnedStarOutline = Color(0xFFDCD3EC),
+                    unearnedStarOutline = Color(0xFF635F69),
                     donePipFill = listOf(Color(0xFFFDE68A), Color(0xFFF59E0B)),
                 ),
             )
@@ -44,7 +48,7 @@ class BoardMarksTest {
                     hintRing = Color(0xFFFBBF24),
                     earnedStarFill = listOf(Color(0xFFFFF3C4), Color(0xFFFBBF24)),
                     earnedStarOutline = null,
-                    unearnedStarOutline = Color(0xFF3A3350),
+                    unearnedStarOutline = Color(0xFFA79FB5),
                     donePipFill = listOf(Color(0xFFFFF3C4), Color(0xFFFBBF24)),
                 ),
             )

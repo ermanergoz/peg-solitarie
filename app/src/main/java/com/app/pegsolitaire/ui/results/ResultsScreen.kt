@@ -69,8 +69,9 @@ private var SemanticsPropertyReceiver.earnedStarCountValue by EarnedStarCountKey
  * content column capped at `content_max_width`, stacking: the star-tiered headline
  * (D-08, scaling in), the 3-star row (the first [ResultsUiState.stars] filled with the
  * GoldGradient + a soft glow, popping in sequentially with a 120ms stagger; the rest
- * outline `outlineVariant`), the "New best!" pill bouncing in when this play improved a
- * stored best ([ResultsUiState.newBests], D-09), the SCORE / TIME / PEGS LEFT metric
+ * hollow, in `onSurfaceVariant`: colour-vision §3.4, CV-13a), the "New best!" pill
+ * bouncing in when this play improved a stored best ([ResultsUiState.newBests],
+ * D-09), the SCORE / TIME / PEGS LEFT metric
  * block (tabular figures, the score counting up over ~600ms), and the actions — a
  * single CtaGradient primary action (wrapping `replayId`) plus quiet clay chips.
  * Classic has no "next board", so that Challenge-mode action is intentionally absent.
