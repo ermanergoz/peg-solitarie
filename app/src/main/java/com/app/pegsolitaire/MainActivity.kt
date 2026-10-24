@@ -1,6 +1,7 @@
 package com.app.pegsolitaire
 
 import android.content.Intent
+import android.media.AudioManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -35,6 +36,9 @@ import javax.inject.Inject
  * see [consentGateway] — the opt-in-gated Play Games sign-in (PGS-01, D-01) — see
  * [gamesService] — and the Play Games submission collector (PGSL-05, D-10) — see
  * [progressSubmitter]. Each is one undecorated, fire-and-forget line; none branches here.
+ *
+ * It also points the hardware volume keys at the media stream game sound plays on (V1), so a
+ * player turning the game down can never step the phone into Vibrate instead; see [onCreate].
  *
  * Every seam declared here is the **interface**, for the same reason `App` documents:
  * naming a concrete implementation instead would build a second, unscoped instance — a
@@ -131,6 +135,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // V1 (docs/tech/audio-silent-mode.md §2.5): with nothing playing, the volume keys would
+        // otherwise step the RINGER on some builds, down into Vibrate — where the speaker gate
+        // then silences the game. Pointing them at the media stream, which game sound plays on,
+        // keeps "quieter" from meaning "silent". Not a focus call; nothing else changes.
+        volumeControlStream = AudioManager.STREAM_MUSIC
         // After super.onCreate() is not stylistic: Hilt performs field injection as part of
         // that call, so touching an injected field earlier throws
         // UninitializedPropertyAccessException. All three calls below are fire-and-forget —

@@ -22,7 +22,7 @@ import javax.inject.Singleton
  * corrupt/IO read both degrade to "helper on", so a damaged store can never silently
  * strip a beginner's help — it only re-enables the harmless assists.
  */
-interface SettingsRepository {
+interface SettingsRepository : HapticsSetting {
     /** Whether legal-destination hint dots are shown; fail-open default `true`. */
     val hintsEnabled: Flow<Boolean>
 
@@ -30,7 +30,7 @@ interface SettingsRepository {
     val soundOn: Flow<Boolean>
 
     /** Whether haptic feedback is enabled; fail-open default `true` (SET-02). */
-    val hapticsOn: Flow<Boolean>
+    override val hapticsOn: Flow<Boolean>
 
     /** Persists the player's hint on/off choice. */
     suspend fun setHintsEnabled(enabled: Boolean)

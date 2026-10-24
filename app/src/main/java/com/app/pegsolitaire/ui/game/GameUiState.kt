@@ -89,6 +89,13 @@ import com.app.pegsolitaire.platform.ads.AdReason
  *   peg is selected (SOUND-02's quiet invalid tap). That branch is a pure no-op on the board, so
  *   without this ordinal the event leaves no observable trace at all. Guard on `> 0` at the
  *   consumer, as with [selectionTick].
+ * @property rejectedTapCell the cell the latest rejected tap landed on — with [rejectedTapTick],
+ *   the wrong-tap signal (D-06, `docs/ux/invalid-tap-feedback.md` §3.7). The ordinal says *that*
+ *   a tap was refused and this says *where*, so the board can answer on the tapped cell; the kind
+ *   of wrong tap follows from [board] and [selected], which a wrong tap changes neither of. `null`
+ *   until the first rejected tap on the board now installed: unlike the ordinal it is **not**
+ *   carried across a board install, because it names a cell of the board being replaced. A
+ *   successful action touches neither half (WT-4); ending the board's answer is the board's job.
  * @property pendingAdOffer the assist the themed opt-in dialog is currently offering an ad for
  *   (ADS-01), or `null` when no dialog is up — the same nullable-flag-drives-a-dialog shape as
  *   [confirmRestart], which is why no separate `showAdOffer` boolean exists. It carries the
@@ -138,6 +145,7 @@ data class GameUiState(
     val deselectionTick: Int = 0,
     val undoTick: Int = 0,
     val rejectedTapTick: Int = 0,
+    val rejectedTapCell: Position? = null,
     // The assist-funnel surface, and DELIBERATELY only this. No hint/undo allowance count
     // belongs here (D-05, UI-SPEC §Deliberate Non-UI): the counters stay private to the
     // ViewModel because the controls must not change appearance with them — no badge, no
@@ -182,6 +190,7 @@ data class GameUiState(
                 deselectionTick = 0,
                 undoTick = 0,
                 rejectedTapTick = 0,
+                rejectedTapCell = null,
                 pendingAdOffer = null,
                 adOfferLoading = false,
                 adMessage = null,
@@ -217,6 +226,7 @@ data class GameUiState(
                 deselectionTick = 0,
                 undoTick = 0,
                 rejectedTapTick = 0,
+                rejectedTapCell = null,
                 pendingAdOffer = null,
                 adOfferLoading = false,
                 adMessage = null,

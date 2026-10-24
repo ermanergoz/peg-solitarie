@@ -275,7 +275,7 @@ class GameScreenSoundTest {
         assertThat(sounds.preloadCalls).isEqualTo(0)
     }
 
-    // ---- The screen has no audio gate (deliberate JumpHaptic asymmetry) -----
+    // ---- The screen has no audio gate (deliberate JumpHapticEffect asymmetry) ---
 
     @Test
     fun theScreenStillCallsThePlayerWhenTheSoundSettingIsOff() {

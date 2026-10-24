@@ -338,7 +338,8 @@ val audioFocusLiteralCheck =
                     "Audio focus must never be requested (SOUND-06). Ducking is initiated by a " +
                         "focus request — an app that holds no focus cannot duck the player's " +
                         "music or podcast, so the omission IS the implementation. Play through " +
-                        "SoundPool with USAGE_GAME attributes and leave AudioManager alone. " +
+                        "SoundPool with USAGE_GAME attributes and never request audio focus from " +
+                        "AudioManager (reading the ringer mode and the output devices is fine). " +
                         "$shippedScopeSentence\n  " +
                         offenders.joinToString("\n  "),
                 )
