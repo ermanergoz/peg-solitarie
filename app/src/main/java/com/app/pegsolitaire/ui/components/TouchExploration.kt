@@ -51,6 +51,12 @@ internal const val FOCUS_MOVE_GAP_MS = 200L
  * request on a target that already has input focus changes nothing, so no focus event is sent and
  * TalkBack stays where it was. Clearing first, then waiting [FOCUS_MOVE_GAP_MS], makes the target's
  * focus go from false to true every time. Callers make this move only while touch exploration is on.
+ *
+ * Outside touch mode (a hardware keyboard with TalkBack), the clear hands input focus to the first
+ * focusable control for the gap before the target takes it (loop 2, L1-2). Compose UI 1.11.3 offers no
+ * public clear that leaves focus nowhere: `FocusManager` has only `clearFocus(force)` and `moveFocus`,
+ * and the variant that keeps the owner's focus is on the internal `FocusOwner`. QA checks it on the
+ * device; in touch mode, where TalkBack's players are, nothing takes the focus in between.
  */
 internal suspend fun FocusManager.moveInputFocusTo(target: FocusRequester) {
     clearFocus(force = true)
