@@ -108,6 +108,7 @@ Blocks: candy-backdrop spec and build reviews, phase-14 R-1 QA and sign-off, che
 Answer: 3 — Opus for every Fable-pinned role until 3.0.0 is published (2026-10-17). Recorded as a deviation
 from studio staffing in every report; mitigations: fresh reviewers, Check and mutation probes run by the reviewer.
 Addendum 2026-10-23 (founder, in chat): "all limits reset. continue. you can use fable as well for supervision now" — Fable is available again for the supervising roles (reviews, checks, sign-offs); dispatches from now run those roles on their pinned model. Authoring runs already in flight on Opus may finish on Opus.
+Addendum 2026-10-24 (founder, in chat, after every pinned dispatch hit HTTP 429 at 20:30): "We run out of fable. You can keep using opus" — option 3 stands again: every Fable-pinned role runs on Opus, each report recording the deviation, with the same mitigations.
 
 ## Q-018 — minSdk 24 → 26: when, if ever?   (answered)
 Date: 2026-10-17    Asked by: tech-lead
