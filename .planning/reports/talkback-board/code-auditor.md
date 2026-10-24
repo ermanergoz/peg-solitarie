@@ -42,3 +42,14 @@ Mutations (throwaway worktree, removed): M1 swap action labels killed (4); M2 ca
 android-game-dev (fix mode): F-1, F-2 must; F-3–F-5 same loop; then a fresh re-review. QA's device pass waits for F-2's fix.
 
 VERDICT: FAIL
+
+## Loop 1 — re-review `f61b0d6..c0c1bbb` (2026-10-24)
+> Producer note: returned as text; appended by the producer, condensed. Same Q-019 deviation. Loops: 1.
+- F-1 closed (saveable "spoken" flag; own probe P3 via `emulateSavedInstanceStateRestore()` speaks nothing after restore). F-2 closed (P1: centre lost at frame 0, back at 12; P2: step-3 stop lost 0–12, focused at 13). F-4, F-5 closed. F-3 half closed.
+- 200 ms gap accepted vs Compose UI 1.11.3's 100 ms `SendRecurringAccessibilityEventsIntervalMillis`; it fixes the line-then-stop order but may truncate the polite line ~200 ms in — QA listens (device question 2).
+- **L1-1 Major — `ui/game/BannerAction.kt:43-46`:** the `withdrawn` key includes `state.confirmRestart`, so a banner Restart confirmed in its dialog never moves focus to the board stop (§11.1: banner leaves → Moved). Probe P6: after `onConfirmRestart()` `restartTick=1`, banner gone, stop not focused. Fix: withdraw only on decline (keep the ad-offer withdrawal); test confirm → false→true, decline → no move. Or the ux-designer rules it TalkBack's own placement and amends §11.1.
+- **L1-2 Minor — `ui/components/TouchExploration.kt:56`:** `clearFocus(force = true)` outside touch mode hands focus to the first control for the gap (P5: a button above the board 12 frames; "Skip tutorial" 13). Fine on a touch-mode phone; a hardware-keyboard TalkBack user would hear it. Fix in code or QA device check.
+- **L1-3 Minor (test gap):** no test of the banner's immediate Restart on a stuck board (M6 removed it, `GameScreenTalkBackTest` stayed green; P7 shows it works). Add the positive test.
+- Checks: `./scripts/check.sh` at `f95f91d` pass 11m 7s; with `--rerun` pass 11m 22s — `:app` 1,297, `:domain` 294, 0 failures. No new suppression. Probes in a removed worktree.
+
+VERDICT: FAIL
