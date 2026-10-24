@@ -26,6 +26,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -390,8 +394,10 @@ private fun Metric(
 
 /**
  * Results' summary (D-TB, TB-8): "Solved! — 2 of 3 stars, 2 pegs left.", put on the screen's polite
- * channel once, when [ResultsUiState.playCelebration] marks this showing as the result's first — so a
- * rotation, a process-death restore or a return onto the same entry speaks nothing (D-TBa item 7).
+ * channel once per result (D-TBa item 7). [ResultsUiState.playCelebration] marks the result's first
+ * showing, but the ViewModel and its latch survive a rotation and a return onto the same entry, so
+ * the screen also keeps its own saved "spoken" flag: a recreated screen, or one restored after process
+ * death, speaks nothing (loop 1, F-1).
  */
 @Composable
 private fun ResultsSummaryAnnouncement(
@@ -405,13 +411,16 @@ private fun ResultsSummaryAnnouncement(
             totalStars = TOTAL_STARS,
             pegsLeft = state.pegsRemaining,
         )
+    var spoken by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(state.playCelebration) {
-        if (state.playCelebration) announcer.announce(summary)
+        if (state.playCelebration && !spoken) {
+            spoken = true
+            announcer.announce(summary)
+        }
     }
 }
 
 /** The headline string resource for [tier] (D-08). */
-
 private fun headlineResFor(tier: ResultsHeadlineTier): Int =
     when (tier) {
         ResultsHeadlineTier.PERFECT -> R.string.results_headline_perfect
