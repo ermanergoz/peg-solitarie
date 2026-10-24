@@ -3,6 +3,7 @@ package com.app.pegsolitaire.ui.theme
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.SemanticsPropertyKey
 
 /**
  * The two looks of the board marks, the stars and the tutorial's done pip
@@ -92,3 +93,9 @@ internal fun boardMarksFor(
         }
     }
 }
+
+/**
+ * Semantics: the palette the gameplay board draws in (CV-AC03) — a test hook in the `PegCountKey`
+ * idiom, carried by the board-state node. TalkBack does not read a custom key.
+ */
+val BoardMarkPaletteKey = SemanticsPropertyKey<BoardMarkPalette>("BoardMarkPalette")
