@@ -43,3 +43,33 @@ Lessons applied: none (0 active lessons in the snapshot)
 
 ## Handoff
 Next: producer — commit `THIRD_PARTY.md`, `docs/release-checklist.md` and this report on `feature/phase-14-check-gates` with the branch's other review outputs. The code-auditor reviews this diff with the rest of `develop...HEAD`.
+
+## Pass 2 — code-auditor findings 1 and 2 (`.planning/reports/phase-14/code-auditor-check-gates.md`)
+Date: 2026-10-24. Branch: feature/phase-14-check-gates (head 9b04cf4; working-tree edits, committed by the producer). Loops: 1. Only `THIRD_PARTY.md` and `docs/release-checklist.md` were touched. `docs/tech-design.md` belongs to the tech-lead and was not opened for writing.
+
+### Summary
+- **Finding 1:** `THIRD_PARTY.md` §4 gains the row `androidx.hilt:hilt-lifecycle-viewmodel-compose` 1.3.0, Apache-2.0. It cites the Google Maven POM URL and the LICENSE.txt bundled in the AAR. The §5b `androidx.*` family row now says that direct `androidx.*` coordinates have their own §4 rows, this one included, and adds "Hilt Navigation" to its pulled-by column. The auditor also flagged a stale §0 citation, now `app/build.gradle.kts:478-551` (`feature/phase-14-check-gates` 9b04cf4); it was `478-547` (`develop` 0582e3f).
+- **Finding 2:** I chose `--rerun-tasks`, not the JUnit XML. Items 1.2 and 3.1 now run `FUZZ_SEEDS=100000 ./scripts/check.sh --rerun-tasks`. A `FROM-CACHE` or `UP-TO-DATE` `:domain:fuzz` leaves 3.1 unticked. Item 3.4 now reads its task list from that run.
+- **Why `--rerun-tasks`:**
+  - The cache hit affects more than the fuzz lines. Item 3.4 asks to "confirm the task list actually invoked" the literal gates, and 3.3 asks for the measured coverage figure. On a cache hit, all of those tasks come back `FROM-CACHE` too. The XML route would mend 3.1 alone and leave 3.3 and 3.4 reading restored outputs.
+  - With the flag, every gate the release relies on runs on the release branch's own tree in that run.
+  - It costs almost nothing. `check` is about 11 minutes either way, most of it `depthSweep`, and the green `--rerun-tasks` Checks on this branch took 11m 32s and 11m 48s.
+  - `check.sh` passes every argument to `./gradlew check` verbatim (`scripts/check.sh` lines 20 and 110). The developer and the auditor both ran `./scripts/check.sh --offline --rerun-tasks`.
+
+### Checks
+- `curl -sS https://dl.google.com/android/maven2/androidx/hilt/hilt-lifecycle-viewmodel-compose/1.3.0/hilt-lifecycle-viewmodel-compose-1.3.0.pom | grep -A4 '<license>'`: pass ("The Apache Software License, Version 2.0").
+- `unzip -l` on the cached `hilt-lifecycle-viewmodel-compose-1.3.0.aar`, filtered for `license|notice`: pass. Its only hit is `META-INF/androidx/hilt/hilt-lifecycle-viewmodel-compose/LICENSE.txt` (10,175 B), which opens "Apache License / Version 2.0, January 2004". There is no NOTICE file, so item 3.5a has nothing to add for it. No POM is in the local cache, which agrees with the auditor.
+- `grep -n 'hilt-lifecycle-viewmodel-compose\|^hiltNavigationCompose' gradle/libs.versions.toml`: pass. Line 191 uses `version.ref = "hiltNavigationCompose"`, and line 36 sets it to `"1.3.0"`. `sed -n 511p app/build.gradle.kts` → `implementation(libs.hilt.lifecycle.viewmodel.compose)`.
+- `grep -n 'implementation(' app/build.gradle.kts | sed -n '1p;$p'`: lines 478 and 551, matching the new §0 citation.
+- `grep -n -o '\`androidx.hilt:hilt-lifecycle-viewmodel-compose\` | 1.3.0 | Apache-2.0' THIRD_PARTY.md`: pass (line 197). `'app/build.gradle.kts:478-551'`: pass (line 39). `'Hilt Navigation |'`: pass (line 227).
+- `grep -n 'org.gradle.caching' gradle.properties`: `3:org.gradle.caching=true`, the premise of finding 2.
+- `grep -n -o 'FUZZ_SEEDS=100000 ./scripts/check.sh --rerun-tasks' docs/release-checklist.md`: pass (lines 33 and 69). `'\`--rerun-tasks\` is required'`: pass (lines 33 and 69). `"3.1's \`--rerun-tasks\` console"`: pass (line 72). The old bare command `` `FUZZ_SEEDS=100000 ./scripts/check.sh` `` occurs 0 times.
+- Table integrity, counting cells with `awk -F'|'`: pass. §4 row 197 and §5b row 227 have 4 cells each. Checklist rows 1.2, 3.1 and 3.4 have 4 cells each.
+- `git diff --stat`: 2 files, +6/−5. `git status --short` shows those two files and this report.
+- Gradle: not run. I did not re-run the auditor's cache-hit reproduction; it is cited from their report (Checks, the `1000`/`1000`/`2000`/`100000` line).
+
+### Open issues / risks
+- `--rerun-tasks` also re-runs `:domain:test`'s wall-clock deadline tests under kover. The load-sensitivity open issue from pass 1, a tech-lead ruling, applies unchanged. A run on a quiet host is still the producer's scheduling call.
+
+### Handoff
+Next: producer. Commit `THIRD_PARTY.md`, `docs/release-checklist.md` and this report. The code-auditor can confirm that findings 1 and 2 are closed from this diff.
