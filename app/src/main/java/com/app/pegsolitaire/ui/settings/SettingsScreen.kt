@@ -65,9 +65,9 @@ import kotlinx.coroutines.launch
  * nav) over a centered column, capped at `content_max_width`, of two toggle rows that are
  * exact peers: Sound and Haptics.
  *
- * Sound persists the flag only this phase — there is no audio engine yet (D-16) — so its
- * supporting line says so rather than implying playback that does not exist; Haptics is
- * live (D-15) and its supporting line describes the real jump feedback.
+ * Both switches are live. Sound's gate is the sound player's own (SOUND-05): it reads the
+ * choice straight from the repository, so switching it off also silences cues already
+ * playing. Haptics gates the jump's light tick (D-15) and the wrong tap's reject buzz (D-06b).
  *
  * ## The two sections (D-14, REL-05, CONS-03)
  *

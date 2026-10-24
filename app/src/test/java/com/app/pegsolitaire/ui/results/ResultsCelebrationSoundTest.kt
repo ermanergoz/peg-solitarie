@@ -1,6 +1,5 @@
 package com.app.pegsolitaire.ui.results
 
-import android.provider.Settings
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -11,13 +10,13 @@ import com.app.pegsolitaire.audio.LocalSoundPlayer
 import com.app.pegsolitaire.audio.SoundCue
 import com.app.pegsolitaire.audio.SoundParams
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
@@ -36,7 +35,7 @@ import org.robolectric.annotation.Config
  *  - **D-15, the ladder is a prefix.** Pops always start at [SoundParams.starPopRate] step
  *    0 and climb, so a 2-star result plays notes 1-2 and the top resolving note is audibly
  *    reserved for a 3-star finish. The 2-star case asserts that top note is *absent*.
- *  - **D-13, the audio survives reduced motion.** With the OS animator duration scale at 0
+ *  - **D-13, the audio survives reduced motion.** With the animation scale at 0
  *    the visual stars land instantly, but the pops still sequence — on their own fixed
  *    stagger — instead of collapsing into one simultaneous burst.
  *  - **D-16, once per win.** A `playCelebration = false` state (the re-entry after a back
@@ -45,8 +44,11 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [CELEBRATION_SOUND_ROBOLECTRIC_SDK])
 class ResultsCelebrationSoundTest {
+    /** The animation scale the screen's effects and its reduced-motion gate read; on unless a test turns it off. */
+    private val motion = SystemMotionScale()
+
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createComposeRule(effectContext = motion)
 
     /** Records every cue the celebration fires instead of playing it. */
     private val sounds = FakeSoundPlayer()
@@ -182,11 +184,7 @@ class ResultsCelebrationSoundTest {
     private fun popRates(): List<Float> = sounds.events.filter { it.cue == SoundCue.StarPop }.map { it.rate }
 
     private fun disableOsAnimations() {
-        Settings.Global.putFloat(
-            RuntimeEnvironment.getApplication().contentResolver,
-            Settings.Global.ANIMATOR_DURATION_SCALE,
-            ANIMATIONS_DISABLED_SCALE,
-        )
+        motion.turnAnimationsOff()
     }
 }
 
@@ -217,9 +215,6 @@ private const val JUST_PAST_LEAD_IN_MS = 300L
 
 /** Far past the whole three-pop sequence on either stagger. */
 private const val CELEBRATION_SETTLE_MS = 2_500L
-
-/** The OS animator duration scale that means "animations off" (D-13). */
-private const val ANIMATIONS_DISABLED_SCALE = 0f
 
 /** The rate the [step]-th pop must be played at. */
 private fun popRate(step: Int): Float = SoundParams.starPopRate(step)

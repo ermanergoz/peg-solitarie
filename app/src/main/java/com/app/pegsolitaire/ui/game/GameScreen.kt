@@ -352,17 +352,16 @@ fun GameScreen(
  * two events sounded the same. What survives is that a deselect is a *successful* action, not
  * a rejection, and must never fire the invalid-tap cue.
  *
- * The `> 0` guard is required, not defensive: it is the second half of the phantom-cue fix
- * whose first half is the ordinal carry-forward in `GameViewModel`. The carry-forward stops a
- * state rebuild from changing the key; this guard stops a genuinely fresh state at 0 from
- * firing on first composition.
+ * Keyed through [NewOrdinalEffect], the second half of the phantom-cue fix whose first half is
+ * the ordinal carry-forward in `GameViewModel`. The carry-forward stops a state rebuild from
+ * changing the key; [NewOrdinalEffect] never fires for the ordinal a composition first sees, so
+ * neither a genuinely fresh state at 0 nor a screen recreated with a carried ordinal (a rotation)
+ * plays a pick-up made before it (sound-designer F-1).
  */
 @Composable
 private fun SelectionSound(selectionTick: Int) {
     val sound = LocalSoundPlayer.current
-    LaunchedEffect(selectionTick) {
-        if (selectionTick > 0) sound.play(SoundCue.Select)
-    }
+    NewOrdinalEffect(selectionTick) { sound.play(SoundCue.Select) }
 }
 
 /**
@@ -371,14 +370,12 @@ private fun SelectionSound(selectionTick: Int) {
  * [SoundCue.Deselect] is the [SoundCue.Select] pop reversed and pitched down a whole tone, so
  * the put-down reads as the same sound family as the pick-up without reading as the same
  * event. It is a successful action, so this is deliberately *not* the invalid-tap cue.
- * `> 0` guard as in [SelectionSound].
+ * Keyed through [NewOrdinalEffect] as [SelectionSound] is.
  */
 @Composable
 private fun DeselectionSound(deselectionTick: Int) {
     val sound = LocalSoundPlayer.current
-    LaunchedEffect(deselectionTick) {
-        if (deselectionTick > 0) sound.play(SoundCue.Deselect)
-    }
+    NewOrdinalEffect(deselectionTick) { sound.play(SoundCue.Deselect) }
 }
 
 /**
@@ -386,15 +383,13 @@ private fun DeselectionSound(deselectionTick: Int) {
  *
  * D-09 reads Undo as an in-game *assist* control, not a navigational CTA, so it keeps its own
  * distinct event cue rather than the button click. The ordinal only advances past both of
- * `onUndo`'s guards, so a declined grant or an empty history stays silent. `> 0` guard as in
- * [SelectionSound].
+ * `onUndo`'s guards, so a declined grant or an empty history stays silent. Keyed through
+ * [NewOrdinalEffect] as [SelectionSound] is.
  */
 @Composable
 private fun UndoSound(undoTick: Int) {
     val sound = LocalSoundPlayer.current
-    LaunchedEffect(undoTick) {
-        if (undoTick > 0) sound.play(SoundCue.Undo)
-    }
+    NewOrdinalEffect(undoTick) { sound.play(SoundCue.Undo) }
 }
 
 /**
@@ -402,14 +397,14 @@ private fun UndoSound(undoTick: Int) {
  *
  * Reserved for real rejections: an empty or out-of-play cell with no selection, or an illegal
  * destination while a peg is selected. A deselect is not one of those (D-05a) — it takes
- * [DeselectionSound]. `> 0` guard as in [SelectionSound].
+ * [DeselectionSound]. Keyed through [NewOrdinalEffect] as [SelectionSound] is, like the wrong
+ * tap's haptic and announcement, so after a rotation the cue never sounds alone for a tap made
+ * before it.
  */
 @Composable
 private fun InvalidTapSound(rejectedTapTick: Int) {
     val sound = LocalSoundPlayer.current
-    LaunchedEffect(rejectedTapTick) {
-        if (rejectedTapTick > 0) sound.play(SoundCue.InvalidTap)
-    }
+    NewOrdinalEffect(rejectedTapTick) { sound.play(SoundCue.InvalidTap) }
 }
 
 /**
@@ -421,8 +416,8 @@ private fun InvalidTapSound(rejectedTapTick: Int) {
  *
  * Private to the gameplay screen, beside [InvalidTapSound], so the tutorial — which answers a
  * wrong tap with its redirect alone (D-01j(2), tech-lead Ruling 3) — cannot call it. Keyed through
- * [NewOrdinalEffect] rather than the `> 0` guard the cues use, so a screen recomposed from scratch
- * with a carried ordinal (a rotation) does not buzz for a tap made before it.
+ * [NewOrdinalEffect], as the tick cues are, so a screen recomposed from scratch with a carried
+ * ordinal (a rotation) does not buzz for a tap made before it.
  */
 @Composable
 private fun WrongTapHaptic(

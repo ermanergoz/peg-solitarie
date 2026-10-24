@@ -1,6 +1,5 @@
 package com.app.pegsolitaire.ui.game
 
-import android.provider.Settings
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.test.click
@@ -28,6 +27,7 @@ import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
 import com.app.pegsolitaire.platform.ads.NoOpAdGateway
+import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
@@ -54,8 +54,9 @@ import kotlin.time.TestTimeSource
  * already uses for `LocalHapticFeedback`.
  *
  * Two things it deliberately pins beyond "the right cue fired":
- *  - **A fresh state makes no sound at all** — the `> 0` ordinal guards hold on first
- *    composition, which is half of the phantom-cue fix (RESEARCH Pitfall 2).
+ *  - **A fresh state makes no sound at all** — the ordinal guards hold on first composition
+ *    (`NewOrdinalEffect` for Select, Deselect, Undo and InvalidTap), which is half of the
+ *    phantom-cue fix (RESEARCH Pitfall 2).
  *  - **The screen has no audio gate.** Unlike `hapticsOn`, silencing is the player's job
  *    (SOUND-05 needs to stop one-shots already in flight), so the screen calls the player
  *    unconditionally and the persisted setting never reaches the UI state.
@@ -63,8 +64,11 @@ import kotlin.time.TestTimeSource
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [SCREEN_SOUND_ROBOLECTRIC_SDK])
 class GameScreenSoundTest {
+    /** The animation scale the screen's effects and its reduced-motion gate read; on unless a test turns it off. */
+    private val motion = SystemMotionScale()
+
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createComposeRule(effectContext = motion)
 
     private val context get() = RuntimeEnvironment.getApplication()
 
@@ -354,13 +358,14 @@ class GameScreenSoundTest {
     }
 
     /**
-     * Turns the OS animator scale off for this test, the way a player with reduced motion has
-     * it — the same `Settings.Global` value `rememberAnimationsEnabled()` reads, so the whole
-     * screen takes the disabled path rather than a mocked approximation of it. It must be set
-     * **before** the composition, because that read is `remember`ed per context.
+     * Turns the animation scale off for this test, the way a player with reduced motion has it:
+     * the composition's `MotionDurationScale` goes to 0, and both `rememberAnimationsEnabled()` and
+     * every `Animatable` read it, so the whole screen takes the disabled path, clock included,
+     * rather than a mocked approximation of it. Under Compose's test rule a `Settings.Global` write
+     * reaches neither.
      */
     private fun disableOsAnimations() {
-        Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, ANIMATIONS_OFF)
+        motion.turnAnimationsOff()
     }
 
     /** Selects the peg at [fromCol] then taps [toCol] — one jump along the chain row. */
@@ -418,9 +423,6 @@ private const val CHAIN_ROW = 3
 
 /** Comfortably past `SoundParams.REMOVAL_LAYER_DELAY_MS`, so the layered cue has landed. */
 private const val REMOVAL_SETTLE_MILLIS = 500L
-
-/** The OS animator duration scale a player with reduced motion has set (criterion 25). */
-private const val ANIMATIONS_OFF = 0f
 
 /** A cell center as a fraction of the square board canvas (grid centered, origin 0). */
 private fun androidx.compose.ui.test.TouchInjectionScope.cellCenter(
