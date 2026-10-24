@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -68,12 +69,13 @@ const val GAME_TIMER_PILL_TEST_TAG = "game_timer_pill"
  * elevation and no bar title row, which is criterion 16. Making it one again would also bring
  * back the insets and scroll behaviour that the founder's "remove the toolbar" was about.
  *
- * ## Three preserved content descriptions
+ * ## Two preserved content descriptions, and the timer's that says its time
  *
- * `navigate_back` and `elapsed_time` are carried across **unchanged** (D-05b): `ButtonSoundTest`
- * finds the back control by the first and `GameFlowTest` finds the timer by the second, and both
- * tests must keep passing byte-unchanged. If either description had to move, the drift is in the
- * production code and not in the test.
+ * `navigate_back` is carried across **unchanged** (D-05b): `ButtonSoundTest` finds the back control
+ * by it and must keep passing byte-unchanged; if it had to move, the drift would be in the
+ * production code and not in the test. The timer's description still **starts** with the unchanged
+ * `elapsed_time` label, and since D-05e (§4.3.2) it goes on to the time itself, so the tests that
+ * found the clock by the label alone find it by the pill and by the label as the start.
  *
  * The back chip is **silent** (D-09): a back-navigation affordance acts and says nothing, so it
  * carries no `withClickSound` wrap — and the cue must never be folded into the shared
@@ -190,15 +192,29 @@ private fun GameContextTitle(
  * `game_timer_pill_height` is a **minimum**: at a large font scale the pill grows to hold the
  * digits rather than clipping them, which a fixed height would do at 200% (criterion 18e).
  *
- * The zero-padded time is a computed string ([GameTimerFormat]), not a string resource, and the
- * **unchanged** `elapsed_time` content description makes it announce as the elapsed time rather
- * than as a bare number. [TimerDigits] sets every digit in a cell as wide as the face's widest
- * digit, so the pill keeps one width as the clock ticks, even in the shipped face, which has no
- * tabular figures for `withTabularFigures()` to switch on (criterion 18d).
+ * The zero-padded time is a computed string ([GameTimerFormat]), not a string resource.
+ * [TimerDigits] sets every digit in a cell as wide as the face's widest digit, so the pill keeps one
+ * width as the clock ticks, even in the shipped face, which has no tabular figures for
+ * `withTabularFigures()` to switch on (criterion 18d).
+ *
+ * ## What TalkBack says (D-05e, §4.3.2)
+ *
+ * The clock's one node is described as `elapsed_time_spoken` — the `elapsed_time` label, a comma
+ * and the time as a duration, "Elapsed time, 5 minutes, 12 seconds" — computed from the same
+ * [elapsedSeconds] as the clock, in the same composition, so what TalkBack says and what the pill
+ * shows cannot disagree. TalkBack speaks a node's description in place of its text, so with the
+ * label alone it said "Elapsed time" and never the time. The node is still the only stop: the cells
+ * stay hidden (N-2), and there is no live region, no role and no heading, so the time is read when a
+ * player moves to it and at no other time.
  */
 @Composable
 private fun TimerPill(elapsedSeconds: Int) {
-    val description = stringResource(R.string.elapsed_time)
+    val description =
+        stringResource(
+            R.string.elapsed_time_spoken,
+            stringResource(R.string.elapsed_time),
+            spokenDuration(elapsedSeconds),
+        )
     Surface(
         shape = MaterialTheme.shapes.small,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -221,6 +237,25 @@ private fun TimerPill(elapsedSeconds: Int) {
         }
     }
 }
+
+/**
+ * The elapsed time as TalkBack says it — "5 minutes, 12 seconds" — from the parts
+ * [ElapsedTimeSpeech] says, in the copy's plurals and its order of parts (§4.3.2, §8).
+ */
+@Composable
+private fun spokenDuration(totalSeconds: Int): String =
+    when (val said = ElapsedTimeSpeech.parts(totalSeconds)) {
+        is SpokenDuration.Minutes -> minutesSaid(said.minutes)
+        is SpokenDuration.Seconds -> secondsSaid(said.seconds)
+        is SpokenDuration.MinutesAndSeconds ->
+            stringResource(R.string.duration_minutes_seconds, minutesSaid(said.minutes), secondsSaid(said.seconds))
+    }
+
+@Composable
+private fun minutesSaid(minutes: Int): String = pluralStringResource(R.plurals.duration_minutes, minutes, minutes)
+
+@Composable
+private fun secondsSaid(seconds: Int): String = pluralStringResource(R.plurals.duration_seconds, seconds, seconds)
 
 /**
  * The strip in both of its titles — Classic's app name, then a four-digit Challenge level — on the

@@ -59,7 +59,7 @@ class GameScreenChromeTest {
         renderGame()
 
         assertThat(isInside(GAME_STATUS_STRIP_TEST_TAG, description(R.string.navigate_back))).isTrue()
-        assertThat(isInside(GAME_STATUS_STRIP_TEST_TAG, description(R.string.elapsed_time))).isTrue()
+        assertThat(isInside(GAME_STATUS_STRIP_TEST_TAG, TIMER_AT_THE_START)).isTrue()
         DOCK_ACTIONS.forEach { action ->
             assertThat(isInside(GAME_STATUS_STRIP_TEST_TAG, description(action))).isFalse()
         }
@@ -72,7 +72,7 @@ class GameScreenChromeTest {
 
         composeRule.onNodeWithTag(GAME_STATUS_STRIP_TEST_TAG).assertIsDisplayed()
         composeRule.onNodeWithContentDescription(description(R.string.navigate_back)).assertIsDisplayed()
-        composeRule.onNodeWithContentDescription(description(R.string.elapsed_time)).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(TIMER_AT_THE_START).assertIsDisplayed()
 
         // The context title is the Challenge indicator verbatim, carried across unchanged.
         val title = app.getString(R.string.challenge_level_indicator_desc, CHALLENGE_LEVEL)
@@ -238,6 +238,12 @@ private const val CHROME_ROBOLECTRIC_SDK = 34
 
 /** A Challenge level past the on-ramp, so a hardcoded 1 cannot pass by accident. */
 private const val CHALLENGE_LEVEL = 7
+
+/**
+ * The timer's whole description on a game's first second, word for word from ux-spec §4.3.2: the
+ * `elapsed_time` label, then the time (D-05e). The label alone is no longer the description.
+ */
+private const val TIMER_AT_THE_START = "Elapsed time, 0 seconds"
 
 /**
  * The four dock actions, by the content description each keeps from before the move (§4.4:

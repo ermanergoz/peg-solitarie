@@ -11,8 +11,12 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onChildren
@@ -257,6 +261,71 @@ class GameStatusStripTest {
             .containsExactly(challengeName)
     }
 
+    // ---- The timer's spoken form (D-05e, §4.3.2; criterion 18f) ----------------
+
+    /**
+     * Criterion 18f: the clock's one node carries §4.3.2's sentence for the time it shows, word for
+     * word — "Elapsed time, 0 seconds" through "Elapsed time, 100 minutes" — starting with the
+     * `elapsed_time` label. Until D-05e the description was the label alone, so TalkBack said
+     * "Elapsed time" and never the time.
+     *
+     * The clock is driven through the nine times of 18f's table in one composition, as it ticks in a
+     * game, and every expected sentence is written out from §4.3.2's table rather than built.
+     */
+    @Test
+    fun theTimersDescriptionCarriesItsValueWordForWord() {
+        val elapsed = mutableStateOf(SPOKEN_TIMES.first().first)
+        composeRule.setContent {
+            AppTheme {
+                GameStatusStrip(elapsedSeconds = elapsed.value, challengeLevel = null, onNavigateBack = {})
+            }
+        }
+        composeRule.waitForIdle()
+
+        SPOKEN_TIMES.forEach { (seconds, sentence) ->
+            composeRule.runOnUiThread { elapsed.value = seconds }
+            composeRule.waitForIdle()
+            assertWithMessage("the timer's description at ${GameTimerFormat.format(seconds)}")
+                .that(timer().fetchSemanticsNode().config[SemanticsProperties.ContentDescription])
+                .containsExactly(sentence)
+            assertWithMessage("the sentence at ${GameTimerFormat.format(seconds)} starts with the label")
+                .that(sentence)
+                .startsWith(string(R.string.elapsed_time))
+        }
+    }
+
+    /**
+     * Criterion 18f's other half, and N-2 standing: the clock is still one node — the only node in
+     * its pill carrying a description — with its cells hidden from accessibility services, no live
+     * region (a timer that spoke every second would talk over the game, §4.3.2), no role and no
+     * heading.
+     */
+    @Test
+    fun theTimerIsStillOneNodeWithNoLiveRegion() {
+        renderGame()
+
+        val clock = timer().fetchSemanticsNode()
+        assertWithMessage("the clock's live region")
+            .that(clock.config.getOrNull(SemanticsProperties.LiveRegion))
+            .isNull()
+        assertWithMessage("the clock's role").that(clock.config.getOrNull(SemanticsProperties.Role)).isNull()
+        assertWithMessage("whether the clock is a heading").that(SemanticsProperties.Heading in clock.config).isFalse()
+        assertThat(clock.children).isNotEmpty()
+        clock.children.forEachIndexed { index, cell ->
+            assertWithMessage("whether cell $index is hidden from accessibility services")
+                .that(SemanticsProperties.HideFromAccessibility in cell.config)
+                .isTrue()
+        }
+        val described =
+            composeRule
+                .onAllNodes(
+                    hasAnyAncestor(hasTestTag(GAME_TIMER_PILL_TEST_TAG)) and
+                        SemanticsMatcher.keyIsDefined(SemanticsProperties.ContentDescription),
+                    useUnmergedTree = true,
+                ).fetchSemanticsNodes()
+        assertWithMessage("nodes in the timer pill that carry a description").that(described).hasSize(1)
+    }
+
     // ---- Harness ---------------------------------------------------------------
 
     private fun renderGame(fontScale: Float = DEFAULT_FONT_SCALE) {
@@ -309,9 +378,17 @@ class GameStatusStripTest {
             useUnmergedTree = true,
         )
 
-    /** The timer's own node, by its unchanged `elapsed_time` description (`GameFlowTest.kt:129`). */
+    /**
+     * The timer's own node: the node inside the timer pill whose description starts with the
+     * `elapsed_time` label — the whole description now carries the time as well (D-05e, §4.3.2), so
+     * the label alone no longer matches it exactly.
+     */
     private fun timer(): SemanticsNodeInteraction =
-        composeRule.onNodeWithContentDescription(string(R.string.elapsed_time), useUnmergedTree = true)
+        composeRule.onNode(
+            hasAnyAncestor(hasTestTag(GAME_TIMER_PILL_TEST_TAG)) and
+                hasContentDescription(string(R.string.elapsed_time), substring = true),
+            useUnmergedTree = true,
+        )
 
     /** The clock the timer's node carries as its text, e.g. "00:00". */
     private fun timerText(): String =
@@ -490,3 +567,17 @@ private const val DOUBLE_FONT_SCALE = 2f
 
 /** Robolectric has no android-all jar for Android 16 (SDK 36) yet; emulate SDK 34. */
 private const val STRIP_ROBOLECTRIC_SDK = 34
+
+/** Criterion 18f's nine times and §4.3.2's sentence for each, written out word for word. */
+private val SPOKEN_TIMES =
+    listOf(
+        0 to "Elapsed time, 0 seconds",
+        1 to "Elapsed time, 1 second",
+        45 to "Elapsed time, 45 seconds",
+        60 to "Elapsed time, 1 minute",
+        61 to "Elapsed time, 1 minute, 1 second",
+        312 to "Elapsed time, 5 minutes, 12 seconds",
+        720 to "Elapsed time, 12 minutes",
+        3599 to "Elapsed time, 59 minutes, 59 seconds",
+        6000 to "Elapsed time, 100 minutes",
+    )
