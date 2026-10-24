@@ -1,5 +1,15 @@
 # Founder questions (newest first)
 
+## Q-026 — Keep the colour-blind palette in 3.0.0?   (answered)
+Date: 2026-10-24    Asked by: producer (founder asked whether it was necessary)
+Context: The palette comes from the studio rule (.claude/rules/compose.md: colour-blind option in games; never colour
+alone), not from a founder request; specified during the candy work, split to feature/colour-vision; not yet built
+(~1–1.5 days + its own 15e sitting).
+Options: 1) Keep it in 3.0.0 2) Defer to 3.1 (recorded studio-rule deviation) 3) Drop it (recorded waiver)
+Recommendation: producer picks 1 — meets the studio's accessibility rule; board marks stop depending on colour alone.
+Blocks: nothing
+Answer: 1 — keep it in 3.0.0 (2026-10-24, AskUserQuestion).
+
 ## Q-022 — The Turkish store listing describes the old app   (answered)
 Date: 2026-10-18    Asked by: release-manager
 Context: The live Play listing has its own Turkish text ("5 farklı oyun modu") written for the old app;
