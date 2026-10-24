@@ -37,7 +37,7 @@ interface ClassicLevelSource {
 class DefaultClassicLevelSource
     @Inject
     constructor(
-        @ApplicationContext private val context: Context,
+        @param:ApplicationContext private val context: Context,
     ) : ClassicLevelSource {
         /** id -> Level, in D-18 ascending hole-count order (LinkedHashMap preserves it). */
         private val levelsById: Map<String, Level> =

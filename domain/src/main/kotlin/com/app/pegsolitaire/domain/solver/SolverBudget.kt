@@ -4,12 +4,12 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
- * The resource budget that bounds a single [Solver.firstWinningMove] search so an
+ * The resource budget that bounds a single [Solver.decide] search so an
  * untrusted board can never hang or drain a core (threat T-04-SD).
  *
  * @property maxNodes the maximum number of distinct (symmetry-canonical) positions
  *   the search may memoise CUMULATIVELY, across every restart attempt, before it stops
- *   expanding and reports "no move found" (folded to `null` per D-04). The forward peg
+ *   expanding and reports [SolverOutcome.Undecided] (GD-HT-1). The forward peg
  *   count is strictly monotone-decreasing, so the search space is finite; this cap makes
  *   the WORST case bounded in TIME. Memory is bounded separately, by
  *   [perAttemptMaxNodes]: the search memo is per attempt and is discarded between
@@ -33,12 +33,12 @@ data class SolverBudget(
          * not a per-attempt limit; that is [DEFAULT_PER_ATTEMPT_MAX_NODES]. In production
          * [DEFAULT_DEADLINE] governs: even at the bitboard loop's throughput a 1.5s search
          * stays far below this cap, so a hard board (e.g. a large Classic footprint
-         * mid-game) is cut by the deadline and folds to the "no winning move" state (D-04)
+         * mid-game) is cut by the deadline and ends [SolverOutcome.Undecided] (GD-HT-1)
          * long before this cap is approached. Gated by
          * [SolverBudgetTest][com.app.pegsolitaire.domain.solver]: it must stay >= 4x the
          * largest search observed over the TRACTABLE corpus (english33 end-to-end plus
          * every board's endgame tail) so a board the Solver is relied on to decide fast is
-         * never falsely reported unsolvable. RAISE this value if the measurement ever
+         * never cut short undecided. RAISE this value if the measurement ever
          * exceeds the 4x headroom — never lower the assertion.
          *
          * **What the 08-05 bitboard rewrite did and did not change here (RESEARCH
@@ -84,7 +84,7 @@ data class SolverBudget(
         /**
          * Default wall-clock ceiling. Solvable Classic positions resolve far inside a
          * second; this is the D-10 "thinking…" upper bound before the off-thread search
-         * is abandoned to the same "no winning move" state as a budget miss (D-04).
+         * is abandoned, and ends [SolverOutcome.Undecided] like a budget miss (GD-HT-1).
          *
          * **Frozen by D-07, and deliberately not per-board.** The 1.5s value is product UX,
          * not a tuning parameter: a truthful hint comes from a stronger search (the 08-05

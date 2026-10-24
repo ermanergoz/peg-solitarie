@@ -45,6 +45,39 @@ private fun GameScreenPreview() {
     }
 }
 
+/**
+ * The same screen with the Undecided notice up in the banner's slot (ux-spec §4.4.2, D-04f): the
+ * last Hint search stopped with no move and no proof, so the notice, not the rescue banner, sits
+ * above the dock.
+ */
+@Preview(name = "Gameplay, Undecided notice · light", widthDp = PREVIEW_WIDTH_DP, heightDp = PREVIEW_HEIGHT_DP)
+@Preview(
+    name = "Gameplay, Undecided notice · dark",
+    widthDp = PREVIEW_WIDTH_DP,
+    heightDp = PREVIEW_HEIGHT_DP,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+private fun GameScreenUndecidedNoticePreview() {
+    AppTheme {
+        GameScreen(
+            state = GameUiState.initial().copy(elapsedSeconds = PREVIEW_ELAPSED_SECONDS, hintUndecided = true),
+            onCellTap = {},
+            onRestart = {},
+            onConfirmRestart = {},
+            onDismissRestart = {},
+            onAnimationFinished = {},
+            onToggleHints = {},
+            onUndo = {},
+            onHint = {},
+            onAcceptAdOffer = {},
+            onDismissAdOffer = {},
+            onHome = {},
+            onNavigateBack = {},
+        )
+    }
+}
+
 /** The design baseline §4.3.1 budgets against, a representative clock and a four-digit level. */
 private const val PREVIEW_WIDTH_DP = 360
 private const val PREVIEW_HEIGHT_DP = 640

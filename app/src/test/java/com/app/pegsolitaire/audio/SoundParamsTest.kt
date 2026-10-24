@@ -30,6 +30,18 @@ private const val DECIBEL_TOLERANCE = 0.05
 /** `SoundPool` rate 1.0 — a sample played back at its own recorded pitch. */
 private const val UNPITCHED_RATE = 1.0f
 
+/** The jump's committed asset in `res/raw`. */
+private const val JUMP_FILE = "sfx_jump.wav"
+
+/** rules/audio.md: no peak above -1 dBFS, per asset and in the mix. */
+private const val PEAK_LIMIT_DBFS = -1.0
+
+/**
+ * How far under [PEAK_LIMIT_DBFS] the jump may peak in game. The P4a re-level left it 0.10 dB
+ * under; a quarter decibel allows rounding, and nothing like the 1 dB a half-landed P4a costs.
+ */
+private const val JUMP_HEADROOM_ALLOWANCE_DB = 0.25
+
 /**
  * The highest star count a level can award, so the highest ladder step a celebration can
  * reach. Declared locally rather than imported: the UI's own `TOTAL_STARS` is private to
@@ -45,7 +57,8 @@ private const val MAX_EARNED_STARS = 3
  * Runner-free — no JUnit runner and no Android runtime — because [SoundParams] is pure
  * Kotlin. [SoundCue] is touched only through its `volume`/`priority`/`resId` fields, which
  * are plain constants; the `R.raw.*` ids resolve to `Int`s at compile time, so no resource
- * table is needed either.
+ * table is needed either. One test, [theJumpIsMixedAsLoudAsThePeakRuleAllows], also reads the
+ * jump's committed WAV, because the constant it checks is one half of a pair with that asset.
  *
  * The out-of-range indices ([jumpRateIsClampedAtTheOctaveCeiling],
  * [jumpRateOfANegativeIndexStaysAboveTheFloor]) are the T-07-02 mitigation: both functions
@@ -161,10 +174,27 @@ class SoundParamsTest {
     }
 
     @Test
-    fun theWinStingerIsTheLoudestCue() {
-        val loudest = SoundCue.entries.maxOf { it.volume }
+    fun noCueIsMixedAboveTheWinStinger() {
+        // P4a puts the jump level with the win at 1.0, so "the win is the loudest" would now
+        // claim something the numbers no longer show; "nothing is above it" still holds. The
+        // win stays the loudest *moment*, because that difference lives in the assets.
+        val aboveTheWin = SoundCue.entries.filter { it.volume > SoundCue.Win.volume }
 
-        assertThat(SoundCue.Win.volume).isEqualTo(loudest)
+        assertThat(aboveTheWin).isEmpty()
+    }
+
+    @Test
+    fun theJumpIsMixedAsLoudAsThePeakRuleAllows() {
+        // P4a pairs an asset with a constant, and the two must never land apart: sfx_jump.wav
+        // was re-levelled to a -1.10 dBFS peak so that VOLUME_JUMP could rise to 1.0. With the
+        // asset alone the jump plays a decibel under the founder's tuning (about -2.0 dBFS in
+        // game); with the constant alone it breaks the -1 dBFS rule. Only the pair keeps the
+        // in-game peak just under the rule.
+        val jump = WavFile.parse(AudioRepoFiles.rawFiles().single { it.name == JUMP_FILE }.readBytes())
+        val inGamePeakDbfs = 20.0 * log10(jump.peakMagnitude.toDouble() / Short.MAX_VALUE * SoundCue.Jump.volume)
+
+        assertThat(inGamePeakDbfs).isAtMost(PEAK_LIMIT_DBFS)
+        assertThat(inGamePeakDbfs).isAtLeast(PEAK_LIMIT_DBFS - JUMP_HEADROOM_ALLOWANCE_DB)
     }
 
     @Test

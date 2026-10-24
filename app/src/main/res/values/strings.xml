@@ -98,6 +98,13 @@
     <string name="show_moves_on">Show possible moves</string>
     <!-- Shown while a Challenge board is generated off the main thread (CR-01). -->
     <string name="loading_level">Loading level</string>
+    <!--
+      The wrong tap's screen-reader sentences (D-06c; docs/ux/invalid-tap-feedback.md §3.6, §6):
+      spoken politely on the gameplay board only, never in the tutorial. W1, W2, W3 in order.
+    -->
+    <string name="wrong_tap_empty_hole">Empty hole. Pick up a peg first.</string>
+    <string name="wrong_tap_other_peg">Already holding a peg. Tap it again to put it down.</string>
+    <string name="wrong_tap_not_a_destination">Can\'t jump there.</string>
 
     <!--
       Inline no-win / stuck rescue banner (ASST-03, D-06/D-08/D-09). One shared banner
@@ -107,6 +114,13 @@
     -->
     <string name="nowin_message">No winning move — undo or restart</string>
     <string name="stuck_message">No moves left — undo or restart</string>
+    <!--
+      D-04f / ux-spec §4.4.2 and §8. The Undecided notice: a hint search that stopped with no
+      move and no proof. Two sentences, never the rescue banner's "problem — what to do" shape,
+      and none of the ruling's forbidden words (criterion 23b). The tr-TR copy of record lives in
+      the spec only: the app has no Turkish locale.
+    -->
+    <string name="hint_undecided_message">Hint couldn\'t work this position out in time. It may still be winnable.</string>
     <string name="rescue_restart">Restart</string>
 
     <!-- Results. -->

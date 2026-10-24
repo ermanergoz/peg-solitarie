@@ -42,9 +42,9 @@ class PagodaTest {
     fun admitsTheDiamondStartNowThatItsTargetIsTwoPegs() {
         // The DEBT-01 defect this generalisation exists to remove. While the condition
         // asserted a ONE-peg terminal it returned `false` for EVERY Diamond-41 position,
-        // so `Solver.firstWinningMove` answered `null` in O(cells) with zero search and
-        // the Diamond hint was structurally incapable of saying anything but "no winning
-        // move". Diamond-41's target is its proven floor of two pegs, not one.
+        // so the Solver returned no move in O(cells) with zero search and the Diamond
+        // hint was structurally incapable of saying anything but "no winning move".
+        // Diamond-41's target is its proven floor of two pegs, not one.
         assertThat(Pagoda.mayBeSolvable(Boards.diamond41Initial)).isTrue()
     }
 

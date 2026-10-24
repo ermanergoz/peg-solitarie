@@ -1,14 +1,16 @@
 name: CI
 
 # Gitflow gate: every push and every PR targeting the long-lived integration
-# branches runs the repo's Check command (`./gradlew check`, CLAUDE.md) plus the
-# build-logic unit tests and a debug APK build. This covers `feature/* -> develop`,
-# `release/* -> main`, and `hotfix/* -> main` PRs.
+# branches or a release branch runs `./gradlew check` (what the Check command in
+# CLAUDE.md, `./scripts/check.sh`, runs under its per-worktree lock; one build per
+# runner needs no lock) plus the build-logic unit tests and a debug APK build. This
+# covers `feature/* -> develop`, `bugfix/* -> release/*`, `release/* -> main` and
+# `hotfix/* -> main` PRs, and pushes to `develop`, a `release/**` branch and `main`.
 on:
   push:
-    branches: [develop, main]
+    branches: [develop, 'release/**', main]
   pull_request:
-    branches: [develop, main]
+    branches: [develop, 'release/**', main]
 
 permissions:
   contents: read
@@ -67,4 +69,10 @@ jobs:
         # it is a timing measurement, so it never runs up-to-date). If PR latency
         # becomes the binding constraint, the fix is to give the sweep its own job —
         # not to go back to a list of task names that drifts from `check`.
+        #
+        # FUZZ_SEEDS is explicit whatever the local default in domain/build.gradle.kts:
+        # 10,000 is the whole Challenge level space, so the PR gate is exhaustive
+        # (docs/tech-design.md §7.3).
+        env:
+          FUZZ_SEEDS: "10000"
         run: ./gradlew check assembleDebug --no-daemon --stacktrace

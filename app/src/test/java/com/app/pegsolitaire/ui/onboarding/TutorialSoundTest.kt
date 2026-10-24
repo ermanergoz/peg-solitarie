@@ -167,7 +167,8 @@ class TutorialSoundTest {
 
     /** Composes the real screen over the real ViewModel and returns the holder. */
     private fun startTutorial(): TutorialViewModel {
-        val viewModel = TutorialViewModel(SilentOnboardingRepository(), TestApplicationScope)
+        val viewModel =
+            TutorialViewModel(SilentOnboardingRepository(), FixedHapticsSetting(on = true), TestApplicationScope)
         composeRule.setContent {
             CompositionLocalProvider(LocalSoundPlayer provides sounds) {
                 AppTheme {
