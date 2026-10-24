@@ -3,6 +3,7 @@ package com.app.pegsolitaire.ui.game
 import androidx.annotation.StringRes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.testing.applySystemBarInsets
+import com.app.pegsolitaire.testing.composeHost
 import com.app.pegsolitaire.testing.renderedWindow
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.app.pegsolitaire.ui.theme.withTabularFigures
@@ -264,13 +266,14 @@ class GameStatusStripTest {
     // ---- The timer's spoken form (D-05e, §4.3.2; criterion 18f) ----------------
 
     /**
-     * Criterion 18f: the clock's one node carries §4.3.2's sentence for the time it shows, word for
-     * word — "Elapsed time, 0 seconds" through "Elapsed time, 100 minutes" — starting with the
-     * `elapsed_time` label. Until D-05e the description was the label alone, so TalkBack said
-     * "Elapsed time" and never the time.
+     * Criterion 18f under D-05e's whole-minute fallback (tech-lead defect ruling §2, B-2): the
+     * clock's one node carries the sentence for the time it shows, word for word — "Elapsed time,
+     * under a minute" through "Elapsed time, 100 minutes" — starting with the `elapsed_time` label.
+     * Until D-05e the description was the label alone, so TalkBack said "Elapsed time" and never the
+     * time; with the seconds in it, TalkBack spoke the focused timer again as they ticked.
      *
      * The clock is driven through the nine times of 18f's table in one composition, as it ticks in a
-     * game, and every expected sentence is written out from §4.3.2's table rather than built.
+     * game, and every expected sentence is written out from the ruling's table rather than built.
      */
     @Test
     fun theTimersDescriptionCarriesItsValueWordForWord() {
@@ -324,6 +327,38 @@ class GameStatusStripTest {
                     useUnmergedTree = true,
                 ).fetchSemanticsNodes()
         assertWithMessage("nodes in the timer pill that carry a description").that(described).hasSize(1)
+    }
+
+    /**
+     * Criterion 18g under D-05e's whole-minute fallback (tech-lead defect ruling §2, B-2): within a
+     * minute, nothing a screen reader is handed of the clock's node changes. On the device TalkBack
+     * spoke the focused timer again every 2.5–3 s while its description changed every second, and
+     * Compose reports a change to any property of a node, a per-second text included. So the node
+     * carries its description alone, in whole minutes: the same at 0, 1, 30 and 59 s, and another
+     * a minute in.
+     *
+     * Read from the view's accessibility node provider, which is what an accessibility service is
+     * handed, as `TimerDigitsTest`'s N-2 case reads it.
+     */
+    @Test
+    fun theTimersAccessibilityNodeHoldsStillWithinAMinute() {
+        val elapsed = mutableStateOf(WITHIN_THE_FIRST_MINUTE_SECONDS.first())
+        composeRule.setContent {
+            AppTheme {
+                GameStatusStrip(elapsedSeconds = elapsed.value, challengeLevel = null, onNavigateBack = {})
+            }
+        }
+        composeRule.waitForIdle()
+
+        val atTheStart = clockNodeHandedOutAt(elapsed, WITHIN_THE_FIRST_MINUTE_SECONDS.first())
+        WITHIN_THE_FIRST_MINUTE_SECONDS.drop(1).forEach { seconds ->
+            assertWithMessage("the clock's node at ${GameTimerFormat.format(seconds)}, against 00:00")
+                .that(clockNodeHandedOutAt(elapsed, seconds))
+                .isEqualTo(atTheStart)
+        }
+        assertWithMessage("the clock's description at ${GameTimerFormat.format(A_MINUTE_IN_SECONDS)}, against 00:00")
+            .that(clockNodeHandedOutAt(elapsed, A_MINUTE_IN_SECONDS).description)
+            .isNotEqualTo(atTheStart.description)
     }
 
     // ---- Harness ---------------------------------------------------------------
@@ -401,6 +436,22 @@ class GameStatusStripTest {
             .children
             .flatMap { cell -> cell.config[SemanticsProperties.Text] }
             .joinToString(separator = "") { it.text }
+
+    /**
+     * What the view's accessibility node provider hands a service of the clock's node once the clock
+     * shows [seconds]: the node's text and its description.
+     */
+    private fun clockNodeHandedOutAt(
+        elapsed: MutableState<Int>,
+        seconds: Int,
+    ): ClockNodeReading {
+        composeRule.runOnUiThread { elapsed.value = seconds }
+        composeRule.waitForIdle()
+        val provider = checkNotNull(composeRule.composeHost().accessibilityNodeProvider) { "no node provider" }
+        val clockId = timer().fetchSemanticsNode().id
+        val info = checkNotNull(provider.createAccessibilityNodeInfo(clockId)) { "no node for the clock" }
+        return ClockNodeReading(text = info.text?.toString(), description = info.contentDescription?.toString())
+    }
 
     /** The text layouts of the timer's cells, one per character of the clock, in order. */
     private fun timerCellLayouts(): List<TextLayoutResult> = timer().fetchSemanticsNode().children.map(::layoutOf)
@@ -573,16 +624,32 @@ private const val DOUBLE_FONT_SCALE = 2f
 /** Robolectric has no android-all jar for Android 16 (SDK 36) yet; emulate SDK 34. */
 private const val STRIP_ROBOLECTRIC_SDK = 34
 
-/** Criterion 18f's nine times and §4.3.2's sentence for each, written out word for word. */
+/**
+ * Criterion 18f's nine times and the sentence for each under D-05e's whole-minute fallback, written
+ * out word for word from the tech-lead defect ruling's table (§2): whole minutes, floored, and
+ * "under a minute" below one.
+ */
 private val SPOKEN_TIMES =
     listOf(
-        0 to "Elapsed time, 0 seconds",
-        1 to "Elapsed time, 1 second",
-        45 to "Elapsed time, 45 seconds",
+        0 to "Elapsed time, under a minute",
+        1 to "Elapsed time, under a minute",
+        45 to "Elapsed time, under a minute",
         60 to "Elapsed time, 1 minute",
-        61 to "Elapsed time, 1 minute, 1 second",
-        312 to "Elapsed time, 5 minutes, 12 seconds",
+        61 to "Elapsed time, 1 minute",
+        312 to "Elapsed time, 5 minutes",
         720 to "Elapsed time, 12 minutes",
-        3599 to "Elapsed time, 59 minutes, 59 seconds",
+        3599 to "Elapsed time, 59 minutes",
         6000 to "Elapsed time, 100 minutes",
     )
+
+/** Criterion 18g's readings within one minute: the first second, the next, half a minute in, the last. */
+private val WITHIN_THE_FIRST_MINUTE_SECONDS = listOf(0, 1, 30, 59)
+
+/** A minute in: the first time the whole-minute description may change. */
+private const val A_MINUTE_IN_SECONDS = 60
+
+/** The two things a screen reader is handed of the clock's node that could change as it ticks. */
+private data class ClockNodeReading(
+    val text: String?,
+    val description: String?,
+)

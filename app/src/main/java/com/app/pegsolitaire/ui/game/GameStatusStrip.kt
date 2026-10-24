@@ -198,15 +198,18 @@ private fun GameContextTitle(
  * width as the clock ticks, even in the shipped face, which has no tabular figures for
  * `withTabularFigures()` to switch on (criterion 18d).
  *
- * ## What TalkBack says (D-05e, §4.3.2)
+ * ## What TalkBack says (D-05e, §4.3.2, with its whole-minute fallback, B-2)
  *
  * The clock's one node is described as `elapsed_time_spoken` — the `elapsed_time` label, a comma
- * and the time as a duration, "Elapsed time, 5 minutes, 12 seconds" — computed from the same
- * [elapsedSeconds] as the clock, in the same composition, so what TalkBack says and what the pill
- * shows cannot disagree. TalkBack speaks a node's description in place of its text, so with the
- * label alone it said "Elapsed time" and never the time. The node is still the only stop: the cells
- * stay hidden (N-2), and there is no live region, no role and no heading, so the time is read when a
- * player moves to it and at no other time.
+ * and the time in whole minutes, "Elapsed time, 5 minutes", or "Elapsed time, under a minute" below
+ * one — computed from the same [elapsedSeconds] as the clock, in the same composition, so what
+ * TalkBack says and what the pill shows cannot disagree. TalkBack speaks a node's description in
+ * place of its text, so with the label alone it said "Elapsed time" and never the time; with the
+ * seconds in it, the description changed every second and TalkBack spoke the focused timer again
+ * every few seconds (criterion 18g). In whole minutes it changes at most once a minute, and the pill
+ * still shows the seconds. The node is still the only stop: the cells stay hidden (N-2), and there
+ * is no live region, no role and no heading, so the time is read when a player moves to it and at
+ * no other time.
  *
  * ## Why the description clears the clock's semantics (B-3)
  *
@@ -217,8 +220,8 @@ private fun GameContextTitle(
  * still focuses by its description, first of all. [clearAndSetSemantics] replaces the cells for
  * accessibility services, so the clock is a leaf and joins the order after the title, as the strip
  * reads: back, title, timer. It also drops [TimerDigits]' own per-second text from the node, which
- * then carries the description alone. The cells stay in the unmerged test tree, where the cell
- * reads find them.
+ * then carries the description alone, so nothing on it changes within a minute (B-2). The cells
+ * stay in the unmerged test tree, where the cell reads find them.
  */
 @Composable
 private fun TimerPill(elapsedSeconds: Int) {
@@ -252,23 +255,18 @@ private fun TimerPill(elapsedSeconds: Int) {
 }
 
 /**
- * The elapsed time as TalkBack says it — "5 minutes, 12 seconds" — from the parts
- * [ElapsedTimeSpeech] says, in the copy's plurals and its order of parts (§4.3.2, §8).
+ * The elapsed time as TalkBack says it — "5 minutes", or "under a minute" — from what
+ * [ElapsedTimeSpeech] says, in the copy's plural and string (§4.3.2, §8; B-2).
  */
 @Composable
 private fun spokenDuration(totalSeconds: Int): String =
     when (val said = ElapsedTimeSpeech.parts(totalSeconds)) {
         is SpokenDuration.Minutes -> minutesSaid(said.minutes)
-        is SpokenDuration.Seconds -> secondsSaid(said.seconds)
-        is SpokenDuration.MinutesAndSeconds ->
-            stringResource(R.string.duration_minutes_seconds, minutesSaid(said.minutes), secondsSaid(said.seconds))
+        SpokenDuration.UnderAMinute -> stringResource(R.string.duration_under_a_minute)
     }
 
 @Composable
 private fun minutesSaid(minutes: Int): String = pluralStringResource(R.plurals.duration_minutes, minutes, minutes)
-
-@Composable
-private fun secondsSaid(seconds: Int): String = pluralStringResource(R.plurals.duration_seconds, seconds, seconds)
 
 /**
  * The strip in both of its titles — Classic's app name, then a four-digit Challenge level — on the

@@ -83,22 +83,20 @@
     <string name="navigate_back">Navigate back</string>
     <string name="elapsed_time">Elapsed time</string>
     <!--
-      D-05e (ux-spec §4.3.2, §8): the timer's content description is its label, a comma and the
-      elapsed time as a duration — "Elapsed time, 5 minutes, 12 seconds" — so TalkBack says the
-      time and not only what the clock is. Minutes are said from one up and never roll into hours,
-      as the clock never rolls them; seconds are said from one up, or when the whole time is 0. The
-      joins are format strings, so the order of the parts belongs to the copy and not to the code.
+      D-05e (ux-spec §4.3.2, §8), with its whole-minute fallback (tech-lead defect ruling §2, B-2):
+      the timer's content description is its label, a comma and the elapsed time in whole minutes,
+      "Elapsed time, 5 minutes", or "Elapsed time, under a minute" below one. So TalkBack says the
+      time and not only what the clock is, and the description changes at most once a minute: with
+      the seconds in it, TalkBack spoke the focused timer again as they ticked. Minutes are floored,
+      never rounded up, and never roll into hours, as the clock never rolls them. The join is a
+      format string, so the order belongs to the copy and not to the code.
     -->
     <string name="elapsed_time_spoken">%1$s, %2$s</string>
     <plurals name="duration_minutes">
         <item quantity="one">%d minute</item>
         <item quantity="other">%d minutes</item>
     </plurals>
-    <plurals name="duration_seconds">
-        <item quantity="one">%d second</item>
-        <item quantity="other">%d seconds</item>
-    </plurals>
-    <string name="duration_minutes_seconds">%1$s, %2$s</string>
+    <string name="duration_under_a_minute">under a minute</string>
     <!-- Challenge gameplay top-bar "Level N" title + its screen-reader description (S2, D-03). -->
     <string name="challenge_level_indicator">Level %1$d</string>
     <string name="challenge_level_indicator_desc">Challenge level %1$d</string>

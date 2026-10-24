@@ -346,10 +346,11 @@ private const val UNDO_STOP = "Undo"
 private const val NO_STOP = "no stop"
 
 /**
- * The timer's whole description on a game's first second, word for word from ux-spec §4.3.2: the
- * `elapsed_time` label, then the time (D-05e). The label alone is no longer the description.
+ * The timer's whole description on a game's first second, word for word under D-05e's whole-minute
+ * fallback (tech-lead defect ruling §2, B-2): the `elapsed_time` label, then the time in whole
+ * minutes, which is "under a minute" at the start. The label alone is no longer the description.
  */
-private const val TIMER_AT_THE_START = "Elapsed time, 0 seconds"
+private const val TIMER_AT_THE_START = "Elapsed time, under a minute"
 
 /**
  * The four dock actions, by the content description each keeps from before the move (§4.4:
