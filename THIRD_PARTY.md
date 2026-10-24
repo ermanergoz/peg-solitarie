@@ -90,7 +90,7 @@ them recorded anyway.
 The only binary assets in the app are twelve sound files in `app/src/main/res/raw/`, all mono
 16-bit 44.1 kHz WAV — ten sourced under CC0 (seven from Kenney *Interface Sounds* 1.0, three from
 two freesound sounds) and two rendered in-house from committed recipes — **and five font files** in
-`app/src/main/res/font/` with their two licence texts in `app/src/main/assets/licenses/`, **and, from `feature/licences-screen`, a third licence text** there (`Apache-2.0.txt`, for the Licenses screen). There is
+`app/src/main/res/font/` with their two licence texts in `app/src/main/assets/licenses/`, **and, from `feature/licences-screen`, the Licenses screen's notice texts** there: `Apache-2.0.txt`, the verbatim texts of §5b rows F to J (protobuf's `LICENSE` for rows F and G, Chromium's `LICENSE`, checker-qual's MIT text, OkHttp's public-suffix `NOTICE`), `Jakarta-Inject-NOTICE.md`, and the Google SDK notices generated at build time under `assets/licenses/google/` (`index.tsv` and one stem file per distinct text; `docs/tech-design.md` §13.1 LN-3 and LN-5). There is
 **no raster image anywhere in `app/src/main/res`** — every drawable and the launcher icon are vector
 XML authored in this repo (`app/src/main/res/drawable/`, `mipmap-anydpi-v26/`).
 
@@ -377,7 +377,8 @@ Two related items, recorded here so they are not rediscovered:
   founder-only); the producer decides which, and whether it is pulled into 3.0.0 or left for
   3.0.1. **Update 2026-10-18:** a Settings › About › Licenses screen is specified
   (`docs/ux/licences-screen.md`) and is planned for 3.0.0, not built yet. **Update 2026-10-23:** it is
-  built on its own branch, `feature/licences-screen` (`docs/tech-design.md` §3.6 and §14.1 LN), and LN is a
+  owed on its own branch, `feature/licences-screen` (`docs/tech-design.md` §3.6 and §14.1 LN), which is
+  **not yet built**: on 2026-10-24 the branch holds only its spec commit (`0bf578d`) and no code. LN is a
   branch-cut blocker in §14.1, so the "or left for 3.0.1" choice above no longer applies.
   This bullet is closed when that branch merges; if it does not reach `release/3.0.0`, the release
   is not cut (`docs/release-checklist.md` item 1.1).
