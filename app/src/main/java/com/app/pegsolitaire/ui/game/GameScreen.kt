@@ -140,12 +140,23 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  *   the "Level N" strip title, S2/D-03), or `null` for Classic (app-name title). This
  *   is a pure presentation flag — it reaches only the title slot, never the board logic.
  *
- * The `LongMethod` suppression below carries an inline list of every surface this composable
- * hosts, and that list is the point of it: the screen must not silently absorb another surface
- * without the reader of that line finding out. Amend the list rather than growing under it,
- * and never add a second suppression or a detekt baseline entry in its place.
+ * The `LongMethod` suppression below rests on the list of every surface this composable hosts,
+ * the last paragraph of this KDoc, and that list is the point of it: the screen must not silently
+ * absorb another surface without the reader of that list finding out. Amend the list, one line
+ * per surface, rather than growing under it, and never add a second suppression or a detekt
+ * baseline entry in its place.
+ *
+ * Surfaces hosted, one per line:
+ * - the [Scaffold];
+ * - the status strip, [GameStatusStrip];
+ * - the snackbar host, [ClaySnackbarHost];
+ * - the board panel, [BoardCanvas], with the wrong-tap answer and its live region (D-06, D-06c);
+ * - the Undecided notice, [UndecidedNoticeSlot];
+ * - the action dock, [GameActionDock];
+ * - the restart confirmation, `RestartConfirmDialog`;
+ * - the ad offer, [AdOfferDialog].
  */
-@Suppress("LongMethod") // Scaffold + status strip + snackbar host + board + Undecided notice + action dock + 2 dialogs.
+@Suppress("LongMethod") // one screen hosts every surface its KDoc lists
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameScreen(
