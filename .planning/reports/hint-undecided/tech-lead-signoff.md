@@ -139,4 +139,6 @@ Every hint block and every folds block occurs exactly once and contiguously; the
 
 **Still owed before the `--no-ff` merge:** the ux-designer's hunk read (running in parallel; it rules nothing, and the one placement it guards, region 8, holds here). Then Handoff step 4 as written.
 
+*2026-10-24, after the ux-designer's merge read (`ux-designer-merge-read.md`, `7ce23a0`: ten regions pass, region 7 FAIL — no blank line between 4956 and 4957, so CommonMark folded the D-05e note into the hint side's last list item; a rendering defect my table's "none between" accepted without judging):* the developer's `67c285b` is exactly one inserted empty line (`git show --stat`: `docs/ux-spec.md | 1 +`, 0 deletions, no other file, 0 markers, no code or `docs/tech-design.md` change), placed after the hint side's "**Checks.**" bullet (4956) and before the folds side's `*(2026-10-21 — D-05e, D-03n.)*` paragraph, which now starts at 4958 as its own block — region 7 reads as two blocks, hint first, as ruled; the verdict stands at `67c285b`.
+
 VERDICT: PASS
