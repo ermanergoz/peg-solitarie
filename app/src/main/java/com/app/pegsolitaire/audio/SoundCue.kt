@@ -41,7 +41,7 @@ enum class SoundCue(
      *
      * The asset is the [Select] pop time-reversed and pitched down one whole tone, so the
      * two halves of the selection gesture read as related but distinct events. Both the
-     * reversal and the pitch shift are baked into `sfx_deselect.ogg`; only the 10 dB level
+     * reversal and the pitch shift are baked into `sfx_deselect.wav`; only the 10 dB level
      * drop lives in code, as [SoundParams.VOLUME_DESELECT]. That keeps the put-down an
      * ordinary `play()` call with no rate argument and leaves the audio engine untouched.
      */

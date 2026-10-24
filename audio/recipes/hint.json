@@ -1,0 +1,10 @@
+{
+  "seed": 7301,
+  "duration_ms": 220,
+  "peak_dbfs": -12.5,
+  "layers": [
+    {"wave": "sine", "freq_hz": 1320, "gain": 0.7, "attack_ms": 3, "decay_ms": 200, "release_ms": 0, "sustain": 0.0},
+    {"wave": "sine", "freq_hz": 1980, "gain": 0.3, "attack_ms": 3, "decay_ms": 140, "release_ms": 0, "sustain": 0.0},
+    {"wave": "triangle", "freq_hz": 2640, "gain": 0.08, "attack_ms": 2, "decay_ms": 80, "release_ms": 0, "sustain": 0.0, "lowpass_hz": 5000}
+  ]
+}

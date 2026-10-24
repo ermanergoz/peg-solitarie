@@ -820,8 +820,12 @@ class GameViewModel
                 // The genuine rejection: a tap that changed nothing at all (an empty or
                 // out-of-play cell with no selection, an illegal destination with one).
                 // It leaves no other trace on the board, so the ordinal is the only way a
-                // consumer can observe it (SOUND-02's quiet invalid tap).
-                else -> _uiState.update { it.copy(rejectedTapTick = it.rejectedTapTick + 1) }
+                // consumer can observe it (SOUND-02's quiet invalid tap), and the cell is where
+                // the board answers it (D-06's shake, mark and redirect).
+                else ->
+                    _uiState.update {
+                        it.copy(rejectedTapTick = it.rejectedTapTick + 1, rejectedTapCell = position)
+                    }
             }
         }
 
@@ -1647,7 +1651,9 @@ class GameViewModel
             // carried, so the GameUiState.initial(board) rebuild clears them. An offer
             // dialog belongs to the position it was raised on, and a restart destroys that
             // position — accepting an ad for an assist on a board that no longer exists is
-            // exactly the charge-for-nothing this plan exists to prevent.
+            // exactly the charge-for-nothing this plan exists to prevent. rejectedTapCell is
+            // not carried either, at any of the four sites: it names a cell of the board being
+            // replaced, while the rejectedTapTick ordinal beside it rides along (D-06, §3.7).
             _uiState.value =
                 GameUiState
                     .initial(board)
