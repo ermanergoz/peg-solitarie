@@ -1,5 +1,18 @@
 # Founder questions (newest first)
 
+## Q-025 — Headphones off, and a wired headset, for the audio release QA   (open)
+Date: 2026-10-24    Asked by: tech-lead (via the producer)
+Context: QA's GM6 session proved the headphone branch of the Silent/Vibrate gate (Q-010). The "phone itself
+mutes" branch (D2, D3, D6, D7 on the speaker; D5's second half) and the wired branch (D4) were out of reach
+because the Bluetooth headphones stayed connected and no wired headset was attached; QA may not toggle a radio.
+Options: 1) Before QA's next phone session, power off or unpair the Bluetooth headphones and leave a USB-C or
+3.5 mm headset plugged in if you have one; QA runs D2–D4 itself 2) Leave the hardware as it is; those halves are
+recorded as JVM + emulator evidence in the Q-PUBLISH-3.0.0 summary
+Recommendation: tech-lead picks 1 — two minutes of hardware setup and no testing by you closes the one branch of
+Q-010 that is your own requirement, muting on the phone speaker.
+Blocks: nothing
+Answer:
+
 ## Q-024 — A physical phone for the silent-mode and headphone checks   (answered)
 Date: 2026-10-23    Asked by: producer (for qa-engineer)
 Context: The audio build mutes the speaker on Silent/Vibrate but keeps sound on headphones (Q-010). Ten device checks
