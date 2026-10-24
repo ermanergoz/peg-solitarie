@@ -4,11 +4,14 @@ import android.provider.Settings
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -19,6 +22,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
@@ -253,6 +257,11 @@ class HomeChipArrivalTest {
             val reading = readHome()
             val room = roomOf(reading, classic, challenge)
             val shortfall = max(0f, room.value - slack.value * STAGE_SHARE_OF_SLACK)
+            // The footer pays what the stage cannot, down to 0 (code-auditor loop 1, P5).
+            assertWithMessage("$chips: the footer against min(S₀/5, max(0, S₀ − R)), R = $room, S₀ = $slack")
+                .that(reading.footer.value)
+                .isWithin(TOLERANCE_DP)
+                .of(min(slack.value / FOOTER_SHARE_DIVISOR, max(0f, slack.value - room.value)))
 
             assertSameBounds("$chips: the title", reading.title, noChip.title)
             assertSameBounds("$chips: the gear", reading.gear, noChip.gear)
@@ -299,6 +308,49 @@ class HomeChipArrivalTest {
                     .isGreaterThan(0)
             }
         }
+    }
+
+    /**
+     * A chip whose save has gone is drawn while its room closes, and is nothing else (code-auditor
+     * loop 1, finding 1): no click, no semantics action and no TalkBack stop, so neither a tap nor a
+     * TalkBack click can resume a save that no longer exists — in Challenge, the replaced ladder's
+     * level (the phantom Continue WR-02 and CR-01 removed). Read four frames after the save goes, the
+     * room still part open, as the audit's probe read it.
+     */
+    @Test
+    @Config(qualifiers = "w412dp-h915dp")
+    fun aChipWhoseSaveIsGoneIsDrawnButInertWhileItsRoomCloses() {
+        var resumed: Int? = null
+        composeRule.mainClock.autoAdvance = false
+        val state = mutableStateOf(chipsState(classic = false, challenge = true))
+        composeRule.renderHome(state, onResumeChallenge = { level -> resumed = level })
+        composeRule.applySystemBarInsets(top = STATUS_BAR_DP.dp, bottom = NAVIGATION_BAR_DP.dp)
+        composeRule.mainClock.advanceTimeBy(CASCADE_SETTLED_MS)
+        composeRule.runOnUiThread {
+            state.value = chipsState(classic = false, challenge = false)
+            Snapshot.sendApplyNotifications()
+        }
+        repeat(CLOSING_FRAMES) { composeRule.mainClock.advanceTimeByFrame() }
+
+        assertWithMessage("frame $CLOSING_FRAMES after the save went: the room, still closing")
+            .that(readFrame().room)
+            .isGreaterThan(TOLERANCE_DP.dp)
+        // The merged tree is what an accessibility service is handed.
+        assertWithMessage("nodes speaking the closing chip's title")
+            .that(composeRule.onAllNodesWithText(RESUME_CHALLENGE_LABEL).fetchSemanticsNodes())
+            .isEmpty()
+        assertWithMessage("controls on Home with no save: the gear and the two tiles")
+            .that(composeRule.onAllNodes(hasClickAction()).fetchSemanticsNodes())
+            .hasSize(CONTROLS_WITH_NO_CHIP)
+        // Where the closing chip is drawn now: it rides down with the ribbon as the stage grows back.
+        val chip = bounds(composeRule.onNodeWithTag(CONTINUE_CHIP_ROOM_TEST_TAG, useUnmergedTree = true))
+        val tap =
+            with(composeRule.density) {
+                Offset(((chip.left + chip.right) / 2).toPx(), (chip.top + TAP_DEPTH_DP.dp).toPx())
+            }
+        composeRule.onRoot().performTouchInput { click(tap) }
+        composeRule.mainClock.advanceTimeByFrame()
+        assertWithMessage("the level a tap on the closing chip resumed").that(resumed).isNull()
     }
 
     /** Pixels between [top] and the first tile, across the tile's width, that are not the background. */
@@ -521,10 +573,12 @@ class HomeChipArrivalTest {
             challengeTile = bounds(composeRule.onNodeWithText(challengeTileTitle)),
             ribbonTop = ribbon.top,
             room = classicTile.top - ribbon.bottom - gap,
+            // Counted by their rooms: a chip whose save has gone is drawn but carries no text (loop 1).
             chips =
-                listOf(RESUME_CLASSIC_LABEL, RESUME_CHALLENGE_LABEL).sumOf { label ->
-                    composeRule.onAllNodesWithText(label).fetchSemanticsNodes().size
-                },
+                composeRule
+                    .onAllNodesWithTag(CONTINUE_CHIP_ROOM_TEST_TAG, useUnmergedTree = true)
+                    .fetchSemanticsNodes()
+                    .size,
         )
     }
 
@@ -745,6 +799,15 @@ private const val SETTLED_RUN = 3
 
 /** A room open past the chip's 16dp entrance slide by a margin, so a fading chip shows in it. */
 private const val INKED_ROOM_DP = 40
+
+/** The audit's probe frame: four frames after the save goes, the room part shut. */
+private const val CLOSING_FRAMES = 4
+
+/** Home's controls with no Continue chip: the Settings gear and the two mode tiles. */
+private const val CONTROLS_WITH_NO_CHIP = 3
+
+/** How far below a closing chip's top edge the tap lands: inside the part still drawn. */
+private const val TAP_DEPTH_DP = 8
 
 /** D-03n's split of S₀: the footer is a fifth, so the stage is four fifths less the chips' room. */
 private const val FOOTER_SHARE_DIVISOR = 5f

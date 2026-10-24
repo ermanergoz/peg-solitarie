@@ -14,9 +14,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layoutId
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import com.app.pegsolitaire.R
@@ -279,13 +283,23 @@ internal fun rememberChipRoom(
     }
 }
 
+/** Semantics tag of a Continue chip's room in the band column: the only semantics it has once its chip is inert. */
+const val CONTINUE_CHIP_ROOM_TEST_TAG = "home_continue_chip_room"
+
 /**
  * One Continue chip in its room: [content] for [value] — what the chip resumes — while the save
  * exists, and while its room is still closing after it has gone, showing the chip it was.
  *
+ * **A chip whose save has gone is drawn and nothing else** (code-auditor loop 1, finding 1). For the
+ * ≤ `ClayAnim.ENTRANCE_MS` its room takes to close it carries no semantics — no click action, no
+ * text, no TalkBack stop — and takes no touch, so neither a tap nor a TalkBack click can resume a
+ * save that no longer exists: the phantom Continue WR-02 and CR-01 removed, which in Challenge would
+ * play the replaced ladder's level and merge it into the progress the player just chose.
+ *
  * The chip is measured at its own height, and drawn clipped to the share of it its room has opened,
- * from its top, so it is revealed downward from the ribbon's edge and hidden upward toward it.
- * Settled, nothing is clipped, so the chip's clay shadow is whole.
+ * from its top, so it is revealed downward from the ribbon's edge and hidden upward toward it. Only
+ * the bottom edge is clipped, so the chip's clay shadow stays whole at its sides and top while the
+ * room moves; settled, nothing is clipped.
  *
  * @param value what the chip resumes, or `null` when its mode has no save.
  * @param room this chip's room, which the band column reads from the slot.
@@ -302,18 +316,47 @@ internal fun <T : Any> ChipRoomSlot(
     SideEffect { if (value != null) latched.value = value }
     val shown = value ?: latched.value
     if (shown != null && (value != null || room.isOpen)) {
-        Box(modifier = Modifier.layoutId(room).clipToRoom(room)) { content(shown) }
+        Box(
+            modifier =
+                Modifier
+                    .layoutId(room)
+                    .testTag(CONTINUE_CHIP_ROOM_TEST_TAG)
+                    .then(if (value == null) Modifier.inert() else Modifier)
+                    .clipToRoom(room),
+        ) { content(shown) }
     }
 }
 
-/** Draws only the part of the chip its room has opened, from the top; nothing is clipped once open. */
+/**
+ * Nothing inside answers: its semantics are cleared, so no action, text or stop reaches an
+ * accessibility service, and every pointer event is consumed before the content sees it.
+ */
+private fun Modifier.inert(): Modifier =
+    clearAndSetSemantics {}.pointerInput(Unit) {
+        awaitPointerEventScope {
+            while (true) {
+                awaitPointerEvent(PointerEventPass.Initial).changes.forEach { it.consume() }
+            }
+        }
+    }
+
+/**
+ * Draws only the part of the chip its room has opened, from the top, cutting the bottom edge alone:
+ * the clip reaches a chip's size past its sides and top, far beyond its clay shadow, so the shadow is
+ * never cut there. Nothing is clipped once open.
+ */
 private fun Modifier.clipToRoom(room: ChipRoom): Modifier =
     drawWithContent {
         val open = room.fraction
         if (open >= ROOM_OPEN) {
             drawContent()
         } else {
-            clipRect(bottom = size.height * open) { this@drawWithContent.drawContent() }
+            clipRect(
+                left = -size.width,
+                top = -size.height,
+                right = size.width * 2,
+                bottom = size.height * open,
+            ) { this@drawWithContent.drawContent() }
         }
     }
 
