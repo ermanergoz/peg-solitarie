@@ -2,12 +2,12 @@
 role: ux-designer
 task: licences-screen (its own branch, `feature/licences-screen`, since 2026-10-18 — direction-B A9; first drafted on 2026-10-17 as candy-backdrop's companion item)
 slug: licences-screen
-status: draft — second edition, loop 2 (checked PASS at loop 2; the loop-2 fold is non-blocking and precedes the qa-engineer's session)
+status: draft — second edition, loop 2 (checked PASS at loop 2; the loop-2 fold is non-blocking and precedes the qa-engineer's session); address ruling after QA's F-1 (LS-14; §10 rows 38–42)
 created: 2026-10-17
-revised: 2026-10-24 (second edition; loops 1 and 2 the same day)
+revised: 2026-10-24 (second edition; loops 1 and 2 the same day; the address ruling the same day, after the qa-engineer's F-1)
 stack: android-compose-game
 design-system: docs/ui/DESIGN-SYSTEM.md
-sources: THIRD_PARTY.md (on this branch via `develop` c5f2c54; its 3.0.0 rows); docs/tech-design.md §3.1, §3.6, §13, §13.1 (LN-1–LN-8), §14.1 row LN, §16 #20, §17; docs/ux-spec.md §4.5, §11, §11.1 (D-TB, D-TBa; on this branch since `develop` 4069b53); .planning/questions/FOUNDER.md Q-023 (on this branch since 4069b53); .planning/reports/candy-backdrop/tech-lead-architecture.md R4, R5, D10, D11; .planning/reports/candy-backdrop/tech-lead-direction-b.md A9, E6, E7, open issue 7; .planning/reports/phase-14/research-analyst-release-docs-licences.md (rows A–J, the Apache table); .planning/reports/phase-14/research-analyst-font-licences.md (verdict 2, open issues 1–3); .planning/reports/licences-screen/research-analyst-mpl.md (the MPL-2.0 verdict, the exact PSL version, two full hashes); .planning/reports/licences-screen/ux-designer-check.md (F-01–F-18, folded in loop 1); docs/audio/CREDITS.md (feature/audio-review, the WAV set); docs/ui/DESIGN-SYSTEM.md (the no-backdrop contrast pairs); .planning/reports/licences-screen/tech-lead-brief.md (the build brief: §0–§8 and Amendment 1, A1.1–A1.9, which answer §9 item 7(f)–(k)); .planning/reports/licences-screen/ux-designer-check-loop2.md (PASS; F-19–F-30, folded in loop 2); ui/settings/SettingsScreen.kt
+sources: THIRD_PARTY.md (on this branch via `develop` c5f2c54; its 3.0.0 rows); docs/tech-design.md §3.1, §3.6, §13, §13.1 (LN-1–LN-8), §14.1 row LN, §16 #20, §17; docs/ux-spec.md §4.5, §11, §11.1 (D-TB, D-TBa; on this branch since `develop` 4069b53); .planning/questions/FOUNDER.md Q-023 (on this branch since 4069b53); .planning/reports/candy-backdrop/tech-lead-architecture.md R4, R5, D10, D11; .planning/reports/candy-backdrop/tech-lead-direction-b.md A9, E6, E7, open issue 7; .planning/reports/phase-14/research-analyst-release-docs-licences.md (rows A–J, the Apache table); .planning/reports/phase-14/research-analyst-font-licences.md (verdict 2, open issues 1–3); .planning/reports/licences-screen/research-analyst-mpl.md (the MPL-2.0 verdict, the exact PSL version, two full hashes); .planning/reports/licences-screen/ux-designer-check.md (F-01–F-18, folded in loop 1); docs/audio/CREDITS.md (feature/audio-review, the WAV set); docs/ui/DESIGN-SYSTEM.md (the no-backdrop contrast pairs); .planning/reports/licences-screen/tech-lead-brief.md (the build brief: §0–§8 and Amendment 1, A1.1–A1.9, which answer §9 item 7(f)–(k)); .planning/reports/licences-screen/ux-designer-check-loop2.md (PASS; F-19–F-30, folded in loop 2); ui/settings/SettingsScreen.kt; .planning/reports/licences-screen/qa-engineer.md (F-1; the §8.2 item 1 note on `play-services-ads-identifier`) and its screenshots and TalkBack transcript under `.planning/qa/licences-screen/` (the address ruling); .planning/reports/licences-screen/android-game-dev.md (deviations 5 and 6; "Loop 2 — QA F-1", `2d433b8`); app/src/main/assets/licenses/Jakarta-Inject-NOTICE.md; res/values/strings.xml (the licences block)
 companion: docs/ux/candy-backdrop.md (the Sparse backdrop the four screens sit on; whichever branch lands second owns the backdrop rows, E7)
 ---
 
@@ -91,6 +91,22 @@ companion: docs/ux/candy-backdrop.md (the Sparse backdrop the four screens sit o
 > F-27 to F-30. The check's open issue 3 (whether a selection span is assertable under Robolectric)
 > narrows LS-AC05's Compose clause here, so the developer never has to drop a test. No decision is
 > reopened.
+>
+> **Address ruling — 2026-10-24 (ux-designer, after the qa-engineer's device session, FAIL on F-1,
+> and the developer's fix `2d433b8`).** QA heard each of the five source addresses as a TalkBack
+> stop of its own, because its `SelectionContainer` was focusable inside the merged card. The fix
+> makes the address plain text inside the card's one stop, and so it can no longer be copied. Three
+> rulings, indexed in §10 rows 38 to 42:
+> 1. **Copying is deferred, not required for 3.0.0.** The loss is accepted for this release, and
+>    the follow-up's shape is fixed in the new decision **LS-14**: a long-press and the same
+>    long-click action by ear, never an accessibility-only action.
+> 2. **The developer's two string choices are confirmed:** the Jakarta credit "The Eclipse Jakarta
+>    Dependency Injection project", taken from its NOTICE, and the U+2011 hyphens in the Public
+>    Suffix List's date (§3.2, §6), with one non-blocking by-ear check (§8.2 item 12).
+> 3. **A token wider than the line may break between two letters at 200 %.** This is accepted for
+>    3.0.0, with the finer break recorded as optional polish (§5.1, §9 item 16).
+> LS-05, §3.1, §3.2 and §5.1 carry dated pointers where "selectable" was written. No other
+> decision is reopened, and nothing in the build changes.
 
 ## 0. Scope and inputs
 
@@ -172,6 +188,13 @@ is spelt the same in both, so the Google screens need no second spelling.
   §3.2(a) asks the app to tell recipients, is the same kind of selectable, non-linked line, §3.2. The
   Google notices are bundled, so they open in-app too: LN-1 rejected a link to Google's page on exactly
   this decision.)*
+  *(Address ruling, 2026-10-24, after the qa-engineer's F-1 — "with their source address as
+  selectable text" is **superseded**: an address is **plain text inside its card's one stop**,
+  neither selectable nor a link. On the device each address's `SelectionContainer` made it a
+  focusable node of its own inside the merged card, a second TalkBack stop that §5.1 forbids (F-1,
+  Pixel 9 API 36, TalkBack 16), and the developer's fix `2d433b8` removes the container. The rule
+  that the screens never leave the app stands unchanged; only copying goes, and LS-14 records why
+  3.0.0 ships without it and the shape it takes when it returns.)*
 - **LS-06: Tappable and inert entries look different by shape, not colour.** An entry that opens a text
   has a trailing chevron and squishes on press; an entry with nothing to open has neither and is inert
   (no click action, no focus stop as a control) — the `SettingsLinkRow` WR-06 pattern.
@@ -277,6 +300,52 @@ is spelt the same in both, so the Google screens need no second spelling.
   focus after a navigation lands in the new screen's reading order; back always returns. The rule
   these screens add to the app: **nothing is conveyed by the chevron, the squish or the sound alone**
   — the role and the click label carry the same distinction by ear (LS-06).
+- **LS-14: A source address is read with its card, and in 3.0.0 it cannot be copied; copying
+  returns later as one long-press action, the same by eye and by ear** *(address ruling,
+  2026-10-24: the trade-off that the developer's fix `2d433b8` for the qa-engineer's F-1 left to
+  this role.)* **3.0.0 ships the five addresses (Kenney, LilMati, CogFireStudios, the Public Suffix
+  List and the SDK terms) as plain text inside each card's one merged node. The loss of copying them
+  is accepted for this release. Copying is deferred, not dropped.** Four reasons make it
+  acceptable now:
+  1. Nothing the app owes rests on copying. MPL-2.0 §3.2(a) asks the app to *inform* recipients how
+     to obtain the source, and the shown exact-version address and its date do that.
+     `research-analyst-mpl.md` verdict 2 asked that the entry *name* the version, which it does. The
+     CC0 credits and the SDK terms address are courtesies.
+  2. Every licence and notice **text** stays selectable on its reader (LS-08; QA passed §8.2 item 8,
+     copy included). So the two addresses inside the Public Suffix List's NOTICE, the live list and
+     `mozilla.org/MPL/2.0/`, can still be copied there.
+  3. The fix leaves eye and ear equal: neither can copy. On its own, the developer's suggested "Copy
+     address" accessibility action would give the ear an action the eye lacks, which reverses LS-13's
+     rule. It is **not** the replacement.
+  4. A new interaction now would reopen the build, the audit and the device session on the branch
+     that blocks the release cut (§9 item 5), for a convenience few players use.
+  The real cost is the Public Suffix List's address: 97 characters around a 40-character commit
+  hash, which nobody types by hand. That cost is why copying is deferred and not dropped. A second,
+  smaller cost is by ear. The address is now read at the end of its card's announcement, so on the
+  Public Suffix List card TalkBack reads the hash before "Button". That is accepted: the address is
+  the information the entry exists to give, it comes after the title, credit, licence and parts, and
+  a swipe interrupts it.
+  **The follow-up's shape is fixed now, so it needs no UX round when it is scheduled** (§9 item 15):
+  - **Copying.** On each of the five cards, **a long-press anywhere on the card copies that card's
+    address**, exactly as shown, to the clipboard. The same action is **the card's long-click
+    semantics action, labelled `licenses_copy_address_action` "Copy address"**, on its one merged
+    node. TalkBack then says "double-tap and hold to copy address" and lists the action in its
+    actions menu.
+  - **What stays the same.** The card stays one stop. An inert card gains no click action, no role,
+    no chevron and no squish, so LS-06 and pass line 3 stand: "button" and "double-tap to activate"
+    are still never said. The Public Suffix List card keeps its tap and adds the long-press.
+  - **Feedback.** The platform's long-press haptic, and no sound. On Android 13 and later, the
+    system shows its own clipboard confirmation and the app shows nothing, because two
+    confirmations would double up. On Android 12L and earlier, the app shows
+    `licenses_address_copied` "Address copied", announced politely.
+  - **Why a long-press, not restored selection.** A long-press copies the whole address in one
+    gesture. Selection handles across an address that wraps over several lines at 200 % are fiddly.
+    And a long-press is the platform's own way into copying text.
+  - **Tests.** Each of the five cards has `OnLongClick` with that label, and invoking it puts
+    exactly the shown address on a fake clipboard. No other card has it. The inert cards still have
+    no `OnClick` and no `Role`. QA long-presses, uses TalkBack's actions menu, and pastes.
+  - **Mechanism.** The clipboard seam, and how the long-press composes with the card's merge and
+    squish, are the tech-lead's.
 
 ## 2. Entry point — Settings
 
@@ -333,6 +402,12 @@ adds a trailing `Icons.AutoMirrored.Rounded.KeyboardArrowRight` (`settings_row_i
 `onSurfaceVariant`, decorative) and `claySquish()` + `clickable` with `ButtonForward`; an inert entry has
 neither. Source addresses sit in a `SelectionContainer` so they can be copied.
 
+*(Address ruling, 2026-10-24, LS-14: "Source addresses sit in a `SelectionContainer` so they can be
+copied" is **superseded**. An address is a plain `Text` line of its card, like the credit and
+licence lines, and is read inside the card's one merged node. Nothing on a card is selectable. QA's
+F-1 found that the container made each address a TalkBack stop of its own, and `2d433b8` removes
+it. Copying is deferred, with its shape fixed, in LS-14.)*
+
 *(2026-10-24.)* The layout stands. Two additions: the list is keyed by entry id with
 `rememberLazyListState()`, so the position survives the round trip to a text (R4; LS-AC02); and the
 section count stays four — the Google notices are reached through an entry in the fourth section, not
@@ -383,11 +458,11 @@ Entry titles, credit lines, licence names and parts lines are the strings §6 na
 | | Dagger and Hilt | "Google" · "Apache License 2.0" | `Apache-2.0.txt` |
 | | OkHttp and Okio | "Square" · "Apache License 2.0" · "Networking and I/O inside Google Mobile Ads" | `Apache-2.0.txt` |
 | | Gson, Tink and Guava | "Google" · "Apache License 2.0" · "Gson, Tink, Guava, Error Prone annotations, J2ObjC annotations" | `Apache-2.0.txt` |
-| | Jakarta Dependency Injection | "Eclipse Foundation" (loop 1, F-16: the credit's words are taken from the bundled `NOTICE.md`'s own attribution; the developer's report quotes the line, and the string follows the NOTICE if it names the project otherwise) · "Apache License 2.0" | `Jakarta-Inject-NOTICE.md`, then `Apache-2.0.txt` (LS-10) |
+| | Jakarta Dependency Injection | "Eclipse Foundation" (loop 1, F-16: the credit's words are taken from the bundled `NOTICE.md`'s own attribution; the developer's report quotes the line, and the string follows the NOTICE if it names the project otherwise) → **"The Eclipse Jakarta Dependency Injection project"** (address ruling, 2026-10-24: **confirmed**, `licenses_jakarta_credit`. These are the words of the NOTICE's attribution line, "This content is produced and maintained by the Eclipse Jakarta Dependency Injection project.", and the NOTICE names the Eclipse Foundation only as the trademark holder, so "Eclipse Foundation" is superseded) · "Apache License 2.0" | `Jakarta-Inject-NOTICE.md`, then `Apache-2.0.txt` (LS-10) |
 | | Annotation and injection APIs | "The JSR-330 Expert Group, the FindBugs project, JSpecify, JetBrains" · "Apache License 2.0" · "javax.inject, JSR-305 annotations, JSpecify, JetBrains Java annotations" | `Apache-2.0.txt` |
 | | Protocol Buffers | "Google" · "BSD 3-Clause License" · "The Java Lite runtime, and the copy inside AndroidX DataStore" | `Protobuf-BSD-3-Clause.txt` |
 | | Chromium (Cronet) | "The Chromium Authors" · "BSD 3-Clause License" · "The Cronet networking classes inside Google Mobile Ads" | `Chromium-BSD-3-Clause.txt` |
-| | Public Suffix List | "Mozilla and the list's contributors" · "Mozilla Public License 2.0" · "The public-suffix data compiled into OkHttp, as it stood on 2023-02-15" · "github.com/publicsuffix/list/blob/a312abe0e11421aff8fe909a5e02f36b7c5d28de/public_suffix_list.dat" (the source address of the exact version shipped, selectable, LS-05; loop 1, from `research-analyst-mpl.md` §2 — the live list's address is in the NOTICE the entry opens) | `PublicSuffixList-NOTICE.txt`, then `MPL-2.0.txt` (LS-10, LS-11) |
+| | Public Suffix List | "Mozilla and the list's contributors" · "Mozilla Public License 2.0" · "The public-suffix data compiled into OkHttp, as it stood on 2023-02-15" · "github.com/publicsuffix/list/blob/a312abe0e11421aff8fe909a5e02f36b7c5d28de/public_suffix_list.dat" (the source address of the exact version shipped, selectable, LS-05 — address ruling, 2026-10-24: plain text inside the card's one stop, not selectable, LS-14; loop 1, from `research-analyst-mpl.md` §2 — the live list's address is in the NOTICE the entry opens) | `PublicSuffixList-NOTICE.txt`, then `MPL-2.0.txt` (LS-10, LS-11) |
 | | Checker Framework qualifiers | "The Checker Framework developers" · "MIT License" | `CheckerQual-MIT.txt` |
 | **Google libraries** (`licenses_section_google`) | Google Play services and SDKs | "Play Games Services, Mobile Ads, User Messaging Platform, Play inline-install library, Play services libraries" · "Android Software Development Kit License Agreement" · "developer.android.com/studio/terms" | — (inert) |
 | | Open-source notices in Google libraries | "The notices Google supplies for the open-source software inside its libraries" | the **Google notices** screen (§4A), tappable, click label `licenses_google_notices_action` |
@@ -397,7 +472,8 @@ Apache-2.0 groups, then the three BSD/MPL entries and the MIT one. It is not alp
 libraries a player has heard of should come first; the LS-AC03 test pins this order.
 
 **The two Google entries** are the LN-5 item 2 shape: the inert SDK-licence entry (its terms address
-as selectable text, LS-05) and, under it, the one tappable entry that opens the generated notices list.
+as selectable text, LS-05; since the address ruling, 2026-10-24, plain text inside the card's one
+stop, LS-14) and, under it, the one tappable entry that opens the generated notices list.
 Every (name, text) pair in the index is two taps from the Licenses screen: this entry, then a row.
 
 *The first edition's rows this table replaces (2026-10-17), kept as the record:*
@@ -700,7 +776,7 @@ after them.
 
 | Screen | Reading order | A stop says |
 |---|---|---|
-| **Licenses** (§3) | back → title (heading) → intro → `Fonts` (heading) → Fredoka → Nunito → `Sounds` (heading) → Kenney → LilMati → CogFireStudios → `Open-source software` (heading) → its eleven entries in §3.2's order → `Google libraries` (heading) → the SDK entry → the notices entry | A **tappable entry**: "<title>, <credit>, <licence>, <parts>", role Button, click label `licenses_read_action` "Read the license" (the notices entry: `licenses_google_notices_action` "Open the notices"). An **inert entry**: the same lines, merged into one node by its card (§3.1, loop 1 F-02), no role, no click action, so TalkBack adds no "double-tap to activate". A **source address** (Sounds, the SDK entry, the Public Suffix List) is read as part of its entry's node; its `SelectionContainer` adds no stop of its own |
+| **Licenses** (§3) | back → title (heading) → intro → `Fonts` (heading) → Fredoka → Nunito → `Sounds` (heading) → Kenney → LilMati → CogFireStudios → `Open-source software` (heading) → its eleven entries in §3.2's order → `Google libraries` (heading) → the SDK entry → the notices entry | A **tappable entry**: "<title>, <credit>, <licence>, <parts>", role Button, click label `licenses_read_action` "Read the license" (the notices entry: `licenses_google_notices_action` "Open the notices"). An **inert entry**: the same lines, merged into one node by its card (§3.1, loop 1 F-02), no role, no click action, so TalkBack adds no "double-tap to activate". A **source address** (Sounds, the SDK entry, the Public Suffix List) is read as part of its entry's node; its `SelectionContainer` adds no stop of its own *(address ruling, 2026-10-24, LS-14: superseded. On the device the container did add a stop, QA's F-1. There is no `SelectionContainer`: the address is plain text, read last in its card's node, and nothing on a card is a stop of its own)* |
 | **License text** (§4) | back → title (heading: the licence name) → the entry's title and credit (heading) → [part heading] → each paragraph → [part heading → each paragraph] → "End of text" | A paragraph: its text. A part heading: "Notice" or the licence name, heading |
 | **Google notices** (§4A) | back → title (heading) → intro → each row in the index's order | A row: "<name>, Found in <sources>[, Notice 2 of 4]" (the ordinal only on a repeated name, LS-12 as amended), role Button, click label `google_notices_read_action` "Read the notice" |
 | **Google notice text** (§4B) | back → title (heading: the name) → "Found in <sources>" (plain text; loop 1 F-13 withdrew its heading) → [the ordinal line] → each paragraph → "End of text" | as the License text screen |
@@ -773,6 +849,22 @@ the design (LS-08).
 - **Text scaling:** every size is an M3 type role; no `maxLines` anywhere on the four screens; cards
   grow, lists scroll; at 200 % a title wraps and the "Found in" line wraps under it. Nothing is a
   fixed height except the 48dp back target and the 72dp card minimum, both minimums.
+  *(Address ruling, 2026-10-24, the qa-engineer's §8.2 item 1 note: **a single token wider than the
+  line breaks where it overflows, and that is accepted for 3.0.0.** At 200 % on the test phone,
+  `play-services-ads-identifier` (28 characters) is wider than the "Found in" line, and the
+  platform cuts it between two letters: "…ads-identifi" / "er, play-services-cronet" (J2ObjC,
+  notice 4 of 5, `31-gnotices-mid-dark-200.png`). The Public Suffix List address's 40-character
+  commit hash is cut the same way on the Licenses card. Why it is accepted:
+  - Every character is shown, nothing is truncated, nothing scrolls sideways or overlaps, and
+    TalkBack reads the id whole, so §5's "nothing truncates" and the text-scaling rules hold.
+  - The ids are where-found metadata on a page two taps deep, and no player acts on them.
+  - Of the two ways to move the break, automatic hyphenation would **add** hyphens that are not in
+    Google's ids ("identi-fier"), which misrepresents names LS-12 shows as supplied. Invisible break
+    characters change the string that the tests and TalkBack read.
+  Elsewhere the platform already breaks where a reader expects: between ids at ", ", and after "/"
+  in an address. It only falls back to cutting between letters when one token has no break point
+  that fits. The finer break, after an id's own hyphen, is a recorded polish item with its shape,
+  §9 item 16, and not a 3.0.0 change.)*
 - **Dimensions:** every dp is a `dimens.xml` token already in the file (`spacing_sm`, `spacing_md`,
   `content_max_width`, `settings_row_min_height`, `settings_row_icon_size`, `elevation_card`,
   `shape_corner_large`); these screens add **no new token** and no literal. Durations come from
@@ -858,6 +950,26 @@ Lint's `PluralsCandidate` has no new case: the only count is the existing `licen
 plural. The `%1$s` of `google_notices_found_in` is the joined sources string, built once per row in
 the ViewModel's row model, never in composition.
 
+*(Address ruling, 2026-10-24: two strings confirmed as built, both from the developer's report,
+deviations 5 and 6.)*
+- `licenses_jakarta_credit` "The Eclipse Jakarta Dependency Injection project" is **confirmed**
+  (§3.2, the Jakarta row).
+- `licenses_psl_parts` writes its date with U+2011 non-breaking hyphens, "2023‑02‑15", and is
+  **confirmed**.
+  - By eye: the date renders as the font's hyphen. At 200 % in dark it matches the hyphen of
+    "public-suffix" on the line above (`29-licenses-dark-200-p07.png`).
+  - It never splits across lines.
+  - It clears lint's TypographyDashes, which reads a date as a range, without a suppression.
+  - By ear: TalkBack hands the characters to speech unchanged, with no symbol name
+    (`tb-licenses-linear.txt`, the Public Suffix List node). How the speech engine says them was
+    not heard, because the emulator muted TTS audio (`tts-check.txt`). §8.2 item 12 listens on a
+    device with audio.
+  - If that check hears the date as anything but its three numbers in order (a character name, or
+    a number dropped), the fix is already decided: the string reads "…, as it stood on February 15,
+    2023", ASCII only, and the tests that pin it follow.
+  - Until then the ISO form stays. It is the form of the research-analyst's report and of the
+    list's own repository, and it reads correctly by eye.
+
 The candy-backdrop words grep (BD-01) runs over these strings too and must print nothing.
 *(2026-10-24: and over the nine curated texts of §7 — loop 1, F-03: the second edition wrote
 "eight"; nine ship, the two OFL texts, the Apache text and the six new files — the generated
@@ -931,7 +1043,7 @@ clock, no network. Each test is watched failing once before it is trusted (R5).)
 | **LS-AC02** (amended) | Four round trips keep their place: Settings → Licenses → Fredoka → back → back; Licenses → Jakarta Dependency Injection (a two-text entry) → back; Licenses → Open-source notices → a row → back → back; and system back equals the back button on every screen. The Licenses list's and the notices list's first visible index survive their round trips | Compose (`AppNavHost` with `NavFlowTest`'s stand-ins, a fixture index), QA | as stated, on gesture and three-button navigation |
 | **LS-AC03** (amended) | `LicenseCatalogTest`: the catalogue equals §3.2's table **in its order**, written into the test as the expected list from §3.2.1, and contains none of §3.2's never-listed items; every `BundledLicenseText.assetPath` names a file under `src/main/assets/licenses/` that exists and is non-empty; every committed file in that directory is opened by at least one entry (the first edition's "exactly once" is superseded: `Apache-2.0.txt` is opened by seven entries through one enum constant), and **the directory holds files only and no subdirectory** *(loop 2, F-27 and the brief's §0.2: the second edition's "`google/` excluded" excluded nothing — the generated tree lives under `build/` and is never in `src/main/assets/licenses/`; a committed subdirectory there would be LN-3's violation, and the files-only assertion fails on it whatever its name; the generated tree is LS-AC12's)*. The release-manager diffs §3.2.1 against THIRD_PARTY.md at checklist items 1.4 and 6 | JVM; release-manager | equal, in order; none present; every file referenced; no subdirectory |
 | **LS-AC05** (amended; loop 1 F-03: nine, not eight) | Every curated text (the nine files of §7: `Fredoka-OFL.txt`, `Nunito-OFL.txt`, `Apache-2.0.txt`, `Jakarta-Inject-NOTICE.md`, `Protobuf-BSD-3-Clause.txt`, `Chromium-BSD-3-Clause.txt`, `CheckerQual-MIT.txt`, `PublicSuffixList-NOTICE.txt`, `MPL-2.0.txt`) opens and is complete: `reflowLicenseText`'s whitespace-normalised join equals the whitespace-normalised asset for each (JVM); each is read through the real `AssetManager` (Robo); on the License text screen the body is one `Column` with one node per paragraph, a selection can span two paragraphs *(loop 2, the check's open issue 3 and the brief's §4.1: if Robolectric cannot deliver the long-press-and-drag gesture, the Compose clause is the **structural** half — both paragraphs sit under one `SelectionContainer` and no paragraph has one of its own — stated so in the developer's report; §8.2 item 8 is the behavioural half, on the device. The test is narrowed, never dropped)*, a two-text entry shows "Notice" then its licence heading in that order, and "End of text" is the last node (Compose); re-flows at 1.0 and 2.0 font scale with no truncation (QA) | JVM (re-flow) + Robo (the reads through `AssetManager`) + Compose + QA | as stated |
-| **LS-AC06** (amended; loop 1 F-02) | §5.1's TalkBack contract holds on all four screens: the reading order of its table; headings on exactly the nodes it marks (and not on the "Found in" line, F-13); `Role.Button` and the click label on every tappable entry and row; **each of the four inert entries is exactly one node in the merged tree, carrying its title, credit, licence and address text, with no `OnClick` action and no `Role`** (`onAllNodesWithText(<title>)` in the merged tree finds one node; its config has neither `SemanticsActions.OnClick` nor `SemanticsProperties.Role`); the chevron carries no description; the loading description and the error text are polite live regions (Compose, with `SemanticsProperties.LiveRegion` asserted); the seven-point pass line (QA, TalkBack on, light and dark, 100 % and 200 %) | Compose + QA | as stated |
+| **LS-AC06** (amended; loop 1 F-02) | §5.1's TalkBack contract holds on all four screens: the reading order of its table; headings on exactly the nodes it marks (and not on the "Found in" line, F-13); `Role.Button` and the click label on every tappable entry and row; **each of the four inert entries is exactly one node in the merged tree, carrying its title, credit, licence and address text, with no `OnClick` action and no `Role`** (`onAllNodesWithText(<title>)` in the merged tree finds one node; its config has neither `SemanticsActions.OnClick` nor `SemanticsProperties.Role`); the chevron carries no description; the loading description and the error text are polite live regions (Compose, with `SemanticsProperties.LiveRegion` asserted); the seven-point pass line (QA, TalkBack on, light and dark, 100 % and 200 %). *(Address ruling, 2026-10-24, QA's F-1: the merged-tree assertions passed while the device read each address as a stop of its own, so the criterion gains an **unmerged-tree** oracle. No node that carries one of the five addresses is focusable or has a focus action of its own, and the address text is reachable only through its card's merged node: `LicencesTalkBackContractTest.anAddressIsPartOfItsCardsStopAndNeverAStopOfItsOwn`, red before `2d433b8` ("kenney-interface-sounds: … RequestFocus"), green after. The merged-tree assertions stand beside it.)* | Compose + QA | as stated |
 | **LS-AC08** (amended, E7) | All four routes — `Licenses`, `LicenseText`, `GoogleNotices`, `GoogleNoticeText` — are Sparse (BD-06's `BackdropDensityTest`) and draw transparent containers (BD-14's `TransparentContainersTest`). **Owned by whichever of `feature/licences-screen` and `feature/candy-backdrop` lands on `develop` second**; the first to land asserts nothing about the backdrop | Compose, on the second branch | as stated |
 | **LS-AC10** (amended) | No new dependency (`git diff develop...HEAD -- gradle/libs.versions.toml build-logic/build.gradle.kts` adds no coordinate, LN-7 item 6) and no new permission; colours and dimensions from tokens only, no new `dimens.xml` token (§5.1); light and dark `@Preview`s for every new public composable; **one Compose UI test per screen's main flow, four screens**: Licenses (open from Settings, read the four sections, open Fredoka, open the notices entry); License text (load, `performScrollTo()` on the "End of text" node of the `Column` body, a two-text entry, the error state through a fake `LicenseTextSource`); Google notices (load from a fixture index, open a row, the error state from a malformed fixture); Google notice text (load a fixture text, scroll **the list** to "End of text" with `performScrollToNode` as LS-AC15 — loop 1 F-01 — then the unknown-key error state); warning-free under C7 once check-gates is on `develop` | Auditor, Check | as stated |
 | **LS-AC11** (amended; loop 1 F-03) | `unzip -l <aab> \| grep 'base/assets/licenses/'` lists the **nine** curated texts of §7 by name — `Fredoka-OFL.txt`, `Nunito-OFL.txt`, `Apache-2.0.txt`, `Jakarta-Inject-NOTICE.md`, `Protobuf-BSD-3-Clause.txt`, `Chromium-BSD-3-Clause.txt`, `CheckerQual-MIT.txt`, `PublicSuffixList-NOTICE.txt`, `MPL-2.0.txt` — plus `google/index.tsv` and every stem file the index names (LN-7 item 4) | release-manager (checklist 1.4 and 4.6a) | all present |
@@ -953,6 +1065,9 @@ where the generated assets are the release variant's. Each item is a screenshot 
    License text for Fredoka (one text), Jakarta Dependency Injection (two texts), Google notices (the
    top and a page in the middle), Google notice text for Cronet (its first screen, a middle screen, its
    end). No truncation anywhere; cards grow; the "Found in" line wraps.
+   *(Address ruling, 2026-10-24: an id or a commit hash wider than the line, cut between two
+   letters where it overflows, is accepted for 3.0.0 and is not a finding (§5.1, Text scaling).
+   Anything clipped, overlapped or ellipsised still is.)*
 2. **The §5.1 pass line with TalkBack**, on each of the four screens (LS-AC06), and the continuous
    read of Cronet's notice (LS-AC15).
 3. **Round trips** (LS-AC02): both back routes, gesture and three-button; the lists return to where
@@ -975,6 +1090,13 @@ where the generated assets are the release variant's. Each item is a screenshot 
 11. **Settings headings** (LS-AC01, loop 1; reworded in loop 2, F-19): with TalkBack's heading
     navigation, the stops on Settings are every section header shown (three without Play Games,
     four with it), and the title where it is one.
+12. **The Public Suffix List date by ear** *(address ruling, 2026-10-24; non-blocking, and only on a
+    device or emulator whose speech is audible; the 2026-10-24 session's TTS was muted)*: with
+    TalkBack on, focus the Public Suffix List card and listen to "as it stood on 2023‑02‑15".
+    - PASS when the date is spoken as a date or as its three numbers in order.
+    - FAIL when a character name is spoken or a number is dropped. The fix for a FAIL is already
+      decided (§6): the date in words.
+    - Record which of the two was heard.
 
 ## 9. Open items routed to the producer
 
@@ -1092,6 +1214,34 @@ where the generated assets are the release variant's. Each item is a screenshot 
 14. **The fresh re-check** (the dispatch's rule): this loop was written by the author on fable; a
     fresh fable agent that did not write it checks the third state of the document.
 
+*(Address ruling, 2026-10-24: three items added. None blocks 3.0.0.)*
+
+15. **Copy address, deferred (LS-14).** For the producer to schedule after 3.0.0; nothing in 3.0.0
+    waits for it.
+    - The shape is fixed in LS-14: a long-press on any of the five address cards, and the same
+      long-click action labelled "Copy address" for TalkBack. The card stays one stop. The platform's
+      clipboard confirmation on Android 13 and later; "Address copied" below it.
+    - Two new strings: `licenses_copy_address_action` "Copy address" and `licenses_address_copied`
+      "Address copied".
+    - Who: the tech-lead's brief rules the mechanism, the android-game-dev builds it, and QA checks
+      it by hand, by TalkBack's actions menu and by pasting.
+    - It can ride with item 16 as one licences polish task.
+16. **Ids break after their own hyphen: optional polish, not scheduled** (§5.1, Text scaling).
+    - Shape: when an artifact id in a "Found in" line (§4A) or the sources line (§4B) is wider than
+      the line, it breaks **after the last of its own hyphens that fits**, and never between two
+      letters. No hyphen is ever added.
+    - What TalkBack reads, what the tests read and the index's text stay the exact id, so any break
+      opportunity is display-only.
+    - The commit hash in the Public Suffix List address has no such boundary and keeps the
+      platform's cut.
+    - Mechanism: the tech-lead's. Either a display-only break opportunity after each hyphen inside an
+      id, with the node's text semantics kept to the plain string, or a line-break setting of the
+      pinned Compose that breaks at existing hyphens without adding any. Plain automatic hyphenation
+      is ruled out, because it adds hyphens.
+17. **Release-manager:** THIRD_PARTY.md's "How credited" cell for the Jakarta row quotes the credit
+    as confirmed, "The Eclipse Jakarta Dependency Injection project" (§3.2; the developer's handoff
+    asked for the same note).
+
 ## 10. Record of amendments
 
 Nothing in this document is deleted; a superseded wording stays with a dated pointer, and this table
@@ -1136,3 +1286,8 @@ is the index of them.
 | 35 | 2026-10-24, loop 2 | §5's first-edition traversal bullet: Google libraries has two entries | loop-2 check **F-29** | §5 |
 | 36 | 2026-10-24, loop 2 | LS-10: "complete by name" → one-to-one by row or family (§3.2.1) | loop-2 check **F-30** | LS-10 |
 | 37 | 2026-10-24, loop 2 | LS-AC05's Compose selection clause narrowed to the structural half if Robolectric cannot deliver the gesture; the device half stands | loop-2 check, open issue 3; the brief's §4.1 | LS-AC05 |
+| 38 | 2026-10-24, address ruling | A source address is plain text inside its card's one merged node, not selectable; "selectable" and "its `SelectionContainer` adds no stop" superseded; LS-AC06 gains the unmerged-tree oracle | qa-engineer **F-1** (Pixel 9 API 36, TalkBack 16); the developer's fix `2d433b8` | LS-05; §3.1; §3.2 (PSL row, the two Google entries); §5.1 table; LS-AC06 |
+| 39 | 2026-10-24, address ruling | **LS-14**: copying an address is deferred past 3.0.0, the loss accepted for this release; the follow-up's shape fixed (long-press, plus the same long-click action "Copy address" by ear; one stop kept); an accessibility-only action rejected as the replacement | this role, on the trade-off the developer's loop-2 report left to it | LS-14; §9 item 15 |
+| 40 | 2026-10-24, address ruling | Jakarta's credit confirmed as "The Eclipse Jakarta Dependency Injection project", the NOTICE's attribution line; "Eclipse Foundation" superseded | the developer's deviation 5; the bundled `Jakarta-Inject-NOTICE.md` line 3 | §3.2; §6; §9 item 17 |
+| 41 | 2026-10-24, address ruling | The Public Suffix List date's U+2011 hyphens confirmed; a non-blocking by-ear check, with the fix decided in advance (the date in words) | the developer's deviation 6; QA's 200 % screenshots and TalkBack transcript | §6; §8.2 item 12 |
+| 42 | 2026-10-24, address ruling | A single token wider than the line (an id, a commit hash) breaks where it overflows: accepted for 3.0.0; the finer break after an id's own hyphen recorded as optional polish with its shape | qa-engineer's §8.2 item 1 note (`play-services-ads-identifier` at 200 %) | §5.1 Text scaling; §8.2 item 1; §9 item 16 |
