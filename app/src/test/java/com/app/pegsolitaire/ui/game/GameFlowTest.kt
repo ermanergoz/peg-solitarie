@@ -1,8 +1,8 @@
 package com.app.pegsolitaire.ui.game
 
+import android.provider.Settings
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.test.SemanticsMatcher
@@ -31,6 +31,7 @@ import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
 import com.app.pegsolitaire.platform.ads.NoOpAdGateway
+import com.app.pegsolitaire.testing.RecordingHapticFeedback
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
@@ -233,6 +234,26 @@ class GameFlowTest {
         assertThat(haptics.events).isEmpty()
     }
 
+    /**
+     * The 7c race on the gameplay call site of the shared jump haptic (Ruling 2, test 12).
+     *
+     * With the OS animator scale at zero the board takes its snap path, which sets and clears
+     * `animating` in one frame. The keyed effect must still see the move id, as the jump cue
+     * does. `TutorialHapticsTest` holds the other call site, because a guard on one call site of
+     * a shared effect says nothing about the other.
+     */
+    @Test
+    fun aJumpStillFiresTheHapticWhenTheOsAnimationScaleIsZero() {
+        Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, ANIMATIONS_OFF)
+        startGame(Boards.english33Initial, settings = AllOnSettingsRepository)
+
+        tapCell(row = 3, col = 1)
+        tapCell(row = 3, col = 3)
+
+        assertPegCount(INITIAL_PEG_COUNT - 1)
+        assertThat(haptics.events).containsExactly(HapticFeedbackType.ContextClick)
+    }
+
     private fun startGame(
         initialBoard: Board,
         settings: SettingsRepository = AllOnSettingsRepository,
@@ -317,6 +338,9 @@ private const val LEVEL_ID_ARG = "levelId"
 /** The English-33 start: 33 holes minus the empty center. */
 private const val INITIAL_PEG_COUNT = 32
 
+/** The OS animator duration scale a player with reduced motion has set (criterion 25). */
+private const val ANIMATIONS_OFF = 0f
+
 /** This flow drives the English-33 board, which occupies a 7×7 lattice. */
 private const val ENGLISH33_GRID_DIMENSION = 7
 
@@ -375,16 +399,3 @@ private class FixedSettingsRepository(
 
 /** The default all-on settings (hints + sound + haptics), matching the fail-open defaults. */
 private val AllOnSettingsRepository = FixedSettingsRepository()
-
-/**
- * A [HapticFeedback] that records every fire instead of buzzing, so the SET-02 gate is
- * asserted JVM-side. The physical *feel* of the tick is device-only and is covered by
- * the end-of-phase manual checkpoint (VALIDATION Manual-Only).
- */
-private class RecordingHapticFeedback : HapticFeedback {
-    val events = mutableListOf<HapticFeedbackType>()
-
-    override fun performHapticFeedback(hapticFeedbackType: HapticFeedbackType) {
-        events += hapticFeedbackType
-    }
-}

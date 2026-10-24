@@ -13,10 +13,14 @@
  * matched `lintRelease`, `lintVitalRelease`, `detektRelease`, `compileReleaseKotlin` and
  * `connectedReleaseAndroidTest` — analysis tasks that package nothing — so running any of them
  * demanded two keystore passwords and four ID values, which pressures an operator into exporting
- * cryptographic secrets in an everyday shell. A task that packages a release starts with one of
- * [PACKAGING_VERBS]; a task that does not, does not. This is deliberately **not** an exhaustive
- * list of task names: a forgotten entry in a name list is a silent hole, whereas a packaging task
- * outside AGP's verbs is not a thing that exists.
+ * cryptographic secrets in an everyday shell. Every task that *produces or installs* a shippable
+ * release artifact starts with one of [PACKAGING_VERBS]. The match is not exact in either
+ * direction, and both gaps are harmless: some internal AGP tasks share the prefix
+ * (`packageReleaseResources`, `bundleReleaseClassesToCompileJar`) and are caught although they
+ * package nothing shippable, which costs only a demand for credentials; and `signReleaseBundle`,
+ * which signs the AAB, does not match, but it depends on `packageReleaseBundle`, which carries the
+ * execution-time verify tasks described below. This is deliberately **not** an exhaustive list of
+ * task names: a forgotten entry in a name list is a silent hole.
  *
  * **Why narrowing is safe.** It is a heuristic over a user-supplied string and it cannot be proven
  * exhaustive over every invocation form, so it is not the only protection: `verifyReleaseAdIds`,

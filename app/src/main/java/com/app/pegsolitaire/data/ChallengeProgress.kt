@@ -51,7 +51,7 @@ class ChallengeProgress
     @Inject
     constructor(
         private val dataStore: DataStore<Preferences>,
-        @ApplicationScope private val scope: CoroutineScope,
+        @param:ApplicationScope private val scope: CoroutineScope,
     ) {
         /**
          * The current Challenge level (1-based).

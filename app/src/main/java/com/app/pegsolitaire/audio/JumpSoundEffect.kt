@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
  * Plays the pitched jump cue as each jump lands, then layers the peg-removal cue under it
  * (SOUND-01/SOUND-02).
  *
- * Keyed on [MoveTransition.id] — the same move ordinal `JumpHaptic` uses — so it fires
+ * Keyed on [MoveTransition.id] — the same move ordinal `JumpHapticEffect` uses — so it fires
  * exactly once per jump rather than once per recomposition. The pitch comes from
  * [MoveTransition.runIndex], the same-peg ladder step (D-05/D-06); because that index is
  * derived from the move history rather than stored, undoing and replaying a jump replays
@@ -35,7 +35,7 @@ import kotlinx.coroutines.launch
  * [MoveTransition] and reads [LocalSoundPlayer], and touches no `GameViewModel`, no
  * repository, no navigation and no persistence.
  *
- * **The cue takes no enable/disable gate parameter, and that asymmetry with `JumpHaptic` is
+ * **The cue takes no enable/disable gate parameter, and that asymmetry with `JumpHapticEffect` is
  * deliberate.** `hapticsOn` is carried in `GameUiState` because a haptic can only ever be
  * blocked *before* it fires. Audio cannot: SOUND-05 requires silencing one-shots that are
  * already in flight, which only the object holding the live stream ids can do. The audio gate

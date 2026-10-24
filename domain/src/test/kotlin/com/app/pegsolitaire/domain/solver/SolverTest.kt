@@ -13,13 +13,19 @@ import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Test
 
 /**
- * Behaviour spec for the production [Solver.firstWinningMove] (ASST-01 / ASST-03).
+ * Behaviour spec for the production [Solver.decide] (ASST-01 / ASST-03, GD-HT-1).
  *
  * Magic numbers (board coordinates, prefix lengths) are intentional and acceptable
  * in test code — they ARE the specification of the sampled positions. The five
  * fixtures ([SolutionFixtures.ALL]) plus their committed golden lines
  * ([RecordedSolutions.load]) supply the solvable mid-game corpus; a small hand-built
  * strip supplies the provably-dead and already-solved positions.
+ *
+ * **Three outcomes, pinned where the mapping lives.** A search that stops without a move
+ * is [SolverOutcome.ProvenDead] only when it proved it, and [SolverOutcome.Undecided]
+ * for every stop it did not prove: a cancel, the attempt limit, the cumulative node
+ * ceiling, or a budget that allows no attempt at all. Each of those stops has its own
+ * test below, because each was folded into one indistinguishable "no move" before.
  *
  * **The corpus is [SolutionFixtures.ALL], not [SolutionFixtures.ONE_PEG].** Plan 08-06
  * narrowed the sweeps here to the four one-peg boards, because the solver searched for a
@@ -54,17 +60,20 @@ class SolverTest {
             // Replay a mid-length prefix to reach a genuinely solvable mid-game board.
             val midGame = SolverSamples.replay(start, line.take(line.size / 2))
 
-            val move = Solver.firstWinningMove(midGame, SolverBudget.DEFAULT)
+            val outcome = Solver.decide(midGame, SolverBudget.DEFAULT)
 
-            assertWithMessage("%s mid-game must have a winning move", fixture.name).that(move).isNotNull()
+            assertWithMessage("%s mid-game must have a winning move", fixture.name)
+                .that(outcome)
+                .isInstanceOf(SolverOutcome.Found::class.java)
+            val move = (outcome as SolverOutcome.Found).move
             // The hinted move must be a legal move of the current board (same authority as gameplay).
             assertThat(RulesEngine.legalMoves(midGame)).contains(move)
             // Win-preserving: after performing the move the board is still solvable to its
             // OWN target — spec.minimumPegs, not a duplicated one-peg literal.
-            val afterMove = RulesEngine.applyMove(midGame, move!!)
+            val afterMove = RulesEngine.applyMove(midGame, move)
             val stillSolvable =
                 afterMove.pegCount <= fixture.spec.minimumPegs ||
-                    Solver.firstWinningMove(afterMove, SolverBudget.DEFAULT) != null
+                    Solver.decide(afterMove, SolverBudget.DEFAULT) is SolverOutcome.Found
             assertWithMessage("%s must stay solvable after the hinted move", fixture.name)
                 .that(stillSolvable)
                 .isTrue()
@@ -72,13 +81,79 @@ class SolverTest {
     }
 
     @Test
-    fun returnsNullOnAGenuinelyUnsolvablePosition() {
-        assertThat(Solver.firstWinningMove(SolverSamples.deadBoard, SolverBudget.DEFAULT)).isNull()
+    fun aGenuinelyUnsolvablePositionIsProvenDead() {
+        assertThat(Solver.decide(SolverSamples.deadBoard, SolverBudget.DEFAULT)).isEqualTo(SolverOutcome.ProvenDead)
     }
 
     @Test
-    fun returnsNullWhenAlreadySolved() {
-        assertThat(Solver.firstWinningMove(SolverSamples.solvedBoard, SolverBudget.DEFAULT)).isNull()
+    fun aBoardAlreadyAtItsTargetIsProvenDead() {
+        assertThat(Solver.decide(SolverSamples.solvedBoard, SolverBudget.DEFAULT)).isEqualTo(SolverOutcome.ProvenDead)
+    }
+
+    /**
+     * GD-HT-3's trap, at the solver: the caller's cancel and its deadline set the same
+     * latch, and a latched stop proved nothing. The poll count shows the search was really
+     * entered — a Pagoda reject or a target board would answer without polling — so the
+     * only thing this can be is a search cut short, which is Undecided, never ProvenDead.
+     */
+    @Test
+    fun aSearchCancelledOnItsFirstPollIsUndecided() {
+        var polls = 0
+
+        val outcome =
+            Solver.decide(Boards.english33Initial, SolverBudget.DEFAULT) {
+                polls++
+                true
+            }
+
+        assertWithMessage("the search must have been entered and polled").that(polls).isGreaterThan(0)
+        assertThat(outcome).isEqualTo(SolverOutcome.Undecided)
+    }
+
+    /**
+     * The cumulative ceiling is a stop, not a proof. One node is far too few to finish
+     * English-33's start, whose line is 31 jumps deep, so the first attempt hits its cap
+     * and the loop ends on the ceiling with nothing proved.
+     */
+    @Test
+    fun aSearchThatSpendsItsCumulativeCeilingIsUndecided() {
+        val starved =
+            SolverBudget(
+                maxNodes = 1L,
+                deadline = SolverBudget.DEFAULT_DEADLINE,
+                perAttemptMaxNodes = 1L,
+            )
+
+        assertThat(Solver.decide(Boards.english33Initial, starved)).isEqualTo(SolverOutcome.Undecided)
+    }
+
+    /**
+     * The attempt limit is a stop, not a proof. Each attempt's cap stays far below the 31
+     * positions a line from English-33's start must pass through, while the cumulative
+     * ceiling is the shipped one, so the loop ends because every attempt was spent.
+     */
+    @Test
+    fun aSearchThatSpendsEveryAttemptIsUndecided() {
+        val shallow =
+            SolverBudget(
+                maxNodes = SolverBudget.DEFAULT_MAX_NODES,
+                deadline = SolverBudget.DEFAULT_DEADLINE,
+                perAttemptMaxNodes = 1L,
+            )
+
+        assertThat(Solver.decide(Boards.english33Initial, shallow)).isEqualTo(SolverOutcome.Undecided)
+    }
+
+    /** A budget that allows no attempt at all searched nothing, so it proved nothing. */
+    @Test
+    fun aBudgetThatAllowsNoAttemptIsUndecided() {
+        val empty =
+            SolverBudget(
+                maxNodes = 0L,
+                deadline = SolverBudget.DEFAULT_DEADLINE,
+            )
+
+        assertThat(Solver.decide(Boards.english33Initial, empty)).isEqualTo(SolverOutcome.Undecided)
     }
 
     /**
@@ -127,10 +202,10 @@ class SolverTest {
      */
     @Test
     fun returnsTheSameMoveWhenTheSameBoardIsQueriedTwice() {
-        val first = Solver.firstWinningMove(Boards.european37Initial, SolverBudget.DEFAULT)
-        val second = Solver.firstWinningMove(Boards.european37Initial, SolverBudget.DEFAULT)
+        val first = Solver.decide(Boards.european37Initial, SolverBudget.DEFAULT)
+        val second = Solver.decide(Boards.european37Initial, SolverBudget.DEFAULT)
 
-        assertThat(first).isNotNull()
+        assertThat(first).isInstanceOf(SolverOutcome.Found::class.java)
         assertThat(second).isEqualTo(first)
     }
 
@@ -161,8 +236,8 @@ class SolverTest {
 
         val decidedByARestart =
             SolutionFixtures.ALL.count { fixture ->
-                val move = Solver.firstWinningMove(SolverSamples.startBoard(fixture), cappedBudget)
-                move != null && Solver.lastVisited > RESTART_PROBE_MAX_NODES
+                val outcome = Solver.decide(SolverSamples.startBoard(fixture), cappedBudget)
+                outcome is SolverOutcome.Found && Solver.lastVisited > RESTART_PROBE_MAX_NODES
             }
 
         assertWithMessage("no position outlived its first attempt — MAX_ATTEMPTS is dead code again")
@@ -181,17 +256,17 @@ class SolverTest {
         label: String,
     ) {
         val startedAt = System.nanoTime()
-        val move =
-            Solver.firstWinningMove(board, SolverBudget.DEFAULT) {
+        val outcome =
+            Solver.decide(board, SolverBudget.DEFAULT) {
                 System.nanoTime() - startedAt > SolverBudget.DEFAULT.deadline.inWholeNanoseconds
             }
 
         assertWithMessage("%s full start must resolve inside %s", label, SolverBudget.DEFAULT.deadline)
-            .that(move)
-            .isNotNull()
+            .that(outcome)
+            .isInstanceOf(SolverOutcome.Found::class.java)
         assertWithMessage("%s hint must be a legal move of the board it was asked about", label)
             .that(RulesEngine.legalMoves(board))
-            .contains(move)
+            .contains((outcome as SolverOutcome.Found).move)
     }
 
     private companion object {

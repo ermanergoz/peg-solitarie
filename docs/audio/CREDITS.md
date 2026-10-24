@@ -1,8 +1,31 @@
 # Peg Solitaire — Audio Credits
 
+**Current state (2026-09-29, `feature/audio-review`).** `app/src/main/res/raw/` holds **twelve**
+files, all mono 16-bit 44.1 kHz PCM WAV (rules/audio.md; founder answer Q-009). **Ten** are
+sourced and **two** are made in-house:
+
+- **Seven** come from the Kenney _Interface Sounds_ (1.0) pack, CC0 1.0. They are rendered to WAV
+  straight from the pack's own files.
+- **Three** come from two freesound sounds, both CC0 1.0. `sfx_star_pop.wav` is sound 531512 by
+  CogFireStudios. `sfx_select.wav` is sound 506546 by LilMati, and `sfx_deselect.wav` is derived
+  from it.
+- **Two** are made in-house from committed recipes: `sfx_invalid.wav` (the "soft tok") and
+  `sfx_hint.wav` (the "soft glint"). The founder chose both in Q-008. They replace Kenney's
+  `bong_001` and `pluck_002`, which no longer ship.
+
+The files and their hashes have not changed since. On 2026-10-23 the prose about
+`AudioCreditsTest` was brought up to the test the android-game-dev rewrote on this branch
+(44b14bb); [Verification](#verification) says what it enforces.
+
+How each WAV was made, and the sha256 that pins it, is in
+[WAV conversion and in-house renders](#wav-conversion-and-in-house-renders-2026-09-29). **The
+sections after that are the record of the OGG set curated on 2026-08-28.** They are kept as
+history and name the `.ogg` files of that time. Where the conversion changed a fact, the
+conversion section says so.
+
 Source: phase 7 (Sound) asset curation, 2026-08-28. Anchor pack: **Kenney _Interface Sounds_
-(1.0)**, `https://kenney.nl/assets/interface-sounds`, released under **CC0 1.0**. The set is now
-**twelve** files: **nine** are drawn from that single anchor pack, and **three** are third-party
+(1.0)**, `https://kenney.nl/assets/interface-sounds`, released under **CC0 1.0**. The set was
+then **twelve** files: **nine** drawn from that single anchor pack, and **three** third-party
 borrows from freesound, coming from **two** freesound sounds — sound 531512 by CogFireStudios
 (`sfx_star_pop.ogg`, swapped in on 2026-08-28, see
 [Star pop replacement](#star-pop-replacement-2026-08-28) below) and sound 506546 by LilMati
@@ -17,36 +40,200 @@ the position as of the pick-up/put-down swap: the borrow is no longer one celebr
 edge of the set, it now includes the **most frequently heard gameplay cue** — peg selection — and
 its derived twin, so the borrowed material is at the centre of the mix rather than at its rim. The
 user made both trades knowingly, after auditioning rendered candidates against the incumbents.
+On 2026-09-29 the set moved further from one pack: the wrong tap and the hint are now in-house
+synth cues. The founder chose them in Q-008 after A/B clips against the incumbents.
 
-Every file in `app/src/main/res/raw/` is **CC0 1.0 (public domain dedication)** — the nine Kenney
-cues and the three freesound borrows alike. Attribution is therefore a courtesy, not an obligation,
+Every **sourced** file in `app/src/main/res/raw/` is **CC0 1.0 (public domain dedication)** —
+the seven Kenney cues and the three freesound borrows alike. The two in-house files are the
+studio's own work, rendered from recipes committed in this repo, and no third party has a claim
+on them. For the sourced files, attribution is a courtesy, not an obligation,
 and that follows from CC0 itself: the dedication waives copyright and neighbouring rights to the
 extent permitted by law and imposes no attribution condition on downstream use. Kenney's own
-licence text says the same thing in its own words ("this is not mandatory"), but the reasoning no
-longer rests on that sentence, because it covers only nine of the twelve files. We credit anyway,
+licence text says the same thing in its own words ("this is not mandatory"), but the reasoning does
+not rest on that sentence, because it covers only seven of the twelve files. We credit anyway,
 and this table is the in-repo provenance record D-01 requires. Kenney's *logo* is explicitly
-excluded from the CC0 grant and is not used here.
+excluded from the CC0 grant and is not used here. Each sourced file's licence verdict is the
+research-analyst's to give (`docs/audio/licence-verdicts.md`), not this file's.
 
 Source filenames were renamed on commit because Android resource names must be `[a-z0-9_]` and
 cannot start with a digit; the `original filename` column preserves provenance across that
-rename.
+rename. For an in-house file there is no original: its `source` cell is the committed recipe it is
+rendered from.
 
 ## Files
 
-| res/raw filename | original filename | source | licence |
-|------------------|-------------------|--------|---------|
-| `sfx_jump.ogg` | `Audio/drop_003.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 |
-| `sfx_peg_remove.ogg` | `Audio/drop_002.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 |
-| `sfx_select.ogg` | `506546__lilmati__pop-01.wav` (the original WAV download, not a preview) | https://freesound.org/people/LilMati/sounds/506546/ | CC0 1.0 |
-| `sfx_deselect.ogg` | derived from `506546__lilmati__pop-01.wav` — the same normalised intermediate as `sfx_select.ogg`, time-reversed and pitched down a whole tone via `ffmpeg -af areverse` plus `asetrate` | https://freesound.org/people/LilMati/sounds/506546/ | CC0 1.0 |
-| `sfx_undo.ogg` | `Audio/minimize_008.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 |
-| `sfx_invalid.ogg` | `Audio/bong_001.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 |
-| `sfx_hint.ogg` | `Audio/pluck_002.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 |
-| `sfx_win.ogg` | `Audio/confirmation_002.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 |
-| `sfx_star_pop.ogg` | `531512__cogfirestudios__positive-blip-effect.wav` (the original WAV download, not a preview) | https://freesound.org/people/CogFireStudios/sounds/531512/ | CC0 1.0 |
-| `sfx_btn_forward.ogg` | `Audio/click_001.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 |
-| `sfx_btn_dismiss.ogg` | `Audio/back_004.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 |
-| `sfx_sound_enabled.ogg` | `Audio/confirmation_001.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 |
+One row per file in `app/src/main/res/raw/`, and no other table in this document names a
+`res/raw` filename (see the pick-up/put-down section for why). This table is the one
+`AudioCreditsTest` reads: the first table under the `## Files` heading, columns found by their
+header text. Keep the heading, the header names (`res/raw filename`, `original filename`,
+`source`, `licence`, `sha256`) and the backticked file names as they are. See
+[Verification](#verification) for what the test enforces.
+
+| res/raw filename | original filename | source | licence | author | sha256 |
+|------------------|-------------------|--------|---------|--------|--------|
+| `sfx_jump.wav` | `Audio/drop_003.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Kenney (www.kenney.nl) | 830661a553299e102cdf045739d91079c2aed0b604bf756b1e8c993d557d4993 |
+| `sfx_peg_remove.wav` | `Audio/drop_002.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Kenney (www.kenney.nl) | 1a3e31d59853c77b584b59e536eb81ccf2d364ce7b0700ce462de0202209530c |
+| `sfx_select.wav` | `506546__lilmati__pop-01.wav` (the original WAV download, not a preview), by way of the single-encode `sfx_select.ogg` at c5b02ef | https://freesound.org/people/LilMati/sounds/506546/ | CC0 1.0 | freesound user LilMati; the file's own tags name the artist as Mattias "MATTIX" Lahoud | f2301135f4c1657f7671781749bf86deeb92e74002b8204655fb626e9ead7e01 |
+| `sfx_deselect.wav` | derived from `506546__lilmati__pop-01.wav` — the same normalised intermediate as the pick-up, time-reversed and pitched down a whole tone via `ffmpeg -af areverse` plus `asetrate`, by way of the single-encode `sfx_deselect.ogg` at c5b02ef | https://freesound.org/people/LilMati/sounds/506546/ | CC0 1.0 | freesound user LilMati; derivative made by the studio | 264e7716247b5b371c17091efbc5e6b5ba5ec69dbc207ea7e85d5f593d189dcc |
+| `sfx_undo.wav` | `Audio/minimize_008.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Kenney (www.kenney.nl) | 953208209159b712e4b4249ac8d8ffa9d1c7603638a37677c7cd8eb166225b04 |
+| `sfx_invalid.wav` | none — in-house "soft tok", rendered with ergoz-soft `scripts/sfx-synth.sh` | audio/recipes/invalid.json | own work (ergoz-soft) | ergoz-soft sound-designer | 35e3ce1ede68b2a839dc307a1f28a6206fc6b7f7bdf64187411b7bf5cb3c13cb |
+| `sfx_hint.wav` | none — in-house "soft glint", rendered with ergoz-soft `scripts/sfx-synth.sh` | audio/recipes/hint.json | own work (ergoz-soft) | ergoz-soft sound-designer | d4d73592076cf81c40726e8c1c573485f3d806a2230c9460681714f1dff86060 |
+| `sfx_win.wav` | `Audio/confirmation_002.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Kenney (www.kenney.nl) | 6955beab73b662dfdbb3eb9c15aa3dbf1cd0cd445e068a55d1b6172c756da223 |
+| `sfx_star_pop.wav` | `531512__cogfirestudios__positive-blip-effect.wav` (the original WAV download, not a preview), by way of the single-encode `sfx_star_pop.ogg` at c5b02ef | https://freesound.org/people/CogFireStudios/sounds/531512/ | CC0 1.0 | freesound user CogFireStudios | 22637d42c4b42372d384e77f238a968ef11d5fa8d311deb100654c654a2362ae |
+| `sfx_btn_forward.wav` | `Audio/click_001.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Kenney (www.kenney.nl) | 2b03e4da0042c0c70d9a820da610043b71f8c5cd2ef2a0ca7a3860ce12d95e36 |
+| `sfx_btn_dismiss.wav` | `Audio/back_004.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Kenney (www.kenney.nl) | fc63ab48c36cfb38411dacf621a03104b6c6b70a64f6021313bb4f92496a26ad |
+| `sfx_sound_enabled.wav` | `Audio/confirmation_001.ogg` | https://kenney.nl/assets/interface-sounds | CC0 1.0 | Kenney (www.kenney.nl) | fc2a03331d67a172bce7527fa55fa86d00f27abfd6d07a0ead2e43ec8a976c69 |
+
+Retired on 2026-09-29 and no longer shipped: `Audio/bong_001.ogg` (the old wrong tap) and
+`Audio/pluck_002.ogg` (the old hint), both Kenney, CC0 1.0.
+
+## WAV conversion and in-house renders (2026-09-29)
+
+Founder answers: Q-008 (the wrong tap becomes candidate a, the "soft tok"; the hint becomes
+candidate a, the "soft glint"; peg removal **keeps** its sound) and Q-009 (convert the set to WAV,
+re-levelled in the same pass). The sound-designer made the renders with ffmpeg 9.0.2 and the
+ergoz-soft 0.6.2 synthesizer.
+
+**The two in-house cues.** Each recipe is the candidate the founder auditioned, committed
+unchanged. It renders to the byte-identical file, and a second render is identical too:
+
+```
+SYN=<ergoz-soft plugin root>/scripts/sfx-synth.sh
+"$SYN" audio/recipes/invalid.json app/src/main/res/raw/sfx_invalid.wav
+"$SYN" audio/recipes/hint.json    app/src/main/res/raw/sfx_hint.wav
+```
+
+The recipes are levelled for the unchanged `VOLUME_INVALID` 0.3 and `VOLUME_HINT` 0.6, so nothing in
+code changes for them. The soft tok is a triangle falling 420→360 Hz through a 1.2 kHz low-pass,
+with a 20 ms muffled noise tap, 90 ms long, peaking at −5.5 dBFS. The soft glint is 1320 Hz with a
+fifth above it and a faint 2640 Hz triangle, 220 ms long, peaking at −12.5 dBFS.
+
+**The Kenney pack, pinned.** The pack was fetched again over HTTPS on 2026-09-29, and the archive
+now carries a pinned hash, as the two freesound masters already did:
+
+- URL: `https://kenney.nl/media/pages/assets/interface-sounds/fa43c1dd4d-1677589452/kenney_interface-sounds.zip`
+- 834,536 B; sha256 `f2193d072726d6758a5f7871b2dcc54dcce0d5c35c6f0a62f92549b327c81232`;
+  md5 `763b97e426354c8f8e2bcf900927244b`.
+- `unzip -l` before extraction listed `License.txt`, `Kenney.url`, `Patreon.url` and 100
+  `Audio/*.ogg`, the same allow-list as in 2026-08. Only `Audio/*` and `License.txt` were
+  extracted, and the licence text matches the one quoted below.
+
+**The freesound masters are not used.** Their "download" links redirect to a login page, so the
+original WAVs need an account. A freesound preview would be a worse source, because it is a lossy
+transcode. The three freesound-derived cues are therefore decoded from their committed OGGs at
+c5b02ef. Each of those is a single encode from the pinned master (see the sections below), so the
+WAV adds no further loss. If an account-holder fetches the masters later, re-run the chains
+below with `-c:a pcm_s16le` in place of libvorbis, and match the level to these files.
+
+**The ten conversions, exactly as run** (from the repo root, with the pack extracted to `Audio/`):
+
+```
+for c in sfx_select sfx_deselect sfx_star_pop; do
+  git show c5b02ef:app/src/main/res/raw/$c.ogg > $c.ogg
+done
+R=app/src/main/res/raw
+wav() {  # <source> <start_sample> <end_sample or -> <gain dB or -> <output>
+  af="atrim=start_sample=$2"; [ "$3" != - ] && af="$af:end_sample=$3"
+  af="$af,asetpts=PTS-STARTPTS,aformat=sample_fmts=flt:channel_layouts=mono"
+  [ "$4" != - ] && af="$af,volume=$4dB"
+  ffmpeg -v error -y -i "$1" -af "$af" -ar 44100 -c:a pcm_s16le -map_metadata -1 \
+    -fflags +bitexact -flags:a +bitexact "$5"
+}
+wav Audio/drop_003.ogg         0   -    -3.00 $R/sfx_jump.wav           # P4a: peak -1.10 dBFS
+wav Audio/drop_002.ogg         0   -    -7.91 $R/sfx_peg_remove.wav     # level kept
+wav Audio/minimize_008.ogg     809 -    -4.00 $R/sfx_undo.wav           # level kept
+wav Audio/confirmation_002.ogg 2   -    -0.62 $R/sfx_win.wav            # level kept
+wav Audio/click_001.ogg        0   -    0.35  $R/sfx_btn_forward.wav    # P4b: +4.14 dB, peak -1.00 dBFS
+wav Audio/back_004.ogg         2   -    -7.15 $R/sfx_btn_dismiss.wav    # level kept
+wav Audio/confirmation_001.ogg 2   -    -4.03 $R/sfx_sound_enabled.wav  # level kept
+wav sfx_select.ogg             0   2959 -     $R/sfx_select.wav         # as shipped
+wav sfx_deselect.ogg           0   3322 -     $R/sfx_deselect.wav       # as shipped
+wav sfx_star_pop.ogg           0   -    -     $R/sfx_star_pop.wav       # as shipped
+```
+
+Term by term:
+
+- **`aformat=sample_fmts=flt:channel_layouts=mono` comes before `volume`**, so the downmix and the
+  gain both run in float and the only rounding is the final conversion to 16-bit. This matters
+  because the two drop files decode to +1.9 dBFS in float. Converting to 16-bit before the gain
+  would clip their attack.
+- **The trims reproduce the shipped timing.** `start_sample` is where each shipped OGG's audio
+  starts inside the pack file, found by cross-correlation. For undo this is 809 samples of
+  lead-in, a trim the 2026-08 `silenceremove` made. For win, dismiss and sound-enabled it is
+  2 samples, and for the rest it is 0. The tail is the whole decode, so undo, win and
+  sound-enabled get back up to 128 samples (2.9 ms) of natural decay that the old OGG round trip
+  lost. `end_sample` on select (2,959) and deselect (3,322) removes the Vorbis block padding and
+  restores the designed lengths: 0.0671 s, and the whole-tone stretch of it.
+- **The kept levels are measured, not guessed.** Each gain is the least-squares gain that
+  matches the pack file's decode to the shipped OGG's decode, rounded to 0.01 dB. Correlation is
+  0.993 or better, and the residual is the old second-generation Vorbis noise. The eight cues that
+  keep their level measure within 0.1 LU of the OGG they replace (loudest 100 ms, K-weighted, full
+  range, in `docs/audio-spec.md`). On the phone-speaker stand-in, dismiss reads 0.3 LU louder,
+  because its centroid rises from 442 to 461 Hz with treble the second encode had cut.
+- **P4a, the jump.** The pack file decodes to +1.9 dBFS, so the old OGG reached −0.02 dBFS and
+  broke the −1 dBFS rule. At −3.00 dB the WAV peaks at −1.10 dBFS, 1.12 dB under the old level.
+  `VOLUME_JUMP` 0.9 → 1.0 (+0.92 dB) is the android-game-dev's half of P4a. Together they move the
+  jump by −0.2 dB in game, and the jump + removal layer peaks at −1.10 dBFS on every rung of the
+  pitch ladder (simulated with linear resampling for rates 1.0 to 2.0). Until the constant
+  changes, the jump plays 1.1 dB quieter and the layer peaks at −2.0 dBFS.
+- **P4b, the forward button.** The proposal was +4.2 dB. The pack file's own peak allows +4.14 dB
+  before the −1 dBFS rule, so the WAV peaks at −1.00 dBFS (true peak −0.9 dBTP). In game, forward is
+  now louder than dismiss both at full range (−28.7 against −29.0 LUFS) and through the
+  phone-speaker stand-in (−30.0 against −33.4). That matches `SoundCue.kt`'s "dismiss is softer",
+  with no code change.
+- **P4c, the deselect level, is not in this pass.** It is a code constant
+  (`DESELECT_ATTENUATION`), not an asset level. The qa-engineer listens on a phone speaker first.
+- **`-map_metadata -1 -fflags +bitexact -flags:a +bitexact`** write a bare 44-byte RIFF header
+  with no tag chunk and no encoder string, so the bytes depend only on the audio. Two runs give
+  identical files.
+- **Decode with ffmpeg, not Apple's `afconvert`.** The Kenney files were encoded by GameSynth, and
+  their first-page granule positions do not match their audio. `afconvert` honours the granule
+  and starts `drop_003` 342 samples and `click_001` 646 samples later than ffmpeg does, which
+  cuts off the attack.
+  ffmpeg's decoder keeps the attack. The shipped OGGs were made from ffmpeg's decode, and these
+  renders are too.
+
+**Pinned output.** PCM output is deterministic, so unlike the old OGGs these files **can** be
+verified by hash. The `sha256` column of the Files table pins every file:
+`shasum -a 256 app/src/main/res/raw/*.wav` must print the same twelve values, and since 44b14bb
+`AudioCreditsTest` checks every committed file against its row's hash on each Check. The hashes
+hold for ffmpeg 9.0.2 and the ergoz-soft 0.6.2 synthesizer. A different ffmpeg build may round
+differently; then the measured properties below are the gate, and a re-render that changes bytes
+updates the row's hash in the same commit.
+
+**Measured properties.** `ffprobe` reports `pcm_s16le`, 1 channel, 44,100 Hz for all twelve.
+
+- **Sizes:** 5,962 B (select) to 145,574 B (star pop), 327,394 B in total. Every file is under the
+  200 KB limit.
+- **Sample peaks:** −12.50 dBFS (hint) to −1.00 dBFS (forward). Every file is at or under −1 dBFS.
+- **Durations:** within 128 samples (2.9 ms) of the OGGs they replace, except for the two in-house
+  cues (90 ms and 220 ms). The old Vorbis containers and ffmpeg's decoder disagree by 128 samples
+  on most of those files.
+- **APK size:** the packaged `res/raw` grows by **255,712 B**, from 71,682 B of OGG to 327,394 B of
+  WAV. Every entry is Stored, not deflated: aapt2 lists `.wav` as a no-compress extension, so no
+  `noCompress` configuration is needed. On a clean `:app:packageDebug` the APK grew by exactly that
+  much, from 20,637,687 B to 20,893,399 B. The release APK was not rebuilt, because it needs the
+  signing secrets. It grows by the same number of stored bytes, from the 2,057,007 B recorded below
+  to about 2.31 MB (+12.4 %).
+- **The pick-up / put-down RMS pair, corrected.** The WAVs measure RMS −25.26 dB (select) and
+  −24.53 dB (deselect) over their designed lengths, and their peaks are unchanged (−5.48 and
+  −5.46 dBFS). The 2026-08 figure of −26.46 dB for `sfx_select.ogg` was measured over ffmpeg's
+  decode of it. That decode runs 945 samples of Vorbis block padding past the sound's 2,959, which
+  lowers the RMS by 1.2 dB. So the put-down's RMS lead at equal peak is **0.73 dB, not 1.92 dB**.
+  The audio did not change, only the measurement window. The −10 dB `DESELECT_ATTENUATION` was
+  tuned by ear and stands (its re-check is P4c). `SoundParams.VOLUME_DESELECT`'s KDoc quotes
+  these figures since 1572197.
+- **Resource ids are unchanged.** `R.raw.sfx_*` resolves by resource name, not by extension, and the
+  debug APK packages all twelve `res/raw/sfx_*.wav`. The release shrink check below was run on the
+  OGG set, but it still holds for the same reason the star-pop swap gave: only the bytes behind
+  each unchanged id changed.
+
+**What the conversion left for others, and where it landed.** On 2026-09-29 `AudioCreditsTest`
+still scanned only `*.ogg` and required an `https://` source, so it found no sound files and
+failed, and the KDoc in `SoundCue.kt` and `SoundParams.kt` still named `sfx_deselect.ogg`. The
+android-game-dev closed both on `feature/audio-review` (44b14bb, 6b4eb08, 1572197), to the
+contract in `docs/tech/audio-silent-mode.md` §2.3; [Verification](#verification) says what the
+test now enforces.
 
 ### Star pop replacement (2026-08-28)
 
@@ -187,8 +374,10 @@ document: these cues are ~70 ms against its ~3 s analysis window.
 
 **The shipped pair, measured.** Given as prose rather than as a second markdown table on purpose:
 the Files table above is the single provenance record, and exactly one table row may exist per
-filename (`AudioCreditsTest` matches the first table line containing a filename, and a duplicate
-row would be a second, unpoliced place for a provenance claim to drift).
+filename. A duplicate row elsewhere would be a second, unpoliced place for a provenance claim to
+drift: `AudioCreditsTest` reads only the first table under `## Files` (it matched "the first table
+line containing a filename" when this was written, and since 44b14bb it matches exact file-name
+cells in that one table).
 
 - `sfx_select.ogg` — vorbis, 1 ch, 44100 Hz, 0.067098 s, 4,595 B, peak −5.483288 dBFS,
   RMS −26.459491 dB.
@@ -229,6 +418,8 @@ Reproduced verbatim from the pack's own `License.txt`:
 > Support us by crediting Kenney or www.kenney.nl (this is not mandatory)
 
 ## Processing
+
+*The OGG set of 2026-08-28. The WAV conversion above superseded it on 2026-09-29.*
 
 Each of the nine Kenney clips was converted with ffmpeg 8.0 (`libvorbis`) into mono 44.1 kHz Vorbis
 (`-q:a 4`), with leading silence trimmed (`silenceremove`) and a hard duration cap applied. Levels
@@ -279,6 +470,10 @@ different md5s. A hash gate on the `.ogg` would fail spuriously on any re-encode
 
 ## Verification
 
+*For the OGG set of 2026-08-28, except the last bullet ("Completeness is enforced"), which
+describes the test as it is today. The WAV set's curation checks (pack hash, listing, codec,
+hashes) are in the conversion section above.*
+
 Checks performed at commit time, mitigating T-07-01 (tampering across the internet → repository
 trust boundary):
 
@@ -327,13 +522,30 @@ trust boundary):
   `sfx_deselect.ogg` needs no separate confirmation of its own: it is a derivative of the same
   CC0 source (506546) and inherits that dedication, as explained in the pick-up/put-down section
   above.
-- **Completeness is enforced.** `AudioCreditsTest` fails the build if any file in
-  `app/src/main/res/raw/` lacks a row here, or if a row omits an HTTPS source or a licence.
+- **Completeness is enforced**, on every Check, for the WAV set too. Since 44b14bb
+  (`docs/tech/audio-silent-mode.md` §2.3) `AudioCreditsTest` reads the `## Files` table by its
+  header names and fails the build when:
+  - a file in `app/src/main/res/raw/`, whatever its extension, has no row or more than one, or a
+    row names a file that is not committed (rows match exact backticked file-name cells);
+  - a row is neither **sourced** (an `https://` source, a licence from the allowlist, today
+    exactly `CC0 1.0`, and an original filename) nor **in-house** (its source is
+    `audio/recipes/<stem>.json` and that recipe is committed);
+  - a recipe in `audio/recipes/` is named by no row;
+  - a committed file's bytes do not match its row's `sha256`.
+
+  `AudioAssetFormatTest` adds the rules/audio.md asset checks: every file is a mono 16-bit
+  44.1 kHz PCM WAV of at most 200 KB peaking at or under −1 dBFS, and `res/raw` holds as many
+  files as `SoundCue` has entries. An edit to this file or to `audio/recipes/` re-runs both (6b4eb08). Not
+  checked by any test: the byte-identical re-render of an in-house WAV from its recipe, which needs
+  the studio's `sfx-synth.sh`; the sound-designer re-runs it at each review.
 
 ## Release shrink verification
 
 **Scope note: this section records a run performed on 2026-08-28 *after* the pick-up/put-down
-swap, and covers the current twelve-file asset set.** It supersedes an earlier run that predated
+swap, and covers the twelve-file OGG set of that date.** The 2026-09-29 WAV conversion kept every
+resource id and changed only the bytes behind them, so the retention conclusion carries over. The
+packaged sizes and the Stored check for the WAV set are in the conversion section, from a debug
+package. A release re-run needs the signing secrets. It supersedes an earlier run that predated
 both the star-pop swap and this one.
 
 **Why it was re-run this time, when the star-pop swap deliberately skipped it.** That swap

@@ -74,11 +74,34 @@ data class TutorialUiState(
         /** Step indices are 0-based; the pip row counts from 1. */
         private const val STEP_NUMBER_OFFSET = 1
 
-        /** The tutorial as it opens, and as a replay from Settings always re-opens: T1. */
-        fun initial(): TutorialUiState = forStep(FIRST_STEP)
+        /**
+         * Haptics before the persisted switch has been read: on (D-17), the value
+         * `GameUiState.initial()` starts the gameplay board with.
+         */
+        private const val HAPTICS_BEFORE_FIRST_READ = true
 
-        /** The state that installs step [index]: its board, its caption, a cleared coach. */
-        fun forStep(index: Int): TutorialUiState =
+        /** No wrong tap yet: the ordinal's fresh value, which every consumer guards against. */
+        private const val NO_WRONG_TAP_YET = 0
+
+        /** The tutorial as it opens, and as a replay from Settings always re-opens: T1. */
+        fun initial(): TutorialUiState =
+            forStep(FIRST_STEP, hapticsOn = HAPTICS_BEFORE_FIRST_READ, rejectedTapTick = NO_WRONG_TAP_YET)
+
+        /**
+         * The state that installs step [index]: its board, its caption, a cleared coach.
+         *
+         * This is the tutorial's only board install, and both carried values are required, with no
+         * default, so every install site has to decide what it carries: the rebuilt board would
+         * otherwise start [hapticsOn] at the fail-open `true` and buzz for a player who switched
+         * Haptics off (tech-lead ruling 2026-10-18), and would reset [rejectedTapTick], the
+         * wrong-tap ordinal the gameplay board carries across all four of its installs (D-06,
+         * §3.7). The tapped cell is not carried: it named a cell of the footprint being replaced.
+         */
+        fun forStep(
+            index: Int,
+            hapticsOn: Boolean,
+            rejectedTapTick: Int,
+        ): TutorialUiState =
             TutorialUiState(
                 stepIndex = index,
                 board =
@@ -86,6 +109,8 @@ data class TutorialUiState(
                         // D-01b: forced on regardless of the persisted setting, so legal
                         // destinations are always visible and no step is a guessing game.
                         showHints = true,
+                        hapticsOn = hapticsOn,
+                        rejectedTapTick = rejectedTapTick,
                     ),
                 captionRes = CAPTIONS[index],
             )

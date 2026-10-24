@@ -9,6 +9,7 @@ import com.app.pegsolitaire.data.DefaultClassicLevelSource
 import com.app.pegsolitaire.data.DefaultLevelRepository
 import com.app.pegsolitaire.data.DefaultProgressRepository
 import com.app.pegsolitaire.data.GeneratedChallengeLevelSource
+import com.app.pegsolitaire.data.HapticsSetting
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.data.SettingsRepository
@@ -52,6 +53,15 @@ abstract class DataModule {
     @Binds
     @Singleton
     abstract fun bindSettingsRepository(impl: SettingsRepositoryImpl): SettingsRepository
+
+    /**
+     * The read-only Haptics seam the tutorial reads (tech-lead ruling 2026-10-18). Bound from the
+     * [SettingsRepository] interface rather than from its implementation, so anything that
+     * replaces the repository replaces this too: one source of truth for the switch.
+     */
+    @Binds
+    @Singleton
+    abstract fun bindHapticsSetting(settings: SettingsRepository): HapticsSetting
 
     /**
      * The single source of truth for per-level bests (PERS-01) and resume snapshots

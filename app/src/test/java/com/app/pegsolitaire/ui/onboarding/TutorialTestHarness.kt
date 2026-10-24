@@ -7,12 +7,16 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.app.pegsolitaire.data.HapticsSetting
 import com.app.pegsolitaire.data.OnboardingRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import org.robolectric.Shadows.shadowOf
 import java.time.Duration
@@ -58,6 +62,21 @@ internal class SilentOnboardingRepository : OnboardingRepository(UnusedPreferenc
 
 /** Stands in for the injected `@ApplicationScope`: a process-lifetime scope, nobody's child. */
 internal val TestApplicationScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+
+/**
+ * The persisted Haptics switch held at [on], as DataStore would report it: the latest value,
+ * replayed to every collector.
+ */
+internal class FixedHapticsSetting(
+    on: Boolean,
+) : HapticsSetting {
+    override val hapticsOn: Flow<Boolean> = MutableStateFlow(on)
+}
+
+/** A Haptics read that never answers, as on a cold start before the first DataStore emission. */
+internal class NeverEmittingHapticsSetting : HapticsSetting {
+    override val hapticsOn: Flow<Boolean> = flow { awaitCancellation() }
+}
 
 /**
  * Lets the tutorial's functional step beat elapse.
