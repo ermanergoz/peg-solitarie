@@ -3,6 +3,7 @@ package com.app.pegsolitaire.ui.licenses
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -23,6 +24,7 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.semantics
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.ui.theme.clayShadow
@@ -47,6 +49,31 @@ internal fun LicenseEntryCard(
     clickLabel: String?,
     modifier: Modifier = Modifier,
 ) {
+    LicenceCard(onClick = onClick, clickLabel = clickLabel, modifier = modifier) {
+        Text(
+            text = stringResource(entry.title),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        entry.lines.forEach { line -> LicenseLineText(line) }
+    }
+}
+
+/**
+ * The clay card chrome the Licenses entries and the Google notices rows share (spec §3.1, §4A):
+ * `surfaceContainerHigh`, `shapes.large`, the clay shadow, at least `settings_row_min_height`. A
+ * tappable card ([onClick] set) adds the squish, a `clickable` with `Role.Button` and [clickLabel],
+ * and a decorative chevron; an inert one adds none of them. Every card merges its descendants into
+ * one node, with any [semantics] of the caller's on that same node (a row's collection position).
+ */
+@Composable
+internal fun LicenceCard(
+    onClick: (() -> Unit)?,
+    clickLabel: String?,
+    modifier: Modifier = Modifier,
+    semantics: SemanticsPropertyReceiver.() -> Unit = {},
+    lines: @Composable ColumnScope.() -> Unit,
+) {
     Card(
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
@@ -63,7 +90,7 @@ internal fun LicenseEntryCard(
                     } else {
                         Modifier
                     },
-                ).semantics(mergeDescendants = true) {},
+                ).semantics(mergeDescendants = true, properties = semantics),
     ) {
         Row(
             modifier =
@@ -76,14 +103,8 @@ internal fun LicenseEntryCard(
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_xs)),
-            ) {
-                Text(
-                    text = stringResource(entry.title),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                entry.lines.forEach { line -> LicenseLineText(line) }
-            }
+                content = lines,
+            )
             if (onClick != null) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,

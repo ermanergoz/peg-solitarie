@@ -24,6 +24,9 @@ import com.app.pegsolitaire.ui.game.GameScreen
 import com.app.pegsolitaire.ui.game.GameUiState
 import com.app.pegsolitaire.ui.home.HomeScreen
 import com.app.pegsolitaire.ui.home.HomeUiState
+import com.app.pegsolitaire.ui.licenses.GoogleNoticeRow
+import com.app.pegsolitaire.ui.licenses.GoogleNoticesScreen
+import com.app.pegsolitaire.ui.licenses.GoogleNoticesUiState
 import com.app.pegsolitaire.ui.licenses.LICENSES_LIST_TAG
 import com.app.pegsolitaire.ui.licenses.LicenseCatalog
 import com.app.pegsolitaire.ui.licenses.LicensesScreen
@@ -323,6 +326,25 @@ class ButtonSoundTest {
 
         assertThat(leftLicenses).isTrue()
         assertThat(sounds.cues).isEmpty()
+    }
+
+    @Test
+    fun aNoticeRowPlaysOneForwardClickAndOpensItsText() {
+        val opened = mutableListOf<String>()
+        val row = GoogleNoticeRow("000000000000000a", "OkHttp", "ads-mobile-sdk", ordinal = null)
+        render {
+            GoogleNoticesScreen(
+                state = GoogleNoticesUiState.Loaded(listOf(row)),
+                onOpenNotice = { opened += it },
+                onBack = {},
+            )
+        }
+
+        composeRule.onNodeWithText(row.name).performClick()
+        composeRule.waitForIdle()
+
+        assertThat(sounds.cues).containsExactly(SoundCue.ButtonForward)
+        assertThat(opened).containsExactly(row.key)
     }
 
     // ---- Helpers -------------------------------------------------------------
