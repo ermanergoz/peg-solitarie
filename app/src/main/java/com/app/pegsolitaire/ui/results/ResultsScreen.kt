@@ -25,6 +25,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -34,9 +35,14 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.ui.components.BoardAnnouncer
+import com.app.pegsolitaire.ui.components.boardAnnouncement
+import com.app.pegsolitaire.ui.components.rememberBoardAnnouncer
+import com.app.pegsolitaire.ui.components.rememberBoardSpeechFormat
 import com.app.pegsolitaire.ui.game.GameTimerFormat
 import com.app.pegsolitaire.ui.theme.ClayAnim
 import com.app.pegsolitaire.ui.theme.claySquish
@@ -109,6 +115,9 @@ fun ResultsScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // D-TB (TB-8): the summary is spoken once, on the showing the D-16 latch marks (D-TBa item 7).
+    val announcer = rememberBoardAnnouncer()
+    ResultsSummaryAnnouncement(state = state, announcer = announcer)
     Box(modifier = modifier.fillMaxSize()) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
@@ -120,7 +129,8 @@ fun ResultsScreen(
                         .fillMaxSize()
                         .padding(contentPadding)
                         .verticalScroll(rememberScrollState())
-                        .padding(dimensionResource(R.dimen.spacing_md)),
+                        .padding(dimensionResource(R.dimen.spacing_md))
+                        .boardAnnouncement(announcer.current),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
@@ -223,13 +233,18 @@ private fun StarRow(
     playCelebration: Boolean,
 ) {
     StarPopSounds(earned = earned, play = playCelebration)
+    // D-TB (TB-8): one stop, "2 of 3 stars"; the stars inside stay decorative.
+    val starsSpoken = stringResource(R.string.catalog_stars_earned, earned, TOTAL_STARS)
     Row(
         horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_xs)),
         verticalAlignment = Alignment.CenterVertically,
         modifier =
             Modifier
                 .testTag(RESULTS_STAR_ROW_TEST_TAG)
-                .semantics { earnedStarCountValue = earned },
+                .semantics(mergeDescendants = true) {
+                    contentDescription = starsSpoken
+                    earnedStarCountValue = earned
+                },
     ) {
         repeat(TOTAL_STARS) { index ->
             val isEarned = index < earned
@@ -373,7 +388,30 @@ private fun Metric(
     }
 }
 
+/**
+ * Results' summary (D-TB, TB-8): "Solved! — 2 of 3 stars, 2 pegs left.", put on the screen's polite
+ * channel once, when [ResultsUiState.playCelebration] marks this showing as the result's first — so a
+ * rotation, a process-death restore or a return onto the same entry speaks nothing (D-TBa item 7).
+ */
+@Composable
+private fun ResultsSummaryAnnouncement(
+    state: ResultsUiState,
+    announcer: BoardAnnouncer,
+) {
+    val summary =
+        rememberBoardSpeechFormat().resultsSummary(
+            headlineRes = headlineResFor(state.headlineTier),
+            stars = state.stars,
+            totalStars = TOTAL_STARS,
+            pegsLeft = state.pegsRemaining,
+        )
+    LaunchedEffect(state.playCelebration) {
+        if (state.playCelebration) announcer.announce(summary)
+    }
+}
+
 /** The headline string resource for [tier] (D-08). */
+
 private fun headlineResFor(tier: ResultsHeadlineTier): Int =
     when (tier) {
         ResultsHeadlineTier.PERFECT -> R.string.results_headline_perfect
