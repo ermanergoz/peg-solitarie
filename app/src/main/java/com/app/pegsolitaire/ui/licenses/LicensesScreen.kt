@@ -94,18 +94,21 @@ private fun LazyListScope.licensesItems(
             text = stringResource(R.string.licenses_intro),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.staggered(introOrder),
+            modifier = Modifier.licencesEntrance(introOrder),
         )
     }
     sections.forEach { section ->
         val headerOrder = order++
         item(key = "$HEADER_KEY_PREFIX${section.title}") {
-            SettingsSectionHeader(title = stringResource(section.title), entranceOrder = headerOrder)
+            SettingsSectionHeader(
+                title = stringResource(section.title),
+                entranceOrder = LicensesUi.entranceOrderOf(headerOrder),
+            )
         }
         section.entries.forEach { entry ->
             val entryOrder = order++
             item(key = entry.id) {
-                LicenseEntryItem(entry, onOpenEntry, onOpenGoogleNotices, Modifier.staggered(entryOrder))
+                LicenseEntryItem(entry, onOpenEntry, onOpenGoogleNotices, Modifier.licencesEntrance(entryOrder))
             }
         }
     }
@@ -139,10 +142,13 @@ private fun LicenseEntryItem(
     }
 }
 
-/** The clay entrance for the first screenful only; later items enter plainly. */
+/**
+ * The clay entrance of the licences lists' item at [position] (0 = the intro), for the first
+ * [LicensesUi.STAGGERED_ROWS] items only; later items enter plainly (spec F-23). Shared by both lists.
+ */
 @Composable
-private fun Modifier.staggered(order: Int): Modifier =
-    if (order < LicensesUi.STAGGERED_ROWS) clayEntrance(order) else this
+internal fun Modifier.licencesEntrance(position: Int): Modifier =
+    LicensesUi.entranceOrderOf(position)?.let { clayEntrance(it) } ?: this
 
 private const val INTRO_KEY = "intro"
 private const val HEADER_KEY_PREFIX = "header-"

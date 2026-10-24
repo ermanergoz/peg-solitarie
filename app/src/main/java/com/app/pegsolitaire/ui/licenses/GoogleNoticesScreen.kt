@@ -31,7 +31,6 @@ import com.app.pegsolitaire.R
 import com.app.pegsolitaire.audio.SoundCue
 import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.ui.theme.AppTheme
-import com.app.pegsolitaire.ui.theme.clayEntrance
 
 /** The Google notices list's test tag: the node that carries the scroll actions (brief A1.6). */
 internal const val GOOGLE_NOTICES_LIST_TAG = "google_notices_list"
@@ -45,8 +44,8 @@ internal const val GOOGLE_NOTICES_LIST_TAG = "google_notices_list"
  * Position by ear (brief A1.2): the list publishes `CollectionInfo` with the rows counted alone and
  * each row its `CollectionItemInfo`, so TalkBack says "N of M" and the intro is not row 0. The list
  * is keyed by index key with saveable state, so its place survives the round trip to a text. The
- * entrance stagger covers the first screenful ([LicensesUi.STAGGERED_ROWS]); later rows enter
- * plainly. Loading shows the delayed spinner under the intro; Failed, the error, with no retry.
+ * entrance stagger covers the first [LicensesUi.STAGGERED_ROWS] items, the intro counted (spec
+ * F-23); later rows enter plainly. Loading shows the delayed spinner under the intro; Failed, the error, with no retry.
  */
 @Composable
 fun GoogleNoticesScreen(
@@ -83,7 +82,7 @@ fun GoogleNoticesScreen(
                         text = stringResource(R.string.google_notices_intro),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.clayEntrance(0),
+                        modifier = Modifier.licencesEntrance(0),
                     )
                 }
                 when (state) {
@@ -97,14 +96,8 @@ fun GoogleNoticesScreen(
                                 row = row,
                                 index = index,
                                 onOpenNotice = onOpenNotice,
-                                modifier =
-                                    if (index <
-                                        LicensesUi.STAGGERED_ROWS
-                                    ) {
-                                        Modifier.clayEntrance(index + 1)
-                                    } else {
-                                        Modifier
-                                    },
+                                // The intro is item 0, so row `index` is item `index + 1` (F-23).
+                                modifier = Modifier.licencesEntrance(index + 1),
                             )
                         }
                 }

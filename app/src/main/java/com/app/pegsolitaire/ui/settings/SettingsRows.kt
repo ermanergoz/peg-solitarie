@@ -103,13 +103,16 @@ internal fun SettingsToggleRow(
  * reads strictly top-to-bottom: a header that appeared instantly above rows that fade in
  * would break the one visual rule the ordering exists to keep.
  *
+ * A `null` [entranceOrder] enters plainly: the Licenses list passes one for a header past its
+ * stagger cap (spec F-23); Settings always passes an order.
+ *
  * It is a heading (spec LS-AC01 as amended, brief A1.4), so TalkBack's heading navigation moves
  * section to section — on Settings and on the Licenses screen, which reuses this header.
  */
 @Composable
 internal fun SettingsSectionHeader(
     title: String,
-    entranceOrder: Int,
+    entranceOrder: Int?,
 ) {
     Text(
         text = title,
@@ -117,7 +120,7 @@ internal fun SettingsSectionHeader(
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier =
             Modifier
-                .clayEntrance(entranceOrder)
+                .then(if (entranceOrder != null) Modifier.clayEntrance(entranceOrder) else Modifier)
                 .padding(horizontal = dimensionResource(R.dimen.spacing_sm))
                 .semantics { heading() },
     )

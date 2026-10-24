@@ -13,9 +13,15 @@ internal object LicensesUi {
     const val SPINNER_DELAY_MS = 300L
 
     /**
-     * How many rows of the Google notices list join the entrance stagger: the first screenful
-     * (spec §4A); later rows enter plainly. 8 × 40 ms after the 240 ms entrance puts the first
-     * screenful in within about 560 ms. The count is the ux-designer's to confirm (brief F6).
+     * How many items of each licences list join the entrance stagger, the intro counted as item 0
+     * (spec §3.1 and §4A as amended in loop 2, F-23, answering brief F6): 8 × 40 ms after the 240 ms
+     * entrance puts the first screenful in within about 560 ms; later items enter plainly.
      */
     const val STAGGERED_ROWS = 8
+
+    /**
+     * The entrance order of the list item at [position] (0 = the intro), or `null` past the first
+     * [STAGGERED_ROWS] items: an item composed as it scrolls in must not wait out a long delay.
+     */
+    fun entranceOrderOf(position: Int): Int? = position.takeIf { it < STAGGERED_ROWS }
 }
