@@ -12,6 +12,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -58,6 +59,15 @@ const val HOME_STAGE_ART_TEST_TAG = "home_stage_art"
  * construction: it only ever gets what the hero, the ribbon, the chips and the tiles leave, so no
  * threshold decides it and nothing ever yields to it.
  *
+ * ## When the chips take it below its floor (§4.2.5, "The stage art at the end of its range")
+ *
+ * A Continue chip's room comes out of the stage, so a transition can end below
+ * `home_stage_art_min_size` — two chips at 360x640dp take the stage from 186dp to 10dp. The art
+ * does not shrink to the floor and vanish there: under [StageArtFade.Out] it stays drawn while the
+ * room opens, shrinking with the stage, and fades out over the same `ClayAnim.ENTRANCE_MS`, gone
+ * once the room is open; a chip leaving fades it back in ([StageArtFade.In]). Settled, or with
+ * animations off, it is simply drawn or not.
+ *
  * ## What it costs the first frame (D-03g)
  *
  * One `BoardCanvas` draw of a constant position — the withdrawn peg cluster's one draw, replaced —
@@ -67,19 +77,57 @@ const val HOME_STAGE_ART_TEST_TAG = "home_stage_art"
  *
  * @param modifier layout modifier. `HomeBandColumn` measures the stage at an exact height and
  *   width, the slot's; the stage fills it.
+ * @param artFade whether a chip's room is taking the art across its floor, decided by the band
+ *   column from the motion's two ends.
+ * @param artFadeProgress how far that motion has come, 0 to 1, read only while the art is drawn.
  */
 @Composable
-internal fun HomeStage(modifier: Modifier = Modifier) {
+internal fun HomeStage(
+    modifier: Modifier = Modifier,
+    artFade: StageArtFade = StageArtFade.None,
+    artFadeProgress: () -> Float = { MOTION_DONE },
+) {
     BoxWithConstraints(
-        modifier = modifier.fillMaxWidth().testTag(HOME_STAGE_TEST_TAG),
+        // The stage enters with the hero, once, with Home. The entrance is the stage's own and not
+        // the art's, so art drawn later — faded back in once a chip has left — does not replay it:
+        // the cascade is never restarted by a chip's room (§4.2.5, §10).
+        modifier = modifier.fillMaxWidth().clayEntrance(HERO_ENTRANCE_ORDER).testTag(HOME_STAGE_TEST_TAG),
         contentAlignment = Alignment.Center,
     ) {
         val edge = minOf(maxHeight, maxWidth, dimensionResource(R.dimen.home_stage_art_max_size))
-        if (edge >= dimensionResource(R.dimen.home_stage_art_min_size)) {
-            HomeStageArt(edge = edge)
+        if (edge >= dimensionResource(R.dimen.home_stage_art_min_size) || artFade != StageArtFade.None) {
+            HomeStageArt(edge = edge, fade = artFade, fadeProgress = artFadeProgress)
         }
     }
 }
+
+/**
+ * How the stage art crosses `home_stage_art_min_size` while a Continue chip's room opens or closes
+ * (ux-spec §4.2.5, "The stage art at the end of its range"): the band column decides it from the
+ * stage's height at the motion's two ends, and the art takes its alpha from it.
+ */
+internal enum class StageArtFade {
+    /** The art is drawn at both ends of the motion, or at neither, so it only follows the stage's size. */
+    None,
+
+    /** The motion ends below the floor: the art fades out as it shrinks and is gone once the room is open. */
+    Out,
+
+    /** The motion starts below the floor: the art fades in as it grows, from the room's first frame. */
+    In,
+    ;
+
+    /** The art's alpha at [progress] of the motion, from 0 to 1. */
+    fun alphaAt(progress: Float): Float =
+        when (this) {
+            None -> MOTION_DONE
+            Out -> MOTION_DONE - progress
+            In -> progress
+        }
+}
+
+/** A motion that has run its course, which is also the alpha of art that is not fading. */
+private const val MOTION_DONE = 1f
 
 /**
  * The stage art: the gameplay board slab in miniature — `surfaceContainerHigh`,
@@ -88,18 +136,31 @@ internal fun HomeStage(modifier: Modifier = Modifier) {
  *
  * Not through `BoardPreview`, which forces `catalog_preview_size` whatever size it is asked for.
  * Decorative: no description and no semantics of its own beyond a test tag. It enters with the
- * hero (`HERO_ENTRANCE_ORDER`) rather than taking an order of its own, so §10's cascade and every
- * chip's and tile's counted order are unchanged; with animations off it is simply there.
+ * stage around it, which takes the hero's order (`HERO_ENTRANCE_ORDER`) rather than one of its own,
+ * so §10's cascade and every chip's and tile's counted order are unchanged; with animations off it
+ * is simply there.
  */
 @Composable
-private fun HomeStageArt(edge: Dp) {
+private fun HomeStageArt(
+    edge: Dp,
+    fade: StageArtFade,
+    fadeProgress: () -> Float,
+) {
     val shape = MaterialTheme.shapes.extraLarge
     Box(
         modifier =
             Modifier
                 .size(edge)
-                .clayEntrance(HERO_ENTRANCE_ORDER)
-                .clayShadow(dimensionResource(R.dimen.elevation_card), shape)
+                // The fade's own layer exists only while a fade runs, so the art Home's first frame
+                // draws is the one it always drew. Its alpha is read in the draw phase, so the fade
+                // redraws the art each frame without recomposing it.
+                .then(
+                    if (fade == StageArtFade.None) {
+                        Modifier
+                    } else {
+                        Modifier.graphicsLayer { alpha = fade.alphaAt(fadeProgress()) }
+                    },
+                ).clayShadow(dimensionResource(R.dimen.elevation_card), shape)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh, shape)
                 .testTag(HOME_STAGE_ART_TEST_TAG),
     ) {

@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
@@ -52,6 +53,7 @@ import com.app.pegsolitaire.ui.theme.clayEntrance
 import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.goldGradientFill
+import com.app.pegsolitaire.ui.theme.rememberAnimationsEnabled
 import kotlinx.coroutines.flow.first
 
 /**
@@ -386,9 +388,14 @@ private fun HomeBands(
         // The tiles' cascade order follows the chips shown, so the stagger stays contiguous (§10).
         val chipsShown = listOfNotNull(state.classicResumeLevelId, state.challengeResumeLevel).size
         val classicTileOrder = FIRST_CHIP_ENTRANCE_ORDER + chipsShown
+        val animationsEnabled = rememberAnimationsEnabled()
+        val classicRoom = rememberChipRoom(present = state.classicResumeLevelId != null, animationsEnabled)
+        val challengeRoom = rememberChipRoom(present = state.challengeResumeLevel != null, animationsEnabled)
+        val stageArtFade = remember { mutableStateOf(StageArtFade.None) }
         HomeBandColumn(
             availableHeightPx = constraints.maxHeight,
             bandSpacing = bandSpacing,
+            onStageArtFade = { fade -> if (stageArtFade.value != fade) stageArtFade.value = fade },
             modifier =
                 Modifier
                     .align(Alignment.TopCenter)
@@ -399,7 +406,12 @@ private fun HomeBands(
             // The stage: the larger share of the slack, directly beneath the hero row (§4.2.4
             // clause 3), so the ribbon, the chips and the tiles form one contiguous lower group in
             // the thumb zone and the slack reads as the game's own board instead of a hole.
-            stage = { HomeStage() },
+            stage = {
+                HomeStage(
+                    artFade = stageArtFade.value,
+                    artFadeProgress = { stageMotionProgress(classicRoom, challengeRoom) },
+                )
+            },
             ribbon = {
                 HomeProgressRibbon(
                     compact = bandSet.compactPills,
@@ -411,6 +423,8 @@ private fun HomeBands(
             chips = {
                 ContinueChips(
                     state = state,
+                    classicRoom = classicRoom,
+                    challengeRoom = challengeRoom,
                     onResumeClassic = onResumeClassic,
                     onResumeChallenge = onResumeChallenge,
                 )
@@ -429,33 +443,41 @@ private fun HomeBands(
 
 /**
  * Band 3 — the Continue chips present, Classic over Challenge (§4.2, PERS-03, D-03): none, one or
- * two, each a [ResumeTile] carrying exactly what its resume needs, so the host never guesses.
+ * two, each a [ResumeTile] carrying exactly what its resume needs, so the host never guesses, and
+ * each in its own room of the band column ([ChipRoomSlot]), which opens as the chip arrives and
+ * closes, the chip still shown, as it leaves (§4.2.5).
  *
- * Their `clayEntrance` orders run on from the ribbon's, counted over the chips shown, so the
- * cascade stays contiguous whether one chip renders, two, or none (§10).
+ * A chip present at Home's first composition takes its place in the entrance cascade, counted on
+ * from the ribbon's over the chips shown, so the cascade stays contiguous (§10). A chip that
+ * arrives later — the usual case, once `HomeViewModel` has decoded the saves — takes no stagger, so
+ * its fade starts in the frame its room starts to open and no empty room shows ahead of it.
  */
 @Composable
 private fun ContinueChips(
     state: HomeUiState,
+    classicRoom: ChipRoom,
+    challengeRoom: ChipRoom,
     onResumeClassic: (levelId: String) -> Unit,
     onResumeChallenge: (level: Int) -> Unit,
 ) {
-    var entranceOrder = FIRST_CHIP_ENTRANCE_ORDER
-    val resumeLevelId = state.classicResumeLevelId
-    if (resumeLevelId != null) {
+    val classicAtFirstComposition = remember { state.classicResumeLevelId != null }
+    val challengeAtFirstComposition = remember { state.challengeResumeLevel != null }
+    ChipRoomSlot(
+        value = state.classicResumeLevelId?.let { ClassicResume(levelId = it, board = state.classicResumeBoard) },
+        room = classicRoom,
+    ) { classic ->
         ResumeTile(
             title = stringResource(R.string.resume_classic_title),
             supporting = stringResource(R.string.resume_classic_supporting),
-            entranceOrder = entranceOrder++,
-            board = state.classicResumeBoard,
-            onResume = { onResumeClassic(resumeLevelId) },
+            entranceOrder = if (classicAtFirstComposition) FIRST_CHIP_ENTRANCE_ORDER else LATE_CHIP_ENTRANCE_ORDER,
+            board = classic.board,
+            onResume = { onResumeClassic(classic.levelId) },
         )
     }
     // The Challenge Continue carries the SNAPSHOT's stamped level (WR-03),
     // never challengeCurrentLevel — the ladder flow can lag at a cold start
     // while the stamp always names the level the saved board really is.
-    val challengeResumeLevel = state.challengeResumeLevel
-    if (challengeResumeLevel != null) {
+    ChipRoomSlot(value = state.challengeResumeLevel, room = challengeRoom) { challengeResumeLevel ->
         ResumeTile(
             title = stringResource(R.string.resume_challenge_title),
             supporting =
@@ -463,7 +485,12 @@ private fun ContinueChips(
                     R.string.resume_challenge_supporting,
                     challengeResumeLevel,
                 ),
-            entranceOrder = entranceOrder,
+            entranceOrder =
+                when {
+                    !challengeAtFirstComposition -> LATE_CHIP_ENTRANCE_ORDER
+                    classicAtFirstComposition -> FIRST_CHIP_ENTRANCE_ORDER + 1
+                    else -> FIRST_CHIP_ENTRANCE_ORDER
+                },
             // A procedural level has no memorable footprint, so this chip keeps the
             // generic play arrow: a thumbnail of a board the player cannot recognise
             // would be decoration pretending to be information.
@@ -472,6 +499,12 @@ private fun ContinueChips(
         )
     }
 }
+
+/** What the Classic Continue chip resumes: the saved board's id, and its footprint for the thumbnail. */
+private data class ClassicResume(
+    val levelId: String,
+    val board: Board?,
+)
 
 /**
  * A gold "Continue" clay chip for one mode's saved in-progress game (PERS-03, D-01).
@@ -745,6 +778,13 @@ internal const val RIBBON_ENTRANCE_ORDER = 1
 
 /** The first Continue chip's order, straight after the ribbon's; the rest are counted on from it. */
 private const val FIRST_CHIP_ENTRANCE_ORDER = RIBBON_ENTRANCE_ORDER + 1
+
+/**
+ * A Continue chip arriving after Home's first composition enters with no stagger delay, so its
+ * fade starts with its room (§4.2.5, "The motion"); the bands drawn at first paint have already
+ * run their cascade, and their counted orders are unchanged.
+ */
+private const val LATE_CHIP_ENTRANCE_ORDER = 0
 
 @Preview(name = "Home · light")
 @Composable

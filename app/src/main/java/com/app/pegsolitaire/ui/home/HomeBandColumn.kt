@@ -1,10 +1,26 @@
 package com.app.pegsolitaire.ui.home
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.layoutId
+import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import com.app.pegsolitaire.R
+import com.app.pegsolitaire.ui.theme.ClayAnim
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -32,7 +48,8 @@ import kotlin.math.roundToInt
  *   depends on the window, the font scale and those bands, never on the chips.
  * - **The footer with no chip** is [FOOTER_SHARE_OF_SLACK] of S₀, and **the stage with no chip**
  *   the rest of S₀, so the two add up to S₀ exactly, to the pixel.
- * - **R**, the chips' room: for each chip present, its height plus the band gap it brings.
+ * - **R**, the chips' room: for each chip present, its height plus the band gap it brings, times
+ *   how far its room is open ([ChipRoom]) — 1 when it has settled.
  * - **The stage** = max(0, stage with no chip − R); **the footer** = min(footer with no chip,
  *   max(0, S₀ − R)).
  *
@@ -42,6 +59,21 @@ import kotlin.math.roundToInt
  * than the no-chip stage: the stage gives up exactly what the chips take, so the ribbon rides up on
  * its bottom edge and the tiles hold still (criterion 15s). Past that the tiles move by the
  * shortfall and no more (15t), because the stage is 0 and the footer pays the rest, down to 0.
+ *
+ * ## When a chip arrives, or leaves, while Home is drawn
+ *
+ * Each chip's room opens from 0 to its full height over `ClayAnim.ENTRANCE_MS`, with
+ * `ClayAnim.ENTRANCE_EASING` and no overshoot, and closes the same way when its save goes
+ * (§4.2.5, "The motion"). The room includes the chip's band gap, so no gap shows a frame ahead of
+ * its chip, and the chip is drawn clipped to its share of the room, so the room grows from the
+ * ribbon's edge and nothing overlaps while it opens. In each frame the stage gives up exactly what
+ * the room takes, so the tiles hold still in every frame, not only at the end. With OS animations
+ * off the room is open, or shut, in the frame the chip arrives or leaves.
+ *
+ * Only this pass knows where a motion's two ends leave the stage, since that depends on how the
+ * bands wrap, so it decides whether the stage art crosses its floor ([StageArtFade]) and hands the
+ * verdict to [onStageArtFade] on every pass; the caller keeps it in state and writes it only when it
+ * changes, so a steady Home writes nothing.
  *
  * ## What it does not change
  *
@@ -55,17 +87,20 @@ import kotlin.math.roundToInt
  *   viewport the column scrolls in, after the `Scaffold` has taken the system bars. Inside the
  *   scroll the column's own maximum height is infinite, so it is handed the viewport's.
  * @param bandSpacing the band set's spacing: between two bands, and the column's padding.
+ * @param onStageArtFade receives the stage art's verdict for the motion under way, on every pass.
  * @param modifier the column's modifier chain, its padding included.
  * @param hero band 1, the hero row.
  * @param stage the stage, measured at exactly the height this policy gives it.
  * @param ribbon band 2, the progress ribbon.
- * @param chips band 3: the Continue chips present, top to bottom — none, one or two.
+ * @param chips band 3: the Continue chips, top to bottom — none, one or two — each in its own
+ *   [ChipRoomSlot], which tells this policy how far its room is open.
  * @param tiles band 4: the two mode tiles, top to bottom.
  */
 @Composable
 internal fun HomeBandColumn(
     availableHeightPx: Int,
     bandSpacing: Dp,
+    onStageArtFade: (StageArtFade) -> Unit,
     modifier: Modifier,
     hero: @Composable () -> Unit,
     stage: @Composable () -> Unit,
@@ -73,6 +108,7 @@ internal fun HomeBandColumn(
     chips: @Composable () -> Unit,
     tiles: @Composable () -> Unit,
 ) {
+    val artFloor = dimensionResource(R.dimen.home_stage_art_min_size)
     Layout(
         contents = listOf(hero, stage, ribbon, chips, tiles),
         modifier = modifier,
@@ -82,7 +118,8 @@ internal fun HomeBandColumn(
         val atColumnWidth = Constraints(maxWidth = width)
         val heroPlaceable = bands[HERO_SLOT].single().measure(atColumnWidth)
         val ribbonPlaceable = bands[RIBBON_SLOT].single().measure(atColumnWidth)
-        val chipPlaceables = bands[CHIPS_SLOT].map { it.measure(atColumnWidth) }
+        val chipMeasurables = bands[CHIPS_SLOT]
+        val chipPlaceables = chipMeasurables.map { it.measure(atColumnWidth) }
         val (firstTile, secondTile) = bands[TILES_SLOT].map { it.measure(atColumnWidth) }
 
         val inner = availableHeightPx - 2 * gap
@@ -92,11 +129,24 @@ internal fun HomeBandColumn(
         val slack = max(0, inner - fixedBands)
         val footerWithNoChip = (slack * FOOTER_SHARE_OF_SLACK).roundToInt()
         val stageWithNoChip = slack - footerWithNoChip
-        val chipRooms = chipPlaceables.map { it.height + gap }
+        val chipRooms =
+            chipPlaceables.mapIndexed { index, chip ->
+                val open = (chipMeasurables[index].layoutId as? ChipRoom)?.fraction ?: ROOM_OPEN
+                ((chip.height + gap) * open).roundToInt()
+            }
         val room = chipRooms.sum()
         val stageHeight = max(0, stageWithNoChip - room)
         val footer = min(footerWithNoChip, max(0, slack - room))
         val stagePlaceable = bands[STAGE_SLOT].single().measure(Constraints.fixed(width, stageHeight))
+        onStageArtFade(
+            stageArtFade(
+                stageWithNoChip = stageWithNoChip,
+                fullRooms = chipPlaceables.map { it.height + gap },
+                rooms = chipMeasurables.map { it.layoutId as? ChipRoom },
+                width = width,
+                artFloor = artFloor.roundToPx(),
+            ),
+        )
 
         layout(width, fixedBands + stageHeight + room + footer) {
             var y = 0
@@ -116,6 +166,160 @@ internal fun HomeBandColumn(
         }
     }
 }
+
+/**
+ * One Continue chip's room in the band column (§4.2.5, "The motion"): whether its chip is wanted —
+ * its save exists — and how far the room is open, from 0 to 1.
+ *
+ * [fraction] is read in layout and in drawing, never in composition, so the room's motion
+ * re-measures the column and redraws the chip each frame without recomposing either; composition
+ * reads only [isOpen], which changes twice a transition at most.
+ */
+@Stable
+internal class ChipRoom(
+    /** Whether this room's chip is wanted: its save exists, so its room is opening or open. */
+    val present: Boolean,
+    private val openness: () -> Float,
+    private val opened: State<Boolean>,
+) {
+    /** How far the room is open: 0 shut, 1 open. */
+    val fraction: Float get() = openness()
+
+    /** Whether any of the room is open, so its chip must still be drawn. */
+    val isOpen: Boolean get() = opened.value
+
+    /** Whether the room is still opening or closing. */
+    val moving: Boolean get() = fraction != target
+
+    /** How far the room has come toward where it is going, from 0 to 1; 1 once it is there. */
+    val progress: Float
+        get() {
+            val open = fraction
+            return when {
+                open == target -> ROOM_OPEN
+                present -> open
+                else -> ROOM_OPEN - open
+            }
+        }
+
+    private val target: Float get() = if (present) ROOM_OPEN else ROOM_SHUT
+}
+
+/**
+ * How far the motion under way has come, from 0 to 1, for the stage art's fade: the less advanced of
+ * the two rooms, so a room that is not moving counts as done. Two rooms that move together — a cloud
+ * swap that replaces both saves — start in one frame and run one curve, so they agree.
+ */
+internal fun stageMotionProgress(
+    classic: ChipRoom,
+    challenge: ChipRoom,
+): Float = min(classic.progress, challenge.progress)
+
+/**
+ * The stage art's verdict for the motion under way (§4.2.5): where the motion's two ends — every room
+ * at where it started, then at where it is going — leave the stage against the art's floor.
+ *
+ * @param fullRooms each chip's room at full opening, its height plus its band gap, in px.
+ * @param rooms each chip's room, in the same order.
+ * @param width the column's width: the art's edge is the stage's height or this, the smaller.
+ * @param artFloor the smallest edge the art is drawn at, `home_stage_art_min_size`, in px.
+ */
+private fun stageArtFade(
+    stageWithNoChip: Int,
+    fullRooms: List<Int>,
+    rooms: List<ChipRoom?>,
+    width: Int,
+    artFloor: Int,
+): StageArtFade {
+    if (rooms.none { it?.moving == true }) return StageArtFade.None
+    var fromRoom = 0
+    var toRoom = 0
+    rooms.forEachIndexed { index, room ->
+        val present = room?.present ?: true
+        // A moving room started where it is not going; a settled one is where it always was.
+        val startedOpen = if (room?.moving == true) !present else present
+        if (present) toRoom += fullRooms[index]
+        if (startedOpen) fromRoom += fullRooms[index]
+    }
+    val drawnAtStart = min(stageWithNoChip - fromRoom, width) >= artFloor
+    val drawnAtEnd = min(stageWithNoChip - toRoom, width) >= artFloor
+    return when {
+        drawnAtStart && !drawnAtEnd -> StageArtFade.Out
+        !drawnAtStart && drawnAtEnd -> StageArtFade.In
+        else -> StageArtFade.None
+    }
+}
+
+/**
+ * The room of one Continue chip slot: open from Home's first composition if [present] then, and
+ * from then on opening and closing as the chip arrives and leaves, over `ClayAnim.ENTRANCE_MS` with
+ * `ClayAnim.ENTRANCE_EASING` and no overshoot.
+ *
+ * With OS animations off ([animationsEnabled] false) the room is its target at once, read in the
+ * composition that carries the change, so the very next frame is the settled layout (§10's
+ * reduced-motion bullet) — not a frame later, as a snap from an effect would be.
+ */
+@Composable
+internal fun rememberChipRoom(
+    present: Boolean,
+    animationsEnabled: Boolean,
+): ChipRoom {
+    val target = if (present) ROOM_OPEN else ROOM_SHUT
+    val openness = remember { Animatable(target) }
+    LaunchedEffect(target, animationsEnabled) {
+        if (!animationsEnabled) {
+            openness.snapTo(target)
+        } else if (openness.value != target) {
+            openness.animateTo(target, tween(ClayAnim.ENTRANCE_MS, easing = ClayAnim.ENTRANCE_EASING))
+        }
+    }
+    return remember(present, animationsEnabled) {
+        val fraction: () -> Float = if (animationsEnabled) ({ openness.value }) else ({ target })
+        ChipRoom(present = present, openness = fraction, opened = derivedStateOf { fraction() > ROOM_SHUT })
+    }
+}
+
+/**
+ * One Continue chip in its room: [content] for [value] — what the chip resumes — while the save
+ * exists, and while its room is still closing after it has gone, showing the chip it was.
+ *
+ * The chip is measured at its own height, and drawn clipped to the share of it its room has opened,
+ * from its top, so it is revealed downward from the ribbon's edge and hidden upward toward it.
+ * Settled, nothing is clipped, so the chip's clay shadow is whole.
+ *
+ * @param value what the chip resumes, or `null` when its mode has no save.
+ * @param room this chip's room, which the band column reads from the slot.
+ */
+@Composable
+internal fun <T : Any> ChipRoomSlot(
+    value: T?,
+    room: ChipRoom,
+    content: @Composable (T) -> Unit,
+) {
+    // The last chip this slot showed: a chip whose save has gone still shows itself while its
+    // room closes, which is the arrival run in reverse (§4.2.5).
+    val latched = remember { mutableStateOf<T?>(null) }
+    SideEffect { if (value != null) latched.value = value }
+    val shown = value ?: latched.value
+    if (shown != null && (value != null || room.isOpen)) {
+        Box(modifier = Modifier.layoutId(room).clipToRoom(room)) { content(shown) }
+    }
+}
+
+/** Draws only the part of the chip its room has opened, from the top; nothing is clipped once open. */
+private fun Modifier.clipToRoom(room: ChipRoom): Modifier =
+    drawWithContent {
+        val open = room.fraction
+        if (open >= ROOM_OPEN) {
+            drawContent()
+        } else {
+            clipRect(bottom = size.height * open) { this@drawWithContent.drawContent() }
+        }
+    }
+
+/** A chip's room fully open, and shut. */
+private const val ROOM_OPEN = 1f
+private const val ROOM_SHUT = 0f
 
 /**
  * The footer's share of the no-chip slack S₀ (ux-spec §4.2.5, D-03n): one fifth, fixed for the
