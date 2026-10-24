@@ -14,6 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
@@ -27,8 +30,14 @@ const val NOWIN_BANNER_TEST_TAG = "nowin_banner"
  * A single shared, **non-blocking** M3 [Surface] (NOT an `AlertDialog`) rendered over the
  * still-visible, still-interactive board so the player can act immediately (D-08). It is
  * parameterized by [message] — the caller passes `nowin_message` when the Solver confirms
- * no winning move (or a budget miss, D-04) and `stuck_message` when the board has no legal
- * move at all — so one component serves both rescue surfaces (RESEARCH Open-Q2).
+ * no winning move and `stuck_message` when the board has no legal move at all — so one
+ * component serves both rescue surfaces (RESEARCH Open-Q2). `nowin_message` now means a
+ * proven dead end and nothing else (GD-HT-1): a search that ends with no move and no proof
+ * shows the Undecided notice, [HintUndecidedNotice], never this banner.
+ *
+ * Its message is a polite live region (D-04f, criterion 23k), so TalkBack speaks a proof, or a
+ * stuck board, as it speaks the Undecided notice; the three actions stay outside the region and
+ * are read when they are focused.
  *
  * It is a stateless leaf: it owns no logic and holds no state. It presents three
  * [TextButton] actions — Undo · Restart · Home (D-09) — and forwards each tap through the
@@ -67,6 +76,7 @@ fun NoWinBanner(
         Column(modifier = Modifier.padding(dimensionResource(R.dimen.spacing_md))) {
             Text(
                 text = message,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                 color = MaterialTheme.colorScheme.onErrorContainer,
                 style = MaterialTheme.typography.bodyMedium,
             )

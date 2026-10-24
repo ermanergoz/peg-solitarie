@@ -16,6 +16,7 @@ import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
+import com.app.pegsolitaire.domain.usecase.HintOutcome
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
 import com.app.pegsolitaire.platform.ads.RewardOutcome
@@ -64,14 +65,15 @@ import kotlin.time.TestTimeSource
  * not change": a declined grant also leaves the board untouched, so a board-only assertion
  * would pass just as happily against the very ordering this spec exists to forbid.
  *
- * A solver **budget miss** returns `null` for a different reason than an unwinnable position,
- * and is covered separately: under this ordering it is likewise free, which is the correct and
- * generous reading of ADS-06 — the player was told "no winning move" and must not be charged
- * for it, whatever the reason.
+ * A search that stops without deciding — its deadline, node ceiling or attempt limit — is
+ * **Undecided**, not "no winning move" (GD-HT-1), and is covered separately: it is free as
+ * well (GD-HT-5, the ADS-06 extension), it never raises the rescue banner, and it never
+ * enters the funnel even once the free hints are spent (AC-21).
  *
  * The fixtures are tiny single-row strips, so the REAL [GetHintUseCase] and Solver run
- * instantly and no domain component is mocked except in the budget-miss test, where returning
- * `null` *is* the condition under test.
+ * instantly and no domain component is mocked except where the outcome itself is the
+ * condition under test: Undecided (which no tiny strip produces within the shipped budget)
+ * and a ProvenDead served on a board the real solver would answer differently.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [ORDERING_ROBOLECTRIC_SDK])
@@ -159,27 +161,79 @@ class GameViewModelAssistOrderingTest {
             assertThat(viewModel.uiState.value.hintTarget).isEqualTo(at(JUMP_TARGET_COL))
         }
 
+    /**
+     * AC-9 (GD-HT-1, GD-HT-2, GD-HT-5): a search that stopped without deciding, on a board
+     * that may well be winnable, raises the Undecided notice — never the rescue banner — and
+     * costs nothing.
+     */
     @Test
-    fun aHintWhoseSearchMissesItsBudgetIsAlsoFree() =
+    fun anUndecidedHintIsFreeAndNeverRaisesTheNoWinningMoveBanner() =
         orderingTest {
-            // `getHintUseCase` also returns null when the budgeted Solver misses its deadline
-            // (Phase 4 D-04), on a board that may well be winnable. The player is told "no
-            // winning move" either way, so under this ordering the budget miss is free too.
-            val missedBudget = mockk<GetHintUseCase>()
-            every { missedBudget.invoke(any(), any(), any(), any(), any()) } returns null
-
             val gateway = RecordingAdGateway()
-            val viewModel = viewModelFor(winnableStrip(), gateway, getHintUseCase = missedBudget)
+            val viewModel = viewModelFor(winnableStrip(), gateway, getHintUseCase = answering(HintOutcome.Undecided))
             runCurrent()
 
             viewModel.onHintRequested()
             runCurrent()
 
+            val state = viewModel.uiState.value
+            assertThat(state.noWinningMove).isFalse()
+            assertThat(state.showRescueBanner).isFalse()
+            assertThat(state.hintUndecided).isTrue()
+            assertThat(state.solverThinking).isFalse()
+            assertThat(state.pendingAdOffer).isNull()
             assertThat(gateway.lastReason).isNull()
             assertThat(gateway.requests).isEqualTo(NO_REQUESTS)
-            assertThat(viewModel.uiState.value.pendingAdOffer).isNull()
-            assertThat(viewModel.uiState.value.noWinningMove).isTrue()
-            assertThat(viewModel.uiState.value.solverThinking).isFalse()
+        }
+
+    /**
+     * AC-10: a proven dead end behaves exactly as before — the banner, for free. The stub
+     * serves the proof on the winnable strip so that only the outcome, not the board,
+     * decides what the player sees.
+     */
+    @Test
+    fun aProvenDeadHintStillRaisesTheNoWinningMoveBannerForFree() =
+        orderingTest {
+            val gateway = RecordingAdGateway()
+            val viewModel = viewModelFor(winnableStrip(), gateway, getHintUseCase = answering(HintOutcome.ProvenDead))
+            runCurrent()
+
+            viewModel.onHintRequested()
+            runCurrent()
+
+            val state = viewModel.uiState.value
+            assertThat(state.noWinningMove).isTrue()
+            assertThat(state.showRescueBanner).isTrue()
+            assertThat(state.hintUndecided).isFalse()
+            assertThat(state.solverThinking).isFalse()
+            assertThat(state.pendingAdOffer).isNull()
+            assertThat(gateway.lastReason).isNull()
+            assertThat(gateway.requests).isEqualTo(NO_REQUESTS)
+        }
+
+    /**
+     * AC-21: once the free hints are spent, a found move raises the opt-in offer — but an
+     * Undecided one does not. It never enters the funnel at all, so there is nothing to
+     * offer an ad for.
+     */
+    @Test
+    fun anUndecidedHintAfterTheFreeHintsAreSpentRaisesNoOffer() =
+        orderingTest {
+            val gateway = RecordingAdGateway()
+            val switchable = SwitchableHint()
+            val viewModel = viewModelFor(winnableStrip(), gateway, getHintUseCase = switchable.useCase)
+            runCurrent()
+            exhaustFreeHints(viewModel)
+
+            switchable.forced = HintOutcome.Undecided
+            viewModel.onHintRequested()
+            runCurrent()
+
+            val state = viewModel.uiState.value
+            assertThat(state.hintUndecided).isTrue()
+            assertThat(state.pendingAdOffer).isNull()
+            assertThat(gateway.lastReason).isNull()
+            assertThat(gateway.requests).isEqualTo(NO_REQUESTS)
         }
 
     @Test
@@ -327,6 +381,13 @@ class GameViewModelAssistOrderingTest {
             runCurrent()
         }
         check(viewModel.uiState.value.pendingAdOffer == null) { "a free hint must raise no offer" }
+    }
+
+    /** A hint use case that answers [outcome] for every board — the outcome is the fixture. */
+    private fun answering(outcome: HintOutcome): GetHintUseCase {
+        val useCase = mockk<GetHintUseCase>()
+        every { useCase.invoke(any(), any(), any(), any(), any()) } returns outcome
+        return useCase
     }
 
     /**
@@ -487,6 +548,21 @@ private class RecordingAdGateway(
     override fun preloadInterstitial() = Unit
 
     override suspend fun showInterstitial(): Boolean = false
+}
+
+/**
+ * A hint use case that finds the first legal move of the board it is handed — so the free
+ * hints can be spent for real — until a test sets [forced], which it answers from then on.
+ */
+private class SwitchableHint {
+    var forced: HintOutcome? = null
+
+    val useCase: GetHintUseCase =
+        mockk<GetHintUseCase>().also { stub ->
+            every { stub.invoke(any(), any(), any(), any(), any()) } answers {
+                forced ?: HintOutcome.Found(RulesEngine.legalMoves(firstArg()).first())
+            }
+        }
 }
 
 /** A [LevelRepository] serving one fixed board through Classic. */

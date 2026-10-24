@@ -13,20 +13,21 @@ import org.junit.Test
 /**
  * The D-04 completeness + budget-headroom check, sized to run in CI seconds.
  *
- * D-04 makes any budget/deadline miss read as "no winning move", so a solvable board
- * that the Solver is EXPECTED to decide must return a real move within the shipped
- * [SolverBudget.DEFAULT]. This test proves that over the **tractable** corpus and asserts
- * [SolverBudget.DEFAULT_MAX_NODES] keeps [HEADROOM_FACTOR]x node headroom over the
- * largest deciding search it performs.
+ * A budget or deadline miss is [SolverOutcome.Undecided] (GD-HT-1, which replaced D-04's
+ * fold to "no winning move"), so a solvable board that the Solver is EXPECTED to decide
+ * must still return a real move within the shipped [SolverBudget.DEFAULT]: an Undecided
+ * there is a hint that failed the player. This test proves that over the **tractable**
+ * corpus and asserts [SolverBudget.DEFAULT_MAX_NODES] keeps [HEADROOM_FACTOR]x node
+ * headroom over the largest deciding search it performs.
  *
  * **Why not every prefix of every board?** Node cost is high-variance, and the *early*
  * positions of the larger footprints are the expensive ones — Wiegleb-45's start does not
  * resolve at this deadline at all, by four orders of magnitude (RESEARCH), and
  * Diamond-41's sits right on it because [Pagoda]'s prune is provably vacuous at a two-peg
  * target. In PRODUCTION such positions are governed by [SolverBudget.DEFAULT_DEADLINE]
- * (1.5s), not the node cap, and D-04 folds a deadline miss to the "no winning move"
- * state — a documented capability envelope, not a solver bug, and the one the committed
- * opening book (plans 08-08..08-10) closes. So CI measures what the Solver is reliably
+ * (1.5s), not the node cap, and a deadline miss there is Undecided (GD-HT-1) — a
+ * documented capability envelope, not a solver bug, and the one the committed opening
+ * book (plans 08-08..08-10) closes. So CI measures what the Solver is reliably
  * relied on to decide fast: the reference board [REFERENCE_BOARD]'s full-footprint start
  * plus every board's cheap [ENDGAME_DEPTH]-move endgame tail. Each solve carries a hard
  * [PER_CALL_CAP_MS] wall-clock guard, so the whole suite is bounded regardless of
@@ -63,13 +64,13 @@ class SolverBudgetTest {
             label: String,
         ) {
             val startedAt = System.nanoTime()
-            val move =
-                Solver.firstWinningMove(board, SolverBudget.DEFAULT) {
+            val outcome =
+                Solver.decide(board, SolverBudget.DEFAULT) {
                     System.nanoTime() - startedAt > perCallCapNanos
                 }
             assertWithMessage("solvable position %s must return a move within budget", label)
-                .that(move)
-                .isNotNull()
+                .that(outcome)
+                .isInstanceOf(SolverOutcome.Found::class.java)
             maxObservedNodes = maxOf(maxObservedNodes, Solver.lastVisited)
         }
 
@@ -93,9 +94,9 @@ class SolverBudgetTest {
         // A few small constructed positions that pass the pagoda pre-check but are
         // genuinely unsolvable, so the Solver performs a FULL exhaustive search of
         // their (small) forward space — the exhaustive-search node counts to headroom.
+        // Run with no deadline, an exhaustive search is a proof, so it must say so.
         exhaustiveUnsolvableSamples().forEach { board ->
-            val move = Solver.firstWinningMove(board, SolverBudget.DEFAULT)
-            assertThat(move).isNull()
+            assertThat(Solver.decide(board, SolverBudget.DEFAULT)).isEqualTo(SolverOutcome.ProvenDead)
             maxObservedNodes = maxOf(maxObservedNodes, Solver.lastVisited)
         }
 
