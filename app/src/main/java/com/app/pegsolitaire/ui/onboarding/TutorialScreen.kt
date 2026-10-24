@@ -21,11 +21,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -36,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
@@ -51,13 +49,15 @@ import com.app.pegsolitaire.audio.SoundCue
 import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.ui.components.BoardCanvas
+import com.app.pegsolitaire.ui.components.StarGlyph
 import com.app.pegsolitaire.ui.game.JumpHapticEffect
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.app.pegsolitaire.ui.theme.ClayAnim
+import com.app.pegsolitaire.ui.theme.LocalBoardMarks
 import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.ctaGradientBrush
-import com.app.pegsolitaire.ui.theme.goldGradientFill
+import com.app.pegsolitaire.ui.theme.gradientFill
 import com.app.pegsolitaire.ui.theme.rememberAnimationsEnabled
 
 /** Semantics tag the tests use to locate the tutorial screen — never its button copy. */
@@ -201,7 +201,13 @@ private fun StepPips(stepNumber: Int) {
                 modifier =
                     Modifier
                         .size(dimensionResource(R.dimen.tutorial_step_pip_size))
-                        .then(if (step < stepNumber) Modifier.goldGradientFill() else Modifier),
+                        .then(
+                            if (step < stepNumber) {
+                                Modifier.gradientFill(Brush.linearGradient(LocalBoardMarks.current.donePipFill))
+                            } else {
+                                Modifier
+                            },
+                        ),
             ) {
                 Surface(
                     shape = CircleShape,
@@ -342,7 +348,7 @@ private fun TutorialFooter(
     }
 }
 
-/** One gold star, popped in with the Results star vocabulary. Decorative: it announces nothing. */
+/** One earned star in the active palette, popped in like the Results stars. Decorative: it announces nothing. */
 @Composable
 private fun CompletionStar() {
     val animationsEnabled = rememberAnimationsEnabled()
@@ -350,14 +356,10 @@ private fun CompletionStar() {
     LaunchedEffect(animationsEnabled) {
         if (animationsEnabled) scale.animateTo(SETTLED_SCALE, ClayAnim.overshootSpring())
     }
-    Icon(
-        imageVector = Icons.Filled.Star,
-        contentDescription = null,
-        modifier =
-            Modifier
-                .size(dimensionResource(R.dimen.results_star_size))
-                .scale(scale.value)
-                .goldGradientFill(),
+    StarGlyph(
+        earned = true,
+        size = dimensionResource(R.dimen.results_star_size),
+        modifier = Modifier.scale(scale.value),
     )
 }
 
