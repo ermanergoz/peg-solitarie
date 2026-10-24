@@ -151,3 +151,71 @@ Next: producer — route the FAIL to the tech-lead (the author's role; a docs-on
 - Separately, the release-manager for I-2.
 
 VERDICT: FAIL
+
+## Loop 1 — 2026-10-24 (re-read of the fixes, `f4fe205..2d5289e`)
+Date: 2026-10-24
+Branch: feature/tech-design-r1-close (`f4fe205..2d5289e`; read `git diff f4fe205 HEAD -- docs/tech-design.md`, +29/−18, and the author's "Loop 1" section in `tech-lead-tech-design-r1-close.md`; this section is uncommitted, as dispatched)
+Ran on: claude-opus-5-5 at effort xhigh. The same Q-019 staffing deviation as above: the pin is fable, the Fable limit is reported reached, and the author is also on Opus. As before, I re-derived every count from git and the tree, not from the author's section.
+Loops: 1
+Lessons applied: none
+
+### Summary
+- **F-1 is fixed.** Row RM (`:1571`), §15 (`:1726`) and §16 #28 (`:1766`) now give `6aa7624`'s figures: 14 call sites in 9 files and seven test files. They name `HintUndecidedNotice.kt:170` and `GameScreenHintNoticeTest.kt:354`. They also record that the RM brief (`audio-review/tech-lead-signoff.md` §3) still carries the pre-R1 counts, and that this file wins, as its "How to read it" (`:49-52`) says.
+- **F-2 to F-7 are fixed** as proposed, each with a dated "until loop 1" note.
+- **I-1, I-3 and I-4 are accepted.** I-3 leaves one LOW wording point for the signing tech-lead (L1-1). It does not block the merge.
+- **VERDICT: PASS.**
+
+### Verification, finding by finding
+- **F-1.** The tree confirms all three figures:
+  - `git grep -n 'rememberAnimationsEnabled()' 6aa7624 -- app/src/main` gives 14 calls in 9 files, `HintUndecidedNotice.kt:170` among them.
+  - `git grep -l ANIMATOR_DURATION_SCALE 6aa7624 -- app/src/test` gives 7 files: the brief's six, named in row RM, plus `GameScreenHintNoticeTest.kt`. `:354` there is its `putFloat(… ANIMATIONS_OFF)`.
+  - #28's file list now has nine entries.
+
+  The author's new decision on the notice: it is in scope by construction, needs no extra red-first test, and adds one QA repro step. It holds. Criterion 23e (`docs/ux-spec.md:6257`) is pinned at both gate values by `theNoticeLeavesAfterItsDisplayTimeAndItsExit` (5 s plus the 160 ms exit) and `withAnimationsOffTheNoticeKeepsItsTimeAndGoesInOneFrame` (5 s, one frame) in `GameScreenHintNoticeTest.kt:311-361`. RM's (a)/(b) flips test the one function every caller reads. I accept it as a tech-lead decision.
+- **F-2** (`:725-731`): the bullet is now attributed to the brief's two gapped boards, with 399 as §7.2's own. Accepted.
+- **F-3** (`:603-607`): names `toHintOutcome` and the ViewModel's `when (outcome)`, and says `when (fromBook)` keeps its `else`. That matches `GetHintUseCase.kt:121-138` and `GameViewModel.kt:1403-1413`. Accepted.
+- **F-4** (`:1105-1107`, `:1115`): the caption note's 243 is right (6 + 4 + 198 + 33 + 1 + 1). The Check sha is now `9f0e67a`, per `android-game-dev-merge.md:3, 30`. Accepted.
+- **F-5:**
+  - (a) #29's owner cell (`:1767`) gives the reproduction to the android-game-dev, as `hint-undecided/tech-lead-signoff.md` §1.1 and Handoff 5 say. "qa-engineer to reproduce" survives only in the dated note.
+  - (b) Row RM's riders: only sound-designer F-1 drops to 3.0.1 (§5), and all three are non-gating (open issue 2).
+
+  Accepted.
+- **F-6** (`:1831`): the mapping (1)=1, (2)=3 and 6–7, (3)=4, (4)=2, (5)=5 matches `tech-lead-signoff-tech-design-sync.md:69-74`. Accepted.
+- **F-7** (`:814`): "were part of the merge-in's Check … served from the build cache", quoting `android-game-dev-check-gates-merge.md:34`. Accepted.
+
+### The author's additions
+- **I-1, accepted.** Row R-2 (`:1564`) now reads "**Done.** Merged …". That is the vocabulary of the table's reading note (`:1555-1557`), of R1 and of audio. Its last cell still carries the marker; checklist 1.1 is satisfied by the merge either way.
+- **I-4, accepted.** The header (`:41-45`) names the four facts and loop 1. The cited report path exists (committed in `f4fe205`), and "six precision points (F-2 to F-7)" counts right.
+- **I-3, accepted, with L1-1.** §16 #30 (`:1768`) now asks the founder only for hardware set-up, never for a pass the founder runs. That agrees with the audio sign-off's §4 standing rule. It also agrees with the producer's own wording in Q-024 option 1, "the founder never tests by hand" (`FOUNDER.md:21-22`), and with how Q-024 and Q-025 ask for hardware. It overrides the hint sign-off's §1.1 fallback. The override is recorded as a tech-lead decision, keeps the old text dated, and is flagged for the signer. That is within the tech-lead's authority under "How to read it".
+
+### New in loop 1
+**L1-1 — LOW — `docs/tech-design.md:1768` (§16 #30).**
+- The status cell still opens "**Owed before `release/3.0.0`**".
+- The new fallback adds an end state the R1 ruling did not have: "If no set-up makes TalkBack drivable by the cut, the two halves become one line in the Q-PUBLISH-3.0.0 summary". The old founder-run fallback still closed the item before release.
+- Disclosure at Gate 2 has precedent: audio's open halves; Q-024 option 2's "recorded as unverified … never silently passed".
+- But the cell now says both "owed before the cut" and "may ship disclosed".
+- Fix, or rule in the sign-off: "Owed before `release/3.0.0`, or, if no set-up makes TalkBack drivable, disclosed in the Q-PUBLISH-3.0.0 summary". The signer rules it together with I-3. It does not block the merge.
+
+**INFO.**
+- L1-I1, `:1571`: row RM says "the producer has told the RM developer". No file shows it: the RM worktree (`012b1d6`) and `.planning/` mention the corrected count only in the two r1-close reports. It is a process fact, not a design fact, and the row's own figures are what the developer reads (this file wins), so nothing depends on it.
+- L1-I2: I-2 (checklist 1.1 does not name RM) is still the release-manager's, as the author says.
+
+### Loop 1 checks
+All run in `/Users/ermanergoz/Desktop/PegSolitarie-r1c`, read-only; no Gradle.
+- `git log --oneline develop..HEAD`: `cf68c27`, `f4fe205` (my report), `2d5289e` (the fixes). `git diff --stat f4fe205 HEAD`: the design, +29/−18, and the author's report — read in full.
+- `git diff --stat f4fe205 HEAD -- app domain build-logic`: empty, so no Check input changed. `git diff --check f4fe205 HEAD`: clean — pass.
+- `python3 -I <scratchpad>/scripts/tables.py docs/tech-design.md`: 20 tables, 0 mismatches — pass. `awk` over §16: 1…31, each once — pass.
+- `git grep` of the 14/9 calls and the 7 test files at `6aa7624` — pass (F-1).
+- `sed -n 6257,6262p docs/ux-spec.md` and `sed -n 311,361p GameScreenHintNoticeTest.kt`: 23e and its two gate-value tests — pass.
+- `sed -n 49,52p docs/tech-design.md` ("this file wins"); `sed -n 16,26p .planning/questions/FOUNDER.md` (Q-024, "the founder never tests by hand") — pass.
+- `grep -rln '14 call sites\|HintUndecidedNotice.kt:170' .planning <rm worktree>/.planning`: only the two r1-close reports (L1-I1).
+
+### Handoff
+Next: producer — commit this section. Then a fresh tech-lead sign-off, which rules:
+- the loop-0 judgement calls ("low" in §15; the record-file rule in both §14.1 and §17);
+- loop 1's notice decision;
+- I-3 together with L1-1.
+
+Route I-2 to the release-manager.
+
+VERDICT: PASS
