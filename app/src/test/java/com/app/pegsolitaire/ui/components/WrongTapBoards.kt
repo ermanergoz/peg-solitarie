@@ -11,7 +11,6 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -25,6 +24,7 @@ import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
+import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.testing.renderedWindow
 import com.app.pegsolitaire.ui.game.GameUiState
 import com.app.pegsolitaire.ui.theme.AppTheme
@@ -488,15 +488,19 @@ internal class WrongTapBoards(
 /**
  * The compose rule the wrong-tap board tests run on. With [animationsOn] `false` its effects see a
  * `MotionDurationScale` of 0, as every effect does on a phone whose animator scale is 0 — so an
- * `Animatable` finishes in its first frame there, exactly as it would on that phone. Compose's
- * test rule does not apply the system setting by itself.
+ * `Animatable` finishes in its first frame there, exactly as it would on that phone, and the
+ * board's reduced-motion gate reads the same 0. Compose's test rule does not apply the system
+ * setting by itself.
  */
 internal fun createWrongTapComposeRule(animationsOn: Boolean): ComposeContentTestRule =
-    if (animationsOn) createComposeRule() else createComposeRule(effectContext = AnimationsOff)
+    if (animationsOn) createComposeRule() else createWrongTapComposeRule(SystemMotionScale(SystemMotionScale.OFF))
 
-private object AnimationsOff : MotionDurationScale {
-    override val scaleFactor: Float get() = 0f
-}
+/**
+ * The compose rule for a test that turns the system's animations off and on while the boards stay
+ * composed: the effects and the board's reduced-motion gate read [motion] as it is at each frame.
+ */
+internal fun createWrongTapComposeRule(motion: SystemMotionScale): ComposeContentTestRule =
+    createComposeRule(effectContext = motion)
 
 /** The SDK the board pixel tests render on. */
 internal const val WRONG_TAP_CANVAS_SDK = 34
