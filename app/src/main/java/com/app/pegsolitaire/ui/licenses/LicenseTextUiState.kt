@@ -32,7 +32,7 @@ sealed interface LicenseTextHeader {
  */
 @Immutable
 data class LoadedTextPart(
-    @StringRes val heading: Int?,
+    @param:StringRes val heading: Int?,
     val paragraphs: List<String>,
 )
 

@@ -12,7 +12,7 @@ import com.app.pegsolitaire.data.licenses.BundledLicenseText
 @Immutable
 data class BundledTextRef(
     val text: BundledLicenseText,
-    @StringRes val heading: Int,
+    @param:StringRes val heading: Int,
 )
 
 /** What tapping an entry opens; an inert entry has none (spec LS-06). */
@@ -31,7 +31,7 @@ sealed interface LicenseEntryTarget {
 sealed interface LicenseLine {
     /** A plain line of copy. */
     data class Plain(
-        @StringRes val text: Int,
+        @param:StringRes val text: Int,
     ) : LicenseLine
 
     /** "N sound effects", through the `licenses_sound_effects` plural. */
@@ -41,7 +41,7 @@ sealed interface LicenseLine {
 
     /** A source address: selectable so it can be copied, never a link (spec LS-05). */
     data class Address(
-        @StringRes val text: Int,
+        @param:StringRes val text: Int,
     ) : LicenseLine
 }
 
@@ -57,8 +57,8 @@ sealed interface LicenseLine {
 @Immutable
 data class LicenseEntry(
     val id: String,
-    @StringRes val title: Int,
-    @StringRes val licenseName: Int?,
+    @param:StringRes val title: Int,
+    @param:StringRes val licenseName: Int?,
     val lines: List<LicenseLine>,
     val opens: LicenseEntryTarget?,
 )
@@ -66,7 +66,7 @@ data class LicenseEntry(
 /** One headed section of the Licenses list. */
 @Immutable
 data class LicenseSection(
-    @StringRes val title: Int,
+    @param:StringRes val title: Int,
     val entries: List<LicenseEntry>,
 )
 
