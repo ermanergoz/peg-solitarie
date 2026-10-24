@@ -6,6 +6,7 @@ import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.GameStatus
+import com.app.pegsolitaire.domain.model.Move
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.platform.ads.AdReason
 
@@ -96,6 +97,15 @@ import com.app.pegsolitaire.platform.ads.AdReason
  *   until the first rejected tap on the board now installed: unlike the ordinal it is **not**
  *   carried across a board install, because it names a cell of the board being replaced. A
  *   successful action touches neither half (WT-4); ending the board's answer is the board's job.
+ * @property restartTick a monotonic cue ordinal, incremented once per restart that actually installed
+ *   the initial board again — an immediate one or a confirmed one, never a declined confirm (D-TB:
+ *   "Board restarted. 32 pegs left."). A restart rebuilds the whole state, so this is the only trace
+ *   of it. Carried, never reset, at all four board-install sites, under the same rule as the other
+ *   ordinals; a consumer keeps quiet on the value it first sees.
+ * @property undoneMove the move the latest undo took back — with [undoTick], the undo's spoken line
+ *   (D-TB: "Undid row 2, column 4 to row 4, column 4. 32 pegs left."). [undoTick] says *that* an undo
+ *   happened and this says *which* move; `null` until the first undo on the board now installed, and
+ *   **not** carried across a board install, because it names a move of the board being replaced.
  * @property pendingAdOffer the assist the themed opt-in dialog is currently offering an ad for
  *   (ADS-01), or `null` when no dialog is up — the same nullable-flag-drives-a-dialog shape as
  *   [confirmRestart], which is why no separate `showAdOffer` boolean exists. It carries the
@@ -146,6 +156,8 @@ data class GameUiState(
     val undoTick: Int = 0,
     val rejectedTapTick: Int = 0,
     val rejectedTapCell: Position? = null,
+    val restartTick: Int = 0,
+    val undoneMove: Move? = null,
     // The assist-funnel surface, and DELIBERATELY only this. No hint/undo allowance count
     // belongs here (D-05, UI-SPEC §Deliberate Non-UI): the counters stay private to the
     // ViewModel because the controls must not change appearance with them — no badge, no
@@ -191,6 +203,8 @@ data class GameUiState(
                 undoTick = 0,
                 rejectedTapTick = 0,
                 rejectedTapCell = null,
+                restartTick = 0,
+                undoneMove = null,
                 pendingAdOffer = null,
                 adOfferLoading = false,
                 adMessage = null,
@@ -227,6 +241,8 @@ data class GameUiState(
                 undoTick = 0,
                 rejectedTapTick = 0,
                 rejectedTapCell = null,
+                restartTick = 0,
+                undoneMove = null,
                 pendingAdOffer = null,
                 adOfferLoading = false,
                 adMessage = null,
