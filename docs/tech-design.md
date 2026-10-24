@@ -20,7 +20,11 @@ release blockers (`.planning/reports/phase-14/tech-lead-release-docs-blockers.md
 hint ruling (`.planning/reports/phase-14/game-designer-hint-timeout.md`) and its merge order from the tech-lead's
 brief on `bugfix/hint-undecided`; the upload script; the notices ruling (§13.1); the book counts reconciled (§7.2);
 and the licences screens' own branch (`.planning/reports/candy-backdrop/tech-lead-direction-b.md` A9, on
-`feature/candy-backdrop`). Every decision below is a tech-lead decision or a transcription of a recorded ruling; each names where
+`feature/candy-backdrop`). Synced on 2026-10-24 at the R-2 sign-off
+(`.planning/reports/phase-14/tech-lead-signoff-check-gates.md`, on `feature/phase-14-check-gates`): the measured
+fuzz and coverage figures (§7.3, §8.4), the Check command and its lock as built (§9.1, §9.6), CI's release
+triggers (§9.7), the warnings gate as built (§9.8), the solver deadline tests' placement (§8.6) and the
+code-auditor's open issues ruled (§14.2, §16 #23–#25). Every decision below is a tech-lead decision or a transcription of a recorded ruling; each names where
 it was decided. Entries are never deleted: a superseded entry gets a "superseded by" line and the
 supersession is listed in §17.
 
@@ -691,8 +695,24 @@ below is what `.planning/reports/phase-14/tech-lead-r2-gate-brief.md` instructs 
    `check`; **excluded from kover** (§8.4). Unlike the sweep it is a pure function of code and `N`, so
    it keeps Gradle's normal up-to-date semantics with `FUZZ_SEEDS` declared as a task input.
 
-**Measured figures** (to be transcribed from the R-2 developer report at sign-off): generation rate
-(levels/s) at 1,000 and 10,000; the default tier chosen; `check` wall-clock delta. *Pending R-2.*
+**Measured figures** (R-2 as built: C4 `2520fa7`, C5 `e5f4e9b`; transcribed at sign-off 2026-10-24 from
+`android-game-dev-check-gates.md` §7 and `code-auditor-check-gates.md` item 3). The harness method's own
+`time=` from the JUnit XML, `--rerun-tasks`, on a quiet host (1-minute load 2.7–3.4, no other build):
+1,000 levels in 0.495 s and 0.540 s (≈ 1,850–2,020 levels/s over both passes); 10,000 levels in 5.989 s and
+**5.955 s** (≈ 1,679 levels/s). The code-auditor re-timed 10,000 at 5.982 s (load 2.9–3.5). Rule 1 of item 7
+holds with a ten-fold margin, so **`fuzzSeedsDefault = "10000"`**: a local `check`, CI and the release all
+walk the whole level space (`examined 10000`, determinism pass, 0 failures, in every green run). The `check`
+wall clock, both with `--rerun-tasks`: 13 m 26 s before the branch (807 s, 98 tasks, a loaded host, load
+42 → 22) against 11 m 48 s after (710 s, 104 tasks, load 15 → 3); the code-auditor's run 11 m 32 s (694 s).
+The delta is host noise; the branch's real cost is the fuzz (≈ 5–6 s inside the run) plus kover's
+instrumentation, report and verify, a few seconds, so the ≈ 11–12 minute figure stands and is still the
+sweep's. As built, `generate(n)` is `generateLadder(n).last()` with the clamp inside the sequence (item 2's
+`clamp(n)` is idempotent); the golden fixtures are unchanged and green, and the auditor's `level % 97`
+certificate mutation was caught by the harness alone (`:domain:test` stayed green), which is the harness's
+value. **A cache hit is a pass, not a gap** (auditor finding 2): the task keeps Gradle's up-to-date and
+build-cache semantics by item 8, so an unchanged tree at the same count comes back `FROM-CACHE` and prints
+no `fuzz:` line; the lines are in the restored JUnit XML's `system-out`. The release run therefore passes
+`--rerun-tasks` (checklist 1.2 and 3.1, `77dcf88`), so R-7's evidence is the release's own execution.
 
 ## 8. Testing
 
@@ -700,14 +720,16 @@ below is what `.planning/reports/phase-14/tech-lead-r2-gate-brief.md` instructs 
 
 | Suite | Runner | Gate | Cost |
 |---|---|---|---|
-| `:domain:test` — 36 test files: rules, generator properties, golden fixtures, solver, book, scoring, merge law | JVM, JUnit4 + Truth | per commit, in `check` | ~31 s |
+| `:domain:test` — 280 tests in 40 files at check-gates: rules, generator properties, golden fixtures, solver, book, scoring, merge law, the ladder and `FUZZ_SEEDS` parse tests | JVM, JUnit4 + Truth, under kover's agent (§8.4) | per commit, in `check` | ~30 s |
 | `:domain:depthSweep` | JVM, own task | `check` | ~11 min (§7.2) |
-| `:domain:fuzz` | JVM, own task | `check` at the measured tier; CI 10,000; release exhaustive | measured (§7.3) |
+| `:domain:fuzz` — `FuzzHarnessTest` | JVM, own task, outside kover | `check` at 10,000 = CI = release (exhaustive, §7.3) | ≈ 6 s (5.955 s at 10,000) |
+| `:domain:koverVerify` | kover 0.9.11 over `:domain:test` only | `check` (§8.4) | seconds |
 | `:app:testDebugUnitTest` — ViewModels (Turbine), repositories against the real in-memory Room DB, Robolectric Compose UI tests (one per screen's main flow), ArchUnit boundary tests, codec and merge tests | JVM, Robolectric 4.16 SDK 34 (the only `android-all` image cached offline — **do not add `@Config(sdk = ...)` for another level**: it needs a network fetch and breaks `check --offline`) | `check` | minutes |
 | `build-logic` tests (54 at R-1; 54 after check-gates C3, whose brief count of 55 was wrong, addendum A0; 55 after C3a) — the release-gate resolvers | JVM | CI's first step (`./gradlew -p build-logic test`); not reachable from the root `check` | seconds |
 | Device sessions | qa-engineer, real device else emulator | every executed plan, every phase, every release | — |
 
-Deterministic tests only: no wall clock, no network, no unseeded random, no sleeps. No `@Ignore`,
+Deterministic tests only: no wall clock, no network, no unseeded random, no sleeps (the four solver
+deadline tests are the recorded exception, §8.6). No `@Ignore`,
 disabled test or suppression without the code-auditor's approval line. Test names read as sentences.
 TDD for core logic.
 
@@ -754,7 +776,16 @@ tech-lead and bounded:* add the kover plugin to `:domain`, **measure first**; at
 nobody writes tests to chase a number in a release week. kover's instrumentation and report inputs
 **exclude `depthSweep` and `fuzz`**: `koverVerify` must depend on `:domain:test` only, or `check`'s
 coverage step would re-run the 11-minute sweep. *Decided in:* `tech-lead-prerelease-signoff.md` §D;
-scope and exclusions here. **Measured floor and bound:** *pending R-2; transcribed at sign-off.*
+scope and exclusions here. **Measured floor and bound (C6 `42d4812`, transcribed 2026-10-24):** kover
+**0.9.11** (`org.jetbrains.kotlinx.kover`, JetBrains, Apache-2.0, build-only; the newest stable on Maven
+Central and the Plugin Portal on 2026-10-23 by `scripts/latest.sh`), applied beside AGP 9.1.0 and Kotlin
+2.3.20 with no JaCoCo fallback. Root LINE counter of `domain/build/reports/kover/report.xml`: 896 of 905
+lines, **99.0 %** (INSTRUCTION 97.8 %, BRANCH 92.3 %), re-measured by the code-auditor at the same figure;
+so the bound is the rule's **`minBound(90)`** and no raise is scheduled. `koverVerify` attaches itself to
+`check`; its graph holds `:domain:test` and neither `depthSweep` nor `fuzz` (`disabledForTestTasks`),
+proven by `-m`; a bound of 100 fails naming the rule. One online warm run was needed for the plugin's
+artifacts (PLAT-07/D-18); every run since is `--offline`. Known cost: kover's agent slows `:domain:test`'s
+four wall-clock solver deadline tests about 2.5× — ruled in §8.6.
 
 ### 8.5 Golden-image screenshot suite — not in phase 15
 
@@ -775,19 +806,57 @@ and in the same test, are compared in memory: with and without the backdrop, fon
 objection above applies. An exact-equality pixel test that meets shader dithering states a
 ±1-per-channel tolerance as a named constant and keeps the assertion.
 
+### 8.6 The solver deadline tests — placement ruling (2026-10-24)
+
+Four tests in `:domain:test` assert the product's 1.5 s hint budget (§10) on the wall clock:
+`SolverTest.resolvesTheEnglish33FullStartInsideTheProductionDeadline`, `…European37…`, `…Asymmetric39…`
+(a `System.nanoTime()` `shouldCancel` over `SolverBudget.DEFAULT.deadline`, the envelope `GameViewModel`
+builds) and `SolverBudgetTest.everyTractableSolvablePositionReturnsAMoveWithinBudget` (a per-call cap).
+They predate R-2 and they are the recorded exception to §8.1's "no wall clock": the budget is a product
+fact, and a test that measures it measures the host too. Evidence (`android-game-dev-check-gates.md`,
+`code-auditor-check-gates.md` finding 4): on a quiet host they take 0.17–0.40 s under kover's agent (a 4–9×
+margin); at 1-minute load 20–25 the agent makes them 2–3× slower (European-37: 2.04 / 1.95 / 1.49 s against
+0.72 / 0.84 / 0.74 s without it); at load 20 → 69 three went red in the developer's first final Check,
+and one pair went red with the agent **off**. So host load alone breaks them; kover raises the frequency,
+not the kind.
+
+**Ruling.**
+1. *Placement, not deletion, and not a wider margin.* A deadline test loosened to survive load measures
+   nothing; one deleted drops the DEBT-01 regression guard. The four move to their own class,
+   `SolverDeadlineTest`, run by their own `Test` task `:domain:solverDeadline` in the sweep's shape: wired
+   into `check`, `outputs.upToDateWhen { false }` (a timing assertion inherits no green from a differently
+   loaded host, §7.2), and **outside kover's instrumentation** (`disabledForTestTasks`), so the agent's 2.5×
+   is gone and `:domain:test` stays the per-commit gate. The solver's lines stay covered by `SolverTest`'s
+   and `SolverBudgetTest`'s remaining cases, `GetHintUseCaseTest` and R1's `Solver.decide` tests; the
+   developer measures `koverVerify` after the move and reports the figure (≥ 90 stands; 99.0 % leaves room).
+2. *Not on check-gates.* `bugfix/hint-undecided` rewrites both files to `Solver.decide` and merges first
+   (§14.1 step 3a); a move here would collide with a reviewed branch. It is its own small branch,
+   `bugfix/solver-deadline-task`, cut from `develop` after R1 and check-gates have merged: android-game-dev
+   → code-auditor → tech-lead; no device session (test placement only, no product code).
+3. *Not a branch-cut blocker.* The release Check (checklist 3.1) runs on a quiet host by the
+   release-manager's own rule, under §17's host-quiet threshold (1-minute load ≤ half the logical cores,
+   5.0 here), where the margins hold; a red there is a re-run, fail-closed, never a wrong artifact. It lands
+   before the cut if it is green in one review loop (R-8's pattern) — the producer's schedule — else in the
+   first post-3.0.0 batch (§14.2), and the quiet-host rule governs every Check until then.
+4. *Operator rule until it lands:* read the 1-minute load before a Check; above the threshold, wait or
+   expect this red and re-run; never widen the deadline.
+
 ## 9. Build, signing and gates
 
 ### 9.1 The Check command
 
-`CLAUDE.md`: `Check command: ./gradlew check` (becoming `./scripts/check.sh`, 9.6). `check` runs, for
+`CLAUDE.md` and `AGENTS.md`: `Check command: ./scripts/check.sh` (since check-gates C2, `139b418`: the
+script runs `./gradlew check "$@"` under the per-worktree lock, 9.6). `check` runs, for
 both modules: detekt (one widened task, 9.4), ktlintCheck, `dpSpLiteralCheck`, `adIdLiteralCheck`,
 `gamesIdLiteralCheck`, `audioFocusLiteralCheck`; Android lint; `:domain:test`, `:domain:depthSweep`,
-`:app:testDebugUnitTest`; and after R-2, `:domain:fuzz` and `:domain:koverVerify`. From check-gates
+`:app:testDebugUnitTest`; and since R-2 (C5, C6), `:domain:fuzz` and `:domain:koverVerify`. Since check-gates
 C7, a Kotlin warning in `:app`'s main compilations or in any `:domain` compilation fails the
 compilation, and so the Check (§9.8). **A new gate is
 registered in `standards.gradle.kts`'s `check` block (module-wide gates) or the owning module's
 `check` dependency (module-specific tasks), and nowhere else** — CI invokes `check` verbatim (9.7), so
-that is the one registration CI cannot forget. Wall clock today ≈ 11 min, dominated by the sweep.
+that is the one registration CI cannot forget. Wall clock ≈ 11.5–12 min with `--rerun-tasks` on a quiet host
+(11 m 32 s and 11 m 48 s at the R-2 sign-off, §7.3), dominated by the sweep; the fuzz adds ≈ 6 s and kover a
+few seconds.
 
 ### 9.2 Signing — environment only, three gates, no third state
 
@@ -878,13 +947,41 @@ memory, a timeout, a killed worker or the diff. Latent since phase 8, filed in p
   step in a wrapper only (leaves every hand-run task exposed); splitting the sweep.
 - **The gate is not weakened.** The sweep stays in `check`, always-run.
 
+**As built and signed off (check-gates C1 `348279d`, C2 `139b418`; `tech-lead-signoff-check-gates.md`,
+2026-10-24).** F1 is the ruled block, verbatim, in `standards.gradle.kts`; its red-first evidence is the
+planted 0-byte store (`:domain:test`, `:app:testDebugUnitTest`, and the sweep's store planted immediately
+before the final Check, which healed inside it, twice for the developer and once for the auditor). F2 is
+`scripts/check.sh` with four accepted departures from the brief's letter: the signal traps *exit*
+(129/130/143) and the EXIT trap releases, all set only after the `mkdir` succeeds, so a signal landing before
+Gradle starts cannot leave Gradle running unlocked and a queued run cannot delete the holder's lock; the
+script `cd`s to the worktree root first (from a subdirectory, `gradlew check` would run that subproject
+only); an empty PID file gets a one-second grace; a `--wait` run re-checks staleness on every poll. Gradle is
+a plain child, never `exec`. `AGENTS.md` is a byte-identical copy of `CLAUDE.md` (§16 #8). Behaviour under
+signals, measured: a TERM to the script alone is acted on when Gradle returns (bash defers a trapped signal
+while a foreground child runs), so the lock is held for the whole build and released after it — the wanted
+behaviour. **Known limit, recorded (auditor finding 3; the brief's own stale-reclaim rule):** after
+`kill -9` of the script (a harness timeout is the realistic sender) the lock holds only a dead PID and the
+next run reclaims it at once, while the orphaned Gradle client finishes its build — two builds in one
+worktree for the orphan's remaining minutes, M1's shape. F1 bounds the damage to a false red and a retry,
+never a wedge, and no artifact can be wrong, so 3.0.0 ships with it. *Fix shape, ruled:* record the Gradle
+child's PID in the lock as well (`"$root/gradlew" … &`, then `wait`, the TERM trap forwarding to the child
+before it exits) and reclaim only when both PIDs are dead; it lands with the next edit of `scripts/check.sh`,
+post-3.0.0 (§14.2), together with the INT comment the auditor found overstated (finding 6: under bash 3.2
+a SIGINT delivered to the script alone while Gradle runs is discarded when Gradle exits normally, and the
+script exits with Gradle's status; the lock is still released). *Operator rule meanwhile:* a Check is run
+in the background or in a driver script with a timeout above its wall clock (the harness's foreground cap
+is 10 minutes, the Check ≈ 12), and after any Check killed with SIGKILL, `pgrep -fl GradleWrapperMain` and
+wait for the orphan before the next Check in that worktree.
+
 ### 9.7 CI runs `check`, verbatim
 
 `.github/workflows/ci.yml` runs `./gradlew -p build-logic test` (first, fail-fast) then
 `./gradlew check assembleDebug` on every push and PR to `develop` and `main`: those are the only
-triggers on `develop` today (`ci.yml:7-11`). **`release/**` is ruled but not built.** It is added
-by check-gates C3b (rules/stacks.md scaffold contract 8; `tech-lead-signoff-gate-scope.md` ruling 1;
-§14.1). Until that branch merges, a push to a `release/*` branch would trigger no CI run.
+triggers on `develop` today (`ci.yml:7-11`). **`release/**` is ruled and built:** check-gates C3b
+(`8687fca`) sets push and pull_request to `[develop, 'release/**', main]` (rules/stacks.md scaffold
+contract 8; `tech-lead-signoff-gate-scope.md` ruling 1; §14.1), signed off 2026-10-24 and live on
+`develop` once that branch merges. *(Written 2026-10-18: until that branch merges, a push to a `release/*`
+branch would trigger no CI run.)*
 *(Corrected 2026-10-21, code-auditor F-8: this paragraph stated `release/**` as a current trigger.)*
 Push as well as pull request, because the studio merges locally with `git merge --no-ff`: once a
 remote exists, a pushed branch is the only event GitHub sees. The repository has no git remote today,
@@ -894,7 +991,9 @@ to name tasks and so never ran the four literal gates. **Ruling on the sweep's C
 until the measured wall clock of the `verify` job exceeds **25 minutes**; then `:domain:depthSweep`
 moves to its own parallel job in the same workflow whose union with the first job is still `check`
 (never back to a list of task names). The producer records the first measured figure in STATUS.md.
-After R-2 the step carries `FUZZ_SEEDS=10000` explicitly whatever the local default (§7.3).
+Since R-2 (C5) the step carries `FUZZ_SEEDS: "10000"` explicitly whatever the local default (§7.3). The
+step's own comment at `ci.yml:58` still calls `check` "the Check command in CLAUDE.md" (auditor finding 7;
+the header at `:3-8` is right): fixed with the next edit of the file (§14.2).
 
 ### 9.8 Kotlin and lint warnings — ruling (2026-10-18)
 
@@ -970,6 +1069,26 @@ check` on `feature/phase-15-ux-refresh` at `e1875cb` (2026-10-17): green, 98 of 
    then apply to audio's code too; any other kind of warning stops the developer and comes to the
    tech-lead.
 
+**As built and signed off (C7 `f15e58a`; 2026-10-24).** The recount on the cut (`0582e3f`, 2026-10-21,
+`--rerun-tasks --no-build-cache`): 253 `w:` lines — 10 in `compileDebugKotlin` and the same 10 in
+`compileReleaseKotlin` (the table's ten sites exactly), 0 in `:domain` and `build-logic`, 232 in
+`compileDebugUnitTestKotlin` (202 `ExperimentalCoroutinesApi` opt-ins, four more than the table from
+phase-15 tests; 29 `createComposeRule`; 1 kotlin-reflect), 1 environmental. After C7: 0 from any
+`/src/main/`, `/src/debug/`, `/src/release/` or `domain/` path, `:app:compileReleaseKotlin` clean with no
+`PLAY_UPLOAD_*` set, and a residue of 30 in the unit tests (29 + 1; the opt-in lines are gone). The flag is
+`allWarningsAsErrors` on every `KotlinCompile` of `:app` except the tasks named `…UnitTestKotlin`, and on
+every compilation of `:domain` (`kotlin-jvm.gradle.kts`); the opt-in rides the same exemption. The
+code-auditor's probes failed each gated compilation (main, debug, release, `:domain` main and test) and
+warned in each exempt one, and a `flatMapLatest` without `@OptIn` in `app/src/main` failed. Two facts for
+the record: Kotlin 2.3.20's K2 reports no unused local, so the warning probe is a call to a `@Deprecated`
+function; and both `hiltViewModel`s are `inline reified` (the two 1.3.0 sources jars), the deprecated
+one's whole body a call to the new one, so the six call sites compile to the same instructions under either
+import — C7 changes what compiles, not what is compiled, and the release runtime classpath is the identical
+set (361 coordinates). **Scope:** §9.8 reaches module compilations only; a Gradle *build-script*
+diagnostic is the script compiler's and is outside it (auditor finding 5: `app/build.gradle.kts:446`'s
+deprecated `assets.srcDir(…)`, on `develop` since `f391ac6`; §14.2). Rule 3 applies to R1's code on the
+merged tree (§14.1 step 4).
+
 ## 10. Performance budgets
 
 | Budget | Value | Status | Decided in |
@@ -980,7 +1099,7 @@ check` on `feature/phase-15-ux-refresh` at `e1875cb` (2026-10-17): green, 98 of 
 | Instrument succession | `:macrobenchmark` module (`androidx.benchmark`, Apache-2.0) with `StartupTimingMetric`, `StartupMode.COLD`, `CompilationMode.Full()`, ≥ 10 iterations, physical device; plus `reportFullyDrawn()` in `MainActivity` so time-to-full-display becomes measurable (criterion 15f's real subject) | **Scheduled, not phase 15's**; producer schedules, android-game-dev implements, qa-engineer runs. `reportFullyDrawn()` is its own small plan | `tech-lead-coldstart-gate.md` §6 |
 | Home's first frame | No blocking read, no image decode, no asset load, no bitmap, no new SDK call — **one named exception: the five bundled type faces** (§11), which load blocking on first use so the first frame is final; the progress ribbon fills asynchronously into a placeholder; the backdrop's gated layer is off frame 1 (§3.5); the Continue chips arrive after first paint by design, because their collector decodes both resume snapshots before it emits (the WR-02/CR-01 phantom-chip guard), and what moves when they arrive is F-1 (§16 #13) | Held structurally by the independent-collector shape (§3.4) | `docs/ux-spec.md` §6.5 as amended; `15-founder-feedback/tech-lead-signoff.md` Decision 3 |
 | Hint latency | 1.5 s deadline per `GetHintUseCase` call; book hits in single-digit ms; `depthSweep` measures it exhaustively over every covered frontier | Diamond-41's 440 off-book positions wait out the deadline — the honest cost of the book's documented gap. Past each book's depth (4, or 3 on Wiegleb-45), every Classic hint is a solver call of up to the full deadline, and a miss reads "No winning move" (§7.2). *(2026-10-21: except along each board's committed golden line, whose every state is a book entry, §7.2. Once R1 merges, a miss reads Undecided, not "No winning move"; this row is aligned then, §14.1 R1.)* | §7.2 |
-| `check` wall clock | ≈ 11 min today; the fuzz default tier adds ≤ 60 s (§7.3); no second multi-minute gate | — | §7.3, §9.7 |
+| `check` wall clock | ≈ 11.5–12 min with `--rerun-tasks` on a quiet host (11 m 32 s and 11 m 48 s at the R-2 sign-off); the fuzz at 10,000 adds ≈ 6 s, kover a few seconds; no second multi-minute gate | Measured 2026-10-23/24 (§7.3) | §7.3, §9.1, §9.7 |
 | APK size | Baselined, not gated (D-12): last recorded release APK 2,038,611 B at phase 7, before the ads and PGS SDKs; the fonts add ≈ 229 KiB compressed | — | `06-CONTEXT.md:42`; §11 |
 | Cue path | `play()` is one volatile read, zero IPC, zero allocation; no audio work on the main thread beyond the play call | — | §12 |
 | Idle Home | `HomeBlobs` draws at ≈ 61 fps idle (O-B) — a pre-release `compose-performance-audit` item (rules/compose.md), not ruled here. The backdrop branch moves every animated drift into the draw phase (§3.5), which lowers each frame's cost, not the frame count, so the audit runs after that branch | open, owner android-game-dev at the audit | `tech-lead-fonts.md`, Open issues; `15-founder-feedback/tech-lead-signoff.md` (O-B) |
@@ -1103,7 +1222,7 @@ family; it does not duplicate the rows.
 | Family | Coordinates (direct) | Licence | Copyleft? | Note |
 |---|---|---|---|---|
 | Kotlin stdlib, kotlinx-coroutines, kotlinx-serialization | `org.jetbrains.kotlin*`, `org.jetbrains.kotlinx:*` | Apache-2.0 | no | `kotlinx-coroutines-play-services` shares the coroutines pin |
-| AndroidX | core, activity-compose, lifecycle (atomic group), navigation-compose, datastore-preferences, room (runtime, ktx, compiler), hilt-navigation-compose, Compose BOM members | Apache-2.0 | no | the compileSdk-36 forced versions (§1.2) |
+| AndroidX | core, activity-compose, lifecycle (atomic group), navigation-compose, datastore-preferences, room (runtime, ktx, compiler), hilt-navigation-compose, hilt-lifecycle-viewmodel-compose (direct since C7, §9.8), Compose BOM members | Apache-2.0 | no | the compileSdk-36 forced versions (§1.2) |
 | Dagger / Hilt | `com.google.dagger:hilt-android`, `hilt-compiler` | Apache-2.0 | no | KSP, never KAPT |
 | Error Prone annotations | `com.google.errorprone:error_prone_annotations` | Apache-2.0 | no | `compileOnly`; Dagger 2.60 no longer exports it |
 | Play Games Services v2 | `com.google.android.gms:play-services-games-v2` 22.0.0 | Android SDK Licence (proprietary, permitted) | no | behind `GamesService`/`CloudSaveStore`; ships no `proguard.txt` of its own |
@@ -1115,7 +1234,7 @@ family; it does not duplicate the rows.
 | Sounds | **For 3.0.0** (twelve WAVs, once `feature/audio-review` merges, §12): 7 Kenney *Interface Sounds* + 3 freesound-derived + 2 rendered in-house from `audio/recipes/`. **On `develop` today:** twelve `.ogg`, 9 Kenney + 3 freesound, per `docs/audio/CREDITS.md` | CC0 1.0 for the sourced files; own work for the two in-house renders | no | attribution a courtesy; `THIRD_PARTY.md` §2 carries the 3.0.0 rows. *(Corrected 2026-10-21, code-auditor F-8: this row gave only the `develop` count, as if it were the 3.0.0 set.)* |
 | Licence text (candy-backdrop, §3.6) | `assets/licenses/Apache-2.0.txt`, byte-identical to apache.org's (sha256 `cfc7749b…3d30`) | the text's own redistribution terms (the research-analyst confirms them in one line) | no | an asset, not a dependency; its `THIRD_PARTY.md` row is the release-manager's |
 | Test-only | JUnit 4 (EPL-1.0), Truth, Turbine, MockK, kotlinx-coroutines-test, Robolectric, ArchUnit, Room testing, Compose ui-test | various permissive | no | never on a variant's runtime classpath |
-| Build-only | AGP, Kotlin, KSP, Hilt, Room, detekt, ktlint Gradle plugins; **kover (R-2, Apache-2.0, JetBrains)** | permissive | no | run on the build machine; kover joins `THIRD_PARTY.md`'s build-tooling row when R-2 lands (release-manager's file) |
+| Build-only | AGP, Kotlin, KSP, Hilt, Room, detekt, ktlint Gradle plugins; **kover 0.9.11 (R-2, Apache-2.0, JetBrains)** | permissive | no | run on the build machine; kover's `THIRD_PARTY.md` §0 row landed with check-gates (`ec49df3`), its licence read from the four 0.9.11 POMs and the repository's `LICENSE.TXT` |
 
 **Policy.** Non-copyleft additions are autonomous (rules/studio.md) and still get a catalog comment
 with the reason and a `THIRD_PARTY.md` row; any GPL/LGPL/AGPL/CC-BY-SA candidate stops and escalates
@@ -1132,7 +1251,8 @@ follow-up will add `androidx.benchmark` (Apache-2.0). The candy-backdrop branch 
 Apache-2.0 text is an asset; `kotlinx.collections.immutable`, `oss-licenses` and AboutLibraries were
 rejected, §3.6). Check-gates C7 declares `androidx.hilt:hilt-lifecycle-viewmodel-compose` 1.3.0
 directly, since the code then imports it (§9.8). It is already on the release runtime classpath through
-`hilt-navigation-compose` 1.3.0, under the AndroidX row above, so nothing shipped changes.
+`hilt-navigation-compose` 1.3.0, under the AndroidX row above, so nothing shipped changes. Its own §4 row
+(Apache-2.0, the POM and the AAR's bundled `LICENSE.txt`) landed 2026-10-24 (`77dcf88`, auditor finding 1).
 
 ### 13.1 Ruling — the notices 3.0.0 must carry, and how (§16 #20)
 
@@ -1305,7 +1425,7 @@ deadline in this file: whether the cut waits for it is the producer's schedule, 
 | # | Item | Owner | Depends on |
 |---|---|---|---|
 | R-1 | Gate task (rulings 9.2.5, 9.2.6, 9.3, 9.7) — `feature/phase-14-gate-scope` | android-game-dev → code-auditor PASS → qa-engineer → tech-lead sign-off → merge | **Done**: signed off PASS 2026-10-18 (`tech-lead-signoff-gate-scope.md`) and merged to `develop` as `c3d3437`. Its two non-blocking rulings ride check-gates as C3a (§9.3) and C3b (§9.7) |
-| **R-2 + F1/F2 + F-2** | **One branch, `feature/phase-14-check-gates`, serial commits**: C1 F1 self-heal → C2 F2 lock script + Check command → C3 F-2 trimmed known-set + F-1 KDoc (acceptance count **54**, not the brief's 55: addendum A0) → C3a the literal gates over every file of a shipped source set (§9.3; count 55) → C3b CI on `release/**` (§9.7) → C4 `generateLadder` → C5 fuzz harness + tiers + CI env → C6 kover gate → C7 Kotlin warnings as errors in `:app`'s main compilations and all of `:domain` (§9.8). Brief: `.planning/reports/phase-14/tech-lead-r2-gate-brief.md`, with addendum A0–A2 of `tech-lead-signoff-gate-scope.md` and addendum A3 of `tech-lead-design-sync.md` | android-game-dev → code-auditor → tech-lead | R-1 **and phase 15** merged; cut from `develop` after both (`15-founder-feedback/tech-lead-signoff.md` Decision 4: the kover bound is measured on the `:domain` that ships, with phase 15's `TutorialBoards`, and two of C7's sites are phase-15 files). *Superseded:* "merges before phase 15, which then merges `develop` in" (§17). **Blocks the branch cut** (§15; checklist 1.2 runs its `./scripts/check.sh`) |
+| **R-2 + F1/F2 + F-2** | **One branch, `feature/phase-14-check-gates`, serial commits**: C1 F1 self-heal → C2 F2 lock script + Check command → C3 F-2 trimmed known-set + F-1 KDoc (acceptance count **54**, not the brief's 55: addendum A0) → C3a the literal gates over every file of a shipped source set (§9.3; count 55) → C3b CI on `release/**` (§9.7) → C4 `generateLadder` → C5 fuzz harness + tiers + CI env → C6 kover gate → C7 Kotlin warnings as errors in `:app`'s main compilations and all of `:domain` (§9.8). Brief: `.planning/reports/phase-14/tech-lead-r2-gate-brief.md`, with addendum A0–A2 of `tech-lead-signoff-gate-scope.md` and addendum A3 of `tech-lead-design-sync.md` | android-game-dev → code-auditor → tech-lead | **Signed off PASS 2026-10-24** (`tech-lead-signoff-check-gates.md`; auditor PASS `code-auditor-check-gates.md`, on fable): nine code commits `348279d..f15e58a` plus the release-manager's `ec49df3` and `77dcf88`. It was cut from `develop` after R-1 and phase 15 (`c5f2c54`), as ruled (`15-founder-feedback/tech-lead-signoff.md` Decision 4: the kover bound is measured on the `:domain` that ships, with phase 15's `TutorialBoards`, and two of C7's sites are phase-15 files). **Merges after 3a** (`bugfix/hint-undecided`): the two share no file and the three-way trial merge is clean; it takes `develop` in and re-runs the Check on the merged tree before the `--no-ff` merge (C7 rule 3 on R1's code: the import and `@param:` patterns are fixed on this branch by the android-game-dev with the code-auditor reading the hunk; any other kind stops and comes to the tech-lead). The qa-engineer PASS rules/gitflow.md asks for is a review-mode session; C7 needs no device session (the sign-off's ruling 1). Follow-ups it leaves: §8.6 (row DT), §9.6's known limit, §14.2. *Superseded:* "merges before phase 15, which then merges `develop` in" (§17). **Blocks the branch cut** (§15; checklist 1.2 runs its `./scripts/check.sh --rerun-tasks`) |
 | R-8 | Test hygiene: fold the two duplicate doubles; bound the two `AppForegroundTrackerTest` awaits | android-game-dev → code-auditor | parallel, non-gating; slips to v1.1.1 if not green in one loop |
 | Phase 15 | UX refresh with the font bundling and the follow-up slice; 15e sat on `Pixel_9a_bench` before the merge | android-game-dev → code-auditor + qa-engineer → tech-lead | **Done.** Signed off PASS 2026-10-21 (`15-founder-feedback/tech-lead-signoff-close.md`): H-1 `code-auditor-loop4.md` + `code-auditor-loop5.md`; H-3 `qa-engineer-15e.md`; H-4 recorded in STATUS 2026-10-18. Merged to `develop` 2026-10-21 as `c9228a9` (`git merge --no-ff`; `develop` was still at the merge-base `c3d3437`, so no merge-in was needed). The record: it depended on H-1 to H-4 of `15-founder-feedback/tech-lead-signoff.md` (verdict HOLD, which became PASS without a new tech-lead dispatch because they closed as written); it merged before R-2, after R-1, and had taken `develop` in (`ee16a2a`). *Superseded:* "R-2 branch merged first" (§17) |
 | F-1 | Home re-lays out ≈ 0.6 s after first paint when the Continue chips arrive — `bugfix/home-chip-arrival`, off `develop` after phase 15, test first (a Compose test emits no-chip, one-chip and two-chip `HomeUiState`s and asserts the bounds the design ruling pins). **Scope widened 2026-10-21** with rows 1, 3, 4 and 5 of `15-founder-feedback/tech-lead-signoff-close.md`'s INFO table, because this branch reshapes Home and edits `HomeLayoutTest` anyway: (1) test-only: the compact pill's `textsWithin()` must be exactly `[label, value]`, watched red against M3d, since the pixel read cannot see a glyph drawn as text (`code-auditor-loop5.md` INFO 1); (3) test-only: assert the full pill's glyph ink at `w412dp-h915dp`, the inverse of (1)'s read, watched red against M5c, which at ≥ 400 dp only `HomeStageTest` catches, by 1 dp (loop 5 INFO 3); (4) the stale KDoc fixed to the measured truth, 0 dp over at 360×640 on NATIVE and on the device: `HomeScreen.kt:272-277` and `:350-358` (the retired 15h claim, "~72dp over"), the compact preview's KDoc, and `HomeBandSet.kt:45` ("under a full hero") (loop 4 INFO). These lines are in `ui/home/`, a start-path directory, and whether a comment-only edit there leaves a sitting standing is not ruled: this branch's QA decides whether it needs a sitting; (5) `HomeStageTest`'s class KDoc corrected: LEGACY over-wraps, it does not under-wrap (loop 4 INFO) | ux-designer (§4.2.4/§4.2.2 amendment) → tech-lead (a mechanism ruling only if the design needs more than layout) → android-game-dev → code-auditor + qa-engineer (a screen-recorded cold start with one and two chips, read frame by frame; its own 15e sitting if the fix changes Home's first frame) → tech-lead | phase 15 merged. **Deadline: merged before `release/3.0.0` is cut**, preferably before the candy-backdrop developer dispatch (both reshape Home); if candy goes first, the second to merge takes `develop` in and re-runs candy's three-chip-state checks. A chip shown from the mode list before the decode would bring the phantom chip back, and is rejected. **Blocks the branch cut** |
@@ -1316,8 +1436,9 @@ deadline in this file: whether the cut waits for it is the producer's schedule, 
 | PU | **`scripts/play-upload.sh`**, on `feature/play-upload` off `develop` (added 2026-10-21; release-manager F-6, `.planning/reports/phase-14/release-manager-release-docs-fixes.md`). It runs `fastlane supply` against `PLAY_SERVICE_ACCOUNT_JSON`, uploading the signed AAB of `:app:bundleRelease` to the `internal` track (`14-RELEASE-PLAN.md` item 2). **It checks no approval itself:** the gate is `hooks/publish-gate.sh`, which blocks any command that runs `play-upload.sh` or `fastlane supply` without `.planning/approvals/publish-<VERSION>.approved` (plugin rules/stacks.md 1.0.0, scaffold contract 9). This supersedes the release plan's "hard refusal … belt as well as the plugin hook's braces" and checklist 1.7's "refuses to run without" (§17). It fails with a message when the variable or the AAB is missing, and it echoes no secret. Acceptance: `shellcheck scripts/play-upload.sh` clean, and the code-auditor's read against this row. No session executes it before Gate 2, and nothing routes around the hook | android-game-dev → code-auditor → tech-lead sign-off | Nothing; scripts only. It is code, so it never goes on the release branch. **Blocks Gate 2, not the branch cut**: item 1.7 is also met by the producer recording the founder's Console upload (operator checklist Step 8 item 1) |
 | R-4 | D-14 account-swap UAT with a second Play Games account | qa-engineer | a second account (else a founder question) |
 | R-5 | `THIRD_PARTY.md` — U-1 and §5b closed by the release-branch dependency listing; the founder's store-artwork rows; before release-docs merges, the font rows carry `tech-lead-fonts.md`'s text and the research-analyst's OFL-1.1 verdict line; the Apache-2.0 text's row with the candy build | release-manager; research-analyst; founder (Q-F3) | — |
-| R-6 | This file | tech-lead | done 2026-10-17; synced 2026-10-18 (`tech-lead-design-sync.md`) and 2026-10-21 (the phase-15 close and the haptics ruling, `tech-lead-design-close.md`); the R-2 figures transcribed at sign-off |
-| R-7 | `FUZZ_SEEDS=100000 ./scripts/check.sh` on the release branch (exhaustive, §7.3), `domain/build/fuzz-failures.txt` absent, coverage figure recorded | release-manager | R-2 |
+| R-6 | This file | tech-lead | done 2026-10-17; synced 2026-10-18 (`tech-lead-design-sync.md`) and 2026-10-21 (the phase-15 close and the haptics ruling, `tech-lead-design-close.md`); the R-2 figures transcribed 2026-10-24 (`tech-lead-signoff-check-gates.md`) |
+| R-7 | `FUZZ_SEEDS=100000 ./scripts/check.sh --rerun-tasks` on the release branch (exhaustive, §7.3; `--rerun-tasks` so the fuzz lines are the release's own execution, auditor finding 2), `domain/build/fuzz-failures.txt` absent, coverage figure recorded (99.0 % at the gate's introduction) | release-manager | R-2 (signed off) |
+| DT | **The solver deadline tests' own task**, `bugfix/solver-deadline-task` (§8.6, added 2026-10-24): `SolverDeadlineTest` run by `:domain:solverDeadline` outside kover, always-run, in `check`; `koverVerify` re-measured after the move | android-game-dev → code-auditor → tech-lead | R1 and R-2 merged (it edits the files R1 rewrites). No branch-cut marker: before the cut if green in one loop, else §14.2; the quiet-host rule governs the release Check meanwhile |
 | PLAT-08 | Cold start on a named physical phone, or the unverified record (§10) | qa-engineer; producer for the device question | — |
 
 **Merge order into `develop`** (`15-founder-feedback/tech-lead-signoff.md` Decision 4, 2026-10-18).
@@ -1341,7 +1462,9 @@ with three sources: R1 (step 3a, from `.planning/reports/hint-undecided/tech-lea
    (GD-HT-1, MAJOR), it is the smallest branch, and it is the furthest from the build files. Steps 4 and 5
    then absorb it through the `develop` merge-in each already owes, so C7's warning gate and C6's coverage
    bound are measured on a tree that contains it.
-4. `feature/phase-14-check-gates`, cut from `develop` only after R-1 and phase 15 have merged.
+4. `feature/phase-14-check-gates`, cut from `develop` only after R-1 and phase 15 have merged. *(2026-10-24:)*
+   signed off PASS; it merges after 3a, with `develop` merged in and the Check green on the merged tree
+   (R-2 row).
 5. `feature/audio-review`, after phase 15, merging `develop` in first.
 6. `bugfix/home-chip-arrival` (F-1), after phase 15 and before `release/3.0.0`. *(2026-10-21:)* it shares
    no code with R1, so its place relative to 3a is free (brief §10.2).
@@ -1386,16 +1509,24 @@ compilations and `warningsAsErrors` in lint — **due before the first `release/
 layout reason, since moving the insets re-opens every screen's geometry; `docs/gdd.md` (game-designer); a `compose-performance-audit` before release
 (rules/compose.md; O-B idle Home); the upstream Gradle issue for `hasResults()` validating existence
 but not validity (low priority); the `Pixel_9a` emulator fault preserved as a control (an environment
-fault — emulator DNS — not an app change).
+fault — emulator DNS — not an app change). **Added 2026-10-24 (the R-2 sign-off,
+`tech-lead-signoff-check-gates.md`):** `scripts/check.sh` records the Gradle child's PID and reclaims only
+when both PIDs are dead, closing the `kill -9` window (§9.6, auditor finding 3), with its INT comment
+corrected in the same edit (finding 6); `ci.yml:58`'s step comment names `./scripts/check.sh` as the Check
+command with the file's next edit (finding 7); `app/build.gradle.kts:446`'s deprecated
+`assets.srcDir(roomSchemaDir)` is replaced by the form the AGP ladder step's release notes name, with that
+step (finding 5: a build-script diagnostic, outside §9.8, a break only on the AGP that removes the method);
+and the solver deadline tests' own task (§8.6, row DT) if it slips past the cut.
 
 ## 15. Risks
 
 | Risk | Likelihood / impact | Mitigation | Owner |
 |---|---|---|---|
-| **The Core Value is asserted on six sampled levels** until R-2 lands; a generator knob tune could ship an unsolvable level | low / severe | R-2's exhaustive ladder sweep (§7.3) is the gate; it blocks the branch cut | android-game-dev, tech-lead |
-| The fuzz harness at 10,000 does not fit in 60 s and the default drops to 1,000 | medium / low | The decision rule in §7.3 is pre-written; CI and release stay exhaustive either way | developer measures, reports |
-| kover cannot apply beside AGP 9.1.0 / Kotlin 2.3.20, or instruments the sweep | low / medium | kover is applied to `:domain` only (pure JVM); exclusion of `depthSweep`/`fuzz` is an acceptance check; fallback pre-ruled in the brief: Gradle's built-in JaCoCo on `:domain` at the same bound, recorded here as a deviation | developer stops and reports if neither applies |
-| `check`'s 11 minutes make the concurrent-build race near-certain on a shared host | high / medium | F1 (self-heal) + F2 (lock); the Diamond-41 book closes the cost later | android-game-dev; producer's dispatch discipline |
+| **The Core Value is asserted on six sampled levels** until R-2 lands; a generator knob tune could ship an unsolvable level | low / severe. *Closed 2026-10-24* | R-2's exhaustive ladder walk (§7.3) is the gate: green on all 10,000 levels with the determinism pass, in `check`, CI and the release alike; it caught a planted certificate defect that `:domain:test` missed (the auditor's `level % 97` mutation) | android-game-dev, tech-lead |
+| The fuzz harness at 10,000 does not fit in 60 s and the default drops to 1,000 | medium / low. *Closed 2026-10-24* | The decision rule in §7.3 is pre-written; CI and release stay exhaustive either way. Measured: 5.955 s at 10,000, so the default is 10,000 | developer measures, reports |
+| kover cannot apply beside AGP 9.1.0 / Kotlin 2.3.20, or instruments the sweep | low / medium. *Closed 2026-10-24* | kover is applied to `:domain` only (pure JVM); exclusion of `depthSweep`/`fuzz` is an acceptance check; fallback pre-ruled in the brief: Gradle's built-in JaCoCo on `:domain` at the same bound, recorded here as a deviation. kover 0.9.11 applied; `koverVerify`'s graph holds `:domain:test` only | developer stops and reports if neither applies |
+| `check`'s 11 minutes make the concurrent-build race near-certain on a shared host | high / medium | F1 (self-heal) + F2 (lock), both on check-gates since 2026-10-23; residual: the `kill -9` reclaim window (§9.6, a known limit, post-3.0.0) and every hand-run `./gradlew <task>` outside the lock; the Diamond-41 book closes the cost later | android-game-dev; producer's dispatch discipline |
+| `:domain:test`'s four wall-clock solver deadline tests go red on a loaded host, 2.5× sooner under kover's agent, so a Check reads red for a reason unrelated to the diff | medium on a shared host, low on a quiet one / low (a re-run; fail-closed) | §8.6: their own task outside kover (row DT, §14.1); the quiet-host rule for every Check until then, and for the release Check regardless | android-game-dev; producer's scheduling; release-manager for 3.1 |
 | A signed AAB with a placeholder id on disk after a failed build | closed by 9.2.5 | package-task `dependsOn`, proven by execution | — |
 | The 2 s cold-start bar has never been measured on a physical device | certain / medium | Recorded as unverified rather than passed; Macrobenchmark follow-up; founder question on a test phone | producer, qa-engineer |
 | A future `SCHEMA_VERSION` bump silently deletes the behind device's progress (C-1) | n/a today / severe | §4.4 is a hard gate; both behaviours pass today, which is why it is written down | whoever bumps it |
@@ -1419,14 +1550,14 @@ Every item the seeded file listed as "decided by nobody" is now either decided o
 | # | Item | Status | Owner |
 |---|---|---|---|
 | 1 | `minSdk 24` vs the rule's 26 | **Decided** (§1.3): 24 for 3.0.0, with the reason recorded; the raise is a founder question (installed-base share) the producer queues, non-blocking, with the tech-lead's recommendation. **Answered 2026-10-17 (Q-018, option 3):** 24 indefinitely, unless a technical need appears; nothing is queued, and §1.3 defines what re-opens it | tech-lead, only on a recorded technical need (§1.3) |
-| 2 | R-2 / R-7 — kover and fuzz | **Designed** (§7.3, §8.4) and briefed; implementation is the next gate branch | android-game-dev → code-auditor → tech-lead |
+| 2 | R-2 / R-7 — kover and fuzz | **Designed** (§7.3, §8.4) and briefed; implementation is the next gate branch. **Implemented on `feature/phase-14-check-gates` and signed off PASS 2026-10-24** (`tech-lead-signoff-check-gates.md`): 10,000 levels in 5.955 s, tier 10,000; kover 0.9.11, 99.0 % at bound 90. R-7 is the release-manager's run with `--rerun-tasks` | R-2 closed; R-7 release-manager |
 | 3 | R-1′ — the gate task | **Implemented** on `feature/phase-14-gate-scope`, auditor PASS; qa-engineer and tech-lead sign-off next; auditor F-2 ruled into the R-2 branch (§9.3). **Signed off PASS 2026-10-18** (`tech-lead-signoff-gate-scope.md`) and **merged** to `develop` (`c3d3437`). Its two non-blocking rulings ride check-gates as C3a and C3b; brief §4's C3 count is corrected by addendum A0 | closed |
 | 4 | In-app licences surface | Studio-rule gap, not a legal one: the OFL notice condition is met by the licence files in the APK, everything else is CC0, Apache-2.0 or a permitted SDK licence. **Backlog v1.1.1**, needs a ux-designer (a Settings row) and a developer. **Scheduled 2026-10-17** with `feature/candy-backdrop` (§3.6), no longer v1.1.1 backlog: `docs/ux/licences-screen.md` is specified. *Corrected 2026-10-21:* on its own branch, `feature/licences-screen`, since 2026-10-18 (A9; §3.6, §14.1 LN). It is now also where the notices of §16 #20 ship (§13.1) | ux-designer, android-game-dev via producer; the Apache-2.0 text's `THIRD_PARTY.md` row is the release-manager's, its redistribution-terms line the research-analyst's |
 | 5 | `docs/gdd.md` | Not a technical item | game-designer via producer |
 | 6 | `THIRD_PARTY.md` §5b per-coordinate enumeration, U-1 | Closed on the release branch by `:app:dependencies --configuration releaseRuntimeClasspath` (checklist 3.5) | release-manager |
 | 7 | Post-v1.1 backlog | **Recorded** in §14.2 | producer carries it |
-| 8 | `AGENTS.md` | rules/stacks.md's scaffold contract wants it identical to `CLAUDE.md`; this product predates the contract and has none. Decision: add it as a copy when the Check command line changes (F2), so both are written once | producer |
-| 9 | Release-checklist alignment with R-2: 3.1's command becomes `FUZZ_SEEDS=100000 ./scripts/check.sh`; 3.2's path is `domain/build/fuzz-failures.txt`; 3.3 records the kover figure | Text edits on the release-manager's file | release-manager |
+| 8 | `AGENTS.md` | rules/stacks.md's scaffold contract wants it identical to `CLAUDE.md`; this product predates the contract and has none. Decision: add it as a copy when the Check command line changes (F2), so both are written once. **Done** in check-gates C2 (`139b418`): a byte-identical copy, `cmp` clean | closed |
+| 9 | Release-checklist alignment with R-2: 3.1's command becomes `FUZZ_SEEDS=100000 ./scripts/check.sh`; 3.2's path is `domain/build/fuzz-failures.txt`; 3.3 records the kover figure | Text edits on the release-manager's file. **Done** on check-gates (`ec49df3`, `77dcf88`): 1.2 and 3.1 with `--rerun-tasks`, 3.2's path, 3.3's 99.0 % figure | closed |
 | 10 | The named mid-range physical phone for the 2 s bar | Founder question (money), folded into the release track; decided default recorded in §10 | producer |
 | 11 | The phase-15 spec and design-system text the font and cold-start rulings require (`docs/ux-spec.md` §6.5, §6.3, §9, criteria 15e/18d; `docs/ui/DESIGN-SYSTEM.md` Typography) | Routed; until applied the rulings are the governing text. Added 2026-10-18: the fold of `15-founder-feedback/tech-lead-signoff.md` Decision 1 (§6.5 precondition 1 and a new precondition 9, the "Which builds" pointer, criterion 15e's AVD and arm A), and candy R1–R6's departures D1–D11 into the two candy specs, as far as the B rewrite keeps them. Added 2026-10-21: folds b–e of `15-founder-feedback/tech-lead-signoff-close.md` (§6.5 precondition 1: the bench may be made with `avdmanager` or by copying the 9a's files, held by the recorded diff; criterion 15k part 2's 0 dp reading on real metrics and what "overflows" means; the 15e O-1 ruling, §16 #18; and the items still owed from the sign-off). That report found the 2026-10-18 fold still unapplied (its fold a). Both folds land before the next 15e sitting, whose qa-engineer reads §6.5, and before `release/3.0.0` is cut | ux-designer via producer |
 | 12 | The plugin side of F2 (the stack's Check command carrying the lock) and OFL-1.1 in rules/ip-policy.md's matrix | Plugin changes, not product ones | producer → retro |
@@ -1440,6 +1571,9 @@ Every item the seeded file listed as "decided by nobody" is now either decided o
 | 20 | The notice duties beyond the fonts: BSD-3 (`protobuf-javalite`, Cronet), MIT (`checker-qual`) and MPL-2.0 data (OkHttp's public-suffix list) on the release graph, the Jakarta Inject `NOTICE.md`, and the `third_party_licenses.txt` that every Google SDK AAR carries and AGP never packages (`.planning/reports/phase-14/research-analyst-font-licences.md`, open issues 1–3) | **Open, recorded 2026-10-21.** It puts §13's "nothing shipped carries an unmet attribution obligation" under review. The research-analyst expects no escalation under the matrix. Owed: a tech-lead ruling on the Google SDK notices (bundle the texts behind the Google entry, or revisit LS-03 and adopt the oss-licenses data), a research-analyst verdict per family against the release-branch listing, and the ux-designer's `licences-screen.md` amendments. **Deadline (tech-lead decision, 2026-10-21):** with the Licenses screen, before `release/3.0.0` is cut, because BSD-3 and MIT make the notice a condition of redistribution, not a courtesy. **Ruled 2026-10-21 (§13.1, LN-1 to LN-8).** The research-analyst's verdicts are in (`research-analyst-release-docs-licences.md`: rows A–J, 192 of 192 POMs, nothing copyleft or unknown, U-1 closed). The Google SDK notices are generated at build time from each variant's runtime classpath, with no new dependency, and shown behind the Google entry. Rows F–J and the Jakarta NOTICE ship verbatim, and checker-qual is credited. **Still open until** `feature/licences-screen` merges with LN-7 green, and the release-manager's rows and AAB listing (LN-7 item 4) close it at the cut. The deadline is unchanged | ux-designer (`licences-screen.md` for LN-5) → android-game-dev (LN-2 to LN-5) → code-auditor + qa-engineer → tech-lead; research-analyst for any new dependency and U-6; release-manager for `THIRD_PARTY.md` (F–J, U-1, `hsdp`, §4, §5b, §7) and the AAB listing |
 | 21 | Hint's "No winning move" banner on a solver budget miss (`code-auditor-release-docs.md` F-1, Open issues): the banner is raised on any `null` from `GetHintUseCase`, and the solver's `null` folds a budget miss and a cancellation in with a true dead end (§7.2) | **Open, recorded 2026-10-21. Not ruled here.** Whether the wording or the behaviour should change is a product question. A game-designer is ruling it, with the ux-designer for the banner. If the ruling needs code, the tech-lead then rules the mechanism and records it in §7.2. Until then, §7.2's transcription is what the code does. **Ruled 2026-10-21** (`.planning/reports/phase-14/game-designer-hint-timeout.md`): **a defect, severity MAJOR.** The game-designer picked R1: three outcomes, and only a proven dead end raises "No winning move". An Undecided search gets its own neutral, free, transient notice, and a cancelled search is silent (GD-HT-1 to GD-HT-5). R1 must merge before `release/3.0.0` is cut. Deeper books, line continuity and the census are one 3.1 item (GD-HT-6). The tech-lead ruled the mechanism in `.planning/reports/hint-undecided/tech-lead-brief.md` on `bugfix/hint-undecided` (§14.1 R1). **Closes when R1 merges** and §7.2, §10 and §15 are brought to it | android-game-dev (R1) → code-auditor + qa-engineer → tech-lead (sign-off, then the §7.2 rewrite); ux-designer for the notice; release-manager for the copy ("Today" column until R1 merges) |
 | 22 | **AC-18's first scenario contradicts the book** (found 2026-10-21, §7.2 "The book counts, reconciled"). AC-18 says that after a player follows Hint for four moves on Wiegleb-45, the fifth hint spins for about 1.5 s and shows Undecided. But every state of the committed golden line is a book entry, and following Hint from the start keeps the player on that line, so the fifth hint is an instant Found. The brief's §7 Device list ("including the two reached without following Hint") inherits the same premise. AC-2 is unaffected, because it asserts the book miss | **Open.** AC-18 is the game-designer's. Suggested correction, which the game-designer may word otherwise: three Wiegleb-45 positions four jumps in, each off the golden line, each reached without following Hint, with the book miss asserted in the domain test that supplies it, plus a control in which the hint-follower's fifth hint is a book Found. The same reasoning bounds the ruling's reach table and F-1's "follow the hints" example: on every Classic board, a hint-follower from the untouched start never reaches the solver. R2b's 3.1 target still holds for a player who leaves the line. **Deadline:** before the qa-engineer runs AC-18 on `bugfix/hint-undecided` | game-designer via producer; qa-engineer; android-game-dev for the sequences (brief §7, Device) |
+| 23 | The four solver deadline tests under kover's agent on a loaded host (`code-auditor-check-gates.md` finding 4) | **Ruled 2026-10-24** (§8.6): their own `Test` task outside kover, on `bugfix/solver-deadline-task` after R1 and R-2 merge; not a branch-cut blocker; the quiet-host rule meanwhile | android-game-dev → code-auditor → tech-lead; the producer's schedule |
+| 24 | `scripts/check.sh` after `kill -9`: the lock is reclaimable while the orphaned Gradle client still builds (finding 3) | **Known limit for 3.0.0, fix shape ruled** (§9.6): record the child's PID too and reclaim only when both are dead; post-3.0.0, with the INT comment (finding 6) | android-game-dev via producer, post-3.0.0 |
+| 25 | `app/build.gradle.kts:446`'s deprecated `assets.srcDir(…)` (finding 5) | Outside §9.8 (a build-script diagnostic); a break only on the AGP that removes it; fixed with the AGP ladder step (§14.2) | tech-lead at the ladder step; android-game-dev |
 
 ## 17. Supersessions
 
@@ -1483,3 +1617,10 @@ Nothing is deleted from this file; a superseded decision stays with a pointer to
 | §3.6's whole-text `Column` for every licence text | Kept for the bundled licence texts; a Google SDK notice renders one paragraph per `LazyColumn` item | §3.6, §13.1 LN-4 |
 | §3.6's inert "Google libraries" entry as the whole Google credit (LS-03, LS-05) | The inert SDK-licence entry plus a tappable entry that opens the generated notices list | §13.1 LN-5 |
 | The upload script's own approval check: the release plan's "hard refusal … belt as well as the plugin hook's braces" (`14-RELEASE-PLAN.md` item 2) and checklist 1.7's "refuses to run without" the approval file | No check of its own; `hooks/publish-gate.sh` is the gate (plugin rules/stacks.md 1.0.0, scaffold contract 9). Both texts are the release-manager's to align | §14.1 PU |
+| `CLAUDE.md`'s `Check command: ./gradlew check` (§9.1) | `./scripts/check.sh`, the lock around `./gradlew check` (check-gates C2; `AGENTS.md` identical) | §9.1, §9.6 |
+| §9.7's "`release/**` is ruled but not built" (2026-10-21) and this table's "not built until check-gates C3b merges" | Built (C3b `8687fca`), signed off 2026-10-24; live on `develop` at the merge | §9.7 |
+| The R-2 brief §3's `trap 'rm -rf "$lock"' EXIT INT TERM HUP` | Traps that exit (129/130/143) beside an EXIT trap that releases, set only once the `mkdir` succeeds | §9.6 |
+| §7.3 item 2's `generate(n) = generateLadder(clamp(n)).last()` | `generateLadder(n).last()`, the clamp inside the sequence | §7.3 |
+| §8.1's "no wall clock" with no exception, and §8.4's unqualified instrumentation of `:domain:test` | The four solver deadline tests are the recorded exception, placed in their own task outside kover (row DT) | §8.6; `code-auditor-check-gates.md` finding 4 |
+| "`check` wall clock ≈ 11 min" (§9.1, §10) | ≈ 11.5–12 min with `--rerun-tasks` on a quiet host; the branch's additions are seconds | §7.3, §9.1, §10 |
+| R-7's and checklist 1.2/3.1's `FUZZ_SEEDS=100000 ./scripts/check.sh` | The same with `--rerun-tasks`, so a cached fuzz prints its evidence | §7.3, §14.1 R-7; `77dcf88` |
