@@ -18,8 +18,20 @@ import org.gradle.api.artifacts.type.ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIB
  * `ArtifactTypeDefinition`, `ModuleComponentIdentifier`): an AGP-internal class on this path is a
  * stop-and-report (LN-2). `withPlugin` keeps the plugin independent of the order `plugins {}`
  * lists it in.
+ *
+ * It also registers `verifyGoogleNoticesParity` on `:app`'s own `check` (brief A1.3; tech design
+ * §9.1's "owning module's `check` dependency"): every variant's generated tree must be
+ * byte-identical, which is what lets the JVM tests' debug assets stand for the release AAB.
  */
 pluginManager.withPlugin("com.android.application") {
+    val parity =
+        tasks.register("verifyGoogleNoticesParity", VerifyGoogleNoticesParityTask::class.java) {
+            group = "verification"
+            description = "Fails when the variants' generated Google open-source notices are not byte-identical."
+            marker.set(layout.buildDirectory.file("intermediates/google-notices/parity.txt"))
+        }
+    tasks.named("check").configure { dependsOn(parity) }
+
     extensions.getByType(ApplicationAndroidComponentsExtension::class.java).onVariants { variant ->
         val aarView =
             variant.runtimeConfiguration.incoming.artifactView {
@@ -40,5 +52,10 @@ pluginManager.withPlugin("com.android.application") {
                 )
             }
         variant.sources.assets?.addGeneratedSourceDirectory(generate, GenerateGoogleNoticesTask::outputDir)
+        val tree = generate.flatMap { it.outputDir }
+        parity.configure {
+            treesByVariant.put(variant.name, tree)
+            trees.from(tree)
+        }
     }
 }
