@@ -1,6 +1,11 @@
 package com.app.pegsolitaire.ui.components
 
+import android.content.res.Configuration
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
@@ -8,6 +13,7 @@ import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.twotone.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -15,8 +21,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.VectorPath
+import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
+import com.app.pegsolitaire.R
 import com.app.pegsolitaire.ui.game.recipe
+import com.app.pegsolitaire.ui.theme.AppTheme
+import com.app.pegsolitaire.ui.theme.BoardMarkPalette
 import com.app.pegsolitaire.ui.theme.LocalBoardMarks
 import com.app.pegsolitaire.ui.theme.gradientFill
 
@@ -84,3 +95,45 @@ internal val StarOutline: ImageVector by lazy {
 
 /** The two-tone star's outline layer is the one drawn at full alpha; its tone layer is at 0.3. */
 private const val OPAQUE = 1f
+
+@Preview(name = "Stars, standard · light")
+@Preview(name = "Stars, standard · dark", uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun StandardStarsPreview() {
+    PaletteStars(BoardMarkPalette.Standard)
+}
+
+@Preview(name = "Stars, colour-blind · light")
+@Preview(name = "Stars, colour-blind · dark", uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun ColorblindStarsPreview() {
+    PaletteStars(BoardMarkPalette.Colorblind)
+}
+
+/**
+ * An earned and an unearned star in [palette] (rules/compose.md; docs/ux/colour-vision.md §3.4,
+ * §12, CV-AC15): at the Results row's size and at the catalogue pips', on the screen background.
+ */
+@Composable
+private fun PaletteStars(palette: BoardMarkPalette) {
+    AppTheme(boardMarkPalette = palette) {
+        Surface(color = MaterialTheme.colorScheme.background) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_sm)),
+                modifier = Modifier.padding(dimensionResource(R.dimen.spacing_md)),
+            ) {
+                EarnedAndUnearned(size = dimensionResource(R.dimen.results_star_size))
+                EarnedAndUnearned(size = dimensionResource(R.dimen.catalog_star_pip_size))
+            }
+        }
+    }
+}
+
+/** One earned and one unearned [StarGlyph] of [size], side by side as the star rows set them. */
+@Composable
+private fun EarnedAndUnearned(size: Dp) {
+    Row(horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_xs))) {
+        StarGlyph(earned = true, size = size)
+        StarGlyph(earned = false, size = size)
+    }
+}
