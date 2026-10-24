@@ -61,3 +61,13 @@ Lessons applied: none
 
 ## Handoff
 code-auditor: diff against brief §2, §3, §12, §13.3, the deviations, the three test edits. qa-engineer: device pass per §10 and A2.6 (Pixel_9 or a phone, never Pixel_9a_bench). tech-lead: sign-off (B0 `c690e55` had no conflict hunks). producer: merge at step 5a.
+
+## Loop 1 — fixes for code-auditor F-1..F-5 (2026-10-24; `70bbd25..c0c1bbb`; Loops: 1)
+> Producer note: returned as text; appended by the producer, condensed.
+- **F-1:** Results keeps a `rememberSaveable` "spoken" flag; summary spoken once per result; `ResultsUiState.kt` KDoc corrected (dated). Test `ResultsScreenTalkBackTest.reEnteringCompositionOverTheRetainedLatchSpeaksTheSummaryNoSecondTime` (red: "…was: [Solved! — 2 of 3 stars, 2 pegs left.]") uses a `SaveableStateHolder` toggle (checks 0 then 1 star rows), because a first `StateRestorationTester` version passed vacuously on the paused clock.
+- **F-2:** all four moves go through `moveInputFocusTo` (`TouchExploration.kt`): clear focus, wait `FOCUS_MOVE_GAP_MS` = 200 ms (> Compose's 100 ms a11y batching), then request — always false→true. Tests `TutorialTalkBackTest.aStepAfterADoubleTappedStepMovesFocusToItsBoardStopAgain`, `GameScreenTalkBackTest.aSecondBannerUndoMovesFocusToTheBoardStopAgain`, `aRetriedJumpActionMovesFocusToItsDestinationAgain` (red: focus traces all `true`).
+- **F-3:** banner Undo/Restart move focus only once the action happened (`ui/game/BannerAction.kt`); none when the ad offer or restart confirm opens. Tests `aBannerUndoThatOpensTheAdOfferMovesNoFocus`, `aBannerRestartThatOpensTheConfirmMovesNoFocus` (red: slab focused). No move after an accepted ad or confirmed restart (TalkBack places focus); one-line change if the ux-designer wants it.
+- **F-4:** `BoardCanvas`'s existing `LongMethod` reason now names the interactive branch (still the only suppression). **F-5:** KDoc re-attached.
+- Four of loop 0's own focus assertions now wait out the gap; no pre-branch test touched. `StarPopSounds` rotation replay stays with the producer.
+- Checks: `./scripts/check.sh --max-workers=4 --console=plain` at `c0c1bbb` — pass, 11m 8s: 1,648 tests (`:app` 1,297), 0 failures; lint unchanged; 0 `w:`; `:app:compileReleaseKotlin` 0 `w:`/`e:`.
+- Handoff: code-auditor re-review `f61b0d6..c0c1bbb`; QA device pass unblocked (note the 200 ms gap for device questions 1–2); tech-lead sign-off.
