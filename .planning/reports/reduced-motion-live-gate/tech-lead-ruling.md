@@ -266,3 +266,64 @@ Next: code-auditor — F1.3's short read and mutant.
 Next: tech-lead (a fresh one) — the sign-off covers commit 3 against F1.2.
 
 FINDING 1: RIDER (GATING), HOUSE-IDIOM SHAPE
+
+## F1 amendment — 2026-10-24
+Date: 2026-10-24
+Branch: bugfix/reduced-motion-live-gate (report only; read at `e44e716`, where the Finding 1 section is committed. The developer's uncommitted `TutorialScreen.kt` and `TutorialCompletionStarLiveMotionTest.kt` were left untouched. This section is uncommitted, as dispatched)
+Ran on: claude-opus-5-5 at effort xhigh (policy). The same staffing deviation as above (Q-019 answer 3).
+Lessons applied: none
+
+### FA.1 The developer's stop is right; the error is mine
+In animation-core 1.11.3 the run loop reads the scale before it waits for the frame. `SuspendAnimation.kt:278-282`:
+- `val durationScale = coroutineContext.durationScale` at `:279`;
+- then `animation.callWithFrameNanos { … doAnimationFrameWithScale(it, durationScale, …) }` at `:280-281`.
+
+So the spring is already waiting for frame N, holding the scale it read before the switch, when animations are turned off. Frame N plays at the old scale, and the new scale takes effect from frame N+1. That is the developer's reading, 165 then 639 px. F1.1 cited those same lines but missed the order, so "by the next frame" in F1.1, F1.2 and F1.3 was my error. This amendment supersedes it in four places:
+- F1.1's "on its next frame" means "within two frames".
+- F1.1's "before that next frame comes" means "before the clock's new scale reaches it".
+- F1.2's "on its next frame" means "within two frames".
+- F1.3's assertion is replaced by FA.2 below.
+
+The old head's behaviour was "within two frames" too, so the regression argument for the rider stands unchanged.
+
+### FA.2 Ruling: option 1 (tech-lead decision)
+**Keep the house-idiom shape, and amend the assertion.**
+- **The assertion becomes:** "The star reads settled no later than the second frame after the switch, and still settled 90 frames later."
+- **The test does not assert the first frame's value.** It advances two frames and asserts settled, then advances 90 frames and asserts settled again. Pinning the one-frame lag would tie the test to an internal detail of Compose's loop that a Compose update may remove. "No later than" stays true either way.
+- **Red on `e44e716` still holds:** the stuck star reads 165 at both points.
+
+**Why not option 2:**
+1. **The lag is Compose's own and applies to every animation.** Every running `Animatable` in the app takes the new scale one frame late on a live toggle. Under the idiom, the star now behaves exactly like all of them, which is the point of making the gate and the clock one value (§2).
+2. **One frame of the star's own spring is about 16 ms,** on a path the auditor rates as low likelihood. That is no reason to bring back a gate-keyed effect, the construct that caused Finding 1 and that F1.4 is about to forbid in the tech design.
+3. **Option 2 would only move the lag.** The gate itself flips in the recomposition of frame N, and a restarted effect's `snapTo` lands after that recomposition is applied. Option 2 would buy the same frame at the cost of the rule.
+
+**The test name** that F1.3 suggested ends "…OnTheNextFrame". Rename it to a sentence that matches FA.2, for example `aStarCaughtMidPopByAnimationsTurningOffSettlesWholeWithinTwoFrames`.
+
+### FA.3 The KDoc's final wording (`CompletionStar`, `TutorialScreen.kt`)
+The developer's uncommitted line says "…and at scale 0 ends on its next frame". That carries my error. The KDoc reads, in full:
+
+    /**
+     * One gold star, popped in with the Results star vocabulary. Decorative: it announces nothing.
+     *
+     * Reduced motion is the clock's, as in `rememberPopIn`: the spring always runs, and its effect is never
+     * keyed on the gate. Composed with animations off, the star starts settled; turned off mid-pop, the spring
+     * takes the new scale from the composition's clock and ends at full size within two frames.
+     */
+
+`rememberPopIn` stays in backticks rather than a `[link]`, because it is `internal` in another package. Every line is at most 120 characters.
+
+### FA.4 Owed text (amends F1.4)
+§16 #28's sentence reads as F1.4 has it, with one clause added after "lets the composition's clock settle it": "(a running animation takes a new scale from its next frame, so within two frames of a switch)".
+
+### FA.5 Checks
+- `git log --oneline -4`: the head is `e44e716`. `git status --short`: the developer's `M …/TutorialScreen.kt` and `?? …/TutorialCompletionStarLiveMotionTest.kt`, both untouched — read.
+- `animation-core-android-1.11.3-sources.jar`, `SuspendAnimation.kt:276-282`: the scale is read at `:279` before the frame wait at `:280`, and used in the callback at `:281` — confirmed.
+- `sed -n 344,348p …/TutorialScreen.kt`: the developer's current KDoc line, "at scale 0 ends on its next frame" — read. The text is replaced by FA.3; the edit is the developer's.
+- No Gradle was run and nothing was committed.
+
+### FA.6 Handoff
+Next: android-game-dev — finish commit 3 with FA.2's assertion, FA.2's test name and FA.3's KDoc. The red is on `e44e716` and the green after the change. Report both readings at the first and second frames after the switch, for the record only; the test asserts the second.
+Next: code-auditor — the short read of F1.3, with FA.2 and FA.3 in place of F1.3's "next frame"; the same mutant.
+Next: producer — commit this section with the developer's commit 3 report; nothing else changes in F1.6's order.
+
+F1 AMENDMENT: OPTION 1
