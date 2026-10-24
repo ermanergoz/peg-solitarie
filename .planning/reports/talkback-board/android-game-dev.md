@@ -71,3 +71,11 @@ code-auditor: diff against brief §2, §3, §12, §13.3, the deviations, the thr
 - Four of loop 0's own focus assertions now wait out the gap; no pre-branch test touched. `StarPopSounds` rotation replay stays with the producer.
 - Checks: `./scripts/check.sh --max-workers=4 --console=plain` at `c0c1bbb` — pass, 11m 8s: 1,648 tests (`:app` 1,297), 0 failures; lint unchanged; 0 `w:`; `:app:compileReleaseKotlin` 0 `w:`/`e:`.
 - Handoff: code-auditor re-review `f61b0d6..c0c1bbb`; QA device pass unblocked (note the 200 ms gap for device questions 1–2); tech-lead sign-off.
+
+## Loop 2 — re-review L1-1..L1-3 (2026-10-24; `544daea..75a03be`; Loops: 2)
+> Producer note: returned as text; appended by the producer, condensed.
+- **L1-1 fixed** (`544daea`): the awaited banner Restart is dropped only on a declined dialog (ad opt-in and banner leaving still drop it); on confirm the restart ordinal advances and focus moves to the board stop. Tests `aBannerRestartConfirmedInItsDialogMovesFocusToTheBoardStop` (red on `c0c1bbb`), `aBannerRestartDeclinedInItsDialogMovesNoFocusThenOrOnALaterRestart` (mutant killed).
+- **L1-3 fixed:** `aBannerRestartOnAStuckBoardMovesFocusToTheBoardStop` (M6 killed).
+- **L1-2 recorded** (`75a03be`, KDoc): Compose UI 1.11.3's public `FocusManager` has only `clearFocus(force)`/`moveFocus` (`javap`); the owner-preserving clear is internal; reflection forbidden — QA device check with a hardware keyboard.
+- Checks: `./scripts/check.sh` at `75a03be` — pass, 11m 7s: 1,651 tests (`:app` 1,300), 0 failures, 0 `w:`; `:app:compileReleaseKotlin` 0 `w:`; no new suppression.
+- Handoff: code-auditor re-review `4e1c91e..75a03be`; QA device pass (L1-2 keyboard check, device question 2 truncation); tech-lead sign-off.
