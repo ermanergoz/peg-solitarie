@@ -45,3 +45,16 @@ Deviations 1–11 all **accepted** (1: the brief's literal line stays red, the o
 Producer, then android-game-dev in fix mode: finding 1 (production, before the sitting), findings 2 and 3 (test-only), finding 4 (recommended, with 1). Then a re-audit of the fix diff; C10 merge-in and the 15e sitting only after a PASS.
 
 VERDICT: FAIL
+
+## Loop 1 — re-review of `c388993..1d63674` (2026-10-24)
+> Producer note: returned as text; appended by the producer, condensed with every ruling and probe kept.
+Ran on: claude-opus-5-5 at effort xhigh (same Q-019 deviation; fresh context, own Check, own probes). Loops: 1. Lessons applied: none.
+- **Finding 1 closed.** `HomeBandColumn.kt:319-327` adds `Modifier.inert()` (`:333-340`) when `value == null` (clears semantics, consumes every pointer in the Initial pass). Probes: no `inert()` → red ("nodes speaking the closing chip's title … expected to be empty"); semantics cleared but pointers live → red ("…resumed … expected null, but was 9"); pointers consumed but semantics kept → red. Original leaving-chip probe finds no node. `CONTINUE_CHIP_ROOM_TEST_TAG` accepted (precedent `HOME_STAGE_TEST_TAG`).
+- **Finding 2 closed; the developer's form accepted.** `HomeRibbonShapeTest.kt:219-230` (line right edge vs laid-out width, `!didOverflowHeight`); P13 red on 4/4 text-reading cases. INFO: the vertical half catches the cut.
+- **Finding 3 closed.** `HomeChipArrivalTest.kt:260-264`; P5 red on both windows (56.0 at 412×915, 17.0 at 360×640).
+- **Finding 4 closed in code** (`HomeBandColumn.kt:350-355`, bottom-only clip); no JVM test (hardware shadow) → QA 15v part 2: the shadow stays whole at sides and top while the room moves, no pop at settle.
+- **`claySquish` on an inert chip:** accepted, INFO (press scale ≤ 240 ms; click consumed, nothing resumes, no sound).
+- **Checks:** `./gradlew --max-workers=4 check --rerun-tasks` at `ee0ce14` — pass, 12m, 98 tasks executed; `:app` 1100 (HomeChipArrivalTest 13, HomeRibbonShapeTest 12), `:domain` 274, `:build-logic` 54, 0 failures/errors/skips; 10 main warnings, none in a touched file. `git diff c388993..1d63674 -- app/src/main` → `HomeBandColumn.kt` only, no `@Suppress`/`@Ignore`/`!!`. Probes in a removed throwaway worktree.
+- **Handoff:** producer → C10 develop merge-in (any code conflict back to the code-auditor) → QA's 15e sitting incl. 15v part 2 → tech-lead sign-off. Arm B stays `1d63674` until C10.
+
+VERDICT: PASS
