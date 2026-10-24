@@ -32,6 +32,7 @@ import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.app.pegsolitaire.domain.solver.SolverBudget
 import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
+import com.app.pegsolitaire.domain.usecase.HintOutcome
 import com.app.pegsolitaire.navigation.Gameplay
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
@@ -303,7 +304,7 @@ class GameViewModel
          * neither an allowance unit nor an ad — and the found move therefore has to survive
          * the ad round trip somewhere. This is that somewhere.
          *
-         * Written only on the non-null branch of [onHintRequested]. Its readers are
+         * Written only on the Found branch of [onHintRequested]. Its readers are
          * [onAcceptAdOffer], which reveals it once the offer resolves, and [onHintRequested]
          * itself, which reveals it inline whenever the assist never needed an offer at all.
          *
@@ -929,6 +930,7 @@ class GameViewModel
                     hintSource = null,
                     hintTarget = null,
                     noWinningMove = false,
+                    hintUndecided = false,
                     solverThinking = false,
                     // A dead-end board becomes a rescuable in-board state (D-06): flag it for
                     // the banner instead of auto-navigating. Won never sets this (it routes
@@ -1278,6 +1280,7 @@ class GameViewModel
                     hintSource = null,
                     hintTarget = null,
                     noWinningMove = false,
+                    hintUndecided = false,
                     solverThinking = false,
                     stuck = false,
                     // Every guard and every refusal returns before here — an empty history,
@@ -1305,12 +1308,22 @@ class GameViewModel
          * **It searches first and charges second (ADS-06).** Only once a move has actually
          * been found does the request enter [enterAssistFunnel] — free while the allowance
          * lasts (ADS-02), silently free when ads are unservable (D-12), otherwise an opt-in
-         * offer that [onAcceptAdOffer] resolves. A `null` result sets
-         * [GameUiState.noWinningMove] (D-04; its banner ships in 04-04) and enters the funnel
-         * **not at all**: an allowance unit could be refunded, but a thirty-second ad already
-         * watched to be told "no winning move" cannot, so the order — not a refund — is the
-         * mechanism. Every path clears [GameUiState.solverThinking], and it is cleared before
-         * the funnel is entered, so the control is never left spinning behind a dialog.
+         * offer that [onAcceptAdOffer] resolves. An answer that reveals no move enters the
+         * funnel **not at all** (GD-HT-5): a [HintOutcome.ProvenDead] sets
+         * [GameUiState.noWinningMove] (its banner ships in 04-04), and a
+         * [HintOutcome.Undecided] sets [GameUiState.hintUndecided] — the Undecided notice,
+         * never the banner, because nothing was proved (GD-HT-1, GD-HT-2). An allowance unit
+         * could be refunded, but a thirty-second ad already watched to be told nothing cannot,
+         * so the order — not a refund — is the mechanism. Every path clears
+         * [GameUiState.solverThinking], and it is cleared before the funnel is entered, so the
+         * control is never left spinning behind a dialog.
+         *
+         * **A deadline is not a cancel (GD-HT-3).** The `shouldCancel` lambda latches on both
+         * a superseded job and the deadline, and the search answers Undecided for either. A
+         * superseded search is never observed — its job was cancelled, so `withContext` never
+         * returns into it, and the board guard below is the second lock — so the only latched
+         * stop that reaches the outcome is a deadline on an unchanged board, and it is shown,
+         * never swallowed into silence.
          *
          * **Two guarantees close CR-01**, and both are needed because the board stays fully
          * tappable while the search runs (`GameScreen` disables only the Hint control):
@@ -1321,8 +1334,8 @@ class GameViewModel
          *  2. Even so, a result that still arrives is APPLIED ONLY IF the board it was
          *     computed for is the board still on screen; otherwise nothing but
          *     [GameUiState.solverThinking] is written. The two together mean a hint can
-         *     never point at a board the player has moved past, and a `null` can never
-         *     raise the rescue banner over a position that was never searched.
+         *     never point at a board the player has moved past, and an answer with no move
+         *     can never raise the banner or the notice over a position never searched.
          *
          * The three search inputs (board, recorded line, move count) are read ON THE MAIN
          * THREAD before the dispatcher hop. Reading them inside the [withContext] block —
@@ -1332,7 +1345,7 @@ class GameViewModel
          *
          * While [GameUiState.isLoading] the request is refused outright (WR-01): the only
          * board on screen is the loading placeholder (`pegs = 0`), which the Solver answers
-         * with an instant `null` — and because the placeholder is still the board when the
+         * with an instant ProvenDead — and because the placeholder is still the board when the
          * result lands, the stale-result guard below would PASS and raise the "no winning
          * move" rescue banner over the loading indicator, on a position that was never
          * played. `GameScreen` renders the Hint control unconditionally in the top bar, so
@@ -1345,6 +1358,7 @@ class GameViewModel
                 it.copy(
                     solverThinking = true,
                     noWinningMove = false,
+                    hintUndecided = false,
                     hintSource = null,
                     hintTarget = null,
                 )
@@ -1359,7 +1373,7 @@ class GameViewModel
                     val boardForHint = _uiState.value.board
                     val solutionForHint = solution.takeIf { onRecordedLine }
                     val movesPlayedForHint = moveHistory.size
-                    val move =
+                    val outcome =
                         withContext(defaultDispatcher) {
                             getHintUseCase(
                                 board = boardForHint,
@@ -1377,14 +1391,22 @@ class GameViewModel
                         return@launch
                     }
                     // ADS-06, and the whole point of searching first: the answer is already
-                    // known, so a position with no winning move is answered for FREE — no
-                    // allowance unit, no ad, no gateway call at all. A solver budget miss
-                    // also returns null and is likewise free: the player was told "no winning
-                    // move" and must not be charged for it, whatever the reason.
-                    if (move == null) {
-                        _uiState.update { it.copy(noWinningMove = true, solverThinking = false) }
-                        return@launch
-                    }
+                    // known, so an answer that reveals no move is FREE — no allowance unit, no
+                    // ad, no gateway call at all (GD-HT-5). Only a proof raises the "no winning
+                    // move" banner; a search that stopped without one raises the Undecided
+                    // notice instead, and never the banner (GD-HT-1, GD-HT-2).
+                    val move =
+                        when (outcome) {
+                            is HintOutcome.Found -> outcome.move
+                            HintOutcome.ProvenDead -> {
+                                _uiState.update { it.copy(noWinningMove = true, solverThinking = false) }
+                                return@launch
+                            }
+                            HintOutcome.Undecided -> {
+                                _uiState.update { it.copy(hintUndecided = true, solverThinking = false) }
+                                return@launch
+                            }
+                        }
                     // A real assist was found, so this one IS chargeable. Stash it — with the
                     // board it was computed for — before charging: the reveal may happen on
                     // the far side of an ad the player spends thirty seconds watching, from

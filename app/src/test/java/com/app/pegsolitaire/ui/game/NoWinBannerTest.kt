@@ -1,5 +1,10 @@
 package com.app.pegsolitaire.ui.game
 
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -7,6 +12,7 @@ import androidx.compose.ui.test.performClick
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -58,7 +64,47 @@ class NoWinBannerTest {
         assertThat(restartCount).isEqualTo(1)
         assertThat(homeCount).isEqualTo(1)
     }
+
+    /**
+     * Criterion 23k, its Compose half (D-04f): the banner's message is a polite live region, so
+     * TalkBack speaks a proven dead end — and a stuck board — as it speaks the Undecided notice;
+     * and the three actions are outside that region, neither carrying one nor inside one, so
+     * they are read when they are focused and never announced with the message.
+     */
+    @Test
+    fun theBannersMessageIsAPoliteLiveRegionAndItsActionsAreOutsideIt() {
+        val messages = listOf(app.getString(R.string.nowin_message), app.getString(R.string.stuck_message))
+        val shown = mutableStateOf(messages.first())
+        composeRule.setContent {
+            AppTheme { NoWinBanner(message = shown.value, onUndo = {}, onRestart = {}, onHome = {}) }
+        }
+
+        messages.forEach { message ->
+            composeRule.runOnUiThread { shown.value = message }
+            composeRule.waitForIdle()
+
+            val messageNode = composeRule.onNodeWithText(message, useUnmergedTree = true).fetchSemanticsNode()
+            assertWithMessage("the live region on \"%s\"", message)
+                .that(messageNode.config.getOrNull(SemanticsProperties.LiveRegion))
+                .isEqualTo(LiveRegionMode.Polite)
+            RESCUE_ACTIONS.map(app::getString).forEach { action ->
+                val actionNode = composeRule.onNodeWithText(action, useUnmergedTree = true).fetchSemanticsNode()
+                assertWithMessage("the live regions on and above the %s action", action)
+                    .that(actionNode.liveRegionsOnAndAbove())
+                    .isEmpty()
+            }
+        }
+    }
 }
+
+/** Every live region on this node and on each of its ancestors, the node's own first. */
+private fun SemanticsNode.liveRegionsOnAndAbove(): List<LiveRegionMode> =
+    generateSequence(this) { it.parent }
+        .mapNotNull { it.config.getOrNull(SemanticsProperties.LiveRegion) }
+        .toList()
+
+/** The banner's three actions, in their on-screen order (D-09). */
+private val RESCUE_ACTIONS = listOf(R.string.undo_action, R.string.rescue_restart, R.string.action_home)
 
 /** Robolectric has no android-all jar for Android 16 (SDK 36) yet; emulate SDK 34. */
 private const val ROBOLECTRIC_SDK = 34

@@ -288,6 +288,86 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > colour or token changes. One third-party asset enters the artifact, the two font families, under
 > OFL-1.1.
 >
+> **Tenth revision — 2026-10-21 — AMENDMENT (the Undecided hint notice; the banner's announcement).**
+> `.planning/reports/phase-14/game-designer-hint-timeout.md` (on `feature/phase-14-release-docs`) is
+> the game-designer's ruling that a Hint search which misses its deadline is **Undecided**, not dead
+> (GD-HT-1 to GD-HT-6). "No winning move — undo or restart" may appear only for a position proven
+> lost; a cancelled search stays silent; an Undecided one gets "a neutral, short-lived notice" whose
+> information rules that report fixes (its §2) and whose surface it routes to this role. Ruled as
+> **D-04f** (§3, specified in **§4.4.2**; criteria **23a–23k**), for branch `bugfix/hint-undecided`:
+>
+> - a **non-interactive notice in the rescue banner's slot** above the dock, with a look of its own
+>   *(amended the same day by D-04g, loop 1: a tap on it puts it away)*;
+> - the words "Hint couldn't work this position out in time. It may still be winnable." (tr-TR copy
+>   of record in §8);
+> - **five seconds**, or longer when the system's accessibility timeout asks, and gone sooner on the
+>   next jump, undo, restart or Hint request;
+> - it passes every touch through *(superseded by D-04g, loop 1: it takes the taps that land on it)*,
+>   plays no sound, and TalkBack speaks it **politely**.
+>
+> The banner, which now means *proven* only, keeps its look, copy and actions and gains the same
+> polite announcement, because the weaker answer must not be the only one TalkBack speaks. Edits:
+> §2, D-04f, §4.4.1's control-state table (two rows and a note, dated), §4.4.2 (new), §5, §6.1 (one
+> token), §6.2, §6.3, §6.4 (two durations), §7 (R-7), §8 (one string), §9, §10, §11, §12, §13, §14
+> (23a–23k) and §16. **Ids.** D-04f appears in no `docs/ux-spec.md` on any local branch and in no
+> report. §4.4.2 and criteria 23a–23k appear in no other worktree's copy of this file and not in the
+> audio amendment. That amendment (`docs/ux/invalid-tap-feedback.md` on `feature/audio-review`)
+> proposes a provisional **D-06** family, which its own fold-in must renumber because D-04c's
+> pointer in §3 already cites the earlier phase's restart-confirm D-06. It also proposes a "new
+> §4.4.2". Both are left to that fold-in, which should now take neither D-04f nor §4.4.2.
+> **Not reopened:** the banner's look, copy, actions, slot and behaviour; the dock's five looks and
+> §4.4.1's existing rows; D-04d; every cue; the no-allowance contract; the 1.5 s deadline (D-07,
+> reaffirmed by GD-HT-4). One string, one token, two durations; no colour, no asset, no cue, no
+> dependency.
+>
+> **Tenth revision, loop 1 — 2026-10-21 — AMENDMENT (the fresh check's five findings).**
+> `.planning/reports/hint-undecided/ux-designer-check.md` (`008d1c5`) is a check of D-04f by a
+> ux-designer agent that did not write it. It returned PASS with five MINOR findings, all closed
+> here before the developer starts H4:
+>
+> - **F-1, the banner's announcement.** The tech-lead's brief, Amendment 1 (`e8eb5f2`, A1.1–A1.3),
+>   rules that criterion 23k rides `bugfix/hint-undecided` as commit H4b, and it amends the brief's
+>   freeze of `NoWinBanner.kt` to allow exactly that hunk. That ruling replaces this document's "owed
+>   either way" (§4.4.2, last subsection; criterion 23k).
+> - **F-2, the Cancelled row.** The UI cannot supersede a search with a new Hint tap, because Hint is
+>   disabled while it is Working (D-04d, criterion 23). The row now names only the causes a player
+>   can produce, and states its state vector, which is idle's (§4.4.1, §4.4.2).
+> - **F-3, criterion 21a.** It gains a dated pointer for its two new rows, and the D-04f group's
+>   heading no longer says the rest of §14 is unchanged.
+> - **F-4, where TalkBack reads the notice.** It is ruled as **D-04g**, item 6: the notice is read
+>   where the layout puts it, after the timer and before the dock. §11's gameplay traversal line,
+>   which put "any raised banner" after the dock, never matched the layout, and it gains a dated
+>   correction. Criterion 23j checks the order.
+> - **F-5, the notice at 200% font scale.** It is ruled as **D-04g**, items 1–5, which amend D-04f: a
+>   tap on the notice puts it away and reaches nothing else, and TalkBack gets the same as a
+>   `dismiss` action. The opaque notice no longer passes taps through to cells the player cannot
+>   see. It gains a 48dp minimum height (`hint_notice_min_height`, §6.1). Criteria 23c and 23j are
+>   revised, and their first wording is recorded beside them.
+>
+> Also closed from the check's INFO notes: the timeout call's null fallback (I-4), two citations
+> (I-5), "not counted as a hint used" (I-6), a JVM reduced-motion check in 23e (I-7), a recreation
+> while the notice is up (I-3), and the tr-TR wording (I-2). For the audio fold-in (I-1): D-04g is
+> taken too, and that amendment's D-06c wrong-tap announcement and its "→ dock → banner" traversal
+> line must be reconciled with §11's "Announcements" line and the traversal correction. **Not
+> reopened:** the words, the slot, the look, the timing, the brief's clearing events, the outcome
+> rules and the seam (`hintUndecided`, no tick). The only new way to end the notice is the player
+> putting it away, and it belongs to the screen. One token and no string are added.
+>
+> **Tenth revision, loop 2 — 2026-10-23 — AMENDMENT (two spec-text findings from the D-04g check).**
+> `.planning/reports/hint-undecided/ux-designer-check-loop2.md` is the Fable check of D-04g. It
+> returned PASS. Two of its findings are this document's:
+>
+> - **F-1.** Criterion 23j's device position followed the ruling's first AC-18 ("Wiegleb-45, the
+>   fifth Hint"). The ruling's Amendment 1 (`.planning/reports/phase-14/game-designer-hint-timeout.md`
+>   on `feature/phase-14-release-docs`, lines 21–73 and AC-18a–d) superseded it: following Hint from the untouched start never leaves the opening book.
+>   23j now runs at AC-18b–d's walks A–C, with AC-18a as the control, and its first wording is
+>   recorded in place.
+> - **F-4.** Criterion 26a gains a dated note: its "cannot be activated" clause does not apply to the
+>   role-less notice, and 23j item 5 is the notice's pass line.
+>
+> F-2 and F-3 (23c's test premises) are test-side and the developer's. **Not reopened:** D-04f,
+> D-04g and every other criterion. No string, token or id is added.
+>
 > **Tenth revision — 2026-10-21 — AMENDMENT (the phase-15 close folds; Continue-chip arrival; the pill
 > at 200%; the timer's spoken form; the system bars).** Written on Opus under the founder's Q-019,
 > not on the role's pinned Fable. Two kinds of input.
@@ -459,6 +539,14 @@ re-sized with the insets applied once (D-05d, §4.3.1) and its dock gains a stat
 `ShowMovesOffIcon`, `res/values/{dimens,strings}.xml`, and `ui/game/GameScreen.kt` if the developer
 chooses to keep the insets in the strip and dock and set the `Scaffold`'s content insets to none
 (§4.3.1).
+
+*(2026-10-21 — D-04f amendment.)* No screen is added or removed. **Gameplay** gains one
+non-interactive surface, the **Undecided notice**, in the rescue banner's slot (§4.4.2), and the
+banner gains a polite announcement. *(Loop 1, D-04g: the notice's one interaction is that a tap on
+it puts it away.)* Files touched: `ui/game/GameScreen.kt` (hosts the notice), a new
+leaf beside `ui/game/NoWinBanner.kt`, `NoWinBanner.kt` itself (the announcement only),
+`ui/game/GameAnim.kt` (two durations), `res/values/{strings,dimens}.xml` (one string, one token),
+and the state-holder files the tech-lead's brief names (§7 R-7).
 
 ---
 
@@ -1162,6 +1250,60 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   giving state its own marks fixes both, without touching the glyphs, the order, the sizes, the
   cues or the ad-allowance contract. The alternative the founder's words invite — text labels under
   the icons — is weighed and declined in §4.4.1.
+
+- **D-04f** *(2026-10-21 — **amendment**, UX ruling on the game-designer's hint-timeout ruling,
+  `.planning/reports/phase-14/game-designer-hint-timeout.md` §2 (GD-HT-1 to GD-HT-3, GD-HT-5), for
+  branch `bugfix/hint-undecided`. Adds two rows to §4.4.1's control-state table; specified in
+  **§4.4.2**; criteria **23a–23k**.)*: **a Hint search that ends Undecided gets a quiet, passing
+  notice of its own, never the rescue banner.** The notice sits in the banner's slot above the dock,
+  on the app's neutral message surface, with the Hint lightbulb at its start, and reads "Hint
+  couldn't work this position out in time. It may still be winnable." It arrives in the frame the
+  spinner leaves. It stays five seconds, or longer when the system's accessibility timeout asks, and
+  leaves sooner on the next jump, undo, restart or Hint request. It blocks no tap, plays no sound,
+  carries no action and no invitation to ask again, and TalkBack reads it politely without moving
+  focus. A cancelled search shows nothing. The rescue banner, which now means *proven*, keeps
+  everything it has and gains the same polite announcement.
+  — The game-designer's information rules fix what may be said; the surface is this role's, and
+  three facts about this screen decide it. **The clay snackbar** sits on the dock, and M3's
+  `Snackbar` is a `Surface`, which swallows touches: for its life it would hide the Hint control the
+  player just pressed and the Undo and Restart they may want, and its queue can show it late, about
+  a board the player has since changed. **A banner without buttons** is still `errorContainer` in the
+  verdict's shape. **A slot of its own below the dock** would cost the board the height §4.3.1
+  returned to it. The code meets this ruling at the tech-lead's seam, `GameUiState.hintUndecided`
+  (§7 R-7). The banner's slot with a look of its own says by its place "this is Hint's answer
+  about this position" and by its look "it is not a verdict" — the two differ in four channels that
+  are not hue. And once the weaker answer speaks to TalkBack, the stronger one must too.
+  *(Amended the same day by **D-04g**, loop 1. "It blocks no tap" and "carries no action" no longer
+  hold: a tap on the notice puts it away, and TalkBack offers the same as a dismiss action.
+  Everything else above stands.)*
+
+- **D-04g** *(2026-10-21 — **amendment, loop 1**. UX ruling on findings F-4 and F-5 of the fresh
+  check, `.planning/reports/hint-undecided/ux-designer-check.md`. Amends D-04f's input. Specified
+  in §4.4.2: the Layout table's "Input" and "Height" rows, "What it covers, and why that is
+  accepted", item 6 of "How long it stays", "Touch targets" and "TalkBack". Corrects §11's gameplay
+  traversal line with a dated note. Criteria 23c and 23j revised.)*: **the Undecided notice is put
+  away by a tap on it, and it no longer lets taps through; TalkBack reads it where it sits.**
+  1. A touch that lands on the notice is the notice's own: a tap puts it away and reaches nothing
+     on the board. Taps anywhere else play exactly as before.
+  2. TalkBack gets the same choice as a `dismiss` action, the idiom of M3's own `SnackbarHost`.
+  3. The notice keeps a 48dp minimum height, so it is a fair target.
+  4. The accessibility timeout still lengthens the display, but only for a player who leaves the
+     notice alone.
+  5. At 200% font scale, while it is up, it may cover up to about 60% of the board. That is
+     **accepted**: it is the reading time of a message the player asked for, set at the size they
+     chose, and one tap takes it away.
+  6. In TalkBack's order the notice sits where its place puts it: after the timer, before the dock.
+     That is also where the banner has always been read.
+  — The check found the case D-04f had not weighed. An opaque notice that lets taps through turns
+  the instinctive tap meant to put it away into a move on cells the player cannot see. At worst
+  that move is a jump, whose undo can lead to the opt-in dialog. At 200% the hidden area is most of
+  the board, and with "Time to take action" set it stays hidden for up to two minutes. D-04f passed
+  taps through to keep play unblocked; one tap that clears the notice does that better than a blind
+  tap that acts. This is not the snackbar's problem coming back: the snackbar would have covered
+  the dock for a fixed time with no way out, while this notice covers part of the board and leaves
+  at a touch. The traversal follows the layout rather than a modifier, because reading order should
+  match what the eye sees (WCAG 2.2 SC 1.3.2, 2.4.3). §11's old line put the banner after the dock,
+  which the layout never did.
 
 ### The toolbar (D-05 — and its reconciliation with D-04)
 
@@ -3338,11 +3480,24 @@ edge sits ≈4dp below the slab's top.
 | Hint | the free hints for this level are spent | **Available — identical** | identical |
 | Hint | a hint is showing on the board (`hintSource != null`) | **Available — identical.** Hint has no "on": the gold glow on the board is the only sign a hint is up | identical |
 | Hint | the last search found no winning move (`noWinningMove`) | **Available — identical**; the rescue banner carries the message | identical |
+| Hint | the last search ended **Undecided** (`hintUndecided`): its deadline, node ceiling or attempt limit stopped it with no move and no proof *(row added 2026-10-21, D-04f)* | **Available — identical**; the Undecided notice carries the message (§4.4.2), never the rescue banner | identical; the notice speaks for itself (§4.4.2) |
+| Hint | the last search was **cancelled**: a jump, an undo or a restart superseded it, or the player left. The state is idle's: `solverThinking`, `noWinningMove` and `hintUndecided` all false *(row added 2026-10-21, D-04f; causes and state corrected the same day, loop 1)* | **Available — identical**; nothing else is shown | identical |
 | Hint | a Challenge board is still loading | Available — the look follows `solverThinking` only; what a tap does while loading is the ViewModel's and unchanged | identical |
 | Hint | the Solver is searching (`solverThinking`) | Working | "Finding a move" (`hint_thinking`, unchanged) · button · disabled |
 | Show moves | dots on (`showHints`) | On | "Show possible moves" · switch · on |
 | Show moves | dots off | Off | "Show possible moves" · switch · off |
 | Restart | always — the ViewModel decides confirm or immediate | Available | "Restart Board" · button |
+
+*(Rows added 2026-10-21 — amendment, **D-04f**, §4.4.2.)* A Hint search now ends one of four ways
+(GD-HT-1), and the Hint control looks the same after each of them: Available. The `noWinningMove`
+row above now means a **proven** dead end only; a search that ran out of time never raises the
+rescue banner. The two new rows join criterion 21a's table, and the other rows are unchanged.
+*(Loop 1, same day.)* There are three outcomes in GD-HT-1, and Cancelled is the fourth, from GD-HT-3.
+The ruling's domain definition of Cancelled also lists a new Hint tap. The UI cannot produce one,
+because Hint is disabled while it is Working (D-04d, criterion 23), so the row names only a jump, an
+undo, a restart and leaving. Its state is idle's, so in 21a it re-asserts the idle look. It is kept
+because it documents that a cancelled search leaves nothing behind; the behaviour itself is checked
+by the game-designer's AC-12, in the ViewModel.
 
 While the restart confirm or the ad opt-in dialog is up, every control keeps its look behind the
 scrim; nothing in the dock changes because a dialog opened.
@@ -3435,6 +3590,289 @@ allowance changes nothing visible or announced), 21d (switch semantics, one name
 gone, `ButtonSoundTest` unedited), 21e (only Show-moves ever draws the mark or the slash); and on a
 device 21f (contrast of the two state marks) and 21g (the greyscale read).
 
+#### 4.4.2 What an Undecided Hint shows (D-04f — amendment, 2026-10-21)
+
+> **Status.** From the game-designer's hint-timeout ruling
+> (`.planning/reports/phase-14/game-designer-hint-timeout.md` §2; GD-HT-1 to GD-HT-3 and GD-HT-5),
+> built on `bugfix/hint-undecided`. It adds one surface to the gameplay screen. Unchanged: the
+> rescue banner's look, copy, actions, slot and behaviour (only its announcement is added, in the
+> last subsection below), the dock's five looks and §4.4.1's existing rows, D-04d, every cue, and
+> the no-allowance contract.
+
+**What a Hint request can come back with.** The outcomes and their definitions are the
+game-designer's; the surfaces are this section's.
+
+| Outcome | When | What the player sees | What TalkBack says | Sound |
+|---|---|---|---|---|
+| Found | a book hit, the recorded line, or a move on a line the solver completed | the gold glow on the move — unchanged | unchanged | `SoundCue.Hint` — unchanged |
+| Proven dead | the book's dead entry, an exhausted search, or a Pagoda reject | the rescue banner with `nowin_message` — unchanged look and copy | the banner's message, politely — **new**, last subsection | none — unchanged |
+| **Undecided** | the search stopped with no move and no proof: the deadline, the node ceiling or the attempt limit | **the Undecided notice** (below), never the banner | the notice's text, politely | **none** |
+| Cancelled | a jump, an undo or a restart superseded the search, or the player left the screen *(loop 1: the ruling's definition also names a new Hint tap, which the UI cannot produce, because Hint is disabled while it is Working — D-04d, criterion 23)* | nothing: the spinner clears and the dock is as it was | nothing new | none |
+
+In every row the Hint control is Available again in the same update that ends the search (§4.4.1),
+and no row charges anything for a hint that reveals no move (GD-HT-5). *(Loop 1, I-6.)* Nor does any
+row count one as a hint used: D-09 counts a hint only when it is revealed, which is the ViewModel's
+rule (the game-designer's AC-14), and no screen shows a count (criterion 24).
+
+**The words** — `hint_undecided_message` (§8):
+
+- **en-US:** "Hint couldn't work this position out in time. It may still be winnable."
+- **tr-TR:** "İpucu bu konumu süresi içinde çözemedi. Belki hâlâ kazanılabilir."
+
+Why these words:
+
+1. **The subject is Hint, not the board.** "Couldn't work this position out" puts the limit on the
+   helper, which is where it is.
+2. **"In time" names the reason** — a time limit, not a proof — without a number to misread.
+3. **"It may still be winnable" is the hedge the ruling requires.** It claims neither that the
+   position is winnable nor that it is not; "keep playing" is what it leaves the player with, not
+   what it orders.
+4. **Two sentences, not the banner's em-dash shape.** In this app "problem — what to do"
+   (`nowin_message`, `ad_unavailable_*`) introduces an instruction, and the notice gives none;
+   borrowing the shape would echo the banner at a glance. *(Loop 1, I-5: `strings.xml:270-272`
+   calls the shape "problem — resolution". After the dash, `nowin_message` gives an instruction
+   and `ad_unavailable_*` a resolution. The notice gives neither, so the argument holds.)*
+
+Words declined:
+
+- "No winning move", "stuck", "dead end", "lost", "undo", "restart" — the ruling forbids them.
+- "Try again", and any other invitation to ask again. On an unchanged board the solver is
+  deterministic, so asking again repeats the answer. After a move, on the boards where Undecided
+  happens (Wiegleb-45 past its book, Diamond-41's gaps), the next answer is often Undecided too, so
+  an invitation would be a promise broken often. The Hint control's own Available look already says
+  it can be asked.
+- "Ran out of time" — next to a running game timer it reads as the player's time.
+- "Winning move" in any form — at a glance it is too close to the banner's sentence.
+
+**The Turkish text** uses the store listing's own word for the control, "İpucu"
+(`docs/store/tr-TR/full_description.txt` on `feature/phase-14-release-docs`), and the impersonal
+passive, so it needs neither the "sen" nor the "siz" register (the listing uses "siz"). "Süresi
+içinde", within its time, puts the limit on Hint as "in time" does. **It is not added to the
+build:** the app has no Turkish locale (no `values-tr*` or `values-b+tr*` directory in any worktree; loop 1, I-2),
+and that same listing tells Turkish players that the game's interface is in English. A
+`values-tr/strings.xml` holding one string would drop one Turkish sentence into an English game. The
+text is the copy of record for the day a Turkish locale ships, and for any Turkish copy that
+describes this behaviour.
+
+**Form: an inline notice, not the snackbar and not the banner.** Four forms were weighed:
+
+| Form | Verdict | Why |
+|---|---|---|
+| The clay snackbar (D-11's idiom, `ClaySnackbarHost`) | **No** | The `Scaffold` places it at the screen's foot, **over the dock**, and M3's `Snackbar` is a `Surface`, which consumes touches. For its whole life it would hide the Hint control the player just pressed and the Undo and Restart they may want, and the ruling's "clears on the next Hint tap" would point at a control the notice covers. Its queue also serialises: `showSnackbar` waits for the message before it, so a notice raised while an ad-unavailable message is up would show late, perhaps about a board that has since changed |
+| The rescue banner without its buttons | **No** | `errorContainer` is the app's problem role, and the banner's shape and slot mean "this position is lost; here is the way out". Taking the buttons away leaves the verdict |
+| A slot under the dock | **No** | Nothing is there but the navigation-bar inset. A reserved slot costs the board the height §4.3.1 returned to it, for a message that is up a few seconds |
+| **An inline notice in the banner's slot, with a look of its own** | **Yes** | It appears where Hint's answers about this position appear, nearest the control the player just pressed, and its look says it is not a verdict |
+
+**Layout.**
+
+| Property | Value |
+|---|---|
+| Host | the board region's `Box` in `GameScreen` — the one holding the board slab and the banner — aligned `BottomCenter`, the banner's anchor. It sits directly above the dock and never over the strip or the dock |
+| Width | wraps its content, centred, never wider than the board region and never wider than `board_max_size` (480dp), so on a tablet it does not stretch past the board |
+| Height | wraps its text. The text wraps and never ellipsises, and the notice grows upward over the board. *(Loop 1, D-04g:)* at least `hint_notice_min_height` (48dp), so a one-line notice on a wide window is still a fair tap target |
+| Container | `surfaceContainerHighest`, the clay snackbar's neutral message role. Never `errorContainer`, and never the gold or `tertiary` that mean a revealed hint (§6.2) |
+| Shape | `shapes.extraLarge` (32dp), pill-like at one or two lines; the banner is `shapes.medium` |
+| Shadow | `clayShadow(elevation_card, shapes.extraLarge)`, as on the snackbar and the banner |
+| Padding | `spacing_md` at start and end, `spacing_sm` at top and bottom |
+| Leading glyph | `HintIcon`, the dock's lightbulb (D-04a), at `hint_notice_glyph_size` (20dp) in `onSurfaceVariant`, `contentDescription = null` because the text names Hint. It aligns with the first line of text, `spacing_sm` before it |
+| Text | `hint_undecided_message`, `bodyMedium`, `onSurface`, start-aligned, no `maxLines` |
+| Input | *(Revised 2026-10-21, loop 1, **D-04g**. The first wording was "None, and pass-through": taps went through the notice to the board beneath.)* **A tap on the notice puts it away, and nothing else.** A touch that lands on the notice is the notice's own and never reaches the board, so no peg the player cannot see is ever picked up or jumped. Taps anywhere else on the board play as before. It has no click role and no long-press or swipe behaviour. For TalkBack it carries a `dismiss` semantics action, not an `OnClick` (see "TalkBack"). Whether it is built on a `Surface` or a plain container is the developer's choice; the property is the contract |
+
+At 360dp and default font scale the text runs to two lines and the notice is ≈56dp tall; a 412dp
+phone also gives two lines; at 200% it runs to four or five lines, ≈170–220dp, still inside the
+368dp board region of §4.3.1.
+
+**What it covers, and why that is accepted** *(ruled 2026-10-21, loop 1, D-04g; the check's F-5)*.
+The notice is opaque and anchored at the foot of the board region.
+
+| Scale | What it covers |
+|---|---|
+| Default | ≈56dp: the slack below the board slab, its bottom padding, and at most the lower ≈16dp of its last row of holes on a 360×640dp phone. On taller phones, none of the board |
+| 200% | up to ≈60% of a 328dp board — the lower rows — for its 5 s, or for as long as "Time to take action" asks (Android offers up to 2 minutes) |
+
+That is **accepted, on three conditions this section already meets**:
+
+1. **One tap takes it away.** A tap on it ends it, and TalkBack's dismiss action does the same.
+2. **What is under it cannot be touched by accident.** It takes the taps that land on it (Layout,
+   "Input"), so the player never acts on a hole or a peg they cannot see.
+3. **What is not under it stays live:** the top of the board, the strip and the whole dock.
+
+Considered and declined:
+
+- **Shrinking the type.** Text must scale (§11).
+- **Truncating.** Never (§11).
+- **A translucent container.** It fails the contrast floor over pegs.
+- **Moving the notice away from the board at large scale.** The only other room is the dock, which
+  is what ruled the snackbar out.
+- **Capping the accessibility timeout.** It is honoured on purpose (WCAG 2.2 SC 2.2.1), and the
+  player who set it can now end the notice whenever they like.
+
+**When it shows.** In the same state update that ends an Undecided search and clears
+`solverThinking`. The frame the spinner leaves is the frame the notice arrives, with no blank beat
+between them: a deadline passing on an unchanged board is never silence (the game-designer's AC-11).
+A cancelled search raises nothing.
+
+**One slot, one occupant.** The notice and the rescue banner never render together. They should
+never both be raised, because Undecided leaves `noWinningMove` false (GD-HT-1). If both ever are, the
+banner renders and the notice is neither drawn nor announced: a proof outranks an Undecided.
+
+**How long it stays, and what ends it** — whichever comes first:
+
+1. **Its time.** `GameAnim.HINT_NOTICE_DISPLAY_MS` (5 000 ms) from its first frame, lengthened when
+   the player has set a longer accessibility timeout ("Time to take action", Android 10 and later).
+   The display time is `LocalAccessibilityManager.calculateRecommendedTimeoutMillis(
+   HINT_NOTICE_DISPLAY_MS, containsIcons = true, containsText = true, containsControls = false)`,
+   the same call M3's own `SnackbarHost` makes. Five seconds rather than the snackbar's four, because
+   this sentence (13 words) is longer than the ad message and toast guidance is 3–5 s.
+   *(Loop 1, I-4: `LocalAccessibilityManager.current` is nullable. When it is null, the display
+   time is `HINT_NOTICE_DISPLAY_MS`, as in `SnackbarHost`. D-04g: the accessibility lengthening
+   holds only while the player leaves the notice alone; item 6 ends it at any time.)*
+2. **The player's next committed jump** — at the jump, as the slide starts, not after it.
+3. **The next undo or restart** — when the board actually steps back or resets. A tap on Undo or
+   Restart that only opens the opt-in dialog or the restart confirm does not end it.
+4. **The next Hint request** — at the tap, before the new search starts.
+5. **Leaving the board** — the back chip, system back, the banner's Home, a board install, or a
+   process death.
+6. *(Added 2026-10-21, loop 1, D-04g.)* **The player puts it away** — a tap on the notice, or
+   TalkBack's dismiss action. It goes in that frame, with its exit fade, and the tap does nothing
+   else.
+
+Items 2 to 5 are the clearing sites of the tech-lead's brief for `bugfix/hint-undecided` (§3.3,
+§8), which are the ruling's own words: "the next jump, undo, restart or Hint tap". Items 1 and 6
+belong to the screen.
+
+What does **not** end it: picking a peg up or putting it down elsewhere on the board, a rejected
+tap, toggling Show-moves, or opening a dialog. Acting on the board is what the notice leaves the
+player to do, and taking the message away at the first touch on the board would cut it off
+mid-read. A player who is done with it taps the notice itself.
+
+**Never twice for one outcome.** Once it has timed out, been put away or been cleared, it does not
+come back for that outcome: not on recomposition, not after a configuration change, and not on
+resume — it is not part of the resume snapshot (the game-designer's AC-15). A later Undecided is a
+new outcome and shows afresh for its full time. The seam is the brief's single Boolean,
+`GameUiState.hintUndecided`. It stays true from the Undecided answer until one of the clearing
+events in items 2 to 5 above, which can be long after the notice has timed out or been put away. So
+**the screen** remembers, across recreation (`rememberSaveable`), that the current raise has
+already ended, and forgets that when the flag turns false. Nothing is reported back to the
+ViewModel, and no tick is needed for this inline form (§7 R-7). The property is the contract; the
+code is the developer's.
+
+*(Loop 1, I-3.)* A recreation **while** the notice is still up — a theme switch, a font-scale change,
+a window resize — may show it again for a fresh full time and speak it once more. That is accepted:
+it is rare, it repeats a true sentence, and it never brings back a notice that has already ended.
+
+**With a following move or Hint.**
+
+- **A jump.** The notice leaves as the slide starts. Hint is Available on the new position, as on
+  any other.
+- **Hint again, on the same board.** Allowed and free. The notice leaves at the tap and Hint goes
+  Working (D-04d, unchanged). The new search decides what shows next: a found move, the banner, a
+  fresh notice (spoken again), or nothing if it is cancelled. Nothing on screen suggests doing this.
+- **Undo or Restart.** The notice leaves when the board steps back or resets, and the control
+  behaves exactly as today.
+- **Show-moves.** The notice stays, and the dots change beneath it.
+- **A dialog.** If a tap on Undo or Restart opens the opt-in dialog or the restart confirm, the
+  notice stays behind the dialog's modal scrim and keeps its own time. TalkBack's focus is in the
+  dialog. If the player backs out, the board is unchanged, so whatever is left of the notice is
+  still true.
+- **The ad-unavailable snackbar.** Independent. If both are up, the snackbar is at the screen's foot
+  over the dock and the notice is above the dock; they never overlap, and each is announced in
+  turn.
+
+**Motion, and reduced motion.**
+
+- **In:** the house entrance, `Modifier.clayEntrance(0)`: a fade in and a rise of
+  `entrance_slide_distance` over `ClayAnim.ENTRANCE_MS` (240 ms), so it reads as coming up from the
+  dock. Each new outcome enters afresh.
+- **Out:** a fade in place over `GameAnim.HINT_NOTICE_EXIT_MS` (160 ms, two thirds of the entrance,
+  since exits run faster than entrances), with no slide.
+- **With `rememberAnimationsEnabled()` false:** it appears settled and disappears in one frame.
+  The display time is **unchanged** — it is reading time, a functional beat like
+  `TutorialAnim.STEP_ADVANCE_DELAY_MS`, not decoration — and so is the announcement.
+
+**Sound and haptics: none.** No cue is named for Undecided, so none plays (rules/audio.md).
+`SoundCue.Hint` stays a reveal cue: `HintSound` is keyed on `hintSource`, which an Undecided search
+never sets, and that must stay so. No haptic either. There is nothing to add to
+`docs/audio-spec.md`, and rules/audio.md's "sound is never the only feedback" is not engaged, since
+the notice is visual and spoken.
+
+**TalkBack.**
+
+- **Polite, never assertive.** The notice is a status message (WCAG 2.2 SC 4.1.3) about an optional
+  assist; nothing is lost if it waits, and an assertive interruption would cut across the Hint
+  control's own read-out as it returns from "Finding a move" to "Hint".
+- **What is spoken is what is shown:** one string, with no separate description.
+- **Focus does not move.** It stays on the Hint control the player double-tapped.
+- **Every raise is spoken once**, an identical second notice included. A live region speaks when its
+  content changes, so the notice must not survive from one outcome to the next with the same text.
+  A Hint request always lowers `hintUndecided` first. The screen also keys the notice on a raise
+  count of its own, advanced each time it sees the flag turn true, so each raise is a new node even
+  if the previous one is still fading out.
+- **While it is up it is one focus stop** that reads its text, with no role, no action and no
+  "double-tap to activate"; the glyph is decorative. In the traversal it takes the banner's place
+  (§11).
+  *(Revised 2026-10-21, loop 1, D-04g.)* It now carries one **`dismiss`** semantics action, which
+  TalkBack lists as "Dismiss" in its actions menu. It still has no role and no `OnClick`, so
+  TalkBack does not say "double-tap to activate". **Its place in the traversal** is the one its
+  layout gives it, with no `traversalIndex` and no `isTraversalGroup` added:
+  back → title → timer → the notice → Undo → Hint → Show-moves → Restart. The board has no focus
+  stop of its own; while a Challenge board loads, its `loading_level` indicator is the only one.
+  The notice comes before the dock because its bottom edge sits above the dock's top edge, which
+  criterion 23c asserts. The rescue banner, an M3 `Surface` and so a traversal group, is read in
+  the same place: its message, then its Undo, Restart and Home, then the dock. §11's traversal
+  line is corrected to match, with a dated note.
+- **Mechanism:** a polite live region on the notice, the idiom M3's own `SnackbarHost` uses. Not
+  `View.announceForAccessibility`, which Android deprecates from API 36 in favour of live regions.
+- **Its display time honours the accessibility timeout** (above).
+
+**Never colour alone.** Against the rescue banner, the notice differs in four channels that are not
+hue: **no action row** (the banner has three text buttons), **the Hint glyph** at its start (the
+banner has none), **wrap-content and centred** (the banner spans the board region), and **the
+corner** (`extraLarge` against `medium`). Its container is never `errorContainer`. Against the
+snackbar it differs by place — above the dock, not over it — and by the glyph.
+
+**Contrast**, computed from `Color.kt`; the device reading governs (criteria 23j, 27):
+
+| Pair | Light | Dark | Needs |
+|------|-------|------|-------|
+| Text `onSurface` on `surfaceContainerHighest` | ≈10.6:1 | ≈10.7:1 | ≥ 4.5:1 |
+| Glyph `onSurfaceVariant` on `surfaceContainerHighest` | ≈5.0:1 | ≈5.0:1 | ≥ 3:1 (decorative, met anyway) |
+
+The container's edge against the board slab is carried by its clay shadow, as the snackbar's is. It
+is not a control, so WCAG 1.4.11 asks no boundary of it. *(Loop 1, D-04g: it can now be tapped
+away, but its text and glyph identify it, both well above 3:1, so it still needs no drawn boundary
+— the same reasoning as for a text button.)*
+
+**Touch targets: none.** The notice is not interactive, so §11's 48dp rule does not apply to it, and
+it takes no target from the board beneath because it passes every touch through.
+*(Superseded 2026-10-21, loop 1, D-04g.)* **The notice is one target**: its whole surface, at least
+`hint_notice_min_height` (48dp) tall and as wide as its text. It sits at least `board_screen_margin`
+plus the dock's `spacing_md` (32dp) above the dock, well beyond the 8dp spacing rule. It covers the
+board's own targets while it is up, by design: one tap removes it.
+
+**The rescue banner gains the same announcement.** With this ruling, a Hint request can come back
+with an Undecided notice or with a proof. If only the notice spoke, a TalkBack user would hear "it
+may still be winnable" and hear nothing when a position is proven lost: the stronger answer would
+be the silent one. So the banner's message — `nowin_message` or `stuck_message` — becomes a polite
+live region too, which also gives the stuck banner raised by a jump its first announcement. Its
+three buttons are not part of the region; they are read when they are focused. The banner's look,
+copy, actions, slot and behaviour are unchanged. **This is the one line that reaches
+`NoWinBanner.kt`.** *(Settled 2026-10-21, loop 1, the check's F-1.)* The tech-lead's brief,
+Amendment 1 (`e8eb5f2`, A1.1–A1.3), rules that this line **rides `bugfix/hint-undecided`** as
+commit H4b, `feat(hint): announce the rescue banner politely`. It amends the brief's freeze of
+`NoWinBanner.kt` to allow exactly one polite live region on the message `Text`, plus a KDoc
+correction. **Criterion 23k is judged on this branch**, and its Compose half is
+`NoWinBannerTest.theBannersMessageIsAPoliteLiveRegionAndItsActionsAreOutsideIt`.
+
+**Test hook.** The notice carries `HINT_UNDECIDED_NOTICE_TEST_TAG`, in the idiom of
+`NOWIN_BANNER_TEST_TAG`.
+
+**What this owes in tests:** criteria **23a–23k** (§14). 23a–23i run on the JVM (Compose UI,
+ViewModel and unit tests) together with 23k's first half; 23j and 23k's second half are the
+qa-engineer's, on a device. They sit beside the game-designer's AC-1 to AC-21, which test the
+outcomes this section draws. *(Loop 1.)* 23k's first half lands in commit H4b; 23c and 23j are
+revised for D-04g.
+
 ### 4.5 Settings — one row added (D-02a)
 
 A `SettingsLinkRow` in `GeneralSection` (`SettingsScreen.kt:193-218`), **above** the Sound toggle:
@@ -3457,6 +3895,11 @@ Things a reader might expect from this spec and will not find, each on purpose:
 - **No second control surface on the gameplay screen.** One status strip, one action dock, nothing
   else. The rescue banner, the ad-offer dialog, the restart confirm and the snackbar are the
   screen's only other surfaces and all four are unchanged.
+  *(2026-10-21, D-04f.)* A fifth surface joins those four: the Undecided notice (§4.4.2). It is not
+  a control surface, since it has no action and passes every touch through. The banner gains its
+  announcement and is otherwise unchanged. *(Loop 1, D-04g: it still has no button. Its one
+  interaction is that a tap on it, or TalkBack's dismiss action, puts it away; it no longer passes
+  touches through.)*
 - **No M3 `TopAppBar`, `BottomAppBar` or `NavigationBar` anywhere in this refresh** (D-05c).
 - **No confirm-quit sheet on gameplay back.** Progress is already snapshotted for resume
   (PERS-03), so leaving loses nothing, and there is no `BackHandler` on gameplay to hang one from.
@@ -3469,6 +3912,17 @@ Things a reader might expect from this spec and will not find, each on purpose:
 - **No text in the dock, and no on/off look on an action** *(2026-09-28, D-04e)*. Undo, Hint and
   Restart are never drawn On or Off, never carry the on mark and never draw a slashed glyph; only
   Show-moves does. A spent allowance never changes a control's look (§4.4.1).
+- **No action, no advice and no invitation on the Undecided notice** *(2026-10-21, D-04f)*. It has
+  no button, never names Undo or Restart, never says "try again", carries no ad affordance and no
+  allowance, and never uses the words "no winning move", "stuck", "dead end" or "lost" (GD-HT-2,
+  §4.4.2). *(Loop 1, D-04g: "no action" means no button and nothing that acts on the board. Its one
+  interaction is being put away.)*
+- **No surface for a cancelled search** *(D-04f)*. The spinner clears and nothing else changes
+  (GD-HT-3).
+- **No sound and no haptic for an Undecided search** *(D-04f)*. No cue is named for it, and
+  `SoundCue.Hint` stays the reveal cue.
+- **No Turkish string in the build** *(D-04f)*. The app has no Turkish locale, so the tr-TR text in
+  §8 is copy of record, not a resource (§4.4.2 "The Turkish text").
 - **No loading state, skeleton or spinner on Home.** The ribbon paints placeholders and fills;
   first paint never waits (D-03g, §6.5).
 - **No per-board star pips on Home.** They stay on the Classic catalog, untouched (§4.2.1).
@@ -3575,6 +4029,12 @@ declared even where an existing token shares its value. All multiples of 4.
 | `game_action_mark_size` | 24dp | **(D-04e, founder-feedback amendment, added 2026-09-28)** The on mark's circle on Show-moves On (§4.4.1) |
 | `game_action_mark_glyph_size` | 16dp | **(D-04e)** The check inside the on mark |
 | `game_action_ring_width` | 2dp | **(D-04e)** The Off ring and the on mark's border. A sub-4dp stroke — the same documented exception as `peg_selected_ring_width` — and a token of its own so the dock stops borrowing the board's ring width |
+| `hint_notice_glyph_size` | 20dp | **(D-04f, amendment, added 2026-10-21)** The Hint lightbulb at the start of the Undecided notice (§4.4.2). It has the same value as `home_stat_pill_glyph_size` and a different owner |
+| `hint_notice_min_height` | 48dp | **(D-04g, loop 1, added 2026-10-21)** The Undecided notice's minimum height, so that a one-line notice is still a fair tap target (§4.4.2). It has the same value as `nowin_banner_min_height` and `board_min_touch_target` and a different owner |
+
+*(Added 2026-10-21, D-04f.)* The Undecided notice also **reuses** `board_max_size` as its width cap,
+because the notice is meant to track the board's width and nothing else; and `spacing_sm`,
+`spacing_md`, `elevation_card`, `entrance_slide_distance` and `shape_corner_extra_large`.
 
 **Changed value** *(D-05d, 2026-09-28)*: `game_timer_pill_height` **32dp → 40dp**, and it is now
 applied as a **minimum** (`heightIn`), not a fixed height, so the pill grows with the font scale
@@ -3639,6 +4099,11 @@ an `onSurface` glyph at 0.38; **On** `primary` / `onPrimary` with the on mark (`
 slab is `surfaceContainerHigh`, like the board slab it miniaturises, and the timer pill keeps
 `surfaceContainerHigh`. **Still no new colour, no new gradient, no hex.**
 
+*(Added 2026-10-21 — D-04f.)* The Undecided notice is `surfaceContainerHighest` with `onSurface`
+text and an `onSurfaceVariant` glyph: the clay snackbar's neutral message roles. It is never
+`errorContainer`, the rescue banner's problem role, and never gold or `tertiary`, which mean a
+revealed hint. **Still no new colour, no new gradient, no hex.**
+
 **The system bars take the theme** *(added 2026-10-21 — **D-05f**, app-wide)*. Edge to edge, the
 system bars have no colour of the app's own. What the app decides is their **appearance**, light or dark,
 and that follows the theme on every screen:
@@ -3682,11 +4147,22 @@ proportional ("1" is 388 units per 1000, "2" is 587) whatever `withTabularFigure
 is why the timer sets its digits in cells (§4.3.1, `TimerDigits`). Nunito's digits are tabular by
 design (600 each). Fredoka stat-pill values are proportional; they do not tick, so nothing jitters.
 
+*(Added 2026-10-21 — D-04f.)* The Undecided notice's text is `bodyMedium`, the same role as the
+rescue banner's message (§4.4.2).
+
 ### 6.4 Motion
 
 New constants go in a scoped `TutorialAnim` object (unitless ms/floats, so not `dimens.xml`):
 `STEP_ADVANCE_DELAY_MS`, `NUDGE_DELAY_MS`, `COACH_PULSE_MS`. Everything else reuses `ClayAnim` and
 `GameAnim` unchanged. See §10.
+
+*(Added 2026-10-21 — D-04f.)* Two durations join `GameAnim`:
+
+- `HINT_NOTICE_DISPLAY_MS` = **5 000**: the Undecided notice's reading time, before the system's
+  accessibility timeout lengthens it. It is **functional**, so it applies with animations off.
+- `HINT_NOTICE_EXIT_MS` = **160**: the notice's fade-out, two thirds of `ClayAnim.ENTRANCE_MS`.
+
+The notice's entrance reuses `clayEntrance`. See §4.4.2 and §10.
 
 *(2026-10-21, D-03n.)* Home's two slack weights (3 and 1) give way to one unitless ratio, the footer's
 share of the no-chip slack (one fifth), named in the home package's scoped constants the way the two
@@ -4066,6 +4542,7 @@ tech-lead counted 16. That cost is mechanical and the compiler names every site.
 | **R-4** | **Closed 2026-09-21** (game-designer ruling). All three footprints are fixed in §4.1 and proven dead-end-free to one peg. They live in a new `object TutorialBoards` in `:domain` beside `Boards.kt` and **must not** join `Boards.CLASSIC_SPECS`. | The proof is exhaustive enumeration over the product's own `RulesEngine`; the invariant is guarded by a permanent `:domain` test, not by a report (§13). |
 | **R-5** | **Resolved 2026-09-21** (tech-lead ruling): a Hilt `TutorialViewModel` scoped to the `Tutorial` nav destination; step state in a plain `MutableStateFlow`, **not** `SavedStateHandle`. | A saved cursor would survive process death and resume at T2, contradicting D-01e. Destination scoping is also what makes a Settings replay restart at T1 (§4.1, D-01g). |
 | **R-6** | The two derived pill values reach the UI as a UI-layer read model, the way `LevelResult` does today — no Room type reaches a ViewModel. | Stated so the ribbon's contract survives a refactor of the query behind it. |
+| **R-7** *(added 2026-10-21, D-04f)* | `GameUiState.hintUndecided: Boolean`, the seam the tech-lead's brief for `bugfix/hint-undecided` binds (its §3.4 and §8). The ViewModel sets it in the update that ends an Undecided search and clears `solverThinking`. It lowers it wherever it lowers `noWinningMove` — a Hint request, a jump, an undo — and a restart or board install rebuilds it false. It is never persisted, never true together with `noWinningMove`, and never part of `showRescueBanner`. **No tick**: the notice is inline, so `hintUndecidedTick` is not added. The display time, the timed-out memory and the raise count belong to the screen (§4.4.2 "Never twice for one outcome", "TalkBack"). *(Loop 1, D-04g: putting the notice away by a tap or by the dismiss action also belongs to the screen, and is remembered the same way. Still nothing goes back to the ViewModel, and still no new field.)* | One defaulted Boolean beside `noWinningMove`: no repository, no schema, no DataStore key. TalkBack speaks the visible text, so `hint_undecided_announcement` is not added either. |
 
 **Invariant the hosting mechanism must preserve (D-01f).** `HomeViewModel` sequences three
 first-run surfaces — onboarding, then the Play Games opt-in prompt, then the profile-swap dialog —
@@ -4106,6 +4583,7 @@ withheld for an extra launch.
 | `home_stat_boards_label` | `Boards` | Ribbon pill label |
 | `home_stat_level_label` | `Level` | Ribbon pill label |
 | `home_stat_boards_value` | `%1$d/%2$d` | Boards pill value |
+| `hint_undecided_message` *(added 2026-10-21, D-04f)* | `Hint couldn't work this position out in time. It may still be winnable.` | The Undecided notice's text and its announcement (§4.4.2). The apostrophe is escaped in the XML (`couldn\'t`), as `challenge_load_error` already does. **tr-TR copy of record:** `İpucu bu konumu süresi içinde çözemedi. Belki hâlâ kazanılabilir.` It is not added to the build, because the app has no Turkish locale (§4.4.2 "The Turkish text") |
 
 The three new tutorial captions are **rewrites** of `onboarding_step_1/2/3`
 (`strings.xml:161-163`) shortened to one line each, because the player is now doing the thing the
@@ -4119,6 +4597,15 @@ and the game-designer's boards make being boxed in impossible, so the line named
 player cannot see and a situation that cannot occur. The escalation re-shows the step's own
 caption instead (§4.4), so the copy contract carries one string fewer and needs no per-step
 escalation line.
+
+*(Added 2026-10-21 — D-04f.)* One string joins the table: `hint_undecided_message`. Three strings
+keep their values and gain a narrower or a new use:
+
+- **`nowin_message`** ("No winning move — undo or restart") is now bound **only** to a proven dead
+  end. No path renders it for an Undecided search (GD-HT-1; the game-designer's AC-17).
+- **`nowin_message` and `stuck_message`** are now also announced by TalkBack when the banner rises
+  (§4.4.2, last subsection).
+- **`hint_thinking`** ("Finding a move") is unchanged.
 
 **Added 2026-10-21 — D-05e, the timer's spoken form (§4.3.2).** Two strings and two plurals, plus a
 third string only if the fallback is taken:
@@ -4269,6 +4756,10 @@ third-party and none needing a `THIRD_PARTY.md` row beyond what already ships:
 | **`ShowMovesOffIcon`** — `ShowMovesIcon` with a knocked-out diagonal slash | vector | **new, in-house**, same precedent as the two above; it brings one more `@Suppress("MagicNumber")` on path data, which the code-auditor sees under the existing precedent rather than as a new kind of suppression | project-owned |
 | Home stage art — a mid-game English-33 position on a clay slab | drawn | `BoardCanvas` primitives, no asset file; replaces the withdrawn peg-cluster art | project-owned |
 
+*(Added 2026-10-21 — D-04f.)* **No asset is added.** `HintIcon`, the in-house, project-owned
+lightbulb of D-04a, is placed a second time, at the start of the Undecided notice. No sound asset is
+placed, because the notice is silent. No `THIRD_PARTY.md` row and no `docs/audio/CREDITS.md` row.
+
 ---
 
 ## 10. Animation and motion
@@ -4290,6 +4781,7 @@ All new motion reuses the Candy Clay vocabulary; nothing invents a curve.
 | **A Continue chip arriving or leaving after first paint** *(2026-10-21, D-03n)* | the chip's room opens from 0 over `ClayAnim.ENTRANCE_MS` with `ClayAnim.ENTRANCE_EASING`, no overshoot; the stage gives up the same height in the same frames, its art following the stage's size (the pegs on it do not move relative to the board), and the ribbon rides on the stage's edge; the chip enters with its existing `clayEntrance` but with no stagger delay, its fade starting with its room; the hero row holds still in every frame, and so do the mode tiles wherever the stage can give the room (in the shortfall case they move by the shortfall); stage art whose final edge is below `home_stage_art_min_size` fades out over the same duration instead of vanishing in one frame; the entrance cascade above is independent of it and is never restarted by it (§4.2.5) |
 | **Show-moves On ↔ Off** *(2026-09-28, D-04e — replaces "Show-moves toggling ON/OFF")* | fill and ring cross-fade over `ClayAnim.PRESS_IN_MS`; glyph cross-fades to its variant (slashed / plain) over the same; the on mark scales in with `overshootSpring()` and out without overshoot |
 | **Dock action Available ↔ Unavailable** *(D-04e)* | fill, shadow and glyph strength cross-fade over `ClayAnim.PRESS_IN_MS`; Available → Working is instant (it confirms the tap) |
+| **Undecided notice in and out** *(2026-10-21, D-04f)* | in: `clayEntrance(0)`, a fade and a rise of `entrance_slide_distance` over `ClayAnim.ENTRANCE_MS`; held for `GameAnim.HINT_NOTICE_DISPLAY_MS` or the accessibility timeout; out: a fade in place over `GameAnim.HINT_NOTICE_EXIT_MS` (§4.4.2) |
 
 **Reduced motion is a hard requirement.** Every decorative animation above is gated on
 `rememberAnimationsEnabled()` (`Clay.kt:209-218`), which reads
@@ -4302,6 +4794,9 @@ All new motion reuses the Candy Clay vocabulary; nothing invents a curve.
 - *(2026-09-28, D-04e / D-03l.)* The dock's look cross-fades and the on mark's scale-in **do not
   run**: every control simply shows its new look. The stage art has no motion to gate; it appears
   with the hero, settled.
+- *(2026-10-21, D-04f.)* The Undecided notice appears settled and disappears in one frame. Its
+  display time does **not** shrink, because it is reading time, functional like
+  `STEP_ADVANCE_DELAY_MS`. Its announcement is not motion and is unaffected.
 - *(2026-10-21, D-03n.)* A Continue chip's room is open, settled, in the frame after the chip arrives;
   nothing glides. Wherever the stage can give the room, the tiles hold still with animations on or off,
   because the room comes out of the stage; in the shortfall case they move by the shortfall, with
@@ -4445,6 +4940,21 @@ pill, all three pills stack — label line, value line, one height (§4.2.6, cri
 back → title → timer → board → dock (Undo → Hint → Show-moves → Restart) → any raised banner.
 Home order: title → gear → ribbon pills → Continue chips → mode tiles. Titles carry
 `semantics { heading() }` so a screen-reader user can jump bands.
+*(Corrected 2026-10-21 — loop 1, D-04g; the check's F-4. The line above is left as it read.)* The
+gameplay order is **back → title → timer → the rescue banner or the Undecided notice → dock (Undo →
+Hint → Show-moves → Restart)**:
+
+- **The board has no focus stop of its own.** It is one `Canvas` with no semantics; while a
+  Challenge board loads, the `loading_level` indicator stands in its place.
+- **The banner and the notice are composed in the board region's `Box`, above the dock**
+  (`GameScreen.kt:193-262`), and the app sets no `traversalIndex` or `isTraversalGroup`. Compose's
+  geometric order therefore reads them before the dock, so "dock → any raised banner" never
+  described the build.
+- **The order is ruled to stay geometric.** Reading order then matches what the eye sees (WCAG 2.2
+  SC 1.3.2, 2.4.3). No traversal modifier is added to produce the old line.
+- **Checks.** Criterion 23j checks the order with TalkBack for the notice, and 23k's device half for
+  the banner.
+
 *(2026-10-21 — D-05e, D-03n.)* The timer's stop speaks its value, "Elapsed time, 5 minutes, 12
 seconds", and is never announced on its own (§4.3.2). A Continue chip arriving after first paint is not
 announced either and moves no stop a player is on; it joins the order in its place. Criterion 26b lists
@@ -4504,6 +5014,40 @@ invalid-tap cues as the design and the present jump cue as required by SOUND-01 
 
 **One-handed use.** The four in-game actions and both Home mode tiles sit in the lower half of a
 6.7-inch phone. This is the reach problem D-04 exists to fix.
+
+**The Undecided notice and the banner's announcement** *(added 2026-10-21 — D-04f, §4.4.2)*. Each
+line extends the subsection it names; nothing above is changed. *(Loop 1: apart from one dated
+correction note under the screen-reader traversal line, D-04g.)*
+
+- **Touch targets.** The notice is not interactive and passes every touch through to the board. It
+  has no target of its own and takes none from the board. *(Superseded by loop 1, D-04g:)* the
+  notice is one target, at least `hint_notice_min_height` (48dp) tall and 32dp above the dock. A tap
+  on it puts it away and reaches nothing beneath.
+- **Labels.** The notice's `HintIcon` is decorative (`contentDescription = null`); the notice speaks
+  its text.
+- **Announcements** — a new line in this checklist. A message that appears without the player's
+  focus on it is a **polite live region**: the Undecided notice, and the rescue banner's message
+  (`nowin_message` or `stuck_message`, not its buttons). None is assertive, none moves focus, and
+  none uses `View.announceForAccessibility`. Each raise is spoken once, an identical repeat included.
+  Before this amendment the app had no live region at all, and the banner was silent to TalkBack.
+- **Timing.** The notice's display time is lengthened to the system's accessibility timeout when the
+  player has set one (WCAG 2.2 SC 2.2.1). *(Loop 1, D-04g:)* the player can also end it at any time,
+  by a tap on it or TalkBack's dismiss action.
+- **State, not just colour.** Undecided notice against rescue banner: action row (none against
+  three), leading Hint glyph (against none), width (wrapped and centred against full) and corner
+  (`extraLarge` against `medium`). The notice is never `errorContainer`.
+- **Contrast.** The notice's text, `onSurface` on `surfaceContainerHighest`, is ≈10.6:1 light and
+  ≈10.7:1 dark; its glyph, `onSurfaceVariant` on the same, is ≈5.0:1 in both. Criterion 27 covers
+  both pairs.
+- **Text scaling.** The notice wraps and never ellipsises. At 200% on a 360dp phone it runs to four
+  or five lines (≈170–220dp) and stays inside the board region. *(Loop 1, D-04g:)* there it covers
+  up to ≈60% of the board. That is accepted because one tap removes it and it takes the taps that
+  land on it (§4.4.2, "What it covers, and why that is accepted").
+- **Screen-reader traversal.** While it is up, the notice is one focus stop, in the place the
+  traversal line above gives "any raised banner"; the two are never up together. *(Loop 1, D-04g:)*
+  that place is after the timer and before the dock, per the dated correction of the traversal
+  line. The notice also carries a `dismiss` action.
+- **Sound is never the only feedback.** Not engaged: the notice plays no sound.
 
 ### 11.1 The board with TalkBack (D-TB — 2026-10-23)
 
@@ -4859,6 +5403,17 @@ is 0 and 15k's numbers stand. **Gameplay, every size**: each system bar is appli
 §4.3.1), which is what lets the larger title and timer cost the board nothing on a 360×640dp phone
 at both 1.0 and 2.0 font scale.
 
+*(Added 2026-10-21 — D-04f.)* The Undecided notice wraps its content, centred over the foot of the
+board region, and is never wider than that region or `board_max_size`.
+
+| Case | The notice |
+|------|------------|
+| 360dp or 412dp phone, default scale | two lines, ≈56dp tall |
+| 200% font scale | four or five lines, ≈170–220dp, inside the 368dp board region of §4.3.1. *(Loop 1, D-04g:)* it covers up to ≈60% of the board until it times out or the player taps it away |
+| Tablet | capped with the board |
+| RTL | the glyph leads at the start edge and the text is start-aligned, so the notice mirrors with the layout |
+| Dark theme | both roles have dark variants; contrast in §11 |
+
 *(Pointer 2026-10-21 — D-03n, §4.2.5.)* The ≈150–280dp range above is the 3 : 1 split's. Under D-03n
 the stage on QA's 6.7-inch window is 326.3, 230.3 and 134.3dp with no, one and both chips (the art
 capped at 320dp), and the tiles hold the same place in all three states.
@@ -5013,6 +5568,21 @@ including the unit test that replays the stage's recorded move list from the Eng
 **21a–21g** (the dock, §4.4.1 — 21b is a pure unit test over the recipe data, 21f and 21g device
 checks). The two §13 idioms above still bind every new layout assertion: no
 `bottom ≤ contentBottom()` containment and no zero-inset window.
+
+**D-04f — what it breaks, what it retargets, what it owes** *(2026-10-21 amendment, §4.4.2)*:
+
+| Test | Effect | Fix |
+|------|--------|-----|
+| `GameViewModelAssistOrderingTest.aHintWhoseSearchMissesItsBudgetIsAlsoFree` (`:162-183`) | It pins a budget miss as `noWinningMove = true`, which is the defect | **Rewrite, never delete or `@Ignore`**, as the game-designer's AC-9, `anUndecidedHintIsFreeAndNeverRaisesTheNoWinningMoveBanner`, which also asserts that the notice is raised |
+| The table-driven dock test of criterion 21a | §4.4.1's table gains two Hint rows, Undecided and Cancelled | Add the two rows; both expect Available. The existing rows are unchanged. *(Loop 1:)* Undecided's state is `hintUndecided` true with `solverThinking` and `noWinningMove` false. Cancelled's state is idle's, with all three flags false, so that row re-asserts idle by design; a cancel's behaviour is the game-designer's AC-12 |
+| Any screen test that builds a state with `noWinningMove = true` | It still renders the banner, which now means a proven dead end | **Passes unedited** |
+
+**Owed, new:** criteria **23a–23i** and the Compose half of **23k**, each watched fail once before it
+is trusted; and the qa-engineer's **23j** and the device half of **23k**. Add a new test tag,
+`HINT_UNDECIDED_NOTICE_TEST_TAG`. 23c's edge comparison is between two nodes, not against the root,
+but it still runs with insets supplied (the second idiom above). *(Loop 1.)* 23k's Compose half is
+`NoWinBannerTest.theBannersMessageIsAPoliteLiveRegionAndItsActionsAreOutsideIt`, in commit H4b
+(the brief's Amendment 1, A1.3). 23c and 23j are revised for D-04g.
 
 **Four audio tests** *(2026-09-21 — added with D-01i; the list above carried none, and criterion
 7c had a device check and nothing else)*. The project's own rule is that a named silence is only
@@ -5601,6 +6171,11 @@ criteria 19–24 above stand unchanged; these seven make "on or off" legible and
      jump, Hint **Working** while `solverThinking`, Hint **Available** with `hintSource` set and
      with `noWinningMove`, Show-moves **On** and **Off**, and Restart **Available**. (D-04e, ASST-01,
      ASST-02, criteria 22, 23)
+     *(Widened 2026-10-21 — D-04f; pointer added in loop 1, the check's F-3.)* §4.4.1's table gains
+     two Hint rows, so this criterion's table does too. **Undecided** is `hintUndecided` true with
+     `solverThinking` and `noWinningMove` false, and expects Available. **Cancelled** is the idle
+     state, all three false, and expects Available; it re-asserts idle by design. The text above is
+     otherwise unchanged.
 
 21b. **No two looks share a recipe.** A unit test over the recipe data asserts that each of the ten
      pairs of looks differs in at least two of: fill (none / pale / strong), ring, shadow, glyph
@@ -5634,6 +6209,146 @@ criteria 19–24 above stand unchanged; these seven make "on or off" legible and
     (ASST-02, D-04d)
 23. Requesting a hint shows a spinner in place of the glyph, the control reports as disabled while
     thinking, and a second tap cannot start a second search. (ASST-01, D-04d)
+
+**What an Undecided Hint shows (D-04f, §4.4.2 — amendment, added 2026-10-21)** — criterion 23
+stands unchanged, and so does the rest of this section except criterion 21a, whose table gains two
+rows (the pointer under 21a; corrected in loop 1, the check's F-3). 23c and 23j are revised for
+D-04g in loop 1. *(Loop 2, 2026-10-23:)* 23j's device positions follow the ruling's Amendment 1,
+and criterion 26a gains a dated note on the notice. These eleven sit beside the game-designer's
+AC-1 to AC-21
+(`.planning/reports/phase-14/game-designer-hint-timeout.md` §3), which test the outcomes; these test
+what the player sees and hears.
+
+23a. **Undecided shows its notice and never the banner.** Given `GameScreen` with the Undecided
+     notice raised and `noWinningMove` and `stuck` both false, then the node tagged
+     `HINT_UNDECIDED_NOTICE_TEST_TAG` is displayed and its text is exactly `hint_undecided_message`;
+     no node tagged `NOWIN_BANNER_TEST_TAG` exists; no node shows the text of `nowin_message` or
+     `stuck_message`; and no node inside the notice has a click action. (D-04f; GD-HT-1, GD-HT-2; the
+     game-designer's AC-16, AC-17)
+
+23b. **Its words.** A unit test resolves `hint_undecided_message` and asserts that it equals "Hint
+     couldn't work this position out in time. It may still be winnable." and that it contains,
+     case-insensitively, none of "winning move", "undo", "restart", "try again", "stuck", "dead end"
+     or "lost". (D-04f, GD-HT-2)
+
+23c. **A tap puts it away and reaches nothing else; it covers no dock control.** *(Revised 2026-10-21,
+     loop 1, D-04g. First wording: "It is not a control, and it blocks nothing … a tap at a point
+     inside both reaches `onCellTap`".)*
+     - The notice is one accessibility node carrying its text, with no `OnClick`, no `Role` and no
+       toggleable state, and with one `SemanticsActions.Dismiss` action.
+     - On a window where the notice overlaps the board canvas, a tap at a point inside both makes
+       the notice node leave (after its exit), and `onCellTap` is **not** invoked.
+     - A tap on the board outside the notice reaches `onCellTap` and leaves the notice up.
+     - Performing `SemanticsActions.Dismiss` also makes it leave.
+     - The notice is at least 48dp tall at font scale 1.0 on a `w600dp` window, where it is one
+       line.
+     - The notice's bottom edge is above the dock slab's top edge, so no dock control is covered.
+       This edge is also what puts it before the dock in TalkBack's order (23j).
+
+     (D-04f, D-04g)
+
+23d. **Spoken politely, every time.** The notice's node carries `LiveRegionMode.Polite` and its text
+     equals the visible string, and no node on the gameplay screen carries `LiveRegionMode.Assertive`.
+     Driving the screen through raise, then clear (a Hint tap), then raise again with the same text,
+     the notice node is absent in the middle state once its exit has run, and present after it, so
+     the live region speaks the second notice too. A second raise that arrives while the first notice
+     is still fading out is a new node, keyed on the screen's own raise count. (D-04f, §11)
+
+23e. **It leaves on time.** With the test clock paused and the notice raised at t₀, it is present at
+     t₀ + `HINT_NOTICE_DISPLAY_MS` − 100 ms and gone at t₀ + `HINT_NOTICE_DISPLAY_MS` +
+     `HINT_NOTICE_EXIT_MS` + one frame. With `LocalAccessibilityManager` provided by a fake whose
+     recommended timeout is 60 000 ms, it is present at t₀ + 59 s and gone after 60 s plus the exit.
+     (D-04f, WCAG 2.2 SC 2.2.1)
+     *(Added in loop 1, I-4 and I-7.)* The same holds with no `LocalAccessibilityManager`
+     (`null`): the display time falls back to `HINT_NOTICE_DISPLAY_MS`. On Robolectric with
+     `Settings.Global.ANIMATOR_DURATION_SCALE` set to 0, the notice is present at
+     t₀ + `HINT_NOTICE_DISPLAY_MS` − 100 ms and gone one frame after t₀ + `HINT_NOTICE_DISPLAY_MS`,
+     with no exit frames: reduced motion drops the fade, never the reading time.
+
+23f. **It leaves when the player moves on, and only then.** ViewModel tests, with `hintUndecided`
+     true:
+     - a committed jump lowers it in the update that starts the slide;
+     - an undo that steps the board back, a restart that resets it, and a Hint request each lower
+       it;
+     - an Undo or Restart tap that only opens the opt-in dialog or the restart confirm leaves it
+       raised, as do a selection, a deselection, a rejected tap and a Show-moves toggle.
+
+     (D-04f; the game-designer's AC-13; the brief's clearing sites)
+
+23g. **Once gone, it stays gone.** After the notice has timed out with `hintUndecided` still true, an
+     emulated recreation (`StateRestorationTester`) neither shows nor announces it again, and a game
+     resumed from the snapshot never shows it. (D-04f; the game-designer's AC-15)
+     *(Loop 1, D-04g:)* the same holds after it has been tapped away.
+
+23h. **One slot, one occupant.** Given a state that raises both the notice and the rescue banner,
+     the banner is displayed and the notice node does not exist. (D-04f)
+
+23i. **It is silent.** In the `GameScreenSoundTest` idiom, with `FakeSoundPlayer`: raising the notice
+     records no cue — in particular not `SoundCue.Hint` — while a found hint still records
+     `SoundCue.Hint` exactly once. (D-04f, rules/audio.md, SOUND-02)
+
+23j. **On a phone (qa-engineer).** *(Items 1 and 5 revised and item 7 added 2026-10-21, loop 1,
+     D-04g. Item 1's first wording ended "a tap on a peg beneath it picks that peg up". Item 5's
+     second bullet had no order clause and no Dismiss.)* *(Positions revised 2026-10-23, loop 2 —
+     the check's F-1. The first wording was "At the game-designer's AC-18 position (Wiegleb-45, the
+     fifth Hint)". The ruling's Amendment 1 superseded that position: following Hint from the
+     untouched start never leaves the opening book, so the fifth hint is a book answer and the notice
+     never appears.)*
+
+     **Where to run it:**
+     - **First, the control, the ruling's AC-18a.** On Wiegleb-45 from its untouched start, follow
+       Hint for as many moves as the level's free hints allow. Every hint shows a move at once, and
+       neither the notice nor the banner appears.
+     - **Then the ruling's AC-18b, AC-18c and AC-18d.** On Wiegleb-45 from its untouched start, play
+       Amendment 1's walk A, B or C by hand, with no Hint until the fourth jump is done, then tap
+       Hint. Restart the level between walks. Walk A is written out in words for the device in the
+       ruling's Amendment 1, and the three walks are tabulated there in (row, col) coordinates.
+     - **Then one AC-20 position**, a Diamond-41 gap, from the developer's move sequence.
+
+     Run items 1 to 5 on each walk and on the AC-20 position. Run items 6 and 7 once, on walk A.
+     If a walk shows a move instead of the notice, follow AC-18's pass line rather than failing
+     23j: record the device and the walk, and rerun 23j on the replacement walk the developer
+     supplies. A move that appears at once means the book answered, so the screen's orientation
+     differs from the coordinates; report it before continuing.
+
+     Check each of the following:
+     1. The notice appears above the dock in the frame the spinner clears and reads exactly as in
+        23b. It covers no dock control. A tap on the notice puts it away and changes nothing on the
+        board: no peg is picked up and no cue plays.
+     2. It fades after about 5 s, or at once on the next jump.
+     3. When Hint is tapped again on the unchanged board, the notice goes at the tap, the spinner
+        runs for about 1.5 s, and a fresh notice arrives.
+     4. With OS animations off, it snaps in and out and still stays about 5 s.
+     5. With TalkBack on:
+        - Double-tapping Hint leaves focus on Hint, and TalkBack speaks the notice's text once,
+          after anything it was already saying, and never "No winning move".
+        - Swiping forward from the timer reaches **the notice, then Undo, Hint, Show-moves and
+          Restart**, in that order. The notice is one stop that reads its text with no "button" and
+          no "double-tap to activate". Its actions menu offers **Dismiss**, which puts it away.
+          *(Loop 2.)* This bullet is the notice's pass line for criteria 26 and 26a; see the note
+          under 26a. A double-tap on the notice is not judged either way.
+        - With Accessibility › Time to take action set to 1 minute, the notice stays up for about a
+          minute.
+     6. In light and in dark theme, take a greyscale capture of the notice beside one of the rescue
+        banner, at AC-19's English-33 dead position. Without colour, the two must still read as
+        different things: no buttons, the glyph, the width and the corners.
+     7. At 200% font scale on a 360dp-wide phone, with Time to take action set to 2 minutes:
+        - capture what the notice covers;
+        - one tap on it puts it away at once, and that tap picks up nothing beneath it;
+        - left alone, it stays for the full time.
+
+     (D-04f, D-04g, §11; criteria 25–27)
+
+23k. **The banner speaks too.** In a Compose UI test, the banner's message node carries
+     `LiveRegionMode.Polite` and its three buttons are outside that region. On a phone with
+     TalkBack, AC-19's Hint speaks "No winning move — undo or restart", and a jump that leaves no
+     legal move speaks "No moves left — undo or restart". The banner's look, copy, actions and
+     behaviour are otherwise unchanged. (D-04f, §11, ASST-03)
+     *(Loop 1, the check's F-1 and F-4.)* 23k is judged on `bugfix/hint-undecided`. Commit H4b
+     carries it, per the tech-lead's brief, Amendment 1. Its Compose half is
+     `NoWinBannerTest.theBannersMessageIsAPoliteLiveRegionAndItsActionsAreOutsideIt`. On the device,
+     swiping forward from the timer reaches the banner's message, then its Undo, Restart and Home,
+     and then the dock.
 24. No control anywhere shows a hint or undo allowance count, badge or ad glyph. (§5)
 
 **Cross-cutting**
@@ -5670,6 +6385,12 @@ criteria 19–24 above stand unchanged; these seven make "on or off" legible and
      "fixed" (§11, reason 2). Run the pass over one untouched control as the control case — the
      Classic catalogue's back arrow (`ClassicCatalogScreen.kt:102-110`) — so a finding can be told
      apart from this app's baseline. (rules/compose.md, §11)
+     *(Added 2026-10-23 — loop 2, D-04g; the check's F-4.)* The Undecided notice is a status message
+     with no role and no click action, not a control. So 26a's "label on something that cannot be
+     activated" clause does not apply to it, and its pass line is criterion 23j item 5: one focus
+     stop that reads its text, no role, and **Dismiss** in the actions menu, which puts it away.
+     It still counts under criterion 26 for size and spacing (≥ 48dp, 32dp above the dock; §4.4.2
+     "Touch targets").
      *(Pointer 2026-10-23, loop 4 — D-TBa items 8 and 10, §11.1 "Cell size".)* Two things about the
      board's stops:
      - **The gameplay cells do not meet "the focus rectangle is ≥ 48dp"**: 42, 37 and 33dp on a 360dp
@@ -6031,6 +6752,25 @@ bundled type faces (§6.5), which are measured inside 15e and are never on the d
 §6.5's preconditions 1, 4 and 7 and criterion 15e change how the gate's sitting is run, not what it
 decides. **CLAS-02** and **SCOR-02** gain 18d's discriminator clause. No string, colour or token
 changes. One third-party asset enters the artifact, the two font families (OFL-1.1, §9).
+
+*(Added 2026-10-21 — D-04f.)*
+
+- **ASST-01** gains §4.4.2 and criteria 23a–23j: a hint that reveals no move tells the player which
+  kind of "no" it is.
+- **ASST-03**'s "no winning move" state is now raised only by a proven position (GD-HT-1), and the
+  banner gains its announcement (criterion 23k).
+- The game-designer's proposed **ASST-04** ("A hint that cannot decide a position within its
+  deadline tells the player so; the 'no winning move' state appears only for a position proven to
+  have no winning line") traces here once gsd records it.
+- **ADS-06** as reworded (a hint that reveals no move is never charged) is honoured. The notice has
+  no ad affordance, and the Undecided path raises no offer (the game-designer's AC-21).
+- **QUAL-03** gains one token (`hint_notice_glyph_size`), two scoped durations
+  (`GameAnim.HINT_NOTICE_DISPLAY_MS`, `GameAnim.HINT_NOTICE_EXIT_MS`) and one string. No colour, no
+  asset, no dependency.
+- *(Loop 1, D-04g.)* **QUAL-03** gains a second token, `hint_notice_min_height`, and no string: the
+  dismiss action uses the platform's own "Dismiss" label. **ASST-01**'s notice can now be put away
+  by a tap or by TalkBack, and §11's gameplay traversal line is corrected to the order the layout
+  produces (criteria 23c, 23j).
 
 *(Added 2026-10-21 — the tenth revision.)* **PLAT-08 (C1)**: §6.5's precondition 1 names
 `Pixel_9a_bench` and the D-1 route to it, precondition 9 is new, and arm A is the branch's merge-base;

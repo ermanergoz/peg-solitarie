@@ -7,10 +7,13 @@ import com.app.pegsolitaire.domain.model.Move
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.solver.Solver
 import com.app.pegsolitaire.domain.solver.SolverBudget
+import com.app.pegsolitaire.domain.solver.SolverOutcome
 
 /**
  * The pure-`:domain` hint decision (ASST-01 / ASST-03 / DEBT-01): resolve the next
- * genuine winning move for the current [Board], or `null` when there is none.
+ * genuine winning move for the current [Board] as a [HintOutcome] — [HintOutcome.Found],
+ * [HintOutcome.ProvenDead] when the position is proved to have none, or
+ * [HintOutcome.Undecided] when the search stopped without deciding (GD-HT-1).
  *
  * Three paths, in strict priority order. Each is listed with what it COSTS and what
  * makes it trustworthy, because those two things differ sharply between them:
@@ -28,14 +31,15 @@ import com.app.pegsolitaire.domain.solver.SolverBudget
  *     unchanged [RulesEngine] with an unbounded budget — so the player-facing deadline
  *     is irrelevant to a book hit, which is precisely why the book exists.
  *  3. **Solver fallback (off the book, or off the recorded line).** Otherwise defer to
- *     the budgeted [Solver.firstWinningMove]. Cost: up to the caller's whole deadline.
- *     Trustworthy only within its budget: unsolvable, budget-missed and cancelled all
- *     fold to the same `null` per D-04, so its `null` is "no move found in time", not a
- *     proof.
+ *     the budgeted [Solver.decide], whose three outcomes map one to one. Cost: up to the
+ *     caller's whole deadline. Its Found is a completed line and its ProvenDead a proof
+ *     (an exhausted search or a Pagoda reject); a search it did not finish — budget-missed
+ *     or cancelled — is Undecided, "not decided in time", never a proof. D-04 used to fold
+ *     all three no-move cases into one `null`.
  *
  * **The three book outcomes are NOT interchangeable.** [BookAnswer.NoWinningMove] is
- * AUTHORITATIVE — a completed exhaustive search — so it short-circuits and returns
- * `null` without entering the Solver; re-running a 1.5s search against an already-proven
+ * AUTHORITATIVE — a completed exhaustive search — so it short-circuits and answers
+ * ProvenDead without entering the Solver; re-running a 1.5s search against an already-proven
  * dead position would spend the whole deadline reaching the same conclusion less
  * reliably (threat T-08-37). A `null` lookup is a MISS — "the book does not know" — and
  * MUST fall through to the Solver. Collapsing the two would put the untruthful "no
@@ -76,7 +80,9 @@ class GetHintUseCase {
      *   the index into [solution] of the next recorded move.
      * @param budget the Solver resource budget (defaults to [SolverBudget.DEFAULT]).
      * @param shouldCancel cooperative cancel poll forwarded to the Solver.
-     * @return the next winning [Move], or `null` when the position has no winning move.
+     * @return [HintOutcome.Found] with the next winning [Move]; [HintOutcome.ProvenDead]
+     *   when the position is proved to have none; [HintOutcome.Undecided] when the
+     *   search stopped without deciding.
      */
     operator fun invoke(
         board: Board,
@@ -84,7 +90,7 @@ class GetHintUseCase {
         movesPlayed: Int,
         budget: SolverBudget = SolverBudget.DEFAULT,
         shouldCancel: () -> Boolean = { false },
-    ): Move? {
+    ): HintOutcome {
         val fromBook = OpeningBook.lookup(board)
         // Stored-move candidates in strict priority order. `listOfNotNull` collapses to
         // empty for a Classic board the book misses, in which case the guard below never
@@ -94,13 +100,13 @@ class GetHintUseCase {
         // alike. A candidate that is not legal on THIS board falls through to the next
         // path rather than being returned.
         val trusted = stored.firstOrNull { candidate -> candidate in RulesEngine.legalMoves(board) }
-        return trusted ?: whenNoStoredMoveIsTrusted(board, fromBook, budget, shouldCancel)
+        return trusted?.let(HintOutcome::Found) ?: whenNoStoredMoveIsTrusted(board, fromBook, budget, shouldCancel)
     }
 
     /**
-     * The answer when neither store produced a move this board accepts: `null` without a
-     * search when the book AUTHORITATIVELY proved the position dead, otherwise the
-     * budgeted Solver.
+     * The answer when neither store produced a move this board accepts: ProvenDead without
+     * a search when the book AUTHORITATIVELY proved the position dead, otherwise the
+     * budgeted Solver's outcome.
      *
      * Split out so the authoritative short-circuit is visible in the code's shape rather
      * than only in a comment — a miss and a proof are answered in different branches, and
@@ -111,12 +117,23 @@ class GetHintUseCase {
         fromBook: BookAnswer?,
         budget: SolverBudget,
         shouldCancel: () -> Boolean,
-    ): Move? =
+    ): HintOutcome =
         when (fromBook) {
             // AUTHORITATIVE: proven dead at authoring time by a search that COMPLETED.
-            BookAnswer.NoWinningMove -> null
+            BookAnswer.NoWinningMove -> HintOutcome.ProvenDead
             // A Hit whose move this board rejected, or a MISS. Either way the book has
             // nothing usable to say and the Solver decides within its budget.
-            else -> Solver.firstWinningMove(board, budget, shouldCancel)
+            else -> Solver.decide(board, budget, shouldCancel).toHintOutcome()
+        }
+
+    /**
+     * The solver's outcome as the hint's, one to one. Exhaustive with no `else`, so a
+     * fourth solver outcome fails the build instead of defaulting to one of these three.
+     */
+    private fun SolverOutcome.toHintOutcome(): HintOutcome =
+        when (this) {
+            is SolverOutcome.Found -> HintOutcome.Found(move)
+            SolverOutcome.ProvenDead -> HintOutcome.ProvenDead
+            SolverOutcome.Undecided -> HintOutcome.Undecided
         }
 }
