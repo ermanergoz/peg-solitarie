@@ -98,11 +98,24 @@ class GoogleNoticeMergeTest {
         assertThat(mergeFailure(AarNotices(UMP, negativeLength, txt)).artifactId).isEqualTo(UMP)
     }
 
-    /** `start + length` would wrap round to a negative `Long` here; the range check must not. */
+    /** A start past the end of the text fails before any length arithmetic is done. */
+    @Test
+    fun aSliceStartingPastTheTextFailsNamingTheAar() {
+        val txt = "\n\nAlpha:\n\ntext".toByteArray(Charsets.UTF_8)
+        val json = """{"Alpha": {"start": ${Long.MAX_VALUE}, "length": 1}}""".toByteArray(Charsets.UTF_8)
+
+        assertThat(mergeFailure(AarNotices(ADS, json, txt)).artifactId).isEqualTo(ADS)
+    }
+
+    /**
+     * A small start and a huge length: `start + length` wraps round to a negative `Long`, so a
+     * naive `start + length <= size` would pass it and `copyOfRange` would throw without naming the
+     * AAR. The guard `length <= size - start` must reject it (review loop 1, F2).
+     */
     @Test
     fun aSliceWhoseEndOverflowsFailsNamingTheAar() {
         val txt = "\n\nAlpha:\n\ntext".toByteArray(Charsets.UTF_8)
-        val json = """{"Alpha": {"start": ${Long.MAX_VALUE}, "length": 1}}""".toByteArray(Charsets.UTF_8)
+        val json = """{"Alpha": {"start": 1, "length": ${Long.MAX_VALUE}}}""".toByteArray(Charsets.UTF_8)
 
         assertThat(mergeFailure(AarNotices(ADS, json, txt)).artifactId).isEqualTo(ADS)
     }
