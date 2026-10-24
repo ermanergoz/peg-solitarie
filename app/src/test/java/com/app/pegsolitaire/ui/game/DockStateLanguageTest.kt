@@ -142,6 +142,16 @@ private val LOOK_ROWS =
             R.string.hint_action,
             DockLook.Available,
         ),
+        // §4.4.1's two rows added with D-04f (2026-10-21): an Undecided search and a cancelled
+        // one both leave Hint Available. A cancelled search raises nothing, so its state is the
+        // fresh board's own — the row is there so that a cancel can never come to mean otherwise.
+        LookRow(
+            "Hint after the last search ended Undecided",
+            FRESH_BOARD.copy(hintUndecided = true),
+            R.string.hint_action,
+            DockLook.Available,
+        ),
+        LookRow("Hint after the last search was cancelled", FRESH_BOARD, R.string.hint_action, DockLook.Available),
         LookRow("Hint while a Challenge board loads", GameUiState.loading(), R.string.hint_action, DockLook.Available),
         LookRow(
             "Hint while the Solver searches",

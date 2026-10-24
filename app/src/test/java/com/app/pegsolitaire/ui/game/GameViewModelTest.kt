@@ -24,6 +24,7 @@ import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
+import com.app.pegsolitaire.domain.usecase.HintOutcome
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
 import com.app.pegsolitaire.platform.ads.RewardOutcome
@@ -983,7 +984,7 @@ class GameViewModelTest {
             every { countingHint.invoke(any(), any(), any(), any(), any()) } answers {
                 val searched = firstArg<Board>()
                 searchedBoards += searched
-                RulesEngine.legalMoves(searched).firstOrNull()
+                RulesEngine.legalMoves(searched).firstOrNull()?.let { HintOutcome.Found(it) } ?: HintOutcome.ProvenDead
             }
             val viewModel =
                 viewModelFor(
@@ -1116,11 +1117,14 @@ class GameViewModelTest {
                 viewModel.onCellTap(pegLeftOfCenter)
 
                 // The tap IS observable now — it advances the rejected-tap cue ordinal
-                // (07-03) — but it remains a gameplay no-op: nothing about the board or
-                // the selection moves.
+                // (07-03) and records the tapped cell beside it (D-06 §3.7) — but it remains a
+                // gameplay no-op: nothing about the board or the selection moves.
                 val rejected = awaitItem()
                 assertThat(rejected.rejectedTapTick).isEqualTo(selected.rejectedTapTick + 1)
-                assertThat(rejected).isEqualTo(selected.copy(rejectedTapTick = rejected.rejectedTapTick))
+                assertThat(rejected)
+                    .isEqualTo(
+                        selected.copy(rejectedTapTick = rejected.rejectedTapTick, rejectedTapCell = pegLeftOfCenter),
+                    )
                 cancelAndIgnoreRemainingEvents()
             }
         }
@@ -1185,10 +1189,17 @@ class GameViewModelTest {
                 // A 2x2 corner coordinate is outside the English-33 footprint.
                 viewModel.onCellTap(Position(row = 0, col = 0))
 
-                // Observable as a rejected tap (07-03), but still a gameplay no-op.
+                // Observable as a rejected tap (07-03) on its cell (D-06 §3.7), but still a
+                // gameplay no-op.
                 val rejected = awaitItem()
                 assertThat(rejected.rejectedTapTick).isEqualTo(selected.rejectedTapTick + 1)
-                assertThat(rejected).isEqualTo(selected.copy(rejectedTapTick = rejected.rejectedTapTick))
+                assertThat(rejected)
+                    .isEqualTo(
+                        selected.copy(
+                            rejectedTapTick = rejected.rejectedTapTick,
+                            rejectedTapCell = Position(row = 0, col = 0),
+                        ),
+                    )
                 cancelAndIgnoreRemainingEvents()
             }
         }
@@ -1216,10 +1227,17 @@ class GameViewModelTest {
                 viewModel.onCellTap(Position(row = 0, col = 4))
 
                 // The forged destination is now audible as a rejected tap (07-03) and is
-                // still never applied: the board and the selection are untouched.
+                // still never applied: the board and the selection are untouched. Only the
+                // wrong-tap signal moves: its ordinal, and the cell it landed on (D-06 §3.7).
                 val rejected = awaitItem()
                 assertThat(rejected.rejectedTapTick).isEqualTo(selected.rejectedTapTick + 1)
-                assertThat(rejected).isEqualTo(selected.copy(rejectedTapTick = rejected.rejectedTapTick))
+                assertThat(rejected)
+                    .isEqualTo(
+                        selected.copy(
+                            rejectedTapTick = rejected.rejectedTapTick,
+                            rejectedTapCell = Position(row = 0, col = 4),
+                        ),
+                    )
                 assertThat(viewModel.uiState.value.board.pegCount).isEqualTo(2)
                 cancelAndIgnoreRemainingEvents()
             }

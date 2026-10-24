@@ -74,6 +74,14 @@ private const val REMOVAL_START = 1f
  * emission (no `pointerInput`), the selection ring, the legal-destination dots and all
  * animation. The default ([interactive] `= true`) keeps the full gameplay behavior.
  *
+ * **The wrong tap (D-06, `docs/ux/invalid-tap-feedback.md` §3).** The leaf answers the latest
+ * wrong tap the state records, on the tapped cell, by drawing and by nothing else: while a peg
+ * is held, a **redirect** — the held ring nudges, or the held peg's dots re-pop — and, when
+ * [wrongTapCorrection] is on, a **correction** of the tapped cell: a head-shake, or with
+ * animations off a still dashed mark. It plays no cue, fires no haptic and announces nothing
+ * (§3.8): those are screen-level effects beside `GameScreen`, which the tutorial — sharing this
+ * leaf — must not inherit. A read-only board never draws any of it.
+ *
  * @param state the immutable board state to render (single source of truth).
  * @param onCellTap emits the bounds-checked tapped [Position] up to the ViewModel
  *   (never called when [interactive] is `false`).
@@ -81,6 +89,9 @@ private const val REMOVAL_START = 1f
  * @param modifier layout modifier for the (square) canvas.
  * @param interactive whether the board accepts taps and draws the selection/destination/
  *   animation overlays; `false` for the static catalog preview.
+ * @param wrongTapCorrection whether a wrong tap is corrected on the tapped cell (the shake, or
+ *   the mark with animations off): on for the gameplay screen, off for the tutorial (D-01j(2))
+ *   and for every read-only board.
  */
 @Suppress("LongMethod") // One cohesive render unit: state capture + palette + the animation set.
 @Composable
@@ -90,6 +101,7 @@ fun BoardCanvas(
     onAnimationFinished: () -> Unit,
     modifier: Modifier = Modifier,
     interactive: Boolean = true,
+    wrongTapCorrection: Boolean = false,
 ) {
     val spec = state.board.spec
     var canvasSize by remember { mutableStateOf(Size.Zero) }
@@ -100,6 +112,14 @@ fun BoardCanvas(
     // Stroke dimens are converted dp → px here (DrawScope draws in pixels).
     val density = LocalDensity.current
     val clay = LocalClayColors.current
+    val markWidthPx = with(density) { dimensionResource(R.dimen.wrong_tap_mark_width).toPx() }
+    val markStroke =
+        remember(geometry.cellSize, markWidthPx) {
+            wrongTapMarkStroke(
+                radius = BoardMetrics.WRONG_TAP_MARK_RING_RATIO * geometry.cellSize,
+                widthPx = markWidthPx,
+            )
+        }
     val palette =
         BoardPalette(
             pegGradient = clay.pegGradient,
@@ -109,9 +129,12 @@ fun BoardCanvas(
             accent = MaterialTheme.colorScheme.primary,
             hint = MaterialTheme.colorScheme.tertiary,
             ringWidthPx = with(density) { dimensionResource(R.dimen.peg_selected_ring_width).toPx() },
+            mark = MaterialTheme.colorScheme.onSurfaceVariant,
+            markStroke = markStroke,
         )
 
     val animationsEnabled = rememberAnimationsEnabled()
+    val wrongTap = rememberWrongTapFeedback(state, interactive, wrongTapCorrection, animationsEnabled)
     val transition = state.animating
     val jumpOffset = remember { Animatable(Offset.Zero, Offset.VectorConverter) }
     val removalProgress = remember { Animatable(REMOVAL_START) }
@@ -157,7 +180,8 @@ fun BoardCanvas(
     }
 
     val dotPop = remember { Animatable(GameAnim.DOT_POP_END) }
-    LaunchedEffect(state.selected, interactive) {
+    // Keyed on the wrong tap's re-pop counter too: a W3 redirect replays this same pop-in (§3.1).
+    LaunchedEffect(state.selected, interactive, wrongTap.dotRePops) {
         if (interactive && state.selected != null) {
             if (animationsEnabled) {
                 dotPop.snapTo(GameAnim.DOT_POP_START)
@@ -191,6 +215,7 @@ fun BoardCanvas(
             pulse = { pulseScale?.value ?: SETTLED_SCALE },
             landingScale = { landingSquash.value },
             landing = landing,
+            wrongTap = wrongTap,
         )
 
     Canvas(
@@ -347,7 +372,10 @@ private fun rememberSelectionPulse(active: Boolean): State<Float>? {
     )
 }
 
-/** Resolved theme + clay colors and pixel stroke widths handed to the draw phase. */
+/**
+ * Resolved theme + clay colors and pixel stroke widths handed to the draw phase, plus the wrong
+ * tap's mark: `onSurfaceVariant` (§3.2) and its dashed stroke.
+ */
 private class BoardPalette(
     val pegGradient: List<Color>,
     val pegHighlight: Color,
@@ -356,11 +384,14 @@ private class BoardPalette(
     val accent: Color,
     val hint: Color,
     val ringWidthPx: Float,
+    val mark: Color,
+    val markStroke: Stroke,
 )
 
 /**
  * Animated values read through lambdas so only the draw phase re-runs while an
- * animation plays (RESEARCH Pitfall 7/8), plus the cell currently landing.
+ * animation plays (RESEARCH Pitfall 7/8), plus the cell currently landing and the board's
+ * answer to the latest wrong tap.
  */
 private class BoardAnimationValues(
     val jumpOffset: () -> Offset,
@@ -369,6 +400,7 @@ private class BoardAnimationValues(
     val pulse: () -> Float,
     val landingScale: () -> Float,
     val landing: Position?,
+    val wrongTap: WrongTapFeedback,
 )
 
 /** Draws the whole board for one frame. */
@@ -397,6 +429,11 @@ private fun DrawScope.drawBoard(
             position = position,
             jumperLanding = jumperLanding,
         )
+    }
+
+    // The wrong tap's reduced-motion mark (D-06a): above the cell it marks, below any hint ring.
+    animations.wrongTap.markedCell()?.let { marked ->
+        drawWrongTapMark(geometry.center(marked), geometry, palette.mark, palette.markStroke)
     }
 
     // Winning-move hint overlay (D-01): render-only source glow + target ring + faint A→B
@@ -442,9 +479,11 @@ private fun DrawScope.drawCell(
     jumperLanding: Position?,
 ) {
     val center = geometry.center(position)
+    // The wrong tap's shake moves this cell's own drawing — never a ring, a dot or an overlay.
+    val shaken = center + Offset(animations.wrongTap.shakeAt(position, geometry.cellSize), NO_OFFSET)
     when (state.board.cellAt(position)) {
         Cell.Empty -> {
-            drawDimple(center, geometry, palette)
+            drawDimple(shaken, geometry, palette)
             if (interactive && state.showHints && position in state.legalTargets) {
                 drawCircle(
                     color = palette.accent.copy(alpha = BoardMetrics.DESTINATION_DOT_ALPHA),
@@ -459,14 +498,14 @@ private fun DrawScope.drawCell(
                 // The in-flight jumper lands here; draw the dimple, the moving peg is an overlay.
                 position == jumperLanding -> drawDimple(center, geometry, palette)
                 interactive && position == state.selected ->
-                    drawSelectedPeg(center, geometry, palette, animations.pulse())
+                    drawSelectedPeg(center, geometry, palette, animations.pulse(), animations.wrongTap.ringNudge())
                 interactive && position == animations.landing ->
                     drawCandyPeg(
                         palette = palette,
-                        center = center,
+                        center = shaken,
                         radius = geometry.pegRadius * animations.landingScale(),
                     )
-                else -> drawCandyPeg(palette = palette, center = center, radius = geometry.pegRadius)
+                else -> drawCandyPeg(palette = palette, center = shaken, radius = geometry.pegRadius)
             }
 
         Cell.Blocked -> Unit
@@ -521,12 +560,16 @@ private fun DrawScope.drawDimple(
     )
 }
 
-/** The selected peg: enlarged candy sphere breathing at [pulse], plus the accent ring. */
+/**
+ * The selected peg: enlarged candy sphere breathing at [pulse], plus the accent ring, whose radius
+ * a wrong tap's [nudge] multiplies on top of the pulse (§3.1). The peg itself never nudges.
+ */
 private fun DrawScope.drawSelectedPeg(
     center: Offset,
     geometry: BoardGeometry,
     palette: BoardPalette,
     pulse: Float,
+    nudge: Float,
 ) {
     drawCandyPeg(
         palette = palette,
@@ -535,7 +578,7 @@ private fun DrawScope.drawSelectedPeg(
     )
     drawCircle(
         color = palette.accent,
-        radius = geometry.selectedRingRadius * pulse,
+        radius = geometry.selectedRingRadius * pulse * nudge,
         center = center,
         style = Stroke(width = palette.ringWidthPx),
     )

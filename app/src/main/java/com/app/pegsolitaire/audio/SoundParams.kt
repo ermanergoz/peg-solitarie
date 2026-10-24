@@ -99,12 +99,15 @@ object SoundParams {
      * Re-checked when the star pop became a 1.65 s cue at the 500 ms spacing of
      * [com.app.pegsolitaire.ui.theme.ClayAnim.STAR_STAGGER_MS]. That worst case used to be
      * hypothetical — a 0.135 s pop every 260 ms could never overlap the previous one — and is
-     * now genuinely reached: the pops fire 250 / 750 / 1250 ms after Results entry and ring
-     * until 1900 / 2400 / 2900 ms, so all three sound together between 1250 and 1900 ms, with
-     * the 0.54 s win stinger still able to be under the first. Four voices against eight, so
-     * the budget keeps 2x headroom and the oldest-first eviction `SoundPoolPlayer` runs at
-     * `activeStreams.size >= MAX_STREAMS` is never reached. Shortening it would start stealing
-     * celebration voices from a real overlap rather than an imagined one.
+     * now genuinely reached: the pops fire 250 / 750 / 1250 ms after Results entry; the first
+     * two play slowed (rates 0.63 and 0.79, [starPopRate]), so they last 2.62 s and 2.08 s rather
+     * than 1.65 s, and all three sound together from 1250 ms until about 2830 ms, the last tail
+     * ending at about 2900 ms (with animations off, the 625 ms fallback stagger moves that window
+     * to 1500–2870 ms and the end to about 3150 ms). The 0.54 s win stinger can still be under
+     * the first. Four voices against eight, so the budget keeps 2x headroom and the
+     * oldest-first eviction `SoundPoolPlayer` runs at `activeStreams.size >= MAX_STREAMS` is
+     * never reached. Shortening it would start stealing celebration voices from a real overlap
+     * rather than an imagined one.
      */
     const val MAX_STREAMS = 8
 
@@ -114,8 +117,21 @@ object SoundParams {
     /** Priority of the win stinger and star pops — never stolen for a jump. */
     const val PRIORITY_CELEBRATION = 1
 
-    /** The signature jump pop, mixed loudest of the gameplay cues. */
-    const val VOLUME_JUMP = 0.9f
+    /**
+     * The signature jump pop, mixed loudest of the gameplay cues — at `SoundPool`'s full scale.
+     *
+     * **1.0 because of the peak rule (P4a), and only together with its asset.** The old
+     * `sfx_jump` peaked at −0.02 dBFS and broke rules/audio.md's −1 dBFS ceiling, so the asset
+     * was re-levelled to a −1.10 dBFS peak and this constant rose from 0.9 to 1.0 to keep the
+     * jump where the founder tuned it (−0.2 dB in game). The two halves must never land apart:
+     * this value alone would put the jump + removal layer at the clipping edge, and the asset
+     * alone would leave the jump a decibel quiet.
+     *
+     * **There is no code headroom left.** 1.0 is `SoundPool`'s ceiling, so a louder jump is an
+     * asset change, and that asset already sits 0.1 dB under the peak rule — it would take
+     * loudness processing, not gain.
+     */
+    const val VOLUME_JUMP = 1.0f
 
     /** The jumped-peg removal: a texture layer under [VOLUME_JUMP], not a competing hit. */
     const val VOLUME_REMOVAL = 0.45f
@@ -134,7 +150,7 @@ object SoundParams {
 
     /**
      * Putting a peg back down: the [VOLUME_SELECT] pop, reversed and a whole tone down
-     * (`sfx_deselect.ogg`), mixed 10 dB below its forward twin.
+     * (`sfx_deselect.wav`), mixed 10 dB below its forward twin.
      *
      * **Derived from [VOLUME_SELECT] rather than written as a bare float**, the same
      * reasoning [STAR_POP_BASE_RATE] uses: the two cannot drift apart, and re-levelling the
@@ -143,16 +159,18 @@ object SoundParams {
      * `0.19f` (−9.988 dB) would be.
      *
      * **Why the put-down sits below its forward twin rather than level with it.** The two
-     * assets are peak-matched **on disk on purpose** (both at −5.48 dBFS; see
+     * assets are peak-matched **on disk on purpose** (−5.48 and −5.46 dBFS; see
      * `docs/audio/CREDITS.md`), but equal peak is not equal loudness here: a reversed
      * transient is a slow swell rather than a sharp attack, and a swell carries more energy
-     * relative to its peak. Measured on the shipped files, the put-down's RMS is **1.92 dB
-     * higher** than the pick-up's (−24.536 dB against −26.459 dB) at that matched peak, so
-     * played at the same level it reads as the *more* prominent of the two — the opposite of
-     * what a put-down should be.
+     * relative to its peak. Measured on the shipped files over their designed lengths, the
+     * put-down's RMS is **0.73 dB higher** than the pick-up's (−24.53 dB against −25.26 dB)
+     * at that matched peak, so played at the same level it reads as the *more* prominent of
+     * the two — the opposite of what a put-down should be. (The 1.92 dB once quoted here
+     * counted 945 samples of Vorbis block padding into the pick-up; CREDITS.md records the
+     * correction, and the −10 dB below was tuned by ear either way.)
      *
      * **The whole level difference lives here, and must not also be baked into the asset.**
-     * Attenuating `sfx_deselect.ogg` on disk *and* keeping this constant applies −10 dB
+     * Attenuating `sfx_deselect.wav` on disk *and* keeping this constant applies −10 dB
      * twice. The file is deliberately not a quiet outlier; do not "fix" it to look like one.
      */
     const val VOLUME_DESELECT = VOLUME_SELECT * DESELECT_ATTENUATION
@@ -166,14 +184,19 @@ object SoundParams {
      * It is no longer the softest cue the game plays — [VOLUME_DESELECT] is, at `0.18972f`.
      * That is deliberate and does not weaken SOUND-02, whose point is that a
      * rejection must not punish the player *relative to the jump it denies* (0.3 against
-     * [VOLUME_JUMP]'s 0.9) — a relationship this constant still carries unchanged.
+     * [VOLUME_JUMP]) — a relationship this constant still carries unchanged.
      */
     const val VOLUME_INVALID = 0.3f
 
     /** Hint reveal: a chime at conversational level. */
     const val VOLUME_HINT = 0.6f
 
-    /** The win stinger: the loudest moment in the game, and the reference all others sit under. */
+    /**
+     * The win stinger: the loudest moment in the game, and no cue is mixed above it.
+     *
+     * [VOLUME_JUMP] now ties it at 1.0 (P4a) and the jump still sits about 8 LU under the win,
+     * because that level difference lives in the assets (`docs/audio-spec.md`, Mix).
+     */
     const val VOLUME_WIN = 1.0f
 
     /** Star pops: just under the stinger so the triad reads as its tail. */

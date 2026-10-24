@@ -1,5 +1,44 @@
 # Founder questions (newest first)
 
+## Q-025 — Headphones off, and a wired headset, for the audio release QA   (open)
+Date: 2026-10-24    Asked by: tech-lead (via the producer)
+Context: QA's GM6 session proved the headphone branch of the Silent/Vibrate gate (Q-010). The "phone itself
+mutes" branch (D2, D3, D6, D7 on the speaker; D5's second half) and the wired branch (D4) were out of reach
+because the Bluetooth headphones stayed connected and no wired headset was attached; QA may not toggle a radio.
+Options: 1) Before QA's next phone session, power off or unpair the Bluetooth headphones and leave a USB-C or
+3.5 mm headset plugged in if you have one; QA runs D2–D4 itself 2) Leave the hardware as it is; those halves are
+recorded as JVM + emulator evidence in the Q-PUBLISH-3.0.0 summary
+Recommendation: tech-lead picks 1 — two minutes of hardware setup and no testing by you closes the one branch of
+Q-010 that is your own requirement, muting on the phone speaker.
+Blocks: nothing
+Answer:
+
+## Q-024 — A physical phone for the silent-mode and headphone checks   (answered)
+Date: 2026-10-23    Asked by: producer (for qa-engineer)
+Context: The audio build mutes the speaker on Silent/Vibrate but keeps sound on headphones (Q-010). Ten device checks
+(D1–D10) need a real phone with wired and Bluetooth headphones; only emulators are attached. Everything else runs on
+emulators, and unit tests cover the logic.
+Options: 1) Connect an Android phone by USB with USB debugging on, when convenient; QA runs D1–D10 itself (the founder
+never tests by hand) 2) Accept emulator + unit-test evidence for the phone-only halves; recorded as unverified in the
+3.0.0 release notes to you, never silently passed
+Recommendation: producer picks 1 — the speaker/headphone split is exactly the kind of behaviour emulators fake.
+Blocks: nothing now; audio's QA verdict carries the phone-only items as BLOCKED until answered
+Answer: 1 — the founder will connect an Android phone by USB with USB debugging on, when convenient (2026-10-23, AskUserQuestion); QA runs D1–D10 and the other phone-only halves itself.
+
+## Q-023 — Make the board playable with TalkBack in 3.0.0?   (answered)
+Date: 2026-10-21    Asked by: game-designer (via producer)
+Context: With TalkBack on, the board can't be heard or played, in the game or the tutorial: a blind player can open 3.0.0
+but never make a move. The studio rule is that every app meets its platform's accessibility rules before it ships; this
+misses it. Making the board playable is one small branch that can run alongside the rest of the 3.0.0 work.
+Options: 1) Make the board playable with TalkBack in 3.0.0; the release waits for it only if it is the last thing left
+2) Ship 3.0.0 with the board named and its peg count spoken, but not playable; playable in 3.1
+3) Ship 3.0.0 as it is; fix it later. (Options 2 and 3 ship below the studio's accessibility rule and need your explicit OK.)
+Recommendation: game-designer picks 1 — the only option that meets the rule; likely costs no release time (runs in
+parallel); under 2 and 3 a blind player can still spend hints and watch an ad for one they cannot use. If at Gate 2 the
+board is the only item left, "wait, or ship option 2" goes into Q-PUBLISH-3.0.0. (.planning/reports/ux-spec-folds/game-designer-talkback-board.md)
+Blocks: nothing now (the studio proceeds with 1 by default); release/3.0.0 reads the answer before its cut
+Answer: 1 — make the board playable with TalkBack in 3.0.0 (2026-10-21, AskUserQuestion). The branch runs in parallel; release/3.0.0 waits for it only if it is the last item left.
+
 ## Q-022 — The Turkish store listing describes the old app   (answered)
 Date: 2026-10-18    Asked by: release-manager
 Context: The live Play listing has its own Turkish text ("5 farklı oyun modu") written for the old app;
@@ -60,6 +99,7 @@ Check and their own mutation probes rather than trusting recorded results.
 Blocks: candy-backdrop spec and build reviews, phase-14 R-1 QA and sign-off, check-gates reviews, the release QA
 Answer: 3 — Opus for every Fable-pinned role until 3.0.0 is published (2026-10-17). Recorded as a deviation
 from studio staffing in every report; mitigations: fresh reviewers, Check and mutation probes run by the reviewer.
+Addendum 2026-10-23 (founder, in chat): "all limits reset. continue. you can use fable as well for supervision now" — Fable is available again for the supervising roles (reviews, checks, sign-offs); dispatches from now run those roles on their pinned model. Authoring runs already in flight on Opus may finish on Opus.
 
 ## Q-018 — minSdk 24 → 26: when, if ever?   (answered)
 Date: 2026-10-17    Asked by: tech-lead
@@ -134,6 +174,61 @@ Options: 1) Fix inside phase 15 and re-walk the fit criteria 2) Separate phase a
 Recommendation: producer — 1.
 Blocks: nothing
 Answer: 1 — fix inside phase 15 (2026-09-29); founder sees screenshots in the real faces before merge.
+
+## Q-012 — Should a wrong tap also buzz?   (answered)
+Date: 2026-09-29    Asked by: ux-designer (queued by producer)
+Context: docs/ux/invalid-tap-feedback.md gives a wrong tap a shake (or a still dashed ring under
+reduced motion) and, by default, the platform "reject" haptic on API 30+, gated by Settings > Haptics,
+never the jump's ContextClick.
+Options: 1) Yes, buzz 2) No buzz
+Recommendation: ux-designer — 1.
+Blocks: nothing
+Answer: 1 — yes, buzz (2026-09-29).
+
+## Q-011 — The audio follow-up needs four Fable-pinned roles and Fable is exhausted   (answered)
+Date: 2026-09-29    Asked by: producer
+Context: After Q-008–Q-010 the audio work needs the sound-designer (recipes, WAV conversion,
+re-levelling), tech-lead (silent-mode design), ux-designer (wrong-tap visual partner) and
+research-analyst (per-file licence verdicts), all pinned to Fable; Fable returns HTTP 429
+(req_011CfWkWg9kgDK8skQV5QcMF). Q-006 was a one-time exception; 0.6.2 has no Fable fallback.
+Options: 1) Wait for Fable 2) Run the four on Opus 3) Founder tops up Fable
+Recommendation: producer — 1; the audio work is small and nothing waits on it.
+Blocks: audio-review follow-up
+Answer: 2 — run them on Opus (2026-09-29). Exception scoped to these four audio steps; each report
+records the deviation. Not a standing policy change.
+
+## Q-010 — Should the game go quiet when the phone is on Silent or Vibrate?   (answered)
+Date: 2026-09-29    Asked by: sound-designer (queued by producer)
+Context: Game sounds follow media volume only, so Silent/Vibrate does not mute them; rules/audio.md
+says silent mode must be honoured. A strict reading would also mute players wearing headphones.
+Options: 1) mute on Silent/Vibrate, always 2) mute on Silent/Vibrate only on the phone speaker;
+headphones keep sound 3) keep today's behaviour and record an exception to the rule
+Recommendation: sound-designer — 2. The tech-lead costs it before it is built.
+Blocks: nothing
+Answer: 2 — mute on the phone speaker only; headphones keep sound (2026-09-29).
+
+## Q-009 — Sound file format: convert to WAV, keep OGG, or remake in-house?   (answered)
+Date: 2026-09-29    Asked by: sound-designer (queued by producer)
+Context: rules/audio.md wants WAV for SFX (OGG only for music); all 12 are OGG (72 KB). WAV adds
+about 255 KB (+12 %).
+Options: 1) convert the kept sounds to WAV from their originals, fixing levels in the same pass
+2) keep OGG and ask the studio to allow OGG for sourced effects 3) remake the whole set in-house
+Recommendation: sound-designer — 1.
+Blocks: nothing
+Answer: 1 — convert to WAV, re-levelled in the same pass (2026-09-29).
+
+## Q-008 — Pick new sounds for peg removal and the wrong-tap   (answered)
+Date: 2026-09-29    Asked by: sound-designer (queued by producer)
+Context: The removal sound is the jump sound again (spectral similarity 0.998); the wrong-tap "bong"
+is too low for a phone speaker. A/B clips: .planning/qa/audio-review/candidates/ab/ (git-ignored).
+Options: 1) removal squish (a) + wrong-tap soft tok (a) 2) removal pfft (b) + wrong-tap muted bwop
+(b) 3) mix and match 4) keep both. Optional: hint soft glint (a).
+Recommendation: sound-designer — 1, keep the hint.
+Blocks: nothing
+Answer: mix and match (2026-09-29), by the clips the founder named:
+- peg removal: **keep today's sound** (`ab_jump_run_with_remove_incumbent`) — no replacement;
+- wrong tap: **candidate a, "soft tok"** (`ab_select_invalid_x2_deselect_a`);
+- hint: **candidate a, "soft glint"** (`ab_hint_a`).
 
 ## Q-005 — Home hero: how should the top of Home fill the screen?   (answered)
 Date: 2026-09-28    Asked by: ux-designer
