@@ -195,3 +195,74 @@ Next: ux-designer — section 6's judgement; the wording of 23e.
 Next: tech-lead (a fresh one) — the sign-off, which checks commit 1 against this ruling; later, the section 9 sync at the RM close.
 
 RULING: A
+
+## Finding 1 routing — 2026-10-24
+Date: 2026-10-24
+Branch: bugfix/reduced-motion-live-gate (report only; read at `9c56347`. The ruling above is committed unchanged at `d1a54fa`. This section is uncommitted, as dispatched, for the producer to commit)
+Ran on: claude-opus-5-5 at effort xhigh (policy). The same staffing deviation as above: Q-019 answer 3, the Fable limit reached, the ruling role sharing the author's model.
+Read in full: `.planning/reports/reduced-motion-live-gate/code-auditor.md`. Read in part: `ui/onboarding/TutorialScreen.kt:345-375`; `ui/results/ResultsCelebration.kt:30-48` (`rememberPopIn`); `SuspendAnimation.kt:222-338` (animation-core 1.11.3 sources)
+Lessons applied: none
+
+### F1.1 What the finding is, verified
+- **The code.** `CompletionStar` (`TutorialScreen.kt:347-361`) is the only main-code effect keyed on the gate: `LaunchedEffect(animationsEnabled) { if (animationsEnabled) scale.animateTo(SETTLED_SCALE, overshootSpring()) }`. `git grep 'LaunchedEffect(animationsEnabled'` finds this one hit, which matches the auditor's census of the 14 call sites.
+- **What a live flip does.** Turning animations off mid-pop changes the key, so Compose cancels the running spring. The new effect does nothing, and the star keeps whatever scale it had reached. The auditor's probe measured about 0.53× until the screen leaves.
+- **Why it is this branch's regression.** A running animation re-reads the scale on every frame (`SuspendAnimation.kt:278-282`), and at a scale of 0 it jumps to its end (`:334-335`).
+  - On `6aa7624` the gate was frozen, so the effect's key never changed. On a live toggle, Compose's clock would have finished the spring on its next frame, at 1×.
+  - The stuck star exists only because this branch made the gate live: the key flips and cancels the spring before that next frame comes.
+
+### F1.2 Ruling: a rider on this branch now, and it gates the branch
+**A rider, now** (tech-lead decision):
+- It is a reduced-motion defect that this branch's own fix created. A cut-blocking accessibility fix should not ship one, and §3's own deadline (rules/compose.md: "animation respects reduced motion") covers it.
+- The cost is one composable and one test on the `SystemMotionScale` harness that is already there. QA has not started, so the auditor's short read runs before QA and no device session is spent twice.
+- 3.0.1 would ship a known regression of 3.0.0's own fix, with the fix already in hand. Low likelihood does not outweigh a near-zero cost.
+
+**It gates the branch.** Unlike the §5 riders of the audio sign-off, which fixed defects older than the branch, this one cannot drop to 3.0.1: dropping it would ship the regression. If the short read does not pass it, the producer brings it back to the tech-lead. It is never dropped silently.
+
+**The shape (tech-lead decision): the house idiom, not the auditor's `else` branch.**
+- *The house idiom.* Key the effect on `Unit` and always `animateTo(SETTLED_SCALE, ClayAnim.overshootSpring())`. That is how `rememberPopIn`, the Results star this composable claims to share a vocabulary with, already does it (`ResultsCelebration.kt:37`). The initial value still comes from the gate (`remember { Animatable(if (animationsEnabled) STAR_POP_START else SETTLED_SCALE) }`, unchanged).
+- *What it then does in each case:*
+  - composed with animations off: the star starts at 1×, and the `animateTo` is a no-op;
+  - composed with animations on: the star springs;
+  - turned off mid-pop: the composition's clock ends the spring on its next frame at 1×, because the gate and the clock are one value (§2).
+- *Why not `else scale.snapTo(SETTLED_SCALE)`.* It would fix the symptom but keep the only effect that restarts on a gate flip, the very construct that caused the defect. The idiom removes that construct, so the 14 call sites have no gate-keyed effect left.
+
+### F1.3 What changes, and the evidence
+**Commit 3.** Production plus test: `fix(motion): let the clock settle the tutorial's completion star`, after `9c56347`.
+- **Main code:** only `ui/onboarding/TutorialScreen.kt`, inside `CompletionStar`. The effect's key becomes `Unit` and the `if (animationsEnabled)` guard goes. The KDoc gains one line saying that reduced motion is the clock's, as in `rememberPopIn`. Nothing else in the file changes.
+- **Test, red first:** one new test on the live-motion harness (`SystemMotionScale` in `effectContext`, v1 rule per §8.1). Its name reads as a sentence, for example `aStarCaughtMidPopByAnimationsTurningOffSettlesWholeOnTheNextFrame`.
+  - Complete the tutorial with animations on, and advance into the spring.
+  - Call `motion.turnAnimationsOff()`.
+  - Assert the star reads as settled by the next frame, and still settled after 90 frames. Read it the way the auditor's probe did: its pixel reading was 656 settled, 76 mid-pop, and 184 when stuck (about 0.53×).
+  - On `9c56347` the test must go red at the stuck reading; after the change it goes green.
+- **Placement and count:** the test lives in an existing tutorial test class that already composes the completion card, or a new `TutorialCompletionStarLiveMotionTest`; the developer chooses and says which. No other test is edited. The test total becomes 1,576.
+- **The developer reports** in `android-game-dev-finding1.md`:
+  - the red and the green, with the measured sizes;
+  - `./scripts/check.sh` green, with no new main `w:` line;
+  - `git show --stat` showing the two files only.
+- **The code-auditor's short read** goes in `code-auditor-finding1.md`: commit 3 only, against F1.2 and F1.3, plus its own mutant (the `LaunchedEffect(animationsEnabled)` key restored makes the new test red). It is a read, not a loop of the range. Then QA's device session runs on that head. QA gets no extra step: a 0.7 s spring is not a fair thing to toggle by hand, and the JVM test is the evidence of record.
+
+### F1.4 Owed to `docs/tech-design.md` at the RM close (adds to §9 above)
+5. **§16 #28's mechanism paragraph**, one sentence: "No effect is keyed on the gate. An effect that runs a decorative animation starts it unconditionally, or reads the gate once at its start, and lets the composition's clock settle it; keying an effect on `rememberAnimationsEnabled()` cancels a running animation on a live flip and strands it (`reduced-motion-live-gate` finding 1)."
+
+### F1.5 Checks
+- `git log --oneline -8`: the head is `9c56347`; the ruling was committed at `d1a54fa`; `git diff --stat d1a54fa HEAD -- …/tech-lead-ruling.md` prints nothing — read.
+- `sed -n 325,375p ui/onboarding/TutorialScreen.kt`: `CompletionStar` at `:347-361`; `LaunchedEffect(animationsEnabled)` at `:350`; `SETTLED_SCALE` at `:368` and `STAR_POP_START` at `:374` — confirmed.
+- `git grep -n 'LaunchedEffect(animationsEnabled\|LaunchedEffect(rememberAnimationsEnabled' -- app/src/main`: one hit — confirmed.
+- `ResultsCelebration.kt:30-48`: `rememberPopIn` uses `LaunchedEffect(Unit)` with an unconditional `animateTo` and the initial value from the gate — confirmed.
+- `animation-core-android-1.11.3-sources.jar`, `SuspendAnimation.kt:278-282` (scale read each frame inside the run loop) and `:334-335` (scale 0 means play time equals duration) — confirmed.
+- No Gradle was run and nothing was committed.
+
+### F1.6 Handoff
+Next: producer —
+- commit this section;
+- dispatch a fresh android-game-dev for commit 3 (F1.3), writing `android-game-dev-finding1.md`;
+- then the code-auditor's short read, writing `code-auditor-finding1.md`;
+- then QA's device session on that head, as already routed (§6, §8);
+- then a fresh tech-lead for the sign-off;
+- in STATUS.md: Finding 1 is a gating rider; RM still blocks the cut.
+
+Next: android-game-dev — F1.3, red first. Stop and report if the idiom shape fails the test.
+Next: code-auditor — F1.3's short read and mutant.
+Next: tech-lead (a fresh one) — the sign-off covers commit 3 against F1.2.
+
+FINDING 1: RIDER (GATING), HOUSE-IDIOM SHAPE
