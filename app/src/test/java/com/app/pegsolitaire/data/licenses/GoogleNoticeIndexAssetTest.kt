@@ -35,6 +35,17 @@ class GoogleNoticeIndexAssetTest {
         }
     }
 
+    /** The app's own parser accepts the index the build wrote, whole: one notice per line. */
+    @Test
+    fun theIndexParsesIntoOneNoticePerLine() {
+        val raw = String(requireNotNull(readAsset(INDEX_PATH)), Charsets.UTF_8)
+
+        val notices = parseGoogleNoticeIndex(raw)
+
+        assertWithMessage("parseGoogleNoticeIndex accepts the generated index").that(notices).isNotNull()
+        assertThat(notices?.map { it.key }).containsExactlyElementsIn(indexLines().map { it[KEY_FIELD] }).inOrder()
+    }
+
     @Test
     fun everyKeyIsUnique() {
         val keys = indexLines().map { it[KEY_FIELD] }

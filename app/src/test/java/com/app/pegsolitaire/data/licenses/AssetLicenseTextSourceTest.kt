@@ -1,7 +1,7 @@
 package com.app.pegsolitaire.data.licenses
 
+import com.app.pegsolitaire.testing.RecordingDispatcher
 import com.google.common.truth.Truth.assertThat
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
@@ -16,7 +16,6 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import java.io.File
 import java.security.MessageDigest
-import kotlin.coroutines.CoroutineContext
 
 /**
  * `AssetLicenseTextSource` (tech design §3.6, §13.1 LN-4; spec LS-AC05): every licence text is read
@@ -114,24 +113,6 @@ class AssetLicenseTextSourceTest {
             .getInstance("SHA-256")
             .digest(bytes)
             .joinToString(separator = "") { "%02x".format(it) }
-
-    /** Forwards to [delegate] and counts every dispatch it is asked to make. */
-    private class RecordingDispatcher(
-        private val delegate: CoroutineDispatcher,
-    ) : CoroutineDispatcher() {
-        var dispatches = 0
-            private set
-
-        override fun isDispatchNeeded(context: CoroutineContext): Boolean = delegate.isDispatchNeeded(context)
-
-        override fun dispatch(
-            context: CoroutineContext,
-            block: Runnable,
-        ) {
-            dispatches++
-            delegate.dispatch(context, block)
-        }
-    }
 }
 
 /** Robolectric has no android-all jar for Android 16 (SDK 36) yet; emulate SDK 34. */

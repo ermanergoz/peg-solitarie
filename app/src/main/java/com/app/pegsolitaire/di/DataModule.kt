@@ -14,7 +14,9 @@ import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.data.SettingsRepository
 import com.app.pegsolitaire.data.SettingsRepositoryImpl
 import com.app.pegsolitaire.data.appDataStore
+import com.app.pegsolitaire.data.licenses.AssetGoogleNoticeSource
 import com.app.pegsolitaire.data.licenses.AssetLicenseTextSource
+import com.app.pegsolitaire.data.licenses.GoogleNoticeSource
 import com.app.pegsolitaire.data.licenses.LicenseTextSource
 import dagger.Binds
 import dagger.Module
@@ -71,6 +73,10 @@ abstract class DataModule {
      */
     @Binds
     abstract fun bindLicenseTextSource(impl: AssetLicenseTextSource): LicenseTextSource
+
+    /** The generated Google notices index (tech design §13.1 LN-4); unscoped for the same reason. */
+    @Binds
+    abstract fun bindGoogleNoticeSource(impl: AssetGoogleNoticeSource): GoogleNoticeSource
 
     /**
      * Instance `@Provides` cannot live on an abstract `@Module`, so the single shared

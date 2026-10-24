@@ -17,9 +17,10 @@ sealed interface LicenseAsset {
 /**
  * One generated Google notice text, `licenses/google/<stem>.txt` (tech design §13.1 LN-3, LN-4).
  *
- * Built only by `parseGoogleNoticeIndex` from a stem the index gives; the constructor is
- * `internal` and accepts exactly sixteen lowercase hex digits, so even a malformed index cannot
- * turn this into a path outside `licenses/google/`.
+ * Built only from a stem the parsed index gives — `parseGoogleNoticeIndex` validated it, and
+ * `GoogleNoticeTextViewModel` builds this from the notice its route's key resolved to — never from
+ * a route. The constructor is `internal` and accepts exactly sixteen lowercase hex digits, so not
+ * even a malformed stem can turn this into a path outside `licenses/google/`.
  *
  * @property stem the first 16 hex digits of the text's SHA-256, as the index gives it.
  */
