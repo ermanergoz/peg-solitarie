@@ -216,6 +216,18 @@ class HomeRibbonShapeTest {
                 assertWithMessage("$situation: pill $index's '$words', in lines")
                     .that(layoutOf(text).lineCount)
                     .isEqualTo(1)
+                // A one-line text that does not fit is cut, not broken (`softWrap = false` clips by
+                // default), so the line count alone cannot see it (code-auditor loop 1, P13). Read as
+                // `GameStatusStripTest` reads its timer: `hasVisualOverflow` is not usable on a text
+                // read back through `GetTextLayoutResult`, so the line is held against the width it
+                // was laid out in, and the height half is read directly.
+                val layout = layoutOf(text)
+                assertWithMessage("$situation: pill $index's '$words', its line against its laid-out width")
+                    .that(layout.getLineRight(0))
+                    .isAtMost(layout.size.width.toFloat())
+                assertWithMessage("$situation: pill $index's '$words' cut short vertically")
+                    .that(layout.didOverflowHeight)
+                    .isFalse()
                 val bounds = composeRule.columnBoundsOf(text)
                 assertWithMessage("$situation: pill $index's '$words' inside its pill $pillBounds, at $bounds")
                     .that(
