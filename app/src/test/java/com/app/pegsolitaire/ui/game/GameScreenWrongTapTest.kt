@@ -445,6 +445,10 @@ private class WrongTapSettings(
     soundOn: Boolean,
     hapticsOn: Boolean,
 ) : SettingsRepository {
+    override val colorblindPaletteOn: Flow<Boolean> = flowOf(false)
+
+    override suspend fun setColorblindPaletteOn(on: Boolean) = Unit
+
     override val hintsEnabled: Flow<Boolean> = flowOf(true)
 
     override val soundOn: Flow<Boolean> = flowOf(soundOn)

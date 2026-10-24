@@ -14,13 +14,16 @@ import javax.inject.Singleton
 /**
  * The single source of truth for player-tunable gameplay settings.
  *
- * Three flags so far: [hintsEnabled] (legal-destination dots drawn on the board),
- * [soundOn] (SET-01 — persisted flag only for now; no audio engine yet, D-16) and
- * [hapticsOn] (SET-02 — gates the light haptic fired on a jump, D-15).
+ * Four flags so far: [hintsEnabled] (legal-destination dots drawn on the board),
+ * [soundOn] (SET-01 — persisted flag only for now; no audio engine yet, D-16),
+ * [hapticsOn] (SET-02 — gates the light haptic fired on a jump, D-15) and
+ * [colorblindPaletteOn] (docs/ux/colour-vision.md CV-04 — the board marks, stars and done pip
+ * in the colour-blind palette).
  *
- * Every read **fails open** to `true` (D-17): a missing key (fresh install) or a
+ * Every **assist** read fails open to `true` (D-17): a missing key (fresh install) or a
  * corrupt/IO read both degrade to "helper on", so a damaged store can never silently
- * strip a beginner's help — it only re-enables the harmless assists.
+ * strip a beginner's help — it only re-enables the harmless assists. The palette flag fails
+ * to its default, `false`, instead: see [colorblindPaletteOn].
  */
 interface SettingsRepository : HapticsSetting {
     /** Whether legal-destination hint dots are shown; fail-open default `true`. */
@@ -40,6 +43,20 @@ interface SettingsRepository : HapticsSetting {
 
     /** Persists the player's haptics on/off choice. */
     suspend fun setHapticsOn(on: Boolean)
+
+    /**
+     * Whether the colour-blind palette is on (CV-04); default `false`, and a failed read gives
+     * `false` too — the repository's only flag that does **not** fail open. D-17 protects
+     * assists: a damaged store must never strip a beginner's help. This flag is a look, not an
+     * assist. A corrupt store resets every setting at once, and showing the alternative look to
+     * every player whose store failed would misstate the default the founder approved; a player
+     * who had chosen the palette sees the change at once, one tap from the row. Device-local: it
+     * is not part of the cloud progress payload, and nothing but the Settings switch writes it.
+     */
+    val colorblindPaletteOn: Flow<Boolean>
+
+    /** Persists the player's colour-blind palette on/off choice. */
+    suspend fun setColorblindPaletteOn(on: Boolean)
 }
 
 /** Scoped constants for the settings Preferences keys (QUAL-03 — no inline magic strings). */
@@ -61,6 +78,12 @@ internal object SettingsPreferences {
 
     /** Fail-open default: a missing/corrupt read is treated as "haptics on" (D-17). */
     const val DEFAULT_HAPTICS = true
+
+    /** The boolean key tracking whether the player wants the colour-blind palette (CV-04). */
+    val COLORBLIND_PALETTE_KEY = booleanPreferencesKey("colorblind_palette_on")
+
+    /** Off on a fresh install, and off on a failed read: a look, not an assist (CV-04, not D-17). */
+    const val DEFAULT_COLORBLIND_PALETTE = false
 }
 
 /**
@@ -112,6 +135,20 @@ class SettingsRepositoryImpl
         override suspend fun setHapticsOn(on: Boolean) {
             storageFailSafe(fallback = Unit) {
                 dataStore.edit { it[SettingsPreferences.HAPTICS_KEY] = on }
+            }
+        }
+
+        override val colorblindPaletteOn: Flow<Boolean> =
+            dataStore.data
+                .catch { emit(emptyPreferences()) }
+                .map {
+                    it[SettingsPreferences.COLORBLIND_PALETTE_KEY]
+                        ?: SettingsPreferences.DEFAULT_COLORBLIND_PALETTE
+                }
+
+        override suspend fun setColorblindPaletteOn(on: Boolean) {
+            storageFailSafe(fallback = Unit) {
+                dataStore.edit { it[SettingsPreferences.COLORBLIND_PALETTE_KEY] = on }
             }
         }
     }

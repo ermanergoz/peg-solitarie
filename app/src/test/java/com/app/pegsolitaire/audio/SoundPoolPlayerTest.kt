@@ -11,6 +11,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -430,6 +431,10 @@ private class NeverEmittingSystemAudioState : SystemAudioState {
  * Only [soundOn] matters here; the other two flags are fixed at their fail-open defaults.
  */
 private class MutableSoundSettingsRepository : SettingsRepository {
+    override val colorblindPaletteOn: Flow<Boolean> = flowOf(false)
+
+    override suspend fun setColorblindPaletteOn(on: Boolean) = Unit
+
     override val soundOn = MutableStateFlow(true)
 
     override val hintsEnabled: Flow<Boolean> = MutableStateFlow(true)

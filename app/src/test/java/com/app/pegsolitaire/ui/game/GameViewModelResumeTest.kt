@@ -742,6 +742,10 @@ private class CountingLevelRepository(
 
 /** Hints/haptics on; this spec is about the snapshot, not the feedback gates. */
 private object AllOnSettings : SettingsRepository {
+    override val colorblindPaletteOn: Flow<Boolean> = flowOf(false)
+
+    override suspend fun setColorblindPaletteOn(on: Boolean) = Unit
+
     override val hintsEnabled: Flow<Boolean> = flowOf(true)
 
     override val soundOn: Flow<Boolean> = flowOf(true)

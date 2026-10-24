@@ -349,6 +349,7 @@ class ButtonSoundTest {
             state = SettingsUiState(),
             onToggleSound = onToggleSound,
             onToggleHaptics = {},
+            onToggleColorblindPalette = {},
             onShowHowToPlay = onShowHowToPlay,
             onSignInToPlayGames = {},
             onShowLeaderboards = {},

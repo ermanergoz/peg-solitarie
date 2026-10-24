@@ -2,6 +2,7 @@ package com.app.pegsolitaire.ui.settings
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -37,14 +38,22 @@ class SettingsScreenTest {
     private val howToPlayLabel get() = app.getString(R.string.settings_how_to_play_label)
     private val howToPlaySupporting get() = app.getString(R.string.settings_how_to_play_supporting)
     private val soundLabel get() = app.getString(R.string.settings_sound_label)
+    private val hapticsLabel get() = app.getString(R.string.settings_haptics_label)
+    private val colorblindLabel get() = app.getString(R.string.settings_colorblind_label)
+    private val colorblindSupporting get() = app.getString(R.string.settings_colorblind_supporting)
+    private val privacyHeader get() = app.getString(R.string.settings_section_privacy)
 
-    private fun setContent(onShowHowToPlay: () -> Unit = {}) {
+    private fun setContent(
+        onShowHowToPlay: () -> Unit = {},
+        onToggleColorblindPalette: (Boolean) -> Unit = {},
+    ) {
         composeRule.setContent {
             AppTheme {
                 SettingsScreen(
                     state = SettingsUiState(),
                     onToggleSound = {},
                     onToggleHaptics = {},
+                    onToggleColorblindPalette = onToggleColorblindPalette,
                     onShowHowToPlay = onShowHowToPlay,
                     onSignInToPlayGames = {},
                     onShowLeaderboards = {},
@@ -88,6 +97,46 @@ class SettingsScreenTest {
         composeRule.waitForIdle()
 
         assertThat(opened).isEqualTo(1)
+    }
+
+    /**
+     * CV-AC01 / docs/ux/colour-vision.md §3.1: the row sits directly after Haptics, still inside
+     * General, and Privacy stays last. Read from rendered tops, so a half-renumbering of the
+     * entrance orders fails here and a whole one passes.
+     */
+    @Test
+    fun theColorblindRowSitsDirectlyAfterHapticsAndAboveThePrivacyHeader() {
+        setContent()
+
+        val tops =
+            listOf(generalHeader, howToPlayLabel, soundLabel, hapticsLabel, colorblindLabel, privacyHeader)
+                .map {
+                    composeRule
+                        .onNodeWithText(it)
+                        .fetchSemanticsNode()
+                        .positionInRoot.y
+                }
+
+        assertThat(tops).isInStrictOrder()
+    }
+
+    @Test
+    fun theColorblindRowCarriesItsOwnSupportingLine() {
+        setContent()
+
+        composeRule.onNodeWithText(colorblindSupporting).performScrollTo().assertIsDisplayed()
+    }
+
+    /** The switch is the row's target and carries the row's label (TalkBack: "Colorblind palette, switch"). */
+    @Test
+    fun flippingTheColorblindSwitchReportsTheNewValue() {
+        val flips = mutableListOf<Boolean>()
+        setContent(onToggleColorblindPalette = { flips += it })
+
+        composeRule.onNodeWithContentDescription(colorblindLabel).performScrollTo().performClick()
+        composeRule.waitForIdle()
+
+        assertThat(flips).containsExactly(true)
     }
 }
 
