@@ -503,8 +503,12 @@ dependencies {
     // generated SingletonC stops compiling without it. CLASS-retention annotations,
     // so compileOnly is enough — nothing is added to the APK.
     compileOnly(libs.errorprone.annotations)
-    // hiltViewModel() for scoping the GameViewModel to the route.
+    // Kept on the graph as it was. Its own hiltViewModel() is a deprecated forwarder to the
+    // artifact below, which is where the routes now import hiltViewModel() from (design §9.8).
     implementation(libs.hilt.navigation.compose)
+    // hiltViewModel() for scoping each screen's ViewModel to its route. Same version ref as
+    // hilt-navigation-compose, and already on the runtime classpath through it.
+    implementation(libs.hilt.lifecycle.viewmodel.compose)
 
     // Navigation: type-safe NavHost between Home / Catalog / Gameplay / Results
     // (NAV-02). kept on 2.9.8 (stable) — 2.10.x needs compileSdk 37. The
