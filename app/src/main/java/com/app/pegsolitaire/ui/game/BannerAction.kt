@@ -5,6 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalFocusManager
+import com.app.pegsolitaire.ui.components.ChangeEffect
 import com.app.pegsolitaire.ui.components.moveInputFocusTo
 
 /** The rescue banner's two actions that move focus to the board stop once they have happened. */
@@ -15,9 +16,10 @@ internal enum class BannerAction { Undo, Restart }
  * rescue banner → the board stop", because the banner leaves with the button that had focus).
  *
  * - **Only when the action happened** (loop 1, F-3): the move waits for the undo's or the restart's own
- *   ordinal to advance. An Undo that opens the ad opt-in, or a Restart that opens its confirmation,
- *   moves nothing — the banner is still there — and the dialog withdraws the move; so does the banner
- *   leaving for any other reason.
+ *   ordinal to advance. An Undo that opens the ad opt-in moves nothing — the banner is still there —
+ *   and the offer withdraws the move. A Restart that opens its confirmation waits on it: confirmed,
+ *   the restart happens and focus moves; declined, the move is withdrawn (loop 2, L1-1). The banner
+ *   leaving for any other reason withdraws either.
  * - **Always a change** (loop 1, F-2): the move goes through [moveInputFocusTo], so a second rescue
  *   still moves TalkBack when the board stop kept input focus from the first.
  * - **Only while touch exploration is on** (D-TBa item 5, F-39): otherwise nothing is awaited.
@@ -39,9 +41,13 @@ internal fun rememberBannerFocusMove(
         if (awaited.take(BannerAction.Restart)) focusManager.moveInputFocusTo(boardStopFocus)
     }
     // After the two ordinals, so an action that happened is taken before anything withdraws it.
-    val withdrawn = state.pendingAdOffer != null || state.confirmRestart || !state.showRescueBanner
+    val withdrawn = state.pendingAdOffer != null || !state.showRescueBanner
     LaunchedEffect(withdrawn) {
         if (withdrawn) awaited.action = null
+    }
+    // The restart confirmation closing without a restart is a decline (a confirm advanced the ordinal).
+    ChangeEffect(state.confirmRestart) { wasOpen, isOpen ->
+        if (wasOpen && !isOpen) awaited.action = null
     }
     return remember(awaited, touchExploration) { { action -> awaited.action = action.takeIf { touchExploration } } }
 }

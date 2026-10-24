@@ -342,6 +342,51 @@ class GameScreenTalkBackTest {
         assertThat(slabFocused()).isFalse()
     }
 
+    // ---- Loop 2, L1-1 and L1-3: a banner Restart moves focus once the restart has happened -------
+
+    @Test
+    fun aBannerRestartOnAStuckBoardMovesFocusToTheBoardStop() {
+        startGame(board = STRANDING_BOARD, touchExploration = true)
+        strand()
+
+        composeRule.mainClock.autoAdvance = false
+        bannerButton(R.string.rescue_restart).performClick()
+
+        assertLostThenRegained(focusTrace { composeRule.onNodeWithTag(GAME_BOARD_SLAB_TEST_TAG) })
+    }
+
+    @Test
+    fun aBannerRestartConfirmedInItsDialogMovesFocusToTheBoardStop() {
+        val game = noWinningMoveBannerUp()
+        bannerButton(R.string.rescue_restart).performClick()
+        settleFocusMove()
+        assertThat(game.uiState.value.confirmRestart).isTrue()
+        assertThat(slabFocused()).isFalse()
+
+        composeRule.mainClock.autoAdvance = false
+        composeRule.runOnIdle { game.onConfirmRestart() }
+
+        assertThat(game.uiState.value.restartTick).isEqualTo(1)
+        assertLostThenRegained(focusTrace { composeRule.onNodeWithTag(GAME_BOARD_SLAB_TEST_TAG) })
+    }
+
+    @Test
+    fun aBannerRestartDeclinedInItsDialogMovesNoFocusThenOrOnALaterRestart() {
+        val game = noWinningMoveBannerUp()
+        bannerButton(R.string.rescue_restart).performClick()
+        composeRule.runOnIdle { game.onDismissRestart() }
+        settleFocusMove()
+        assertThat(slabFocused()).isFalse()
+
+        // The dock's Restart, confirmed: no longer the banner's, so it moves nothing (§11.1).
+        composeRule.runOnIdle { game.onRestart() }
+        composeRule.runOnIdle { game.onConfirmRestart() }
+        settleFocusMove()
+
+        assertThat(game.uiState.value.restartTick).isEqualTo(1)
+        assertThat(slabFocused()).isFalse()
+    }
+
     // ---- 26b's pin (D-TBa loop 5, F-38): the slab before the banner on every window -----------
 
     @Test
@@ -502,6 +547,17 @@ class GameScreenTalkBackTest {
         val canvas = composeRule.onNodeWithTag(BOARD_CANVAS_TEST_TAG).fetchSemanticsNode().config
         assertThat(canvas.getOrNull(SemanticsProperties.LiveRegion)).isNotNull()
         assertThat(channel()).isEqualTo(line)
+    }
+
+    /** One move made, then a Hint that proves the position lost: the banner over a game in play. */
+    private fun noWinningMoveBannerUp(): GameViewModel {
+        val game = startGame(hint = fixedHint(HintOutcome.ProvenDead), touchExploration = true)
+        tapCell(ABOVE_CENTRE)
+        tapCell(CENTRE)
+        composeRule.runOnIdle { game.onHintRequested() }
+        composeRule.waitForIdle()
+        check(game.uiState.value.noWinningMove) { "the banner must be up" }
+        return game
     }
 
     /** (3, 1) jumps into the centre on [STRANDING_BOARD], leaving it stuck under the banner. */
