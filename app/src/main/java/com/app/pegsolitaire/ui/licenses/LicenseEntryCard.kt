@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material3.Card
@@ -39,8 +38,9 @@ import com.app.pegsolitaire.ui.theme.claySquish
  * what the chevron and the squish carry by eye (LS-06, LS-13). **Inert** when [onClick] is `null`:
  * neither, and no click action at all. Either way the card merges its own descendants (brief A1.1,
  * spec LS-06 as amended), so it is one TalkBack stop read title first; the merge is the card's,
- * not the click's. An address line sits in a `SelectionContainer` so it can be copied, and is never
- * a link (LS-05).
+ * not the click's. An address line is plain text inside that one stop, never a link (LS-05) and not
+ * in a `SelectionContainer`: that container is focusable, and on TalkBack 16 it split the address
+ * into a stop of its own (device QA loop 2, F-1; spec §5.1, LS-AC06).
  */
 @Composable
 internal fun LicenseEntryCard(
@@ -130,7 +130,6 @@ private fun LicenseLineText(line: LicenseLine) {
                 style = style,
                 color = color,
             )
-        is LicenseLine.Address ->
-            SelectionContainer { Text(text = stringResource(line.text), style = style, color = color) }
+        is LicenseLine.Address -> Text(text = stringResource(line.text), style = style, color = color)
     }
 }

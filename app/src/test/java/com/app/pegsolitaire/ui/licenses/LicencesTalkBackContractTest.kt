@@ -92,6 +92,42 @@ class LicencesTalkBackContractTest {
         }
     }
 
+    /**
+     * Device QA loop 2, F-1: on TalkBack 16 an address read as its own stop after its card, though
+     * the merged tree still showed one node. TalkBack stops on any focusable node, so between each
+     * address text and its card — in the unmerged tree — no node may be focusable or a merge
+     * boundary of its own, and the address's first merging ancestor must be its entry's card.
+     */
+    @Test
+    fun anAddressIsPartOfItsCardsStopAndNeverAStopOfItsOwn() {
+        setLicenses()
+
+        val withAddress =
+            LicenseCatalog.sections
+                .flatMap {
+                    it.entries
+                }.filter { e -> e.lines.any { it is LicenseLine.Address } }
+        assertThat(withAddress).hasSize(ADDRESS_ENTRY_COUNT)
+        withAddress.forEach { entry ->
+            val address = entry.lines.filterIsInstance<LicenseLine.Address>().single()
+            val text =
+                composeRule
+                    .onNodeWithText(
+                        app.getString(address.text),
+                        useUnmergedTree = true,
+                    ).fetchSemanticsNode()
+            val chain = generateSequence(text) { it.parent }.toList()
+            val card = chain.first { it.config.isMergingSemanticsOfDescendants }
+            assertWithMessage(entry.id).that(card.id).isEqualTo(entryNode(entry).id)
+            chain.takeWhile { it.id != card.id }.forEach { node ->
+                val focusable =
+                    node.config.contains(SemanticsProperties.Focused) ||
+                        node.config.contains(SemanticsActions.RequestFocus)
+                assertWithMessage("${entry.id}: ${node.config}").that(focusable).isFalse()
+            }
+        }
+    }
+
     @Test
     fun theLicensesHeadingsAreTheTitleAndTheFourSectionHeaders() {
         setLicenses()
@@ -177,3 +213,6 @@ private const val TALKBACK_TALL_WINDOW = "w411dp-h4000dp"
 
 /** The three sound packs and the Google SDK entry (spec §5.1). */
 private const val INERT_ENTRY_COUNT = 4
+
+/** The three sound packs, the Public Suffix List and the Google SDK entry (spec §3.2). */
+private const val ADDRESS_ENTRY_COUNT = 5

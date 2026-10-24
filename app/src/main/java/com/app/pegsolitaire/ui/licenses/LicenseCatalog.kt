@@ -39,7 +39,7 @@ sealed interface LicenseLine {
         val count: Int,
     ) : LicenseLine
 
-    /** A source address: selectable so it can be copied, never a link (spec LS-05). */
+    /** A source address: plain text read within its entry's one stop, never a link (spec LS-05; QA F-1). */
     data class Address(
         @param:StringRes val text: Int,
     ) : LicenseLine
