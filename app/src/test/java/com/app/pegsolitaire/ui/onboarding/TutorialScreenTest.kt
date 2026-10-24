@@ -224,7 +224,8 @@ class TutorialScreenTest {
     }
 
     private fun startTutorial(): TutorialViewModel {
-        val viewModel = TutorialViewModel(SilentOnboardingRepository(), TestApplicationScope)
+        val viewModel =
+            TutorialViewModel(SilentOnboardingRepository(), FixedHapticsSetting(on = true), TestApplicationScope)
         composeRule.setContent {
             AppTheme {
                 TutorialRouteUnderTest(viewModel)
