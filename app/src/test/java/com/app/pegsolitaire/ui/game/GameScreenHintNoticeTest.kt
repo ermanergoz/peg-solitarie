@@ -1,6 +1,5 @@
 package com.app.pegsolitaire.ui.game
 
-import android.provider.Settings
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -40,6 +39,7 @@ import com.app.pegsolitaire.audio.LocalSoundPlayer
 import com.app.pegsolitaire.audio.SoundCue
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.Position
+import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.testing.applySystemBarInsets
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.theme.AppTheme
@@ -72,13 +72,21 @@ import org.robolectric.annotation.GraphicsMode
  * Text is laid out in the real faces (`GraphicsMode.NATIVE`): where a notice wraps and how tall it
  * is are the properties under test. The screen gets a phone's system-bar insets, as §13 asks of
  * every layout reading on the baseline window, and edges are read before any ancestor clips them.
+ *
+ * The class runs on the `junit4.v2` rule, the exception the tech design's §8.1 allows, for the two
+ * behaviours its helpers document: a recreation whose snapshot writes only a running clock
+ * delivers ([recreateTheScreen]), and a tap's writes, which reach the screen on the paused clock
+ * only once their apply notification is sent ([deliverTheTapsWrites]).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [HINT_NOTICE_ROBOLECTRIC_SDK], qualifiers = DESIGN_BASELINE_QUALIFIER)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class GameScreenHintNoticeTest {
+    /** The system's animator scale, as the screen's effects and its reduced-motion gate read it. */
+    private val motion = SystemMotionScale()
+
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createComposeRule(effectContext = motion)
 
     /** The state the screen renders. A test raises and lowers the notice by swapping it. */
     private val screenState = mutableStateOf(GameUiState.initial())
@@ -350,8 +358,7 @@ class GameScreenHintNoticeTest {
      */
     @Test
     fun withAnimationsOffTheNoticeKeepsItsTimeAndGoesInOneFrame() {
-        val context = RuntimeEnvironment.getApplication()
-        Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, ANIMATIONS_OFF)
+        motion.turnAnimationsOff()
         showScreen()
         raiseTheNotice()
 
@@ -718,9 +725,6 @@ private const val SHORT_MESSAGE = "Short"
 
 /** The English-33 footprint occupies a 7x7 lattice. */
 private const val ENGLISH_33_GRID = 7
-
-/** The OS animator duration scale a player with reduced motion has set. */
-private const val ANIMATIONS_OFF = 0f
 
 /** Criterion 23b: the ruling's forbidden words, matched case-insensitively. */
 private val FORBIDDEN_PHRASES = listOf("winning move", "undo", "restart", "try again", "stuck", "dead end", "lost")
