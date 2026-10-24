@@ -100,7 +100,7 @@ private const val REMOVAL_START = 1f
  *   or `null`. An interactive board's canvas is always that channel's live region; it carries the
  *   text and chooses no wording (D-TBa, F-44). A read-only board has no channel.
  */
-@Suppress("LongMethod") // One cohesive render unit: state capture + palette + the animation set.
+@Suppress("LongMethod") // One render unit: state, palette, animations, and the playable board's stops (D-TB).
 @Composable
 fun BoardCanvas(
     state: GameUiState,
