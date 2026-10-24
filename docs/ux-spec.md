@@ -4,7 +4,7 @@ phase: 15
 slug: ux-refresh
 status: draft
 created: 2026-09-21
-revised: 2026-10-23
+revised: 2026-10-24
 stack: android-compose-game
 design-system: docs/ui/DESIGN-SYSTEM.md
 ---
@@ -367,6 +367,121 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 >
 > F-2 and F-3 (23c's test premises) are test-side and the developer's. **Not reopened:** D-04f,
 > D-04g and every other criterion. No string, token or id is added.
+>
+> **Tenth revision — 2026-10-21 — AMENDMENT (the phase-15 close folds; Continue-chip arrival; the pill
+> at 200%; the timer's spoken form; the system bars).** Written on Opus under the founder's Q-019,
+> not on the role's pinned Fable. Two kinds of input.
+> **(1) The tech-lead's text, folded as given** — from `.planning/reports/15-founder-feedback/tech-lead-signoff.md`
+> ("Text for other roles' files") and `tech-lead-signoff-close.md` ("Docs edits still owed"):
+> - §6.5 precondition 1 names the 15e instrument, **`Pixel_9a_bench`** (2026-10-18), and the D-1 route
+>   to it, `avdmanager` or a copy of `Pixel_9a.avd`'s files, closed by the recorded diff (2026-10-21);
+> - precondition 9, `/data` free ≥ 4 GB at both ends, is new; precondition 5 gains the tech-lead's
+>   `[status=verify]` reading;
+> - "Which builds" gains the 2026-10-18 pointer, under which arm A is the branch's merge-base with
+>   `develop`, with phase 15's own sitting recorded as PASS; the protocol and "Where the numbers go"
+>   gain pointers to it;
+> - criterion 15e makes its two replacements, with the old words in its amendment note;
+> - criterion 15k part 2 records that 360×640dp overflows 0dp on real metrics, and the trailing-gap
+>   reading the code-auditor ruled and the tech-lead adopted;
+> - `docs/ui/DESIGN-SYSTEM.md` §Typography takes the font ruling's text, its old sentence kept.
+>
+> **(2) This role's rulings on the items routed to it**, each a decision in §3 with its own subsection
+> and criteria:
+> - **D-03n** (§4.2.5; criteria **15s–15v**) — on the qa-engineer's F-1: when a Continue chip arrives
+>   ≈0.6s after first paint, **nothing a player can tap moves**. The footer becomes one fifth of the
+>   no-chip slack, fixed for the window; the stage gives up the chips' room; the ribbon rides on the
+>   stage's edge; the room opens smoothly; and the first frame draws the stage and the tile art whole.
+> - **D-03o** (§4.2.6; criterion **15w**) — on O-2 and `ux-designer-15p.md` R-3 (not §7's R-3): **no
+>   word in a progress pill is ever broken**; once a label no longer fits in half its pill, all three
+>   pills stack, decided by the labels and, but for one named edge case, never by the values.
+> - **D-05e** (§4.3.2; criteria **18f**, **18g**, **26b**) — on O-A/A-8/I-2: **the timer speaks its
+>   value**, "Elapsed time, 5 minutes, 12 seconds", never on its own; and criterion 26's spoken order is
+>   written out per screen.
+> - **D-05f** (§6.2; criterion **29**) — on 15e O-1: a dark three-button navigation bar in dark mode
+>   **is wanted**; the system bars take the theme.
+>
+> All four are built on `bugfix/home-chip-arrival`, which sits its own 15e. **Not reopened:** every
+> other decision, every bar, 15e's verdict rule, the band order, the oracles, the tokens and the
+> palette. Two strings and two plurals are added, with one more string only if D-05e's fallback is
+> taken; one scoped ratio replaces two weights; no token, colour, dependency or asset changes.
+>
+> *(Same day, after a fresh checker's review, `.planning/reports/ux-spec-folds/ux-designer-check.md`.)*
+> Criterion 15g's "the screen's unused space" is ruled to be the no-chip slack S₀ (§4.2.5), so the
+> D-03n footer meets it in every state; 15g and §13 carry it. Criterion 26b no longer counts the board
+> as a TalkBack stop, which it is not on this branch, and §11 records the board's TalkBack gap against
+> the first edition's order, its release scope routed to the game-designer (and the founder). 15v waits
+> for the branch's own 15e sitting on the bench. The start-path list reads every
+> `res/values*/themes.xml`. Superseded 3 : 1 and "the label wraps" passages gain pointers, as do the two
+> LEGACY "scrolls" headlines, and criterion 29 names its qualifiers.
+>
+> *(Same day, after a second fresh check, `.planning/reports/ux-spec-folds/ux-designer-check-loop2.md`.)*
+> Criterion 15v reads position with animations off, and with them on only once §10's entrance cascade
+> has settled; a chip that lands mid-cascade restarts no entrance. A chip arriving after first paint
+> takes no stagger delay. The §11 gap no longer rules the board's release: it is routed, pending the
+> game-designer's ruling, and criterion 26 gains a pointer for the tutorial board. 15g's pointer, §12's
+> tall-phone range, two §13 rows and the revision index's "R-3" are corrected.
+>
+> **Eleventh revision — 2026-10-23 — AMENDMENT (the board with TalkBack; the third check's
+> findings).** Written on Opus under Q-019. Two inputs.
+> **(1)** The game-designer's scope ruling, `.planning/reports/ux-spec-folds/game-designer-talkback-board.md`
+> (GD-TB-1 to GD-TB-5, M1–M8, TB-1 to TB-12), and the founder's answer to **Q-023, option 1**
+> (2026-10-21): the board becomes playable with TalkBack in 3.0.0. It is ruled as **D-TB** (§3),
+> specified in **§11.1** — the board stop, one stop per in-play cell, what each says, the tap as an
+> accessibility click, one action per legal jump, the spoken announcements, the focus rules, Results'
+> star count, the tutorial's lines — with criteria **TB-1 to TB-12** (§14) and 29 strings and two
+> plurals (§8). 26b places the board after the timer and after Skip. §11's recorded gap, criterion 26
+> and 26b point at the ruling instead of "pending". Built on `feature/talkback-board`.
+> **(2)** The third fresh check, `.planning/reports/ux-spec-folds/ux-designer-check-loop3.md`. §11's gap
+> is recorded board by board: the gameplay board's predates phase 15, and the tutorial board's is phase
+> 15's own. 15v reads edges in gesture navigation, puts the blobs outside its motion read and names the
+> late chip's own entrance. The three-button 360×640dp shortfall is ruled as 15t's case. 15u waits for
+> the entrance cascade, because test bounds include its offset. The "holds still" statements gain the
+> shortfall qualifier, and §6.5's range gains a pointer. Stage art below its minimum fades out instead
+> of vanishing. The 15s–15w header names its pointers.
+> **Not reopened:** every earlier decision and bar, D-03n's ratio, the 15g reading, the folds a–e.
+>
+> **Eleventh revision, loop 4 — 2026-10-23 — AMENDMENT (D-TB meets the other branches' rulings and
+> the build brief).** Written on Opus under Q-019. Three inputs. **(1)** The fourth fresh check,
+> `.planning/reports/ux-spec-folds/ux-designer-check-loop4.md` (F-27 to F-37). **(2)** The tech-lead's
+> build brief for `feature/talkback-board`, `.planning/reports/talkback-board/tech-lead-brief.md` §1
+> (F-TB-1 to F-TB-6, on that branch). **(3)** Two rulings of this role on other branches that name the
+> same elements as D-TB: **D-04g** with criteria 23d and 23k (`bugfix/hint-undecided`, its
+> `docs/ux-spec.md`), and **D-06c** with **D-01j(2)** (`feature/audio-review`,
+> `docs/ux/invalid-tap-feedback.md`). Ruled as **D-TBa** (§3), which amends D-TB item by item:
+> - the gameplay order is D-04g's, with D-TB's stops between the timer and the banner or notice;
+> - D-TB's three rejected-tap lines supersede D-06c's three sentences, and the tutorial speaks them;
+> - the banner and the notice announce themselves (23k, 23d);
+> - focus moves by input focus, only while TalkBack runs;
+> - the first tutorial step moves no focus;
+> - the board stop consumes its double-tap;
+> - only interactive boards carry stops;
+> - the cells' size below 48dp is recorded as a studio-rule deviation, not a WCAG exception;
+> - the put-down line reports, and five focus cases are stated.
+>
+> Edits: §3 (D-TBa; pointers on D-01c and D-TB), §4.4 class 2 (a pointer), §8 (one value and a note),
+> §11 (two pointers), §11.1 (dated notes), §13, §14 (26a, 26b, TB-1, TB-4, TB-6, TB-7, TB-8, TB-9,
+> TB-11) and §16. No string, token or colour is added; one string value changes. **Numbering.** The hint
+> branch's index also has a "Tenth revision — 2026-10-21" (the Undecided notice). Both entries are
+> kept on merge; their titles tell them apart. **Not reopened:** D-TB's scope, its cell text, its
+> action rule, its 29 strings and two plurals, D-04f/D-04g's notice, D-06's shake, mark, redirect and
+> haptic, and every earlier decision.
+>
+> **Eleventh revision, loop 5 — 2026-10-24 — AMENDMENT (the fifth check's MINORs).**
+> `.planning/reports/ux-spec-folds/ux-designer-check-loop5.md` returned PASS with three MINOR findings
+> and four INFO, all closed by dated lines appended to D-TBa (§3):
+> - the board-before-banner order is pinned by one traversal index (F-38);
+> - the focus gate is touch exploration, and the two classes it leaves out are recorded under W5
+>   (F-39);
+> - the merge adds four pointers on the other branches (F-40);
+> - the tutorial's ≈93dp gets a pointer (F-41);
+> - the first step's opening line gets a pre-ruled answer (F-42);
+> - D-06c's carry-over names its one narrowing (F-43);
+> - the audio amendment's §3.8 placement rule is ruled for its fold-in (F-44).
+>
+> **For the merge:** the role that merges `feature/talkback-board` after `bugfix/hint-undecided` and
+> `feature/audio-review` adds the four pointers D-TBa names: on the hint branch, §4.4.2's "TalkBack"
+> bullet, 23j item 5 and 23k's device half; on the audio branch, §3.6's traversal line. **Not
+> reopened:** anything else. No string, token, colour or id is added.
 
 ---
 
@@ -481,6 +596,11 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   retry count, no score. The three wrong-tap classes are answered by escalating *assistance*, not
   by correction — see §4.4. — rules/puzzle-design.md: "first failure impossible before puzzle 5".
   The tutorial is puzzle 0; it must not be losable.
+  *(Pointer 2026-10-23 — D-TB as amended by D-TBa, item 3.)* With TalkBack on, a rejected tap in the
+  tutorial is now spoken, in one of three neutral lines: "No peg here.", "Not a jump target." or "Put
+  down the selected peg first." (§11.1). Each says what is on the board or what to do next, and none
+  says the tap was wrong. This decision holds by ear: there is still no error state, no red, no modal,
+  no count and no rejection sound.
 
 - **D-01d:** **Skip is available on every step** as a labelled text action, and exits immediately.
   System back does exactly what Skip does. Both persist `markSeen()`. — A tutorial the player
@@ -847,6 +967,11 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   is the only weighted child on Home allowed to hold anything (clause 4); and that drawing borrows
   the hero's entrance order (clause 5). The founder's screenshot is why: the ¾ share this ruling
   parked between the ribbon and the chips measured **≈172dp of nothing** on a 6.7-inch phone.)*
+  *(Amended 2026-10-21 — see **D-03n**, §4.2.5. The 3 : 1 split of the current slack is replaced: the
+  footer is one fifth of the slack Home has with **no** Continue chip, fixed for the window, and the
+  stage takes the rest less the chips' room, so a chip's arrival moves the stage and the ribbon and
+  never the tiles. The rest of the mechanism stands: the `BoxWithConstraints`, the scroll column,
+  `heightIn(min = available)`, clause 4 with its one exception, and clause 6.)*
 
 - **D-03j** *(2026-09-28 — folded in from the tech-lead's ruling
   `.planning/reports/phase-15/tech-lead-coldstart-gate.md` §4, which corrects a gate that report's
@@ -927,6 +1052,13 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   which is not a readout, a target or a route. With the floor retired the compact-narrow set is
   ≈616dp, **48dp over**, and the fold still cuts through the second tile (§4.2.3's pointer, §4.2.4's
   last subsection).)*
+  *(Pointers 2026-10-21.)* **(a) The headline reads on Robolectric's LEGACY metrics.** On real metrics
+  (Robolectric NATIVE in the app theme, and the device) a 360×640dp phone with both chips overflows
+  0dp, so the screen does not scroll there. The overflow branch is read on `w360dp-h560dp` (criterion
+  15k part 2's 2026-10-21 note). The ruling, its four parts and 15k are unchanged. **(b) Part 3's pill
+  is amended by D-03o.** The compact pill keeps its one line at default font scale. Its "the label
+  wraps" is replaced: no label or value is ever broken inside a word, and once any label no longer
+  fits in half its pill, all three pills stack (§4.2.6).
 
 - **D-03l** *(2026-09-28 — **founder-feedback amendment**, UX ruling on the founder's Q-004
   answer: "I don't really like this screen", scoped to the **empty middle gap**, the **peg-cross
@@ -962,6 +1094,9 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   *(Amended 2026-09-29 — see **D-03m**. The hero row, the stage and everything above stand. The row
   loses its 72dp minimum height: it is exactly as tall as its tallest child. Criterion 15p's gaps are
   measured between visible elements.)*
+  *(Amended 2026-10-21 — see **D-03n**. The stage stands, and so does its art. Its height is no longer
+  three quarters of the current slack. It is the slack less the chips' room less a footer fixed for
+  the window, so the stage, and not the tiles, absorbs a Continue chip's arrival.)*
 
 - **D-03m** *(2026-09-29 — **amendment**. UX ruling on the qa-engineer's escalation **E-1** on
   criterion 15p part 1, `.planning/reports/15-founder-feedback/qa-engineer.md`. Amends D-03l's hero
@@ -983,6 +1118,58 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   in Fredoka as it does in Roboto. The title's 44dp line box is shorter than the gear's 48dp in either
   face. "Peg Solitaire" measures 205.7dp in Fredoka SemiBold against 205.5dp in Roboto, and the title
   has 296dp of room at 360dp width.
+
+- **D-03n** *(2026-10-21 — **amendment**. UX ruling on the qa-engineer's loop-3 finding **F-1**,
+  `.planning/reports/15-founder-feedback/qa-engineer-loop3.md`, routed by the tech-lead's phase-15
+  sign-off, Decision 3, `tech-lead-signoff.md`. Amends D-03i's 3 : 1 split and how D-03l's stage gets
+  its height; specified in **§4.2.5**; criteria **15s–15v**. Built on `bugfix/home-chip-arrival`.)*:
+  **when a Continue chip arrives, nothing a player can tap moves — the stage gives up the room.** Four
+  parts. **(1)** The hero row and both mode tiles keep the same bounds whether Home shows no chip, one
+  or two, wherever the stage can give the chips their room, which on every phone window §14 measures
+  at default font scale is everywhere. **(2)** The footer stops being a share of the current slack:
+  it is **one fifth of the slack Home has with no Continue chip**, fixed for the window, and the stage
+  takes the rest less the room the chips need (a chip's height plus the band gap it brings). So the
+  chips take their room from the stage first, from the footer only once the stage is spent, and the
+  tiles move by exactly what the stage could not give, never more. **(3)** What does move, moves
+  continuously: the chips' room opens over the entrance duration and the stage and the ribbon above
+  it yield in the same frames; with OS animations off it is open on the next frame. **(4)** The first
+  frame is whole: the stage slab is never drawn without its pegs, nor a mode tile without its art.
+  — The chips arrive after first paint by design, and nothing can bring them forward: the collector
+  decodes both resume snapshots before it emits, which is the guard against a phantom Continue
+  (WR-02, CR-01), and §6.5 forbids a blocking read before Home's first frame. On QA's AVD they land
+  ≈0.6s after first paint, later on a slow phone (sign-off Decision 3). So the only question is what
+  may move when they land. Under D-03i's 3 : 1 split everything below the hero moved: on the 6.7-inch
+  phone the ribbon jumped ≈72dp up and both tiles ≈24dp down per chip, so the founder's own
+  one-chip Home shifted on every cold start (`15f/r2/coldstart9s.mp4`). The tiles are the screen's
+  primary targets, in the thumb zone, and the player who taps quickly reaches for them first. A tile
+  that slides 24–48dp under a thumb sends a tap meant for "Classic" into "Continue Classic", or into
+  the gap between them. The ribbon is read-only and the stage is decoration, so those two are what
+  may move, and §4.2.2's own sentence — "a layout that reshuffles when a Continue chip appears is
+  worse than one that is stable per device" — becomes true at the moment of arrival and not only
+  after it. One fifth rather than one quarter is the smallest change that pins the tiles on every
+  measured phone window, 360×640dp included. It also keeps the founder's own one-chip state within
+  ≈4dp of the layout they approved (H-4). The arithmetic and the options weighed are in §4.2.5.
+
+- **D-03o** *(2026-10-21 — **amendment**. UX ruling on the qa-engineer's **O-2**
+  (`15-founder-feedback/qa-engineer.md`, carried open in `qa-engineer-loop3.md`) and this role's own
+  **R-3** (`ux-designer-15p.md`), routed by the tech-lead's sign-off. Amends D-03k part 2's "the label
+  wraps"; specified in **§4.2.6**; criterion **15w**. Built on `bugfix/home-chip-arrival`.)*: **no
+  word in a progress pill is ever broken, and when the labels cannot sit beside their values, every
+  pill stacks.** A label or a value breaks only between words, never inside one; "Sta/rs", "Bo/ard/s"
+  and "Leve/l" at 200% on a 360dp phone are what this forbids. On the narrow class the compact pill
+  keeps D-03k's one line while every label fits in half of its pill; once any one does not, all three
+  pills take the **stacked** shape — the label on its own line, the value under it, no glyph — at one
+  height. The shape is decided from the labels and the pill's width, never from the values (so a
+  value's arrival cannot change it) and never from the font scale. The spoken sentence, the strings,
+  the widths and the yield order are unchanged.
+  — The pill measures its value first and gives the label what is left; at 200% that is ≈47dp, and a
+  single word wider than that is broken wherever it falls (`ux-designer-15p.md` R-3, not §7's R-3).
+  In Nunito, which is wider, it got
+  worse. Nothing is clipped, so criterion 15i holds on its letter, but a label broken mid-word is one
+  the player has to reassemble, at exactly the font size chosen by a player who reads with effort.
+  Every label is one short word that fits a 360dp pill whole at 200% ("Boards" ≈77dp against ≈93dp of
+  room), so stacking costs only height on a column that already scrolls there (15i). One shape for all
+  three keeps the band reading as one band.
 
 ### In-game controls (ASST-01, ASST-02, CLAS-02, SCOR-02, proposed UX-03)
 
@@ -1172,6 +1359,274 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   padding already contains both bars. The founder's screenshot shows it as an empty band as tall as
   the status bar above the strip; on a 360×640dp phone it takes 72dp from the board's region.
 
+- **D-05e** *(2026-10-21 — **amendment**. UX ruling on the qa-engineer's loop-2 **O-A**
+  (`15-founder-feedback/qa-engineer-loop2.md`), the code-auditor's **A-8** (`phase-15/code-auditor.md`)
+  and **I-2** (`15-founder-feedback/code-auditor-loop2.md`), routed by the tech-lead's sign-off
+  ("Routed after the merge"). Amends the timer's content description in §4.3 and §4.3.1, nothing
+  else; specified in **§4.3.2**; criteria **18f**, **18g**, and **26b** for criterion 26's spoken
+  order.)*: **the timer speaks its value — "Elapsed time, 5 minutes, 12 seconds".** It is one focus
+  stop, as today. Its description is the label, then the elapsed time as a spoken duration. TalkBack
+  reads it when the player moves to it, and it is never announced on its own.
+  — The clock's node carries the text "05:12" and the description "Elapsed time", and TalkBack speaks
+  a description in place of the text. So a TalkBack player has heard the label and never the time,
+  which predates phase 15 (A-8: "pre-existing, carried across verbatim"). Criterion 18 asked only that
+  the timer is "announced as the elapsed time", which is true and useless. The label stays first
+  because the strip is scanned stop by stop — back, title,
+  timer — and the label says which stop this is. The value is spelt as a duration because "05:12" is
+  read as a time of day or digit by digit, depending on the voice, and neither is a duration.
+
+- **D-05f** *(2026-10-21 — **amendment**, app-wide; filed beside D-05d because D-05d is where this
+  document first ruled on the system bars. UX ruling on the qa-engineer's 15e-sitting observation
+  **O-1** (`15-founder-feedback/qa-engineer-15e.md`), routed by the tech-lead's phase-15 close report,
+  INFO row 9 (`tech-lead-signoff-close.md`). Specified in **§6.2**; criterion **29**.)*: **the system
+  bars take the app's theme — light with dark icons in light mode, dark with light icons in dark
+  mode — and that includes the three-button navigation bar.** The status bar already does, through
+  the tech-lead's F-2 fix (sign-off Decision 3, H-2). The three-button navigation bar does not: in
+  dark mode it draws a light grey scrim (`#cdccd0`) with its buttons at 3.59:1. From this amendment
+  it is dark, with light buttons, in dark mode, and unchanged in light mode.
+  — **Is a dark bar wanted in dark mode? Yes.** In dark mode that bar is the only light surface on the
+  screen, and it sits directly under the mode tiles and the dock, the thumb zone the eye returns to
+  most, so it reads as a fault rather than a choice. Nobody chose it: it is light because the window
+  theme's parent is the light framework theme in both modes. DESIGN-SYSTEM.md's dark theme is
+  "desaturated tonal variants (not inverted)", and a light band under a dark app is the light theme
+  leaking into it. This is not art
+  direction between equals, so no founder question is drafted: no one would pick a light bar under a
+  dark app, and the platform's own convention is the dark one. The buttons already clear 3:1, so the
+  change is polish, not an accessibility repair. It changes the window theme, a start-path file, so it
+  rides a branch that sits its own 15e: `bugfix/home-chip-arrival`, which sits one under D-03n.
+
+### The board with TalkBack (D-TB — both boards: gameplay and the tutorial)
+
+- **D-TB** *(2026-10-23 — UX ruling that writes the spoken contract for the game-designer's scope
+  ruling, `.planning/reports/ux-spec-folds/game-designer-talkback-board.md` (GD-TB-1 to GD-TB-5,
+  M1–M8, TB-1 to TB-12), after the founder answered **Q-023 with option 1** on 2026-10-21: the board
+  becomes playable with TalkBack in 3.0.0. Specified in **§11.1**; criteria **TB-1 to TB-12** (§14);
+  26b amended. Built on `feature/talkback-board`.)*: **the board is a TalkBack stop, and so is every
+  playable cell.** On gameplay (Classic and Challenge) and in the tutorial, TalkBack reaches the board
+  after the timer and after Skip, as §11's first-edition orders always said. The board stop speaks
+  "Board, 32 pegs left". Then every in-play cell is one stop, row by row from the top, left to right,
+  saying its row, its column, "peg" or "empty", whether it is selected, how many jumps a peg has, and
+  whether an empty hole is a jump target of the selected peg. A double-tap on a cell is the tap. Each
+  legal jump is also one action on its peg ("Jump up to row 4, column 4"). Every change — a selection,
+  a jump, an undo, a hint, a restart, a rejected tap, the rescue banner — is spoken once, politely.
+  Focus stays on the board through board actions and on the dock control through dock actions.
+  Results says "2 of 3 stars". The tutorial speaks each step's caption when the step changes, and a
+  coach escalation speaks the hinted move.
+  — What must be said and what must be operable is the game-designer's ruling (M1–M8, GD-TB-2 to
+  GD-TB-5). The words, the order of the parts, where focus lands and how each announcement is phrased
+  are this role's (rules/studio.md: screens, UI and accessibility), and are chosen for three things:
+  - **the position first**, because a player moving through 33 to 45 stops needs to know where they
+    are before what is there;
+  - **the same words on a cell as in the announcements**, so an announcement never says something the
+    cells cannot confirm;
+  - **neutral wording for every rejected tap**, so the tutorial's "a wrong tap is never a failure"
+    (D-01c) holds by ear as it does by eye.
+  The board is never mirrored, so "left", "right" and the column numbers mean the same thing in every
+  locale. Nothing spoken names a winning move except a hint the player asked for and a tutorial coach
+  escalation (GD-TB-2, TB-12).
+  *(Amended the same day by **D-TBa**, loop 4. A raised rescue banner or Undecided notice is read
+  after the last cell and before the dock. The banner speaks through its own region, not D-TB's. The
+  rejected-tap lines replace the audio branch's D-06c sentences on both boards. Everything else above
+  stands.)*
+
+- **D-TBa** *(2026-10-23 — **amendment, loop 4**. UX ruling on the fourth check's F-27 to F-37,
+  `.planning/reports/ux-spec-folds/ux-designer-check-loop4.md`, and on the tech-lead's build-brief
+  findings F-TB-1 to F-TB-6, `.planning/reports/talkback-board/tech-lead-brief.md` §1, on
+  `feature/talkback-board`. It reconciles D-TB with two rulings of this role on other branches:
+  **D-04g** (`bugfix/hint-undecided`, `docs/ux-spec.md`, D-04g, criteria 23d, 23j, 23k) and **D-06c**
+  with **D-01j(2)** (`feature/audio-review`, `docs/ux/invalid-tap-feedback.md` §2, §3.6, §6).
+  Specified by dated notes in §11.1. Criteria 26a, 26b, TB-1, TB-4, TB-6, TB-7, TB-8, TB-9 and TB-11
+  are amended, and their first wording is kept.)*: **D-TB fits the banner, the Undecided notice and the
+  wrong-tap channel that the other two branches built, and it names the mechanisms it accepts.**
+  1. **The gameplay order (F-27).** The order is:
+     - back → title → timer;
+     - the board stop, then each in-play cell;
+     - the raised rescue banner (its message, then its Undo, Restart and Home), or the Undecided
+       notice (one stop, with a Dismiss action);
+     - the dock (Undo → Hint → Show-moves → Restart).
+
+     This is D-04g item 6's order, "after the timer, before the dock", with D-TB's stops between the
+     timer and the banner. The slab is one traversal group, so every cell is read before anything that
+     overlaps the slab, including a banner or notice over the lowest rows. The board stop sits on the
+     slab, and an M3 `Surface` is already a traversal group. The banner and the notice keep D-04g's
+     geometric place and gain no traversal index. While a Challenge board loads there is no board stop
+     and no cell stop; the `loading_level` indicator stands in their place. The banner and the notice
+     are never up together (23h).
+  2. **One set of rejected-tap lines, on both boards (F-28, F-TB-2).** D-TB's three lines are the only
+     rejected-tap announcement:
+     - "No peg here." for D-06's W1, an empty hole while nothing is held;
+     - "Put down the selected peg first." for W2, another peg while one is held;
+     - "Not a jump target." for W3, a hole that is not a destination while a peg is held.
+
+     From this date they **supersede D-06c's three sentences**: `wrong_tap_empty_hole` "Empty hole.
+     Pick up a peg first.", `wrong_tap_other_peg` "Already holding a peg. Tap it again to put it
+     down." and `wrong_tap_not_a_destination` "Can't jump there.". D-06c's other properties carry over
+     unchanged to D-TB's one board channel:
+     - the line is polite;
+     - **every rejected tap is spoken once, including the second of two identical taps in a row**,
+       unless a newer board event replaces it before it is spoken (§11.1);
+     - it adds no focus stop, and a later swipe never re-reads it;
+     - nothing is spoken with TalkBack off.
+  3. **The tutorial speaks them too (F-28).** This **supersedes D-06c's "in the game only" and
+     D-01j(2)'s "no announcement"**, for the announcement and nothing else. In the tutorial the
+     redirect (ring nudge, dot re-pop) stays. There is still no shake, no mark, no reject haptic and no
+     invalid-tap sound (D-01c, D-01h, D-01i, D-01j(2)). The tutorial's line is driven by the signal
+     the audio amendment's §3.7 defines and `feature/audio-review` builds: the wrong-tap ordinal and
+     the tapped cell in the tutorial's board state (`rejectedTapTick`, `rejectedTapCell`, written by
+     `TutorialViewModel.registerNonProgressingTap`). The kind is read from the board and the selection
+     at the tap, as on gameplay.
+  4. **The banner and the notice announce themselves (F-29).** The rescue banner's message is
+     announced by its own polite live region (criterion 23k, `bugfix/hint-undecided`), and the
+     Undecided notice by its own (23d). D-TB adds no second announcement for either. TB-6's banner
+     line *is* 23k's region, counted once.
+     - "A newer announcement replaces one not yet spoken" holds inside the board's own channel only.
+       It never withdraws the banner's line or the notice's.
+     - When a jump strands the board, the jump's line and the banner's message are each spoken once.
+       The intended order is the jump's line first. Either order passes: the two lines come from two
+       regions raised by one state update, and no delay is added to force an order.
+     - A Hint that ends Undecided speaks only the notice. A Hint that proves the position lost speaks
+       only the banner. Neither reveals a hint, so the hint line does not fire.
+  5. **Focus moves by input focus (F-TB-1).** The focus table orders four moves:
+     - a jump by action → the destination cell;
+     - a tutorial step → the new board's board stop;
+     - the banner's Undo or Restart → the board stop;
+     - completion → "Got it".
+
+     Each is made by giving the target input focus, which TalkBack follows. That is the route the
+     pinned Compose offers, and it is accepted.
+     - **The cells and the board stop take input focus only while TalkBack is running.** With it off,
+       Tab and D-pad traversal stay as they are today. A keyboard player never walks 33 to 45 stops
+       that show no focus, and TB-11 covers keyboard traversal.
+     - Whether TalkBack follows is a device check (TB-7).
+     - If it does not, the brief's fallback is accepted, and §11.1's focus table is amended in the
+       same review loop:
+       - after a jump by action, focus stays on the source cell, which then says "empty"; the jump's
+         line names the destination;
+       - the other three moves are left to TalkBack's own placement;
+       - input focus is removed.
+  6. **The first tutorial step moves no focus (F-TB-5).** The first step's line is spoken when the
+     tutorial opens, but focus does not move. A screen that has just opened is met in its reading
+     order — pips, Skip, then the board — like every other screen this document designs, none of
+     which moves focus on opening. Skip stays the second stop (D-01d). Steps 2 and 3 move focus to the new board
+     stop, because the board the player was on has been replaced.
+  7. **Results opens once per result (F-TB-6).** Confirmed. The summary is spoken on the showing that
+     the D-16 latch `ResultsUiState.playCelebration` marks: once per result. It is not spoken again on
+     a rotation, a process-death restore or a back navigation onto the same Results entry.
+  8. **The board stop consumes its double-tap (F-33, F-TB-3).** From the first build, the board stop
+     carries a click action that does nothing, with no label of its own and no `Role`. TalkBack then
+     adds its default "double-tap to activate" to "Board, 32 pegs left", and that is accepted.
+     - Without a click action, TalkBack may fall back to a touch at the stop's centre, which is a cell.
+       Whether it does varies by platform and TalkBack version, so one device pass cannot rule it out.
+       A hint that promises nothing does less harm than a double-tap that selects a peg or speaks a
+       rejection.
+     - It is a semantics action, not pointer input, so TB-11's "takes no pointer input" stands.
+     - The board stop is not a control, so 26a's "cannot be activated" clause does not judge it. TB-1
+       is its pass line.
+  9. **Only interactive boards speak (F-32).** The board stop and the cell stops exist only on a board
+     that takes taps (`interactive = true`): gameplay and the tutorial. A read-only board gains no stop.
+     That covers the Home stage, the Continue thumbnail, the tile art and the catalogue previews, as
+     15r and 26b's Home order require.
+  10. **The gameplay cells are below the studio's 48dp: a recorded deviation (F-31).** Every cell
+      meets WCAG 2.2 SC 2.5.8 (AA, 24 × 24 CSS px). On a 360dp phone no gameplay cell meets
+      rules/compose.md's 48dp line, for touch or for TalkBack focus: 42dp on 7 × 7, 37dp on 8 × 8,
+      33dp on 9 × 9. That is the board's own geometry, which D-TB does not change. The tutorial's
+      cells, about 83dp, meet it. The producer carries the deviation to the founder in the
+      Q-PUBLISH-3.0.0 summary (§11.1). The earlier "essential exception" ground is withdrawn.
+  11. **Smaller items.**
+      - The put-down line reports instead of instructing: "Peg put down, row 2, column 4." (F-34).
+      - Five focus cases are stated (F-35): the Undecided notice rising and put away, a coach
+        escalation that puts a peg down, a Challenge board finishing loading, and the opt-in dialog.
+      - If TalkBack re-reads a focused cell whose description changed, the selection line is withdrawn
+        for a selection made on the focused cell (F-35, TB-6).
+      - D-01c and §4.4 class 2 gain pointers (F-37).
+      - §13 and §16 are corrected, and the id's style is recorded (F-36).
+  — Merged as written, two of this role's rulings would have named one banner and three taps
+  differently. The banner would have been read in two places, and every gameplay wrong tap spoken
+  twice. A listener can only learn one order and one sentence per event.
+  - **The order** follows D-04g, because it is what the layout and the eye give (WCAG 2.2 SC 1.3.2,
+    2.4.3).
+  - **The words** follow D-TB. Under D-TB the player hears "select", "selected", "put down" and "jump
+    target" on every cell and action label, so a rejection must use those words. D-06c's sentences
+    were written for a board with no spoken cells ("pick up", "holding", "tap it again", "there").
+    D-06c recorded that the announcement "becomes fully useful once the board gains per-cell
+    semantics" (§3.6, "A known limit").
+  - **The tutorial speaks** because a TalkBack player there double-taps a cell they cannot see.
+    Silence after a rejected tap cannot be told from a double-tap that did not register, and the first
+    thing they would hear is the coach, after three of them. D-06c's reason for silence, D-01c's
+    "nothing is announced as wrong", is met by the words: each line says what is on the board or what
+    to do next, and none says "wrong", "invalid" or "error".
+  - **The input-focus gate** keeps TB-11 true for keyboard players, the brief's consequence (a).
+  - **The board stop's no-op** settles before QA what a device pass could only sample.
+
+  **What the built code on `feature/audio-review` must change: nothing on that branch.** The fold
+  belongs to `feature/talkback-board`, at its first merge of `develop` (the brief's §13.3):
+  - one board announcer replaces `Modifier.wrongTapAnnouncement` and `rememberWrongTapAnnouncement`;
+  - the three `wrong_tap_*` strings are removed;
+  - `GameScreenWrongTapTest`'s announcement cases are retargeted to D-TB's lines;
+  - `TutorialSourceGuardTest` (WT-16's grep) keeps every token it forbids, `liveRegion` and
+    `wrong_tap_` included. The tutorial reaches the announcer only through the shared modifier in
+    `ui/components/` and names none of those tokens, in code or in comments. The guard's KDoc lists
+    "its live region" among the channels the tutorial may not use, so it is corrected to say the
+    tutorial announces through the shared board announcer. That is an edit to an existing test, named
+    for the code-auditor.
+
+  WT-14 and WT-16 are amended to match when the audio amendment is folded into this document; the
+  producer routes both.
+
+  *(Amended 2026-10-24, loop 5 — the fifth check's F-38 to F-44,
+  `.planning/reports/ux-spec-folds/ux-designer-check-loop5.md`, which returned PASS. Each line adds to
+  the item it names; the text above stands as written except where a line says it is superseded.)*
+  - **Item 1, the order is pinned (F-38).** The geometry gives the ruled order only where the board is
+    limited by width. In landscape, on a short window such as `w360dp-h560dp`, and on any window wider
+    than 512dp, the full-width banner's left edge is outside the slab's, and the banner would be read
+    first. So the order is **pinned**: the board region is one traversal group, and inside it the
+    slab's group carries a traversal index that puts it before the banner or the notice on every
+    window. "The banner and the notice … gain no traversal index" is superseded by that one index.
+    The banner keeps D-04g's look and its width; the mechanism is the developer's.
+  - **Item 5, the gate is a condition, not a product (F-39).** "While TalkBack is running" means
+    **while touch exploration is enabled** (`AccessibilityManager.isTouchExplorationEnabled`), the
+    platform's screen-reader signal, which TalkBack always sets. A Robolectric test can set it, so
+    TB-11 has a seam. **The four focus moves are attempted only under the same gate**: with it
+    closed, no `requestFocus()` is made.
+  - **Two classes the gate leaves out, recorded under the ruling's W5.** W5 defers Switch Access,
+    keyboard and D-pad as their own judged paths, asking only that M4 and M5 serve them.
+    - A screen reader with touch exploration off keeps every stop, description, click action and jump
+      action, and loses the four focus moves. Its focus after them is the platform's own placement.
+    - Switch Access keeps every click action and jump action through its own scanning, and loses the
+      four focus moves.
+
+    Neither is a failure of D-TBa on the device.
+  - **Item 2, one narrowing (F-43).** D-06c's properties carry over **with one narrowing**, not
+    "unchanged": a rejected tap's line, like any line on the board's channel, can be replaced by a
+    newer board event before it is spoken. D-06c and WT-14 had no such clause, and the WT-14 fold
+    takes this one.
+  - **Item 4, where the board's region sits (F-44).** The audio amendment's §3.8 says `BoardCanvas`
+    "gains no `SoundCue`, no haptic call and no announcement". That rule kept the correction channels
+    out of the tutorial, which shares the canvas. Under D-TBa both boards announce through one
+    channel, so this role accepts either placement:
+    - the live region on the canvas node, fed by the screen-level announcer;
+    - the region on the host's modifier, as the audio branch built it.
+
+    In both cases the canvas only carries text it is given and chooses no wording. The audio fold-in
+    amends §3.8 to say so.
+  - **The merge adds four pointers (F-40).** Four passages on other branches judge a build without
+    D-TB and stand as records. Whichever role merges `feature/talkback-board` after them adds a dated
+    pointer to D-TBa beside each:
+    - on `bugfix/hint-undecided`, §4.4.2's "TalkBack" bullet ("back → title → timer → the notice →
+      Undo …", "The board has no focus stop of its own", "with no `traversalIndex` and no
+      `isTraversalGroup` added");
+    - on the same branch, criterion 23j item 5's second bullet ("Swiping forward from the timer
+      reaches the notice …");
+    - on the same branch, 23k's device half ("swiping forward from the timer reaches the banner's
+      message …");
+    - on `feature/audio-review`, the audio amendment's §3.6 line "Gameplay traversal stays back →
+      title → timer → board → dock → banner (§11)".
+
+    Each pointer says three things:
+    - "from the timer" reads "from the last cell" once `feature/talkback-board` merges;
+    - the board's lack of a focus stop describes the build until then;
+    - the slab-before-banner order is pinned by item 1 above.
+
 ---
 
 ## 4. Interaction contract — new surfaces (Phase 15)
@@ -1197,6 +1652,8 @@ square aspect at every scale rather than shrinking — a 3×3 board there is ≈
 compressing the one interactive element to win vertical space is the wrong trade. What yields at
 200% font scale is the caption's growth pushing the footer below the fold, which is harmless
 because the footer is empty until T3 completes.
+*(Pointer 2026-10-24 — the loop-5 check's F-41.)* The drawn cell is ≈82.7dp, not ≈93dp: the canvas
+sits inside the slab's `spacing_md` padding (248 ÷ 3; §11.1 "Cell size"). It still clears 48dp.
 
 **Step pips.** Three pips, `tutorial_step_pip_size`. Done = solid `GoldGradient` disc; current =
 outlined disc with a `primary` ring; upcoming = outlined disc, `outlineVariant`. Filled-vs-outlined
@@ -1222,7 +1679,8 @@ carries the state, so colour is not the only channel. The row is one semantics n
 >
 > Two consequences for the screen, both this role's to state. **First, the footprints fit:** the
 > largest is 3×3, which inside `tutorial_board_size` 280dp gives ≈93dp cells — comfortably above
-> §11's 48dp floor, so no token changes (§6.1 stands). **Second, T1 and T2 each have exactly one
+> §11's 48dp floor, so no token changes (§6.1 stands). *(Pointer 2026-10-24, loop-5 F-41: ≈82.7dp
+> once the slab's `spacing_md` padding is counted; the conclusion stands.)* **Second, T1 and T2 each have exactly one
 > legal move.** That is deliberate — a step teaching one mechanic pays nothing for ambiguity — but
 > it means the coach must never read as a puzzle refusing the player: with `showHints` forced on
 > (D-01b), selecting the only movable peg draws exactly one destination dot, and §4.4's escalation
@@ -1626,6 +2084,11 @@ the threshold read width (§4.2.3).
      turns out not to distribute this way, the finding goes back to the producer with the
      measurement — **the fixed `Spacer` is not the fallback**, and neither is weighting a content
      band (clause 4).
+     *(Pointer 2026-10-21 — D-03n, §4.2.5.)* "Slack distributed 3 : 1 when there is slack" is no
+     longer the behaviour. The contract is now §4.2.5's rule: the footer is one fifth of the no-chip
+     slack, fixed for the window, and the stage is the rest less the chips' room; still a scrolling
+     column when there is no slack. The modifier order above and "no other modifier may set a height"
+     stand; how the two heights are produced is the developer's.
    - **`fillMaxSize()` comes out of that chain and does not come back.** Ahead of `verticalScroll`
      it fixes the content's width to the window's, which makes the `widthIn(max = …)` that follows
      it a no-op and leaves the column hugging the leading edge on any window wider than 480dp —
@@ -1642,6 +2105,13 @@ the threshold read width (§4.2.3).
    above the threshold (worst case, fresh install at exactly 720dp: tile top 405dp against a 360dp
    midpoint) while leaving the tiles a visible margin above the navigation bar instead of sitting
    on it.
+   *(Amended 2026-10-21 — **D-03n**, §4.2.5.)* The 3 : 1 split is replaced. The lower share, the
+   footer, is **one fifth of the slack the column has with no Continue chip**, fixed for the window.
+   The upper share, the stage since D-03l, is the rest less the chips' room. A split of the *current*
+   slack moved the tiles every time a chip arrived; a footer fixed for the window does not. The
+   midpoint property above still holds, with the tiles lower than before. The two weights become one
+   ratio in a scoped constants object (§6.4), and how the stage and the footer receive their heights is
+   the developer's: the behaviour is the contract, as clause 2 says.
 4. **No content band may be weighted.** A weighted child with `fill = true` is measured at exactly
    its share, so a weighted hero would be measured at exactly **0** the moment the fixed bands
    exceed the viewport — clipped to nothing at 200% font scale, which criterion 14 forbids. This is
@@ -1704,6 +2174,12 @@ at 200% on a tall phone the set stays full and the column scrolls (criterion 15i
 > it the 720dp above is unchanged. The font scale is still never read, for the reason given here.
 > The stated consequence gains a blunter one: **at 360dp width Home is always compact**, which is
 > deliberate and is argued in §4.2.3.
+>
+> *(Pointer 2026-10-21 — D-03n, §4.2.5.)* "A layout that reshuffles when a Continue chip appears is
+> worse than one that is stable per device" was true of the band *set* and false of the moment of
+> arrival: under the 3 : 1 split every band below the hero moved when the chips landed, ≈0.6s after
+> first paint on every cold start (QA loop 3, F-1). D-03n makes it true at that moment too. The
+> sentence stands as it reads.
 
 **What never yields**, on any screen size, because each is a readout, a target, or a route:
 
@@ -1819,6 +2295,9 @@ against its ~728dp of usable height (**144dp over, scrolling**) while the compac
 threshold, the hero's decorative art, the 3 : 1 slack and everything criterion 15g measures are as
 D-03i left them. Reading `maxWidth` costs nothing — it is a second read of a value the
 `BoxWithConstraints` D-03i already specified has measured, not a second measuring pass.
+*(Pointer 2026-10-21 — D-03n, §4.2.5.)* "The 3 : 1 slack" here is superseded on every width: the
+footer is one fifth of the no-chip slack, fixed for the window, and the stage is the rest less the
+chips' room. Everything else in this paragraph stands.
 
 **Part 2 — the compact-narrow ribbon. The last yield, and it costs no readout.** Below
 `home_compact_threshold_width`, and only there, each progress pill takes the **compact pill**:
@@ -1835,6 +2314,10 @@ D-03i left them. Reading `maxWidth` costs nothing — it is a second read of a v
    requires. The floor is `home_stat_pill_compact_min_height` (**40dp**: `spacing_sm` + one
    `titleMedium` line + `spacing_sm`) and the design target for the whole band at 360dp width at
    default font scale is **≤ 56dp**, which criterion 15m measures rather than assumes.
+   *(Amended 2026-10-21 — **D-03o**, §4.2.6.)* "The label wraps" is superseded. No label or value is
+   ever broken inside a word or a number, and once any label no longer fits in half its pill's
+   content width, all three pills take the stacked shape at one height. The one-line shape, the
+   floor and the ≤ 56dp target at default font scale stand.
 3. **Nothing else about the ribbon changes.** Three pills, three labels, three values, equal
    `CONTENT_WEIGHT` widths, `spacing_sm` between them, `surfaceContainerHigh` +
    `clayShadow(elevation_card)`, `clayEntrance(RIBBON_ENTRANCE_ORDER)` on the `Row` so §10's
@@ -1900,6 +2383,11 @@ failing for fitting. The requirement bites where the overflow is, which is the n
 class.) The position is robust to the ribbon landing anywhere in its 40–72dp range: at 40dp the
 tile sits `492..608`, at 72dp `524..640`, and the fold at 568 cuts through it in every case.
 
+*(Pointer 2026-10-21.)* "A 360×640dp phone with both Continue chips scrolls" is true on the LEGACY
+arithmetic above and not on real metrics. On Robolectric NATIVE in the app theme, and on the device,
+that window overflows 0dp and does not scroll; the overflow branch is read on `w360dp-h560dp`
+(criterion 15k part 2's 2026-10-21 note). 15k and everything it requires stand.
+
 **Why the ribbon is not simply dropped**, since it saves 56–116dp and would make the arithmetic
 close (≈560dp against 568dp). Rejected three times over, recorded so it is not re-proposed as a
 "simplification":
@@ -1947,6 +2435,12 @@ it is trusted, which is the lesson of MB-1:
 > 5 of §4.2.2 gain one exception each, stated below. The ribbon, the Continue chips, the mode tiles,
 > the palette and the blobs are unchanged in design. The ribbon's **position** changes, and that is
 > the only consequence of the hero change for any band the founder asked to keep.
+>
+> *(Pointer 2026-10-21 — D-03n, §4.2.5.)* "The 3 : 1 ratio … untouched" no longer holds: the footer
+> is one fifth of the no-chip slack, fixed for the window, and the stage is the rest less the chips'
+> room. Wherever this subsection says the stage is weight 3 or three quarters of the slack, and the
+> footer weight 1 or a quarter, read §4.2.5. Everything else here stands: the hero row, the stage, its
+> art, its tokens, its position and the clause exceptions.
 
 **What the founder saw, measured off `home-founder.png`** (1080×2424px, a 411×923dp phone, one
 Classic Continue chip): the peg cluster (120dp) above a centred title; the ribbon; then **≈172dp of
@@ -1969,6 +2463,13 @@ set, exactly as before):
 
 The stage *replaces* the upper `Spacer` as a child, so the column has the same number of children
 and the same number of `spacedBy` gaps as before in every chip state.
+
+*(Amended 2026-10-21 — **D-03n**, §4.2.5. Rows 1s and 5's Height cells are superseded. The footer is
+one fifth of the slack the column has with **no** Continue chip, fixed for the window. The stage is
+the slack less the chips' room less that footer, and 0 when that is negative. Both stay empty of
+anything a player can tap or hear, and the stage's art rule below is unchanged. The ¾ / ¼ columns of
+the two arithmetic tables in this subsection are the record of the split this replaces; §4.2.5 has the
+new figures.)*
 
 *(Amended 2026-09-29 — **D-03m**. Row 1's Height cell is superseded. The hero row has **no minimum
 height of its own**. It is exactly as tall as its tallest child: the 48dp gear at default font scale,
@@ -2029,6 +2530,12 @@ is withdrawn, and the 72dp goes with it. Every other bullet above stands word fo
   instead of appearing unanimated while everything below it slides in; with animations off it is
   simply there. It adds no entrance order of its own, so §10's cascade and every chip's and tile's
   counted order are unchanged.
+
+*(Amended 2026-10-21 — **D-03n**, §4.2.5.)* In the first bullet, "`Modifier.weight(3f)` through the
+renamed constant" is superseded: the stage's height is max(0, ⅘ S₀ − R), and `STAGE_WEIGHT = 3f` is
+not to be rebuilt. "Static on every frame" in the fourth bullet means the board on the slab: no peg
+moves on it. When a Continue chip arrives or leaves while Home is drawn, the art's edge follows the
+stage's height through the transition (§4.2.5, "The motion"). Every other bullet stands.
 
 **The three clause exceptions, stated narrowly.**
 
@@ -2338,6 +2845,318 @@ No string, colour or dependency is added. One token is retired.
 - **15k's tests stand.** Any expected Robolectric overflow falls from ≈72dp to ≈48dp. That is still
   inside ≤ 120dp, and the fold still cuts through the second tile.
 
+#### 4.2.5 When the Continue chips arrive (D-03n — 2026-10-21 amendment)
+
+> **Status.** This answers the qa-engineer's loop-3 finding **F-1**
+> (`.planning/reports/15-founder-feedback/qa-engineer-loop3.md`) and the question the tech-lead's
+> phase-15 sign-off routed with it (Decision 3, `tech-lead-signoff.md`): may a Continue chip's arrival
+> move Home, and if not, which bounds are pinned? It applies to the branch that lands D-03n,
+> `bugfix/home-chip-arrival`, and retro-certifies nothing: phase 15 merged with F-1 routed, due
+> before `release/3.0.0` is cut. §4.2.2's mechanism stands except its 3 : 1 split. §4.2.4's stage, its
+> art, its tokens and its position stand except how the stage gets its height. Criteria 15f, 15k, 15p
+> and 15r stand, with the pointers noted below. Criterion 15g stands with one reading ruled: its
+> "unused space" is the no-chip slack S₀ (below, "How 15g's 'unused space' is read").
+
+**What QA recorded.** A cold start of a player with both saves, screen-recorded on the Pixel_9a at
+its native window and read frame by frame (`15f/r2/coldstart9s.mp4`, frames `f_020`–`f_035`):
+
+| Time | What the frame shows |
+|---|---|
+| 2.528–2.744s | Home's first frames, with no chip. The stage is an empty slab with no pegs, and the Classic tile has no art. |
+| 2.791s | The pegs and the tile art appear. |
+| 2.894s | Stars and Boards fill, and no pill moves (15f holds). |
+| 3.140s | Both Continue chips appear. The stage shrinks from ≈306dp to ≈163dp, and the ribbon and the tiles jump. Frame 32 catches the stage mid-redraw. |
+
+So two things change after first paint: the chips' arrival moves the layout, and two pictures
+arrive in two pieces. D-03n rules on both.
+
+**Why the chips are late, and stay late.** The chips are known only once `HomeViewModel`'s collector
+has opened and decoded both resume snapshots (`HomeViewModel.kt:209-238`). That decode is the guard
+against a phantom Continue that could only ever start a fresh board (WR-02, CR-01), and §6.5 forbids a
+blocking read before Home's first frame, so no mechanism brings the chips into frame 1 (sign-off
+Decision 3). Offering a chip from the saved-mode list before the decode would bring the phantom back;
+the tech-lead rejects it. The design therefore assumes the chips land after first paint — ≈0.6s on
+QA's AVD, later on a slow phone — and says what moves when they do.
+
+**What may move, and what may not.**
+
+| Element | When a chip arrives, or leaves |
+|---|---|
+| Hero row — title and gear | **Holds still.** Same bounds in every chip state. |
+| Stage | **Gives up exactly the chips' room.** Its art shrinks with it and, as before, is not drawn below `home_stage_art_min_size`. |
+| Progress ribbon | **Rides on the stage's bottom edge.** It moves up by exactly the chips' room; nothing else about it changes. |
+| Continue chips | Appear in the room the stage gave up, between the ribbon and the tiles, in their unchanged order. |
+| Mode tiles | **Hold still** — same bounds in every chip state — wherever the stage can give the room. Where it cannot, they move down by exactly the part it could not give, and no more. |
+| Footer — the space below the second tile | **Holds still** — fixed for the window — wherever the stage can give the room. Where it cannot, it gives up what the stage could not, down to 0, and the tiles move by that much. |
+
+A chip seldom *leaves* while Home is on screen — the account-switch dialog's "use cloud progress"
+can replace the saves — and then the same rule runs in reverse: the stage takes the room back, the
+ribbon rides down, and the tiles hold still.
+
+**The rule, stated once.** Every quantity is measured inside §4.2.2's unchanged `BoxWithConstraints`.
+
+- **S₀, the no-chip slack:** the available height, less the hero row, the ribbon, the two tiles, the
+  column's padding and the five band gaps the column has with no chip (the stage and the footer each
+  bring one at any height), floored at 0. It depends on the window, the font scale and those bands,
+  never on the chip state, so it is known in every state without measuring a chip that is not there.
+- **R, the chips' room:** for each Continue chip present, its height plus the one band gap it brings.
+  With no chip, R is 0.
+- **Footer** = min(S₀ ⁄ 5, max(0, S₀ − R)).
+- **Stage** = max(0, ⅘ S₀ − R).
+- So the column is exactly the available height while it fits. Once R exceeds S₀, both are 0, and the
+  column overflows and scrolls, as §4.2.2 has always required (criteria 14, 15i).
+- **The tiles move by max(0, R − ⅘ S₀)** from where they sit with no chip, and only downward. That is
+  0 whenever the stage can give the whole room.
+
+The stage is still the one child that holds a drawing in space no band claims (§4.2.2 clause 4's single
+exception), no content band takes slack (clause 4), and no slack sits between bands 3 and 4 (clause 6).
+How the two heights are produced is the developer's; a measure policy over the band column is one way.
+§4.2.2 clause 2's "the behaviour is the contract" applies, and if the mechanism needs more than layout
+the tech-lead rules on it (sign-off Decision 3, route step 2). The one fifth is a unitless ratio in a
+scoped constants object (§6.4), not a `dimens.xml` token.
+
+**Why one fifth — the device arithmetic.** These are QA's loop-3 readings, projected; the re-walk on the
+branch governs. On the native window of the Pixel_9a (411×923dp, 845dp usable), S₀ is 407.9dp — the
+no-chip stage slot of 305.9dp plus the ≈102dp footer — and each chip's room is 96dp: an 80dp chip and a
+16dp gap, which is why tile 1's top reads 557.3, 581.3 and 605.3dp with 0, 1 and 2 chips. On 360×640dp
+(564dp usable, the compact set), S₀ is 228dp and each chip's room is 88dp: an 80dp chip and an 8dp gap,
+from 15k's band edges. Each cell gives the stage / the footer / tile 1's top, in dp, top of screen = 0.
+
+| Window, chips | Today: ¼ of the current slack | ¼ of the no-chip slack | **D-03n: ⅕ of the no-chip slack** |
+|---|---|---|---|
+| Native, none | 305.9 / 102.0 / 557.3 | 305.9 / 102.0 / 557.3 | **326.3 / 81.6 / 577.7** — art at its 320dp cap, centred |
+| Native, one — the founder's | 233.9 / 78.0 / 581.3 | 209.9 / 102.0 / 557.3 | **230.3 / 81.6 / 577.7** |
+| Native, both | 161.9 / 54.0 / 605.3 | 113.9 / 102.0 / 557.3 | **134.3 / 81.6 / 577.7** |
+| 360×640, none | 171.0 / 57.0 / 343.0 | 171.0 / 57.0 / 343.0 | **182.4 / 45.6 / 354.4** |
+| 360×640, one | 105.0 / 35.0 / 365.0 | 83.0 / 57.0 / 343.0 | **94.4 / 45.6 / 354.4** |
+| 360×640, both | 39.0 / 13.0 / 387.0 | 0 / 52.0 / 348.0 — the tiles move 5dp | **6.4 / 45.6 / 354.4** — no art |
+
+Every native tile top in the table sits below that window's 15g midpoint (476.8dp), and every
+360×640dp tile top below that window's own content midpoint (334dp: 52 + 564 ÷ 2). Three reasons for
+one fifth:
+
+1. **It pins the tiles on every phone window measured.** A quarter of the no-chip slack pins them on the
+   native window but not at 360×640dp with both chips, where the stage cannot give the last 5dp
+   (171 against 176). One fifth leaves 6.4dp to spare there, on QA's device window (52dp status bar,
+   gesture handle, 564dp usable), and 9.6dp on 15s's design-baseline window (24dp status bar, 48dp
+   three-button bar, 568dp usable). *(Added 2026-10-23, after the loop-3 check, F-21.)* One phone
+   window is short: QA's device at 360×640dp with a 52dp status bar **and** a 48dp three-button bar
+   (540dp usable, S₀ 204dp) leaves the stage 163.2dp against both chips' 176dp, so there the tiles move
+   12.8dp, against 44dp under the 3 : 1 split. No ratio fixes that without breaking 15p part 1, so it
+   is ruled as 15t's shortfall case, and 15v records in gesture navigation (15v part 5).
+2. **It keeps the founder's own state where they approved it.** With one chip — the founder's state, and
+   the returning-player shots of H-4 — the board shrinks by 3.6dp and the tiles rise by 3.6dp. A quarter
+   of the no-chip slack would take 24dp off the board and lift the tiles 24dp.
+3. **It keeps the one-chip board a board down to the full set's threshold.** At exactly 720dp of
+   available height on the 412dp class, S₀ is ≈283dp. The one-chip stage is then ≈130dp under one fifth
+   and ≈116dp under a quarter of the no-chip slack — below 15p's 120dp art.
+
+**What it costs.** On a fresh install the tiles sit ≈20dp lower than in the H-4 shots 01/02, and the
+board reaches its 320dp cap with ≈3dp to spare on each side, so hero→art reads ≈19dp, inside 15p part
+1's 24dp. With both chips the board is ≈28dp smaller than today. The footer, the visible margin below
+the tiles, is 81.6dp on the native window and 45.6dp at 360×640dp in every chip state: a fifth of the
+no-chip slack, and far from the navigation bar. Against the *current* slack, though, it is 20 %, 26 %
+and 38 % on the native window with no, one and both chips, and up to ≈72 % at the pessimistic end of
+the 6.7-inch baseline. That breaks criterion 15g's "no more than a third of the screen's unused space"
+as long as "unused space" means the slack left once the chips are in. So the reading is ruled next.
+
+**How 15g's "unused space" is read under D-03n — ruled.** Criterion 15g requires, on a 6.7-inch
+phone with no chip and with both, that "the empty space left below the second mode tile is no more
+than a third of the screen's unused space". Under D-03i's 3 : 1 split the footer was always a quarter
+of the current slack, so the two possible readings never parted. Under D-03n they do. **Ruled: since
+D-03n, "the screen's unused space" in 15g is S₀, the slack the window leaves with no Continue chip,
+fixed for the window** — the quantity the footer is defined against. The empty space below the second
+tile is read as the footer itself (the band gap after the tile and the column's bottom padding are
+not slack; QA's loop-3 reading already subtracted them). On that reading the footer is one fifth in
+every state, inside the third with room, and 15g's other clauses — the first tile at or below the
+midpoint, no band pinned to the bottom edge, no single gap larger than the tiles — are unchanged and
+hold (the table above).
+- **Why this is the clause's intent and not a weakening.** 15g's third clause was written against
+  D-03i's fixed `Spacer`, which sent every unspent dp to the bottom: 45 % of the screen dead below the
+  tiles (`android-game-dev-s5-s8.md`). What it guards is that the bottom of the screen is not where
+  Home's room goes. A footer that holds still while the chips take their room from the stage above it
+  is not slack piling up at the bottom. Read against the current slack, the clause would fail the
+  layout precisely *because* the tiles held still, and the only way to pass it would be a footer that
+  shrinks as the chips arrive — which moves the tiles, the defect D-03n removes.
+- **No usable ratio passes both readings.** A footer fixed for the window meets the current-slack
+  reading with both chips only if it is at most a third of S₀ − R₂, and it meets 15p part 1 only if
+  the no-chip stage stays within the 320dp art cap plus 2 × 8dp, that is, if it is at least
+  S₀ − 336dp. On QA's native window (S₀ 407.9, R₂ 192) the first needs at most 0.1764 of S₀ and the
+  second at least 0.1763: a knife edge under 0.1dp wide, not a design. At the pessimistic end of the 6.7-inch
+  baseline (S₀ 343, R₂ 248) the first needs at most 0.092. Only a footer that shrinks as the chips
+  arrive — one that moves the tiles — meets the old reading on every phone.
+- **The size stays bounded.** The footer is S₀ ⁄ 5, and S₀ is less than Home's content height, so the
+  footer is always under a fifth of the screen's usable height. With its band gap and the bottom
+  padding, the bottom margin on QA's native window is ≈114dp of 845dp in every chip state.
+- **What QA reads.** 15g's third clause: the footer — from the second tile's bottom edge to the bottom
+  of the viewport, less one band gap and the column's bottom padding — is at most a third of S₀, in
+  both of 15g's states; under D-03n it is a fifth. S₀ is the no-chip stage slot plus the no-chip
+  footer, read on the same window in the no-chip state.
+
+**Considered and rejected.**
+
+- *Reserve the chips' room before they arrive.* A reserved slot is a blank band on every Home with fewer
+  saves than slots, a fresh install's included. That is the hole the founder named (Q-004), brought back
+  so it can be filled 0.6s later.
+- *Hold the ribbon, the chips and the tiles back until the chips are known.* No tile for 0.6s or more on
+  every cold start, longer on a slow phone. Delaying a primary action to keep a layout still is the wrong
+  trade, and first paint would no longer show the ribbon (15f).
+- *Offer a chip from the saved-mode list before the decode.* That is the phantom Continue that WR-02 and
+  CR-01 removed, and the tech-lead rejects it (sign-off Decision 3).
+- *Pin the ribbon and let the tiles move.* The tiles are what a thumb is heading for, so they are the most
+  expensive thing on the screen to move.
+- *Animate the tiles to their new place.* A target that glides under a thumb is still a target that
+  moved.
+- *Move the chips above the ribbon, or below the tiles.* Either changes the band order the founder kept
+  (Q-004) and splits "continue" from "play". The ribbon is read-only, so moving it costs nothing a player
+  aims at.
+- *Keep a quarter, taken of the no-chip slack.* The smallest change in spirit, but it fails all three
+  reasons above.
+
+**The motion.** The chips' room opens continuously from 0 to its full height over `ClayAnim.ENTRANCE_MS`,
+with `ClayAnim.ENTRANCE_EASING` and no overshoot. The room includes the chip's band gap, so no gap
+appears a frame ahead of its chip. In the same frames the stage gives up the same height, its art
+follows the stage's size, and the ribbon rides up on the stage's edge. The chip itself enters with its
+existing `clayEntrance` fade and slide, with one change: **a chip that arrives after first paint takes no
+stagger delay**. Its fade starts in the frame its room starts opening, so no empty room shows ahead of
+it. A chip present at first composition keeps its cascade order, 2..3, as §10 has it. Wherever the stage
+can give the room, it gives up in each frame exactly what the room takes, so the tiles hold still in
+every frame, not only at the end; in the shortfall case they move by the shortfall and no more. A chip
+leaving runs the same motion in reverse. With OS animations off (`rememberAnimationsEnabled()` false)
+the room is open, settled, in the next frame. The motion exists only when a chip arrives or leaves
+while Home is drawn; when the chips are already in `HomeUiState` as Home is composed, Home's first
+frame is the settled layout. Nothing is announced: there is no live region, TalkBack's focus stays
+where it is, and the chips join the traversal in their place (§11).
+
+**The stage art at the end of its range.** When a transition's final stage height is below
+`home_stage_art_min_size` — a two-chip arrival at 360×640dp takes the stage from 182.4dp to 6.4dp — the
+art does not shrink to the minimum and then vanish in one frame. It fades out over the same
+`ClayAnim.ENTRANCE_MS` while it shrinks, and is gone when the room has opened. A chip leaving fades it
+back in. When the final height is at or above the minimum, the art only follows the stage's size, as
+above. With animations off it is simply present or absent in the settled frame.
+
+**The entrance cascade and the room are independent.** §10's cascade moves a band by a drawing offset
+(`graphicsLayer` alpha and translation) and never moves its **layout** position, so the layout 15s pins
+is unaffected. A band's **drawn** position does move during the cascade, though, and the bounds a Compose
+test reads (`getBoundsInRoot()`, `positionInRoot()`) map through the layer's translation, so they move
+with it. A test that reads bounds therefore lets the cascade settle first (15u says so). If the chips
+land while the cascade is still running, no band's entrance restarts or changes its target, and each band
+finishes its entrance at its D-03n position; that case is read on the device (15v part 3), not on the
+JVM. Criterion 15v reads the device recordings that way: position with animations off, and position
+after the cascade settles with them on. *(Corrected 2026-10-23 after the loop-3 check, F-22: the
+2026-10-21 wording said the cascade "does not touch the bounds 15s and 15u pin", which is true of
+layout and false of test bounds.)*
+
+**The first frame is whole (part 4).** In QA's recording the stage slab and the Classic tile were drawn
+≈0.26s before their pegs and their art. Each of those pictures is one `BoardCanvas` draw of a constant
+(§4.2.4; §6.5's first-frame table), so none has a reason to arrive in two pieces: **the first frame in
+which the stage slab is drawn shows its pegs, and the first frame in which a mode tile is drawn shows its
+art.** The cause is not diagnosed here. It is the developer's to find on the same branch, and the
+tech-lead's to rule on if the fix needs more than drawing. §6.5's budget already counts these draws in
+the first frame, so drawing them whole asks for nothing the budget does not hold, and 15e measures it.
+
+**Cold start.** D-03n changes Home's first frame: the no-chip split goes from a quarter to a fifth, and
+the column's measuring changes in `ui/home/`, a start-path directory. So `bugfix/home-chip-arrival` sits
+its **own** 15e on `Pixel_9a_bench` (§6.5's "Any later branch" row, and its 2026-10-18 pointer), with
+arm A its merge-base with `develop`.
+
+**What does not change.**
+
+- the band order, and the chips' behaviour, data, copy and oracle status — §4.2.1's oracle 3, both chips
+  complete inside the first viewport on every window, holds because the room comes out of the stage
+  above the chips and never pushes a chip below the fold;
+- the stage's art, its tokens, its position and its decoration-only semantics;
+- criterion 15k: the 360×640dp column has the same total height in every chip state, so its overflow and
+  its fold are unchanged;
+- criteria 15l, 15m, 15n, 15o and 15q, the compact thresholds, and "never the font scale".
+
+**What this owes in tests.** This is the test the tech-lead's route names (sign-off Decision 3, step 3),
+stated as criteria 15s–15u. Each is watched failing once on today's code before it is trusted.
+
+- **15s.** Emit no chip → Classic only → both → none, and no chip → Challenge only → both, on each of 15p
+  part 2's six windows at default font scale, insets supplied, NATIVE metrics in the app theme. Assert the
+  hero row's and both tiles' bounds, the footer, the stage's fall and the ribbon's rise. Today's code
+  fails it: the tiles move 22–24dp per chip.
+- **15t.** The same emissions at font scale 2.0 on both baselines. The tiles move by exactly the shortfall.
+- **15u.** The transition, frame by frame on a paused test clock, with animations on and off.
+- Assertions that read a footer of a quarter of the current slack, or a stage of three quarters of it
+  (`HomeStageTest`, and `HomeLayoutTest`'s 15g and 15p cases), are **retargeted** to the one-fifth footer
+  and the D-03n stage. 15g's third clause is asserted against S₀, as ruled above: the footer is at most a
+  third of S₀ — under D-03n, a fifth — in both of 15g's states. None is deleted or `@Ignore`d (§13).
+- **15v** is a device check: QA's recorded cold start, on the bench only after the branch's own 15e
+  sitting, in the same session (criterion 15v).
+
+#### 4.2.6 The progress pill at a large font scale (D-03o — 2026-10-21 amendment)
+
+> **Status.** This answers the qa-engineer's **O-2** (`15-founder-feedback/qa-engineer.md`), carried open
+> through loop 3 as "worse in Nunito", and this role's **R-3** (`ux-designer-15p.md`), both routed by the
+> tech-lead's sign-off. It applies to the branch that lands D-03o, `bugfix/home-chip-arrival`. D-03k
+> part 2's compact pill stands word for word at default font scale. What changes is what the pill does
+> when its label and its value can no longer sit side by side. Criteria 14, 15i and 15m stand.
+
+**What QA saw.** At 360dp and font scale 2.0 the compact pills read "Sta/rs", "Bo/ard/s" over three
+lines, and "Leve/l" (`qa-engineer-loop3.md`, `fs2/sheet-c360.png`). Nothing is clipped. The cause is in
+the shape D-03k specified: the value is measured first, and the label, weighted, gets what is left of the
+pill's ≈93dp. At 2.0 that is ≈47dp (`ux-designer-15p.md` R-3), and a word wider than its line is
+broken wherever it falls. Nunito is wider than Roboto, so it got worse. That same R-3 (not §7's data
+requirement R-3) also found a second half: at 200% a value's first
+emission ("—" is 0.68em, "401" 1.52em) can move a label from one line to two, which is a layout shift at
+first emission, against 15f.
+
+**The rule.**
+
+1. **No break inside a word or a number.** A pill's label and its value break only between words, in
+   both pill shapes, at every font scale, on every supported window. Every label is one word and every
+   value one token, so in practice neither ever breaks.
+2. **One shape per ribbon, decided by the labels.** On the narrow class the compact pill keeps D-03k
+   part 2's shape — label beside value, one line — while **every** label, measured, fits in **half** of
+   its pill's content width. Once any one does not, **all three** pills take the **stacked** shape: the
+   label on its own line and the value centred on the line under it, `spacing_xs` between them,
+   `spacing_sm` padding, no glyph. That is §4.2's full pill without its glyph. All three are then one
+   height, the tallest's.
+3. **The values never decide the shape, except in rule 4's case.** A value is "—" at first paint and a
+   number a moment later. Deciding from the labels means its arrival can change no pill's shape or
+   height (15f), with the one exception rule 4 names. The font scale does not decide it directly either
+   (§4.2.2): the labels are measured, so the shape follows what the text needs on this window.
+4. **The label is never squeezed.** In the side-by-side shape the label takes its own width and the value
+   the rest. A value too wide for the rest moves under its label, in that pill alone: the one case in
+   which a value decides a pill's shape and the three pills do not share one. On today's numbers it
+   needs a six-digit total, a hundred thousand stars, at a font scale between about 1.07× and 1.12× on a
+   360dp phone (an OEM's 1.1× step, say), because the ribbon stacks as a whole above about 1.12×. It is
+   named so it is not a surprise, not because it is expected.
+5. **Unchanged:** three pills, equal widths, `spacing_sm` between them, the clay surface, the entrance
+   order, no glyph on the narrow class, not tappable, not focusable, one `clearAndSetSemantics` node per
+   pill speaking "label, value" byte for byte, the placeholder rule, no truncation and no scaling down.
+   The pills grow, the band grows and the column scrolls (criteria 14, 15i). No new string, token or
+   colour.
+
+**Why half.** Half is the line where a side-by-side pill stops reading as a label and a value and starts
+reading as a label crowding a number. At default font scale on a 360dp window the widest label,
+"Boards", takes ≈42dp of the ≈47dp half, tracking included (an estimate; 15w measures), so D-03k's
+one-line pill, and with it 15m's ≤ 56dp band and 15k's arithmetic, is untouched. The line is crossed
+well before 2.0. If at default font
+scale any label measures more than half its pill, that is a failure of this ruling, and it comes back to
+the ux-designer with the numbers: 15m's one-line shape at default scale is not traded for it.
+
+**The fit at 360dp and font scale 2.0.** These are estimates; criterion 15w measures in the real faces.
+The pill is (360 − 2×8 − 2×8) ÷ 3 ≈ 109.3dp wide, and its content ≈93.3dp. Font scale 2.0 exists only
+on API 34+, whose non-linear table maps `labelMedium`'s 12sp to 24dp and `titleMedium`'s 16sp to 28dp;
+API ≤ 33 stops at 1.3×.
+
+| Text, at 2.0 | Width | Against ≈93.3dp of content |
+|---|---|---|
+| "Boards" (Nunito SemiBold) | ≈77–84dp | Whole on one line. More than half, so the ribbon stacks. |
+| "Stars", "Level" | ≈56–62dp | Whole |
+| "401", "0/5" (Fredoka Medium) | ≈42–45dp | Whole |
+| A five-digit level, "12345" | ≈75dp | Whole |
+
+On the full pill (≥ 400dp of width), which already stacks, the content is ≈100dp at 412dp, so the rule
+binds there only as "no break". Nothing changes on that class.
+
+**What this owes in tests:** criterion 15w. Today's code fails it at 2.0 (the labels lay out on two and
+three lines). `HomeProgressRibbon`'s KDoc on the weighted label is the developer's to update with the
+code.
+
 ### 4.3 Gameplay status strip — `GameStatusStrip.kt` (CLAS-02, SCOR-02, D-04/D-05a/D-05b)
 
 > *(Amended 2026-09-28 — founder-feedback amendment, **D-05d**, §4.3.1. The Centre row's
@@ -2357,6 +3176,11 @@ transparent, `statusBarsPadding()`, `spacing_md` horizontal padding, `CenterVert
 
 > `elapsed_time` must stay the timer's content description: `GameFlowTest.kt:129` locates it by
 > that string.
+>
+> *(Amended 2026-10-21 — **D-05e**, §4.3.2.)* `elapsed_time` stays, with its value, as the **label at
+> the start** of the timer's description, which is now the label followed by the spoken duration
+> ("Elapsed time, 5 minutes, 12 seconds"). A test that finds the timer by the exact `elapsed_time`
+> string is retargeted (§4.3.2, §13); the sentence above is kept as the record.
 
 No actions live here. The strip is status only, which is what lets it be this quiet.
 
@@ -2370,6 +3194,8 @@ No actions live here. The strip is status only, which is what lets it be this qu
 > (`app_name` for Classic; `challenge_level_indicator` with its `_desc` for Challenge), `navigate_back`,
 > `elapsed_time`, the heading semantics, start alignment, "no actions live here", the strip's 56dp
 > minimum height and its `spacing_md` sides.
+> *(Pointer 2026-10-21 — D-05e.)* `elapsed_time` is unchanged as a string. It is no longer the
+> timer's whole description, only its first part; §4.3.2 has the rest.
 
 | Slot | Before (§4.3) | After (D-05d) |
 |------|---------------|---------------|
@@ -2439,6 +3265,88 @@ the text layout), 18b (the strip's top edge and the dock's bottom edge against s
 (the board slab's edge at 1.0 and 2.0 font scale), 18d (the pill's width across ticks, on a device)
 and 18e (at 200% the timer is fully shown and only the title may ellipsise).
 
+#### 4.3.2 How the timer speaks (D-05e — 2026-10-21 amendment)
+
+> **Status.** This answers the qa-engineer's loop-2 **O-A**, the code-auditor's **A-8** and **I-2**, and
+> the spoken-order half of criterion 26, all routed by the tech-lead's phase-15 sign-off. It applies to
+> the branch that lands D-05e. It amends the timer's content description and nothing else: the clock's
+> look, its digit cells, its node shape (one node, the cells hidden from accessibility — the N-2 guard
+> in `TimerDigitsTest`), the pill and every other slot of the strip are unchanged.
+
+**The finding.** On every reading so far the clock's one accessibility node has carried the text
+"05:12" and the description "Elapsed time", with its five digit cells hidden (`qa-engineer-loop2.md`;
+`code-auditor-loop2.md` I-2; `code-auditor-loop3.md` N-2). TalkBack speaks a node's description in place
+of its text, so a TalkBack player hears "Elapsed time" and never the time. Nobody has captured the
+utterance, because adb cannot drive TalkBack's gestures, but the node's shape allows no other reading.
+
+**The spoken form.** The description is `elapsed_time_spoken`: the label `elapsed_time` ("Elapsed time"),
+a comma, and the elapsed time as a duration.
+
+| The pill shows | TalkBack says |
+|---|---|
+| 00:00 | "Elapsed time, 0 seconds" |
+| 00:01 | "Elapsed time, 1 second" |
+| 00:45 | "Elapsed time, 45 seconds" |
+| 01:00 | "Elapsed time, 1 minute" |
+| 01:01 | "Elapsed time, 1 minute, 1 second" |
+| 05:12 | "Elapsed time, 5 minutes, 12 seconds" |
+| 12:00 | "Elapsed time, 12 minutes" |
+| 59:59 | "Elapsed time, 59 minutes, 59 seconds" |
+| 100:00 | "Elapsed time, 100 minutes" |
+
+- Minutes are said when there is at least one. Seconds are said when there is at least one, or when the
+  whole time is zero. Minutes are never rolled into hours, just as the clock never rolls them
+  (`GameTimerFormat`): the pill shows "100:00" and TalkBack says "100 minutes".
+- "minute"/"minutes" and "second"/"seconds" come from `plurals` resources, as the app's three existing
+  plurals do. The comma-joined parts are format strings, so their order belongs to the copy and not to
+  the code (§8).
+- The description is computed from the same elapsed seconds as the clock, in the same composition, so
+  what TalkBack says and what the pill shows cannot disagree.
+
+**Where it lives, and what does not change.**
+
+- **One focus stop:** the clock's existing node. The cells stay hidden, the pill is not a second stop,
+  and the node has no heading semantics and no role. In the strip it is the third stop: back → title →
+  timer (§11).
+- **It is never announced on its own.** There is no live region, polite or assertive: a timer that
+  spoke every second would talk over the game. TalkBack reads it when the player moves to it, by swipe
+  or by touch, and at no other time.
+- **The description changes every second while the clock runs.** If TalkBack, on the device, speaks the
+  timer again while focus rests on it — the reading criterion 18g captures — then the spoken duration is
+  carried in **whole minutes** instead: "Elapsed time, 5 minutes", and "Elapsed time, under a minute"
+  below one minute, so it changes at most once a minute. The label, the one stop and the no-live-region
+  rule stand either way. The fallback is decided here so that a device finding needs a code change and
+  not a new ruling.
+
+**Considered and rejected.**
+
+- *Drop the description and let TalkBack read the text.* "05:12" is then read as a time of day or digit
+  by digit, depending on the voice, and the stop loses the label that says what it is.
+- *Keep `elapsed_time` as the description and carry the value as a state description.* QA's TalkBack
+  speaks state before name ("On, Show possible moves, Switch", `15-founder-feedback/qa-engineer.md`,
+  21d), so the stop would say "5 minutes, 12 seconds, Elapsed time". TalkBack also speaks a change of
+  state on the focused node, so it would speak every second. One description fixes the order and stays
+  quiet.
+- *Fold the time into the title's stop.* The title is a heading, read once per game. The time is what a
+  player checks again and again, and it needs a stop of its own to be found by swiping.
+- *Announce the time at milestones, say every minute.* That is a live region by another name; nobody
+  asked for it, and it would talk over the board's own feedback.
+
+**Test impact.** Three tests find the timer by the exact `elapsed_time` string and will stop finding it:
+`GameFlowTest.kt:129`, `GameScreenChromeTest.kt:62` and `:75`, and the helper at
+`GameStatusStripTest.kt:312-314`. They are **retargeted**, never deleted and never `@Ignore`d: find the
+clock through `GAME_TIMER_PILL_TEST_TAG` and the node inside it, or by the label as a substring of the
+description, and assert the whole sentence wherever the test is about the timer. §13's "passes
+unchanged" rows for `GameFlowTest.kt:129` are superseded by this paragraph. New and owed: criterion 18f's
+table test, watched failing on today's code, and the device capture, 18g.
+
+**Criterion 26's spoken order.** The order in which TalkBack visits and speaks the refreshed screens'
+stops has never been captured: criterion 26 has read "PARTIAL — the TalkBack half is not settled" since
+the phase-15 QA pass (`phase-15/qa-engineer.md`). Criterion **26b** now lists, for each screen, the stops
+in order and the string each must speak, from §11's traversal and §8's strings. The qa-engineer reads it
+off TalkBack's speech output in one sitting with 18g. The order inside one utterance — name, role, state
+— is TalkBack's own, varies by version, and is not judged.
+
 ### 4.4 Gameplay action dock — `GameActionDock.kt` (ASST-01, ASST-02, D-04/D-04a–d), and the tutorial's wrong-tap contract (D-01c, D-01h)
 
 > Two unrelated surfaces share this section because the second is a single table: the dock below,
@@ -2485,6 +3393,12 @@ never correction:
 | Tapped a peg with no legal jump | The peg selects and draws zero destination dots. After `TutorialAnim.NUDGE_DELAY_MS` with no progress, the coachable peg's ring re-pulses — and if the immovable peg is **still held** at that moment, the escalation puts it back down first (the release clause in class 3 below), so the peg the coach points at can be tapped straight away. **That release, not a second tap rule, is how a player holding an immovable peg is freed** (§4.1 "Tap semantics"). **Silent** (D-01h, upheld by D-01i) — the ring and the absent dots are the whole answer, and no `Select` or `Deselect` cue fires either. |
 | Tapped anything that is not a legal destination while a peg is selected — an illegal hole, an out-of-play cell, **or another peg** | The legal dots re-pop and the selection is kept. Nothing is lost, nothing is announced as wrong. **Another peg belongs to this class and is not a re-selection** (§4.1 "Tap semantics", ruled 2026-09-21): the held peg stays held, exactly as on the gameplay board (`GameViewModel.kt:788-796`, `:817`, `:823`), and recovery is the game's own — re-tap the held peg to put it down, then tap the other. **Silent** (D-01h, upheld by D-01i): the in-game `InvalidTap` cue is deliberately *not* carried into the tutorial, because a rejection sound is the one channel that would make a wrong tap feel like a failure — which D-01c forbids. This is the one reason in D-01h that carried its own weight, and D-01i upholds it without reservation. |
 | Three consecutive non-progressing taps in a step (`TutorialAnim.NON_PROGRESSING_TAPS_BEFORE_COACH`), or `TutorialAnim.NUDGE_DELAY_MS` of idleness | The coach escalates once: the source ring pulses **and** the destination dot brightens **and** the caption re-shows the step's own caption. It never escalates past this, it never blocks, and **it never mentions Undo** — no tutorial board can box the player in, so there is nothing to be rescued from, and promising a rescue from an impossible failure teaches the player to expect failure. |
+
+*(Pointer 2026-10-23 — D-TB as amended by D-TBa, items 2 and 3; §11.1.)* With TalkBack on, class 2's
+taps and an empty-hole tap with nothing held are each spoken in one of D-TB's neutral lines: "Not a
+jump target.", "Put down the selected peg first." or "No peg here.". "Nothing is announced as wrong"
+still holds, because no line says the tap was wrong. The rows' **Silent** is about cues and stays true:
+a spoken line is not a cue. Class 3's coach also speaks the hint line (§11.1).
 
 **The release clause** *(ruled 2026-09-21, with §4.1's tap semantics)*. **When the escalation fires
 while a peg is held that is *not* the peg the coach is about to point at, the escalation puts that
@@ -3088,7 +4002,7 @@ declared even where an existing token shares its value. All multiples of 4.
 
 | Token | Value | Owner |
 |-------|-------|-------|
-| `tutorial_board_size` | 280dp | The tutorial's interactive board slab — the largest footprint is 3×3, so ≈93dp cells, well above §11's 48dp floor |
+| `tutorial_board_size` | 280dp | The tutorial's interactive board slab — the largest footprint is 3×3, so ≈93dp cells, well above §11's 48dp floor. *(Pointer 2026-10-24, loop-5 F-41: ≈82.7dp once the slab's `spacing_md` padding is counted; still above 48dp.)* |
 | `tutorial_caption_min_height` | 48dp | Reserved caption height (1↔2 line swap must not reflow the board) |
 | `tutorial_step_pip_size` | 12dp | One progress pip |
 | `game_status_strip_height` | 56dp | The gameplay status strip |
@@ -3144,6 +4058,10 @@ default font scale (`HomeProgressRibbon.kt:129-163`), and it measured **116dp** 
 (§4.2.2). The token is harmless and stays as it is; it is recorded here so nobody reads it as the
 band's height again, which is the mistake §4.2.2's first-edition arithmetic made.
 
+*(2026-10-21, D-03o.)* `home_stat_pill_compact_min_height` stays a floor at 40dp. Its row's "the label
+wraps" now means: once any label no longer fits in half its pill, all three pills stack, and no label
+or value is broken inside a word (§4.2.6). No token is added, changed or retired by this amendment.
+
 **Reused unchanged:** `spacing_xs/sm/md/lg/xl`, `content_max_width`, `mode_tile_min_height`,
 `resume_tile_min_height`, `settings_row_min_height`, `settings_row_icon_size`, `top_bar_icon_size`,
 `elevation_card`, `elevation_pressed`, `elevation_dialog`, `entrance_slide_distance`,
@@ -3186,6 +4104,32 @@ text and an `onSurfaceVariant` glyph: the clay snackbar's neutral message roles.
 `errorContainer`, the rescue banner's problem role, and never gold or `tertiary`, which mean a
 revealed hint. **Still no new colour, no new gradient, no hex.**
 
+**The system bars take the theme** *(added 2026-10-21 — **D-05f**, app-wide)*. Edge to edge, the
+system bars have no colour of the app's own. What the app decides is their **appearance**, light or dark,
+and that follows the theme on every screen:
+
+| Bar | Light theme | Dark theme |
+|---|---|---|
+| Status bar | Dark icons over the app's background. Since the tech-lead's F-2 fix (sign-off Decision 3, H-2) | Light icons. Since H-2 |
+| Navigation bar, three-button | The platform's light scrim, dark buttons. **Unchanged** | **The platform's dark scrim, light buttons.** New; today it is a light grey scrim, `#cdccd0`, with buttons at 3.59:1 |
+| Navigation bar, gesture | A dark handle | A light handle |
+
+- **Contrast:** the navigation buttons, and the gesture handle, are ≥ 3:1 against what is behind them, in
+  both themes (WCAG 1.4.11; §11). The status-bar icons are unchanged from H-2.
+- **No colour is added.** The scrims are the platform's; the app chooses only light or dark, so the "no
+  hex" rule and `Color.kt` are untouched.
+- **The window theme sets it, not Compose,** so it holds from the window's first frame, before any
+  composition, exactly as the status bar's fix does. The tech-lead has given the mechanism
+  (`tech-lead-signoff-close.md`, INFO row 9): `android:windowLightNavigationBar` true in light and false
+  in night. The attribute is API 27, and minSdk is 24, so it goes in `values-v27/` and
+  `values-night-v27/`, each restating the whole style, because styles do not merge across qualifiers;
+  a `WindowThemeTest` case pins it. On API 24–26 the platform's own navigation bar stays as it is in both
+  themes; this ruling asks nothing of it.
+- **Where it lands.** The window theme is a start-path file, so the change rides a branch that sits its
+  own 15e: `bugfix/home-chip-arrival`, which sits one under D-03n, and `feature/candy-backdrop` only if
+  that branch does not (`tech-lead-signoff-close.md`, INFO row 9). The device check covers three-button
+  and gesture navigation in both themes (criterion 29).
+
 ### 6.3 Typography
 
 M3 roles only, per the Fredoka/Nunito mapping in the design system. Home title `displaySmall`;
@@ -3219,6 +4163,11 @@ New constants go in a scoped `TutorialAnim` object (unitless ms/floats, so not `
 - `HINT_NOTICE_EXIT_MS` = **160**: the notice's fade-out, two thirds of `ClayAnim.ENTRANCE_MS`.
 
 The notice's entrance reuses `clayEntrance`. See §4.4.2 and §10.
+
+*(2026-10-21, D-03n.)* Home's two slack weights (3 and 1) give way to one unitless ratio, the footer's
+share of the no-chip slack (one fifth), named in the home package's scoped constants the way the two
+weights were. The chips' room opens with `ClayAnim.ENTRANCE_MS` and `ClayAnim.ENTRANCE_EASING`; no new
+duration or curve.
 
 ### 6.5 Cold-start budget for Home (D-03g)
 
@@ -3296,6 +4245,9 @@ that step brings back **the very blank band the founder objected to** (≈150–
 phone, §4.2.4) and fails criterion 15p, so it is taken only if a measured sitting forces it, and
 taking it sends 15p back to this role with the numbers rather than closing it. Q-901's "option 3",
 which this step used to name, no longer exists: the hero is a title row either way.
+*(Pointer 2026-10-23 — D-03n, §4.2.5.)* "≈150–280dp" is the 3 : 1 split's range. Under D-03n, step 3
+would leave a blank of 134.3–326.3dp on QA's 6.7-inch window (the stage with both, one and no chips),
+which makes its price higher, not lower. The rest of the paragraph stands.
 
 *(2026-09-29.)* If 15e fails on the build that first bundles the faces, the tech-lead rules on their
 share before any step is taken: the steps remove art, and removing art cannot pay for type.
@@ -3389,6 +4341,25 @@ relative one, which held within 2 ms across that same 1.83× swing, is kept.
 branch's head **after both D-03m and the bundled fonts**, because both change Home's first frame. A
 sitting on an earlier head is not the gate's reading.
 
+*(2026-10-18.)* Arm A is the merge-base of `develop` and the branch at the sitting, so A..B is exactly
+the branch's diff; arm B is the head that also carries the light-status-bar fix (sign-off H-2). A
+later `develop` merge-in leaves the sitting standing unless it changes a start-path file.
+*(Tech-lead phase-15 sign-off, Decision 1, `.planning/reports/15-founder-feedback/tech-lead-signoff.md`;
+folded 2026-10-21 by the ux-designer. The sign-off names the start-path files: `App.kt`,
+`MainActivity.kt`, `di/`, `navigation/`, `ui/home/`, `ui/theme/`, `res/font/`,
+`res/values/themes.xml` and `AndroidManifest.xml`. "Arm A = `develop`" in the table and the pointer
+above is superseded by this sentence and kept as the record. Phase 15's sitting was sat on
+2026-10-18 on `Pixel_9a_bench` and passed: delta 33.0 ms, floor 3.0 ms, arm A `c3d3437`, arm B
+`ee16a2a`, `.planning/phases/15-ux-refresh/15-BUILD-EVIDENCE.md`.)*
+
+*(Note 2026-10-21 — ux-designer, on the start-path list just above.)* The list is Decision 1's as the
+tech-lead wrote it, which predates H-2's `res/values-night/themes.xml`. The tech-lead's close report
+already treats that file as a start-path file (its Checks, `tech-lead-signoff-close.md`) and calls the
+two theme files D-05f adds, `values-v27/` and `values-night-v27/`, start-path files too (INFO row 9).
+So "`res/values/themes.xml`" in the list reads as **every `res/values*/themes.xml`**: a merge-in that
+changes any of them does not leave a sitting standing. If the tech-lead's `docs/tech-design.md` §10
+states the list differently, that text governs.
+
 **Preconditions — every one recorded with its value in the evidence table. If any fails, the
 sitting is VOID, not failed.**
 
@@ -3396,7 +4367,28 @@ sitting is VOID, not failed.**
    duration scale: off), the same device state criteria 7c and 25 are run in. *(Added 2026-09-29.)*
    A sitting on any other AVD is VOID; the `Pixel_9` is not a substitute (tech-lead-fonts.md,
    Ruling 2).
+
+   *(Amended 2026-10-18 — tech-lead phase-15 sign-off, Decision 1, on the qa-engineer's loop-3 E-1:
+   the `Pixel_9a`'s `/data` was 95 % full and refused both arms.)* The AVD is **`Pixel_9a_bench`**:
+   the `Pixel_9a`'s hardware profile and system image (`android-36.1` `google_apis_playstore_ps16k`,
+   arm64, 16 KB pages, 4 cores, 2 GB RAM, 1080×2424 at 420 dpi) with a 16 GB data partition, used for
+   no other testing. A sitting on any other AVD is VOID; neither the `Pixel_9` nor the `Pixel_9a` is
+   a substitute.
+
+   *(Amended 2026-10-21 — tech-lead, phase-15 close, D-1.)* The bench may be made with `avdmanager`
+   or by copying `Pixel_9a.avd`'s `config.ini` and `.ini`. Either way each sitting records the diff
+   against `Pixel_9a.avd`. Only the name, the paths and `disk.dataPartition.size` may differ; any
+   other difference makes the sitting VOID.
+
+   *(Folded 2026-10-21 by the ux-designer, from
+   `.planning/reports/15-founder-feedback/tech-lead-signoff.md` "Text for other roles' files" and
+   `tech-lead-signoff-close.md` fold b; both amendments are the tech-lead's wording, applied as
+   given.)* Superseded and kept as the record: "AVD `Pixel_9a`" at the head of this precondition, and
+   the 2026-09-29 sentence "A sitting on any other AVD is VOID; the `Pixel_9` is not a substitute".
+   Everything else in this precondition stands: API 36, the debug variant, OS animations off.
 2. **Exactly one emulator running.** A second `Pixel_9` must be shut down, not merely idle.
+   *(2026-10-21 pointer — sign-off Decision 1, P-4.)* With the bench as the instrument, that means
+   the `Pixel_9a` and the `Pixel_9` are both shut down, and the bench alone runs.
 3. **No concurrent Gradle build in any worktree**, and no other agent session building or
    measuring on this host.
 4. `uptime` recorded **before** the sitting, with the emulator idle on the launcher for ≥ 60 s, and
@@ -3410,6 +4402,10 @@ sitting is VOID, not failed.**
 5. ART state normalised on **both** arms before measuring —
    `adb shell cmd package compile -m speed -f com.erman.pegsolitarie` — so JIT/AOT warm-up is not a
    free variable between the arms.
+   *(Note 2026-10-21 — tech-lead, phase-15 close, "Precondition 5, as QA read it, is accepted";
+   folded by the ux-designer.)* A debuggable APK stays at `[status=verify]` after
+   `compile -m speed -f`. The precondition holds when both arms read the same status: equal ART
+   state between the arms is what it protects.
 6. The launch component **resolved from the device, never assumed** — the first edition's
    `cmd package resolve-activity --brief` form, unchanged, and still the one failure mode that
    costs the gate its evidence rather than its pass.
@@ -3427,6 +4423,9 @@ sitting is VOID, not failed.**
    *First wording, superseded 2026-09-29 and kept as the record:* "Both arms **installed and kept
    installed** for the whole sitting."
 8. The first edition's seeded **~200-level** Challenge ladder, identical on both arms.
+9. `/data` free ≥ 4 GB (`dumpsys diskstats`, `Data-Free`) at the start and the end of the sitting,
+   both recorded. *(Added 2026-10-18 — tech-lead phase-15 sign-off, Decision 1 (P-3); folded
+   2026-10-21 by the ux-designer.)*
 
 *(Note 2026-09-29 — reading precondition 1 beside 3 and 7, under the tech-lead's Ruling 2.)*
 `:app:installDebug` in precondition 1 and in criterion 15e names the **debug variant**, not a command
@@ -3434,6 +4433,11 @@ run during the sitting. Both arms are built beforehand with `:app:assembleDebug`
 clean worktree, and the daemons are stopped. Each arm is then installed only at a block boundary, by
 precondition 7's `adb install`, so no Gradle process runs while the sitting is timed (precondition
 3). The full procedure, with every step and what it records, is Ruling 2 in `tech-lead-fonts.md`.
+*(2026-10-21 pointer.)* Ruling 2 as amended by the tech-lead's phase-15 sign-off, Decision 1 — P-1 the
+bench, built once; P-2 the arms; P-3 storage, precondition 9; P-4 the quiet host — and by the close
+report's D-1 (`.planning/reports/15-founder-feedback/tech-lead-signoff.md`,
+`tech-lead-signoff-close.md`). Later sittings do not rebuild the bench; each records its `config.ini`
+diff and both `Data-Free` readings again.
 
 **Protocol — three steps, in this order.**
 
@@ -3445,6 +4449,9 @@ precondition 7's `adb install`, so no Gradle process runs while the sitting is t
    run one arm to completion and then the other** — blocked arms are exactly what the two nulls
    measured, and what produced the 57–59 ms floor.
 3. Arm A = the `develop` build; arm B = the branch build.
+   *(2026-10-21 pointer — tech-lead phase-15 sign-off, Decision 1.)* Arm A is the merge-base of
+   `develop` and the branch at the sitting, not `develop`'s head (the 2026-10-18 pointer under
+   "Which builds" above). The words above are kept as the record.
 
 **Verdict — one comparison, three outcomes, no second judgement call.**
 
@@ -3471,6 +4478,10 @@ precision caveat — recorded on the slice that runs it. **Added:** the **null-c
 eight preconditions with their recorded values, both `uptime` readings, and the computed `floor` and
 threshold. A sitting reported without its null table cannot be checked by anyone and counts as
 **void**.
+*(2026-10-21 pointer — tech-lead phase-15 sign-off Decision 1 and close D-1; folded by the
+ux-designer.)* "Eight preconditions" reads **nine** since precondition 9 was added on 2026-10-18.
+Each sitting also records the bench's `config.ini` diff against `Pixel_9a.avd` (precondition 1;
+a diff with any extra key makes the sitting VOID) and both `Data-Free` readings (precondition 9).
 
 **Criterion 15f does not travel with 15e.** 15f is the visual check that Home's first paint shows
 "—" placeholders with no spinner, no blank band, no blocked screen and no reflow as the values
@@ -3596,6 +4607,75 @@ keep their values and gain a narrower or a new use:
   (§4.4.2, last subsection).
 - **`hint_thinking`** ("Finding a move") is unchanged.
 
+**Added 2026-10-21 — D-05e, the timer's spoken form (§4.3.2).** Two strings and two plurals, plus a
+third string only if the fallback is taken:
+
+| Name | Value | Where |
+|------|-------|-------|
+| `elapsed_time_spoken` | `%1$s, %2$s` | The timer's content description: `elapsed_time`, then the spoken duration |
+| `duration_minutes` (plurals) | one: `%d minute` · other: `%d minutes` | The minutes part |
+| `duration_seconds` (plurals) | one: `%d second` · other: `%d seconds` | The seconds part |
+| `duration_minutes_seconds` | `%1$s, %2$s` | The minutes part, then the seconds part, when both are said |
+| `duration_under_a_minute` | `under a minute` | **Only with D-05e's whole-minute fallback**, if criterion 18g finds TalkBack re-speaking the timer; otherwise it is not added |
+
+**Added 2026-10-23 — D-TB, the board with TalkBack (§11.1).** Every string is spoken, never drawn.
+
+| Name | Value | Where |
+|------|-------|-------|
+| `board_a11y_label` | `Board, %1$s` | The board stop; %1$s is `board_a11y_pegs_left` |
+| `board_a11y_pegs_left` (plurals) | one: `%d peg left` · other: `%d pegs left` | The board stop, the jump, undo and restart lines, Results' summary |
+| `board_a11y_separator` | `, ` | Joins a cell's parts |
+| `board_a11y_position` | `Row %1$d, column %2$d` | A cell's first part |
+| `board_a11y_peg` | `peg` | A cell's content |
+| `board_a11y_empty` | `empty` | A cell's content |
+| `board_a11y_selected` | `selected` | The selected peg |
+| `board_a11y_jumps` (plurals) | one: `%d jump` · other: `%d jumps` | A peg's legal jumps |
+| `board_a11y_no_jumps` | `no jumps` | A peg with none |
+| `board_a11y_jump_target` | `jump target` | A legal destination of the selected peg |
+| `board_a11y_hint_source` | `hint, move this peg` | The hint's source peg |
+| `board_a11y_hint_target` | `hint, land here` | The hint's destination hole |
+| `board_a11y_action_select` | `select` | The tap's action label on a peg, nothing selected |
+| `board_a11y_action_put_down` | `put down` | The tap's action label on the selected peg |
+| `board_a11y_action_jump_here` | `jump here` | The tap's action label on a jump target |
+| `board_a11y_action_jump` | `Jump %1$s to row %2$d, column %3$d` | One custom action per legal jump |
+| `board_a11y_direction_up` | `up` | A jump's direction |
+| `board_a11y_direction_down` | `down` | A jump's direction |
+| `board_a11y_direction_left` | `left` | A jump's direction |
+| `board_a11y_direction_right` | `right` | A jump's direction |
+| `board_a11y_announce_selected` | `Selected row %1$d, column %2$d, %3$s.` | A selection |
+| `board_a11y_announce_put_down` | `Peg put down, row %1$d, column %2$d.` | A put-down *(value amended 2026-10-23, loop 4, D-TBa; below)* |
+| `board_a11y_announce_jump` | `Row %1$d, column %2$d to row %3$d, column %4$d. Removed row %5$d, column %6$d. %7$s.` | A jump |
+| `board_a11y_rejected_no_peg` | `No peg here.` | A rejected tap on an empty hole, nothing selected |
+| `board_a11y_rejected_not_target` | `Not a jump target.` | A rejected tap on a non-target hole, a peg selected |
+| `board_a11y_rejected_put_down_first` | `Put down the selected peg first.` | A rejected tap on another peg, a peg selected |
+| `board_a11y_announce_undo` | `Undid row %1$d, column %2$d to row %3$d, column %4$d. %5$s.` | An undo |
+| `board_a11y_announce_hint` | `Hint: row %1$d, column %2$d, jump %3$s to row %4$d, column %5$d.` | A hint, or a coach escalation |
+| `board_a11y_announce_restart` | `Board restarted. %1$s.` | A restart |
+| `board_a11y_announce_step` | `%1$s. %2$s` | A tutorial step's board installed |
+| `results_a11y_summary` | `%1$s — %2$s, %3$s.` | Results' summary on opening |
+
+Reused, unchanged: `stuck_message` and `nowin_message` (the banner's lines), `tutorial_step_progress`
+and the step captions, `tutorial_done_caption`, and `catalog_stars_earned` ("%1$d of %2$d stars"),
+which the Results star row now speaks with a total of 3. The last is the same sentence with the same
+meaning as on the catalogue, so it is shared; `home_stat_pill_desc` was not, because its meaning
+differs.
+
+*(Amended 2026-10-23 — loop 4, D-TBa.)* Two changes, and the count stays 29 strings and two plurals:
+- **`board_a11y_announce_put_down`**'s value was `Put down row %1$d, column %2$d.` until this date. It
+  read as an instruction beside `board_a11y_rejected_put_down_first`'s "Put down the selected peg
+  first.", so it now reports: `Peg put down, row %1$d, column %2$d.` (the check's F-34).
+- **The three `board_a11y_rejected_*` strings replace the audio branch's three `wrong_tap_*`
+  strings** (D-06c, `docs/ux/invalid-tap-feedback.md` §6 on `feature/audio-review`: `wrong_tap_empty_hole`,
+  `wrong_tap_other_peg`, `wrong_tap_not_a_destination`). Those three are built on that branch and are
+  removed by `feature/talkback-board` in the same commit that retargets their test, so no unused
+  resource is left. They are spoken on gameplay and in the tutorial alike.
+
+*(D-05e's table, continued.)* `elapsed_time` ("Elapsed time") is unchanged and is the label
+`elapsed_time_spoken` starts with.
+`home_stat_pill_desc` has the same `%1$s, %2$s` value and is **not** reused: it is Home's "label, value"
+sentence, and sharing it with a gameplay duration would give one string two owners. D-03n and D-03o add
+no string.
+
 ### Reused unchanged
 
 `onboarding_got_it` (the completion CTA), `onboarding_skip` (the Skip action), `app_name`,
@@ -3698,6 +4778,7 @@ All new motion reuses the Candy Clay vocabulary; nothing invents a curve.
 | Tutorial completion star | `ClayAnim.STAR_POP_MS` + `overshootSpring()` + `goldGradientFill()` |
 | Hero board art | idle — no ambient motion of its own; the two existing `HomeBlobs` remain the only drifting elements |
 | **Hero stage art** *(2026-09-28, D-03l — replaces the row above)* | static on every frame: no selection, no dots, no hint, so nothing on the board pulses or pops; enters with the hero (`clayEntrance(HERO_ENTRANCE_ORDER)`); the blobs remain the only drifting elements |
+| **A Continue chip arriving or leaving after first paint** *(2026-10-21, D-03n)* | the chip's room opens from 0 over `ClayAnim.ENTRANCE_MS` with `ClayAnim.ENTRANCE_EASING`, no overshoot; the stage gives up the same height in the same frames, its art following the stage's size (the pegs on it do not move relative to the board), and the ribbon rides on the stage's edge; the chip enters with its existing `clayEntrance` but with no stagger delay, its fade starting with its room; the hero row holds still in every frame, and so do the mode tiles wherever the stage can give the room (in the shortfall case they move by the shortfall); stage art whose final edge is below `home_stage_art_min_size` fades out over the same duration instead of vanishing in one frame; the entrance cascade above is independent of it and is never restarted by it (§4.2.5) |
 | **Show-moves On ↔ Off** *(2026-09-28, D-04e — replaces "Show-moves toggling ON/OFF")* | fill and ring cross-fade over `ClayAnim.PRESS_IN_MS`; glyph cross-fades to its variant (slashed / plain) over the same; the on mark scales in with `overshootSpring()` and out without overshoot |
 | **Dock action Available ↔ Unavailable** *(D-04e)* | fill, shadow and glyph strength cross-fade over `ClayAnim.PRESS_IN_MS`; Available → Working is instant (it confirms the tap) |
 | **Undecided notice in and out** *(2026-10-21, D-04f)* | in: `clayEntrance(0)`, a fade and a rise of `entrance_slide_distance` over `ClayAnim.ENTRANCE_MS`; held for `GameAnim.HINT_NOTICE_DISPLAY_MS` or the accessibility timeout; out: a fade in place over `GameAnim.HINT_NOTICE_EXIT_MS` (§4.4.2) |
@@ -3716,6 +4797,10 @@ All new motion reuses the Candy Clay vocabulary; nothing invents a curve.
 - *(2026-10-21, D-04f.)* The Undecided notice appears settled and disappears in one frame. Its
   display time does **not** shrink, because it is reading time, functional like
   `STEP_ADVANCE_DELAY_MS`. Its announcement is not motion and is unaffected.
+- *(2026-10-21, D-03n.)* A Continue chip's room is open, settled, in the frame after the chip arrives;
+  nothing glides. Wherever the stage can give the room, the tiles hold still with animations on or off,
+  because the room comes out of the stage; in the shortfall case they move by the shortfall, with
+  animations on or off.
 - `TutorialAnim.STEP_ADVANCE_DELAY_MS` still applies. It is a **functional** beat — the player must
   see their jump resolve before the board is replaced — not decoration, and collapsing it would
   make the tutorial swap boards under the player's finger.
@@ -3743,6 +4828,9 @@ because they sit under the thumb during play. The back chip is 48dp
 `minimumInteractiveComponentSize()`. Settings rows are full-width at ≥ 72dp. Mode tiles are ≥ 96dp
 and tappable across their whole surface. The board's own hit-testing is unchanged
 (`board_min_touch_target`).
+*(Pointer 2026-10-23, loop 4 — D-TBa item 10.)* The gameplay board's cells are below this line's 48dp
+and have no spacing between their targets. That was always so, and it is now recorded as a studio-rule
+deviation with its sizes, in §11.1 "Cell size".
 
 **Labels.** Every interactive element carries a `contentDescription` or a text label; every
 decorative element carries `contentDescription = null`. Decorative: the hero board art, the tile
@@ -3826,6 +4914,9 @@ sits on the gradient's dark half by construction (`Clay.kt:91-103`).
 that carry a **state** — the On disc and the Off ring, each against the slab — must measure ≥ 3:1
 in both themes (criterion 21f). The `onSurfaceVariant`-on-`surfaceVariant` pair above no longer
 exists: an Unavailable action has no fill.
+*(2026-10-21, D-05f.)* The system bars are checked too: the navigation bar's buttons and the gesture
+handle ≥ 3:1 against what is behind them, and in dark mode a dark three-button scrim rather than a light
+one (§6.2, criterion 29).
 
 **Text scaling.** Every size is an M3 type role, so all text scales with the system font size.
 Four layouts must be verified at 200%: the Home column (scrolls — §4.2), the tutorial column
@@ -3840,6 +4931,10 @@ screen — the timer must never be clipped, since it is the only place elapsed t
 *(2026-09-28, D-05d.)* The strip's roles are now `titleLarge` and `headlineSmall`, and the timer
 pill's 40dp is a **minimum**, so at 200% the pill grows to hold 48sp digits rather than clipping
 them; the rule above is unchanged and criterion 18e checks it.
+*(2026-10-21, D-03o.)* "The label wrapping onto its own line" on the narrow class is made exact: a pill's
+label and value never break inside a word or a number, and once any label no longer fits in half its
+pill, all three pills stack — label line, value line, one height (§4.2.6, criterion 15w). Wrapping
+*between* lines stays allowed; wrapping *inside* a word never was the intent.
 
 **Screen-reader traversal.** Tutorial order: pips → Skip → board → caption → CTA. Gameplay order:
 back → title → timer → board → dock (Undo → Hint → Show-moves → Restart) → any raised banner.
@@ -3859,6 +4954,49 @@ Hint → Show-moves → Restart)**:
   SC 1.3.2, 2.4.3). No traversal modifier is added to produce the old line.
 - **Checks.** Criterion 23j checks the order with TalkBack for the notice, and 23k's device half for
   the banner.
+*(2026-10-21 — D-05e, D-03n.)* The timer's stop speaks its value, "Elapsed time, 5 minutes, 12
+seconds", and is never announced on its own (§4.3.2). A Continue chip arriving after first paint is not
+announced either and moves no stop a player is on; it joins the order in its place. Criterion 26b lists
+the stops, in order, with the string each speaks, for the device pass.
+*(Recorded gap, 2026-10-21 — criterion 26b.)* **The two orders above list the board as a TalkBack
+stop, and the build has never met that.** On this branch the board carries no label, text, role or
+action (`BoardCanvas.kt:196-212`; `GameScreen.kt:193-207`, whose three custom keys are test-only;
+`TutorialScreen.kt:245-263`), so TalkBack goes from Skip to the caption and from the timer to the dock,
+and a TalkBack player can neither hear the board nor play it: no cell is reachable, and no peg can be
+selected. The board is interactive on both screens, so this is also short of rules/compose.md's
+"contentDescription or semantics role on every interactive element". **Where each half of the gap came
+from differs by board.** The **gameplay board**'s gap predates phase 15: it had no semantics before the
+refresh, and phase 15 gave it none. The **tutorial board**'s gap is phase 15's own. Before phase 15 the
+onboarding was a static sheet whose illustrations went through `BoardPreview`, which is never
+interactive (§2; D-01a). Phase 15 built the tutorial's live board (`TutorialScreen.kt:254-263`,
+`interactive = true`, D-01a) with no label, role or action, against that same phase's first-edition
+order above, which named it a stop. The first-edition orders above stand as written; they are the
+design statement the build falls short of, not a description of today's build. Criterion 26b's order,
+which leaves the board out, described today's build so that the device pass could be read; it did not
+relax the orders above. *(The 2026-10-21 sentence "The gap predates phase 15, which neither made it nor
+closed it" was true of the gameplay board only; it is replaced by the board-by-board record above,
+after the loop-3 check, `.planning/reports/ux-spec-folds/ux-designer-check-loop3.md` F-19. The
+2026-10-21 sentence "Release scope is routed … pending" is answered next.)*
+
+*(Ruled 2026-10-23 — the routed scope is decided.)* The game-designer ruled the scope in
+`.planning/reports/ux-spec-folds/game-designer-talkback-board.md`: the minimum a TalkBack player needs
+to play (GD-TB-1, M1–M8), with **GD-TB-4: the tutorial board is inside criterion 26**, and the gameplay
+board held to the same studio baseline. The founder answered **Q-023 with option 1** on 2026-10-21:
+**the board becomes playable with TalkBack in 3.0.0** (`.planning/questions/FOUNDER.md`). The board's
+spoken contract is **D-TB**, specified in **§11.1** below, with criteria **TB-1 to TB-12** (§14), built
+on `feature/talkback-board`. When that branch merges, the gap recorded above is closed, and 26b's order
+includes the board (§14, 26b as amended).
+
+*(Ruled 2026-10-23, loop 4 — D-TBa item 1.)* The gameplay order above put "any raised banner" after
+the dock, and the layout never did. With D-TB the gameplay order is: back → title → timer → **the
+board stop → each in-play cell** → the raised rescue banner (its message, then its Undo, Restart and
+Home) or the Undecided notice → dock (Undo → Hint → Show-moves → Restart). This is the order D-04g
+item 6 rules on `bugfix/hint-undecided` ("after the timer, before the dock"), with D-TB's stops
+between the timer and the banner. That branch's dated correction under this same line gives the same
+order without the board. Its "The board has no focus stop of its own" describes the build until
+`feature/talkback-board` merges. The
+tutorial order is pips → Skip → **the board stop → each in-play cell** → caption → CTA. Criterion 26b
+lists both, string by string.
 
 **Sound is never the only feedback** (rules/audio.md). Every cue in this refresh is paired: the
 jump has the slide and the removal; selection has the ring and the pulse; the invalid tap has the
@@ -3910,6 +5048,314 @@ correction note under the screen-reader traversal line, D-04g.)*
   line. The notice also carries a `dismiss` action.
 - **Sound is never the only feedback.** Not engaged: the notice plays no sound.
 
+### 11.1 The board with TalkBack (D-TB — 2026-10-23)
+
+> **Status.** This specifies D-TB. Its inputs are the game-designer's scope ruling
+> (`.planning/reports/ux-spec-folds/game-designer-talkback-board.md`: GD-TB-1 to GD-TB-5, M1–M8,
+> TB-1 to TB-12) and the founder's answer to **Q-023, option 1** (2026-10-21): the board becomes
+> playable with TalkBack in 3.0.0. It applies to `feature/talkback-board` and retro-certifies nothing.
+> It covers both boards — gameplay (Classic and Challenge) and the tutorial. What must be said and
+> what must be operable is the game-designer's ruling; the words, their order, the focus rules and the
+> announcements are this role's. The ruling's "can wait" list, W1–W7, is out of scope by name. With
+> TalkBack off, nothing here changes what a player sees, hears or feels (TB-11).
+>
+> *(Loop 4, 2026-10-23 — **D-TBa**, §3.)* This section was amended the same day to fit the hint
+> branch's D-04g (the banner's and the notice's place and announcement) and the audio branch's D-06c
+> (the wrong-tap announcement), and to rule the build brief's F-TB-1 to F-TB-6. Changed passages carry
+> "(loop 4)". Every replaced sentence is quoted in "First wording" at the end of this section.
+> **Scope (D-TBa item 9):** everything here exists only on a board that takes taps
+> (`interactive = true`): gameplay and the tutorial. A read-only board gains no stop and no
+> announcement. That covers the Home stage, the Continue thumbnail, the tile art and the catalogue
+> previews.
+>
+> *(Loop 5, 2026-10-24 — D-TBa's loop-5 lines, the check's F-39.)* **Under W5, two classes are
+> recorded:**
+> - a screen reader with touch exploration off;
+> - Switch Access.
+>
+> Each keeps every stop, description, click action and jump action, and loses only the four focus
+> moves. Those moves are gated on touch exploration (below), and losing them is not a failure here.
+
+**Coordinates.** A cell is "row *r*, column *c*": *r* counts from 1 at the top and *c* from 1 at the
+left of the board's grid as drawn (`Position.row + 1`, `Position.col + 1`). Blocked grid cells keep
+their numbers and are never spoken, so English-33's first row speaks columns 3, 4 and 5. The grids
+are 7 × 7 (English-33, European-37), 8 × 8 (Asymmetric 3-3-2-2) and 9 × 9 (Diamond-41, Wiegleb-45);
+a Challenge board uses its own footprint's grid. The board is never mirrored, so "left", "right" and
+the column numbers mean the same in every locale. **Up** is towards row 1, **down** away from it,
+**left** towards column 1, **right** away from it.
+
+**The stops, in order.**
+
+| # | Stop | It speaks | Activating it |
+|---|---|---|---|
+| 1 | **The board** | `board_a11y_label`: "Board, 32 pegs left" — the current count | Changes nothing. The stop has no role and is not presented as a button. *(Loop 4, D-TBa item 8.)* It carries a click action that does nothing, with no label of its own and no role, so a double-tap is consumed and never falls through to a cell. TalkBack's default "double-tap to activate" follows its text, and that is accepted (TB-1) |
+| 2… | **Each in-play cell**, row by row from the top, left to right within a row. A blocked cell is never a stop | The cell's description, below | The tap, below; and on a peg, its jump actions |
+
+*(Loop 4, D-TBa item 1.)* On gameplay the board stop follows the timer. The last cell is followed by
+the raised rescue banner or Undecided notice when one is up, and by Undo otherwise; the banner or
+notice is followed by Undo. In the tutorial the
+board stop follows Skip, and the last cell is followed by the caption. These are §11's first-edition
+orders, with the banner's place corrected as D-04g item 6 rules on `bugfix/hint-undecided`. The
+branch that lands D-TB meets them. The slab is one traversal group: the board stop sits on it, and an
+M3 `Surface` is already one. So every cell is read before anything that overlaps the slab, including
+a banner or notice over the lowest rows. The banner and the notice keep their geometric place and
+gain no traversal index. While a Challenge board loads there is no board stop and no cell stop, and
+the `loading_level` indicator stands in their place.
+*(Loop 5, 2026-10-24 — the check's F-38.)* The geometry alone gives this order only on a board limited
+by width. In landscape, on short windows and on tablets, the full-width banner would be read before
+the slab. So the order is **pinned**: the board region is one traversal group, and inside it a
+traversal index puts the slab's group before the banner or the notice on every window. "Gain no
+traversal index" above is superseded by that one index; the banner's look and width are unchanged.
+
+A cell's focus rectangle is its own rectangle on the board — the geometry that already draws the
+cell and maps a finger's tap to it — so touching a cell finds that cell, by explore-by-touch. The
+board stop covers the slab, so a touch on the slab's rim finds the board.
+
+**What a cell says.** Its parts are joined by `board_a11y_separator` (", "), in this order, and only the
+parts that apply are spoken:
+
+1. its position, `board_a11y_position`: "Row %1$d, column %2$d";
+2. its content, `board_a11y_peg` "peg" or `board_a11y_empty` "empty";
+3. on the selected peg, `board_a11y_selected` "selected";
+4. on a peg, its legal jumps from where it stands, as the rules engine counts them:
+   `board_a11y_jumps` (plurals: one "%d jump", other "%d jumps"), or `board_a11y_no_jumps` "no jumps".
+   This part is spoken with Show-moves on and with it off (GD-TB-2);
+5. while a peg is selected, on an empty hole in its legal targets, `board_a11y_jump_target`
+   "jump target", and on no other hole;
+6. while a hint is shown — gameplay's Hint, or the tutorial's coach escalation — on the hint's source
+   peg `board_a11y_hint_source` "hint, move this peg", and on its destination hole
+   `board_a11y_hint_target` "hint, land here".
+
+| The cell | It says |
+|---|---|
+| English-33 at the start, the first stop | "Row 1, column 3, peg, no jumps" |
+| The same board's centre | "Row 4, column 4, empty" |
+| A peg that can jump into the centre | "Row 2, column 4, peg, 1 jump" |
+| That peg, selected | "Row 2, column 4, peg, selected, 1 jump" |
+| The centre, while that peg is selected | "Row 4, column 4, empty, jump target" |
+| A hinted peg | "Row 6, column 4, peg, 1 jump, hint, move this peg" |
+
+That text is the cell's only spoken content: no `Role`, no `selected` semantics and no state
+description, so no part is spoken twice, and TalkBack's own habit of speaking state first cannot reorder
+it.
+
+**A double-tap is the tap.** Every cell can be activated, and activating it runs exactly the finger
+tap's path (`onCellTap(position)`), with the same state change, cue, haptic, undo entry and tutorial
+progress (M4, TB-4). The action label, which TalkBack speaks as "double-tap to …", names what the tap
+will do:
+
+| Situation | Cell | Action label |
+|---|---|---|
+| Nothing selected | A peg | `board_a11y_action_select` "select" |
+| A peg selected | That peg | `board_a11y_action_put_down` "put down" |
+| A peg selected | One of its jump targets | `board_a11y_action_jump_here` "jump here" |
+| Any other case | — | None: TalkBack's default |
+
+A cell whose tap changes nothing still activates. The tap is rejected, as a finger's would be, and the
+rejection is spoken (below).
+
+**One action per legal jump.** A peg offers one TalkBack custom action per legal jump, labelled
+`board_a11y_action_jump` "Jump %1$s to row %2$d, column %3$d", with %1$s one of `board_a11y_direction_up`
+"up", `board_a11y_direction_down` "down", `board_a11y_direction_left` "left" and
+`board_a11y_direction_right` "right", listed in that order. For example: "Jump up to row 4, column 4".
+- They are offered on **every peg with a legal jump while nothing is selected**, and on **the selected
+  peg while it is selected**.
+- They are offered **on no other peg while a peg is selected**, on no hole, and on no peg without a
+  legal jump. From that state two taps would not make the jump (the first is rejected), and GD-TB-5
+  forbids an action that leaves a trace two taps would not leave.
+- Taking one is the two taps: a selection (unless the peg is already selected), then a tap on the
+  destination. The move record, the cues (the selection cue, then the jump pair), the haptic, the undo
+  step and the tutorial progress are therefore those of the taps (GD-TB-5, TB-5).
+
+**Every change is spoken once.** *(Loop 4, D-TBa items 2 and 4.)* Each board event makes one polite
+announcement, through **one channel per board**. That channel replaces the audio branch's
+wrong-tap-only one (D-06c).
+- Inside the channel, a newer event's announcement replaces one not yet spoken, so nothing is spoken
+  late over the next event.
+- An identical repeat is a new event. The second of two identical events in a row, such as two
+  rejected taps on the same hole, is spoken again. Like any line, it can be replaced by a newer
+  event before it is spoken.
+- The channel adds no focus stop, and a later swipe never re-reads it.
+- The rescue banner and the Undecided notice are not board events. Each announces itself through its
+  own polite region (23k and 23d, on `bugfix/hint-undecided`). D-TB adds nothing to them, and the
+  board's channel never withdraws them.
+
+Every announcement says only what the cells then say, so it is never the only record.
+
+| Event | Spoken | String |
+|---|---|---|
+| A peg selected | "Selected row 2, column 4, 1 jump." | `board_a11y_announce_selected` "Selected row %1$d, column %2$d, %3$s." (%3$s is the jumps part) |
+| A peg put down | "Peg put down, row 2, column 4." *(loop 4)* | `board_a11y_announce_put_down` "Peg put down, row %1$d, column %2$d." |
+| A jump, by tap or by action | "Row 2, column 4 to row 4, column 4. Removed row 3, column 4. 31 pegs left." | `board_a11y_announce_jump` "Row %1$d, column %2$d to row %3$d, column %4$d. Removed row %5$d, column %6$d. %7$s." (%7$s is `board_a11y_pegs_left`) |
+| A rejected tap: nothing selected, on an empty hole | "No peg here." | `board_a11y_rejected_no_peg` |
+| A rejected tap: a peg selected, on an empty hole that is not a jump target | "Not a jump target." | `board_a11y_rejected_not_target` |
+| A rejected tap: a peg selected, on another peg | "Put down the selected peg first." | `board_a11y_rejected_put_down_first` |
+| An undo completed | "Undid row 2, column 4 to row 4, column 4. 32 pegs left." | `board_a11y_announce_undo` "Undid row %1$d, column %2$d to row %3$d, column %4$d. %5$s." |
+| A hint revealed (gameplay), or a coach escalation (tutorial) | "Hint: row 2, column 4, jump down to row 4, column 4." | `board_a11y_announce_hint` "Hint: row %1$d, column %2$d, jump %3$s to row %4$d, column %5$d." |
+| A restart completed | "Board restarted. 32 pegs left." | `board_a11y_announce_restart` "Board restarted. %1$s." |
+| The rescue banner rises | Its own message, verbatim: "No moves left — undo or restart", or "No winning move — undo or restart" | `stuck_message`, `nowin_message`, unchanged. *(Loop 4.)* Spoken by the banner's own region (23k), not by the board's channel |
+| The Undecided notice rises (gameplay) *(loop 4)* | Its own text, verbatim: "Hint couldn't work this position out in time. It may still be winnable." | `hint_undecided_message` (`bugfix/hint-undecided`), spoken by the notice's own region (23d), not by the board's channel |
+| A tutorial step's board installed, the first step's included | "Step 2 of 3. Jumps work up, down, left and right — never diagonally." | `board_a11y_announce_step` "%1$s. %2$s" (`tutorial_step_progress`, then the step's caption) |
+| The tutorial completed | "That's the whole game. Go clear a board." | `tutorial_done_caption`, unchanged |
+
+- *(Loop 4, D-TBa item 4.)* When a jump strands the board, the jump's line and the banner's message
+  are each spoken once. The intended order is the jump's line first. Either order passes, because
+  one state update raises both, in two regions, and no delay is added to force an order. A repeated
+  line, or a line cut off, fails. When a jump wins, the jump's line is followed by Results' summary
+  when Results opens.
+- *(Loop 4, D-TBa item 4.)* A Hint that ends Undecided speaks only the notice, and one that proves the
+  position lost speaks only the banner. Neither reveals a hint, so the hint line does not fire.
+- The rejected-tap lines are the same on gameplay and in the tutorial, and none says "wrong",
+  "invalid" or "error": by ear, as by eye, a wrong tap in the tutorial is never a failure (D-01c).
+  They are words, not cues; the tutorial's silent invalid tap (D-01h, D-01i) is unchanged.
+  *(Loop 4, D-TBa items 2 and 3.)*
+  - These three lines are the only rejected-tap announcement on either board. They supersede the
+    audio branch's D-06c sentences (`wrong_tap_*`; `docs/ux/invalid-tap-feedback.md` §3.6 and §6, on
+    `feature/audio-review`).
+  - The tutorial speaks them, superseding D-06c's "in the game only" and D-01j(2)'s "no announcement".
+    D-01j(2)'s other answers stand in the tutorial: the redirect, and no shake, mark, reject haptic or
+    sound.
+  - The kind is read from the board and the selection at the tap: W1 "No peg here.", W2 "Put down the
+    selected peg first.", W3 "Not a jump target." In the tutorial, the tap is the wrong-tap ordinal and
+    cell that `feature/audio-review` writes (`rejectedTapTick`, `rejectedTapCell`).
+- The Hint control's own search state is not announced. Its description changes to `hint_thinking`
+  as today (D-04d).
+- A coach escalation that also puts down a held peg (§4.4's release clause) speaks only the hint line;
+  the cells show the peg put down.
+
+**Focus.**
+
+| After | Focus is on |
+|---|---|
+| A selection, a put-down or a rejected tap | The cell activated |
+| A jump by tap | The destination cell — the one activated — which now says "peg" |
+| A jump by action | **Moved:** the destination cell. Focus moves there, so both ways of jumping end on the peg that moved |
+| Undo, Hint or Restart from the dock (Restart once its confirm dialog closes; *(loop 4)* Undo or Hint once the opt-in dialog is declined) | That dock control. *(Loop 4.)* When the opt-in dialog is accepted and an ad plays, the ad is its own screen, and focus on return is TalkBack's own placement; D-TB moves none |
+| Undo or Restart from the rescue banner | **Moved:** the board stop, because the banner leaves the screen with the button that had focus |
+| The rescue banner rising | Unchanged. *(Loop 4, D-TBa items 1 and 4.)* The banner's message is announced by its own region. Its message and its buttons are stops after the last cell and before the dock |
+| The Undecided notice rising *(loop 4)* | Unchanged: on the Hint control the player activated. The notice is announced by its own region, and it is one stop after the last cell and before the dock |
+| The Undecided notice put away *(loop 4)* | D-TB moves no focus. The notice is the hint branch's (§4.4.2 there) |
+| A coach escalation that also puts a held peg down *(loop 4)* | Unchanged: the stop TalkBack is on. The cells show the peg put down |
+| A Challenge board finishing loading *(loop 4)* | Not moved, and nothing is announced. The board stop and the cells take their place in the order, as a Continue chip does on Home (§11) |
+| A tutorial step's board installed | **Moved:** the new board's board stop, on steps 2 and 3. *(Loop 4, D-TBa item 6.)* On the first step focus is not moved: the screen is met in its order, pips → Skip → board |
+| The tutorial completed | **Moved:** the completion button (`onboarding_got_it`), after the done caption is announced |
+| A game won | Results, in its own order; its summary is announced (below) |
+
+When focus moves and an announcement is due, both are spoken: the announcement first, then the newly
+focused stop.
+
+*(Loop 4, D-TBa item 5.)* **How focus moves.** Four rows above say "Moved". Each move gives its target
+input focus, and TalkBack follows input focus.
+- The cells and the board stop take input focus **only while TalkBack is running**. With it off, Tab
+  and D-pad traversal stay as they are today.
+- Whether TalkBack follows input focus on a touch screen is checked on the device (TB-7).
+- If it does not, this table is amended in the same review loop:
+  - after a jump by action, focus stays on the source cell, which then says "empty"; the jump's line
+    names the destination;
+  - the other three moves are left to TalkBack's own placement;
+  - input focus is removed.
+- *(Loop 5, 2026-10-24 — the check's F-39.)* "While TalkBack is running" means **while touch
+  exploration is enabled** (`AccessibilityManager.isTouchExplorationEnabled`). That is the platform's
+  screen-reader signal, which TalkBack always sets, and a test can set it. The four "Moved" rows
+  apply only under the same gate: with it closed, no focus is requested.
+
+*(Loop 4, D-TBa item 11.)* **A focused cell whose text changes.** After a selection, the focused cell's
+own text gains "selected" in the same frame as the selection line is announced. TB-6's device half
+records whether TalkBack re-reads a focused node whose description changed, as 18g does for the
+timer. If it does, the selection line is withdrawn for a selection made on the focused cell, because
+the re-read says the same thing. Every other line stays. A put-down's line says what the re-read does
+not, and a jump's line names the removed peg and the count.
+
+**Results.** The star row is one stop that speaks `catalog_stars_earned` with a total of 3: "2 of 3
+stars". The stars inside it stay decorative. When Results opens, one polite summary is announced,
+`results_a11y_summary` "%1$s — %2$s, %3$s.": the headline, the star count and the pegs left. For
+example: "Solved! — 2 of 3 stars, 2 pegs left."
+*(Loop 4, D-TBa item 7.)* "When Results opens" means the showing that the D-16 latch
+`ResultsUiState.playCelebration` marks: once per result. The summary is not spoken again on a
+rotation, a process-death restore or a back navigation onto the same Results entry.
+
+**The tutorial.** Its board follows this whole contract. It adds the step and completion lines and the
+coach escalation's hint line, all in the table above. Its captions keep the word "tap": TalkBack users
+read it as "activate" (the ruling's W6).
+*(Loop 4, D-TBa items 3 and 6.)* Its rejected taps are spoken in the same three lines as gameplay's.
+The first step's line is spoken when the tutorial opens, but focus is not moved then.
+*(Loop 5, 2026-10-24 — the check's F-42.)* On opening, that line's "Step 1 of 3" and the pip row's
+own `tutorial_step_progress` can both be heard within a second. TB-9's speech log records whether
+they are. If they are, the first step's opening line drops its `tutorial_step_progress` part and
+speaks the caption alone. Steps 2 and 3 keep both parts.
+
+**Cell size: a recorded deviation from the studio's 48dp** *(loop 4, D-TBa item 10; this replaces the
+"Focus rectangles on the board" paragraph, quoted under "First wording").*
+- **WCAG is met.** WCAG 2.2 SC 2.5.8 (AA) asks 24 × 24 CSS px, and every cell is larger. No WCAG
+  exception is claimed.
+- **The studio's rule is not met on gameplay.** rules/compose.md and criteria 26 and 26a ask ≥ 48dp
+  with ≥ 8dp spacing. A gameplay cell's TalkBack focus rectangle and its finger target are both set
+  by the board's geometry, which D-TB does not change. The target is the cell's inscribed circle,
+  `HIT_RADIUS_RATIO` 0.5 × the cell (`BoardMetrics.kt:68`, `BoardGeometry.kt:87-94`), so its diameter
+  is the cell size. Neighbouring targets touch, with no spacing. On a 360dp phone the canvas is 296dp
+  (360, less `board_screen_margin` 16dp and the slab's `spacing_md` 16dp on each side):
+
+  | Grid | Boards | Cell at 360dp | Window width where the cell reaches 48dp | Cell at the 480dp slab cap |
+  |---|---|---|---|---|
+  | 7 × 7 | English-33, European-37 | ≈ 42.3dp | 400dp | 64dp |
+  | 8 × 8 | Asymmetric 3-3-2-2 | 37.0dp | 448dp | 56dp |
+  | 9 × 9 | Diamond-41, Wiegleb-45 | ≈ 32.9dp | 496dp | ≈ 49.8dp |
+
+  The widths assume a board limited by width. A Challenge board follows its own grid by the same
+  arithmetic. The drawn pegs, 0.68 of a cell, stand about 10.5dp apart at 9 × 9 on 360dp, but the
+  targets touch.
+- **The tutorial meets it.** Its 280dp slab gives a 248dp canvas over grids three cells wide, so each
+  cell is about 83dp.
+  *(Loop 5, 2026-10-24 — the check's F-41.)* §4.1's and §6.1's "≈93dp per cell" is 280 ÷ 3, from
+  before the canvas's `spacing_md` padding was counted. 82.7dp is the drawn cell. Both clear 48dp,
+  and no criterion changes.
+- **This is not new with D-TB.** The gameplay board's finger targets have always been these sizes.
+  §11's "the board's own hit-testing is unchanged (`board_min_touch_target`)" never meant a 48dp cell.
+  D-TB's focus rectangles take the same geometry, which is what makes explore-by-touch find the
+  touched cell.
+- **What softens it.** A TalkBack player never has to hit a cell: they reach every cell by swiping
+  and activate the focused cell with a double-tap anywhere on the screen. Explore-by-touch that lands
+  on a neighbour is corrected by one swipe. For a finger, a tap in a cell's corner, outside its circle,
+  is dropped rather than given to a diagonal neighbour. A tap just past a cell's edge still reaches
+  the cell beside it.
+- **What would fix it.** A larger board, a zoomed board, or row-by-row navigation. Each changes the
+  board, and none is in D-TB's scope.
+- **Who carries it.** The producer carries this deviation to the founder in the Q-PUBLISH-3.0.0
+  summary, with the sizes above. 26a gains a dated pointer. 26a's other lines apply to a cell, read as
+  "one stop, its description and its action label".
+
+**What does not change (TB-11).** Finger taps, the drawing, every animation, sound and haptic, and the
+dock. The layer that carries the cells' semantics takes no pointer input. With TalkBack off, nothing is
+spoken. The custom semantics keys the tests read (`GameScreen.kt:193-207`) stay.
+*(Loop 4, D-TBa items 5, 8 and 9.)* With TalkBack off, keyboard and D-pad traversal also stay as they
+are today: the cells and the board stop take input focus only while TalkBack runs. The board stop's
+no-op click is a semantics action, not pointer input. A read-only board composes exactly what it
+composes today.
+
+**First wording** *(loop 4)*. The passages below were replaced on 2026-10-23 by D-TBa. They are kept as
+the record.
+- After the stops table: "On gameplay the board stop follows the timer, and the last cell is followed
+  by Undo. In the tutorial it follows Skip, and the last cell is followed by the caption. These are
+  §11's first-edition orders, which the build now meets." The last clause was false: no build met
+  them (the check's F-30).
+- The board stop's activation: "Changes nothing. The stop has no role and is not presented as a
+  button; a double-tap on it reaches no cell (TB-1)".
+- The announcements' lead: "Each event makes one polite announcement. A newer event's announcement
+  replaces one not yet spoken, so nothing is spoken late over the next event."
+- The put-down line: "Put down row 2, column 4." — `board_a11y_announce_put_down` "Put down row %1$d,
+  column %2$d."
+- The stranding jump: "When a jump strands the board, the jump's line is spoken and then the banner's
+  message, each once."
+- The focus table's banner row: "Unchanged. The banner's message is announced, and its buttons are
+  stops after the dock". Its step row: "The new board's board stop".
+- "Focus rectangles on the board": "A cell's rectangle is the board's own geometry: on a 360dp phone
+  about 42dp on a 7 × 7 grid and 33dp on a 9 × 9 one. It cannot reach 26a's 48dp without changing the
+  board. The cells are therefore exempt from 26a's 48dp line, on two grounds. Their size is essential
+  to the information they present (WCAG 2.2 SC 2.5.8's essential exception). And a TalkBack player
+  reaches every cell by swiping and activates the focused cell with a double-tap anywhere on the
+  screen. 26a's other lines apply to the cells, read as "one stop, its description and its action
+  label". The board's finger hit-testing is unchanged (`board_min_touch_target`)."
+
 ---
 
 ## 12. Responsiveness
@@ -3922,7 +5368,7 @@ correction note under the screen-reader traversal line, D-04g.)*
 | Tablet / large | Content capped at `content_max_width` 480dp and centred — unchanged; board capped at `board_max_size` 480dp — unchanged |
 | Landscape | Not a supported orientation change in this refresh; existing behaviour preserved. Flagged to the tech-lead if the manifest does not lock orientation. |
 | RTL | The back arrow and `UndoIcon` are already auto-mirrored (`UndoIcon.kt:29`); the status strip and dock are `Row`s and mirror by default; nothing uses absolute left/right padding |
-| Dark theme | Every role above has a dark variant in the design system; both themes are in scope for every new composable's `@Preview` pair |
+| Dark theme | Every role above has a dark variant in the design system; both themes are in scope for every new composable's `@Preview` pair. *(2026-10-21, D-05f.)* The system bars follow the theme too: light icons and a dark three-button navigation scrim in dark mode (§6.2, criterion 29) |
 
 *(Added 2026-09-28, D-03i.)* The rows above stand; §4.2.2 is where the first three are specified
 mechanically for Home — the "Tall phone" row's slack, the "Short phone / 200% font" row's scroll,
@@ -3967,6 +5413,10 @@ board region, and is never wider than that region or `board_max_size`.
 | RTL | the glyph leads at the start edge and the text is start-aligned, so the notice mirrors with the layout |
 | Dark theme | both roles have dark variants; contrast in §11 |
 
+*(Pointer 2026-10-21 — D-03n, §4.2.5.)* The ≈150–280dp range above is the 3 : 1 split's. Under D-03n
+the stage on QA's 6.7-inch window is 326.3, 230.3 and 134.3dp with no, one and both chips (the art
+capped at 320dp), and the tiles hold the same place in all three states.
+
 ---
 
 ## 13. Test impact (read this before writing code)
@@ -3978,7 +5428,7 @@ Existing tests this refresh **will** break, with the fix:
 | `ButtonSoundTest.kt:105-123` `theHomeTopBarHowToPlayAndSettingsIconsMakeNoSound` | Clicks `R.string.how_to_play` by content description; that button and that string are deleted (D-02) | Retarget **narrowed, not moved**: keep the gear half (still silent, still on Home) and **drop** the how-to-play half rather than pointing it at the Settings row — that row is a navigational CTA and deliberately **plays** `SoundCue.ButtonForward` (§4.5, D-09), so re-aiming a *makes-no-sound* assertion at it would assert the opposite of the contract. The row's cue is covered positively by criterion 9 and by SOUND-04 (§16). |
 | `HomeScreenTest.kt:148-159` `theProfileSwapDialogIsNeverStackedOnTheOnboardingOverlay` | Locates the overlay by the hardcoded literal `"Got it"` (`:367`) and the overlay stops being hosted by Home (D-01f/D-01g) | **Retarget, never delete:** `theProfileSwapDialogIsNeverRaisedWhileTheTutorialIsStillPending`, finding the dialog by `PROFILE_SWAP_DIALOG_TEST_TAG` as today and the pending state by the state field — never by button copy |
 | `ButtonSoundTest.kt:226-244` | Clicks `navigate_back` and `show_moves_on` on the game screen | **Passes unchanged** — both content descriptions are deliberately preserved (D-05b, §4.4) |
-| `GameFlowTest.kt:129` | Finds the timer by `elapsed_time` | **Passes unchanged** — deliberately preserved (§4.3) |
+| `GameFlowTest.kt:129` | Finds the timer by `elapsed_time` | **Passes unchanged** — deliberately preserved (§4.3). *(Superseded 2026-10-21 — D-05e, §4.3.2: the description now starts with `elapsed_time` and goes on to the spoken duration, so this test is retargeted; see the 2026-10-21 table below.)* |
 
 **Device checklist that must keep working.** `11-HUMAN-UAT.md` tests 10, 11 and 13 read their
 pass/fail off the three Home readouts in §4.2.1. This refresh is designed so those tests run
@@ -4044,7 +5494,7 @@ D-03l / D-04e / D-05d)*:
 | Test | Effect | Fix |
 |------|--------|-----|
 | `ButtonSoundTest.kt:226-244` | Finds the back chip by `navigate_back` and the toggle by `show_moves_on` | **Passes unedited** — both descriptions survive, and `show_moves_on` is now the toggle's name in both states. If it needs an edit, a description drifted; fix the production code. |
-| `GameFlowTest.kt:129` | Finds the timer by `elapsed_time` | **Passes unedited.** |
+| `GameFlowTest.kt:129` | Finds the timer by `elapsed_time` | **Passes unedited.** *(Superseded 2026-10-21 — D-05e, §4.3.2: retargeted, never deleted; see the 2026-10-21 table below.)* |
 | `GameScreenChromeTest.showMovesCarriesItsStateByFillAndNotByTintAlone` (a phase-15 test) | Reads `DockActionFilledKey` and the `show_moves_on`/`show_moves_off` pair; the key is replaced and the off string deleted | **Retarget, never delete or `@Ignore`:** assert the On/Off look property, the `ToggleableState`, `Role.Switch` and the constant name. A name that says what it now proves, e.g. `showMovesCarriesItsStateByFillRingMarkAndSwitchStateNeverByTint`. |
 | Any other test reading `DockActionFilledKey` | The key is replaced by the look property | Retarget to the look property. |
 | `HomeLayoutTest` / `HomeScreenTest` assertions (Home's geometry moved to `HomeLayoutTest` in the S10 slice) that the hero art is present on a tall window, absent on the narrow baseline, or that the compact hero is a separate shape (criteria 15k part 4, 15l's third window) | There is no hero art on any window and one hero shape | Retarget "hero art present" to "stage art present" and "hero art absent" to "no stage art on an overflowing column"; the full/compact distinction is now spacing and pill shape only. Retarget, never delete or `@Ignore`. |
@@ -4056,6 +5506,60 @@ D-03l / D-04e / D-05d)*:
 | `HomeStageTest` (15p): measures the hero→art gap from the hero row's box | Reads 16dp where the device shows 27.4dp. The row's box is not a visible element (D-03m). | **Retarget**: measure from the lower of the title's and the gear's bottom edges. Watch it fail against the old 72dp floor (28dp on `w412dp-h915dp` with insets) before trusting it. |
 | Any assertion that the hero row is ≥ 72dp or equals `home_hero_row_min_height` (for example in `HomeHeroRowTest`) | The token is retired. | **Retarget** to "the row's height equals its tallest child's (±0.5dp) at font scale 1.0 and 2.0". Never delete or `@Ignore`. |
 | Any 15k test that pins the Robolectric overflow at ≈72dp | The overflow falls to ≈48dp. | Keep the ≤ 120dp bound and the fold-through-the-second-tile assertion. A test that pinned exactly 72dp was pinning the defect. |
+
+**The 2026-10-21 amendment — what it retargets and what it owes** *(D-03n, D-03o, D-05e, D-05f; all
+built on `bugfix/home-chip-arrival`)*:
+
+| Test | Effect | Fix |
+|------|--------|-----|
+| `GameFlowTest.kt:129`, `GameScreenChromeTest.kt:62` and `:75`, the helper at `GameStatusStripTest.kt:312-314` | Each finds the timer by the exact `elapsed_time` description, which is now only the start of it (D-05e). This supersedes the "passes unchanged" and "passes unedited" rows for `GameFlowTest.kt:129` above. | **Retarget, never delete or `@Ignore`:** find the clock through `GAME_TIMER_PILL_TEST_TAG` and the node inside it, or by the label as a substring, and assert the whole sentence where the test is about the timer. |
+| `HomeStageTest`, and `HomeLayoutTest`'s 15g and 15p cases, wherever they read a footer of a quarter of the current slack or a stage of three quarters of it | The split is a footer of one fifth of the no-chip slack, fixed for the window, and a stage of the rest less the chips' room (D-03n). | **Retarget** to the D-03n quantities. 15p's bounds (24, 80 and 64dp, and the ≥ 120dp art) and 15g's midpoint stay exactly as they are. 15g's third clause is asserted as ruled in §4.2.5: the footer is at most a third of **S₀**, the no-chip slack (a fifth under D-03n), in both the no-chip and the both-chips state — never against the slack left once the chips are in. |
+| Any test that asserts the compact pill's label wraps beside its value at a large font scale | At a large font scale the ribbon stacks, and no label breaks inside a word (D-03o). | **Retarget** to criterion 15w. 15m's default-scale assertions stand unchanged. |
+| `WindowThemeTest` | Gains the navigation-bar half (D-05f). | **Extend**: `android:windowLightNavigationBar` resolves true under `notnight` and false under `night` at API ≥ 27; the status-bar cases stand unchanged. |
+
+**Owed, new, from this amendment** — every one watched failing once on today's code before it is
+trusted: **15s, 15t, 15u** (Home's bounds across the chip emissions, at 1.0 and 2.0, and frame by frame),
+**15w** (no word breaks; one shape per ribbon), **18f** (the timer's description table) and the `WindowThemeTest`
+case of **29**. **15v**, **18g**, **26b** and the device half of **29** are the qa-engineer's, on a device.
+The two §13 idioms still bind every new layout assertion: no `bottom ≤ contentBottom()` containment and
+no zero-inset window.
+
+**D-TB — what it retargets and what it owes** *(2026-10-23; built on `feature/talkback-board`)*:
+
+| Test | Effect | Fix |
+|------|--------|-----|
+| Any test that asserts the board, or `BOARD_CANVAS_TEST_TAG`'s node, has no accessibility label, no children or no actions | The board now has a board stop and one stop per in-play cell (§11.1) | **Retarget** to TB-1 and TB-2; never delete or `@Ignore` |
+| Any test that counts or orders the gameplay or tutorial screen's TalkBack stops, 26b's included | The board stop and the cells now sit after the timer and after Skip | **Retarget** to 26b as amended |
+| `GameScreen.kt:193-207`'s three custom keys and every test that reads them | Unchanged: they stay test-only and are not the cells' semantics | None |
+| The tap tests (`GameViewModel`'s tap table, the tutorial's tap semantics) | Unchanged: an accessibility click calls the same `onCellTap` | None. TB-4 adds the click-versus-pointer comparison beside them |
+| *(Loop 4, D-TBa item 2.)* `GameScreenWrongTapTest`'s announcement cases (`feature/audio-review`) | They assert D-06c's `wrong_tap_*` sentences on the board's live region, and those sentences are superseded | **Retarget** to D-TB's three lines on the board's one channel, keeping the identical-repeat case. The shake, mark, redirect and haptic cases stand. Never delete or `@Ignore` |
+| *(Loop 4, D-TBa item 3.)* `TutorialSourceGuardTest` (`feature/audio-review`, WT-16's grep) | Its KDoc names the tutorial's live region as a forbidden channel, and the tutorial now announces | **Keep every forbidden token**, `liveRegion` and `wrong_tap_` included. The tutorial reaches the shared announcer without naming them, in code or comments. Correct the KDoc only |
+| *(Loop 4.)* Audio's `TutorialWrongTapTest`, wherever it asserts that the tutorial announces nothing on a wrong tap | The tutorial now speaks D-TB's line | **Retarget** to "speaks D-TB's line once, with no shake, mark, reject haptic or sound"; the redirect cases stand |
+
+**Owed, new, from D-TB** — every one watched failing once on today's code before it is trusted:
+- **TB-2, TB-3 and TB-12**: JVM tests of the model that turns `GameUiState` (or the tutorial's state)
+  into each cell's text, actions and announcements, over every Classic board, Challenge levels 1–1,000
+  and 1,000 seeded reachable states;
+- **TB-1, TB-4, TB-5, TB-6 and TB-8**: Compose semantics tests on gameplay, the tutorial and Results;
+- **TB-11**: the existing suite with zero diff beyond the rows above, plus a pointer-tap test through
+  the new layer.
+TB-7, TB-9 and TB-10 are the qa-engineer's, on a device, with TalkBack's speech log as the record; QA
+first confirms the AVD's text-to-speech engine works (it crashed once in phase 15).
+*(Loop 4, D-TBa; the check's F-36.)* The list above omitted TB-9's own Compose half: **TB-9** also owes
+a Compose test of the step, coach and completion lines, of the rejected-tap line in the tutorial, and
+of the first step moving no focus. Also owed:
+- **TB-1** asserts the board stop's no-op click: present, unlabelled, with no role, and changing
+  nothing when performed;
+- **TB-6** asserts that the board's channel never carries the banner's or the notice's text, and that
+  two identical rejected taps in a row, each let settle, change the channel twice;
+- **TB-11** asserts that a read-only board has no board stop and no cell node, and that with TalkBack
+  off no cell or board stop can take input focus.
+
+*(Loop 5, 2026-10-24 — the check's F-38 and F-39.)* Two more assertions are owed:
+- **26b's pin**, as a Compose traversal test on a window that limits the board by height (for
+  example `w640dp-h360dp`) with a banner raised: the last cell's node comes before the banner's
+  message;
+- **TB-11's "TalkBack off"**, set as touch exploration disabled, where no focus move is requested.
 
 **Owed, new** — every one watched fail once before it is trusted: criteria **15n–15r** (Home, §4.2.4,
 including the unit test that replays the stage's recorded move list from the English start),
@@ -4232,8 +5736,9 @@ blocks tests 10/11/13 in `11-HUMAN-UAT.md`, not just the look of the screen.
 15e. *(Replaced 2026-09-28 — D-03j and §6.5 "second edition"; the retired first edition is quoted
      below it.)* **Cold start is checked as an interleaved A/B delta against a null control
      measured in the same sitting — and it is checked on the follow-up slice that lands §4.2.2, not
-     on the build audited on 2026-09-28.** Arm A = `develop`, arm B = that slice's branch; one AVD
-     (`Pixel_9a`, API 36), `:app:installDebug`, each arm swapped in only at a block boundary, the
+     on the build audited on 2026-09-28.** Arm A = the merge-base of `develop` and the branch, arm B
+     = that slice's branch; one AVD (`Pixel_9a_bench`, §6.5 precondition 1), `:app:installDebug`,
+     each arm swapped in only at a block boundary, the
      null control swapping its one build the same way (§6.5 precondition 7), the
      seeded ~200-level Challenge ladder on both, the launch component resolved from the device, and
      **exactly one emulator with no concurrent Gradle build anywhere on the host** and a 1-minute
@@ -4261,6 +5766,17 @@ blocks tests 10/11/13 in `11-HUMAN-UAT.md`, not just the look of the screen.
      "Phase 15 closes with 15e recorded as `:NOT RUN`" no longer describes the close: per Ruling 2,
      15e runs **once**, with arm B = the branch head that carries both D-03m and the bundled fonts,
      because both change Home's first frame (§6.5's "Which builds" table, pointer below it).)*
+     *(Amended 2026-10-18 — tech-lead phase-15 sign-off, Decision 1, on the qa-engineer's loop-3
+     E-1; folded 2026-10-21 by the ux-designer, from
+     `.planning/reports/15-founder-feedback/tech-lead-signoff.md` "Text for other roles' files".
+     Before this date the paragraph read "Arm A = `develop`" and "one AVD (`Pixel_9a`, API 36)". The
+     `Pixel_9a`'s `/data` was 95 % full and refused both arms, so the instrument is the bench §6.5
+     precondition 1 describes, and "a sitting on any AVD other than the `Pixel_9a` is VOID" in the
+     note above now reads "other than `Pixel_9a_bench`". Arm A is the merge-base so that A..B is
+     exactly the branch's diff whatever `develop` gains meanwhile. "The eight §6.5 preconditions"
+     reads **nine** since precondition 9, `/data` free ≥ 4 GB at both ends, was added the same day.
+     Phase 15's own sitting was sat on 2026-10-18 and passed (§6.5, the 2026-10-18 pointer under
+     "Which builds").)*
 
 > **15e — first edition, retired 2026-09-28** (`tech-lead-coldstart-gate.md` §1/§3/§4). Kept legible
 > because two reviewers returned verdicts against *this* wording, and a reader who meets those
@@ -4304,6 +5820,15 @@ which build all three apply to.
      Home's content area, and the empty space left below the second mode tile is no more than a
      third of the screen's unused space. No band is pinned to the bottom edge and no single gap on
      the screen is larger than the space the tiles occupy. (D-03i, D-03, criterion 15)
+     *(Ruled 2026-10-21 — **D-03n**, §4.2.5, "How 15g's 'unused space' is read". The words stand.
+     "The screen's unused space" is **S₀**, the slack the window leaves with no Continue chip, fixed
+     for the window, and "the empty space left below the second mode tile" is the footer, without the
+     band gap after the tile or the column's bottom padding. Under D-03n the footer is a fifth of S₀ in
+     every state, so the clause holds in both. Read against the slack left once the chips are in, the
+     same footer would be 38 % on QA's native window with both chips. No footer ratio meets that
+     reading and 15p part 1 together, except on a knife edge under 0.1dp wide on one window (§4.2.5);
+     that reading worked only while the footer moved with the chips. The midpoint, the bottom edge and the largest-gap clauses are unchanged, and the loop-3
+     PASS stands on both readings for the build it measured.)*
 
 15h. *(**RETIRED 2026-09-28 — D-03k, §4.2.3. It is not achievable, and it was certified by an
      assertion that could not fail.** Replaced by **15k**. Read the retirement note below it before
@@ -4374,6 +5899,20 @@ prohibitions are unchanged and still bind; **15h is retired and 15k replaces it*
         §4.2.3's arithmetic says 360×640dp is not such a window — it is ≈72dp over.) *(≈48dp over
         since D-03m, 2026-09-29, which retires the hero row's floor. The conditional and every bound
         in 15k are unchanged.)*
+        *(2026-10-21.)* Those figures were Robolectric LEGACY readings. On real metrics (Robolectric
+        NATIVE in the app theme, and the device), 360×640dp with both chips overflows 0dp. So part 2
+        holds there in its no-overflow branch. The overflow branch is read on `w360dp-h560dp`
+        (`HomeLayoutTest`). "Overflows" means overflows into a band: the column's trailing space,
+        the gap after the last band plus the bottom padding, is not a band (§4.2.2 clause 5), so a
+        fold inside it hides nothing and passes.
+        *(Recorded 2026-10-21 by the ux-designer from
+        `.planning/reports/15-founder-feedback/tech-lead-signoff-close.md` fold c, the tech-lead's
+        wording applied as given. The trailing-gap reading is the code-auditor's ruling in
+        `code-auditor-loop5.md` § Item 5, adopted by the tech-lead in that report's INFO row 7; it
+        is the reading this role would have given, so no further UX ruling is owed. In the
+        tech-lead's words: "The 16 dp tolerance is exact: M-edge120 passes and M-edge121 is cut"
+        (the auditor's mutation probes). The "≈72dp over" and "≈48dp over" parentheticals above
+        stay as the record of what was believed when they were written.)*
      3. **One plain scroll completes the screen.** The second mode tile, the Challenge tile's level
         chip included, is fully visible after a vertical scroll of the column involving **no tap,
         no expander and no state change**, revealing nothing that was not already composed; and the
@@ -4403,6 +5942,9 @@ prohibitions are unchanged and still bind; **15h is retired and 15k replaces it*
      nor value is truncated or scaled down, and at default font scale at 360dp width the whole
      ribbon band measures **≤ 56dp** — if it measures more, the band grows and the column scrolls
      rather than anything clipping. (D-03k, D-03c, D-03h, criteria 13, 13a, 14, 15j, §11)
+     *(Pointer 2026-10-21 — D-03o.)* Unchanged at default font scale. Above it, the one-line shape
+     gives way to the stacked one for all three pills at once, and no label or value is ever broken
+     inside a word; criterion 15w checks it.
 
 **Home hero (D-03l, §4.2.4 — founder-feedback amendment, added 2026-09-28)** — these five apply to
 the slice that lands D-03l and retro-certify nothing. Criteria 11, 14, 15, 15a's chips half, 15d,
@@ -4455,6 +5997,111 @@ art present" now reads **"with the stage art present"**.
      announce nothing; Home's TalkBack traversal is unchanged — title → gear → ribbon pills →
      Continue chips → mode tiles; and the stage renders identically before and after `HomeUiState`
      receives its first progress emission. (D-03l, §11, criteria 15f, 15j, D-03g)
+     *(Pointer 2026-10-21 — D-03n.)* "Renders identically" binds the **progress** emission, as it
+     always said. A Continue chip's arrival is a different emission and, by D-03n, the one that is
+     allowed to change the stage: the stage gives up the chips' room, and its art shrinks with it.
+     Criteria 15s–15v check that emission.
+
+**Home when the Continue chips arrive (D-03n, §4.2.5) and the pill at a large font scale (D-03o,
+§4.2.6) — added 2026-10-21** — these apply to the branch that lands them, `bugfix/home-chip-arrival`,
+and retro-certify nothing. Every criterion above stands, with the dated pointers this revision adds
+to it: 15g's ruled reading of "unused space", 15k part 2's 2026-10-21 record, 15m's and 15r's
+pointers. *(Header corrected 2026-10-23 after the loop-3 check, F-26; it read "15r gains a pointer".)*
+
+15s. **Nothing a player can tap moves when a chip arrives.** Given Home at default font scale, with
+     NATIVE text metrics in the app theme and a 24dp status bar and a 48dp navigation bar supplied, on
+     each of `w360dp` × `h640dp`/`h720dp`/`h800dp` and `w412dp` × `h780dp`/`h850dp`/`h915dp`, when
+     `HomeUiState` is emitted with no chip, then the Classic chip only, then both, then none again —
+     and separately with no chip, then the Challenge chip only, then both — then in every emission:
+     1. the title's, the gear's and both mode tiles' bounds equal their no-chip bounds (±0.5dp);
+     2. the distance from the second mode tile's bottom edge to the bottom of the viewport is the same in
+        every emission, and equals one fifth of the no-chip slack S₀, plus one band gap and the column's
+        bottom padding (±0.5dp), S₀ as §4.2.5 defines it;
+     3. the stage's height is max(0, ⅘ S₀ − R) (±0.5dp), where R is the room the chips present take,
+        each chip's height plus one band gap; and wherever the stage is above 0, the ribbon's top edge
+        sits higher than its no-chip top by exactly R (±0.5dp);
+     4. every chip present is complete inside the first viewport (§4.2.1 oracle 3), and the column's
+        scrollable overflow is what it is with no chip.
+     Today's code fails it: the tiles move 22–24dp per chip. If on any of these six windows the stage
+     cannot give the room at default font scale (R > ⅘ S₀), that comes back to the ux-designer with the
+     numbers; it is not closed by letting the tiles move. (D-03n, D-03f, criteria 15g, 15k, 15p)
+
+15t. **Where the stage cannot give the room, the tiles move by the shortfall and no more.** Given the
+     same emissions at font scale 2.0 on `w360dp-h640dp` and `w412dp-h915dp`, insets supplied, then
+     between any two emissions the mode tiles sit exactly max(0, R − ⅘ S₀) (±0.5dp) below their no-chip
+     position, never above it; the hero row does not move; nothing is clipped and no band is dropped;
+     and where the column overflows, it scrolls (criteria 14, 15i). (D-03n)
+
+15u. **The room opens; nothing jumps.** With OS animations on and the test clock paused, **Home is
+     composed and the clock advanced past its entrance cascade before the emission** — past the last
+     band's stagger plus `ClayAnim.ENTRANCE_MS` — because a band's test bounds include its entrance's
+     drawn offset (§4.2.5, "The entrance cascade and the room are independent"); a chip that lands
+     mid-cascade is 15v part 3's device read, not this test's. Then, when a chip
+     arrives (no chip → Classic only) and when chips leave (both → none), in every frame from the
+     emission until the layout settles: the hero row's and both mode tiles' bounds equal their settled
+     bounds (±0.5dp); the ribbon's top edge moves monotonically from its old position to its new one and
+     never past it; and no frame shows a chip's band gap without the chip. The room starts opening in the
+     frame after the emission and is fully open after `ClayAnim.ENTRANCE_MS`. With animations off
+     (`rememberAnimationsEnabled()` false), the frame after the emission is the settled layout.
+     (D-03n, §10, criterion 25)
+
+15v. **On the device, Home holds still and draws whole.** On `Pixel_9a_bench` at its native window and
+     at 360×640dp (`wm size` / `wm density`) — **only after the branch's own 15e sitting, in the same
+     session**, as the tech-lead's H-3 ran its device checks, because the bench is otherwise reserved
+     for 15e (§6.5 precondition 1; `tech-lead-signoff-close.md` D-1 condition 3; if the tech-lead's
+     text says otherwise, it governs) — the qa-engineer screen-records a cold start for a player with
+     one save and for one with two, **twice each: once with OS animations off and once with them on**,
+     and reads each recording frame by frame from first paint until the chips have settled. **Every
+     recording is made in gesture navigation**, the bench's resting mode, as loop 3 and H-3 recorded;
+     the three-button case is below. Afterwards QA restores `wm size`, `wm density` and the seeded
+     saves, as H-3 did. Positions are read from **edges** — the top and bottom edges of the hero row's
+     title and gear and of each mode tile, found where their surfaces meet the background — never
+     from pixel values inside them, which the drifting blobs behind the title change from frame to frame.
+     1. **With animations off — the position read.** Every frame is the layout. The hero row's and both
+        mode tiles' edges stay put (±1px) in every frame. The ribbon moves only upward, by the chips'
+        room, and only in the frame the chips arrive. (The blobs are skipped with animations off.)
+     2. **With animations on — the motion read.** Among Home's **bands**, two motions are allowed and no
+        third. One is §10's entrance cascade, in which each band drawn at first paint fades and slides up
+        into place over `ClayAnim.ENTRANCE_MS` after its stagger. The other is the chips' arrival: the
+        room opening (§4.2.5, "The motion") together with the late chip's own fade and slide, which
+        starts with its room. Home's two ambient blobs (§10: "the blobs remain the only drifting
+        elements") are not bands and are outside this read. The cascade is a drawing offset, not a
+        layout change, so position is read from the first frame in which every band drawn at first paint
+        has finished its entrance. From that frame on, part 1's rules apply, with the ribbon allowed to
+        glide upward while the room opens. In the settled frames, the hero row's and the tiles' edges
+        equal those of the animations-off recording of the same window and state (±1px).
+     3. **If the chips land while the cascade is still running** — possible on a phone that decodes the
+        snapshots quickly — no band's entrance restarts or changes its target. Every band finishes its
+        entrance at the position it holds in the animations-off recording, and the position read starts
+        from the first frame in which both the cascade and the room have settled. A band that ends its
+        entrance somewhere else, or whose entrance starts again, fails.
+     4. **In every frame of both recordings, the cascade included:** the first frame that draws the stage
+        slab draws its pegs (they fade together, at one alpha), and the first frame that draws a mode tile
+        draws its art.
+     5. **Three-button navigation is not this criterion's window.** On the 360×640dp window with a 52dp
+        status bar and a 48dp three-button bar, 540dp is usable, S₀ is 204dp and ⅘ S₀ is 163.2dp, while
+        both chips need 176dp: the stage cannot give the room, and by §4.2.5's rule the tiles move
+        12.8dp down when both chips land (44dp today). That is 15t's shortfall case, checked there on the
+        JVM. If QA records it on the device anyway, it is read by 15t's rule — the tiles move by exactly
+        the shortfall, never more — and not by part 1.
+     (D-03n parts 1, 3 and 4; §10; criteria 15f, 15t, 15u, 25)
+
+15w. **No word breaks; one shape per ribbon.** Given Home on `w360dp-h640dp`, insets supplied, with
+     NATIVE text metrics in the app theme (the real faces), at font scales 1.0, 1.3 and 2.0, with Stars
+     401, Boards 0/5 and Level 111 — again with Stars and Boards at "—", before the progress emission —
+     and again with a five-digit level, 12345:
+     1. every pill's label and every value lay out on exactly one line each, so nothing is broken inside
+        a word or a number;
+     2. at 1.0 all three pills keep D-03k's one-line shape, and the band is ≤ 56dp (15m);
+     3. at 2.0 all three are stacked — each value's top below its label's bottom — at one height and one
+        width (±0.5dp);
+     4. at every scale, the three pills share one shape, and the shape and height with "—" equal those
+        with the values: the progress emission changes no pill's shape or height (15f) — except in
+        §4.2.6 rule 4's case, a value too wide to sit beside its label, which none of these values is;
+     5. each pill's description is byte-identical to the full set's ("Stars, 401").
+     At 2.0 on `w412dp-h915dp`, every full pill's label and value lay out on one line each. On a device at
+     360dp and font scale 2.0, in light and dark, "Stars", "Boards" and "Level" read whole. Today's code
+     fails part 1 at 2.0. (D-03o, criteria 14, 15f, 15i, 15m)
 
 **In-game controls (D-04) and the toolbar (D-05)**
 
@@ -4490,6 +6137,23 @@ art present" now reads **"with the stage art present"**.
      text is fully visible — not clipped, not ellipsised — in a pill that has grown to hold it; only
      the title may ellipsise; and TalkBack still reads the title's full text ("Peg Solitaire", or
      "Challenge level N"). (D-05d, §11, criterion 18)
+
+**The timer's spoken form (D-05e, §4.3.2 — added 2026-10-21)** — these apply to the branch that lands
+D-05e, `bugfix/home-chip-arrival`; criteria 18 and 18a–18e stand unchanged.
+
+18f. **The timer's description carries its value.** Given the status strip with `elapsedSeconds` of 0,
+     1, 45, 60, 61, 312, 720, 3599 and 6000, then the clock's single accessibility node has, word for
+     word, §4.3.2's sentence for that time as its content description — "Elapsed time, 0 seconds"
+     through "Elapsed time, 100 minutes" — starting with the `elapsed_time` string; the node has no
+     spoken children (the cells stay hidden, as N-2 asserts); and it carries no live region. Today's
+     code fails it: the description is "Elapsed time" alone. (D-05e, SCOR-02, criterion 18)
+
+18g. **TalkBack says it, once.** On a device with TalkBack on and its speech output displayed — the
+     "Display speech output" path QA's S11 loop 1 used — during a game: moving focus to the timer speaks
+     §4.3.2's sentence for the time shown (one second either way), and leaving focus on the running
+     timer for 10s brings no further speech. If TalkBack does speak again on a tick, D-05e's whole-minute
+     fallback is built, and this criterion is read against it: the focused timer then speaks at most once
+     a minute, as "Elapsed time, N minutes" or "Elapsed time, under a minute". (D-05e, §11, criterion 18)
 19. Undo, Hint, Show-moves and Restart are all still reachable, all still work, and all four sit in
     the lower half of the screen. (ASST-01, ASST-02, D-04)
 20. The Hint control does not use a magnifying-glass glyph, and the Show-moves control does not use
@@ -4695,6 +6359,18 @@ what the player sees and hears.
     expected consequence of reduced motion. (rules/compose.md, §10, §14 7c)
 26. Every new interactive element is at least 48dp, at least 8dp from its neighbours, and reachable
     by TalkBack with a meaningful label, in both light and dark. (rules/compose.md, §11)
+    *(Pointer 2026-10-21 — §11's recorded gap.)* Whether the **tutorial board** — §4.1's one
+    interactive element, on a screen this refresh made new — is inside this criterion is **pending the
+    same ruling**: release scope is routed by the producer to the game-designer (and the founder), at
+    `.planning/reports/ux-spec-folds/game-designer-talkback-board.md`. Until it lands, a pass of 26
+    records the board's result separately and does not decide it either way. The gameplay board predates
+    this refresh and is not a "new" element. It is covered by the same recorded gap in §11.
+    *(Ruled 2026-10-23 — answers the pointer above.)* **The tutorial board is inside this criterion**
+    (GD-TB-4, `.planning/reports/ux-spec-folds/game-designer-talkback-board.md`). By 26's words it is a
+    new interactive element that fails 26 today; the founder answered Q-023 with option 1 (2026-10-21),
+    so it becomes playable with TalkBack in 3.0.0, by D-TB (§11.1) and criteria TB-1 to TB-12. The
+    gameplay board stays outside 26's "new" by its words, and is held to the same studio baseline by
+    the same ruling and the same criteria. A pass of 26 reads the board through TB-1 to TB-12.
 
 26a. **How 26 is checked, and what does not count as failing it** *(added 2026-09-28, §11 "The
      unmerged tree is not the contract")*. Criterion 26 is checked with **TalkBack running on a
@@ -4714,9 +6390,233 @@ what the player sees and hears.
      stop that reads its text, no role, and **Dismiss** in the actions menu, which puts it away.
      It still counts under criterion 26 for size and spacing (≥ 48dp, 32dp above the dock; §4.4.2
      "Touch targets").
+     *(Pointer 2026-10-23, loop 4 — D-TBa items 8 and 10, §11.1 "Cell size".)* Two things about the
+     board's stops:
+     - **The gameplay cells do not meet "the focus rectangle is ≥ 48dp"**: 42, 37 and 33dp on a 360dp
+       phone for 7 × 7, 8 × 8 and 9 × 9 grids. Their finger targets touch, so 26's 8dp spacing is
+       not met either. They meet WCAG 2.2 SC 2.5.8. This is recorded as a
+       deviation from rules/compose.md, which the producer carries to the founder in the
+       Q-PUBLISH-3.0.0 summary. A pass of 26 records the measured sizes and does not fail the cells
+       on them. 26a's other lines judge a cell as "one stop, its description and its action label".
+       The tutorial's cells, about 83dp, are judged by every line.
+     - **The board stop is not a control.** Its activation deliberately does nothing, so "the label
+       sits on something that cannot be activated" does not judge it. TB-1 is its pass line.
+
+26b. **The spoken order** *(added 2026-10-21 — D-05e, §4.3.2; criterion 26's spoken-order half,
+     routed by the tech-lead's phase-15 sign-off)*. With TalkBack on and its speech output displayed,
+     swiping forward from the first stop of each screen below visits exactly these stops, in this order,
+     once each, and each stop's speech contains the string named. The order of name, role and state
+     inside one utterance is TalkBack's own and is not judged; QA's device speaks state first.
+     - **Gameplay, Classic:** `navigate_back` ("Navigate back") → `app_name` ("Peg Solitaire"), as a
+       heading → the timer, with §4.3.2's sentence → **the board stop**, `board_a11y_label` ("Board, 32
+       pegs left" at English-33's start) → **each in-play cell**, row by row from the top, left to right,
+       with its §11.1 description → **any raised rescue banner** (its message, `stuck_message` or
+       `nowin_message`, then `undo_action`, `rescue_restart` and `action_home`) **or the Undecided
+       notice** (`hint_undecided_message`, with a Dismiss action) → `undo_action` → `hint_action`, or
+       `hint_thinking` while a hint is searched → `show_moves_on`, as a switch with its state →
+       `restart_board`. **Challenge:** the title's stop speaks `challenge_level_indicator_desc`
+       ("Challenge level N"). While a Challenge board loads, `loading_level`'s indicator stands where
+       the board stop and the cells go.
+       *(Amended 2026-10-23, loop 4 — **D-TBa** item 1, agreeing with **D-04g** item 6 on
+       `bugfix/hint-undecided`. Until this amendment the line ended "… `show_moves_on`, as a switch with
+       its state → `restart_board` → any raised banner." The banner was never read after the dock: it is
+       composed in the board region, above the dock. On a build without D-TB the banner or notice
+       follows the timer directly, which is D-04g's own order. The notice is judged here only once
+       `bugfix/hint-undecided` has merged.)*
+       *(Amended 2026-10-24, loop 5 — the check's F-38.)* On a D-TB build the order is pinned, not
+       geometric (D-TBa's loop-5 lines). So it is read once more, with a banner raised, on a board
+       limited by height: a phone in landscape, or a window wider than 512dp. The banner must still
+       follow the last cell.
+     - **Home:** `app_name`, as a heading → `settings_action` → the Stars, Boards and Level pills, each
+       once, as "label, value" (`home_stat_pill_desc`) → each Continue chip present, with its title
+       (`resume_classic_title`, `resume_challenge_title`) → the Classic tile (`classic_tile_title`) →
+       the Challenge tile (`challenge_tile_title`, with `challenge_tile_continue`). The stage, its art
+       and the footer are never a stop.
+     - **Tutorial:** the pip row (`tutorial_step_progress`) → `onboarding_skip` → **the board stop**
+       (`board_a11y_label`) → **each in-play cell**, as on gameplay → the caption → on completion,
+       `onboarding_got_it`.
+     *(Amended 2026-10-23 — **D-TB**, §11.1. The board stop and its cells are added after the timer and
+     after Skip, as GD-TB-4 and the founder's Q-023 answer (option 1, 2026-10-21) require; the ruling is
+     `.planning/reports/ux-spec-folds/game-designer-talkback-board.md`. Until this date the criterion
+     read: "**The board is not a stop, on gameplay or in the tutorial.** … that is the order this
+     criterion expects of today's build. If a later change gives the board semantics, it is visited in
+     its screen position — after the timer, after Skip — and is neither required nor judged here." That
+     record stands for a build without D-TB: on `bugfix/home-chip-arrival`, if it is passed before
+     `feature/talkback-board` merges, the board stop and the cells are absent and that is not a failure
+     of 26b. What each board stop and cell says, and how it is activated, is judged by TB-1 to TB-12,
+     not here.)*
+     A missing stop, an extra stop, a stop out of this order, two stops for one control, or a stop that
+     speaks no label fails; 26a's other lines apply unchanged. Run once in light and once in dark, at
+     default font scale, in the same sitting as 18g. (D-05e, §11, criteria 26, 26a)
 27. Every text and glyph pair introduced by this refresh meets 4.5:1 / 3:1 contrast in both light
     and dark. (§11)
 28. No screen in this refresh plays a sound as its only feedback for an event. (rules/audio.md)
+29. **The system bars take the theme** *(added 2026-10-21 — D-05f, §6.2; applies to the branch that
+    lands it, `bugfix/home-chip-arrival`)*. **(1)** `WindowThemeTest` resolves `Theme.PegSolitaire` at
+    an API level of 27 or more under `notnight` and `night` and reads `android:windowLightNavigationBar`
+    as true and false, watched failing before the theme changes; its status-bar cases stand. The
+    attribute lives in `values-v27/` and `values-night-v27/`, each restating the whole style, and not in
+    `values/` or `values-night/`: at the test's SDK the two placements resolve alike, so this half of the
+    criterion is read in the diff and by lint's NewApi check on minSdk 24, not by the test. **(2)** On
+    a device at API 36, in three-button and in gesture navigation, in light and in dark, on Home,
+    gameplay and the tutorial: in dark mode the three-button bar's scrim is dark — sampled between the
+    buttons, its relative luminance is at most 0.18 — with light buttons ≥ 3:1 against it; in light mode
+    the bar is as it is today, light with dark buttons ≥ 3:1; the gesture handle is ≥ 3:1 against what is
+    behind it in both themes; and the status-bar icons are as H-2 left them. (D-05f, §11, criterion 27)
+
+**The board with TalkBack (D-TB, §11.1 — added 2026-10-23)** — these twelve are the game-designer's
+TB-1 to TB-12 (`.planning/reports/ux-spec-folds/game-designer-talkback-board.md`, §4), kept under their
+ids so the ruling, the build brief and QA name the same thing, and given here with the exact strings of
+§11.1 and §8. They apply to `feature/talkback-board` and retro-certify nothing. "TalkBack gestures only"
+means swipes, double-taps and TalkBack's actions menu, with TalkBack's "Display speech output" log as the
+record. "Both boards" means gameplay (Classic and Challenge) and the tutorial. Criteria 26, 26a and 26b
+read the board through these.
+
+TB-1. **The board announces itself.** On both boards, with TalkBack on, swiping forward from the timer
+      (gameplay) or from Skip (tutorial) lands on a stop that speaks `board_a11y_label` with the current
+      count — "Board, 32 pegs left" at English-33's start, "Board, 1 peg left" when one remains — with no
+      role and no "button". Double-tapping it leaves the board state, the cues, the haptics and the undo
+      history unchanged. *Compose semantics test on both screens, plus a device pass that double-taps the
+      board stop.* (M1, D-TB)
+      *(Amended 2026-10-23, loop 4 — D-TBa items 8 and 9.)* The board stop carries a click action that
+      does nothing, with no label and no role. TalkBack's default "double-tap to activate" after its
+      text is expected and passes. Double-tapping it also speaks no board announcement. The Compose
+      test asserts the action is present and that performing it changes nothing. No read-only board —
+      the Home stage, the Continue thumbnail, the tile art, a catalogue preview — has a board stop or
+      a cell stop.
+
+TB-2. **One stop per playable cell.** On any board, the stops after the board stop are exactly its
+      in-play cells, each once, row by row from the top and left to right within a row; no blocked cell
+      is a stop. Each stop's description starts with `board_a11y_position` and its content: English-33's
+      first cell stop at the start says "Row 1, column 3, peg, no jumps", and its centre "Row 4, column 4,
+      empty". *A JVM test of the description model over all five Classic boards and Challenge levels 1 to
+      1,000: the stop count equals `inPlay.size`, in row-major order, with 1-based numbers. A Compose
+      test on English-33: 33 cell nodes after the board stop, in that order.* (M2, D-TB)
+
+TB-3. **Selection, jumps and targets are spoken.** A peg with *k* legal jumps says "*k* jump(s)", or
+      "no jumps" when *k* = 0. The selected peg says "selected" after "peg". While a peg is selected,
+      exactly the empty holes in `legalTargets` say "jump target". While a hint is shown, exactly its
+      source says "hint, move this peg" and exactly its destination says "hint, land here". Every cell's
+      text is identical with Show-moves on and with it off. For example: "Row 2, column 4, peg, selected,
+      1 jump" and "Row 4, column 4, empty, jump target". *A table-driven JVM test, plus a property test
+      over 1,000 seeded reachable states: the spoken k equals the rules engine's legal-move count from
+      that peg, and the spoken targets equal `legalTargets`.* (M3, GD-TB-2, D-TB)
+
+TB-4. **A double-tap is a tap.** From any state, activating any cell through its accessibility click
+      gives the same next `GameUiState`, the same cues, haptics and undo history, and the same tutorial
+      progress as a finger tap on that cell. This covers selection, re-selection, put-down, a jump and a
+      rejected tap. The click's action label is "select", "put down" or "jump here" exactly as §11.1's
+      table gives it, and none on any other cell. A rejected tap speaks "No peg here.", "Not a jump
+      target." or "Put down the selected peg first.", one per case. *A Compose test runs one scripted
+      sequence twice, through the click action and through pointer taps, and compares them state by
+      state; plus a device pass.* (M4, D-TB)
+      *(Amended 2026-10-23, loop 4 — D-TBa items 2 and 3.)* Those three lines are the only rejected-tap
+      announcement on both boards. In the tutorial too, each is spoken once per rejected tap. On
+      gameplay none of the audio branch's `wrong_tap_*` sentences (D-06c) is spoken, before or after
+      D-TB's line.
+
+TB-5. **One action per legal jump.** While nothing is selected, every peg with legal jumps offers exactly
+      one custom action per legal jump, labelled "Jump up to row 4, column 4" and so on, listed up, down,
+      left, right. While a peg is selected, it alone offers its actions. No hole, no peg without a legal
+      jump, and no other peg while one is selected offers any. Taking an action leaves the state, cues,
+      haptic, undo history and tutorial progress that selecting the peg and tapping the destination
+      leave. *A Compose test through the custom actions, plus a JVM property test over seeded states.*
+      (M5, GD-TB-5, D-TB)
+
+TB-6. **Every change is spoken once.** With TalkBack on, each of these speaks its §11.1 line once, and
+      no event is spoken twice or late over the next: a selection ("Selected row 2, column 4, 1 jump."),
+      a put-down ("Put down row 2, column 4."), a jump by tap or by action ("Row 2, column 4 to row 4,
+      column 4. Removed row 3, column 4. 31 pegs left."), an undo ("Undid row 2, column 4 to row 4,
+      column 4. 32 pegs left."), a hint ("Hint: row 2, column 4, jump down to row 4, column 4."), a
+      restart ("Board restarted. 32 pegs left."), and the rescue banner rising (`stuck_message` or
+      `nowin_message`, verbatim). A jump that strands the board speaks its line and then the banner's.
+      *A Compose test on the announcement's text after each event, plus a device pass from the speech
+      log.* (M6, D-TB)
+      *(Amended 2026-10-23, loop 4 — D-TBa items 2, 4 and 11.)*
+      - The put-down line is now "Peg put down, row 2, column 4.". It was "Put down row 2, column 4.".
+      - The banner's line is criterion 23k's region on `bugfix/hint-undecided`, and the Undecided
+        notice's is 23d's. The board's channel never carries either, and each is spoken once.
+      - A stranding jump speaks its line and the banner's, each once, in either order; a repeat or a
+        cut-off fails. The first wording, "its line and then the banner's", is replaced.
+      - Two identical rejected taps in a row, the second made after the first has been spoken, are
+        spoken twice.
+      - The device half also records whether TalkBack re-reads a focused cell whose text changed. If
+        it does, the selection line is withdrawn for a selection made on the focused cell (§11.1).
+
+TB-7. **Focus stays on the board.** After a selection, a put-down or a rejected tap, focus is on the cell
+      activated. After a jump by tap or by action, it is on the destination cell. Undo, Hint and Restart
+      from the dock keep focus on that control, Restart once its dialog closes. Undo or Restart from the
+      rescue banner puts it on the board stop. When the banner rises, focus does not move. Focus is
+      never on another control and never at the top of the screen after a board action. *Device pass.*
+      (M7, D-TB)
+      *(Amended 2026-10-23, loop 4 — D-TBa items 5 and 11; the brief's F-TB-1.)*
+      - **The moves are made by input focus**, which TalkBack follows. The device pass records, for
+        each of the four moves, whether TalkBack's focus and speech land on the target:
+        - a jump by action → the destination cell;
+        - a tutorial step 2 or 3 → its board stop;
+        - the banner's Undo or Restart → the board stop;
+        - completion → "Got it".
+      - If TalkBack does not follow, §11.1's fallback applies and this criterion is read against the
+        amended table.
+      - With TalkBack off, Tab on an attached keyboard (or the emulator's) never lands on a cell or on
+        the board stop.
+      - Focus does not move when the Undecided notice rises, when a coach escalation puts a held peg
+        down, or when a Challenge board finishes loading.
+      *(Amended 2026-10-24, loop 5 — the check's F-39.)* The keyboard check runs with touch
+      exploration disabled, which is the state "TalkBack off" names. A screen reader with touch
+      exploration off, and Switch Access, are recorded under W5 (§11.1): neither gets the four moves,
+      and that is not judged here.
+
+TB-8. **The result is spoken.** When Results opens after a finished game, `results_a11y_summary` is
+      announced once — the headline, `catalog_stars_earned` with a total of 3, and
+      `board_a11y_pegs_left`; for example "Solved! — 2 of 3 stars, 2 pegs left." — and the
+      star row is one stop saying "2 of 3 stars". A game that ends on the rescue banner is TB-6's banner
+      line. *A Compose test on `ResultsScreen`, plus a device pass.* (M8, D-TB)
+      *(Amended 2026-10-23, loop 4 — D-TBa item 7; the brief's F-TB-6.)* "Opens" is the showing that
+      the D-16 latch `ResultsUiState.playCelebration` marks. The Compose test asserts the summary with
+      the latch true and no summary with it false. On the device, a rotation on Results speaks no
+      second summary.
+
+TB-9. **The tutorial can be finished by ear.** On a fresh install with TalkBack on, a tester using
+      TalkBack gestures only completes T1, T2 and T3 and reaches "Got it". Each step's board, the first
+      included, speaks "Step *n* of 3." followed by its caption, and focus moves to that board's board
+      stop. A coach escalation speaks the hint line. Completion speaks "That's the whole game. Go clear a
+      board." and moves focus to "Got it". No spoken line says "wrong", "invalid" or "error" (D-01c).
+      *A device pass, plus a Compose test for the step, coach and completion lines.* (GD-TB-1's tutorial
+      items, D-TB)
+      *(Amended 2026-10-23, loop 4 — D-TBa items 3 and 6; the brief's F-TB-5.)*
+      - **The first step's board does not move focus.** Its line is spoken when the tutorial opens, and
+        swiping from the top reaches the pips, then Skip, then the board stop. Steps 2 and 3 move focus
+        to their board stop, as above. The first wording, "Each step's board, the first included, …
+        and focus moves to that board's board stop", is replaced for the first step only.
+      - A rejected tap in the tutorial speaks D-TB's line once, with no shake, no mark, no reject
+        haptic and no sound.
+      - The Compose test covers both.
+
+TB-10. **A whole game can be finished by ear.** On English-33 and on Challenge level 1, a tester using
+       TalkBack gestures only — Hint and Undo allowed — plays from the first move to Results without
+       looking at the screen. *A device pass; the speech log is the evidence.* (M1–M8, D-TB)
+
+TB-11. **Sighted play is untouched.** With TalkBack off, finger taps, the drawing, every animation, sound
+       and haptic behave exactly as before, and nothing is spoken. The layer that carries the cells'
+       semantics takes no pointer input. The existing suite passes with zero diff, except the retargets
+       §13 names for this decision. *The existing suite, plus a pointer-tap test through the new layer.*
+       (D-TB)
+       *(Amended 2026-10-23, loop 4 — D-TBa items 5, 8 and 9.)*
+       - "Sighted play" includes keyboard and D-pad traversal. With TalkBack off, no cell and no board
+         stop can take input focus.
+       - The board stop's no-op click is a semantics action and adds no pointer input.
+       - A read-only board composes no stop. §13 names the extra assertions.
+       *(Amended 2026-10-24, loop 5 — the check's F-39.)* "With TalkBack off" is read as **touch
+       exploration disabled** (`AccessibilityManager.isTouchExplorationEnabled` false). The Robolectric
+       test sets that state, asserts that no cell and no board stop can take input focus, and asserts
+       that no focus move is requested.
+
+TB-12. **Nothing spoken leaks a winning move.** In every state, every cell text, action label and
+       announcement is built only from the board, the selection, `legalTargets`, the move just made or
+       undone, and the revealed hint. Nothing comes from the solver except a hint the player asked for,
+       or a tutorial coach escalation. *A JVM test on the model's inputs; the code-auditor reads the
+       dependency.* (GD-TB-2, D-TB)
 
 ---
 
@@ -4870,6 +6770,36 @@ changes. One third-party asset enters the artifact, the two font families (OFL-1
   dismiss action uses the platform's own "Dismiss" label. **ASST-01**'s notice can now be put away
   by a tap or by TalkBack, and §11's gameplay traversal line is corrected to the order the layout
   produces (criteria 23c, 23j).
+
+*(Added 2026-10-21 — the tenth revision.)* **PLAT-08 (C1)**: §6.5's precondition 1 names
+`Pixel_9a_bench` and the D-1 route to it, precondition 9 is new, and arm A is the branch's merge-base;
+how the sitting is run changes, not what it decides. **NAV-01**, **PERS-03** and proposed **UX-02** gain
+§4.2.5 and criteria 15s–15v: a Continue chip's arrival moves no target, and both chips stay complete in
+the first viewport (D-03n). Proposed **UX-02** also gains §4.2.6 and criterion 15w (D-03o). **SCOR-02**
+gains §4.3.2 and criteria 18f and 18g: the timer speaks its value (D-05e). Proposed **UX-03** gains
+criterion 26b, the spoken order of the refreshed screens, and criterion 29, the system bars (D-05f).
+**QUAL-03** gains two strings and two plurals, one more string only with D-05e's fallback, and one
+scoped ratio; no token, no colour, no dependency.
+
+*(Added 2026-10-23 — D-TB.)* **CLAS-02**, **ONB-01** and proposed **UX-01** and **UX-03** gain §11.1 and
+criteria TB-1 to TB-12: both boards — gameplay and the tutorial — are playable with TalkBack, from the
+game-designer's scope ruling (GD-TB-1 to GD-TB-5) and the founder's Q-023 answer (option 1). **ASST-01**
+and **ASST-02** gain TB-6's hint and undo lines. **SCOR-03**'s Results gains TB-8's star count and
+summary. No requirement id names TalkBack (`.planning/REQUIREMENTS.md`), so the decision traces to the
+studio baseline (rules/studio.md, rules/compose.md) and to Q-023. **QUAL-03** gains 29 strings and two
+plurals (§8), all spoken and none drawn; no token, no colour, no dependency.
+
+*(Corrected 2026-10-23, loop 4 — D-TBa; the check's F-36.)* "**SCOR-03**'s Results gains TB-8's star
+count and summary" named a requirement that is neither a row of the table above nor an id in
+`.planning/REQUIREMENTS.md`, and it is withdrawn. TB-8's star count and summary trace, like the rest of
+D-TB, to the studio baseline and to Q-023. D-TBa changes no trace. The audio amendment's §9 traces the
+wrong tap's non-audio partners (D-06) to **SOUND-02**; that trace stands, and the announcement among
+those partners is now D-TB's line.
+**QUAL-03** still gains 29 strings and two plurals; one value changes, and the audio branch's three
+`wrong_tap_*` strings leave when `feature/talkback-board` folds them. **Ids.** "D-TB" and "D-TBa" sit
+outside the `D-nn` / `D-nna` style of §3's decision ids. They are kept because the build brief, the ruling
+and the checks cite them. Neither collides with an id on this branch, on `bugfix/hint-undecided` or in
+the audio amendment.
 
 ---
 

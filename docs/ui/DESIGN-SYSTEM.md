@@ -41,6 +41,12 @@ Desaturated tonal variants (not inverted): background #1B1626, surface #241E31,
 surfaceContainerHigh #2E2740, primary #A78BFA, secondary #F472B6, tertiary #FBBF24,
 onSurface #EDE9F5, onSurfaceVariant #A79FB5, outline #4A4160. Contrast ≥4.5:1 body text both modes.
 
+*(Added 2026-10-21 — ux-designer, `docs/ux-spec.md` D-05f, §6.2.)* **The system bars take the theme.**
+Edge to edge they have no colour of the app's own; the window theme decides only their appearance.
+Light mode: dark status-bar icons and the platform's light navigation scrim with dark buttons. Dark mode:
+light status-bar icons and the platform's dark navigation scrim with light buttons. Navigation buttons and
+the gesture handle stay ≥ 3:1 against what is behind them. No hex is added for any of it.
+
 ### Gradients (Brush constants in theme, not per-screen hex)
 - `CtaGradient`: #A78BFA → #7C3AED (vertical) — primary buttons/tiles
 - `PegGradient`: radial #F9A8D4 (top-left highlight) → #EC4899 → #BE185D (rim) — candy pegs
@@ -49,11 +55,23 @@ onSurface #EDE9F5, onSurfaceVariant #A79FB5, outline #4A4160. Contrast ≥4.5:1 
 
 ## Typography
 
-Fredoka (headings/display, weight 500–600) + Nunito (body/labels, 400–700) via
-`androidx.compose.ui:ui-text-google-fonts` (downloadable fonts, BOM-versioned) with
-platform-default fallback chain so offline/first-launch never breaks. Map onto the M3 type
-scale — displaySmall/headlineMedium/titleLarge = Fredoka; body/label = Nunito. Tabular figures
-for timer and score (`FontFeatureSettings "tnum"`).
+Fredoka (headings/display, weight 500–600) + Nunito (body/labels, 400–700), **bundled as static
+font files in `res/font`** (Fredoka Medium, SemiBold; Nunito Regular, SemiBold, Bold — OFL-1.1)
+and loaded on first use, so the first frame is drawn in them on every device, online or not. Map
+onto the M3 type scale — displaySmall/headlineMedium/titleLarge = Fredoka; body/label = Nunito.
+Tabular figures for timer and score (`FontFeatureSettings "tnum"`) — honoured by Nunito; Fredoka
+has no `tnum`, so the timer sets its digits in fixed cells (`TimerDigits`).
+
+> *(Amended 2026-10-21 — ux-designer, applying the tech-lead's font ruling of 2026-09-29,
+> `.planning/reports/15-founder-feedback/tech-lead-fonts.md` Ruling 1 and its "Spec text for the
+> ux-designer"; the tech-lead's wording, applied as given. Until today `docs/ux-spec.md` §6.3 and §9
+> superseded this section.)* The first sentence above replaces this one, kept as the record:
+> "Fredoka (headings/display, weight 500–600) + Nunito (body/labels, 400–700) via
+> `androidx.compose.ui:ui-text-google-fonts` (downloadable fonts, BOM-versioned) with
+> platform-default fallback chain so offline/first-launch never breaks." The downloadable path,
+> its certificate file and its dependency are deleted (font ruling D4–D6). The only fallback left
+> is the platform's per-glyph fallback for characters the faces lack. The clause after the em dash
+> in the tabular-figures sentence is new; the sentence before it is unchanged.
 
 ## Shape
 
