@@ -81,3 +81,38 @@ Every finding is folded at the line the check named, with a dated loop-1 note th
 
 ### Handoff (loop 1)
 Next: producer — read and commit the amended spec and this report (not committed by me); re-dispatch a fresh checker on the spec; hand the tech-lead §9 item 7(f)–(k) for the brief; release-manager: row J's two cells and the NOTICE's full hash (§9 item 8), the U-6 re-derivation note (item 13).
+
+## Loop 2
+Date: 2026-10-24
+Branch: feature/licences-screen (committed by the producer)
+Loops: 2 (the second fresh check, `ux-designer-check-loop2.md`: **PASS**, with twelve non-blocking findings F-19 to F-30 — 4 Medium, 8 Low — to fold before the qa-engineer reads §5.1's pass lines)
+Read in full: `.planning/reports/licences-screen/ux-designer-check-loop2.md` (99 lines); `.planning/reports/licences-screen/tech-lead-brief.md` (440 lines, two pages: §0–§8 and Amendment 1 A1.1–A1.9)
+Lessons applied: none
+
+### What changed in `docs/ux/licences-screen.md`
+Every finding is folded at the line the check named, with a dated loop-2 note that keeps the superseded wording, and indexed in §10 rows 25–37. The android-game-dev is building to the brief in this worktree; nothing here changes the build — where a line records a brief ruling, the brief's wording governs the code. No decision LS-01 to LS-13 is reopened; the THIRD_PARTY.md ↔ screen mapping is unchanged.
+- **F-19 (Medium):** LS-AC01's oracle asserts the heading property **per section header shown** (the brief's `everySectionHeaderIsAHeading`: three before About lands, four after, three without Play Games), never a count; QA's line (§8.2 item 11) reads "every section header shown, and the title where it is one"; §2's note records why a count was wrong (D-11; ux-spec §11's titles).
+- **F-20 (Medium):** §4 — for an unknown entry id the top-bar title is `licenses_title` "Licenses" (the brief's F1, made this role's own: no empty heading stop, no new string); LS-AC14 asserts it.
+- **F-21 (Medium):** LS-AC12 (b) asserts **equality** of the distinct sources with the ten AARs; "include" superseded; the consequence named (a new or dropped Google AAR fails the test until the verdict and the row land; `theSourcesAreExactlyTheTenMeasuredArtifacts`).
+- **F-22 (Medium):** LS-AC17, §3.2 and §6 name this branch as the author of `UserFacingTextHasNoProtectedNamesTest` (the brief's §4.3, commit 3), with its sixteen-word list and the hand-over to candy.
+- **F-23 (Low, a UX number):** the entrance stagger is capped at `LicensesUi.STAGGERED_ROWS` = 8 items on **both** lists, the intro and headers counted, with the reason (six to nine rows per screen; the first screenful in by ≈ 560 ms); "as it does for every long list in the app" withdrawn (§3.1, §4A).
+- **F-24 (Low):** §4B's title is "Notice" for any null header, `Loading(null)` included (the brief's F2).
+- **F-25 (Low):** LS-AC12's and LS-AC05's "By" cells: the generated-asset and hash-pin assertions are Robolectric; the parser and re-flow plain JVM (the brief's F8).
+- **F-26 (Low):** the conditionals are closed from the brief: explicit `collectionInfo`/`collectionItemInfo`, rows counted alone (A1.2; §4A, §5.1, LS-AC13 unconditional); debug-for-release is the Gradle parity task `verifyGoogleNoticesParity` in `:app:check`, now LS-AC12 (d) (A1.3); §9 item 7(f)–(k) each carry an "answered" pointer, with the two consequences recorded (the signed-in Play Games statement row becomes one stop; the Licenses headers are headings through the shared `SettingsSectionHeader`).
+- **F-27 to F-30 (Low):** LS-AC03 asserts files only and no subdirectory ("`google/` excluded" superseded); LS-AC18 split between the developer (debug APK delta, `licenses/google/` byte count) and the release-manager (release AAB delta at 4.6); §5's first-edition traversal bullet points at the two Google entries; LS-10's "complete by name" reworded to one-to-one by row or family (§3.2.1).
+- **The check's open issue 3:** LS-AC05's Compose selection clause is narrowed to the structural half (both paragraphs under one `SelectionContainer`, none with its own) if Robolectric cannot deliver the gesture, the device half standing — so the developer never has to drop the test.
+- **Record notes** (the check's open issue 4; the brief's F7): the Jakarta hash spelling in THIRD_PARTY.md §2 and the missing `3f3d9e00` in checklist 4.6a (c), both the release-manager's, in §9 item 8.
+
+### Checks
+- `Read .planning/reports/licences-screen/ux-designer-check-loop2.md` (99 lines) — pass (twelve findings and two open issues read; each has a loop-2 note at the location it cited).
+- `Read .planning/reports/licences-screen/tech-lead-brief.md` (440 lines, lines 1–230 and 231–440) — pass (§0.1–§0.4, §4.1, §4.3, §8 F1–F12 and A1.1–A1.9 folded; the brief's wording is cited where it rules the build, never rewritten).
+- Consistency after the edits: §9 item 7 owes nothing; LS-AC12 has (a)–(d) with kinds per R5; §10 rows 1–37 each point at a live section; the stagger cap, the two null-header titles and the equality oracle appear once each as the rule and elsewhere only as pointers — pass.
+- `./gradlew check` — not run (no Bash on this role; a docs-only change; the developer runs it at every commit).
+
+### Open issues / risks (loop 2)
+1. Nothing is owed to the brief any longer; the brief's §8 F1, F2 and F6 are now this role's own decisions in the spec, so the developer reads one text for them.
+2. QA's pass lines (§5.1, §8.1, §8.2) are the folded edition's; the qa-engineer should be dispatched against this state, not against `2a058dd`.
+3. The check recommends no third fresh check beyond the code-auditor's read of this fold's diff, since every item carried a ruling already; that is the producer's call.
+
+### Handoff (loop 2)
+Next: producer — read and commit the amended spec and this report (not committed by me); the qa-engineer reads §5.1, §8.1 and §8.2 from this edition; the code-auditor reads this fold's diff at review; release-manager: §9 item 8's two record notes (the Jakarta hash spelling, 4.6a (c)'s `3f3d9e00`) with the developer's full hashes.
