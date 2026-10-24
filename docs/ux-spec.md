@@ -4954,6 +4954,7 @@ Hint → Show-moves → Restart)**:
   SC 1.3.2, 2.4.3). No traversal modifier is added to produce the old line.
 - **Checks.** Criterion 23j checks the order with TalkBack for the notice, and 23k's device half for
   the banner.
+
 *(2026-10-21 — D-05e, D-03n.)* The timer's stop speaks its value, "Elapsed time, 5 minutes, 12
 seconds", and is never announced on its own (§4.3.2). A Continue chip arriving after first paint is not
 announced either and moves no stop a player is on; it joins the order in its place. Criterion 26b lists
