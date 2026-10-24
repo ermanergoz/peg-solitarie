@@ -5,6 +5,23 @@ Q-901 and Q-902 were both answered 2026-09-21, both on their defaults.
 - **app-ads.txt / REL-03 — the crawl window has long since passed and the result is unread.** Founder set the listing's Website field and the listing published; the row went live on the public page as `https://ermanergoz.github.io` at 2026-09-21T01:29:28Z, 301ing to the correct file on the canonical host (Google documents cross-domain redirects as valid). The ≤ 24 h checkpoint was 2026-09-22 and the 48 h escalation 2026-09-23; **it is now 2026-10-23**, so AdMob has either verified or it has not. Founder to read AdMob → Apps → this app → App settings → `app-ads.txt`. If still unverified: switch the field to `https://ermanergoz.com` (bare apex) and check the AdMob app entry is linked to the Play listing. The file itself has been correct and live since 2026-09-02 — do not touch the website.
 
 ## In flight
+- **2026-10-24 late — producer snapshot (supersedes the 08:05 one below; read first on resume).** develop = merges of
+  release-docs, ux-spec-folds, tech-design-sync, hint-undecided `b1a6cf9`, check-gates `dbd0a6c` (Check = `./scripts/check.sh`,
+  C7 warnings-as-errors, exhaustive fuzz, kover), audio `6aa7624`, tech-design-r1-close `f097e24`.
+  Fable limit reached → supervising roles on Opus under Q-019 (recorded per report).
+  | Branch (worktree) | State | Next |
+  |---|---|---|
+  | bugfix/home-chip-arrival (PegSolitarie-home) | auditor PASS (loop 1); C10 `7448713` green | QA 15e sitting (arm B `7448713`, arm A `6aa7624`) + device checks running; marker scratchpad/home-15e-done → then tech-lead sign-off → merge |
+  | feature/licences-screen (PegSolitarie-lic) | auditor PASS loop 1; merge-in 2 `a71f21d` green | AFTER home 15e marker: QA §8.2 device checks → tech-lead sign-off (+F5 rename) → merge |
+  | bugfix/reduced-motion-live-gate (PegSolitarie-rm) | built `47e7477`, Check green | tech-lead ruling on test option A/B running → (dev edit) → code-auditor → QA device → sign-off → merge |
+  | feature/talkback-board (PegSolitarie-tb) | building (B0 merge-in + B1–B7) | auditor → QA TalkBack device pass → sign-off |
+  | feature/colour-vision (PegSolitarie-cv) | brief done | build AFTER home 15e marker (needs quiet host for its own later 15e) |
+  | feature/candy-backdrop | spec/ruling done | build last, own 15e |
+  | feature/play-upload | owed (blocks Gate 2) | tech-lead → android-game-dev |
+  - Owed: checklist 1.1 to name RM (release-manager); GM6 Diamond-41 jump triage (§16 #29, android-game-dev);
+    bugfix/solver-deadline-task (row DT, optional pre-cut); 23c clause-5 wording (ux-designer).
+  - Founder: Q-025 open (ask at the audio release QA); F-1..F-14 items; Q-PUBLISH summary carries §16 #23 cell size,
+    audio blocked items, #30 fallback line if unresolved.
 - **2026-10-25 08:05 — producer snapshot (read this first on resume).** develop = `f478ae9` (release-docs, ux-spec-folds, tech-design-sync merged).
   Merge order (tech-design §14.1): 3a hint-undecided → 4 check-gates → 5 audio → reduced-motion-live-gate → solver-deadline-task
   (optional pre-cut) → 6 home-chip-arrival → 5a talkback-board / 6a licences-screen / 6b colour-vision / play-upload → 7 candy-backdrop.
@@ -139,6 +156,7 @@ Q-901 and Q-902 were both answered 2026-09-21, both on their defaults.
   5. **`docs/audio-spec.md` has never existed on any branch** (`git log --all --diff-filter=A` → 0 commits) although rules/audio.md makes it the cue list of record — its absence is why the D-01h/SOUND-01 contradiction stayed invisible through a full design pass. No sound-designer is staffed on this product, so the qa-engineer stood in under a recorded recusal. Owner: sound-designer if staffed, else tech-lead. Predates phase 15 and does not block it.
 
 ## Done
+2026-10-24 | hint-undecided (R1), check-gates (R-2), audio-review, tech-design-r1-close | developers, code-auditor, qa-engineer, tech-lead, ux-designer, sound-designer | PASS; merged b1a6cf9, dbd0a6c, 6aa7624, f097e24 | each branch .planning/reports/
 2026-10-24 | feature/ux-spec-folds (folds a–e, D-03n/o, D-05e/f, D-TB/D-TBa) | ux-designer, 5 fresh checks, tech-lead | PASS loop 5; merged 4ff4ec6 | .planning/reports/ux-spec-folds/
 2026-10-24 | feature/tech-design-sync (TB row 5a, lanes, #23 cell size, checklist N-items) | tech-lead, release-manager, code-auditor | PASS; merged f478ae9 | .planning/reports/phase-14/tech-lead-signoff-tech-design-sync.md
 2026-10-24 | Q-023 (TalkBack board playable in 3.0.0), Q-024 (phone attached) | founder | answered | .planning/questions/FOUNDER.md
