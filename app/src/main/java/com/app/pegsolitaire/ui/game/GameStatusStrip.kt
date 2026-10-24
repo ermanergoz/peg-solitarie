@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -206,6 +207,18 @@ private fun GameContextTitle(
  * label alone it said "Elapsed time" and never the time. The node is still the only stop: the cells
  * stay hidden (N-2), and there is no live region, no role and no heading, so the time is read when a
  * player moves to it and at no other time.
+ *
+ * ## Why the description clears the clock's semantics (B-3)
+ *
+ * Compose orders the stops it hands TalkBack only among nodes it counts as screen-reader focusable,
+ * and a node that does not merge its descendants counts only as a leaf with something to say. The
+ * clock's node kept its five hidden cells as semantics children, so it was no leaf: Compose left it
+ * out of the order, the title's hint went straight to Undo, and TalkBack placed the clock, which it
+ * still focuses by its description, first of all. [clearAndSetSemantics] replaces the cells for
+ * accessibility services, so the clock is a leaf and joins the order after the title, as the strip
+ * reads: back, title, timer. It also drops [TimerDigits]' own per-second text from the node, which
+ * then carries the description alone. The cells stay in the unmerged test tree, where the cell
+ * reads find them.
  */
 @Composable
 private fun TimerPill(elapsedSeconds: Int) {
@@ -232,7 +245,7 @@ private fun TimerPill(elapsedSeconds: Int) {
                 time = GameTimerFormat.format(elapsedSeconds),
                 style = MaterialTheme.typography.headlineSmall.withTabularFigures(),
                 color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.semantics { contentDescription = description },
+                modifier = Modifier.clearAndSetSemantics { contentDescription = description },
             )
         }
     }

@@ -86,8 +86,8 @@ class GameStatusStripTest {
      * figures requested, and the timer's pill is at least its 40dp minimum.
      *
      * The timer is set one character to a cell ([TimerDigits]), so its rendered text layouts are
-     * its cells'. Every cell is read, and together they must spell the clock the timer's node
-     * carries, so no cell can be missed.
+     * its cells'. Every cell is read, and their layouts must spell the clock the cells carry as
+     * text.
      */
     @Test
     fun theTitleIsTwentyTwoSpAndTheTimerTwentyFourSpWithTabularFiguresInAFortyDpPill() {
@@ -390,11 +390,16 @@ class GameStatusStripTest {
             useUnmergedTree = true,
         )
 
-    /** The clock the timer's node carries as its text, e.g. "00:00". */
+    /**
+     * The clock the timer's cells show, e.g. "00:00": their texts joined in order. Since B-3 the
+     * clock's node carries its description alone for accessibility services, its own text cleared
+     * with the cells, so the clock is read off the cells, which stay in the unmerged tree.
+     */
     private fun timerText(): String =
         timer()
             .fetchSemanticsNode()
-            .config[SemanticsProperties.Text]
+            .children
+            .flatMap { cell -> cell.config[SemanticsProperties.Text] }
             .joinToString(separator = "") { it.text }
 
     /** The text layouts of the timer's cells, one per character of the clock, in order. */
