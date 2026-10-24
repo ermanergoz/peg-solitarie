@@ -1,13 +1,14 @@
 ---
 role: ux-designer
-task: candy-backdrop (companion item: the in-app licences surface)
+task: licences-screen (its own branch, `feature/licences-screen`, since 2026-10-18 — direction-B A9; first drafted on 2026-10-17 as candy-backdrop's companion item)
 slug: licences-screen
-status: draft
+status: draft — second edition
 created: 2026-10-17
+revised: 2026-10-24
 stack: android-compose-game
 design-system: docs/ui/DESIGN-SYSTEM.md
-sources: THIRD_PARTY.md (feature/phase-14-release-docs), docs/ux-spec.md §4.5, ui/settings/SettingsScreen.kt
-companion: docs/ux/candy-backdrop.md
+sources: THIRD_PARTY.md (on this branch via `develop` c5f2c54; its 3.0.0 rows); docs/tech-design.md §3.1, §3.6, §13, §13.1 (LN-1–LN-8), §14.1 row LN, §16 #20, §17; docs/ux-spec.md §4.5, §11; .planning/reports/candy-backdrop/tech-lead-architecture.md R4, R5, D10, D11; .planning/reports/candy-backdrop/tech-lead-direction-b.md A9, E6, E7, open issue 7; .planning/reports/phase-14/research-analyst-release-docs-licences.md (rows A–J, the Apache table); .planning/reports/phase-14/research-analyst-font-licences.md (verdict 2, open issues 1–3); .planning/questions/FOUNDER.md Q-023 (on feature/ux-spec-folds); docs/audio/CREDITS.md (feature/audio-review, the WAV set); ui/settings/SettingsScreen.kt
+companion: docs/ux/candy-backdrop.md (the Sparse backdrop the four screens sit on; whichever branch lands second owns the backdrop rows, E7)
 ---
 
 # Peg Solitaire — In-app licences surface
@@ -17,23 +18,76 @@ companion: docs/ux/candy-backdrop.md
 > exists"). This document specifies the screen: a **Licenses** row in a new Settings **About** section,
 > a list of what ships with its licence, and a reader for the licence texts the app bundles. It is a
 > design document; it contains no code.
+>
+> **Second edition — 2026-10-24 (ux-designer, on `feature/licences-screen`).** The first edition
+> (2026-10-17) was written on `feature/candy-backdrop` against THIRD_PARTY.md as it then stood. Since
+> then five things changed, and this edition folds each in. In the house style of `docs/ux-spec.md` and
+> `docs/tech-design.md`, no earlier wording is deleted: a changed decision keeps its first text with a
+> dated *superseded* pointer, a changed table keeps the rows it replaced, and §10 is the record.
+>
+> 1. **The tech-lead's R4 departures D10 and D11** (`candy-backdrop/tech-lead-architecture.md`, the
+>    "Where this report departs" table), still outstanding on 2026-10-18 (`tech-lead-direction-b.md`,
+>    open issue 7): the text body is a `Column` in `verticalScroll`, not a `LazyColumn` (**D10**, now
+>    LS-08); the Licenses list has no ViewModel and the text screen has one (**D11**, now LS-09).
+> 2. **The branch split** (`tech-lead-direction-b.md` A9, E6, E7; tech design §3.6 as corrected
+>    2026-10-21): this screen ships from its own branch, cut from `develop`, whatever happens to the
+>    backdrop; the Apache-2.0 carve-out travels with it; the Sparse-backdrop rows of BD-06 and BD-14
+>    belong to whichever of the two branches lands second (LS-AC08).
+> 3. **The notices ruling** (tech design §13.1, LN-1 to LN-8, 2026-10-21): the ten Google AARs on the
+>    release graph carry `third_party_licenses.json`/`.txt` at their root (100 component names, 108
+>    distinct name-and-text pairs, 42 distinct texts, 2,053,748 B raw), and AGP packages none of it. A
+>    build-time task now generates them per variant into `assets/licenses/google/`, and the Licenses
+>    screen shows them behind the **Google libraries** section as a scrolling list, two taps from the
+>    Licenses screen (new LS-09 and §4A–§4B). The largest text, Cronet's, is 785,183 B in 2,497
+>    paragraphs, which is why that one reader is a `LazyColumn` (LN-4; LS-08).
+> 4. **THIRD_PARTY.md's new shipped rows** (research-analyst, 2026-10-18 and 2026-10-21; tech design
+>    §13.1 LN-5): credited entries for Protocol Buffers (both copies), Chromium (Cronet), the Public
+>    Suffix List (MPL-2.0, with the source pointer MPL §3.2(a) asks for), Jakarta Dependency Injection
+>    (its `NOTICE.md`), the Apache-2.0 libraries behind the Google SDKs, and Checker Framework qualifiers
+>    (credited by the tech-lead's decision although R8 keeps none of it). U-1 closed on 2026-10-21, so the
+>    inert Google entry now names the User Messaging Platform, and the Play inline-install library
+>    (`hsdp`) with it. The first edition's "one entry per further §5b family" placeholder is resolved.
+> 5. **The house accessibility rules as they now read** — rules/compose.md (48dp targets, 8dp
+>    spacing, text scaling, light and dark, no hard-coded colours or dimens) and the founder's Q-023
+>    answer (2026-10-21, `feature/ux-spec-folds`): the studio ships nothing that TalkBack cannot use. §5
+>    is rewritten as a **TalkBack contract** for all four screens (LS-13), with the pass line QA reads.
+>
+> Nothing else is reopened. LS-01, LS-03 to LS-07, §2, §3.1 and §3.3 stand as written; the sounds the
+> Sounds section names are still the `feature/audio-review` WAV set, which THIRD_PARTY.md now carries as
+> 3.0.0's rows (§3.2).
 
 ## 0. Scope and inputs
 
 **Specified here:** the Settings entry point, the Licenses screen, the License text screen, what they
 list and what they never list, their copy, accessibility, assets and acceptance criteria.
+*(Second edition, 2026-10-24:)* also the **Google notices** screen and the **Google notice text**
+screen (§4A, §4B), the entries THIRD_PARTY.md gained on 2026-10-18 and 2026-10-21, the TalkBack
+contract for all four screens (§5), the tests the developer writes and the checks QA runs (§8).
 
 **Inputs:** `THIRD_PARTY.md` on `feature/phase-14-release-docs` (§1 ideas, §2 assets, §4 direct
 dependencies, §5b families, §6 unverified rows, §7, §8); `SettingsScreen.kt` and `strings.xml` on
 `feature/phase-15-ux-refresh`; the bundled `assets/licenses/Fredoka-OFL.txt` and `Nunito-OFL.txt`;
 the candy-backdrop verdict's §3a and §6; `docs/ux-spec.md` §4.5 and §11.
+*(Second edition:)* `THIRD_PARTY.md` as merged to `develop` at c5f2c54 and carried on this branch
+(its rows A–J, the Apache table, the Jakarta NOTICE and the Apache-2.0 text row, all describing what
+3.0.0 ships); `docs/tech-design.md` §3.6 and §13.1 (LN-1 to LN-8); the two tech-lead candy-backdrop
+reports (R4, R5, D10, D11; A9, E6, E7); the two research-analyst licence reports (the hashes the
+bundled texts are pinned to); Q-023 and the D-TB spoken contract on `feature/ux-spec-folds` (the house
+shape of a TalkBack contract); `docs/audio/CREDITS.md` on `feature/audio-review` (the WAV set's seven,
+two, one and two).
 
 **Not in scope:** editing THIRD_PARTY.md (the release-manager's), adding a dependency to generate the
 list (the tech-lead's, LS-03), a developer-website licences page (founder-only work; the in-app screen
 satisfies "screen or page" on its own).
+*(Second edition:)* also not in scope — the Gradle task that generates the Google notices (tech design
+§13.1 LN-2 and LN-3: the tech-lead's design, the android-game-dev's build; this document only consumes
+its two outputs, the index and the texts), the `THIRD_PARTY.md` "How credited" cells (the
+release-manager transcribes §3.2's entry names into them), and any verdict on a licence (the
+research-analyst's; every text this screen bundles already carries one).
 
 **Spelling.** User-facing copy is US English — "Licenses" — because `res/values/` is the app's en-US
-default for Play. This document and THIRD_PARTY.md keep British spelling.
+default for Play. This document and THIRD_PARTY.md keep British spelling. *(Second edition:)* "notices"
+is spelt the same in both, so the Google screens need no second spelling.
 
 ## 1. Decisions
 
@@ -44,6 +98,10 @@ default for Play. This document and THIRD_PARTY.md keep British spelling.
   orders, which `SettingsScreen.kt`'s own KDoc anticipates (§2).
 - **LS-02: Two screens, both Settings children:** *Licenses* (the list) and *License text* (one bundled
   licence, full text). Both carry the backdrop's Sparse density (`docs/ux/candy-backdrop.md` §2).
+  *(Superseded in part 2026-10-24 by LS-09: **four** screens, all Settings descendants — Licenses,
+  License text, Google notices and Google notice text. "One bundled licence" is widened by LS-10: an
+  entry may open more than one bundled text. The Sparse density stands for all four; which branch adds
+  the two new routes to the backdrop tests is E7's, LS-AC08.)*
 - **LS-03: A hand-curated, static list that mirrors THIRD_PARTY.md's shipped rows — not a generated
   dependency dump.** — It names things the way a player recognises them (a font, a sound pack, "AndroidX
   and Jetpack Compose") rather than Maven coordinates; it is offline, deterministic and testable; it
@@ -51,20 +109,107 @@ default for Play. This document and THIRD_PARTY.md keep British spelling.
   services activity in its own, non-Candy-Clay look, and another Google library); AboutLibraries (a
   Gradle plugin and a runtime library). Either could replace the data source later on the tech-lead's
   ruling without changing this design.
+  *(2026-10-24: stands. The tech-lead's LN-1 rejected both alternatives again on 2026-10-21 for the
+  same reasons, and added a third rejection, a committed copy of Google's notices, which goes stale on
+  the next SDK bump. The generated Google index is **data inside one curated entry** (LN-5 item 3),
+  which is why it does not breach this decision: the Licenses list itself stays hand-curated and
+  static, and the only generated content is the publisher's own notices, reached through one entry
+  the list names.)*
 - **LS-04: Listed = every third-party item that ships and carries a licence or a credit; never the
   idea rows, own work, or anything that does not ship** (§3.2). The candy-backdrop idea row is excluded
   by name (its own Credit cell and the verdict's §6): this screen never names King, Candy Crush, or the
   word "candy" (verdict §3a).
+  *(2026-10-24: stands, with one recorded exception the tech-lead made: **Checker Framework
+  qualifiers** is listed although R8 keeps none of its classes (LN-5 item 1; `THIRD_PARTY.md` §5b row
+  I), because a 1 KB credit replaces a per-release mapping check. The in-house sounds `sfx_invalid` and
+  `sfx_hint` are own work and stay unlisted. The banned-words rule applies to the studio's own strings
+  and to the curated texts of §7; the generated Google notices are third-party texts reproduced verbatim
+  and are not edited to it, §3.2 "Never listed".)*
 - **LS-05: The screens never leave the app.** Full texts the app bundles open in-app; licences the app
   does not bundle (CC0, the Android SDK terms) are shown by name with their source address as
   selectable text, not as a link. — The privacy policy stays Settings' one outbound link, and these
   screens work in airplane mode.
+  *(2026-10-24: stands, and gains one use: the Public Suffix List's source address, which MPL-2.0
+  §3.2(a) asks the app to tell recipients, is the same kind of selectable, non-linked line, §3.2. The
+  Google notices are bundled, so they open in-app too: LN-1 rejected a link to Google's page on exactly
+  this decision.)*
 - **LS-06: Tappable and inert entries look different by shape, not colour.** An entry that opens a text
   has a trailing chevron and squishes on press; an entry with nothing to open has neither and is inert
   (no click action, no focus stop as a control) — the `SettingsLinkRow` WR-06 pattern.
 - **LS-07: Licence texts re-flow, and are never edited.** Hard line breaks inside a paragraph are joined
   so the text fits the screen at any font scale; blank lines separate paragraphs; no word is changed,
   added or removed.
+  *(2026-10-24: stands for every text the four screens show, the Google notices included (LN-4 names
+  the same `reflowLicenseText`). The tech-lead's R4 made it a pure function: normalise line endings,
+  split on blank lines, join a paragraph's lines with single spaces, drop empty paragraphs. Its
+  whitespace-only property is LS-AC05's test.)*
+- **LS-08: What a text body is made of — folded from the tech-lead's D10 and LN-4** *(2026-10-24;
+  `candy-backdrop/tech-lead-architecture.md` R4 and departure D10, 2026-10-17; tech design §3.6 and
+  §13.1 LN-4, 2026-10-21. The first edition's §4 wording, "a `LazyColumn` … the whole column inside a
+  `SelectionContainer`", is superseded and kept in §4.)* **A bundled licence text (§7) is one `Column`
+  in `verticalScroll`, the whole of it inside one `SelectionContainer`, one `Text` per paragraph. A
+  Google notice (§4B) is a `LazyColumn`, one paragraph per item, each paragraph in its own
+  `SelectionContainer`.** — The tech-lead's reason for D10 is accepted as this role's: a
+  `SelectionContainer` around a lazy list can select only what is composed, so "selectable" would have
+  held for the paragraphs on screen and no more, and the longest bundled text is 16,726 B (the MPL-2.0
+  text, LS-11; the Apache text is 11,358 B). The reason for LN-4's exception is accepted the same way:
+  Cronet's notice is 2,497 paragraphs, composing them at once is not acceptable on the 2 s-class phone
+  (tech design §10), and a notice needs no whole-text selection. What the player keeps in both kinds:
+  one node per paragraph for TalkBack, selectable text, a saveable scroll position, and the same
+  re-flow.
+- **LS-09: Four screens, and who holds their state — folded from the tech-lead's D11 and LN-4**
+  *(2026-10-24; departure D11, 2026-10-17; tech design §3.1's recorded exception and §13.1 LN-4,
+  2026-10-21.)* **The Licenses list has no state holder** — it is a stateless screen fed the static
+  catalogue, and its only state is the list's own saveable scroll position. **The License text screen
+  has one** (it reads an asset off the main thread). **The Google notices list and the Google notice
+  text each have one** (both read generated assets). — The first edition named no state holder for the
+  list; the tech-lead ruled it has none, because it would hold nothing, and this role records that as
+  the design: a screen with no data source, no asynchronous work and no event beyond navigation shows
+  no loading, empty or error state (§3.3), and a ViewModel there would only invent one. The three
+  screens that do load share one rule, from §4: nothing for the first 300 ms, then a spinner.
+- **LS-10: One entry per notice-bearing family, each opening its text verbatim; an entry may open
+  more than one text** *(2026-10-24; tech design §13.1 LN-5 item 1; `THIRD_PARTY.md` §5b rows F–J and
+  the Apache table; the research-analyst's font report, verdict 2 and open issue 3.)* Protocol Buffers
+  (one entry for both copies), Chromium (Cronet), the Public Suffix List, Jakarta Dependency Injection
+  and Checker Framework qualifiers each get an entry in **Open-source software**, and each opens the
+  text THIRD_PARTY.md names at the research-analyst's hash (§7). **Where a family carries a notice as
+  well as a licence, its entry opens both, on one License text screen, in order, each under its own
+  heading** (§4): Jakarta's `NOTICE.md` then the Apache-2.0 text; the Public Suffix List's `NOTICE`
+  then the MPL-2.0 text. **The Apache-2.0 libraries behind the Google SDKs are grouped by publisher
+  into four entries** (§3.2), the ux-designer's call LN-5 leaves open — the same rule the first
+  edition used for "AndroidX and Jetpack Compose", "Kotlin and kotlinx" and "Dagger and Hilt": a
+  player recognises a publisher and a product name, never a Maven coordinate, and a coordinate-per-row
+  list would be the dependency dump LS-03 rejects. Every grouped library is still named in its entry's
+  parts line, so the list stays complete by name and LS-AC03's mapping stays one-to-one with
+  THIRD_PARTY.md.
+- **LS-11: The MPL-2.0 text ships** *(2026-10-24, a UX decision on the half LN-5 left to this role:
+  "the full MPL-2.0 text is optional".)* The Public Suffix List entry opens OkHttp's `NOTICE` (218 B,
+  which names the data's source and MPL-2.0 and so meets §3.2(a)) **and then the MPL-2.0 text itself**
+  (16,726 B). — Every other entry in Open-source software opens the full text of its licence; an
+  entry whose licence is named but not readable would be the one exception on the screen, and LS-05's
+  rule that the screens work in airplane mode means the player could not go and read it. The cost is
+  one more verbatim asset at a recorded hash (§7) and one more line in the research-analyst's
+  non-blocking confirmation (§9).
+- **LS-12: The Google notices list shows the publisher's names as supplied, with where each was
+  found, and merges nothing** *(2026-10-24; tech design §13.1 LN-3 and LN-4.)* Each row of the index
+  is one row of the list: its name as the title, and a supporting line "Found in <sources>", where
+  `<sources>` is the index's comma-separated list of the Google artifacts that carry the pair, shown
+  as the artifact names the index gives (`ads-mobile-sdk`, `user-messaging-platform`, …) and joined
+  with a comma and a space. Rows that share a name (Kotlin four times, J2ObjC five, Cronet two) stay
+  separate rows in the index's order; each opens its own text, and the sources line is what tells them
+  apart. — The names are Google's own component names, and the artifact names are Google's own
+  artifact ids; a table mapping either to friendlier words would be a second curated list that drifts
+  with every SDK bump, which is the staleness LN-1 rejected. The screen is a notices display, not a
+  catalogue page, and it says so in its intro (§6).
+- **LS-13: Every one of the four screens is fully usable with TalkBack, and §5 is its spoken
+  contract** *(2026-10-24; rules/compose.md; the founder's Q-023 answer, 2026-10-21: the studio ships
+  nothing that TalkBack cannot use; the D-TB contract on `feature/ux-spec-folds` as the house shape.)*
+  Fully usable means: every entry and every notice row is one stop with a role and a click label;
+  every inert entry is readable and announced as text, never as a control; every heading is a heading;
+  every paragraph of every text is a stop; a loading or error state announces itself once, politely;
+  focus after a navigation lands in the new screen's reading order; back always returns. The rule
+  these screens add to the app: **nothing is conveyed by the chevron, the squish or the sound alone**
+  — the role and the click label carry the same distinction by ear (LS-06).
 
 ## 2. Entry point — Settings
 
@@ -75,6 +220,12 @@ default for Play. This document and THIRD_PARTY.md keep British spelling.
 | Sound | `withClickSound(SoundCue.ButtonForward, …)` at the call site — a navigational CTA (D-09), exactly like "How to play" |
 | Position | after the Play Games section (or after General when Play Games is absent, D-11) and before Privacy |
 | Entrance orders | renumbered top to bottom, contiguous: `ABOUT_HEADER_ORDER` 8, `LICENSES_ROW_ORDER` 9, then `PRIVACY_HEADER_ORDER` 10, `PRIVACY_POLICY_ROW_ORDER` 11, `PRIVACY_CHOICES_ROW_ORDER` 12 — a whole renumbering, so `SettingsScreenTest`'s rendered-top check passes |
+
+*(2026-10-24.)* The row and its orders stand. Two notes from the branch split (`tech-lead-direction-b.md`
+A9): `feature/colour-vision` also inserts a Settings row and renumbers; whichever of the two branches
+lands second renumbers on top of the first, and the numbers above are this branch's own, not a contract
+with that one. The supporting line "Fonts, sounds and open-source software" still describes the whole
+screen: the Google notices are open-source software, reached through the Google libraries section (§3.2).
 
 ## 3. The Licenses screen
 
@@ -97,23 +248,89 @@ adds a trailing `Icons.AutoMirrored.Rounded.KeyboardArrowRight` (`settings_row_i
 `onSurfaceVariant`, decorative) and `claySquish()` + `clickable` with `ButtonForward`; an inert entry has
 neither. Source addresses sit in a `SelectionContainer` so they can be copied.
 
+*(2026-10-24.)* The layout stands. Two additions: the list is keyed by entry id with
+`rememberLazyListState()`, so the position survives the round trip to a text (R4; LS-AC02); and the
+section count stays four — the Google notices are reached through an entry in the fourth section, not
+through a fifth section, so the screen's shape does not change as Google's libraries change.
+
 ### 3.2 What it lists
 
 Contents follow THIRD_PARTY.md **as it stands on the release branch**; the rows below are its 3.0.0
 rows today. Where THIRD_PARTY.md changes, this list changes with it (LS-AC03).
 
-| Section | Entry title | Lines | Opens |
+*(Second edition, 2026-10-24 — the table below replaces the first edition's. Rows that stand are
+unchanged; the rows it replaced are quoted beneath it. Sources: THIRD_PARTY.md §2 (sounds, fonts, the
+Apache-2.0 text and the Jakarta NOTICE), §4, §5b rows A–J and the Apache table; tech design §13.1 LN-5.
+Entry titles, credit lines, licence names and parts lines are the strings §6 names, one key each.)*
+
+| Section | Entry title | Lines (credit · licence · parts or address) | Opens (§7) |
 |---|---|---|---|
-| **Fonts** (`licenses_section_fonts`) | Fredoka | "© 2016 The Fredoka Project Authors" · "SIL Open Font License 1.1" | `assets/licenses/Fredoka-OFL.txt` |
-| | Nunito | "© 2014 The Nunito Project Authors" · "SIL Open Font License 1.1" | `assets/licenses/Nunito-OFL.txt` |
+| **Fonts** (`licenses_section_fonts`) | Fredoka | "© 2016 The Fredoka Project Authors" · "SIL Open Font License 1.1" | `Fredoka-OFL.txt` |
+| | Nunito | "© 2014 The Nunito Project Authors" · "SIL Open Font License 1.1" | `Nunito-OFL.txt` |
 | **Sounds** (`licenses_section_sounds`) | Interface Sounds by Kenney | "7 sound effects" · "CC0 1.0 Universal (public domain)" · "kenney.nl/assets/interface-sounds" | — (inert) |
 | | “Pop 01” by LilMati | "2 sound effects" · "CC0 1.0 Universal (public domain)" · "freesound.org/people/LilMati/sounds/506546" | — |
 | | “Positive Blip Effect” by CogFireStudios | "1 sound effect" · "CC0 1.0 Universal (public domain)" · "freesound.org/people/CogFireStudios/sounds/531512" | — |
-| **Open-source software** (`licenses_section_software`) | AndroidX and Jetpack Compose | "The Android Open Source Project" · "Apache License 2.0" · "Compose, Material 3, Material icons, Room, DataStore, Navigation, Lifecycle, Activity, Core, Hilt Navigation" | `assets/licenses/Apache-2.0.txt` |
-| | Kotlin and kotlinx | "JetBrains" · "Apache License 2.0" · "Standard library, coroutines, serialization" | the same text |
-| | Dagger and Hilt | "Google" · "Apache License 2.0" | the same text |
-| | *one entry per further §5b family the release branch's `releaseRuntimeClasspath` listing confirms* (THIRD_PARTY.md §0, checklist step 6) — e.g. small annotation libraries; an MIT one bundles its own notice as `assets/licenses/<name>-MIT.txt` and opens it | as the row | its text |
-| **Google libraries** (`licenses_section_google`) | Google Play services libraries | "Play Games Services, Mobile Ads, User Messaging Platform" · "Android Software Development Kit License Agreement" · "developer.android.com/studio/terms" | — (inert) |
+| **Open-source software** (`licenses_section_software`) | AndroidX and Jetpack Compose | "The Android Open Source Project" · "Apache License 2.0" · "Compose, Material 3, Material icons, Room, DataStore, Navigation, Lifecycle, Activity, Core, Hilt Navigation" | `Apache-2.0.txt` |
+| | Kotlin and kotlinx | "JetBrains" · "Apache License 2.0" · "Standard library, coroutines, serialization" | `Apache-2.0.txt` |
+| | Dagger and Hilt | "Google" · "Apache License 2.0" | `Apache-2.0.txt` |
+| | OkHttp and Okio | "Square" · "Apache License 2.0" · "Networking and I/O inside Google Mobile Ads" | `Apache-2.0.txt` |
+| | Gson, Tink and Guava | "Google" · "Apache License 2.0" · "Gson, Tink, Guava, Error Prone annotations, J2ObjC annotations" | `Apache-2.0.txt` |
+| | Jakarta Dependency Injection | "Eclipse Foundation" · "Apache License 2.0" | `Jakarta-Inject-NOTICE.md`, then `Apache-2.0.txt` (LS-10) |
+| | Annotation and injection APIs | "The JSR-330 Expert Group, the FindBugs project, JSpecify, JetBrains" · "Apache License 2.0" · "javax.inject, JSR-305 annotations, JSpecify, JetBrains Java annotations" | `Apache-2.0.txt` |
+| | Protocol Buffers | "Google" · "BSD 3-Clause License" · "The Java Lite runtime, and the copy inside AndroidX DataStore" | `Protobuf-BSD-3-Clause.txt` |
+| | Chromium (Cronet) | "The Chromium Authors" · "BSD 3-Clause License" · "The Cronet networking classes inside Google Mobile Ads" | `Chromium-BSD-3-Clause.txt` |
+| | Public Suffix List | "Mozilla and the list's contributors" · "Mozilla Public License 2.0" · "The public-suffix data compiled into OkHttp" · "publicsuffix.org/list/public_suffix_list.dat" (the source address, selectable, LS-05) | `PublicSuffixList-NOTICE.txt`, then `MPL-2.0.txt` (LS-10, LS-11) |
+| | Checker Framework qualifiers | "The Checker Framework developers" · "MIT License" | `CheckerQual-MIT.txt` |
+| **Google libraries** (`licenses_section_google`) | Google Play services and SDKs | "Play Games Services, Mobile Ads, User Messaging Platform, Play inline-install library, Play services libraries" · "Android Software Development Kit License Agreement" · "developer.android.com/studio/terms" | — (inert) |
+| | Open-source notices in Google libraries | "The notices Google supplies for the open-source software inside its libraries" | the **Google notices** screen (§4A), tappable, click label `licenses_google_notices_action` |
+
+**Order inside Open-source software** is the table's: the three first-edition entries, the four
+Apache-2.0 groups, then the three BSD/MPL entries and the MIT one. It is not alphabetical, because the
+libraries a player has heard of should come first; the LS-AC03 test pins this order.
+
+**The two Google entries** are the LN-5 item 2 shape: the inert SDK-licence entry (its terms address
+as selectable text, LS-05) and, under it, the one tappable entry that opens the generated notices list.
+Every (name, text) pair in the index is two taps from the Licenses screen: this entry, then a row.
+
+*The first edition's rows this table replaces (2026-10-17), kept as the record:*
+
+> | | *one entry per further §5b family the release branch's `releaseRuntimeClasspath` listing confirms* (THIRD_PARTY.md §0, checklist step 6) — e.g. small annotation libraries; an MIT one bundles its own notice as `assets/licenses/<name>-MIT.txt` and opens it | as the row | its text |
+> | **Google libraries** (`licenses_section_google`) | Google Play services libraries | "Play Games Services, Mobile Ads, User Messaging Platform" · "Android Software Development Kit License Agreement" · "developer.android.com/studio/terms" | — (inert) |
+
+The placeholder is resolved by the research-analyst's 192-of-192 sweep (2026-10-21): the families are
+the eight new Open-source software entries above, and the one MIT family is Checker Framework. The
+Google entry is renamed and its parts line now names all five groups of Google code on the release
+graph (U-1 closed 2026-10-21; `hsdp` row A).
+
+#### 3.2.1 The mapping to THIRD_PARTY.md (LS-AC03's expected list)
+
+One line per THIRD_PARTY.md row or family that ships with a licence or a credit, and the entry that
+shows it. The LS-AC03 JVM test writes this table into the expected catalogue; the release-manager
+diffs it against THIRD_PARTY.md at checklist items 1.4 and 6.
+
+| THIRD_PARTY.md | Entry |
+|---|---|
+| §2 `sfx_jump`, `sfx_peg_remove`, `sfx_undo`, `sfx_win`, `sfx_btn_forward`, `sfx_btn_dismiss`, `sfx_sound_enabled` (Kenney, CC0) | Interface Sounds by Kenney — count 7 |
+| §2 `sfx_select`, `sfx_deselect` (LilMati 506546 and its derivative, CC0) | “Pop 01” by LilMati — count 2 |
+| §2 `sfx_star_pop` (CogFireStudios 531512, CC0) | “Positive Blip Effect” by CogFireStudios — count 1 |
+| §2 `sfx_invalid`, `sfx_hint` (own work, recipes) | not listed (LS-04) |
+| §2 Fredoka v17, Nunito v32 (OFL-1.1) | Fredoka; Nunito |
+| §2 `assets/licenses/Apache-2.0.txt` (the text) | not an entry: the text behind every "Apache License 2.0" entry |
+| §2 `Jakarta-Inject-NOTICE.md` (named in the Apache-2.0.txt row) | Jakarta Dependency Injection |
+| §2 launcher and cover art, opening books; §7 store art | not listed (own work) |
+| §4 the thirteen `androidx.*` coordinates; §5b `androidx.*` family | AndroidX and Jetpack Compose |
+| §4 `kotlinx-serialization-json`, `kotlinx-coroutines-play-services`; §5b `org.jetbrains.kotlin:*`, `org.jetbrains.kotlinx:*` | Kotlin and kotlinx |
+| §4 `hilt-android`; §5b `com.google.dagger:*` | Dagger and Hilt |
+| §4 `play-services-games-v2`, `ads-mobile-sdk`, `user-messaging-platform`; §5b row A `hsdp`, row E the `play-services-*` siblings | Google Play services and SDKs (inert); their bundled notices → Open-source notices in Google libraries |
+| §5b Apache table `okhttp`, `okio`, `okio-jvm` | OkHttp and Okio |
+| §5b Apache table `gson`, `tink-android`, `guava`, `failureaccess`, `listenablefuture`, `error_prone_annotations`, `j2objc-annotations` | Gson, Tink and Guava |
+| §5b Apache table `jakarta.inject-api` | Jakarta Dependency Injection |
+| §5b Apache table `javax.inject`, `jsr305`, `jspecify`, `org.jetbrains:annotations` | Annotation and injection APIs |
+| §5b rows F and G (`protobuf-javalite`; `datastore-preferences-external-protobuf`) | Protocol Buffers |
+| §5b row H (the five `org.chromium.net` artifacts) | Chromium (Cronet) |
+| §5b row J (`publicsuffixes.gz` and its `NOTICE` inside `okhttp`) | Public Suffix List |
+| §5b row I (`checker-qual`) | Checker Framework qualifiers |
+| §1 idea rows; §3 (none); §8 not-shipped items | not listed (LS-04) |
 
 **The Kenney entry** credits "Kenney" in words only — never Kenney's logo (their terms). The sound counts
 are THIRD_PARTY.md §2's: Kenney seven (`sfx_jump`, `sfx_peg_remove`, `sfx_undo`, `sfx_win`,
@@ -121,9 +338,18 @@ are THIRD_PARTY.md §2's: Kenney seven (`sfx_jump`, `sfx_peg_remove`, `sfx_undo`
 `sfx_deselect`), CogFireStudios one (`sfx_star_pop`). Those rows describe the WAV set on
 `feature/audio-review`; if that branch does not reach the release, the Sounds section is re-cut with
 THIRD_PARTY.md.
+*(2026-10-24: confirmed against `docs/audio/CREDITS.md` on `feature/audio-review` (its `## Files`
+table: seven Kenney, two from sound 506546, one from sound 531512, two in-house) and against
+THIRD_PARTY.md §2 as merged to `develop`, whose twelve rows are those files. `feature/audio-review` adds
+no THIRD_PARTY.md row of its own — the rows are already on this branch. The re-cut rule stands: the
+counts are the `licenses_sound_effects` plural's arguments, so a re-cut is a number change. If the
+audio branch misses the release, `develop`'s `.ogg` set has nine Kenney cues, and this section then
+reads nine, two and one with THIRD_PARTY.md.)*
 
 **The User Messaging Platform** is named in the Google entry only once THIRD_PARTY.md's U-1 has
 settled its licence; until then the entry lists Play Games Services and Mobile Ads.
+*(Superseded 2026-10-21 by the research-analyst's row B: U-1 is closed, the POM declares the Android
+SDK licence, and the entry names it. Recorded here 2026-10-24.)*
 
 **Never listed** (LS-04): every THIRD_PARTY.md §1 idea row — the traditional game, the board
 geometries, the founder's earlier repository, and the candy-backdrop row, whose Credit cell excludes it
@@ -131,10 +357,16 @@ from the app; own work (the two in-house sounds, the launcher and cover art, the
 drawing, the backdrop); `font_certs.xml` and `ui-text-google-fonts` (they do not ship in 3.0.0); every
 test-, debug-, compile- and build-only item (§8). The words King, Candy Crush and candy appear nowhere
 on either screen.
+*(2026-10-24: "on either screen" reads "on any of the four screens" for everything the studio writes
+— every string in §6 and every curated text in §7, which BD-01's JVM test scans. The generated Google
+notices are Google's own texts, reproduced verbatim and never edited, so the words rule does not reach
+them; the developer's report records the result of the same grep over the generated directory, for
+information, and the code-auditor reads it. Nothing in the app names a notice's content.)*
 
 ### 3.3 States
 
 The list is static: no loading, empty or error state exists for it.
+*(2026-10-24: stands for this screen (LS-09). The Google notices screens have states, §4A and §4B.)*
 
 ## 4. The License text screen
 
@@ -158,6 +390,116 @@ The list is static: no loading, empty or error state exists for it.
 - **Direction:** the licence texts are English; the default content-based text direction keeps them
   left to right inside an RTL layout, while the chrome mirrors.
 
+*(Second edition, 2026-10-24 — the body, the title and the multi-text entries. The bullets above stand
+except where a line below says it is superseded.)*
+
+- **Body, superseded by LS-08 (D10).** "A `LazyColumn` … the whole column inside a `SelectionContainer`"
+  is replaced: the body is **one `Column` in `verticalScroll(rememberScrollState())`, the whole of it
+  inside one `SelectionContainer`**, still one `Text` per paragraph (`bodyMedium`, `onSurface`, zone T),
+  still capped at `content_max_width` and centred, padding `spacing_md`, paragraphs spaced
+  `spacing_sm`. The scroll state is saveable. "Paragraph per item keeps a 11 KB text fast" is withdrawn
+  as the reason; the reason for one node per paragraph is TalkBack (§5), and it holds in a `Column` too.
+- **An entry with more than one text (LS-10).** The screen shows the entry's texts in the order §3.2
+  gives, each under a heading (`titleMedium`, `onSurface`, `heading()` semantics): for Jakarta,
+  `license_text_part_notice` "Notice" over the NOTICE, then `licenses_apache_name` "Apache License 2.0"
+  over the Apache text; for the Public Suffix List, "Notice" over OkHttp's NOTICE, then
+  `licenses_mpl_name` "Mozilla Public License 2.0" over the MPL text. One `Column`, one
+  `SelectionContainer`, the headings inside it. A single-text entry shows no part heading, because its
+  licence name is already the top bar's title.
+- **Title.** The top bar's title stays the entry's licence name. For a two-text entry it is the
+  licence, never the notice ("Apache License 2.0" for Jakarta; "Mozilla Public License 2.0" for the
+  Public Suffix List).
+- **End of text.** The last item of the body, after the last paragraph, is `license_text_end` "End of
+  text" (`labelMedium`, `onSurfaceVariant`). It gives a sighted reader and a TalkBack reader the same
+  definite end, and it is the node the scroll-to-end tests find (LS-AC05, LS-AC15).
+- **Loading and error** stand as written, and both now announce themselves (§5): the spinner's
+  description and the error text are polite live regions.
+- **The state holder** is LS-09's `LicenseTextViewModel`: `Loading(entry)`, `Loaded(entry,
+  parts)`, `Failed(entry?)`, where `Failed` also covers an unknown entry id from the route (R4: a route
+  carries an id, never a path, and an unknown id is this error state, never a crash or a file lookup).
+  How a two-text entry is typed (one `BundledLicenseText` per part) is the tech-lead's build brief, §9.
+
+## 4A. The Google notices screen (the list)
+
+*(New, 2026-10-24; tech design §13.1 LN-4 and LN-5 item 2; LS-09, LS-12, LS-13.)* Opened from the
+Licenses screen's "Open-source notices in Google libraries" entry. It lists every (name, text) pair of
+`assets/licenses/google/index.tsv`, which the build generates from the Google AARs on the variant's
+runtime classpath (LN-2, LN-3; about 108 rows at today's versions). Route `GoogleNotices`.
+
+**Purpose.** To display, inside the app and offline, the open-source notices Google supplies for the
+software inside its libraries, which Google's guide puts on the app's developer and which AGP never
+packages. It is a notices display: the names and texts are Google's, shown as supplied.
+
+**Layout.**
+- A transparent `Scaffold` and transparent `TopAppBar` over the Sparse backdrop (as §3.1): back
+  (`navigate_back`, 48dp, `claySquish`, silent) and the title `google_notices_title` "Open-source
+  notices" (`titleLarge`).
+- A `LazyColumn` capped at `content_max_width`, centred, padding `spacing_md`, items spaced
+  `spacing_md`, **keyed by the index's `<key>`**, `rememberLazyListState()` (saveable, so the position
+  survives the round trip to a text). The entrance stagger (`clayEntrance`) applies to the first
+  screenful only, as it does for every long list in the app; later rows enter plainly.
+- First item: the intro `google_notices_intro` (`bodyMedium`, `onSurfaceVariant`).
+- Then one row per index line, in the index's order (sorted by name, then by text; LN-3). **A row** is
+  the §3.1 clay card: title = the pair's name (`titleMedium`, `onSurface`), supporting line =
+  `google_notices_found_in` "Found in %1$s" with the sources joined by ", " (`bodyMedium`,
+  `onSurfaceVariant`, no `maxLines`), trailing chevron (decorative), `claySquish()` + `clickable` with
+  `ButtonForward`, click label `google_notices_read_action` "Read the notice". Every row is tappable;
+  there is no inert row on this screen.
+- No section headers: the list is flat and sorted. No search, no filter, no count — those are features
+  a notices display does not need, and each would be a string and a state the release does not owe.
+
+**States** (`GoogleNoticesViewModel`, LS-09: `Loading`, `Loaded(rows)`, `Failed`).
+- **Loading:** nothing for the first `LicensesUi.SPINNER_DELAY_MS` (300 ms, the §4 rule); then a
+  centred `CircularProgressIndicator` (`primary`) with description `google_notices_loading` "Loading
+  notices", a polite live region, until the index is parsed.
+- **Loaded:** the list above. An index with no lines is `Failed`, not an empty list: a build that
+  produced no notices is a defect (LN-7 item 2), and an empty screen would hide it.
+- **Failed** (the index is missing, unreadable, or has a malformed line, LN-4): under the intro, the
+  text `google_notices_error` "These notices could not be shown." (`bodyMedium`, `onSurfaceVariant`),
+  a polite live region. No retry: the asset cannot change at runtime. A test guarantees the index
+  parses, so this state should never ship to a player.
+
+**Behaviour.** A tap on a row opens the Google notice text screen for that row's key (route
+`GoogleNoticeText(key)`); back and system back return one step, to the row's position. The screen
+works in airplane mode and makes no network request (LS-05, LS-AC07).
+
+## 4B. The Google notice text screen
+
+*(New, 2026-10-24; tech design §13.1 LN-4; LS-08, LS-13.)* One (name, text) pair, full text. Route
+`GoogleNoticeText(key)`; the key is resolved through the index read from the APK, and an unknown key
+is the error state (R4's rule: nothing from a route reaches `AssetManager.open`).
+
+**Layout.**
+- Top bar as §4A; title = the pair's **name** (`titleLarge`, wraps, no `maxLines`); it is not a
+  string resource, it is the index's name.
+- Under the bar, inside the content column: the sources line, `google_notices_found_in` with the same
+  joined sources (`bodyMedium`, `onSurfaceVariant`, `heading()` semantics so it is the screen's
+  content heading), then the text.
+- **The body is a `LazyColumn`** (LS-08's exception), capped at `content_max_width`, centred, padding
+  `spacing_md`, items spaced `spacing_sm`, **one re-flowed paragraph per item** (`bodyMedium`,
+  `onSurface`, directly on the Sparse backdrop, zone T), **each paragraph inside its own
+  `SelectionContainer`**, items keyed by paragraph index, `rememberLazyListState()`. The last item is
+  `license_text_end` "End of text", as §4. The largest text is Cronet's, 785,183 B in 2,497
+  paragraphs: it opens at its first paragraph and scrolls to its last without a dropped frame the
+  player notices or an ANR (LS-AC15).
+- **Direction** as §4: the notices are English; content-based direction, mirrored chrome.
+
+**States** (`GoogleNoticeTextViewModel`, LS-09, exposing the same sealed `LicenseTextUiState` as §4).
+- **Loading:** the 300 ms rule, then the spinner with description `licenses_loading` "Loading
+  license" — the same string as §4, because to the player a notice is a licence text; polite live
+  region.
+- **Loaded:** the list above. The text is read through `LicenseTextSource` at the stem the index
+  gives, re-flowed by `reflowLicenseText` off the main thread (LN-4).
+- **Failed** (unknown key, missing or unreadable stem): the title shows the name when the key is
+  known and `google_notice_text_unknown_title` "Notice" when it is not; the body is
+  `google_notice_text_error` "This notice could not be shown." (`bodyMedium`, `onSurfaceVariant`),
+  a polite live region.
+
+**What it does not have.** No "copy all" and no share: the Licenses texts have neither, and a
+per-paragraph selection is what LN-4's lazy body allows. No jump-to-end control: the end is reachable
+by scrolling, and TalkBack's continuous reading reaches it (§5). If a later founder ask wants either,
+it is a new decision, not a gap.
+
 ## 5. Accessibility
 
 - **Touch:** tappable entries ≥ 72dp and full-card; back 48dp; ≥ 8dp between cards (`spacing_md`).
@@ -178,6 +520,99 @@ The list is static: no loading, empty or error state exists for it.
   `rememberAnimationsEnabled()`.
 - **Sound:** `ButtonForward` on the Settings row and on opening a text (D-09); back is silent; sound is
   never the only feedback — every press also navigates visibly.
+
+### 5.1 The TalkBack contract for the four screens (LS-13)
+
+*(Second edition, 2026-10-24. The bullets above are the first edition's and stand; this subsection
+widens them to four screens and writes them as a spoken contract, in the shape of D-TB on
+`feature/ux-spec-folds`: what is a stop, what each stop says, where focus goes, what is announced,
+and the pass line. Under Q-023 nothing ships that TalkBack cannot use; these four screens are the
+simplest in the app to make true to that, and so the contract is short.)*
+
+**What is a stop, and what it says.** TalkBack's swipe order is the reading order below; the words
+in quotes are what the merged node carries, in this order, with TalkBack's own role and hint words
+after them.
+
+| Screen | Reading order | A stop says |
+|---|---|---|
+| **Licenses** (§3) | back → title (heading) → intro → `Fonts` (heading) → Fredoka → Nunito → `Sounds` (heading) → Kenney → LilMati → CogFireStudios → `Open-source software` (heading) → its eleven entries in §3.2's order → `Google libraries` (heading) → the SDK entry → the notices entry | A **tappable entry**: "<title>, <credit>, <licence>, <parts>", role Button, click label `licenses_read_action` "Read the license" (the notices entry: `licenses_google_notices_action` "Open the notices"). An **inert entry**: the same lines, no role, no click action, so TalkBack adds no "double-tap to activate". A **source address** (Sounds, the SDK entry, the Public Suffix List) is read as part of its entry's node; its `SelectionContainer` adds no stop of its own |
+| **License text** (§4) | back → title (heading: the licence name) → the entry's title and credit (heading) → [part heading] → each paragraph → [part heading → each paragraph] → "End of text" | A paragraph: its text. A part heading: "Notice" or the licence name, heading |
+| **Google notices** (§4A) | back → title (heading) → intro → each row in the index's order | A row: "<name>, Found in <sources>", role Button, click label `google_notices_read_action` "Read the notice" |
+| **Google notice text** (§4B) | back → title (heading: the name) → "Found in <sources>" (heading) → each paragraph → "End of text" | as the License text screen |
+
+Three properties hold on every screen:
+- **One stop per thing.** An entry or a row is **one merged node** (`mergeDescendants = true` through
+  `clickable`, as every `SettingsLinkRow` is), read title first. The chevron is decorative
+  (`contentDescription = null`) and adds no stop. Nothing on these screens is a two-stop control.
+- **Headings are headings.** The top-bar title, every section header, the text screens' entry title
+  and part headings carry `heading()`, so heading navigation moves band to band and text to text.
+  The intro and the paragraphs do not.
+- **Lists are collections.** The `LazyColumn`s report their collection info as Compose gives it,
+  so TalkBack can announce position ("row 12 of 108") on the notices list. The Licenses list has
+  fourteen tappable stops (two fonts, eleven software entries, the notices entry) and four inert ones
+  (three sounds, the SDK entry); the notices list about 108; a text as many stops as paragraphs plus
+  the headings and the end line.
+
+**Focus.** Opening any of the four screens moves no focus: a screen that has just opened is met in
+its reading order, like every other screen this product designs (D-TBa item 6). Returning with back
+or system back restores the list's scroll position (LS-AC02); where TalkBack's focus lands on return
+is the platform's own placement, and both the row that was opened and the top of the list are
+accepted. The screens request no input focus and add no `traversalIndex`: the visual order is the
+reading order on every window, so nothing needs pinning.
+
+**Announcements.** Exactly two things announce themselves, each once, politely (`liveRegion =
+LiveRegionMode.Polite` on the node that carries the text):
+- the loading description (`licenses_loading`, `google_notices_loading`), when the spinner appears
+  after the 300 ms rule — and so never when the text is in before then;
+- the error text (`licenses_text_error`, `google_notices_error`, `google_notice_text_error`), when the
+  failed state is shown.
+Nothing else is announced: a navigation is heard through the new screen's title, a press through the
+navigation it causes, a sound cue is never the only feedback (rules/audio.md), and no text is read
+twice. With TalkBack off nothing is spoken.
+
+**Long texts.** A text screen is a plain reading surface, so TalkBack's continuous reading ("read
+from next item") proceeds paragraph by paragraph to "End of text" without a stop that is not a
+paragraph. On the lazy body (§4B) that holds because TalkBack scrolls a `LazyColumn` as it reads; the
+device pass reads at least twenty paragraphs of Cronet's notice continuously and scrolls, by TalkBack's
+own scroll gesture, to its last (LS-AC15). Selection on the lazy body is per paragraph, and that is
+the design (LS-08).
+
+**The house checklist, restated for four screens** (rules/compose.md; `docs/ux-spec.md` §11):
+- **Touch:** every tappable entry and row is full-card and ≥ `settings_row_min_height` 72dp; back
+  48dp; ≥ `spacing_md` 16dp between cards (≥ 8dp). Paragraphs and headings are not targets.
+- **Not colour alone:** tappable against inert is the chevron plus the press response by eye, the
+  Button role plus the click label by ear (LS-06, LS-13).
+- **Contrast:** card text on `surfaceContainerHigh` and backdrop text on Sparse's zone T, both from
+  the design system's verified pairs: `onSurface` ≥ 10:1 light and ≥ 14:1 dark, `onSurfaceVariant`
+  ≥ 5.0:1 light and ≥ 6.9:1 dark (`docs/ux/candy-backdrop.md` §5.1). The spinner is `primary` on the
+  backdrop, a glyph at ≥ 3:1. Nothing names a hex: every colour is a `MaterialTheme.colorScheme` role.
+- **Text scaling:** every size is an M3 type role; no `maxLines` anywhere on the four screens; cards
+  grow, lists scroll; at 200 % a title wraps and the "Found in" line wraps under it. Nothing is a
+  fixed height except the 48dp back target and the 72dp card minimum, both minimums.
+- **Dimensions:** every dp is a `dimens.xml` token already in the file (`spacing_sm`, `spacing_md`,
+  `content_max_width`, `settings_row_min_height`, `settings_row_icon_size`, `elevation_card`,
+  `shape_corner_large`); these screens add **no new token** and no literal. Durations come from
+  `ClayAnim` and the scoped `LicensesUi` object (the 300 ms).
+- **Light and dark:** theme roles only; every new public composable has light and dark `@Preview`s
+  (through `BackdropPreviewHost` once the backdrop lands, E7).
+- **RTL:** the chrome mirrors (back arrow, chevron, padding); the texts stay left to right by content.
+- **Reduced motion:** the entrance stagger and the squish are gated by `rememberAnimationsEnabled()`;
+  the spinner is a progress indicator, which the platform keeps.
+- **One-handed use:** the lists scroll under the thumb; the only actions are the back button and the
+  cards themselves, and every card is reachable by scrolling.
+
+**The pass line (LS-AC06, read by QA with TalkBack on, on each of the four screens, in light and
+dark, at 100 % and 200 %).** PASS when all of these hold; any one failing is FAIL on the screen named:
+1. swiping forward from the back button reaches every stop in the table's order and nothing else;
+2. every tappable entry or row is announced with its lines, "button" and its click label, and a
+   double-tap opens the text it names;
+3. every inert entry is announced with its lines and without "button" or "double-tap to activate";
+4. heading navigation stops on exactly the headings the table marks;
+5. on a text screen, continuous reading proceeds to "End of text" (on Cronet's notice, at least
+   twenty paragraphs are read continuously and TalkBack's scroll reaches the end);
+6. the loading description, when it appears, and the error text are each spoken once and not again
+   on the next swipe;
+7. back and system back return one step, and nothing is spoken twice for one event.
 
 ## 6. Copy
 
@@ -201,7 +636,40 @@ New strings in `res/values/strings.xml`. Proper names, licence names and address
 | `licenses_sound_effects` (plurals) | one: %d sound effect · other: %d sound effects |
 | entry titles, credits, licence names, parts lines and addresses | exactly as §3.2's table, one key each (`licenses_fredoka_title`, `licenses_fredoka_credit`, `licenses_ofl_name`, `licenses_cc0_name`, `licenses_apache_name`, `licenses_android_sdk_name`, …) |
 
+*(Second edition, 2026-10-24 — added strings. The table above stands. Proper names, licence names
+and addresses stay `translatable="false"`. The Google notices' names and texts are **not** strings:
+they are data from the generated index and are shown as supplied (LS-12).)*
+
+| Key | Text |
+|---|---|
+| `licenses_google_sdk_title` | Google Play services and SDKs |
+| `licenses_google_sdk_parts` | Play Games Services, Mobile Ads, User Messaging Platform, Play inline-install library, Play services libraries |
+| `licenses_google_notices_title` | Open-source notices in Google libraries |
+| `licenses_google_notices_supporting` | The notices Google supplies for the open-source software inside its libraries |
+| `licenses_google_notices_action` | Open the notices |
+| `google_notices_title` | Open-source notices |
+| `google_notices_intro` | Google supplies these notices for the open-source software inside its libraries. Each one is shown as supplied. |
+| `google_notices_found_in` | Found in %1$s |
+| `google_notices_read_action` | Read the notice |
+| `google_notices_loading` | Loading notices |
+| `google_notices_error` | These notices could not be shown. |
+| `google_notice_text_error` | This notice could not be shown. |
+| `google_notice_text_unknown_title` | Notice |
+| `license_text_part_notice` | Notice |
+| `license_text_end` | End of text |
+| `licenses_bsd3_name` | BSD 3-Clause License |
+| `licenses_mit_name` | MIT License |
+| `licenses_mpl_name` | Mozilla Public License 2.0 |
+| `licenses_psl_address` | publicsuffix.org/list/public_suffix_list.dat |
+| the eight new entries' titles, credits and parts lines | exactly as §3.2's table, one key each, in the same pattern (`licenses_okhttp_title`, `licenses_okhttp_credit`, `licenses_okhttp_parts`, …, `licenses_checker_title`, `licenses_checker_credit`) |
+
+Lint's `PluralsCandidate` has no new case: the only count is the existing `licenses_sound_effects`
+plural. The `%1$s` of `google_notices_found_in` is the joined sources string, built once per row in
+the ViewModel's row model, never in composition.
+
 The candy-backdrop words grep (BD-01) runs over these strings too and must print nothing.
+*(2026-10-24: and over the eight curated texts of §7; the generated `google/` directory is outside
+it, §3.2 "Never listed".)*
 
 ## 7. Assets and licences
 
@@ -213,6 +681,29 @@ The candy-backdrop words grep (BD-01) runs over these strings too and must print
 | `Icons.AutoMirrored.Rounded.KeyboardArrowRight`, `ArrowBack` | `material-icons-core`, already a dependency | Apache-2.0 | already covered by the AndroidX family |
 
 No raster, no new dependency, no permission.
+
+*(Second edition, 2026-10-24. The rows above stand with two updates: the Apache-2.0 row's "new" is
+now backed by THIRD_PARTY.md §2's row and the research-analyst's verdict 2 (2026-10-18, CLEAN, "may
+be redistributed verbatim"); the conditional `<name>-MIT.txt` row is resolved — the one MIT family is
+Checker Framework, below. The rows below are added. Every text is fetched by the developer from the
+URL THIRD_PARTY.md names, committed byte-identical, and pinned by its full SHA-256 in the LS-AC12 test;
+the research-analyst recorded the first 16 hex digits of each, and the developer's report records the
+full hash, which the release-manager copies into THIRD_PARTY.md. File names follow the existing
+`<Name>-<Licence>.txt` pattern and are written in code once, in `BundledLicenseText` (R4).)*
+
+| Asset | Status | Licence | Record |
+|---|---|---|---|
+| `assets/licenses/Jakarta-Inject-NOTICE.md` | **new**: byte-identical to `jakarta.inject-api-2.0.1.jar!/META-INF/NOTICE.md`, 1,074 B, sha256 `992ed62d…a512214df540` | an Apache-2.0 NOTICE; reproducing it is what Apache-2.0 §4(d) asks | THIRD_PARTY.md §2, the Apache-2.0.txt row; research-analyst font report, verdict 2 |
+| `assets/licenses/Protobuf-BSD-3-Clause.txt` | **new**: protobuf's `LICENSE` at v22.3, verbatim, 1,732 B, sha256 prefix `6e5e117324afd944` | the BSD-3-Clause text; reproducing it is its condition 2 | THIRD_PARTY.md §5b rows F and G |
+| `assets/licenses/Chromium-BSD-3-Clause.txt` | **new**: Chromium's `LICENSE` at 143.0.7445.0, verbatim, 1,536 B, sha256 prefix `368cca1106be99d3` | as above | §5b row H |
+| `assets/licenses/CheckerQual-MIT.txt` | **new**: checker-qual 3.33.0's `LICENSE.txt`, verbatim, 1,126 B, sha256 prefix `e90eaa08dea089df` | the MIT text; reproducing it is its one condition | §5b row I |
+| `assets/licenses/PublicSuffixList-NOTICE.txt` | **new**: OkHttp parent-4.11.0's `okhttp3/internal/publicsuffix/NOTICE`, verbatim, 218 B, sha256 prefix `8a9c58fbded5ea34` | an MPL-2.0 notice naming the source; what MPL §3.2(a) asks | §5b row J |
+| `assets/licenses/MPL-2.0.txt` | **new** (LS-11): the Mozilla Public License 2.0 text from `mozilla.org/media/MPL/2.0/index.txt`, verbatim, 16,726 B, sha256 prefix `3f3d9e0024b1921b` | the licence document's own terms; the research-analyst's one-line confirmation is requested, non-blocking (§9) | §5b row J, the optional half |
+| `assets/licenses/google/index.tsv` and `google/<stem>.txt` | **generated per variant** by the build (tech design §13.1 LN-2, LN-3), never committed; about 42 text files and one index at today's versions, 2,053,748 B raw, ≈ 273 KB deflated | Google's own `third_party_licenses.txt` slices, reproduced verbatim: what the Android SDK licence §3.8 and Google's open-source notices guide ask | THIRD_PARTY.md §4 (the three Google SDK rows) and §5b rows A and E; tech design §13.1 |
+
+Still no raster, no new dependency (LN-2: the merge is a Gradle-free object in `build-logic`, read
+with what its classpath already has), no permission. The AAB grows by the generated directory;
+LN-7 item 6 records the delta as baselined, not gated.
 
 ## 8. Acceptance criteria
 
@@ -230,6 +721,59 @@ No raster, no new dependency, no permission.
 | **LS-AC10** | No new dependency and no new permission; colours and dimensions from tokens only; light and dark `@Preview`s for every new public composable; one Compose UI test per screen's main flow (Licenses: open, read the sections, open Fredoka; License text: load, scroll, and the error state) | Auditor, Check | as stated |
 | **LS-AC11** | The release AAB contains `assets/licenses/Fredoka-OFL.txt`, `Nunito-OFL.txt` and `Apache-2.0.txt` | release-manager (archive listing at checklist step 1.4) | present |
 
+### 8.1 Second edition — amended and new criteria (2026-10-24)
+
+*(The table above is the first edition's and stays as the record. Where a row below carries the same
+id, it replaces that row's wording; the tech-lead's R5 split (JVM, Robo, Compose, Pixel, Device,
+Review) names the kind of each test, and tech design §13.1 LN-7 is folded in by id. Every test is
+deterministic (rules/testing.md): the Compose test clock, fixtures for the generated assets, no wall
+clock, no network. Each test is watched failing once before it is trusted (R5).)*
+
+| # | Criterion | By | Pass line |
+|---|---|---|---|
+| **LS-AC02** (amended) | Four round trips keep their place: Settings → Licenses → Fredoka → back → back; Licenses → Jakarta Dependency Injection (a two-text entry) → back; Licenses → Open-source notices → a row → back → back; and system back equals the back button on every screen. The Licenses list's and the notices list's first visible index survive their round trips | Compose (`AppNavHost` with `NavFlowTest`'s stand-ins, a fixture index), QA | as stated, on gesture and three-button navigation |
+| **LS-AC03** (amended) | `LicenseCatalogTest`: the catalogue equals §3.2's table **in its order**, written into the test as the expected list from §3.2.1, and contains none of §3.2's never-listed items; every `BundledLicenseText.assetPath` names a file under `src/main/assets/licenses/` that exists and is non-empty; every committed file in that directory, `google/` excluded, is opened by at least one entry (the first edition's "exactly once" is superseded: `Apache-2.0.txt` is opened by seven entries through one enum constant). The release-manager diffs §3.2.1 against THIRD_PARTY.md at checklist items 1.4 and 6 | JVM; release-manager | equal, in order; none present; every file referenced |
+| **LS-AC05** (amended) | Every curated text (the eight files of §7) opens and is complete: `reflowLicenseText`'s whitespace-normalised join equals the whitespace-normalised asset for each (JVM); each is read through the real `AssetManager` (Robo); on the License text screen the body is one `Column` with one node per paragraph, a selection can span two paragraphs, a two-text entry shows "Notice" then its licence heading in that order, and "End of text" is the last node (Compose); re-flows at 1.0 and 2.0 font scale with no truncation (QA) | JVM + Robo + Compose + QA | as stated |
+| **LS-AC06** (amended) | §5.1's TalkBack contract holds on all four screens: the reading order of its table; headings on exactly the nodes it marks; `Role.Button` and the click label on every tappable entry and row; no click action and no role on an inert entry; the chevron carries no description; the loading description and the error text are polite live regions (Compose, with `SemanticsProperties.LiveRegion` asserted); the seven-point pass line (QA, TalkBack on, light and dark, 100 % and 200 %) | Compose + QA | as stated |
+| **LS-AC08** (amended, E7) | All four routes — `Licenses`, `LicenseText`, `GoogleNotices`, `GoogleNoticeText` — are Sparse (BD-06's `BackdropDensityTest`) and draw transparent containers (BD-14's `TransparentContainersTest`). **Owned by whichever of `feature/licences-screen` and `feature/candy-backdrop` lands on `develop` second**; the first to land asserts nothing about the backdrop | Compose, on the second branch | as stated |
+| **LS-AC10** (amended) | No new dependency (`git diff develop...HEAD -- gradle/libs.versions.toml build-logic/build.gradle.kts` adds no coordinate, LN-7 item 6) and no new permission; colours and dimensions from tokens only, no new `dimens.xml` token (§5.1); light and dark `@Preview`s for every new public composable; **one Compose UI test per screen's main flow, four screens**: Licenses (open from Settings, read the four sections, open Fredoka, open the notices entry); License text (load, scroll to "End of text", a two-text entry, the error state through a fake `LicenseTextSource`); Google notices (load from a fixture index, open a row, the error state from a malformed fixture); Google notice text (load a fixture text, scroll to the end, the unknown-key error state); warning-free under C7 once check-gates is on `develop` | Auditor, Check | as stated |
+| **LS-AC11** (amended) | `unzip -l <aab> \| grep 'base/assets/licenses/'` lists the eight curated texts of §7, `google/index.tsv`, and every stem file the index names (LN-7 item 4) | release-manager (checklist 1.4 and 4.6a) | all present |
+| **LS-AC12** (new) | **The bundled notices match the build's dependencies.** (a) `build-logic`: `GoogleNoticeMergeTest`, the tech-lead's six cases (LN-7 item 1: two AARs sharing a pair give one line with both sources; one name with two texts gives two lines; permuted inputs give byte-identical output; each `<stem>.txt` equals its slice byte for byte; each LN-2 failure fails the build naming the AAR; an AAR without the JSON contributes nothing). (b) `:app` JVM, on the generated debug assets: `index.tsv` parses, has at least one line and unique keys; every stem it names exists and that file's SHA-256 starts with the stem; its sources include `ads-mobile-sdk`, `user-messaging-platform`, `hsdp` and `play-services-games-v2`; `parseGoogleNoticeIndex` is tested on a well-formed, an empty and a malformed index; each curated text of §7 exists and its full SHA-256 equals the hash the test pins (whose first 16 hex digits are the research-analyst's). (c) Release: the index's sources equal the set of AARs on `releaseRuntimeClasspath` that carry `third_party_licenses.json`, from checklist 3.5's listing | JVM (build-logic and `:app`); release-manager | (a) and (b) green; (c) equal sets, recorded in the release report |
+| **LS-AC13** (new) | The notices list shows every index line: with a fixture index of N lines that includes two lines sharing a name, the screen shows N rows in the index's order, each with its "Found in" line, and the two same-name rows open different texts (Compose). On the device, the last row's TalkBack position announcement names the same total as the shipped `index.tsv`'s line count, which the release-manager supplies from the AAB (QA) | Compose + QA | N rows; the totals agree |
+| **LS-AC14** (new) | Unknown ids are the error state, never a crash and never a file lookup: `LicenseText("missing")` shows §4's error with the entry's title absent; `GoogleNoticeText("missing")` shows §4B's error under the "Notice" title (Compose). The only `assets.open` call sites in `:app` are the two sources, each opening a path from `BundledLicenseText` or from the parsed index, never from a route (Review: a grep) | Compose + Review | as stated |
+| **LS-AC15** (new) | The largest text reads end to end: with a fixture of 2,500 paragraphs the notice text screen opens at paragraph 1 and `onNodeWithText("End of text").performScrollTo()` succeeds (Compose); on the device Cronet's notice opens without an ANR, scrolls end to end, and the `dumpsys gfxinfo` janky-frames line read after the scroll is recorded in the QA report (QA) | Compose + QA | as stated; no ANR |
+| **LS-AC16** (new) | Loading announces itself only when it is shown: with the test clock paused and the text delivered before 300 ms, no spinner node is ever composed; delivered after, the spinner's node carries the loading description and a polite live region; the error node carries a polite live region (Compose). QA hears the loading description once on a slow open and the error text once in the error state, and neither again on the next swipe | Compose + QA | as stated |
+| **LS-AC17** (new; widens LS-AC04 from "neither screen" to the four screens) | BD-01's `UserFacingTextHasNoProtectedNamesTest` covers §6's new strings and §7's eight curated texts (they sit in `src/main/res/values*/strings.xml` and `src/main/assets/**`); the generated `google/` directory lies outside its scan, and the developer's report records the same grep's result over it, for the code-auditor's information | JVM + Review | zero lines in scope; the out-of-scope result recorded |
+| **LS-AC18** (new) | The release APK and AAB size delta against `develop` is recorded in the developer's report (LN-7 item 6; the estimate is ≈ 0.3 MB compressed). Baselined, not gated (tech design §10, D-12) | Developer, release-manager | recorded |
+
+### 8.2 What QA checks on a device
+
+The qa-engineer's session, on the device matrix of `docs/ux-spec.md` §11 and on the release build
+where the generated assets are the release variant's. Each item is a screenshot or a recording under
+`.planning/qa/licences-screen/`, listed in the QA report by path:
+
+1. **The four screens, light and dark, at 100 % and 200 % font scale:** Licenses (all four sections),
+   License text for Fredoka (one text), Jakarta Dependency Injection (two texts), Google notices (the
+   top and a page in the middle), Google notice text for Cronet (its first screen, a middle screen, its
+   end). No truncation anywhere; cards grow; the "Found in" line wraps.
+2. **The §5.1 pass line with TalkBack**, on each of the four screens (LS-AC06), and the continuous
+   read of Cronet's notice (LS-AC15).
+3. **Round trips** (LS-AC02): both back routes, gesture and three-button; the lists return to where
+   they were.
+4. **Airplane mode** (LS-AC07): every screen and every text opens with no network; no outbound
+   intent from any of them.
+5. **Animator duration scale 0:** no entrance stagger and no squish; everything still opens.
+6. **`ar-XB` pseudo-locale:** chrome mirrored (back arrow, chevron, padding), every text left to
+   right, nothing clipped.
+7. **A 360 × 640 dp window and a tablet window:** the content column caps at `content_max_width`
+   and stays centred; nothing draws under the status bar.
+8. **Selection:** a paragraph of a curated text and a paragraph of a Google notice can be selected
+   and copied; on the curated text the selection can span two paragraphs.
+9. **Sound** (LS-AC09): `ButtonForward` on the Settings row, on an entry and on a notice row; back is
+   silent.
+10. **The totals** (LS-AC13): the last notice row's position announcement equals the AAB's index line
+    count.
+
 ## 9. Open items routed to the producer
 
 1. **THIRD_PARTY.md** gains a row for the bundled Apache-2.0 text, and the research-analyst confirms its
@@ -244,3 +788,66 @@ No raster, no new dependency, no permission.
 5. **Pulling this into 3.0.0 or 3.0.1** is the producer's call (THIRD_PARTY.md §7 records the gap as a
    studio-rule gap, not a legal blocker: every shipped notice obligation is already met by the files in
    the artifact).
+
+*(Second edition, 2026-10-24 — status of items 1–5, and the items this edition adds.)*
+
+- **Item 1 — closed.** THIRD_PARTY.md §2 carries the Apache-2.0.txt row, and the research-analyst's
+  verdict 2 (2026-10-18) confirms the text may ship verbatim.
+- **Item 2 — closed.** U-1 closed 2026-10-21 (row B); the Google entry names the User Messaging
+  Platform (§3.2).
+- **Item 3 — closed as a design question, open as a release check.** The research-analyst's sweep
+  (192 of 192 POMs, 2026-10-21) gave the families; §3.2 lists them. U-6, the per-coordinate listing
+  on `release/3.0.0`, stays the release-manager's (checklist 3.5): a coordinate outside the 192 needs a
+  verdict and, if it carries a notice, an entry here before the cut.
+- **Item 4 — closed.** One Apache NOTICE ships, Jakarta Inject's; it is bundled and opened by its own
+  entry (LS-10, §3.2, §7). The scan of the 51 coordinates not in the local cache is checklist 3.5a's,
+  on the release branch; a second NOTICE found there is a second entry of the same shape.
+- **Item 5 — closed.** The producer's call was made and then overtaken: the Licenses screens block the
+  branch cut (tech design §14.1 row LN; §16 #20's deadline, because BSD-3 and MIT make the notice a
+  condition of redistribution). "Or 3.0.1" no longer applies (THIRD_PARTY.md §7, update 2026-10-23).
+
+6. **Research-analyst, non-blocking:** one line confirming the MPL-2.0 text's own redistribution terms
+   (LS-11, §7), as was done for the Apache text. Mozilla publishes the licence for exactly this use,
+   so no change to the design is expected; if the line says otherwise, the Public Suffix List entry
+   opens the NOTICE alone and LS-11 is superseded.
+7. **Tech-lead, in the build brief:** (a) the shape of a two-text entry — this document says only what
+   is shown (LS-10, §4); whether `LicenseEntry.text` becomes `texts: List<BundledLicenseText>` or a
+   pair is the brief's; (b) LS-AC03's asset-reference test excludes `google/` (LS-AC12 owns it) and
+   accepts one asset opened by several entries; (c) the notices list's row model carries the joined
+   sources string, built once, and the key the route needs (LS-12, §4A); (d) `GoogleNoticesViewModel`
+   treats an empty index as `Failed` (§4A); (e) `LicensesUi.SPINNER_DELAY_MS` is shared by all three
+   loading screens.
+8. **Release-manager:** THIRD_PARTY.md's "How credited" cells for rows A, E, F–J, the Apache table and
+   the Apache-2.0.txt row name the §3.2 entry titles as written here (several of those cells still
+   quote the research-analyst's suggested titles, e.g. "Checker Framework qualifiers" — unchanged — and
+   the row-F/G "Protocol Buffers" — unchanged — but the Google rows should point at "Open-source notices
+   in Google libraries"); the Sounds counts are re-cut if `feature/audio-review` misses the release
+   (§3.2); the full hashes of the §7 texts, from the developer's report.
+9. **Code-auditor, at review:** LS-AC14's grep (`assets.open` call sites); LS-AC17's out-of-scope grep
+   result; the previews; no new token, no literal, no new dependency.
+10. **Qa-engineer:** §8.2, with the release build's generated assets; the Cronet janky-frames reading;
+    the §5.1 pass line per screen.
+11. **Whichever branch lands second** (`feature/licences-screen` or `feature/candy-backdrop`): LS-AC08's
+    four routes in `BackdropDensityTest` and `TransparentContainersTest`, and the two new screens'
+    containers made transparent with `contentColor = onBackground` (R1's rule), E7.
+12. **The Settings renumbering against `feature/colour-vision`** (§2): whichever lands second
+    renumbers on top of the first; nothing to decide, recorded so neither developer treats the other's
+    numbers as a conflict.
+
+## 10. Record of amendments
+
+Nothing in this document is deleted; a superseded wording stays with a dated pointer, and this table
+is the index of them.
+
+| # | Date | What changed | From | Where |
+|---|---|---|---|---|
+| 1 | 2026-10-24 | The text body is a `Column` in `verticalScroll`, whole-text selectable, not a `LazyColumn` | tech-lead departure **D10** (`candy-backdrop/tech-lead-architecture.md` R4, 2026-10-17); tech design §3.6 | LS-08; §4 |
+| 2 | 2026-10-24 | The Licenses list has no ViewModel; the text screen has one | tech-lead departure **D11** (same report); tech design §3.1's exception | LS-09; §3.3 |
+| 3 | 2026-10-24 | Its own branch, `feature/licences-screen`; the Apache-2.0 carve-out travels with it; the backdrop rows belong to the second branch to land | `tech-lead-direction-b.md` **A9, E6, E7** (2026-10-18); tech design §3.6 as corrected 2026-10-21 | frontmatter; LS-02; LS-AC08; §9 item 11 |
+| 4 | 2026-10-24 | The Google SDK notices: generated at build time, shown behind one tappable entry as a scrolling list; the largest text one paragraph per lazy item | tech design **§13.1 LN-1 to LN-8** (2026-10-21) | LS-08, LS-09, LS-12; §3.2; §4A; §4B; §7; LS-AC11 to LS-AC13, LS-AC15 |
+| 5 | 2026-10-24 | Eight new Open-source software entries; the Google entry renamed and widened; the "one entry per further family" placeholder resolved; U-1's condition superseded | research-analyst rows A–J and the Apache table (2026-10-21); the font report's verdict 2 and open issues 1–3 (2026-10-18); THIRD_PARTY.md §2, §4, §5b | LS-10, LS-11; §3.2, §3.2.1; §6; §7 |
+| 6 | 2026-10-24 | Checker Framework credited although nothing of it ships | tech-lead decision in LN-5 item 1 | LS-04's pointer; §3.2 |
+| 7 | 2026-10-24 | §5 rewritten as a TalkBack contract for four screens, with the pass line | rules/compose.md; the founder's **Q-023** answer (2026-10-21) and D-TB's shape (`feature/ux-spec-folds`) | LS-13; §5.1; LS-AC06, LS-AC16 |
+| 8 | 2026-10-24 | "End of text" closes every text; part headings on two-text entries | this role (a consequence of LS-10 and LS-13) | §4; §4B; §6 |
+| 9 | 2026-10-24 | LS-AC03's "every file referenced exactly once" → "at least once, `google/` excluded" | this role (seven entries share `Apache-2.0.txt`; the generated directory has its own test) | LS-AC03, LS-AC12 |
+| 10 | 2026-10-24 | The Sounds section's counts confirmed against the audio branch's CREDITS.md; the re-cut rule kept | `docs/audio/CREDITS.md` on `feature/audio-review`; THIRD_PARTY.md §2 | §3.2 |
