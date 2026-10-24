@@ -50,10 +50,13 @@ class BoardMarkRecipeTest {
 
     /**
      * CV-AC08, on the board: each of the ten pairs of the five marks that can share a board differs
-     * in form, radius, dashes, halo or fill — never in hue alone — in both palettes. The mutations
-     * this catches are the ones that would put colour back in charge: a colour-blind hint ring that
-     * loses its dashes reads as the selection ring at a slightly larger radius only through hue in
-     * dark greyscale (§2), and a dashed selection ring would read as a hint.
+     * in form, radius, dashes, halo or fill — never in hue alone — in both palettes. It proves that
+     * some channel other than hue separates each pair, not which one: a pair that still differs in
+     * another channel passes. A colour-blind hint ring that lost its dashes still differs from the
+     * selection ring by radius and halo here, so [theColourBlindRecipeIsSection34]'s dash count and
+     * `BoardCanvasPaletteTest`'s gap samples are what catch that (code-auditor F-4). What this test
+     * catches is a pair left with hue alone: the standard hint source ring at the selection ring's
+     * radius, say, or the wrong-tap mark without its dashes.
      */
     @Test
     fun everyPairOfMarksThatCanShareABoardDiffersInAChannelThatIsNotHue() {
