@@ -73,7 +73,7 @@ class TutorialViewModel
     @Inject
     constructor(
         private val onboardingRepository: OnboardingRepository,
-        @ApplicationScope private val applicationScope: CoroutineScope,
+        @param:ApplicationScope private val applicationScope: CoroutineScope,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(TutorialUiState.initial())
 

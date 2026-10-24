@@ -5,6 +5,24 @@ Q-901 and Q-902 were both answered 2026-09-21, both on their defaults.
 - **app-ads.txt / REL-03 — the crawl window has long since passed and the result is unread.** Founder set the listing's Website field and the listing published; the row went live on the public page as `https://ermanergoz.github.io` at 2026-09-21T01:29:28Z, 301ing to the correct file on the canonical host (Google documents cross-domain redirects as valid). The ≤ 24 h checkpoint was 2026-09-22 and the 48 h escalation 2026-09-23; **it is now 2026-10-23**, so AdMob has either verified or it has not. Founder to read AdMob → Apps → this app → App settings → `app-ads.txt`. If still unverified: switch the field to `https://ermanergoz.com` (bare apex) and check the AdMob app entry is linked to the Play listing. The file itself has been correct and live since 2026-09-02 — do not touch the website.
 
 ## In flight
+- **2026-10-25 08:05 — producer snapshot (read this first on resume).** develop = `f478ae9` (release-docs, ux-spec-folds, tech-design-sync merged).
+  Merge order (tech-design §14.1): 3a hint-undecided → 4 check-gates → 5 audio → reduced-motion-live-gate → solver-deadline-task
+  (optional pre-cut) → 6 home-chip-arrival → 5a talkback-board / 6a licences-screen / 6b colour-vision / play-upload → 7 candy-backdrop.
+  | Branch (worktree) | State | Next |
+  |---|---|---|
+  | bugfix/hint-undecided (PegSolitarie-hint) | code `7201742`; auditor PASS, QA PASS w/ blocked (GM6 6/6 Undecided), ux checks PASS | tech-lead sign-off running → merge develop in (ux-spec.md: hint side first, folds second; revised 2026-10-24; ux-designer reads hunks) → merge |
+  | feature/phase-14-check-gates (PegSolitarie-gates) | auditor, QA, tech-lead PASS | after hint: developer merge-in per tech-lead-signoff-tech-design-sync.md hunk rules (§16 #23–25 → #25–27), Check, fresh tech-lead re-read → merge |
+  | feature/audio-review (PegSolitarie-audio) | auditor, sound-designer, tech-lead PASS; QA PASS w/ blocked | after gates: merge-in (GameAnim.kt, TutorialViewModel.kt conflicts), Check, auditor reads hunks, tech-lead re-read → merge. Q-025 (headphones off) asked at release QA |
+  | bugfix/home-chip-arrival (PegSolitarie-home) | building (D-03n/o, D-05e/f, INFO rows); C9 NOT here | auditor → merge-in (hint, gates, audio) → 15e sitting on Pixel_9a_bench → QA → sign-off |
+  | feature/licences-screen (PegSolitarie-lic) | spec 2nd ed. PASS loop 2 + folded (`8f0493a`); brief done; building | auditor → QA §8.2 → sign-off |
+  | feature/talkback-board (PegSolitarie-tb) | brief + Amendments 1–2 done (Q-023 = playable) | build after hint + audio on develop; blocks the cut (checklist 1.1a) |
+  | feature/colour-vision (PegSolitarie-cv) | brief done | build after audio on develop; own 15e sitting |
+  | bugfix/reduced-motion-live-gate | ruled (audio sign-off §3): MotionDurationScale gate, + cue-replay F-1, no sitting | cut after audio merges; blocks the cut |
+  | feature/candy-backdrop (PegSolitarie-candy) | direction B spec/IP/ruling done | build last (own 15e sitting) |
+  | feature/play-upload | owed (PU, blocks Gate 2) | tech-lead → android-game-dev |
+  - Founder items before upload: F-1..F-14 (release-manager-founder-items.md); time-sensitive F-1, F-2, F-3, F-8. Q-025 open (Blocks: nothing).
+  - Q-PUBLISH-3.0.0 summary must carry: cell-size deviation (§16 #23), audio blocked items (60 fps recording, P4c listen, speaker branch if Q-025 = 2), Fable re-audit question.
+  - Backlog post-3.0.0: check.sh kill -9 PID, fuzz failures file as task output, harness re-checks quality gates, docs/qa-plan.md, assets.srcDir deprecation, WT-19 goldens, hint R2/R5, GM6 Diamond-41 jump not committing (to route).
 - **2026-10-23 — state after the resume** (founder: "continue"; Fable back for supervision 2026-10-23, Q-019 addendum).
   Merge order into develop (tech-design §14.1): release-docs → R1 hint-undecided → check-gates → audio → F-1
   home-chip-arrival → licences-screen / colour-vision / talkback-board / play-upload → candy-backdrop last.
@@ -121,6 +139,9 @@ Q-901 and Q-902 were both answered 2026-09-21, both on their defaults.
   5. **`docs/audio-spec.md` has never existed on any branch** (`git log --all --diff-filter=A` → 0 commits) although rules/audio.md makes it the cue list of record — its absence is why the D-01h/SOUND-01 contradiction stayed invisible through a full design pass. No sound-designer is staffed on this product, so the qa-engineer stood in under a recorded recusal. Owner: sound-designer if staffed, else tech-lead. Predates phase 15 and does not block it.
 
 ## Done
+2026-10-24 | feature/ux-spec-folds (folds a–e, D-03n/o, D-05e/f, D-TB/D-TBa) | ux-designer, 5 fresh checks, tech-lead | PASS loop 5; merged 4ff4ec6 | .planning/reports/ux-spec-folds/
+2026-10-24 | feature/tech-design-sync (TB row 5a, lanes, #23 cell size, checklist N-items) | tech-lead, release-manager, code-auditor | PASS; merged f478ae9 | .planning/reports/phase-14/tech-lead-signoff-tech-design-sync.md
+2026-10-24 | Q-023 (TalkBack board playable in 3.0.0), Q-024 (phone attached) | founder | answered | .planning/questions/FOUNDER.md
 2026-10-23 | phase-14 release-docs (THIRD_PARTY, CHANGELOG, tech design, release checklist, store copy en-US/tr-TR, ad safety) | release-manager, tech-lead, research-analyst, game-designer, code-auditor | PASS (loop 1 FAIL on F-1 false hint claim → hint ruled a MAJOR defect, R1; loop 2 PASS on Fable); tech-lead sign-off PASS, QA n/a (docs only); merged to develop --no-ff | .planning/reports/phase-14/code-auditor-release-docs.md, code-auditor-release-docs-loop2.md, tech-lead-signoff-release-docs.md, game-designer-hint-timeout.md
 2026-10-21 | phase-14 release-plan (docs only) | producer | merged to develop --no-ff 0582e3f, no new Check (tech-lead-signoff-close.md) | .planning/phases/14-release-readiness/
 2026-10-21 | phase-15 ux-refresh (S1–S11, H-1..H-4) | android-game-dev, code-auditor, qa-engineer, ux-designer, tech-lead, game-designer (reviews on Opus under Q-003/Q-019) | PASS; 15e PASS on Pixel_9a_bench (33 ms); merged to develop --no-ff | .planning/reports/15-founder-feedback/code-auditor-loop4.md, code-auditor-loop5.md, qa-engineer-15e.md, tech-lead-signoff.md, tech-lead-signoff-close.md, producer.md

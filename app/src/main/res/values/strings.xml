@@ -107,6 +107,13 @@
     -->
     <string name="nowin_message">No winning move — undo or restart</string>
     <string name="stuck_message">No moves left — undo or restart</string>
+    <!--
+      D-04f / ux-spec §4.4.2 and §8. The Undecided notice: a hint search that stopped with no
+      move and no proof. Two sentences, never the rescue banner's "problem — what to do" shape,
+      and none of the ruling's forbidden words (criterion 23b). The tr-TR copy of record lives in
+      the spec only: the app has no Turkish locale.
+    -->
+    <string name="hint_undecided_message">Hint couldn\'t work this position out in time. It may still be winnable.</string>
     <string name="rescue_restart">Restart</string>
 
     <!-- Results. -->

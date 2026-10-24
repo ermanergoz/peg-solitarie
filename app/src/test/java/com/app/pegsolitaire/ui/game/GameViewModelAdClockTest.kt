@@ -17,6 +17,7 @@ import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
+import com.app.pegsolitaire.domain.usecase.HintOutcome
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
 import com.app.pegsolitaire.platform.ads.RewardOutcome
@@ -397,7 +398,7 @@ class GameViewModelAdClockTest {
     private fun alwaysFindsAMove(): GetHintUseCase {
         val useCase = mockk<GetHintUseCase>()
         every { useCase.invoke(any(), any(), any(), any(), any()) } answers {
-            RulesEngine.legalMoves(firstArg()).firstOrNull()
+            RulesEngine.legalMoves(firstArg()).firstOrNull()?.let { HintOutcome.Found(it) } ?: HintOutcome.ProvenDead
         }
         return useCase
     }
