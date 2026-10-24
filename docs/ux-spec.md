@@ -499,6 +499,26 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > assertion), §14 (the TB lead, TB-5, TB-7, TB-9), §16 (a pointer on ids). One id is added, D-TBb,
 > in D-TBa's series. **Not reopened:** anything else. No string, token or colour is added or changed.
 >
+> *(Same day — **D-TBc**; QA's B-6, with the tech-lead's options in
+> `.planning/reports/talkback-board/tech-lead-defect-ruling.md` §6.)* The winning jump's line was never
+> spoken, because the win reaches Results within a frame or two. Ruled as **D-TBc** (§3), the
+> tech-lead's option (c):
+> - a winning jump speaks Results' summary only, once and in full, and its own line is not owed;
+> - for 3.0.1, nothing: carrying the move into Results (b) and a TalkBack-only delay (a) are declined,
+>   and the ruling reopens only if the board stays on screen to show the winning jump for every player.
+>
+> Also on the same day, D-TBb is read against the tech-lead's §5:
+> - option A is its floor, and option B is not wanted;
+> - option C, the window-focus wait, meets its requirement when the menu route then ends on the
+>   destination;
+> - a source read in full and then left passes only within half a second (§11.1, "The window-focus
+>   note").
+>
+> Edits: §3 (D-TBc; a dated line on D-TBb), §11.1 (one sentence withdrawn and kept as the record;
+> pointers on the announcement and focus tables and on "Results"; one pass-and-fail line bounded; the
+> window-focus note), §13 (a pointer), §14 (TB-6, TB-8), §16 (the ids pointer). One id is added,
+> D-TBc. No string, token or colour changes.
+>
 > **Twelfth revision (the reduced-motion live gate) — 2026-10-24 — AMENDMENT.** Written on Opus under
 > Q-019, not on the role's pinned Fable. It carries three of this role's rulings on
 > `bugfix/reduced-motion-live-gate`, from `.planning/reports/reduced-motion-live-gate/tech-lead-ruling.md`
@@ -1719,6 +1739,54 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   **Recorded, not hidden.** The floor is a known limit of 3.0.0, not a waiver. The producer names it
   in the Q-PUBLISH-3.0.0 summary's TalkBack lines, beside the cells' size deviation (D-TBa item 10).
   It is withdrawn once a build meets item 1 on the menu route.
+  *(Same day, read against the tech-lead's defect ruling §5.)* The tech-lead's option A is this
+  floor, and option B (no move on either route) is not wanted. Option C, the window-focus wait every
+  move now takes, meets item 1 if the menu route then ends on the destination. A source read in full
+  and then left passes only when the destination's read starts within half a second of the source's
+  end (§11.1, "The window-focus note").
+
+- **D-TBc** *(2026-10-24 — **amendment, build loop**. UX ruling on QA's **B-6**,
+  `.planning/reports/talkback-board/qa-engineer.md`, with the tech-lead's options (a) to (c) in
+  `.planning/reports/talkback-board/tech-lead-defect-ruling.md` §6, on `feature/talkback-board`. Written
+  on Opus under Q-019. Withdraws one sentence of §11.1: "When a jump wins, the jump's line is followed
+  by Results' summary when Results opens." TB-6 and TB-8 are amended. §11.1's announcement and focus
+  tables, its "Results" paragraph, §13 and §16 gain pointers. Their first wording is kept.)*: **a
+  winning jump speaks Results' summary and nothing before it. This is the tech-lead's option (c), for
+  3.0.0 and after.** On the device, the winning jump's line was never spoken (0 of 2): the win
+  navigates to Results within a frame or two, and the line leaves with the screen before it can be
+  sent.
+  1. **The requirement for 3.0.0.** The jump that wins a Classic board or a Challenge level may come
+     from a double-tap or from an action on either route. After it, the player hears Results' summary
+     once and in full, for example "Perfect! — 3 of 3 stars, 1 peg left." It is the first line the
+     app speaks after the winning tap, and focus follows Results' own order (TB-8).
+     - The winning jump's own line is **not owed**.
+     - Any part of it that a device lets through is not judged, if it comes before the summary and
+       does not cut it.
+  2. **The summary is now a win's only spoken record**, so TB-8's "once and in full" is a hard
+     condition here. A win that speaks no summary fails B-6 as well as TB-8. QA's B-4 fix carries it.
+  3. **For 3.0.1: nothing.** Two options are **declined, not deferred**:
+     - option (b), carrying the winning move into Results so it speaks "<jump line> <summary>";
+     - option (a), a delay before Results under touch exploration only.
+
+     This ruling is reopened only if the win itself changes so the board stays on screen long enough
+     to show the winning jump, for every player. The line then returns with the board, through the
+     board's own channel, and the summary follows when Results opens.
+  — Four reasons:
+  - **Every player gets the same moment.** The board leaves within a frame or two of the winning tap
+    (the tech-lead's §6), so a sighted player never sees the last jump either: they see Results. The
+    summary alone gives a TalkBack player that same moment, not a lesser one.
+  - **The summary says what matters at that moment.** The jump's line ends with the pegs left, and
+    the summary says that too, with the outcome and the stars. The last move's coordinates add little,
+    because the player chose that move a moment earlier by its label: the action's "Jump left to row 4,
+    column 2", or the cell's "jump here".
+  - **A line about a board that has gone breaks §11.1's own rule.** Every announcement says only what
+    the cells then say, so it is never the only record. The winning jump's line would describe cells
+    that have already left the screen.
+  - **Both code paths cost more than they give.**
+    - Option (b) would roughly double what Results speaks and say "1 peg left" twice. It also touches
+      `navigation/`, which costs a 15e sitting.
+    - Option (a) would make the game's flow depend on whether a screen reader is running, and the
+      tech-lead does not rule its risk (a finish lost on rotation) into this loop.
 
 ---
 
@@ -5326,7 +5394,7 @@ Every announcement says only what the cells then say, so it is never the only re
 |---|---|---|
 | A peg selected | "Selected row 2, column 4, 1 jump." | `board_a11y_announce_selected` "Selected row %1$d, column %2$d, %3$s." (%3$s is the jumps part) |
 | A peg put down | "Peg put down, row 2, column 4." *(loop 4)* | `board_a11y_announce_put_down` "Peg put down, row %1$d, column %2$d." |
-| A jump, by tap or by action | "Row 2, column 4 to row 4, column 4. Removed row 3, column 4. 31 pegs left." | `board_a11y_announce_jump` "Row %1$d, column %2$d to row %3$d, column %4$d. Removed row %5$d, column %6$d. %7$s." (%7$s is `board_a11y_pegs_left`) |
+| A jump, by tap or by action. *(2026-10-24 — D-TBc.)* Not the jump that wins: Results' summary speaks for it | "Row 2, column 4 to row 4, column 4. Removed row 3, column 4. 31 pegs left." | `board_a11y_announce_jump` "Row %1$d, column %2$d to row %3$d, column %4$d. Removed row %5$d, column %6$d. %7$s." (%7$s is `board_a11y_pegs_left`) |
 | A rejected tap: nothing selected, on an empty hole | "No peg here." | `board_a11y_rejected_no_peg` |
 | A rejected tap: a peg selected, on an empty hole that is not a jump target | "Not a jump target." | `board_a11y_rejected_not_target` |
 | A rejected tap: a peg selected, on another peg | "Put down the selected peg first." | `board_a11y_rejected_put_down_first` |
@@ -5343,6 +5411,10 @@ Every announcement says only what the cells then say, so it is never the only re
   one state update raises both, in two regions, and no delay is added to force an order. A repeated
   line, or a line cut off, fails. When a jump wins, the jump's line is followed by Results' summary
   when Results opens.
+  *(2026-10-24 — **D-TBc**, §3; QA's B-6.)* The last sentence is **withdrawn** and kept here as the
+  record. When a jump wins, Results' summary is the only line: the board leaves within a frame or two
+  of the winning tap, so the jump's line is not owed. Any part of it that a device lets through is not
+  judged, if it comes before the summary and does not cut it.
 - *(Loop 4, D-TBa item 4.)* A Hint that ends Undecided speaks only the notice, and one that proves the
   position lost speaks only the banner. Neither reveals a hint, so the hint line does not fire.
 - The rejected-tap lines are the same on gameplay and in the tutorial, and none says "wrong",
@@ -5379,7 +5451,7 @@ Every announcement says only what the cells then say, so it is never the only re
 | A Challenge board finishing loading *(loop 4)* | Not moved, and nothing is announced. The board stop and the cells take their place in the order, as a Continue chip does on Home (§11) |
 | A tutorial step's board installed | **Moved:** the new board's board stop, on steps 2 and 3. *(Loop 4, D-TBa item 6.)* On the first step focus is not moved: the screen is met in its order, pips → Skip → board. *(2026-10-24 — D-TBb.)* When the clearing jump came through TalkBack's menu, a stop on the new board is the 3.0.0 floor (below) |
 | The tutorial completed | **Moved:** the completion button (`onboarding_got_it`), after the done caption is announced. *(2026-10-24 — D-TBb.)* When the completing jump came through TalkBack's menu, a stop on the finished board is the 3.0.0 floor (below) |
-| A game won | Results, in its own order; its summary is announced (below) |
+| A game won | Results, in its own order; its summary is announced (below). *(2026-10-24 — D-TBc.)* The summary is the only line a win speaks; the winning jump's line is not owed |
 
 When focus moves and an announcement is due, both are spoken: the announcement first, then the newly
 focused stop.
@@ -5440,8 +5512,9 @@ judged.
 - **Fails, on any route:**
   - a line repeated, or cut off;
   - a stop read with its text from before the event, such as the source still saying "peg";
-  - a stop spoken in full and then left by a focus move the player did not make, either way
-    (destination, then source; or source, then destination);
+  - a stop spoken in full and then left by a focus move the player did not make. Destination, then
+    source, always fails. Source, then destination, fails unless the destination's read starts no
+    later than half a second after the source's read ends (the window-focus note below);
   - focus resting on a stop the table above does not name for that route: the timer, the title, the
     dock, the pips, Skip or the caption;
   - the double-tap or the reading control no longer reaching the required stop.
@@ -5449,6 +5522,21 @@ judged.
 The requirement stays the target. The floor is 3.0.0's: D-TBb records it, and it is withdrawn once a
 build meets the requirement on the menu route. Whether and how a build can meet it there is the
 tech-lead's call on mechanism.
+
+*(Same day — D-TBb, read against the tech-lead's options,
+`.planning/reports/talkback-board/tech-lead-defect-ruling.md` §5.)* **The window-focus note.**
+- **Option A**, accepting TalkBack's placement on the menu route, is this floor.
+- **Option C** is the wait for window focus that every focus move now takes (that ruling's §8). If on
+  the device the menu route then ends on the destination, the requirement is met and the floor is not
+  used. The likely sequence is TalkBack's return to the source as its menu closes, then the app's move:
+  - when the destination's read cuts the source's, the source is a tolerated fragment;
+  - when the source is read in full and the destination's read starts no later than half a second
+    after it ends, the correction comes before a player can act on the source, and it passes as the
+    requirement;
+  - later than that, the source has been heard as the resting stop and then left, and it fails.
+- **Option B**, dropping the move on both routes, is **not wanted**. It would give up the reading
+  control's destination (33 of 33) only to make the two routes identical. This document lets the
+  routes differ only where TalkBack itself makes them differ.
 
 *(Loop 4, D-TBa item 11.)* **A focused cell whose text changes.** After a selection, the focused cell's
 own text gains "selected" in the same frame as the selection line is announced. TB-6's device half
@@ -5464,6 +5552,9 @@ example: "Solved! — 2 of 3 stars, 2 pegs left."
 *(Loop 4, D-TBa item 7.)* "When Results opens" means the showing that the D-16 latch
 `ResultsUiState.playCelebration` marks: once per result. The summary is not spoken again on a
 rotation, a process-death restore or a back navigation onto the same Results entry.
+*(2026-10-24 — D-TBc; QA's B-6.)* After a winning jump, this summary is the first line the app speaks
+and the win's only spoken record, so it must be spoken once and in full. The winning jump's own line is
+not owed (§3, D-TBc).
 
 **The tutorial.** Its board follows this whole contract. It adds the step and completion lines and the
 coach escalation's hint line, all in the table above. Its captions keep the word "tap": TalkBack users
@@ -5755,6 +5846,8 @@ of the first step moving no focus. Also owed:
 *(2026-10-24 — D-TBb; QA's B-5.)* D-TBb owes no new JVM or Compose assertion. TalkBack's menu, and
 its return of focus when it closes, cannot be driven from `ui-test`, so the route split is judged only
 by TB-7's and TB-9's device half. The gate's assertions owed above (TB-11) stand as written.
+*(2026-10-24 — D-TBc; QA's B-6.)* D-TBc owes no new assertion either. TB-8's owed summary tests stand,
+and a win is judged on the device by its summary (TB-8 as amended).
 
 **Owed, new** — every one watched fail once before it is trusted: criteria **15n–15r** (Home, §4.2.4,
 including the unit test that replays the stage's recorded move list from the English start),
@@ -6779,6 +6872,11 @@ TB-6. **Every change is spoken once.** With TalkBack on, each of these speaks it
         spoken twice.
       - The device half also records whether TalkBack re-reads a focused cell whose text changed. If
         it does, the selection line is withdrawn for a selection made on the focused cell (§11.1).
+      *(Amended 2026-10-24 — D-TBc; QA's B-6.)* "A jump by tap or by action … speaks its line" covers
+      every jump but the one that wins. A winning jump owes no line of its own and is judged by TB-8:
+      Results' summary is spoken once and in full, as the first line after the winning tap. Any part
+      of the winning jump's line that a device lets through is not judged, if it comes before the
+      summary and does not cut it.
 
 TB-7. **Focus stays on the board.** After a selection, a put-down or a rejected tap, focus is on the cell
       activated. After a jump by tap or by action, it is on the destination cell. Undo, Hint and Restart
@@ -6826,6 +6924,10 @@ TB-8. **The result is spoken.** When Results opens after a finished game, `resul
       the D-16 latch `ResultsUiState.playCelebration` marks. The Compose test asserts the summary with
       the latch true and no summary with it false. On the device, a rotation on Results speaks no
       second summary.
+      *(Amended 2026-10-24 — D-TBc; QA's B-6.)* After a winning jump, by a double-tap or by an action
+      on either route, the summary is the first line the app speaks, once and in full. It is the win's
+      only spoken record, so a win with no summary fails here, and B-6 with it. The device pass reads
+      one Classic win and one Challenge win this way.
 
 TB-9. **The tutorial can be finished by ear.** On a fresh install with TalkBack on, a tester using
       TalkBack gestures only completes T1, T2 and T3 and reaches "Got it". Each step's board, the first
@@ -7058,9 +7160,9 @@ those partners is now D-TB's line.
 outside the `D-nn` / `D-nna` style of §3's decision ids. They are kept because the build brief, the ruling
 and the checks cite them. Neither collides with an id on this branch, on `bugfix/hint-undecided` or in
 the audio amendment.
-*(Pointer 2026-10-24 — D-TBb.)* "D-TBb" joins the same series for the same reason, and the D-TB
-headings on this branch's tree carry no other id of that form. It changes no trace: like D-TB, it traces
-to the studio baseline and to Q-023.
+*(Pointer 2026-10-24 — D-TBb and D-TBc.)* "D-TBb" and "D-TBc" join the same series for the same
+reason, and the D-TB headings on this branch's tree carry no other id of that form. Neither changes a
+trace: like D-TB, both trace to the studio baseline and to Q-023.
 
 ---
 
