@@ -177,3 +177,142 @@ Next: ux-designer — the fold-in per §5, after ux-spec-folds and hint-undecide
 Next: tech-lead — the §6 tech-design sync after the merge, and the re-read of the merge commit's two hunks.
 
 VERDICT: PASS
+
+## Merge-in re-read — 2026-10-24 (a fresh tech-lead; `13c04c6` and `9f0e67a`)
+Date: 2026-10-24
+Branch: feature/audio-review (report only: read `13c04c6`, parents `b39e28e` (audio) and `dbd0a6c` (develop), and `9f0e67a`; the head `76ca1ae` adds only the merge report; this section is uncommitted, as dispatched, for the producer to commit)
+Skills loaded: ergoz-soft:standards (role tech-lead; game; android-compose-game — the plugin 1.0.0 rule files read in full, because the worktree's snapshot is 0.6.2: studio, reporting, gitflow, skills-policy, logging, memory, puzzle-design, play-store, kotlin-android, compose, stacks, testing, dispatch; the snapshot's lessons.md), android-architecture, android-gradle-logic
+Ran in parallel with: the code-auditor's read of the same merge commit's code hunks (its own report)
+Ran on: claude-opus-5-5 at effort xhigh (policy). **Staffing deviation, recorded:** the agent file pins fable. The dispatch reports the Fable limit reached, so this re-read runs on Opus under Q-019's answer 3 ("Opus for every Fable-pinned role until 3.0.0 is published"). Its 2026-10-23 addendum restored Fable while Fable is available. The merge commit was written on Opus too, so here the reviewer shares the author's model. The Q-019 mitigation applied is a fresh agent that trusts no recorded result: every resolution below was checked by git against both parents and the merge base, not read from the merge report.
+Fan-out: none
+Loops: 0
+Read in full: this file's §1–§6; `.planning/reports/audio-review/android-game-dev-merge.md`; `git show --cc 13c04c6`; `git diff 13c04c6^2 13c04c6 -- …/ui/onboarding/TutorialViewModel.kt`; `git show 9f0e67a`; `.planning/questions/FOUNDER.md:1-60` (Q-025 to Q-021) and Q-019; `docs/tech-design.md` §12 and §17. Read in part: `docs/tech-design.md` header, §2.4, §9.8, §13, §14.1, §16; `GameScreen.kt:92-330`; `.planning/reports/hint-undecided/tech-lead-signoff.md` finding 2; `.planning/reports/talkback-board/tech-lead-brief.md` (on `PegSolitarie-tb`, `3e5b893`) at its `GameScreen.kt` lines.
+Lessons applied: none (the snapshot has 0 active lessons; `.planning/recall/RECALL.md` does not exist)
+
+### Summary
+- **The PASS stands.** The rules allow exactly one resolution for each of the three conflicts, and the merge commit applies each one exactly. `GameAnim.kt` and `TutorialViewModel.kt` follow §2.3 items 1 and 2 to the line. `FOUNDER.md` is decided by its own format (rules/reporting.md), not by §17. Outside those three files the merge commit is the mechanical merge, byte for byte.
+- **Open issue 1:** §2.5's trigger fired, and its remedy is this re-read. It is not a hold, because the FOUNDER.md hunk involved no choice of text. §17 does not decide it, because §17's rule covers `docs/tech-design.md` only. A rule for later merge-ins is in R.2.
+- **Open issue 2:** the wrong-tap answer stays on the board panel's line, because it is not a surface. `NoWinBanner` is a surface and gets its own line. That line goes on `feature/talkback-board`, in the same hunk that rewrites the board panel's line, not on this branch.
+- **The tech-design sync** for audio rides `feature/tech-design-r1-close`, cut from `develop` right after audio's `--no-ff` merge, carrying both R1's close and audio's (R.4).
+
+### R.1 What was verified, mechanically
+- **The merge-in is current:** `develop` is still `dbd0a6c`, the merge's second parent.
+- **Files changed on both sides** since the merge base `0582e3f`: exactly §2.2's ten code files plus `.planning/questions/FOUNDER.md`, and nothing else (`comm -12` over both `git diff --name-only` lists). An in-memory `git merge-tree` replay gives the same three conflicts, and the other eight files auto-merge.
+- **No hand edit outside the conflicts:** `git diff --name-only 61aaaee 13c04c6`, where `61aaaee` is the replayed tree of `git merge-tree --write-tree b39e28e dbd0a6c`, lists only the three conflicted files. No conflict marker remains anywhere in the tree.
+- **`GameAnim.kt`:** audio→merge adds exactly `develop`'s ten lines (`HINT_NOTICE_DISPLAY_MS`, `HINT_NOTICE_EXIT_MS`, a blank) before the wrong-tap block. develop→merge adds exactly the wrong-tap block after them. Neither side loses a line. This is §2.3 item 1.
+- **`TutorialViewModel.kt`:** the merged file equals `b39e28e` (`git diff --quiet`). `develop`'s only change since the base is `:76`'s `@param:ApplicationScope`, which audio's constructor already carries at `:86`. This is §2.3 item 2, and C7's site is fixed.
+- **`FOUNDER.md`:** audio→merge adds exactly `develop`'s two hunks: Q-023 at the top, and the Q-019 addendum line. develop→merge adds exactly audio's two hunks: Q-025 and Q-024 at the top, and Q-012 to Q-008 below Q-013 (on audio since 2026-09-29, new to `develop`). Neither side loses a line, and the ids are unique (`uniq -d` prints nothing). The out-of-order run Q-005, Q-004, Q-003, Q-902, Q-901, Q-007, Q-006 already exists at the merge base; this merge did not cause it.
+- **`9f0e67a`:** it changes only the KDoc and the annotation's trailing comment. There is still exactly one `@Suppress("LongMethod")`. The longest line in the list is 98 of 120 characters. The developer's Check ran on this tree: the test results are stamped 09:22:39 and kover 09:28:38, after the commit at 09:12:59. The edited suppression is the code-auditor's to approve (in parallel); this re-read rules only on what the list says. The hint sign-off wanted the move made "in the same commit that adds its wrong-tap effect". That commit is history and rebase is prohibited, so the first commit after the merge is the right substitute.
+- **The merged Check of record is the developer's:** 1,565 tests, 0 failed or skipped; fuzz 10,000 / 0; kover 99.02 %; 0 `w:` from `app/src/main` and `domain/src`, debug and release. It was not re-run here, as dispatched. §2.5's second trigger, a red Check, did not fire.
+
+### R.2 Open issue 1 — `FOUNDER.md` against §2.5 (ruling)
+- **§2.5's wording is met literally:** FOUNDER.md is a third conflict file. §2.2 missed it because it measured audio against only the two code branches it named. Since `c5f2c54`, `develop` took five merges: ux-spec-folds (`4ff4ec6`), tech-design-sync (`f478ae9`), the status branch (`2d045d1`), R1 (`b1a6cf9`) and check-gates (`dbd0a6c`). Q-023 (`df37c3e`) came in through ux-spec-folds. The scope of §2.2's measurement was short, but its prediction held: against `develop`'s tip the overlap is the ten predicted code files plus this one.
+- **§17 does not decide it.** §17's rule says it is "the merge-in rule for this file", meaning `docs/tech-design.md`. FOUNDER.md is the producer's record (rules/studio.md, Hierarchy), and rules/reporting.md defines its format. The merge commit's message cites "tech-design §17 merge-in rule, hunks 2 and 3": that is an analogy that happens to reach the right result, but the authority is the format.
+- **What decides it** is the format: newest first, one entry per id. Both sides added whole entries at the same insertion point. Neither side edited an entry the other touched. The ids were already distinct and already continued `develop`'s numbering: `develop`'s highest is Q-023, audio's are Q-024 and Q-025. The format allows exactly one result, the union in the order Q-025, Q-024, Q-023, and R.1 shows that the merged file is that union. Nobody had to choose any text, and that is what separates mechanics from a decision.
+- **So it is not a hold, and the PASS stands.** For a conflict in a third file, §2.5 sends the merge commit "to the android-game-dev and to a fresh tech-lead". This re-read is that step, and it finds nothing to undo. Nothing goes back to the developer.
+- **For later merge-ins (tech-lead ruling; the sync in R.4 writes it into §14.1's second-to-merge paragraph):**
+  - (a) A `.planning/` record kept as entries (FOUNDER.md, STATUS.md, a report both sides appended to) may conflict because each side added whole, distinct entries. Such a conflict is resolved by the record's own format: keep both, in the format's order, and edit no entry.
+  - (b) A conflict inside one entry, or two sides claiming the same id, is not mechanics. It stops before the merge-in is committed and goes to the producer, who owns those records.
+  - (c) A sign-off that pre-rules a merge-in measures it with `git merge-tree` against `develop`'s tip as it will be at the merge-in, docs branches included. It names every branch still due to merge ahead of it.
+
+### R.3 Open issue 2 — the moved surface list (ruling)
+**Definition (tech-lead decision).** For this list, a surface is a composable `GameScreen` places in its layout: a node the player can see or reach. Effects (the cue, haptic and snackbar effects built on `LaunchedEffect` or `NewOrdinalEffect`) and modifiers on an existing node are not surfaces. The list names them on the line of the surface they serve, or not at all. That is why the list has never named the ten effects at `GameScreen.kt:182-195`, from `JumpHapticEffect` to `AdMessageSnackbarEffect`, and that is right.
+
+1. **The wrong-tap answer keeps the board panel's line.** It adds no node:
+   - `BoardCanvas` draws the shake, the mark and the redirect (`wrongTapCorrection = true`).
+   - The announcement is the board's own node made a polite live region (`:252-253`: "D-06c: the board itself is the polite live region; no new node").
+   - The cue and the reject haptic are two effects (`:187-188`).
+
+   A separate line would name a surface a reader would look for and not find. The hint sign-off's finding 2 assumed audio and talkback-board "must each add a surface". The operative part of that ruling — the list in the KDoc, the short pointer, one suppression — is met by `9f0e67a`. Its premise is corrected here: under this definition neither branch adds a surface, and both amend the board panel's line.
+2. **`NoWinBanner` is a surface, and it is missing.** It is a composable placed in the board's `Box` (`:267`), its own node with Undo, Restart and Home. It has been hosted since `6035840` (2026-07-13), and no version of the list has named it: not phase 15's `542292f` (2026-09-28), and not the merge base (`0582e3f:142`). The KDoc makes the list the condition the suppression rests on ("that list is the point of it"), so the line is owed. It blocks neither the merge nor the cut: it is a comment on a suppression that is already approved, and the gap predates both branches.
+3. **Which branch: `feature/talkback-board`,** in the commit that rewires `GameScreen.kt` (its brief's B4), in the same hunk as its rewrite of the board panel's line. The reasons:
+   - That branch must rewrite that line anyway. `.wrongTapAnnouncement(…)` becomes `.boardAnnouncement(…)` (brief `:354`), and the region then carries D-TB's lines, not only the wrong tap's.
+   - It edits the `Box` that hosts the banner (`isTraversalGroup`, with the banner read after the last cell, brief `:56-58`).
+   - Its brief already commits to "surface lists amended, never a second one" (`:322`).
+   - It is the next code branch to merge after audio (step 5a), and its B0 has not started, so the instruction costs nothing.
+
+   Not this branch: the gap predates it, and a commit now would put an unruled edit on the head under re-read (the rule of §3: a pre-existing defect is fixed off the range). Not `bugfix/reduced-motion-live-gate` either: if one branch inserts a line next to the board panel's line while talkback-board rewrites that line, whichever merges second hits an adjacent-line conflict.
+
+   The text for the talkback-board developer is mechanical. The list keeps the body's order, banner before notice, so the line goes between the board panel's line and the Undecided notice's line:
+
+        * - the rescue banner, [NoWinBanner], sharing its slot with the Undecided notice (D-08, D-04f);
+
+   Under the definition above, the board panel's line is that branch's to reword for D-TB. Its cell overlay and announcer live inside `BoardCanvas`, and its traversal properties are modifiers, so neither adds a line. Its code-auditor approves the edited suppression (rules/kotlin-android.md). If talkback-board does not ship in 3.0.0, the line rides the next branch that edits the list.
+
+### R.4 Owed to `docs/tech-design.md` when audio merges
+**Carrier: `feature/tech-design-r1-close`.** R1's sign-off §4 set it up: docs only; the tech-lead edits, the code-auditor reads it as text, a fresh tech-lead signs off; no QA; merged before checklist 1.1 reads §14.1 at the cut. It is not cut yet.
+- **Cut it from `develop` right after audio's `--no-ff` merge.** It carries R1's owed edits (§7.2, §10, §15, §16 #21, the book-count note) and audio's, listed below.
+- **One branch, because** both closes edit §14.1, §15 and §16 of one file. Two docs branches cut from one `develop` would only meet under §17's rule.
+- **The name stays** as R1's sign-off and the check-gates re-read cite it. Its report names both closes.
+- **If audio's merge is held after all,** r1-close is cut without the audio items, and audio's close goes to a docs-only `feature/tech-design-audio-close` after audio merges. That branch is then the second of the two under §17's rule.
+
+Line numbers below are on `13c04c6`, which is `develop`'s file (audio does not touch `docs/tech-design.md`):
+1. **Header `:14-15`:** the haptics ruling is "on `feature/audio-review`"; it becomes "on `develop` since <merge sha>". The sync also adds its own dated sentence (§17 hunk 1).
+2. **§2.4 `:214-215`:** drop "the file is on `feature/audio-review` until that branch merges — N-5".
+3. **§9.8 rule 2:** add the sentence from the sign-off's §2.4: "new Compose suites follow the house `createComposeRule` until the §14.2 migration moves all suites at once". The suite count in its table row ("29") takes the merged tree's own figure, measured by the author who writes it. For reference: 35 test files name `createComposeRule` on `13c04c6` and 31 on `develop`, and the merge-in Check log shows 33 such `w:` lines.
+4. **§9.8 rule 3 `:1078-1082`:** "If check-gates merges after `feature/audio-review` …" becomes history. Check-gates merged first (`dbd0a6c`), audio took it in at `13c04c6`, and audio's main code compiles with 0 `w:` in debug and release.
+5. **§12, rewritten as the current state rather than branch-conditional:**
+   - `:1181-1183`: `GameAudioAttributes` is the one definition the pool and the route query share; drop "inline … on `develop`".
+   - `:1187-1194`: the WAV set is current: twelve mono 16-bit 44.1 kHz WAVs, of which 7 are Kenney and 3 freesound-derived (CC0 1.0), and `sfx_invalid` and `sfx_hint` are rendered from `audio/recipes/`. The `.ogg` bullet becomes a dated "until <sha>" note, and the "if that branch merges before the cut" clause is now fulfilled.
+   - `:1198-1200`: the design file is on `develop`, and the C1 precondition is done.
+   - The A1–B5 table stays, because the decisions are as built (sign-off §1). Add where each now lives: `audio/SystemAudioState.kt`, `AudioRouteClassifier.kt`, `AndroidSystemAudioState.kt`, `AppVisibility.kt`, `GameAudioAttributes.kt`, the three gates in `SoundPoolPlayer.kt`, and `MainActivity.kt` for V1.
+   - `:1223-1225`, "Device checks D1–D10 need a physical phone …": replace with what is proven, on the GM6 (API 27) and the emulator (API 36), per sign-off §4. Name the two open halves (the speaker branch on an API 24–32 phone; D4, wired) and Q-025.
+   - Haptics, `:1220-1226`: drop "on `feature/audio-review`" and state the haptics as built:
+     - `data/HapticsSetting.kt` has one member, is implemented by `SettingsRepository` and is bound in `di/DataModule.kt`.
+     - `ui/game/JumpHapticEffect.kt` is called from both screens.
+     - `WrongTapHaptic` is private to `GameScreen`, runs through `NewOrdinalEffect`, and fires `HapticFeedbackType.Reject` only when `hapticsOn && SDK_INT >= R`.
+     - The tutorial passes no `wrongTapCorrection` and hosts no reject haptic, cue or announcement.
+6. **§13, Sounds row `:1246`:** "For 3.0.0 … once `feature/audio-review` merges" becomes current, and the `.ogg` text becomes history.
+7. **§14.1, audio row `:1446`:** marked **Done**, with:
+   - the merge sha, and "no 15e sitting (`audio-review/tech-lead-signoff.md` §2.4)";
+   - the second-to-merge duties discharged: merge-in `13c04c6` with three conflicts (two per §2.3, FOUNDER.md by its format, this re-read), the merged Check (1,565 / 0; fuzz 10,000 / 0; kover 99.02 %), the code-auditor's hunk read and this re-read;
+   - the N-5 parenthetical dropped.
+8. **§14.1 merge order:** step 5 (`:1496`) is done, with the sha. Step 5a (`:1498-1501`) has its precondition met (hint-undecided, audio-review and ux-spec-folds all on `develop`), and its "should audio-review slip" clause is moot.
+9. **§14.1's second-to-merge paragraph:** add R.2's three-part rule for record files and its measurement against `develop`'s tip.
+10. **§14.1, a new row for `bugfix/reduced-motion-live-gate`,** marked **Blocks the branch cut**:
+    - its brief is the sign-off's §3, with the riders of §5 (F-1's four cue effects, auditor finding 1, the F-2 KDoc);
+    - its chain is android-game-dev → code-auditor + qa-engineer → tech-lead, and it is cut after audio merges;
+    - its slot against 5a is set in that row. Both branches edit `GameScreen.kt`'s effect block: F-1 moves `SelectionSound`, `DeselectionSound`, `UndoSound` and `InvalidTapSound` onto `NewOrdinalEffect`, and talkback-board adds its announcement sources beside them (brief `:207`). So whichever merges second carries the merge-in and its re-read.
+11. **§15:** a row for the frozen reduced-motion gate: likelihood certain on a live toggle, impact medium (accessibility), with its branch and its deadline.
+12. **§16:**
+    - #17 closes: "Built on `feature/audio-review` (`8f18049`, 2026-10-21), merged <sha>".
+    - A new item for the gate, with the mechanism of §3, numbered after `develop`'s highest when r1-close is cut (#28 today; if another branch numbers first, §17's hunk 3 applies).
+13. **§17:** one new row. It supersedes the branch-conditional audio text of the header, §2.4, §9.8 rule 3, §12, §13 and §14.1 ("on `feature/audio-review`", "once … merges", "On `develop` today: twelve `.ogg`") with the as-built state at <sha>. The N-5 row's "moot at the merge" gets its date. This corrects the sign-off's §6 line "§17 → nothing superseded".
+
+### R.5 Checks
+All run in `/Users/ermanergoz/Desktop/PegSolitarie-audio`, read-only. Nothing was committed or merged, and no Gradle ran, as dispatched (a sign-off re-runs no gate).
+- `cat .claude/rules/VERSION` vs the plugin's `plugin.json`: 0.6.2 vs 1.0.0, so the plugin rule files were read in full — pass.
+- `git rev-parse develop`: `dbd0a6c`, the merge's second parent — pass.
+- `git show --cc 13c04c6`: two combined hunks, `FOUNDER.md` and `GameAnim.kt`; `TutorialViewModel.kt` is absent because it resolved to one parent — read.
+- `git diff --quiet b39e28e 13c04c6 -- …/TutorialViewModel.kt` prints identical; `git diff 0582e3f dbd0a6c -- …/TutorialViewModel.kt` shows one line, the `@param:` at `:76` — pass.
+- `git diff -U1 b39e28e 13c04c6 -- …/GameAnim.kt` adds only develop's block; `git diff dbd0a6c 13c04c6 -- …/GameAnim.kt` adds only audio's block, with no `-` lines — pass.
+- `git diff -U0 {b39e28e,dbd0a6c} 13c04c6 -- .planning/questions/FOUNDER.md`: each side gains exactly the other side's hunks, with no `-` lines; `grep -o '^## Q-…' | sort | uniq -d` prints nothing — pass.
+- `comm -12` over `git diff --name-only 0582e3f {b39e28e,dbd0a6c}` (112 and 130 files): 11 shared files, §2.2's ten plus FOUNDER.md — pass.
+- `git merge-tree --write-tree --name-only --messages b39e28e dbd0a6c`: three CONFLICT lines, the same three files — pass.
+- `git diff --name-only 61aaaee 13c04c6` (the replayed tree against the merge commit): the three conflicted files only — pass.
+- `git grep -nE '^(<<<<<<<|>>>>>>>|=======$)' 13c04c6`: no markers — pass.
+- `git log -S'NoWinBanner(' -- …/GameScreen.kt`: `6035840`, 2026-07-13. `git log -G'Suppress\("LongMethod"\)'` gives five commits, and none of the five lists names the banner (`git show 0582e3f:…/GameScreen.kt`, `:142`) — confirmed.
+- `git log -S'## Q-023' 0582e3f..dbd0a6c`: `df37c3e`, which entered `develop` at `4ff4ec6` (ux-spec-folds) — confirmed.
+- `awk` line lengths over `9f0e67a:GameScreen.kt:140-160`: at most 98, against `.editorconfig`'s `max_line_length = 120` — pass. `git log --format='%ci'` and `stat` of `app/build/test-results/testDebugUnitTest` and `domain/build/reports/kover` show the developer's Check finished after `9f0e67a` — pass.
+- `grep -n 'feature/audio-review' docs/tech-design.md`: the 13 sites R.4 lists — read.
+
+### R.6 Open issues / risks
+1. **The code-auditor's parallel read** of `GameAnim.kt:45-90` and `TutorialViewModel.kt:83-85`, and its approval of the edited suppression in `9f0e67a`, is the merge's other condition. This section does not stand in for it. The evidence of record for the range stays `/Users/ermanergoz/Desktop/PegSolitarie-audio/.planning/reports/audio-review/code-auditor-integration.md` and `/Users/ermanergoz/Desktop/PegSolitarie-audio/.planning/reports/audio-review/qa-engineer-integration.md` (§1).
+2. **`NoWinBanner`'s line** is owed on `feature/talkback-board` (R.3). It is a comment and gates nothing.
+3. **`feature/tech-design-r1-close`** now waits on audio's merge (R.4). Its deadline is unchanged: before checklist 1.1 reads §14.1 at the cut, which now also has to see the reduced-motion row marked cut-blocking.
+4. **Retro candidate** (for the producer to note; this is not a lesson proposal): a pre-ruled merge-in measured against the named code branches, not `develop`'s tip, mispredicted its conflict set (R.2 (c)).
+5. **Staffing:** under Q-019 the reviewer and the author share Opus. The git checks above are the mitigation, and this section claims no result it did not reproduce.
+
+### R.7 Handoff
+Next: producer —
+- after the code-auditor's PASS on its read, `git merge --no-ff feature/audio-review` into `develop`;
+- commit this section;
+- record in STATUS.md: the PASS stands, open issues 1 and 2 are ruled (R.2, R.3), and r1-close is now cut after audio;
+- pass R.3's line to the talkback-board developer's dispatch (its B4);
+- dispatch the tech-lead for `feature/tech-design-r1-close` with R.4 once audio has merged.
+
+Next: android-game-dev (talkback-board) — R.3 item 3's line, in the hunk that rewrites the board panel's line.
+Next: tech-lead (a fresh one for r1-close) — R.4, together with R1's owed edits.
+Next: code-auditor — nothing new from this section.
+
+VERDICT: PASS
