@@ -101,6 +101,11 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  * still-interactive board (Undo · Restart · Home, D-09) — a Stuck board is rescued via Undo
  * rather than auto-navigating; only a Won game routes to Results.
  *
+ * When the last Hint search ended Undecided ([GameUiState.hintUndecided], GD-HT-1) the
+ * [HintUndecidedNotice] takes the banner's slot instead — never the banner, which now means a
+ * proven dead end. Its display time, its put-away and its "never twice" memory are the
+ * screen's ([UndecidedNoticeSlot]); nothing about them is reported back to the ViewModel.
+ *
  * The assist funnel reaches the player through exactly two surfaces here, both driven purely
  * from hoisted state: the modal [AdOfferDialog] whenever [GameUiState.pendingAdOffer] is set
  * (ADS-01) — modal is what makes "declining leaves the game exactly as it was" literally
@@ -140,7 +145,7 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  * without the reader of that line finding out. Amend the list rather than growing under it,
  * and never add a second suppression or a detekt baseline entry in its place.
  */
-@Suppress("LongMethod") // Scaffold + status strip + snackbar host + board panel + action dock + two dialogs.
+@Suppress("LongMethod") // Scaffold + status strip + snackbar host + board + Undecided notice + action dock + 2 dialogs.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameScreen(
@@ -243,6 +248,10 @@ fun GameScreen(
                 // The rescue banner overlays the still-interactive board (non-blocking, D-08):
                 // it sits in the same Box so taps still reach the board beneath it. Only a
                 // no-win/stuck position raises it; a Won game routes to Results instead.
+                //
+                // Its slot is shared with the Undecided notice (D-04f), one occupant at a time:
+                // a proof outranks an Undecided, so the notice's slot is composed only while no
+                // banner is up (criterion 23h). What the notice does once raised is its own.
                 if (state.showRescueBanner) {
                     NoWinBanner(
                         message =
@@ -256,6 +265,11 @@ fun GameScreen(
                             Modifier
                                 .align(Alignment.BottomCenter)
                                 .fillMaxWidth(),
+                    )
+                } else {
+                    UndecidedNoticeSlot(
+                        raised = state.hintUndecided,
+                        modifier = Modifier.align(Alignment.BottomCenter),
                     )
                 }
             }

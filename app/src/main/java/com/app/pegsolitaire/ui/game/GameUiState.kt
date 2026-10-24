@@ -47,12 +47,20 @@ import com.app.pegsolitaire.platform.ads.AdReason
  * @property hintTarget the destination hole of the revealed winning move (ASST-01, D-01),
  *   or `null` when no hint is shown; paired with [hintSource] to draw the A→B highlight.
  * @property solverThinking whether the off-thread Solver is computing a hint (D-10): set
- *   the instant a hint is requested and cleared when the search resolves (to a highlight
- *   or [noWinningMove]); the Hint control shows a spinner/disabled state while `true`.
- * @property noWinningMove whether the last hint found no winning move (ASST-03, D-04/D-08):
- *   the Solver returned nothing (unsolvable / budget-missed) so the position is dead; the
- *   inline "no winning move — undo or restart" banner (04-04) renders on this. Cleared on
- *   any jump/undo and when a new hint is requested.
+ *   the instant a hint is requested and cleared when the search resolves (to a highlight,
+ *   [noWinningMove] or [hintUndecided]); the Hint control shows a spinner/disabled state
+ *   while `true`.
+ * @property noWinningMove whether the last hint PROVED there is no winning move (ASST-03,
+ *   D-08, GD-HT-1): the book's authoritative entry, an exhausted search, or a Pagoda reject.
+ *   The inline "no winning move — undo or restart" banner (04-04) renders on this. A search
+ *   that stopped without a proof sets [hintUndecided] instead, never this. Cleared on any
+ *   jump/undo and when a new hint is requested.
+ * @property hintUndecided whether the last hint search stopped with no move and no proof —
+ *   its deadline, node ceiling or attempt limit (GD-HT-1, GD-HT-2): the Undecided notice
+ *   renders on this, never the rescue banner, and it is never part of [showRescueBanner].
+ *   Transient: cleared on a jump, an undo, a restart, a new hint request and a board
+ *   install, never persisted, and never `true` together with [noWinningMove]. While it is
+ *   `true` the Hint control is idle and available.
  * @property stuck whether the board has reached a dead-end with 2+ pegs (D-06): a Stuck
  *   position no longer auto-navigates to Results — it becomes a rescuable in-board state
  *   showing the "no moves left — undo or restart" banner. Set the moment a jump strands the
@@ -110,8 +118,9 @@ import com.app.pegsolitaire.platform.ads.AdReason
  *   (never resetting it) at all four board-install sites in `GameViewModel`.
  * @property showRescueBanner derived: whether the inline rescue banner should render over the
  *   still-interactive board (ASST-03, D-08). `true` when the board is [stuck] or the last
- *   hint found [noWinningMove]. Not a constructor field, so it never affects equality — it is
- *   a pure view of the two rescue flags for the UI to switch on.
+ *   hint found [noWinningMove]; [hintUndecided] never enters it. Not a constructor field, so
+ *   it never affects equality — it is a pure view of the two rescue flags for the UI to
+ *   switch on.
  */
 @Immutable
 data class GameUiState(
@@ -130,6 +139,7 @@ data class GameUiState(
     val hintTarget: Position? = null,
     val solverThinking: Boolean = false,
     val noWinningMove: Boolean = false,
+    val hintUndecided: Boolean = false,
     val stuck: Boolean = false,
     val selectionTick: Int = 0,
     val deselectionTick: Int = 0,
@@ -174,6 +184,7 @@ data class GameUiState(
                 hintTarget = null,
                 solverThinking = false,
                 noWinningMove = false,
+                hintUndecided = false,
                 stuck = false,
                 selectionTick = 0,
                 deselectionTick = 0,
@@ -209,6 +220,7 @@ data class GameUiState(
                 hintTarget = null,
                 solverThinking = false,
                 noWinningMove = false,
+                hintUndecided = false,
                 stuck = false,
                 selectionTick = 0,
                 deselectionTick = 0,

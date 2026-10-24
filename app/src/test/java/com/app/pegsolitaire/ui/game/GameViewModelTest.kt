@@ -24,6 +24,7 @@ import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
+import com.app.pegsolitaire.domain.usecase.HintOutcome
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
 import com.app.pegsolitaire.platform.ads.RewardOutcome
@@ -983,7 +984,7 @@ class GameViewModelTest {
             every { countingHint.invoke(any(), any(), any(), any(), any()) } answers {
                 val searched = firstArg<Board>()
                 searchedBoards += searched
-                RulesEngine.legalMoves(searched).firstOrNull()
+                RulesEngine.legalMoves(searched).firstOrNull()?.let { HintOutcome.Found(it) } ?: HintOutcome.ProvenDead
             }
             val viewModel =
                 viewModelFor(

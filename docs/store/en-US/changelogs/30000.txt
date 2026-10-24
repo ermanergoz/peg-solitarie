@@ -1,0 +1,7 @@
+Peg Solitaire, rebuilt from the ground up:
+- A hands-on tutorial, a fuller Home screen and game controls within thumb reach
+- Faster hints on the big boards, answered from a built-in opening book
+- Sound for every move, without pausing your music
+- Optional Play Games sign-in: 20 achievements, 7 leaderboards and cloud save
+- A glossy new look and a colorblind palette option
+- Ads: rewarded ads only when you choose one, and occasional ads between levels

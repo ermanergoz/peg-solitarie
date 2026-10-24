@@ -7,6 +7,7 @@ import com.app.pegsolitaire.domain.golden.solutions.SolutionFixtures
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
+import com.app.pegsolitaire.domain.usecase.HintOutcome
 import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Test
 
@@ -26,7 +27,7 @@ import org.junit.Test
  *  - **Diamond-41's book is missing 440 of its 818 in-remit positions**, also a developer-
  *    approved documented gap.
  *  - **English-33 ships four positions that are AUTHORITATIVELY dead** — proven by an
- *    exhaustive search that completed — so "returns a non-null move" is false of them by
+ *    exhaustive search that completed — so "returns a Found move" is false of them by
  *    design, and "no winning move" is the *correct* answer there.
  *
  * So the property asserted is the honest one the artifacts genuinely support, which is
@@ -35,8 +36,10 @@ import org.junit.Test
  *  1. a book HIT is served instantly, with the solver never polled, and its move is legal
  *     on the exact board it was served for;
  *  2. an AUTHORITATIVE "no winning move" is served instantly, with the solver never polled;
- *  3. a book MISS falls through to the solver, and whatever the solver returns within its
- *     deadline is either `null` or a legal move — never a stale or fabricated one.
+ *  3. a book MISS falls through to the solver, and what the solver returns within its
+ *     deadline is a Found move that is legal, or Undecided; it is ProvenDead only when an
+ *     exhausted search proved it (GD-HT-1, AC-8). A search's answer is never a stale or
+ *     fabricated move, and an Undecided never comes from anywhere but a search.
  *
  * On top of that, the FULL universal claim is asserted where it is true: on every board
  * whose book declares a **zero gap** — English-33, European-37 and Asymmetric-39 — the
@@ -47,13 +50,20 @@ import org.junit.Test
  *
  * ## Measured (this sweep, post-book)
  *
- * | Board | k | examined | canonical | book-served | authoritative dead | solver fallback | max/call |
- * |-------|---|----------|-----------|-------------|--------------------|-----------------|----------|
- * | English-33 | 4 | 373 | 51 | 369 | 4 | **0** | 9 ms |
- * | European-37 | 4 | 609 | 312 | 609 | 0 | **0** | 2 ms |
- * | Asymmetric-39 | 4 | 461 | 233 | 461 | 0 | **0** | 1 ms |
- * | Diamond-41 | 4 | 785 | 107 | 345 | 0 | 440 | 1511 ms |
- * | Wiegleb-45 | 3 | 101 | 16 | 97 | 0 | 4 | 1500 ms |
+ * | Board | k | examined | canonical | book-served | authoritative dead | solver fallback | undecided | max/call |
+ * |-------|---|----------|-----------|-------------|--------------------|-----------------|-----------|----------|
+ * | English-33 | 4 | 373 | 51 | 369 | 4 | **0** | 0 | 9 ms |
+ * | European-37 | 4 | 609 | 312 | 609 | 0 | **0** | 0 | 2 ms |
+ * | Asymmetric-39 | 4 | 461 | 233 | 461 | 0 | **0** | 0 | 1 ms |
+ * | Diamond-41 | 4 | 785 | 107 | 345 | 0 | 440 | 440 | 1511 ms |
+ * | Wiegleb-45 | 3 | 101 | 16 | 97 | 0 | 4 | 4 | 1500 ms |
+ *
+ * The "undecided" column, the solver fallbacks that came back Undecided, is from a later
+ * green sweep (`bugfix/hint-undecided`, 2026-10-21, 22:58–23:09, load averages 5.39 / 5.81 /
+ * 6.63 at the start, two other worktrees building): every fallback was Undecided, none was
+ * found and none proved dead. Each of those 444 positions was shown "no winning move"
+ * before GD-HT-1. The count depends on the host's speed under a wall-clock deadline, so the
+ * sweep prints it and never pins it.
  *
  * Against RESEARCH's PRE-book measurement of the same frontiers: European-37 took 158.6 s
  * and left 57 positions unresolved, Asymmetric-39 73.2 s and 26 unresolved, Wiegleb-45
@@ -123,6 +133,10 @@ class DepthSweepTest {
             assertWithMessage("'%s' classification must account for every position", report.board)
                 .that(report.served + report.authoritative + report.deferred)
                 .isEqualTo(report.examined)
+            // ...and every solver fallback into exactly one of its three outcomes (AC-8).
+            assertWithMessage("'%s' fallback outcomes must account for every fallback", report.board)
+                .that(report.deferredFound + report.deferredUndecided + report.deferredProvenDead)
+                .isEqualTo(report.deferred)
             // 3. The BFS itself is checked against RESEARCH's INDEPENDENTLY measured
             //    canonical depth table — a number this file cannot derive from the
             //    enumeration it is verifying. A truncated walk fails here.
@@ -180,7 +194,7 @@ class DepthSweepTest {
         var served = 0
         var authoritative = 0
         var deferred = 0
-        var deferredAnswered = 0
+        val fallbacks = FallbackTally()
         var maxNanos = 0L
         var firstDeferred: String? = null
 
@@ -189,7 +203,7 @@ class DepthSweepTest {
             val board = Board(spec = fixture.spec, pegs = pegs)
             var polls = 0
             val startedAt = System.nanoTime()
-            val move =
+            val outcome =
                 useCase(board = board, solution = null, movesPlayed = 0) {
                     polls++
                     System.nanoTime() - startedAt > deadlineNanos
@@ -198,25 +212,35 @@ class DepthSweepTest {
 
             // Truthfulness, asserted for EVERY position regardless of which path answered:
             // a move the player is shown must be legal on the board the player is looking at.
-            if (move != null) {
-                assertWithMessage("'%s' position %s was given an ILLEGAL hint %s", fixture.name, pegs.toHex(), move)
-                    .that(RulesEngine.legalMoves(board))
-                    .contains(move)
+            if (outcome is HintOutcome.Found) {
+                assertWithMessage(
+                    "'%s' position %s was given an ILLEGAL hint %s",
+                    fixture.name,
+                    pegs.toHex(),
+                    outcome.move,
+                ).that(RulesEngine.legalMoves(board))
+                    .contains(outcome.move)
             }
 
             when {
+                // A book MISS. The solver's answer within its deadline is what it is — an
+                // Undecided means "not decided in time", never a proof, and the pipeline does
+                // not dress it up as one. Every outcome is counted so the report says how much
+                // of each gap the solver still rescues, and how much it proves dead.
                 polls > 0 -> {
-                    // A book MISS. The solver's answer within its deadline is what it is —
-                    // `null` here means "not found in time", never a proof, and the pipeline
-                    // does not dress it up as one. Both outcomes are counted so the report
-                    // says how much of each gap the solver still rescues.
                     if (firstDeferred == null) firstDeferred = pegs.toHex()
                     deferred++
-                    if (move != null) deferredAnswered++
+                    fallbacks.count(outcome)
                 }
-                move != null -> served++
-                // Zero polls AND a null answer: the book proved this position dead.
-                else -> authoritative++
+                outcome is HintOutcome.Found -> served++
+                // Zero polls AND ProvenDead: the book proved this position dead.
+                outcome == HintOutcome.ProvenDead -> authoritative++
+                // Zero polls AND Undecided: nothing searched, yet nothing proved — the one
+                // outcome no path may produce. With the default budget a search with a legal
+                // move polls at its first expansion, so an Undecided always comes with polls.
+                else ->
+                    assertWithMessage("'%s' position %s was Undecided without a search", fixture.name, pegs.toHex())
+                        .fail()
             }
         }
 
@@ -229,13 +253,41 @@ class DepthSweepTest {
             served = served,
             authoritative = authoritative,
             deferred = deferred,
-            deferredAnswered = deferredAnswered,
+            deferredFound = fallbacks.found,
+            deferredUndecided = fallbacks.undecided,
+            deferredProvenDead = fallbacks.provenDead,
             firstDeferred = firstDeferred,
             maxMillis = maxNanos / NANOS_PER_MILLI,
         )
     }
 
-    /** One board's sweep outcome — printed in full so a green run is still informative. */
+    /**
+     * The solver fallbacks of one board's sweep, split by outcome (AC-8). The split is
+     * tallied here and the fallback total beside the classification, so the two are
+     * counted independently and the sweep can check that they agree.
+     */
+    private class FallbackTally {
+        var found = 0
+            private set
+        var undecided = 0
+            private set
+        var provenDead = 0
+            private set
+
+        fun count(outcome: HintOutcome) {
+            when (outcome) {
+                is HintOutcome.Found -> found++
+                HintOutcome.Undecided -> undecided++
+                HintOutcome.ProvenDead -> provenDead++
+            }
+        }
+    }
+
+    /**
+     * One board's sweep outcome — printed in full so a green run is still informative.
+     * The three fallback counts are printed but [deferredUndecided] is never pinned: it
+     * depends on the host's speed under a wall-clock deadline.
+     */
     private data class BoardReport(
         val board: String,
         val depth: Int,
@@ -245,15 +297,17 @@ class DepthSweepTest {
         val served: Int,
         val authoritative: Int,
         val deferred: Int,
-        val deferredAnswered: Int,
+        val deferredFound: Int,
+        val deferredUndecided: Int,
+        val deferredProvenDead: Int,
         val firstDeferred: String?,
         val maxMillis: Long,
     ) {
         fun render(): String =
             "$board k=$depth examined=$examined (canonical=$canonical) " +
                 "book-served=$served authoritative-dead=$authoritative " +
-                "solver-fallback=$deferred (of which answered=$deferredAnswered) " +
-                "maxPerCall=${maxMillis}ms"
+                "solver-fallback=$deferred (found=$deferredFound undecided=$deferredUndecided " +
+                "proven-dead=$deferredProvenDead) maxPerCall=${maxMillis}ms"
     }
 
     /**

@@ -42,6 +42,16 @@ object GameAnim {
     /** Legal-destination dots settled scale. */
     const val DOT_POP_END = 1f
 
+    /**
+     * How long the Undecided notice stays up (ux-spec §4.4.2, §6.4): its reading time, before
+     * the system's accessibility timeout lengthens it. Functional, not decoration, so it holds
+     * with animations off as well.
+     */
+    const val HINT_NOTICE_DISPLAY_MS = 5_000
+
+    /** The Undecided notice's fade-out, two thirds of `ClayAnim.ENTRANCE_MS` (§6.4). */
+    const val HINT_NOTICE_EXIT_MS = 160
+
     // ---- The wrong tap (D-06, docs/ux/invalid-tap-feedback.md §3.1–§3.2, §5) ----
 
     /** The head-shake of the tapped cell, inside the 150–300 ms micro-interaction band. */
