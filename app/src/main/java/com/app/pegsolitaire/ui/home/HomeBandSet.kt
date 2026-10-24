@@ -1,8 +1,12 @@
 package com.app.pegsolitaire.ui.home
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Dp
 import com.app.pegsolitaire.R
 
@@ -10,9 +14,9 @@ import com.app.pegsolitaire.R
  * Which band set Home takes (§4.2.2 D-03i, §4.2.3 D-03k).
  *
  * The decision belongs to one place, and this is it: `HomeBands` reads the space available to it
- * and applies the set — the band spacing itself, and a flag for the ribbon — so **no band decides
- * its own shape**. That is why `HomeProgressRibbon` takes a `Boolean` rather than reading a
- * threshold itself: two readers of the same threshold are two places for it to drift.
+ * and applies the set — the band spacing itself, and the ribbon's shape ([ribbonShapeFor]) — so **no
+ * band decides its own shape**. That is why `HomeProgressRibbon` takes a [RibbonShape] rather than
+ * reading a threshold itself: two readers of the same threshold are two places for it to drift.
  *
  * Since D-03l the set no longer touches the hero: the hero is one row on every window, and the
  * stage beneath it sizes itself from its own slot, so no threshold decides it (§4.2.4). The
@@ -81,3 +85,65 @@ internal fun homeBandSetFor(
         )
     return HomeBandSet(compact = availableHeight < compactThreshold, narrow = narrow)
 }
+
+/**
+ * The progress ribbon's shape, one for all three pills (§4.2 band 2, §4.2.3, §4.2.6).
+ */
+internal enum class RibbonShape {
+    /** Glyph, then label over value: wherever the band set is full. */
+    Full,
+
+    /** Label beside value on one line, no glyph: the narrow class while every label fits half its pill. */
+    Compact,
+
+    /** Label over value, no glyph: the narrow class once any label no longer fits half its pill. */
+    Stacked,
+}
+
+/**
+ * Reads the ribbon's shape (D-03o, §4.2.6): the full pill unless the band set takes the compact pill
+ * ([HomeBandSet.compactPills]); then the compact pill — D-03k's label beside value — while every
+ * label, measured, fits in **half** its pill's content width, and the stacked pill once any one does
+ * not, for all three pills alike.
+ *
+ * The labels decide, not the values: a value is "—" at first paint and a number a moment later, so a
+ * shape read from the labels cannot change when the progress arrives (criterion 15f). The font scale
+ * does not decide it either (§4.2.2): the labels are measured in the faces, the density and the font
+ * scale the ribbon draws them in, so the shape follows what the text needs on this window.
+ *
+ * The pill's content width follows from the width this `BoxWithConstraints` already has: the ribbon
+ * is the column's width less its padding, three equal pills share it less the two `spacing_sm` gaps,
+ * and each pill's content is its width less its `spacing_sm` padding. The three labels are measured
+ * once each, on Home's first frame, inside 15e's measured delta.
+ *
+ * @param bandSet the band set Home takes.
+ * @param availableWidth the `BoxWithConstraints` `maxWidth`.
+ * @param bandSpacing the band set's spacing, which is also the column's padding.
+ */
+@Composable
+internal fun ribbonShapeFor(
+    bandSet: HomeBandSet,
+    availableWidth: Dp,
+    bandSpacing: Dp,
+): RibbonShape {
+    val labels =
+        listOf(
+            stringResource(R.string.home_stat_stars_label),
+            stringResource(R.string.home_stat_boards_label),
+            stringResource(R.string.home_stat_level_label),
+        )
+    val style = MaterialTheme.typography.labelMedium
+    val measurer = rememberTextMeasurer(cacheSize = RIBBON_PILLS)
+    val pillSpacing = dimensionResource(R.dimen.spacing_sm)
+    val ribbonWidth = minOf(availableWidth, dimensionResource(R.dimen.content_max_width)) - bandSpacing * 2
+    val pillContentWidth = (ribbonWidth - pillSpacing * (RIBBON_PILLS - 1)) / RIBBON_PILLS - pillSpacing * 2
+    val halfPx = with(LocalDensity.current) { (pillContentWidth / 2).toPx() }
+    return when {
+        !bandSet.compactPills -> RibbonShape.Full
+        labels.any { label -> measurer.measure(label, style).size.width > halfPx } -> RibbonShape.Stacked
+        else -> RibbonShape.Compact
+    }
+}
+
+/** The ribbon's pills: Stars, Boards and Level. */
+private const val RIBBON_PILLS = 3

@@ -385,6 +385,7 @@ private fun HomeBands(
         val bandSet = homeBandSetFor(availableWidth = maxWidth, availableHeight = maxHeight)
         val bandSpacing =
             dimensionResource(if (bandSet.compact) R.dimen.spacing_sm else R.dimen.spacing_md)
+        val ribbonShape = ribbonShapeFor(bandSet = bandSet, availableWidth = maxWidth, bandSpacing = bandSpacing)
         // The tiles' cascade order follows the chips shown, so the stagger stays contiguous (§10).
         val chipsShown = listOfNotNull(state.classicResumeLevelId, state.challengeResumeLevel).size
         val classicTileOrder = FIRST_CHIP_ENTRANCE_ORDER + chipsShown
@@ -414,7 +415,7 @@ private fun HomeBands(
             },
             ribbon = {
                 HomeProgressRibbon(
-                    compact = bandSet.compactPills,
+                    shape = ribbonShape,
                     totalStars = state.totalStars,
                     classicBoardsCleared = state.classicBoardsCleared,
                     challengeCurrentLevel = state.challengeCurrentLevel,
