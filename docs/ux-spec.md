@@ -482,6 +482,21 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > `feature/audio-review` adds the four pointers D-TBa names: on the hint branch, §4.4.2's "TalkBack"
 > bullet, 23j item 5 and 23k's device half; on the audio branch, §3.6's traversal line. **Not
 > reopened:** anything else. No string, token, colour or id is added.
+>
+> **Twelfth revision (the reduced-motion live gate) — 2026-10-24 — AMENDMENT.** Written on Opus under
+> Q-019, not on the role's pinned Fable. It carries three of this role's rulings on
+> `bugfix/reduced-motion-live-gate`, from `.planning/reports/reduced-motion-live-gate/tech-lead-ruling.md`
+> §6–§7 and the qa-engineer's F1:
+> - **23d.** A switch of the animation setting is not a raise, so it speaks nothing and replays no
+>   entrance. 3.0.0's repeat is a known low defect, fixed in 3.0.1.
+> - **23e.** The test condition is the composition's animation scale, not a `Settings.Global` write.
+> - **§10.** The gate's mechanism sentence is corrected. A switch made while the game is open
+>   reaches it in about 10 s, and that is ruled acceptable for 3.0.0, with agreement between the gate
+>   and the clock ranked above speed.
+>
+> §10's notice bullet gains a pointer. **Not reopened:** D-04f, D-04g and every other criterion. No
+> string, token, colour or id is added. **For the merge:** a parallel branch's revision entry with
+> the same number is kept beside this one, as loop 4 ruled; the titles tell them apart.
 
 ---
 
@@ -4784,8 +4799,13 @@ All new motion reuses the Candy Clay vocabulary; nothing invents a curve.
 | **Undecided notice in and out** *(2026-10-21, D-04f)* | in: `clayEntrance(0)`, a fade and a rise of `entrance_slide_distance` over `ClayAnim.ENTRANCE_MS`; held for `GameAnim.HINT_NOTICE_DISPLAY_MS` or the accessibility timeout; out: a fade in place over `GameAnim.HINT_NOTICE_EXIT_MS` (§4.4.2) |
 
 **Reduced motion is a hard requirement.** Every decorative animation above is gated on
-`rememberAnimationsEnabled()` (`Clay.kt:209-218`), which reads
-`Settings.Global.ANIMATOR_DURATION_SCALE`. When it returns `false`:
+`rememberAnimationsEnabled()` (`ui/theme/Clay.kt`). The gate reads the scale that the composition's
+own animations run at. That scale is the system's animator duration scale, which is 0 when Remove
+animations is on. The gate and the clock are one value, so they never disagree.
+*(Corrected 2026-10-24, `bugfix/reduced-motion-live-gate`. The first wording said the gate "reads
+`Settings.Global.ANIMATOR_DURATION_SCALE`" (`Clay.kt:209-218`). That read was made once and then
+frozen, so after a live switch it disagreed with the clock. The behaviours below are unchanged.)*
+When it returns `false`:
 
 - `claySquish` is already a no-op (`Clay.kt:152-153`) and `clayEntrance` already settles instantly
   (`Clay.kt:185`) — inherited, nothing to add.
@@ -4797,6 +4817,8 @@ All new motion reuses the Candy Clay vocabulary; nothing invents a curve.
 - *(2026-10-21, D-04f.)* The Undecided notice appears settled and disappears in one frame. Its
   display time does **not** shrink, because it is reading time, functional like
   `STEP_ADVANCE_DELAY_MS`. Its announcement is not motion and is unaffected.
+  *(2026-10-24.)* A switch of the setting while the notice is up adds no announcement and no entrance
+  (23d). 3.0.0 has a known low exception, which is fixed in 3.0.1.
 - *(2026-10-21, D-03n.)* A Continue chip's room is open, settled, in the frame after the chip arrives;
   nothing glides. Wherever the stage can give the room, the tiles hold still with animations on or off,
   because the room comes out of the stage; in the shortfall case they move by the shortfall, with
@@ -4813,6 +4835,38 @@ All new motion reuses the Candy Clay vocabulary; nothing invents a curve.
   cue). The one thing reading cannot prove is whether the keyed effect wins the race against the
   snap path at `BoardCanvas.kt:298-304`, which sets and clears `animating` in a very short
   window — so criterion 7c is exercised once with OS animations off, on a device.
+
+**A switch made while the game is open** *(2026-10-24, a UX decision on QA's F1,
+`.planning/reports/reduced-motion-live-gate/qa-engineer.md`)*.
+
+- **The setting is followed live, without a restart.** When the player switches it in Settings
+  while the game waits in the background, the change reaches the game about 10 s after the switch.
+  QA measured 9.8–11.7 s in both directions, on the board, the Results stars and the tutorial pulse.
+  The delay is the platform's delivery to an app in the background, not the game's. A cold start and
+  a restore after process death follow the setting from their first frame.
+- **Until the change arrives, the game runs whole on the old setting.** Every animation runs or
+  snaps together with its own feedback. A wrong tap shakes in full or draws the mark, never neither.
+- **Ruled acceptable for 3.0.0.**
+  - The exposure comes once per switch and lasts at most about 10 s from it, less the time spent in
+    Settings.
+  - On the board, the motion is the player's own: a jump, a shake, a selected peg's pulse. What
+    moves unprompted is slow and small: Home's two low-alpha blobs (±16dp over about 8 s) and the
+    tutorial's coach pulse.
+  - Nothing is lost or wrong in the meantime.
+  - The only faster route on the table was a second read of the setting. The tech-lead rejected it
+    because it can split the gate from the clock (`.planning/reports/audio-review/tech-lead-signoff.md`
+    §3). That split is the frozen gate's own defect: a wrong tap answered by nothing. A few seconds
+    of motion are better than lost feedback.
+- **The order for any later change to the mechanism:** first, the gate and the clock agree on every
+  frame; second, speed. A change that shortens the delay but lets them disagree for even one frame
+  is a regression.
+- **Desired later, not required:** the new setting in force from the first frame the game draws
+  after the player comes back. This is a backlog aim for the tech-lead to weigh under the order
+  above. It blocks no version.
+- **QA's pass line for a live switch.** The new setting is in force within 15 s of the switch: about
+  10 s as measured, plus the measurement's 1.8 s tap cadence and a margin. No tap in between is
+  answered by neither a shake nor a mark. A setting that never arrives without a restart is the
+  frozen gate, and fails.
 
 ---
 
@@ -6253,6 +6307,32 @@ what the player sees and hears.
      the notice node is absent in the middle state once its exit has run, and present after it, so
      the live region speaks the second notice too. A second raise that arrives while the first notice
      is still fading out is a new node, keyed on the screen's own raise count. (D-04f, §11)
+     *(Added 2026-10-24, a UX decision on `.planning/reports/reduced-motion-live-gate/tech-lead-ruling.md`
+     §6.)* **A change of the animation setting is not a raise.** "Every time" means every raise of the
+     screen's count, not every composition. While the notice is up, a switch of Remove animations
+     either way:
+     - adds no announcement. TalkBack speaks the notice's text once per raise and never again for a
+       setting change, at once or late;
+     - adds no entrance. The notice stays where it is and as it is;
+     - leaves its time alone. The reading time neither restarts nor ends early;
+     - lets it leave by the setting in force when it leaves: the fade with animations on, gone in one
+       frame with them off (23e).
+
+     This is the rule that 23g, TB-6 and TB-8 already apply to a recreation and a rotation: what is
+     not an event speaks nothing. A setting change is one more such case.
+     **3.0.0 ships with a known exception, rated low.**
+     - **What happens.** On 3.0.0, a switch while the notice is up composes the notice as a new node,
+       so TalkBack speaks its text a second time. A switch back on also replays its entrance.
+     - **When.** From Settings, the repeat comes about 10 s after the switch (§10). So it happens only
+       when the notice outlives the trip, as it does with a long Time to take action.
+     - **Why it can ship.** The words are true and polite, and nothing is lost. It is a repeat, not an
+       error.
+     - **The fix.** A 3.0.1 item on the tech-lead's brief, red first. It rides
+       `feature/talkback-board` if that branch touches the slot first.
+     - **Its device check.** Count the announcements across a switch in each direction, with the app
+       kept in the foreground so that §10's delay does not hide the result. Split screen with Settings
+       does that (QA's own route, `.planning/reports/reduced-motion-live-gate/qa-engineer.md`, open
+       issue 3).
 
 23e. **It leaves on time.** With the test clock paused and the notice raised at t₀, it is present at
      t₀ + `HINT_NOTICE_DISPLAY_MS` − 100 ms and gone at t₀ + `HINT_NOTICE_DISPLAY_MS` +
@@ -6260,10 +6340,14 @@ what the player sees and hears.
      recommended timeout is 60 000 ms, it is present at t₀ + 59 s and gone after 60 s plus the exit.
      (D-04f, WCAG 2.2 SC 2.2.1)
      *(Added in loop 1, I-4 and I-7.)* The same holds with no `LocalAccessibilityManager`
-     (`null`): the display time falls back to `HINT_NOTICE_DISPLAY_MS`. On Robolectric with
-     `Settings.Global.ANIMATOR_DURATION_SCALE` set to 0, the notice is present at
+     (`null`): the display time falls back to `HINT_NOTICE_DISPLAY_MS`. With the composition's
+     animation scale at 0, as on a phone with Remove animations on, the notice is present at
      t₀ + `HINT_NOTICE_DISPLAY_MS` − 100 ms and gone one frame after t₀ + `HINT_NOTICE_DISPLAY_MS`,
      with no exit frames: reduced motion drops the fade, never the reading time.
+     *(Reworded 2026-10-24, `.planning/reports/reduced-motion-live-gate/tech-lead-ruling.md` §7. The
+     first wording began "On Robolectric with `Settings.Global.ANIMATOR_DURATION_SCALE` set to 0".
+     Under Compose's test rule that write reaches neither the gate nor the clock, so the test sets the
+     scale in the composition instead. The behaviour is unchanged.)*
 
 23f. **It leaves when the player moves on, and only then.** ViewModel tests, with `hintUndecided`
      true:

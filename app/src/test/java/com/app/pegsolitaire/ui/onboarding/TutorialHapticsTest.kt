@@ -1,6 +1,5 @@
 package com.app.pegsolitaire.ui.onboarding
 
-import android.provider.Settings
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -12,6 +11,7 @@ import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.tutorial.TutorialBoards
 import com.app.pegsolitaire.testing.RecordingHapticFeedback
+import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.game.BoardMetrics
 import com.app.pegsolitaire.ui.theme.AppTheme
@@ -20,7 +20,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
@@ -37,8 +36,11 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [TUTORIAL_HAPTICS_ROBOLECTRIC_SDK])
 class TutorialHapticsTest {
+    /** The animation scale the screen's effects and its reduced-motion gate read; on unless a test turns it off. */
+    private val motion = SystemMotionScale()
+
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createComposeRule(effectContext = motion)
 
     private val haptics = RecordingHapticFeedback()
 
@@ -75,11 +77,7 @@ class TutorialHapticsTest {
      */
     @Test
     fun aCompletedTutorialJumpStillFiresTheHapticWhenTheOsAnimationScaleIsZero() {
-        Settings.Global.putFloat(
-            RuntimeEnvironment.getApplication().contentResolver,
-            Settings.Global.ANIMATOR_DURATION_SCALE,
-            ANIMATIONS_OFF,
-        )
+        motion.turnAnimationsOff()
         val viewModel = startTutorial(hapticsOn = true)
         val move = RulesEngine.legalMoves(viewModel.uiState.value.board.board).single()
 
@@ -145,9 +143,6 @@ class TutorialHapticsTest {
     private companion object {
         /** Every tutorial footprint sits in a 3-cell square grid. */
         const val TUTORIAL_GRID = 3
-
-        /** The OS animator duration scale a player with reduced motion has set (criterion 25). */
-        const val ANIMATIONS_OFF = 0f
 
         /** T-W1, T-W2 and T-W3, one each. */
         const val THREE_WRONG_TAPS = 3
