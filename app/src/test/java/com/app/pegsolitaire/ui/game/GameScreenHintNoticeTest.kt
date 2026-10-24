@@ -72,6 +72,11 @@ import org.robolectric.annotation.GraphicsMode
  * Text is laid out in the real faces (`GraphicsMode.NATIVE`): where a notice wraps and how tall it
  * is are the properties under test. The screen gets a phone's system-bar insets, as §13 asks of
  * every layout reading on the baseline window, and edges are read before any ancestor clips them.
+ *
+ * The class runs on the `junit4.v2` rule, the exception the tech design's §8.1 allows, for the two
+ * behaviours its helpers document: a recreation whose snapshot writes only a running clock
+ * delivers ([recreateTheScreen]), and a tap's writes, which reach the screen on the paused clock
+ * only once their apply notification is sent ([deliverTheTapsWrites]).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [HINT_NOTICE_ROBOLECTRIC_SDK], qualifiers = DESIGN_BASELINE_QUALIFIER)

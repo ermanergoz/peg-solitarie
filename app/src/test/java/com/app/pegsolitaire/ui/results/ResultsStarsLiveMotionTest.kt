@@ -2,7 +2,7 @@ package com.app.pegsolitaire.ui.results
 
 import android.graphics.Bitmap
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.testing.SystemMotionScale
