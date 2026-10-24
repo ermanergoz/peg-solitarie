@@ -9,6 +9,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -39,6 +40,7 @@ import com.app.pegsolitaire.ui.game.BoardMetrics
 import com.app.pegsolitaire.ui.game.GameAnim
 import com.app.pegsolitaire.ui.game.GameUiState
 import com.app.pegsolitaire.ui.game.MoveTransition
+import com.app.pegsolitaire.ui.game.wrongTapAnnouncement
 import com.app.pegsolitaire.ui.theme.ClayAnim
 import com.app.pegsolitaire.ui.theme.LocalClayColors
 import com.app.pegsolitaire.ui.theme.rememberAnimationsEnabled
@@ -72,7 +74,9 @@ private const val REMOVAL_START = 1f
  * In read-only mode ([interactive] `= false`, the catalog mini-preview D-11) the leaf
  * renders only the resting pegs and the recessed start-empty hole: it suppresses tap
  * emission (no `pointerInput`), the selection ring, the legal-destination dots and all
- * animation. The default ([interactive] `= true`) keeps the full gameplay behavior.
+ * animation. The default ([interactive] `= true`) keeps the full gameplay behavior, and adds one
+ * TalkBack stop per in-play cell over the canvas (D-TB, `docs/ux-spec.md` §11.1), a layer that takes
+ * no pointer input; the board stop itself sits on the host's slab. A read-only board gains no stop.
  *
  * **The wrong tap (D-06, `docs/ux/invalid-tap-feedback.md` §3).** The leaf answers the latest
  * wrong tap the state records, on the tapped cell, by drawing and by nothing else: while a peg
@@ -92,6 +96,10 @@ private const val REMOVAL_START = 1f
  * @param wrongTapCorrection whether a wrong tap is corrected on the tapped cell (the shake, or
  *   the mark with animations off): on for the gameplay screen, off for the tutorial (D-01j(2))
  *   and for every read-only board.
+ * @param announcement the text the host's announcer has for the board's polite channel right now,
+ *   or `null`; the canvas carries it and chooses no wording (D-TBa, F-44).
+ * @param announces whether the host has a channel at all, so the canvas node is a polite live region
+ *   (the gameplay screen); the tutorial gains its channel later on this branch.
  */
 @Suppress("LongMethod") // One cohesive render unit: state capture + palette + the animation set.
 @Composable
@@ -102,6 +110,8 @@ fun BoardCanvas(
     modifier: Modifier = Modifier,
     interactive: Boolean = true,
     wrongTapCorrection: Boolean = false,
+    announcement: String? = null,
+    announces: Boolean = false,
 ) {
     val spec = state.board.spec
     var canvasSize by remember { mutableStateOf(Size.Zero) }
@@ -218,30 +228,60 @@ fun BoardCanvas(
             wrongTap = wrongTap,
         )
 
-    Canvas(
-        modifier =
-            modifier
-                .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO)
-                .testTag(BOARD_CANVAS_TEST_TAG)
-                .onSizeChanged { canvasSize = it.toSize() }
-                .then(
-                    // Read-only previews never attach a tap handler, so they can
-                    // never emit onCellTap (the parent Card owns the tap).
-                    if (interactive) {
-                        Modifier.pointerInput(geometry) {
-                            detectTapGestures { offset -> geometry.positionAt(offset)?.let(onCellTap) }
-                        }
-                    } else {
-                        Modifier
-                    },
-                ),
-    ) {
+    val draw: DrawScope.() -> Unit = {
         drawBoard(
             state = state,
             geometry = geometry,
             palette = palette,
             interactive = interactive,
             animations = animations,
+        )
+    }
+    if (interactive) {
+        // The playable board: the canvas with its tap handler exactly as before — its tag, its size
+        // callback and its pointerInput, so a finger, the drawing and every test that taps the canvas
+        // by its bounds are unchanged (TB-11) — and over it one TalkBack stop per in-play cell (D-TB).
+        val speech =
+            remember(state.board, state.selected, state.legalTargets, state.hintSource, state.hintTarget) {
+                BoardSpeechModel.of(
+                    board = state.board,
+                    selected = state.selected,
+                    legalTargets = state.legalTargets,
+                    hintSource = state.hintSource,
+                    hintTarget = state.hintTarget,
+                )
+            }
+        Box(modifier = modifier.aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO)) {
+            Canvas(
+                modifier =
+                    Modifier
+                        .matchParentSize()
+                        .testTag(BOARD_CANVAS_TEST_TAG)
+                        .onSizeChanged { canvasSize = it.toSize() }
+                        .pointerInput(geometry) {
+                            detectTapGestures { offset -> geometry.positionAt(offset)?.let(onCellTap) }
+                        }.then(if (announces) Modifier.wrongTapAnnouncement(announcement) else Modifier),
+                onDraw = draw,
+            )
+            // After the canvas, so the stops are above it for explore-by-touch.
+            BoardCellOverlay(
+                spec = spec,
+                speech = speech,
+                touchExploration = rememberTouchExplorationEnabled(),
+                onCellTap = onCellTap,
+                modifier = Modifier.matchParentSize().testTag(BOARD_CELLS_TEST_TAG),
+            )
+        }
+    } else {
+        // Read-only previews compose today's canvas and nothing else: no tap handler, so they can
+        // never emit onCellTap (the parent Card owns the tap), and no TalkBack stop (D-TBa item 9).
+        Canvas(
+            modifier =
+                modifier
+                    .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO)
+                    .testTag(BOARD_CANVAS_TEST_TAG)
+                    .onSizeChanged { canvasSize = it.toSize() },
+            onDraw = draw,
         )
     }
 }

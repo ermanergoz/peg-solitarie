@@ -36,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
@@ -51,6 +52,9 @@ import com.app.pegsolitaire.audio.SoundCue
 import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.ui.components.BoardCanvas
+import com.app.pegsolitaire.ui.components.boardStop
+import com.app.pegsolitaire.ui.components.boardStopLabel
+import com.app.pegsolitaire.ui.components.rememberTouchExplorationEnabled
 import com.app.pegsolitaire.ui.game.JumpHapticEffect
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.app.pegsolitaire.ui.theme.ClayAnim
@@ -239,6 +243,7 @@ private fun TutorialBoardSlab(
 ) {
     val animationsEnabled = rememberAnimationsEnabled()
     val pulse = remember { Animatable(SETTLED_SCALE) }
+    val boardStopFocus = remember { FocusRequester() }
     LaunchedEffect(state.coachTick) {
         if (state.coachTick > NO_COACH_YET && animationsEnabled) {
             pulse.animateTo(COACH_PULSE_SCALE, tween(TutorialAnim.COACH_PULSE_MS / PULSE_HALVES))
@@ -253,7 +258,13 @@ private fun TutorialBoardSlab(
             Modifier
                 .size(dimensionResource(R.dimen.tutorial_board_size))
                 .scale(pulse.value)
-                .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.extraLarge),
+                .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.extraLarge)
+                // D-TB: the slab is the board stop, so a touch on its rim finds the board.
+                .boardStop(
+                    label = boardStopLabel(state.board.board.pegCount),
+                    focusRequester = boardStopFocus,
+                    focusEnabled = rememberTouchExplorationEnabled(),
+                ),
     ) {
         BoardCanvas(
             state = state.board,

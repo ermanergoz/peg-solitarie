@@ -26,6 +26,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
@@ -44,6 +45,9 @@ import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.ui.components.BoardCanvas
 import com.app.pegsolitaire.ui.components.ClaySnackbarHost
+import com.app.pegsolitaire.ui.components.boardStop
+import com.app.pegsolitaire.ui.components.boardStopLabel
+import com.app.pegsolitaire.ui.components.rememberTouchExplorationEnabled
 import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.ctaGradientBrush
@@ -53,8 +57,8 @@ const val GAME_STATE_TEST_TAG = "game_state"
 
 /**
  * Test tag of the board's clay slab — the surface whose edge the board keeps once each system bar
- * is applied once (ux-spec §4.3.1, criterion 18c). A tag, not a description: the slab announces
- * nothing.
+ * is applied once (ux-spec §4.3.1, criterion 18c). With TalkBack the slab is also the board stop
+ * (D-TB, `boardStop`): "Board, 32 pegs left", and the traversal group that holds the cells.
  */
 const val GAME_BOARD_SLAB_TEST_TAG = "game_board_slab"
 
@@ -178,6 +182,8 @@ fun GameScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val wrongTapAnnouncement = rememberWrongTapAnnouncement(state)
+    val boardStopFocus = remember { FocusRequester() }
+    val touchExploration = rememberTouchExplorationEnabled()
 
     JumpHapticEffect(animatingMoveId = state.animating?.id, hapticsOn = state.hapticsOn)
     JumpSoundEffect(transition = state.animating)
@@ -240,19 +246,24 @@ fun GameScreen(
                                 ).widthIn(max = dimensionResource(R.dimen.board_max_size))
                                 .fillMaxWidth()
                                 .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO)
-                                .testTag(GAME_BOARD_SLAB_TEST_TAG),
+                                .testTag(GAME_BOARD_SLAB_TEST_TAG)
+                                // D-TB: the slab is the board stop, so a touch on its rim finds the board.
+                                .boardStop(
+                                    label = boardStopLabel(state.board.pegCount),
+                                    focusRequester = boardStopFocus,
+                                    focusEnabled = touchExploration,
+                                ),
                     ) {
                         BoardCanvas(
                             state = state,
                             onCellTap = onCellTap,
                             onAnimationFinished = onAnimationFinished,
-                            modifier =
-                                Modifier
-                                    .padding(dimensionResource(R.dimen.spacing_md))
-                                    // D-06c: the board itself is the polite live region; no new node.
-                                    .wrongTapAnnouncement(wrongTapAnnouncement),
+                            modifier = Modifier.padding(dimensionResource(R.dimen.spacing_md)),
                             // D-06: the gameplay board corrects a wrong tap on the tapped cell.
                             wrongTapCorrection = true,
+                            // D-06c, D-TBa: the board's canvas itself is the polite live region; no new node.
+                            announcement = wrongTapAnnouncement,
+                            announces = true,
                         )
                     }
                 }
