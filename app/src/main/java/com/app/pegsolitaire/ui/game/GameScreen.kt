@@ -191,6 +191,7 @@ fun GameScreen(
     // D-TB: the board's one polite channel, and every line it speaks.
     val announcer = rememberBoardAnnouncer()
     GameplayBoardAnnouncements(state = state, announcer = announcer)
+    val bannerFocusMove = rememberBannerFocusMove(state, boardStopFocus, touchExploration)
 
     JumpHapticEffect(animatingMoveId = state.animating?.id, hapticsOn = state.hapticsOn)
     JumpSoundEffect(transition = state.animating)
@@ -288,15 +289,14 @@ fun GameScreen(
                             stringResource(
                                 if (state.noWinningMove) R.string.nowin_message else R.string.stuck_message,
                             ),
-                        // §11.1: the banner leaves with the button that had focus, so focus moves to
-                        // the board stop — only while touch exploration is on (D-TBa item 5, F-39).
+                        // §11.1: once the action has happened, focus moves to the board stop.
                         onUndo = {
                             onUndo()
-                            if (touchExploration) boardStopFocus.requestFocus()
+                            bannerFocusMove(BannerAction.Undo)
                         },
                         onRestart = {
                             onRestart()
-                            if (touchExploration) boardStopFocus.requestFocus()
+                            bannerFocusMove(BannerAction.Restart)
                         },
                         onHome = onHome,
                         modifier =

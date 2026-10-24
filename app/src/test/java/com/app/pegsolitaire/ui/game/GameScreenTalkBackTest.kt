@@ -36,6 +36,7 @@ import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.SettingsRepository
+import com.app.pegsolitaire.domain.assist.AssistAllowanceLimits
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.Move
@@ -48,6 +49,7 @@ import com.app.pegsolitaire.platform.ads.NoOpAdGateway
 import com.app.pegsolitaire.testing.RecordingHapticFeedback
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.components.BoardCellPositionKey
+import com.app.pegsolitaire.ui.components.FOCUS_MOVE_GAP_MS
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
 import io.mockk.every
@@ -255,7 +257,7 @@ class GameScreenTalkBackTest {
         tapCell(CENTRE)
 
         bannerButton(R.string.undo_action).performClick()
-        composeRule.waitForIdle()
+        settleFocusMove()
 
         composeRule.onNodeWithTag(GAME_BOARD_SLAB_TEST_TAG).assertIsFocused()
     }
@@ -271,6 +273,73 @@ class GameScreenTalkBackTest {
 
         val slab = composeRule.onNodeWithTag(GAME_BOARD_SLAB_TEST_TAG).fetchSemanticsNode().config
         assertThat(slab.getOrNull(SemanticsProperties.Focused)).isNull()
+    }
+
+    // ---- Loop 1, F-2: a focus move is always a change, even onto the focused target -------------
+
+    @Test
+    fun aSecondBannerUndoMovesFocusToTheBoardStopAgain() {
+        startGame(board = STRANDING_BOARD, touchExploration = true)
+        strand()
+        bannerButton(R.string.undo_action).performClick()
+        settleFocusMove()
+        composeRule.onNodeWithTag(GAME_BOARD_SLAB_TEST_TAG).assertIsFocused()
+        strand()
+
+        composeRule.mainClock.autoAdvance = false
+        bannerButton(R.string.undo_action).performClick()
+
+        assertLostThenRegained(focusTrace { composeRule.onNodeWithTag(GAME_BOARD_SLAB_TEST_TAG) })
+    }
+
+    @Test
+    fun aRetriedJumpActionMovesFocusToItsDestinationAgain() {
+        val game = startGame(touchExploration = true)
+        takeAction(ABOVE_CENTRE, "Jump down to row 4, column 4")
+        settleFocusMove()
+        cellNode(CENTRE).assertIsFocused()
+        composeRule.runOnIdle { game.onUndo() }
+        composeRule.waitForIdle()
+
+        composeRule.mainClock.autoAdvance = false
+        val again = cellNode(ABOVE_CENTRE).fetchSemanticsNode().config[SemanticsActions.CustomActions].single()
+        composeRule.runOnIdle { again.action() }
+
+        assertLostThenRegained(focusTrace { cellNode(CENTRE) })
+    }
+
+    // ---- Loop 1, F-3: the banner moves focus only when its action happened ----------------------
+
+    @Test
+    fun aBannerUndoThatOpensTheAdOfferMovesNoFocus() {
+        val game = startGame(board = STRANDING_BOARD, touchExploration = true)
+        repeat(AssistAllowanceLimits.FREE_UNDOS) {
+            strand()
+            composeRule.runOnIdle { game.onUndo() }
+            composeRule.waitForIdle()
+        }
+        strand()
+
+        bannerButton(R.string.undo_action).performClick()
+        settleFocusMove()
+
+        assertThat(game.uiState.value.pendingAdOffer).isNotNull()
+        assertThat(slabFocused()).isFalse()
+    }
+
+    @Test
+    fun aBannerRestartThatOpensTheConfirmMovesNoFocus() {
+        val game = startGame(hint = fixedHint(HintOutcome.ProvenDead), touchExploration = true)
+        tapCell(ABOVE_CENTRE)
+        tapCell(CENTRE)
+        composeRule.runOnIdle { game.onHintRequested() }
+        composeRule.waitForIdle()
+
+        bannerButton(R.string.rescue_restart).performClick()
+        settleFocusMove()
+
+        assertThat(game.uiState.value.confirmRestart).isTrue()
+        assertThat(slabFocused()).isFalse()
     }
 
     // ---- 26b's pin (D-TBa loop 5, F-38): the slab before the banner on every window -----------
@@ -435,6 +504,42 @@ class GameScreenTalkBackTest {
         assertThat(channel()).isEqualTo(line)
     }
 
+    /** (3, 1) jumps into the centre on [STRANDING_BOARD], leaving it stuck under the banner. */
+    private fun strand() {
+        tapCell(Position(3, 1))
+        tapCell(CENTRE)
+    }
+
+    /** Lets a focus move finish: its gap, then a frame. */
+    private fun settleFocusMove() {
+        composeRule.waitForIdle()
+        composeRule.mainClock.advanceTimeBy(FOCUS_MOVE_GAP_MS + FRAME_MS)
+        composeRule.waitForIdle()
+    }
+
+    private fun slabFocused(): Boolean =
+        composeRule
+            .onNodeWithTag(
+                GAME_BOARD_SLAB_TEST_TAG,
+            ).fetchSemanticsNode()
+            .config
+            .getOrNull(SemanticsProperties.Focused) ==
+            true
+
+    /** The node's input focus, frame by frame on the paused clock, across a whole focus move. */
+    private fun focusTrace(node: () -> SemanticsNodeInteraction): List<Boolean> =
+        List(TRACE_FRAMES) {
+            composeRule.mainClock.advanceTimeByFrame()
+            node().fetchSemanticsNode().config.getOrNull(SemanticsProperties.Focused) == true
+        }
+
+    /** The target lost focus and then had it again: a change TalkBack is sent and follows. */
+    private fun assertLostThenRegained(trace: List<Boolean>) {
+        assertThat(trace).contains(false)
+        assertThat(trace.last()).isTrue()
+        assertThat(trace.indexOf(false)).isLessThan(trace.lastIndexOf(true))
+    }
+
     private fun ancestorsOf(node: SemanticsNode): List<SemanticsNode> =
         generateSequence(node.parent) { it.parent }.toList()
 
@@ -458,6 +563,10 @@ class GameScreenTalkBackTest {
                 .fold(Board(spec = Boards.English33, pegs = 0L)) { board, peg -> board.withPeg(peg) }
 
         const val PAST_THE_HOLD_MS = 2_000L
+        const val FRAME_MS = 16L
+
+        /** Frames enough for a focus move's clear, its gap and its request (about half a second). */
+        const val TRACE_FRAMES = 30
         const val ZERO_WIDTH_SPACE = "​"
         const val ENGLISH_GRID = 7
         const val LEVEL_ID_ARG = "levelId"

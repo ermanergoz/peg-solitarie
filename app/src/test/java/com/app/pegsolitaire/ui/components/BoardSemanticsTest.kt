@@ -277,6 +277,8 @@ class BoardSemanticsTest {
         show(START, touchExploration = true)
 
         takeAction(ABOVE_CENTRE, "Jump down to row 4, column 4")
+        composeRule.mainClock.advanceTimeBy(FOCUS_MOVE_GAP_MS + FRAME_MS)
+        composeRule.waitForIdle()
 
         cell(CENTRE).assertIsFocused()
     }
@@ -416,6 +418,7 @@ class BoardSemanticsTest {
         const val SLAB_PADDING = 16
         const val ENGLISH_GRID = 7
         const val DIAMOND_CELLS = 41
+        const val FRAME_MS = 16L
     }
 }
 

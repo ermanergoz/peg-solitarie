@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.ui.components.BoardAnnouncer
@@ -13,6 +14,7 @@ import com.app.pegsolitaire.ui.components.JumpAnnouncements
 import com.app.pegsolitaire.ui.components.OrdinalLine
 import com.app.pegsolitaire.ui.components.RejectedTapAnnouncements
 import com.app.pegsolitaire.ui.components.SelectionAnnouncements
+import com.app.pegsolitaire.ui.components.moveInputFocusTo
 import com.app.pegsolitaire.ui.components.rememberBoardSpeechFormat
 
 /**
@@ -71,13 +73,14 @@ private fun StepAnnouncements(
     touchExploration: Boolean,
 ) {
     val format = rememberBoardSpeechFormat()
+    val focusManager = LocalFocusManager.current
     val seen = remember { SeenStep() }
     LaunchedEffect(state.stepIndex) {
         val replacedAStep = seen.index != null
         seen.index = state.stepIndex
         if (state.completed) return@LaunchedEffect
         announcer.announce(format.stepLine(state.stepNumber, TutorialUiState.STEP_COUNT, state.captionRes))
-        if (replacedAStep && touchExploration) boardStopFocus.requestFocus()
+        if (replacedAStep && touchExploration) focusManager.moveInputFocusTo(boardStopFocus)
     }
 }
 
@@ -90,10 +93,11 @@ private fun CompletionAnnouncement(
     touchExploration: Boolean,
 ) {
     val doneLine = stringResource(R.string.tutorial_done_caption)
+    val focusManager = LocalFocusManager.current
     ChangeEffect(completed) { _, now ->
         if (now) {
             announcer.announce(doneLine)
-            if (touchExploration) gotItFocus.requestFocus()
+            if (touchExploration) focusManager.moveInputFocusTo(gotItFocus)
         }
     }
 }

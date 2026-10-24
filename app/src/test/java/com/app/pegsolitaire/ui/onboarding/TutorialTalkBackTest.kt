@@ -17,6 +17,7 @@ import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.components.BoardCellPositionKey
+import com.app.pegsolitaire.ui.components.FOCUS_MOVE_GAP_MS
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
@@ -58,7 +59,36 @@ class TutorialTalkBackTest {
         composeRule.waitForIdle()
 
         assertChannel("Step 2 of 3. Jumps work up, down, left and right — never diagonally.")
+        settleFocusMove()
         boardStop().assertIsFocused()
+    }
+
+    /**
+     * Loop 1, F-2: step 2 played by double-taps leaves input focus on the board stop, so step 3's
+     * move must still be a change — focus lost, then regained — or TalkBack is sent nothing.
+     */
+    @Test
+    fun aStepAfterADoubleTappedStepMovesFocusToItsBoardStopAgain() {
+        val tutorial = open(touchExploration = true)
+        playTheOnlyMove(tutorial)
+        idlePastTheStepBeat()
+        composeRule.waitForIdle()
+        settleFocusMove()
+        boardStop().assertIsFocused()
+        playTheOnlyMove(tutorial)
+
+        composeRule.mainClock.autoAdvance = false
+        idlePastTheStepBeat()
+        val trace =
+            List(TRACE_FRAMES) {
+                composeRule.mainClock.advanceTimeByFrame()
+                boardStop().fetchSemanticsNode().config.getOrNull(SemanticsProperties.Focused) == true
+            }
+
+        assertThat(tutorial.uiState.value.stepIndex).isEqualTo(2)
+        assertThat(trace).contains(false)
+        assertThat(trace.last()).isTrue()
+        assertThat(trace.indexOf(false)).isLessThan(trace.lastIndexOf(true))
     }
 
     @Test
@@ -122,6 +152,7 @@ class TutorialTalkBackTest {
 
         assertThat(tutorial.uiState.value.completed).isTrue()
         assertChannel("That's the whole game. Go clear a board.")
+        settleFocusMove()
         composeRule.onNodeWithText("Got it").assertIsFocused()
     }
 
@@ -155,6 +186,12 @@ class TutorialTalkBackTest {
     private fun boardStop(): SemanticsNodeInteraction =
         composeRule.onNodeWithContentDescription(BOARD_STOP_PREFIX, substring = true)
 
+    /** Lets a focus move finish: its gap, then a frame. */
+    private fun settleFocusMove() {
+        composeRule.mainClock.advanceTimeBy(FOCUS_MOVE_GAP_MS + FRAME_MS)
+        composeRule.waitForIdle()
+    }
+
     private fun assertChannel(line: String) {
         val canvas = composeRule.onNodeWithTag(BOARD_CANVAS_TEST_TAG).fetchSemanticsNode().config
         assertThat(canvas.getOrNull(SemanticsProperties.ContentDescription)?.single()?.replace(ZERO_WIDTH_SPACE, ""))
@@ -168,6 +205,10 @@ class TutorialTalkBackTest {
         const val THREE = 3
         const val STEPS = 3
         const val NUDGE_SLACK_MS = 50L
+        const val FRAME_MS = 16L
+
+        /** Frames enough for a step's install, its focus move's clear, gap and request. */
+        const val TRACE_FRAMES = 30
         const val BOARD_STOP_PREFIX = "Board, "
         const val ZERO_WIDTH_SPACE = "​"
     }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -12,6 +13,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.layout.layoutId
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.SemanticsPropertyKey
@@ -25,6 +27,7 @@ import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.unit.Constraints
 import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Position
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 /** Test tag of the layer that carries the cells' stops over the board's canvas. */
@@ -74,7 +77,12 @@ internal fun BoardCellOverlay(
     val format = rememberBoardSpeechFormat()
     val requesters = remember(spec) { spec.inPlay.associateWith { FocusRequester() } }
     val measurePolicy = remember(spec) { cellsMeasurePolicy(spec) }
-    val onJumpTaken: (Position) -> Unit = { to -> if (touchExploration) requesters[to]?.requestFocus() }
+    val focusManager = LocalFocusManager.current
+    val scope = rememberCoroutineScope()
+    val onJumpTaken: (Position) -> Unit = { to ->
+        val target = requesters[to]
+        if (touchExploration && target != null) scope.launch { focusManager.moveInputFocusTo(target) }
+    }
     Layout(
         content = {
             speech.cells.forEachIndexed { stopIndex, cell ->

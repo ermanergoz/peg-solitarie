@@ -7,7 +7,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.delay
 
 /**
  * Whether touch exploration is on (`AccessibilityManager.isTouchExplorationEnabled`): the platform's
@@ -33,4 +36,24 @@ internal fun rememberTouchExplorationEnabled(): Boolean {
         onDispose { manager?.removeTouchExplorationStateChangeListener(listener) }
     }
     return enabled
+}
+
+/**
+ * How long a focus move waits between clearing input focus and requesting it on its target: longer
+ * than Compose's 100 ms batching of accessibility events, so the cleared state is sent first and the
+ * target's focus is always a change — and TalkBack follows it even when the target had input focus
+ * already (loop 1, F-2).
+ */
+internal const val FOCUS_MOVE_GAP_MS = 200L
+
+/**
+ * Moves input focus to [target] so that it is always a change TalkBack is sent (loop 1, F-2): a
+ * request on a target that already has input focus changes nothing, so no focus event is sent and
+ * TalkBack stays where it was. Clearing first, then waiting [FOCUS_MOVE_GAP_MS], makes the target's
+ * focus go from false to true every time. Callers make this move only while touch exploration is on.
+ */
+internal suspend fun FocusManager.moveInputFocusTo(target: FocusRequester) {
+    clearFocus(force = true)
+    delay(FOCUS_MOVE_GAP_MS)
+    target.requestFocus()
 }
