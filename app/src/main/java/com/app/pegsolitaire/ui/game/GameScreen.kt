@@ -1,5 +1,6 @@
 package com.app.pegsolitaire.ui.game
 
+import android.os.Build
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -139,12 +140,23 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  *   the "Level N" strip title, S2/D-03), or `null` for Classic (app-name title). This
  *   is a pure presentation flag — it reaches only the title slot, never the board logic.
  *
- * The `LongMethod` suppression below carries an inline list of every surface this composable
- * hosts, and that list is the point of it: the screen must not silently absorb another surface
- * without the reader of that line finding out. Amend the list rather than growing under it,
- * and never add a second suppression or a detekt baseline entry in its place.
+ * The `LongMethod` suppression below rests on the list of every surface this composable hosts,
+ * the last paragraph of this KDoc, and that list is the point of it: the screen must not silently
+ * absorb another surface without the reader of that list finding out. Amend the list, one line
+ * per surface, rather than growing under it, and never add a second suppression or a detekt
+ * baseline entry in its place.
+ *
+ * Surfaces hosted, one per line:
+ * - the [Scaffold];
+ * - the status strip, [GameStatusStrip];
+ * - the snackbar host, [ClaySnackbarHost];
+ * - the board panel, [BoardCanvas], with the wrong-tap answer and its live region (D-06, D-06c);
+ * - the Undecided notice, [UndecidedNoticeSlot];
+ * - the action dock, [GameActionDock];
+ * - the restart confirmation, `RestartConfirmDialog`;
+ * - the ad offer, [AdOfferDialog].
  */
-@Suppress("LongMethod") // Scaffold + status strip + snackbar host + board + Undecided notice + action dock + 2 dialogs.
+@Suppress("LongMethod") // one screen hosts every surface its KDoc lists
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameScreen(
@@ -165,13 +177,15 @@ fun GameScreen(
     challengeLevel: Int? = null,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    val wrongTapAnnouncement = rememberWrongTapAnnouncement(state)
 
-    JumpHaptic(animatingMoveId = state.animating?.id, hapticsOn = state.hapticsOn)
+    JumpHapticEffect(animatingMoveId = state.animating?.id, hapticsOn = state.hapticsOn)
     JumpSoundEffect(transition = state.animating)
     SelectionSound(selectionTick = state.selectionTick)
     DeselectionSound(deselectionTick = state.deselectionTick)
     UndoSound(undoTick = state.undoTick)
     InvalidTapSound(rejectedTapTick = state.rejectedTapTick)
+    WrongTapHaptic(rejectedTapTick = state.rejectedTapTick, hapticsOn = state.hapticsOn)
     HintSound(hintSource = state.hintSource)
     WinSound(status = state.status)
     AdMessageSnackbarEffect(
@@ -232,7 +246,13 @@ fun GameScreen(
                             state = state,
                             onCellTap = onCellTap,
                             onAnimationFinished = onAnimationFinished,
-                            modifier = Modifier.padding(dimensionResource(R.dimen.spacing_md)),
+                            modifier =
+                                Modifier
+                                    .padding(dimensionResource(R.dimen.spacing_md))
+                                    // D-06c: the board itself is the polite live region; no new node.
+                                    .wrongTapAnnouncement(wrongTapAnnouncement),
+                            // D-06: the gameplay board corrects a wrong tap on the tapped cell.
+                            wrongTapCorrection = true,
                         )
                     }
                 }
@@ -294,36 +314,6 @@ fun GameScreen(
             onAccept = onAcceptAdOffer,
             onDismiss = onDismissAdOffer,
         )
-    }
-}
-
-/**
- * Fires one light haptic tick as each jump animation begins (SET-02 / D-15).
- *
- * Haptic emission is a Compose UI concern, so it lives here rather than in the ViewModel:
- * the screen reads the already-collected [GameUiState.hapticsOn] gate (it never touches
- * `SettingsRepository`) and the effect is keyed on the [MoveTransition.id] move ordinal —
- * so it fires exactly once per jump, not once per recomposition. When the setting is off
- * nothing fires and gameplay is otherwise identical.
- *
- * [HapticFeedbackType.ContextClick] is the lightest type in the pinned Compose BOM that is
- * available across the whole supported range (`CONTEXT_CLICK`, API 23 ≤ minSdk 24) — the
- * newer `SegmentTick`/`GestureEnd` constants map to API-34-only platform constants and
- * would be silent on most devices, and `LongPress` is far too heavy for a peg hop.
- *
- * @param animatingMoveId the in-flight jump's move ordinal, or `null` when settled.
- * @param hapticsOn the persisted haptics gate carried by the UI state.
- */
-@Composable
-private fun JumpHaptic(
-    animatingMoveId: Int?,
-    hapticsOn: Boolean,
-) {
-    val haptics = LocalHapticFeedback.current
-    LaunchedEffect(animatingMoveId) {
-        if (animatingMoveId != null && hapticsOn) {
-            haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
-        }
     }
 }
 
@@ -392,6 +382,31 @@ private fun InvalidTapSound(rejectedTapTick: Int) {
     val sound = LocalSoundPlayer.current
     LaunchedEffect(rejectedTapTick) {
         if (rejectedTapTick > 0) sound.play(SoundCue.InvalidTap)
+    }
+}
+
+/**
+ * The wrong tap's reject haptic (D-06b, `docs/ux/invalid-tap-feedback.md` §3.4): one
+ * [HapticFeedbackType.Reject] per wrong tap, at the tap — the platform's own `REJECT`, two short
+ * pulses — and never on a selection, a put-down or a jump. Gated by [wrongTapHapticFires] on
+ * `hapticsOn` and API 30, checked here in our own code; no ignore-global-setting flag, as for the
+ * jump. Nothing else gates it: with Sound off or the ringer on Vibrate the tap still buzzes.
+ *
+ * Private to the gameplay screen, beside [InvalidTapSound], so the tutorial — which answers a
+ * wrong tap with its redirect alone (D-01j(2), tech-lead Ruling 3) — cannot call it. Keyed through
+ * [NewOrdinalEffect] rather than the `> 0` guard the cues use, so a screen recomposed from scratch
+ * with a carried ordinal (a rotation) does not buzz for a tap made before it.
+ */
+@Composable
+private fun WrongTapHaptic(
+    rejectedTapTick: Int,
+    hapticsOn: Boolean,
+) {
+    val haptics = LocalHapticFeedback.current
+    NewOrdinalEffect(rejectedTapTick) {
+        if (wrongTapHapticFires(hapticsOn, Build.VERSION.SDK_INT)) {
+            haptics.performHapticFeedback(HapticFeedbackType.Reject)
+        }
     }
 }
 

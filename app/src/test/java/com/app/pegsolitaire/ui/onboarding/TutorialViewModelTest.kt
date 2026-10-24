@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.lifecycle.viewModelScope
 import app.cash.turbine.test
+import com.app.pegsolitaire.data.HapticsSetting
 import com.app.pegsolitaire.data.OnboardingRepository
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
@@ -131,7 +132,7 @@ class TutorialViewModelTest {
             // process-lifetime `SupervisorJob` that is nobody's child and is never cancelled
             // (`DataModule.provideApplicationScope`).
             val applicationScope = CoroutineScope(SupervisorJob() + testDispatcher)
-            val viewModel = TutorialViewModel(repository, applicationScope)
+            val viewModel = TutorialViewModel(repository, FixedHapticsSetting(on = true), applicationScope)
 
             viewModel.onExit()
             runCurrent()
@@ -202,8 +203,8 @@ class TutorialViewModelTest {
     fun showHintsIsForcedOnRegardlessOfThePersistedSetting() =
         runTest(testDispatcher) {
             // D-01b: legal destinations are always visible, so no step can become a
-            // guessing game. There is no settings collaborator to disagree with — see
-            // theTutorialViewModelsOnlyCollaboratorsAre... below.
+            // guessing game. The only settings collaborator, HapticsSetting, cannot read the
+            // hint switch at all — see theHapticsSettingSeamExposesOnlyTheHapticsFlow below.
             val viewModel = viewModelFor()
             runCurrent()
 
@@ -413,16 +414,119 @@ class TutorialViewModelTest {
             assertThat(viewModel.uiState.value.board.legalTargets).isEqualTo(heldTargets)
         }
 
+    // ---- Group D: the wrong-tap signal on the tutorial's board (D-01j(2), §3.7) --
+
     @Test
-    fun theTutorialViewModelsOnlyCollaboratorsAreTheOnboardingRepositoryAndTheApplicationScope() {
+    fun aNonProgressingTapRecordsTheWrongTapSignalOnTheBoard() =
+        runTest(testDispatcher) {
+            // The signal rides on the board, never on a TutorialUiState field: the board is
+            // what the canvas reads to draw the redirect, and that class's own fields stay free
+            // of failure vocabulary (FORBIDDEN_STATE_WORDS).
+            val viewModel = viewModelFor()
+            runCurrent()
+            playTheOnlyMove(viewModel)
+            settleStepAdvance()
+
+            viewModel.onCellTap(T2_ILLEGAL_HOLE) // T-W1: an empty hole, nothing held
+            runCurrent()
+            assertThat(viewModel.uiState.value.board.rejectedTapTick).isEqualTo(1)
+            assertThat(viewModel.uiState.value.board.rejectedTapCell).isEqualTo(T2_ILLEGAL_HOLE)
+
+            viewModel.onCellTap(T2_MOVABLE_PEG) // a selection: progress, not a wrong tap
+            runCurrent()
+            assertThat(viewModel.uiState.value.board.rejectedTapTick).isEqualTo(1)
+
+            viewModel.onCellTap(T2_IMMOVABLE_PEG) // T-W2: a different peg while one is held
+            runCurrent()
+            assertThat(viewModel.uiState.value.board.rejectedTapTick).isEqualTo(2)
+            assertThat(viewModel.uiState.value.board.rejectedTapCell).isEqualTo(T2_IMMOVABLE_PEG)
+            assertThat(viewModel.uiState.value.board.selected).isEqualTo(T2_MOVABLE_PEG)
+        }
+
+    @Test
+    fun aStepAdvanceCarriesTheWrongTapOrdinalAndClearsTheCell() =
+        runTest(testDispatcher) {
+            // forStep is the tutorial's only board install, so it carries the ordinal under the
+            // same house rule as the gameplay board's four install sites (§3.7); the cell named a
+            // cell of the footprint being replaced.
+            val viewModel = viewModelFor()
+            runCurrent()
+            viewModel.onCellTap(T1_EMPTY_HOLE)
+            runCurrent()
+            assertThat(viewModel.uiState.value.board.rejectedTapTick).isEqualTo(1)
+
+            playTheOnlyMove(viewModel)
+            settleStepAdvance()
+
+            assertThat(viewModel.uiState.value.stepIndex).isEqualTo(SECOND_STEP)
+            assertThat(viewModel.uiState.value.board.rejectedTapTick).isEqualTo(1)
+            assertThat(viewModel.uiState.value.board.rejectedTapCell).isNull()
+        }
+
+    @Test
+    fun theTutorialViewModelsOnlyCollaboratorsAreTheOnboardingRepositoryTheHapticsSettingAndTheApplicationScope() {
         // §5.1 prohibitions 2 and 3 as a TEST rather than a grep: a later refactor that
         // injects ProgressRepository, ResumeRepository or ChallengeProgress — any of which
         // could bank a star, clear a resume snapshot or advance the ladder — fails here.
+        // The third collaborator is the read-only Haptics seam (tech-lead ruling 2026-10-18):
+        // it reads one Boolean and can write nothing.
         val constructor = TutorialViewModel::class.java.declaredConstructors.single()
 
         assertThat(constructor.parameterTypes.toList())
-            .containsExactly(OnboardingRepository::class.java, CoroutineScope::class.java)
+            .containsExactly(OnboardingRepository::class.java, HapticsSetting::class.java, CoroutineScope::class.java)
     }
+
+    @Test
+    fun theHapticsSettingSeamExposesOnlyTheHapticsFlow() {
+        // The pin above holds only while the seam stays this small: a seam that grew a
+        // hint read, a sound read or a setter would let the tutorial through the door the
+        // pin exists to keep shut.
+        assertThat(HapticsSetting::class.java.declaredMethods.map { it.name }).containsExactly("getHapticsOn")
+        assertThat(HapticsSetting::class.java.interfaces).isEmpty()
+    }
+
+    // ---- Group C: the tutorial reads the Haptics switch (ruling 2026-10-18) --
+
+    @Test
+    fun theTutorialBoardCarriesThePersistedHapticsSetting() =
+        runTest(testDispatcher) {
+            val off = viewModelFor(hapticsSetting = FixedHapticsSetting(on = false))
+            val on = viewModelFor(hapticsSetting = FixedHapticsSetting(on = true))
+            runCurrent()
+
+            assertThat(off.uiState.value.board.hapticsOn).isFalse()
+            assertThat(on.uiState.value.board.hapticsOn).isTrue()
+        }
+
+    @Test
+    fun hapticsAreOnBeforeTheSettingIsRead() =
+        runTest(testDispatcher) {
+            // D-17, as on the gameplay board: until the first emission the switch reads on.
+            val viewModel = viewModelFor(hapticsSetting = NeverEmittingHapticsSetting())
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.board.hapticsOn).isTrue()
+        }
+
+    @Test
+    fun aStepAdvanceKeepsThePersistedHapticsSetting() =
+        runTest(testDispatcher) {
+            // Each step installs a board rebuilt from GameUiState.initial(), whose hapticsOn is
+            // the fail-open true, and the persisted flow does not re-emit an unchanged value. So
+            // an install that does not carry the setting buzzes for a player who switched it off.
+            val viewModel = viewModelFor(hapticsSetting = FixedHapticsSetting(on = false))
+            runCurrent()
+
+            playTheOnlyMove(viewModel)
+            settleStepAdvance()
+            assertThat(viewModel.uiState.value.stepIndex).isEqualTo(SECOND_STEP)
+            assertThat(viewModel.uiState.value.board.hapticsOn).isFalse()
+
+            playTheOnlyMove(viewModel)
+            settleStepAdvance()
+            assertThat(viewModel.uiState.value.stepIndex).isEqualTo(THIRD_STEP)
+            assertThat(viewModel.uiState.value.board.hapticsOn).isFalse()
+        }
 
     /** Plays the single legal move of whichever one-move step is installed (T1 or T2). */
     private fun TestScope.playTheOnlyMove(viewModel: TutorialViewModel) {
@@ -447,7 +551,8 @@ class TutorialViewModelTest {
 
     private fun TestScope.viewModelFor(
         repository: OnboardingRepository = GatedOnboardingRepository(),
-    ): TutorialViewModel = TutorialViewModel(repository, backgroundScope)
+        hapticsSetting: HapticsSetting = FixedHapticsSetting(on = true),
+    ): TutorialViewModel = TutorialViewModel(repository, hapticsSetting, backgroundScope)
 
     private companion object {
         const val FIRST_STEP = 0
@@ -469,6 +574,9 @@ class TutorialViewModelTest {
         const val THRESHOLD_IN_USE =
             "with TutorialAnim.NON_PROGRESSING_TAPS_BEFORE_COACH = " +
                 "${TutorialAnim.NON_PROGRESSING_TAPS_BEFORE_COACH}; criterion 4 asks for the third tap"
+
+        /** T1's one hole, which nothing points at while nothing is held. */
+        val T1_EMPTY_HOLE = Position(row = 0, col = 2)
 
         /** T2's only movable peg — the source of its single legal move, so the coached one. */
         val T2_MOVABLE_PEG = Position(row = 0, col = 1)

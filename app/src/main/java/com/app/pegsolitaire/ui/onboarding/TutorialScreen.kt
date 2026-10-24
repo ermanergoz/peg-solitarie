@@ -51,6 +51,7 @@ import com.app.pegsolitaire.audio.SoundCue
 import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.ui.components.BoardCanvas
+import com.app.pegsolitaire.ui.game.JumpHapticEffect
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.app.pegsolitaire.ui.theme.ClayAnim
 import com.app.pegsolitaire.ui.theme.clayShadow
@@ -89,7 +90,9 @@ const val TUTORIAL_SCREEN_TEST_TAG = "tutorial_screen"
  * ladder cannot drift from the real game's. The two exits speak the app's press vocabulary.
  * Everything else on this screen is silent: no select, deselect, invalid-tap, move-rewind,
  * hint, star-pop or win cue, at any point, on any step. The asymmetry is the whole audio design —
- * the one sound on the screen marks the one thing the player got right.
+ * the one sound on the screen marks the one thing the player got right. The same jump is also
+ * felt (D-01j): the game's own `ContextClick`, through the shared [JumpHapticEffect], under the
+ * persisted Haptics switch the board state carries — and nothing else on this screen buzzes.
  *
  * @param state the immutable tutorial state (single source of truth).
  * @param onCellTap emits the tapped board [Position] up to the ViewModel, which owns every rule.
@@ -110,6 +113,7 @@ fun TutorialScreen(
     // The one cue the board makes, and it is the SHARED effect (D-01i): re-implementing it
     // here would duplicate the removal layering and the pitch ladder and let them drift.
     JumpSoundEffect(transition = state.board.animating)
+    JumpHapticEffect(animatingMoveId = state.board.animating?.id, hapticsOn = state.board.hapticsOn)
 
     Surface(
         modifier = modifier.fillMaxSize(),

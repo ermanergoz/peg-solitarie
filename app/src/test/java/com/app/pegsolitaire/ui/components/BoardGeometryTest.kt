@@ -74,6 +74,24 @@ class BoardGeometryTest {
         assertThat(geometry.positionAt(Offset(FAR_OUTSIDE_PX, FAR_OUTSIDE_PX))).isNull()
     }
 
+    @Test
+    fun aTapInACellsDeadCornerIsDroppedWhileOneInsideItsHitCircleLands() {
+        // WT-5 (D-06d): the corners of an in-play cell's square lie outside its inscribed hit
+        // circle (0.5 x cellSize), so a tap there is dropped before the board sees it: it selects
+        // nothing and is no wrong tap either, so no feedback of any kind follows.
+        val geometry = geometryFor(Boards.English33)
+        val cell = Position(row = 3, col = 3)
+        val center = geometry.center(cell)
+        val nearTheEdge = geometry.cellSize * NEAR_THE_EDGE
+
+        // Diagonal: inside the cell's square (< 0.5 per axis), outside its circle (0.45 x sqrt 2 > 0.5).
+        assertThat(geometry.positionAt(center + Offset(nearTheEdge, nearTheEdge))).isNull()
+        assertThat(geometry.positionAt(center + Offset(-nearTheEdge, -nearTheEdge))).isNull()
+        // Straight out the same distance: inside the circle, so the same tap lands on the cell.
+        assertThat(geometry.positionAt(center + Offset(nearTheEdge, 0f))).isEqualTo(cell)
+        assertThat(geometry.positionAt(center + Offset(0f, -nearTheEdge))).isEqualTo(cell)
+    }
+
     private fun geometryFor(spec: BoardSpec): BoardGeometry =
         BoardGeometry.forCanvas(spec, Size(CANVAS_EDGE_PX, CANVAS_EDGE_PX))
 
@@ -81,6 +99,9 @@ class BoardGeometryTest {
         const val CANVAS_EDGE_PX = 720f
         const val CANVAS_MIN_PX = 0f
         const val FAR_OUTSIDE_PX = 1440f
+
+        /** A fraction of a cell short of its edge: inside the square, but past the circle diagonally. */
+        const val NEAR_THE_EDGE = 0.45f
 
         const val DIMENSION_SEVEN = 7
         const val DIMENSION_EIGHT = 8

@@ -2,6 +2,7 @@ package com.app.pegsolitaire.ui.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.app.pegsolitaire.data.HapticsSetting
 import com.app.pegsolitaire.data.OnboardingRepository
 import com.app.pegsolitaire.di.ApplicationScope
 import com.app.pegsolitaire.domain.model.Cell
@@ -35,9 +36,12 @@ import javax.inject.Inject
  * routing the tutorial through it would fire that path three times per run and destroy two of
  * the three cloud-save device oracles — a failure that looks correct on screen and is wrong in
  * the database. This class
- * therefore has exactly **two** collaborators, [OnboardingRepository] and the application
- * scope, and `TutorialViewModelTest` pins that by reflection over this constructor rather
- * than by a grep, so a later refactor that injects a progress dependency fails a test.
+ * therefore has exactly **three** collaborators, [OnboardingRepository], [HapticsSetting] and the
+ * application scope, and `TutorialViewModelTest` pins that by reflection over this constructor
+ * rather than by a grep, so a later refactor that injects a progress dependency fails a test.
+ * The third is allowed because it is not a progress dependency: it is a read-only seam over one
+ * setting, Haptics, which the jump the player feels honours exactly as on the gameplay board
+ * (D-01j), and a second test keeps that seam to its single member (tech-lead ruling 2026-10-18).
  *
  * For the same reason a step's completion is `board.pegCount == 1` evaluated here and not a
  * `GameStatus`: reaching for the game's status type is the first step down that same path
@@ -64,6 +68,9 @@ import javax.inject.Inject
  *
  * @param onboardingRepository the DataStore-backed seen flag — the single source of truth for
  *   whether the tutorial is still owed, and the only thing this screen persists.
+ * @param hapticsSetting the persisted Haptics switch (SET-02), collected into
+ *   `board.hapticsOn` exactly as the gameplay board collects it, so the shared jump haptic reads
+ *   the same gate on both boards.
  * @param applicationScope the process-lifetime scope the seen flag is written on, so the
  *   write outlives the screen that requested it (the same reasoning
  *   `ProgressSubmitter.onProfileSwapResolved` already records for the wipe).
@@ -73,6 +80,9 @@ class TutorialViewModel
     @Inject
     constructor(
         private val onboardingRepository: OnboardingRepository,
+        hapticsSetting: HapticsSetting,
+        // `@param:`, as in SoundPoolPlayer: Dagger reads the parameter annotation, and the
+        // default use-site target is changing (KT-73255), which Kotlin 2.3 warns about.
         @param:ApplicationScope private val applicationScope: CoroutineScope,
     ) : ViewModel() {
         private val _uiState = MutableStateFlow(TutorialUiState.initial())
@@ -108,6 +118,14 @@ class TutorialViewModel
         private var nudgeJob: Job? = null
 
         init {
+            // Same contract as the gameplay board (SET-02, D-15): the board's state carries the
+            // persisted switch and the screen fires the tick; fail-open ON until the first
+            // emission. No `catch` of its own: the repository's read already fails open (D-17).
+            viewModelScope.launch {
+                hapticsSetting.hapticsOn.collect { on ->
+                    _uiState.update { it.withBoard(it.board.copy(hapticsOn = on)) }
+                }
+            }
             armNudge()
         }
 
@@ -144,7 +162,7 @@ class TutorialViewModel
                 selected != null && position in state.board.legalTargets -> jump(from = selected, to = position)
                 // A peg selects only while NOTHING is held — the game's rule, above.
                 selected == null && board.cellAt(position) == Cell.Peg -> select(position)
-                else -> registerNonProgressingTap()
+                else -> registerNonProgressingTap(position)
             }
         }
 
@@ -247,7 +265,19 @@ class TutorialViewModel
                     _uiState.update { it.completed() }
                 } else {
                     resetStepCursors()
-                    _uiState.update { TutorialUiState.forStep(nextIndex) }
+                    // The persisted Haptics value is read INSIDE the update, from the board being
+                    // replaced: a fresh step board starts at the fail-open `true`, and the
+                    // DataStore flow does not re-emit an unchanged value, so a value captured
+                    // outside the lambda could lose a collector emission landing between the two.
+                    // The wrong-tap ordinal is carried the same way, under the house tick rule the
+                    // gameplay board's four install sites follow (D-06, §3.7).
+                    _uiState.update {
+                        TutorialUiState.forStep(
+                            index = nextIndex,
+                            hapticsOn = it.board.hapticsOn,
+                            rejectedTapTick = it.board.rejectedTapTick,
+                        )
+                    }
                     armNudge()
                 }
             }
@@ -263,8 +293,19 @@ class TutorialViewModel
          * A tap that changed nothing (§4.4 classes 1 and 2). It is never a failure: the
          * selection and the board are untouched, nothing is announced as wrong, and on the
          * third such tap the coach escalates once.
+         *
+         * It records the same wrong-tap signal as the gameplay board — the ordinal and the
+         * tapped cell, on the board's own state — because the board's redirect is drawn from it
+         * (D-01j(2)): the held peg's dots re-pop, or its ring nudges. That is assistance ("look
+         * here"), never correction: the canvas draws no shake or mark here, and this screen hosts
+         * no reject haptic, cue or announcement.
          */
-        private fun registerNonProgressingTap() {
+        private fun registerNonProgressingTap(position: Position) {
+            _uiState.update {
+                it.withBoard(
+                    it.board.copy(rejectedTapTick = it.board.rejectedTapTick + 1, rejectedTapCell = position),
+                )
+            }
             nonProgressingTaps += 1
             if (nonProgressingTaps >= TutorialAnim.NON_PROGRESSING_TAPS_BEFORE_COACH) {
                 escalateCoach()

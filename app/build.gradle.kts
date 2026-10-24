@@ -456,6 +456,37 @@ tasks.matching { it.name == "mergeDebugAssets" }.configureEach {
     dependsOn("copyRoomSchemas")
 }
 
+// P5 (docs/tech/audio-silent-mode.md §2.3). `AudioCreditsTest` reads docs/audio/CREDITS.md and
+// audio/recipes/ straight from the working tree, outside every source set, so Gradle did not
+// know the tests depend on them: an edit to the credits table alone left `testDebugUnitTest`
+// UP-TO-DATE (or served it FROM-CACHE), and the provenance gate never saw the edit it exists to
+// police. Declared here as inputs of every unit-test task, so such an edit re-runs the tests.
+// `res/raw` needs no line of its own: the packaged test resources already carry it.
+val audioProvenanceInputs =
+    files(
+        rootProject.layout.projectDirectory.file("docs/audio/CREDITS.md"),
+        rootProject.layout.projectDirectory.dir("audio/recipes"),
+    )
+
+tasks.withType<Test>().configureEach {
+    inputs
+        .files(audioProvenanceInputs)
+        .withPropertyName("audioProvenance")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+}
+
+// TutorialSourceGuardTest reads the tutorial's own sources (D-01j(2), WT-16's grep), comments
+// included, and a comment-only edit there may change no class file the test task watches. Declared
+// as an input of every unit-test task, like the audio files above, so such an edit re-runs it.
+val tutorialSourceGuardInputs = files(layout.projectDirectory.dir("src/main/java/com/app/pegsolitaire/ui/onboarding"))
+
+tasks.withType<Test>().configureEach {
+    inputs
+        .files(tutorialSourceGuardInputs)
+        .withPropertyName("tutorialSources")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+}
+
 // Pin androidx.core to the highest line whose minCompileSdk is 36. The default
 // resolved version (1.19.0) requires compileSdk 37, which is not installable in
 // this environment. Version comes from the catalog — no hand-pinned literal here.
