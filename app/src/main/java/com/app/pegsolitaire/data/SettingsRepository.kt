@@ -15,8 +15,9 @@ import javax.inject.Singleton
  * The single source of truth for player-tunable gameplay settings.
  *
  * Three flags so far: [hintsEnabled] (legal-destination dots drawn on the board),
- * [soundOn] (SET-01 — persisted flag only for now; no audio engine yet, D-16) and
- * [hapticsOn] (SET-02 — gates the light haptic fired on a jump, D-15).
+ * [soundOn] (SET-01 — its gate is the sound player's own, SOUND-05: the player collects this
+ * flow, so switching it off also silences cues already playing) and [hapticsOn] (SET-02 —
+ * gates the jump's light tick, D-15, and the wrong tap's reject buzz, D-06b).
  *
  * Every read **fails open** to `true` (D-17): a missing key (fresh install) or a
  * corrupt/IO read both degrade to "helper on", so a damaged store can never silently

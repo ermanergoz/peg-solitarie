@@ -1,6 +1,5 @@
 package com.app.pegsolitaire.ui.onboarding
 
-import android.provider.Settings
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -16,6 +15,7 @@ import com.app.pegsolitaire.audio.SoundCue
 import com.app.pegsolitaire.audio.SoundParams
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
+import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.game.BoardMetrics
 import com.app.pegsolitaire.ui.theme.AppTheme
@@ -42,8 +42,11 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [TUTORIAL_SOUND_ROBOLECTRIC_SDK])
 class TutorialSoundTest {
+    /** The animation scale the screen's effects and its reduced-motion gate read; on unless a test turns it off. */
+    private val motion = SystemMotionScale()
+
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createComposeRule(effectContext = motion)
 
     private val sounds = FakeSoundPlayer()
 
@@ -206,17 +209,14 @@ class TutorialSoundTest {
     }
 
     /**
-     * Turns the OS animator scale off, the way a player with reduced motion has it — the same
-     * `Settings.Global` value `rememberAnimationsEnabled()` reads, so the board takes its real
-     * snap path rather than a mocked approximation. Set **before** the composition, because
-     * that read is `remember`ed per context.
+     * Turns the animation scale off, the way a player with reduced motion has it: the
+     * composition's `MotionDurationScale` goes to 0, and both `rememberAnimationsEnabled()` and
+     * every `Animatable` read it, so the board takes its real snap path, clock included, rather
+     * than a mocked approximation. Under Compose's test rule a `Settings.Global` write reaches
+     * neither.
      */
     private fun disableOsAnimations() {
-        Settings.Global.putFloat(
-            RuntimeEnvironment.getApplication().contentResolver,
-            Settings.Global.ANIMATOR_DURATION_SCALE,
-            ANIMATIONS_OFF,
-        )
+        motion.turnAnimationsOff()
     }
 
     /** Lets the removal cue's deliberate lag past the jump cue elapse before an assertion reads. */
@@ -236,9 +236,6 @@ class TutorialSoundTest {
 
         /** Comfortably past `SoundParams.REMOVAL_LAYER_DELAY_MS`. */
         const val REMOVAL_SETTLE_MS = 500L
-
-        /** The OS animator duration scale a player with reduced motion has set (criterion 25). */
-        const val ANIMATIONS_OFF = 0f
     }
 }
 

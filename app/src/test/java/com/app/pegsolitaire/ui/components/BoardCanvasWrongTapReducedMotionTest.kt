@@ -1,6 +1,5 @@
 package com.app.pegsolitaire.ui.components
 
-import android.provider.Settings
 import com.app.pegsolitaire.ui.components.WrongTapBoards.Companion.CENTRE_HOLE
 import com.app.pegsolitaire.ui.components.WrongTapBoards.Companion.DESTINATION
 import com.app.pegsolitaire.ui.components.WrongTapBoards.Companion.FAR_HOLE
@@ -9,12 +8,10 @@ import com.app.pegsolitaire.ui.components.WrongTapBoards.Companion.FRAME_MS
 import com.app.pegsolitaire.ui.components.WrongTapBoards.Companion.HELD_PEG
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -23,8 +20,8 @@ import org.robolectric.annotation.GraphicsMode
  * `docs/ux/invalid-tap-feedback.md` §3.2; WT-10, WT-19's mark, and the reduced-motion halves of
  * WT-11, WT-16 and WT-17), read off its pixels against a control board ([WrongTapBoards]).
  *
- * The phone is modelled whole: the animator scale is 0 in `Settings.Global`, which the board reads,
- * and in the effects' `MotionDurationScale`, which every `Animatable` reads. The second matters
+ * The phone is modelled whole: the animation scale is 0 in the composition's `MotionDurationScale`,
+ * which both the board's reduced-motion gate and every `Animatable` read. The clock half matters
  * because the mark's 450 ms is functional: held on an animation clock it would end in its first
  * frame on exactly the phones it exists for, and this class would see it go.
  *
@@ -47,15 +44,6 @@ class BoardCanvasWrongTapReducedMotionTest {
     val composeRule = createWrongTapComposeRule(animationsOn = false)
 
     private val boards = WrongTapBoards(composeRule)
-
-    @Before
-    fun turnTheSystemAnimationsOff() {
-        Settings.Global.putFloat(
-            RuntimeEnvironment.getApplication().contentResolver,
-            Settings.Global.ANIMATOR_DURATION_SCALE,
-            ANIMATIONS_OFF,
-        )
-    }
 
     @Test
     fun aWrongTapMarksTheHoleFromItsOwnFrameWholeAndStillThroughTheHoldThenLeavesNothing() {
@@ -178,8 +166,6 @@ class BoardCanvasWrongTapReducedMotionTest {
     }
 
     private companion object {
-        const val ANIMATIONS_OFF = 0f
-
         /** Past the hold and its frames, with room to see that nothing comes back. */
         const val WATCH_FRAMES = 36
 
