@@ -728,12 +728,12 @@ no `fuzz:` line; the lines are in the restored JUnit XML's `system-out`. The rel
 
 | Suite | Runner | Gate | Cost |
 |---|---|---|---|
-| `:domain:test` — 280 tests in 40 files at check-gates (*until the check-gates merge-in, 2026-10-24, this cell read "37 `.kt` files, 30 of them `*Test.kt` (counted on `develop` at `4ff4ec6`, 2026-10-24, N-8)", and before that "36 test files"*): rules, generator properties, golden fixtures, solver, book, scoring, merge law, the ladder and `FUZZ_SEEDS` parse tests | JVM, JUnit4 + Truth, under kover's agent (§8.4) | per commit, in `check` | ~30 s |
+| `:domain:test` — 294 tests in 33 classes, from 41 `.kt` files, 33 of them `*Test.kt` (measured on the merged tree `ffa49aa`, check-gates' `develop` merge-in, 2026-10-24: the JUnit XML of that merge's Check, 33 suites, 0 failed or skipped; *until that merge-in's re-read this cell read "280 tests in 40 files at check-gates" — 280 tests there, but git counts 41 `.kt` files at `c632b45` too; before the merge-in, "37 `.kt` files, 30 of them `*Test.kt` (counted on `develop` at `4ff4ec6`, 2026-10-24, N-8)", and before that "36 test files"*): rules, generator properties, golden fixtures, solver, book, scoring, merge law, the ladder and `FUZZ_SEEDS` parse tests | JVM, JUnit4 + Truth, under kover's agent (§8.4) | per commit, in `check` | ~30 s |
 | `:domain:depthSweep` | JVM, own task | `check` | ~11 min (§7.2) |
 | `:domain:fuzz` — `FuzzHarnessTest` | JVM, own task, outside kover | `check` at 10,000 = CI = release (exhaustive, §7.3) | ≈ 6 s (5.955 s at 10,000) |
 | `:domain:koverVerify` | kover 0.9.11 over `:domain:test` only | `check` (§8.4) | seconds |
 | `:app:testDebugUnitTest` — ViewModels (Turbine), repositories against the real in-memory Room DB, Robolectric Compose UI tests (one per screen's main flow), ArchUnit boundary tests, codec and merge tests | JVM, Robolectric 4.16 SDK 34 (the only `android-all` image cached offline — **do not add `@Config(sdk = ...)` for another level**: it needs a network fetch and breaks `check --offline`) | `check` | minutes |
-| `build-logic` tests (54 at R-1; 54 after check-gates C3, whose brief count of 55 was wrong, addendum A0; 55 after C3a) — the release-gate resolvers | JVM | CI's first step (`./gradlew -p build-logic test`); not reachable from the root `check` | seconds |
+| `build-logic` tests (54 at R-1; 54 after check-gates C3, whose brief count of 55 was wrong, addendum A0; 55 after C3a) — the release-gate resolvers | JVM | `check`: the root `build.gradle.kts:18-20` makes it depend on the included build's `:check` (PLAT-06, `7b28007`, 2026-08-27), and the 55 ran in the merge-in's Check on `ffa49aa`; CI also runs them first, alone, to fail fast (`./gradlew -p build-logic test`, §9.7) *(until check-gates' merge-in re-read, 2026-10-24: "CI's first step (`./gradlew -p build-logic test`); not reachable from the root `check`", stale since `7b28007`)* | seconds |
 | Device sessions | qa-engineer, real device else emulator | every executed plan, every phase, every release | — |
 
 Deterministic tests only: no wall clock, no network, no unseeded random, no sleeps (the four solver
@@ -1001,7 +1001,10 @@ moves to its own parallel job in the same workflow whose union with the first jo
 (never back to a list of task names). The producer records the first measured figure in STATUS.md.
 Since R-2 (C5) the step carries `FUZZ_SEEDS: "10000"` explicitly whatever the local default (§7.3). The
 step's own comment at `ci.yml:58` still calls `check` "the Check command in CLAUDE.md" (auditor finding 7;
-the header at `:3-8` is right): fixed with the next edit of the file (§14.2).
+the header at `:3-8` is right): fixed with the next edit of the file (§14.2). The build-logic step's comment at
+`:48-49` says those tests are "not part of the root `check`"; the root `check` has reached them since `7b28007`
+(§8.1), so the step is a fail-fast first run, not their only one, and the comment is corrected in the same edit
+(check-gates' merge-in re-read, 2026-10-24).
 
 ### 9.8 Kotlin and lint warnings — ruling (2026-10-18)
 
@@ -1484,7 +1487,9 @@ with three sources: R1 (step 3a, from `.planning/reports/hint-undecided/tech-lea
 3b. **`feature/tech-design-sync`** (row TDS), docs only: any time, once its reports exist, like step 1 — and
    before the `feature/talkback-board` developer dispatch and before checklist 1.1 runs. It carries this file
    only, so it conflicts with no code branch; a later branch that edits this file (R1's §7.2 rewrite, LN,
-   5a's close of §16 #24) takes `develop` in and keeps both, distinct sections.
+   5a's close of §16 #24) takes `develop` in and keeps both, distinct sections. *(2026-10-24, check-gates'
+   merge-in re-read: "keeps both" holds for distinct sections only; where both sides number new rows in one
+   list or write one figure measured at two trees, the merge-in rule in §17 governs.)*
 4. `feature/phase-14-check-gates`, cut from `develop` only after R-1 and phase 15 have merged. *(2026-10-24:)*
    signed off PASS; it merges after 3a, with `develop` merged in and the Check green on the merged tree
    (R-2 row).
@@ -1552,7 +1557,8 @@ fault — emulator DNS — not an app change). **Added 2026-10-24 (the R-2 sign-
 `tech-lead-signoff-check-gates.md`):** `scripts/check.sh` records the Gradle child's PID and reclaims only
 when both PIDs are dead, closing the `kill -9` window (§9.6, auditor finding 3), with its INT comment
 corrected in the same edit (finding 6); `ci.yml:58`'s step comment names `./scripts/check.sh` as the Check
-command with the file's next edit (finding 7); `app/build.gradle.kts:446`'s deprecated
+command with the file's next edit (finding 7), and in the same edit `ci.yml:48-49`'s build-logic comment stops
+saying those tests are outside the root `check` (§9.7; added at check-gates' merge-in re-read, 2026-10-24); `app/build.gradle.kts:446`'s deprecated
 `assets.srcDir(roomSchemaDir)` is replaced by the form the AGP ladder step's release notes name, with that
 step (finding 5: a build-script diagnostic, outside §9.8, a break only on the AGP that removes the method);
 and the solver deadline tests' own task (§8.6, row DT) if it slips past the cut.
@@ -1675,4 +1681,6 @@ Nothing is deleted from this file; a superseded decision stays with a pointer to
 | §8.1's "no wall clock" with no exception, and §8.4's unqualified instrumentation of `:domain:test` | The four solver deadline tests are the recorded exception, placed in their own task outside kover (row DT) | §8.6; `code-auditor-check-gates.md` finding 4 |
 | "`check` wall clock ≈ 11 min" (§9.1, §10) | ≈ 11.5–12 min with `--rerun-tasks` on a quiet host; the branch's additions are seconds | §7.3, §9.1, §10 |
 | R-7's and checklist 1.2/3.1's `FUZZ_SEEDS=100000 ./scripts/check.sh` | The same with `--rerun-tasks`, so a cached fuzz prints its evidence | §7.3, §14.1 R-7; `77dcf88` |
-| §16 #23, #24 and #25 as numbered on `feature/phase-14-check-gates` (`74eec52`, the R-2 sign-off's transcription: the solver deadline tests under kover's agent, `scripts/check.sh` after `kill -9`, and `app/build.gradle.kts`'s deprecated `assets.srcDir(…)`), and the header's "§16 #23–#25" | §16 #25, #26 and #27, the same three rows, renumbered at check-gates' `develop` merge-in (2026-10-24): `feature/tech-design-sync` reached `develop` first with its own #23 (the gameplay cell size) and #24 (the TalkBack board), and the branch that merges second continues after `develop`'s highest number and updates every cross-reference in this file (here only the header's). Reports that cite the old numbers are records and stay as written | §16 #25–#27, the header; `phase-14/tech-lead-signoff-tech-design-sync.md` item 4 |
+| §16 #23, #24 and #25 as numbered on `feature/phase-14-check-gates` (`74eec52`, the R-2 sign-off's transcription: the solver deadline tests under kover's agent, `scripts/check.sh` after `kill -9`, and `app/build.gradle.kts`'s deprecated `assets.srcDir(…)`), and the header's "§16 #23–#25" | §16 #25, #26 and #27, the same three rows, renumbered at check-gates' `develop` merge-in (`ffa49aa`, 2026-10-24): `feature/tech-design-sync` reached `develop` first with its own #23 (the gameplay cell size) and #24 (the TalkBack board), and the branch that merges second continues after `develop`'s highest number and updates every cross-reference in this file (here only the header's; at the merge-in's re-read no other tracked file cited the three numbers). Reports that cite the old numbers are records and stay as written | §16 #25–#27, the header; `phase-14/tech-lead-signoff-tech-design-sync.md` item 4 |
+| §14.1 step 3b's "takes `develop` in and keeps both, distinct sections", read as the whole rule for a merge-in that conflicts in this file (2026-10-24, row TDS) | **The merge-in rule for this file** (tech-lead ruling, `phase-14/tech-lead-signoff-tech-design-sync.md` item 4, written here at check-gates' merge-in re-read; the figure clause and the last sentence are that re-read's). The branch that merges second takes `develop` in on its own branch, never a rebase. Its developer makes the merge-in by the rules below, or the producer for a docs-only branch with no developer. The Check re-runs on the merged tree, and a fresh tech-lead re-reads the merge commit's conflict hunks (`git show --cc`) before the `--no-ff` merge; docs hunks need no code-auditor. Hunks: (1) the two branches' dated sync sentences in the header: both, `develop`'s first; (2) amendments to different rows, steps or sections, and rows adjacent only: both, in the document's order; (3) both sides number new rows in one list (§16): the second to merge renumbers its own rows to continue after `develop`'s highest number, updates every cross-reference to them in this file, and adds a §17 row naming the old numbers; reports that cite the old numbers are records and stay as written; (4) one cell holding a figure measured at two trees: not both. The cell takes the merged tree's own figure when the merge-in's Check measures it, else the later tree's, and the replaced figures stay as a dated "until then" note; (5) §17 rows: both, `develop`'s first. A hunk that none of these decides is a choice of text, not merge mechanics: it stops and comes to the tech-lead before the merge-in is committed | §14.1 step 3b, §16, §8.1, the header; `phase-14/tech-lead-signoff-tech-design-sync.md` item 4; `phase-14/tech-lead-merge-read-check-gates.md` |
+| §8.1's `:domain:test` cell "280 tests in 40 files at check-gates", as the merge-in resolved it by item 4's hunk 2, and its build-logic row's "not reachable from the root `check`" | 294 tests in 33 classes from 41 `.kt` files, measured on the merged tree `ffa49aa`. Build-logic's 55 tests are reached by the root `check` (`build.gradle.kts:18-20`, `7b28007`, 2026-08-27); CI's `-p build-logic test` step is a fail-fast first run, and `ci.yml:48-49`'s comment is corrected with finding 7's edit | §8.1, §9.7, §14.2; the merge report's open issues 2 and 3 (`phase-14/android-game-dev-check-gates-merge.md`) |
