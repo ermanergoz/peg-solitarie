@@ -40,3 +40,11 @@ New tests: `ui/theme/AnimationsEnabledGateTest.kt`, `AnimationsEnabledGateWithou
 
 ## Handoff
 tech-lead: rule open issue 1 (A or B). code-auditor: `6aa7624..47e7477`. qa-engineer: §3's device check (English-33; Remove animations on → mark within 450 ms; off → shake; WT-15, P9), Results stars and tutorial redirect after a live toggle, open issue 3.
+
+## Loop 0b — ruling A applied (2026-10-24; `2b98c5c..873fb9e`)
+> Producer note: returned as text; appended by the producer.
+- `2b98c5c` test-only, exactly the 11 files of the ruling's §3 table (+55/−75): the five suites pass `motion = SystemMotionScale()` as the v1 rule's `effectContext` and use `motion.turnAnimationsOff()`; `BoardCanvasWrongTapReducedMotionTest`'s dead `@Before` write removed; `GameScreenHintNoticeTest` class-KDoc sentence (§8.1: v2 for `recreateTheScreen` and `deliverTheTapsWrites`); the four new classes moved to the house v1 rule (all green on v1). `git show -U0 2b98c5c | grep -E '^[-+].*(assert|containsExactly|isEqualTo|hasSize|isEmpty)'` → nothing.
+- `873fb9e` KDoc only: `SettingsUiState` and `data/SettingsRepository.kt` audio-engine lines.
+- Probe (temporary `check(gate on)`, never committed): 14 of 63 tests in the seven files fail with the probe's message — `GameScreenSoundTest` ×3, `GameFlowTest.aJumpStillFiresTheHaptic…`, `ResultsCelebrationSoundTest.withOsAnimationsOffThePops…`, `TutorialHapticsTest.aCompletedTutorialJumpStillFires…`, `TutorialSoundTest.aCompletedJumpStillLayers…`, all six `BoardCanvasWrongTapReducedMotionTest`, `GameScreenHintNoticeTest.withAnimationsOffTheNoticeKeepsItsTimeAndGoesInOneFrame`; 0 of the other 49.
+- `./scripts/check.sh --max-workers=4` — pass, 11m 8s: 1,575 tests (`:app` 1,224), 0 failures; lint identical to develop's audio tree. `compileDebugUnitTestKotlin --rerun`: 39 `w:` vs develop's 35 — +1 v1 deprecation line in each of the four classes moved to v1 (§9.8 rule 2's recorded exception; auditor to confirm).
+- Same-model note (Q-019): the auditor's own probe on a 7c-race guard is the independent check of the 14/63.
