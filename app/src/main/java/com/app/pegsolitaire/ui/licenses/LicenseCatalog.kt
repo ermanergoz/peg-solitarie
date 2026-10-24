@@ -322,7 +322,10 @@ private val CHECKER_QUAL =
         opens = singleText(BundledLicenseText.CheckerQualMit, R.string.licenses_mit_name),
     )
 
-/** Inert: the SDK licence is not bundled, so its address is shown as selectable text (LS-05). */
+/**
+ * Inert: the SDK licence is not bundled, so its address is plain text read within the card's one
+ * stop (LS-05 as amended, LS-14).
+ */
 private val GOOGLE_SDKS =
     LicenseEntry(
         id = LicenseEntryIds.GOOGLE_SDKS,
