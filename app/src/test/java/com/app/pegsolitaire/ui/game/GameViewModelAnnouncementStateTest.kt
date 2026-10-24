@@ -1,9 +1,10 @@
 package com.app.pegsolitaire.ui.game
 
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.data.Level
@@ -228,10 +229,10 @@ class GameViewModelAnnouncementStateTest {
         args: Map<String, Any?>,
         progress: ProgressRepository,
     ): GameViewModel {
+        // The typed initializer needs no unchecked cast, so the test adds no suppression.
         val factory =
-            object : ViewModelProvider.Factory {
-                @Suppress("UNCHECKED_CAST")
-                override fun <T : ViewModel> create(modelClass: Class<T>): T =
+            viewModelFactory {
+                initializer {
                     GameViewModel(
                         rulesEngine = RulesEngine,
                         levelRepository = AnnouncementStateLevels,
@@ -244,7 +245,8 @@ class GameViewModelAnnouncementStateTest {
                         adGateway = NoOpAdGateway(),
                         getHintUseCase = GetHintUseCase(),
                         savedStateHandle = SavedStateHandle(args),
-                    ) as T
+                    )
+                }
             }
         return ViewModelProvider(viewModelStore, factory)["vm${viewModelKey++}", GameViewModel::class.java]
     }
