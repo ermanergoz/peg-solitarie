@@ -73,3 +73,39 @@ Date: 2026-10-24. Branch: feature/phase-14-check-gates (head 9b04cf4; working-tr
 
 ### Handoff
 Next: producer. Commit `THIRD_PARTY.md`, `docs/release-checklist.md` and this report. The code-auditor can confirm that findings 1 and 2 are closed from this diff.
+
+## Pass 3 — qa-engineer open issues 1, 2 and 5 (`.planning/reports/phase-14/qa-engineer-check-gates.md`)
+Date: 2026-10-24. Branch: feature/phase-14-check-gates (head b41fcb3; working-tree edit, committed by the producer). Loops: 2. Only `docs/release-checklist.md` was edited, in rows 3.1 to 3.4 alone (`git diff -U0` shows one hunk, `@@ -69,4 +69,4 @@`), so it does not collide with `feature/tech-design-sync`.
+
+### Summary
+- **3.1:** the command is now `mkdir -p build; FUZZ_SEEDS=100000 ./scripts/check.sh --rerun-tasks --console=plain > build/release-check.log 2>&1; echo "exit $?"` → `exit 0`.
+  - The plain console in a file keeps one `> Task …` line per executed task (QA open issue 5).
+  - `build/` is git-ignored by `**/build/`, and the `mkdir` covers a fresh clone.
+  - The FROM-CACHE refusal and the fuzz evidence now read from that log.
+- **3.2:** now states that the check is sound only because 3.1 forces `--rerun-tasks`.
+  - A `FROM-CACHE` green `:domain:fuzz` leaves an earlier red run's `fuzz-failures.txt` in place (QA open issue 2).
+  - 3.2 is read only after a 3.1 log showing `> Task :domain:fuzz` executed, and is not ticked if 3.1 ran without the flag.
+- **3.3:** the gate is still `:domain:koverVerify` inside `check`, shown as executed in the 3.1 log. The figure now comes from `./gradlew :domain:koverXmlReport --offline` run after 3.1.
+  - It is read from the root LINE counter of `domain/build/reports/kover/report.xml`, and that file's mtime must be later than the 3.1 run.
+  - The row states why: `koverVerify` writes only `verify.err` (QA open issue 1).
+  - The 99.0 % (896/905) baseline at bound 90 is unchanged.
+- **3.4:** the evidence is now a grep of the 3.1 log for `> Task :(app|domain):(adIdLiteralCheck|gamesIdLiteralCheck|audioFocusLiteralCheck|dpSpLiteralCheck)`. It must print all eight lines, none of them `FROM-CACHE` or `UP-TO-DATE`, and the count is recorded.
+
+### Checks
+- `grep -rhoE '"(adId|gamesId|audioFocus|dpSp)LiteralCheck"' build-logic app domain | sort -u`: pass. The four task names in 3.4 exist.
+- `git check-ignore -v build/release-check.log`: pass (`.gitignore:3:**/build/`).
+- Proofs, each `grep -n -o` on `docs/release-checklist.md`:
+  - `--rerun-tasks --console=plain > build/release-check.log 2>&1` and "`--console=plain` and the file are required": line 69.
+  - "This check is sound only because 3.1 forces `--rerun-tasks`": line 70.
+  - `./gradlew :domain:koverXmlReport --offline` and "writes only `domain/build/reports/kover/verify.err`": line 71.
+  - "must print all eight lines": line 72.
+- Table integrity: pass. Rows 3.1 to 3.4 have 4 cells each, counted with an awk split that skips `\|`. The pipes inside 3.4's grep are escaped as `\|`, which is the file's own convention (see 3.6). Copied from the raw markdown, they must be unescaped.
+- `git diff --stat`: 1 file, +4/−4. `git status --short`: that file and this report.
+- Gradle: not run. The `verify.err`/`report.xml` behaviour and the stale-file behaviour are cited from the QA's evidence (Checks: the `koverXmlReport` mtime line; `mutant-reverted-fuzz.log`), not reproduced here.
+
+### Open issues / risks
+- Item 1.2 (on `develop`) keeps `--rerun-tasks` without `--console=plain` or a log file. Its evidence, the wall-clock time and the seed count, prints either way, and the dispatch limited this pass to 3.1–3.4. If the producer wants 1.2 to match, it is a one-line follow-up after `feature/tech-design-sync` lands.
+- QA's clean fix for the stale failures file belongs to the android-game-dev's backlog (declare the file as a task output, or delete it in `doFirst`). Until then, 3.2 stays coupled to 3.1's flag, as written.
+
+### Handoff
+Next: producer. Commit `docs/release-checklist.md` and this report. The qa-engineer can confirm that open issues 1, 2 (the checklist side) and 5 are closed from this diff.
