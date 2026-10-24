@@ -354,3 +354,113 @@ Next: producer —
    - §8.2 item 12 on audible speech;
    - a tech-design sync of T4 and the wrapper.
 5. **Tech-lead:** the sign-off once the auditor and QA pass.
+
+## Amendment 1 — LS-15, LS-16 and LS-AC19 (the ux-designer's parallel ruling, `1895850`)
+Date: 2026-10-24. Read in full first: `ux-designer-rerun.md`, and LS-15 and LS-16 in `docs/ux/licences-screen.md` (lines 374–463). Where this amendment and the ruling above differ, this amendment governs.
+
+### A1.1 — LS-16's two edges can be met, and the F-2 mechanism is amended to meet them
+**The conflict.**
+- F-2 item 4 above let `TextAlign.Start` follow the paragraph direction. Under `ContentOrLtr`, that hangs English from the **left** on every screen.
+- LS-16 asks for the left edge only on the two text screens. On the two lists, and in the top bars, which are chrome, every line must hang from the mirrored start edge: the **right** in an RTL layout.
+- So item 4 is superseded. Nothing else in F-2 changes: the value is still `ContentOrLtr`, the scope is still the four screens, and forcing `LayoutDirection.Ltr` is still forbidden.
+
+**Why an absolute alignment is needed on the lists.** This is checked in the 1.11.3 source.
+- `AndroidParagraph.android.kt:643-647` maps:
+  - `TextAlign.Start` to `ALIGN_NORMAL` and `End` to `ALIGN_OPPOSITE`, both relative to the **paragraph's** direction;
+  - `TextAlign.Left` and `Right` to `ALIGN_LEFT` and `ALIGN_RIGHT`, which are absolute.
+- An unset `textAlign` resolves to `Start` (`ParagraphStyle.kt:463`).
+- So an LTR paragraph cannot hang from the RTL layout's start through `Start` or `End`. That edge has to be resolved from `LocalLayoutDirection`.
+- The column's own `Alignment.Start` is not enough. It places a short, wrap-width text on the right. But a wrapped line fills its box, and with `Start` its lines would sit at the left, which breaks LS-16's "every line of one card shares that edge, wrapped lines included".
+
+**The mechanism, amended.**
+- **The wrapper takes the edge.** `ProvideLicencesText(edge: LicencesTextEdge, content)` replaces `ProvideLicencesTextDirection`, in the same new file. `enum class LicencesTextEdge { LayoutStart, TextStart }`.
+- **The derived typography** is `remember(typography, edge, layoutDirection)`. Each style merges `TextStyle(textDirection = LicensesUi.TEXT_DIRECTION, textAlign = …)`, where the alignment is:
+  - `LayoutStart` → `TextAlign.Right` when `LocalLayoutDirection.current == LayoutDirection.Rtl`, otherwise `TextAlign.Left`. In an LTR layout this equals today's `Start` for English, so nothing moves in an LTR locale.
+  - `TextStart` → `TextAlign.Start`. Under `ContentOrLtr`, an English line hangs from the left in every locale, because the edge comes from the text and not from the locale.
+  - **Why not `TextAlign.Left` on the text screens.** It would differ from `Start` only for a paragraph whose first strong character is RTL, and none ships. If the ux-designer wants the literal left even then, it is a one-token change, and no test changes.
+- **Where each edge applies:**
+  - `LicensesTopBar` wraps its title in `LayoutStart` on all four screens, so the chrome mirrors.
+  - The bodies of `LicensesScreen` and `GoogleNoticesScreen` use `LayoutStart`: the intro, the section headers (the reused `SettingsSectionHeader`), every card line, and the notices error text.
+  - The bodies of `LicenseTextScreen` and `GoogleNoticeTextScreen` use `TextStart`: the entry title and credit, the part headings, "Found in", the ordinal, the paragraphs, "End of text", and the error body.
+- **Every text on the four screens is reached.** Each passes `style = MaterialTheme.typography.<role>` (`LicensesTopBar.kt:45`, `LicenseEntryCard.kt:55, 123-133`, `SettingsRows.kt:119`, and the screens). No call site passes `textAlign` or `textDirection`, and the developer adds none, because an explicit one would override the wrapper. The auditor greps for it (probe 2a below).
+
+**The tests, amended. LS-AC19, F-2's direction:**
+- The five tests of F-2 above stand as LS-AC19's Compose half:
+  - `everyTextOnTheLicensesScreenIsLaidOutLeftToRightInARightToLeftLayout`
+  - `everyTextOnALicenseTextIsLaidOutLeftToRightInARightToLeftLayout`
+  - `everyTextOnTheGoogleNoticesListIsLaidOutLeftToRightInARightToLeftLayout`
+  - `everyTextOnAGoogleNoticeTextIsLaidOutLeftToRightInARightToLeftLayout`
+  - `theErrorTextsAreLaidOutLeftToRightInARightToLeftLayout`
+- They live in `LicencesRtlTextDirectionTest`, with the oracle `getParagraphDirection(0) == ResolvedTextDirection.Ltr` read through `GetTextLayoutResult`.
+- **Each test also proves LS-AC19's kinds were checked**, so that a fixture missing one cannot pass vacuously. It asserts that every kind LS-AC19 names was among the nodes it checked, found by its text: the intro, a section header, a card title and a card line, "Found in", an ordinal line, a curated paragraph, a notice paragraph, and "End of text".
+- **Red** on `2d433b8`: the forced `Rtl` gives `Rtl`.
+
+**The tests, amended. LS-16's edges, in the same file, with the same RTL setup:**
+- **The fixture** must contain wrapped lines, so the check bites. At 411 dp, the Public Suffix List address and the AndroidX parts line wrap; so do a long "Found in" line and the Fredoka paragraphs.
+- **The oracle** works in root coordinates, per line `i` of each text node's `TextLayoutResult`. A line's left edge is `node.boundsInRoot.left + getLineLeft(i)`, and its right edge is `left + getLineRight(i)`.
+- `everyLineOnTheLicensesListHangsFromTheMirroredStartEdgeInARightToLeftLayout`:
+  - every line of every text in one card ends at that card's one right edge, within 1 px;
+  - every line of the intro and the headers ends at the column's content right edge.
+- `everyLineOnTheGoogleNoticesListHangsFromTheMirroredStartEdgeInARightToLeftLayout`: the same, for the rows and the intro.
+- `everyLineOfALicenseTextHangsFromTheLeftEdgeInARightToLeftLayout`: every line of every body text starts at the column's content left edge, within 1 px. Run it on Fredoka, and on Jakarta's two parts.
+- `everyLineOfAGoogleNoticeTextHangsFromTheLeftEdgeInARightToLeftLayout`: the same, on the notice fixture.
+- `theTopBarTitleHangsFromTheMirroredStartOnEveryScreenInARightToLeftLayout`: this folds into the chrome-mirroring test above.
+- `everyLineHangsFromTheLeftEdgeInALeftToRightLayout`: the LTR regression guard, on all four screens.
+
+**Which tests go red, and when.**
+- The two **text-screen** edge tests are red on `2d433b8`, where a forced RTL paragraph hangs right.
+- The two **list** edge tests are green on `2d433b8`, because a forced RTL paragraph also hangs right. They are the guard against the direction-only fix. The developer watches them go red in an intermediate step, with `ContentOrLtr` in and the `LayoutStart` alignment not yet in, and records that run, before adding the alignment.
+
+### A1.2 — LS-15 is met by option A
+- **The Compose half is met by construction.**
+  - In a non-lazy `Column`, the title and the four section headers are in the semantics tree at every scroll position.
+  - TalkBack's heading granularity then finds the next and previous heading in the node tree, and the `verticalScroll` container's scroll semantics bring it into view.
+  - It never needs the scroll fallback. That fallback produced the skipped headers, the stray stop and O-1's bare "Button".
+- **The device half is QA's:** §8.2 item 2's three runs. The evidence that it holds is Settings: the same header component in a plain `Column`, and it passed the same device check.
+- **What I do not promise.** I do not promise TalkBack's behaviour past the last heading or before the first. LS-15 names that as the platform's.
+- **If QA's runs still hear a stray stop or a bare "Button" between two headings on the `Column`,** it is a finding against this mechanism. It returns to me, and LS-15 is not downgraded.
+
+### A1.3 — LS-AC06's F-4 half: the tests, renamed to the ux-designer's intent
+These replace the two F-4 tests named above.
+- **File and window.** They go in `LicencesTalkBackContractTest`, each with a method-level `@Config(qualifiers = "w411dp-h891dp")`, a phone window. Never the 4,000 dp class window.
+- **The tests:**
+  - `eachLicensesHeadingIsInTheTreeAsAHeadingWithTheListAtItsTop`
+  - `eachLicensesHeadingIsInTheTreeAsAHeadingWithTheListScrolledToItsMiddle` (after `performScrollToNode(hasText(<Protocol Buffers' title>))`)
+  - `eachLicensesHeadingIsInTheTreeAsAHeadingWithTheListScrolledToItsEnd` (after `performScrollToNode(hasText(<the notices entry's title>))`)
+- **The oracle, per header and never as a count (F-19).** Five separate assertions, each with its own message:
+  - `onNode(hasText(<heading>) and isHeading(), useUnmergedTree = true).assertExists()`;
+  - the headings are the title, Fonts, Sounds, Open-source software and Google libraries.
+- **Red** on `2d433b8`, at all three positions:
+  - at the top, the last headers are not composed;
+  - in the middle, Fonts, Sounds and Google libraries are not;
+  - at the end, the first headers are not.
+  `performScrollToNode` drives both the lazy and the non-lazy body.
+- **Kept beside them,** for O-1's precondition: `everyLicensesEntryIsInTheTreeWithItsTitleOnAPhoneWindow`, with the same window and all eighteen entry titles present unscrolled.
+
+### A1.4 — What changes in the owed work
+- **The developer:** commit 2 above becomes `fix(licences): lay the licence texts out by content, with LS-16's two edges`. It carries the amended wrapper, the LS-AC19 tests and the edge tests, and records the red runs as A1.1 requires. The order and the other commits stand.
+- **The code-auditor:** probe 2 becomes:
+  - **2.** Remove the wrapper from one screen, and that screen's LS-AC19 test goes red.
+  - **2a.** `grep -rn 'textAlign\|textDirection' app/src/main/java/com/app/pegsolitaire/ui/licenses` shows only the wrapper and `LicensesUi`.
+  - **2b.** Swap `LayoutStart` and `TextStart` on one list and on one text screen, and that screen's edge test goes red.
+  - **2c.** Remove the `LayoutStart` alignment and keep the direction, and both list edge tests go red.
+
+  The other probes stand.
+- **QA:** re-check item 1 (F-2) now reads, with `[ar-XB]` alone:
+  - on all four screens, the characters stay in written order and the chrome mirrors;
+  - on Licenses and Google notices, every line, wrapped lines included, hangs from the right, and each card keeps its mirrored shape (lines right, chevron left);
+  - on Fredoka, Jakarta and Cronet, the body hangs from the left, ragged right, under a mirrored top bar.
+
+  Item 3 (F-4) is read against LS-15 and the restated pass line 4.
+- **The 15e answer is unchanged:** the amendment touches only `ui/licenses/`.
+
+### A1.5 — Nothing returns to the ux-designer
+LS-16's words stand as written, and both edges are met. One choice is recorded for the ux-designer's information: the text screens use `TextAlign.Start`, not `Left` (A1.1), and that changes nothing for any text that ships.
+
+### Amendment 1 — Checks
+- `Read` in full: `.planning/reports/licences-screen/ux-designer-rerun.md` (119 lines); `docs/ux/licences-screen.md` lines 374–463 (LS-15, LS-16) — pass. LS-AC06's F-4 note (line 1204) and LS-AC19 (line 1215) were read from `grep -n` output.
+- `grep -rn 'TextAlign.(Start|Left|Right|End) ->'` over the ui-text 1.11.3 sources, and `ParagraphStyle.kt:463` — pass: `Start` and `End` are paragraph-relative, `Left` and `Right` absolute, unset is `Start`.
+- `grep -n 'textAlign\|style ='` over `LicensesTopBar.kt`, `LicenseEntryCard.kt` and `SettingsRows.kt` — pass: every text reads `MaterialTheme.typography`, and none sets `textAlign`.
+- `./gradlew check` — not run. This is a docs-only amendment.
+
+Lessons applied (Amendment 1): none.
