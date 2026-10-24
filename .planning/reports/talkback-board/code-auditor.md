@@ -53,3 +53,12 @@ VERDICT: FAIL
 - Checks: `./scripts/check.sh` at `f95f91d` pass 11m 7s; with `--rerun` pass 11m 22s — `:app` 1,297, `:domain` 294, 0 failures. No new suppression. Probes in a removed worktree.
 
 VERDICT: FAIL
+
+## Loop 2 — re-review `4e1c91e..75a03be` (2026-10-24)
+> Producer note: returned as text by a fresh Opus auditor (Q-019); condensed.
+- L1-1 closed (`BannerAction.kt:44`, `:48-51`; confirm moves focus via `NewOrdinalEffect(restartTick)`, decline withdraws, ad-offer withdrawal kept). L1-3 closed (`GameScreenTalkBackTest.kt:348`). L1-2 accepted as a recorded platform limit (`FocusManager` 1.11.3 has only `clearFocus(boolean)`/`moveFocus`, verified by `javap`) — QA device check.
+- Mutants (19 tests each): MA decline withdrawal removed — killed; MB `confirmRestart` back in `withdrawn` — killed; MC decline effect before the ordinals — killed; ME any dialog change withdraws — killed.
+- Checks: `./scripts/check.sh` at `1d8e09b` pass 11m 8s; with `--rerun` pass 11m 41s — `:app` 1,300 (125 classes), `:domain` 294, 0 failures, 0 `w:`. No suppression.
+- QA device items: L1-2 hardware-keyboard check; confirm-path focus vs dialog-window focus return; device question 2 (line truncation); Results live region over the count-up; `StarPopSounds` rotation replay (producer to route).
+
+VERDICT: PASS
