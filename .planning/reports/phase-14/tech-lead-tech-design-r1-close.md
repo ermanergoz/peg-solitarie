@@ -96,3 +96,47 @@ All in `/Users/ermanergoz/Desktop/PegSolitarie-r1c`, read-only except the two fi
 Next: producer — commit `docs/tech-design.md` and this report on `feature/tech-design-r1-close` (e.g. `docs(14): close R1 and audio in the tech design` and the report as its own commit); dispatch the code-auditor to read the diff as text (`git diff develop...feature/tech-design-r1-close -- docs/tech-design.md`), including `d656263`'s check-gates edits per that re-read's line 124; then a fresh tech-lead sign-off; QA not applicable. Merge before checklist 1.1 reads §14.1 at the cut: row RM is now a **Blocks the branch cut** row it must see. If another branch numbers §16 first, §17's hunk 3 applies to #28–#31.
 Next: code-auditor — the text read above; the five new §17 rows and the four flagged additions are the places most worth checking against git.
 Next: tech-lead (fresh) — the sign-off, ruling on the two judgement calls in Open issues.
+
+## Loop 1 — 2026-10-24 (the code-auditor's FAIL, `.planning/reports/phase-14/code-auditor-tech-design-r1-close.md`)
+Date: 2026-10-24
+Branch: feature/tech-design-r1-close (committed by the producer; read at `f4fe205`, my loop-0 work at `cf68c27`; loop-1 edits uncommitted, as dispatched)
+Ran on: claude-opus-5-5 at effort xhigh (policy); the same Q-019 staffing deviation as above (the agent file pins fable)
+Loops: 1
+Lessons applied: none
+
+### Summary
+- **F-1 (MAJOR) fixed.** Row RM, §15 and §16 #28 now give `6aa7624`'s counts: **14 call sites in 9 files** (R1's `HintUndecidedNotice.kt:170` the fourteenth) and **seven** test files that drive the gate through `Settings.Global` (R1's `GameScreenHintNoticeTest.kt:354` the seventh, all seven named in row RM). Both rows record that the audio sign-off's §3 (the RM brief) still carries the pre-R1 counts, measured on `b39e28e`, and that this file wins. The producer has already told the RM developer. I edited no report but my own.
+- **R1's notice in RM (tech-lead decision, the auditor's Handoff question).** The notice is in scope by construction, because it reads the one function. No extra red-first test is required: 23e's `withAnimationsOffTheNoticeKeepsItsTimeAndGoesInOneFrame` pins it at each gate value, and the (a)/(b) live flips prove the function. QA's repro gains one step: after a live toggle, an off-book Hint's notice keeps its whole time and leaves in one frame.
+- **F-2 to F-7 (LOW) fixed** as the auditor proposed, each with a dated "until loop 1" note.
+- **I-1, I-3 and I-4 taken.** I-3 is the one judgement: §16 #30's fallback now asks the founder only for hardware set-up, never for a TalkBack pass the founder runs. If no set-up works by the cut, the halves become a Q-PUBLISH-3.0.0 line. This reconciles the hint sign-off's §1.1 with the audio sign-off's §4, and it is flagged for the signing tech-lead to confirm or rule back.
+
+### Edits, by finding
+- **F-1:** row RM `:1571` (count, the stale-brief note, the seven tests named, the notice ruling, the QA step); §16 #28 `:1766` (14 in 9 with the notice listed, seven tests, the stale-brief note); §15 `:1726` ("every phase-15 reduced-motion behaviour, R1's Undecided notice and the wrong tap's mark (14 call sites in 9 files on `6aa7624`)").
+- **F-2** `:726`: the brief compared two boards (136 = 97 + 39, 378 = 345 + 33, against 101 and 785). 399 = 373 + 26 is this table's own figure, and all three match the book headers.
+- **F-3** `:603`: names `toHintOutcome` and the ViewModel's `when (outcome)` as the two `else`-free `when`s, and says the book dispatch `when (fromBook)` keeps its `else`.
+- **F-4** `:1106`: a caption note under the count says one row was re-measured at `6aa7624`, so the column sums to 243 and the 239 is `e1875cb`'s. Cell `:1115`: the Check ran on `9f0e67a` (`android-game-dev-merge.md:3`: `13c04c6..9f0e67a`).
+- **F-5:** (a) #29's owner `:1767` gives the reproduction to the android-game-dev, as the ruling's §1.1 and Handoff 5 say; "qa-engineer to reproduce" is kept only as the dated note. (b) Row RM's riders: all three are non-gating (the brief's open issue 2), and only sound-designer F-1 drops to 3.0.1 if it costs a loop (§5).
+- **F-6** `:1831` (`d656263`'s §17 merge-in row): the mapping to item 4's numbering. (1) is item 4's 1, (2) is 3 and 6–7, (3) is 4, (4) is 2, and (5) is 5. I checked this against `phase-14/tech-lead-signoff-tech-design-sync.md:69-75`.
+- **F-7** `:814` (`d656263`'s §8.1 build-logic cell): "were part of the merge-in's Check … served from the build cache", quoting `android-game-dev-check-gates-merge.md:34` ("build-logic 55 (cache)").
+- **I-1** `:1564`: R-2 reads "**Done.** Merged …".
+- **I-3** `:1768`: as in the Summary.
+- **I-4** `:34-45`: the header's sync sentence names the four facts and this loop.
+- **Not taken:** I-2 (checklist 1.1 does not name RM) is the release-manager's file; the producer routes it. I-5 and I-6 need no change. I-7 is the auditor's note.
+
+### Checks
+- `git grep -n 'rememberAnimationsEnabled()' 6aa7624 -- app/src/main`: 15 lines, the definition `Clay.kt:209` plus 14 calls in 9 files (`HintUndecidedNotice.kt:170` among them) — pass, as F-1 says.
+- `git grep -l ANIMATOR_DURATION_SCALE 6aa7624 -- app/src/test`: seven files, matching the brief's six named in §3(c) plus `GameScreenHintNoticeTest.kt`; `:354` is its `putFloat(… ANIMATOR_DURATION_SCALE, ANIMATIONS_OFF)` inside `withAnimationsOffTheNoticeKeepsItsTimeAndGoesInOneFrame` — pass.
+- `sed -n 160-185p HintUndecidedNotice.kt`: the gate chooses `AnimatedVisibility` with a 160 ms `fadeOut` or a plain branch; the display time is a `delay`, independent of the gate — the basis of the notice ruling.
+- `sed -n 68-76p phase-14/tech-lead-signoff-tech-design-sync.md`: item 4's hunks 1–7, as mapped (F-6) — pass. `sed -n 34p phase-14/android-game-dev-check-gates-merge.md`: "build-logic 55 (cache)" (F-7) — pass. `sed -n 3p audio-review/android-game-dev-merge.md`: `13c04c6..9f0e67a` (F-4) — pass.
+- `python3 -I …/scratchpad/r1c/tablecheck.py docs/tech-design.md`: 20 tables, 0 mismatches — pass. `git diff --check`: clean. `git diff --stat`: `docs/tech-design.md` +29/−18 against `f4fe205`.
+- `grep -nF` proofs (line numbers): `all 14 call sites in 9 files on \`6aa7624\`` → 1571, 1766; `The seven test files that drive the gate` → 1571; `**R1's notice (tech-lead decision, loop 1):**` → 1571; `which alone drops to 3.0.1 if it costs a loop` → 1571; `R1's Undecided notice and the wrong tap's mark (14 call sites` → 1726; `` R1's `GameScreenHintNoticeTest.kt:354` the seventh `` → 1766; `open bullet compared two boards` → 726; `` mapped one to one by `toHintOutcome` `` → 603; `the Lines column now sums to 243` → 1106; `` run on `9f0e67a` `` → 1115; `it reproduces QA's exact sequence on the API 27 emulator image` → 1767; `this row's (1) is item 4's 1` → 1831; `served from the build cache` → 814; `**If adb still cannot (tech-lead decision, r1-close loop 1` → 1768; `` | **Done.** Merged to `develop` 2026-10-24 as `dbd0a6c` `` → 1564; `Its review loop 1` → 43.
+- `grep -c '13 call sites in 8 files'` → 1, the brief's figure quoted in row RM's stale-brief note; `qa-engineer to reproduce` → only inside #29's dated note — pass.
+- No Gradle (docs only; no Check input changed).
+
+### Open issues / risks
+- **The RM brief** (`audio-review/tech-lead-signoff.md` §3) still says 13/8 and "the six". This file corrects it, and the producer has told the developer. If a tech-lead amends that report later, it should be a dated note, not an edit of the ruling.
+- **The I-3 reconciliation** is my decision, and the signing tech-lead should rule it. So should loop 0's two judgement calls, which the auditor accepted and flagged for the signer's explicit word on "low".
+- **I-2** stays with the release-manager: checklist 1.1 should name RM, as it names R1 and LN.
+
+### Handoff
+Next: producer — commit the loop-1 edit and this section; rename the auditor's report to `code-auditor-tech-design-r1-close-loop1.md` before re-dispatching, per the auditor's Handoff; a fresh code-auditor re-reads the fix hunks (`git diff f4fe205 -- docs/tech-design.md`); then a fresh tech-lead sign-off ruling F-1's notice decision, I-3, and the loop-0 calls; route I-2 to the release-manager.
