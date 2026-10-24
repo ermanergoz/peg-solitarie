@@ -128,3 +128,10 @@ The seven fetched texts are LF with no trailing spaces.
 - Auditor F8: `res/raw/` now ships the 12-file WAV set the catalogue's counts describe (Kenney 7, LilMati 2, CogFireStudios 1); no edit needed.
 - `./scripts/check.sh --max-workers=4` on `a71f21d` — pass, 12m 9s: `:app` 1,325; `:domain` 294 + depth sweep + fuzz; build-logic 100; 0 failures/skips; no `w:` from `app/src/main` (C7 live). Lint 0 errors, 64 warnings (+5, all audio's `AudioRouteClassifier.kt` API-level notices, the expected O8 `InlinedApi`).
 - Handoff: tech-lead sign-off re-reading the three auto-merged hunks; QA §8.2 device checks.
+
+## Loop 2 — QA F-1 (2026-10-24; `2d433b8`; Loops: 2)
+> Producer note: returned as text; condensed.
+- Cause: each address sat in a `SelectionContainer` (focusable node inside the merged card), so TalkBack stopped on it; the merged-tree oracle missed it. Fix: address is plain text in `LicenseEntryCard` (never a link). New oracle `LicencesTalkBackContractTest.anAddressIsPartOfItsCardsStopAndNeverAStopOfItsOwn` walks the unmerged tree for all five addresses (red before: "kenney-interface-sounds: … RequestFocus").
+- `./scripts/check.sh` on `2d433b8` — pass, 11m 8s: `:app` 1,326, `:domain` 294, build-logic 100, 0 failures, 0 main `w:`; lint unchanged.
+- Trade-off for the ux-designer: addresses can no longer be selected/copied (LS-05/§3.1); a "Copy address" accessibility action could restore it later.
+- Handoff: QA re-run §5.1 pass lines 1, 3; code-auditor review `2d433b8`; ux-designer ruling on the trade-off.
