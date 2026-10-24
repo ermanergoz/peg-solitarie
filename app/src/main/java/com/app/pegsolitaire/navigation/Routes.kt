@@ -148,3 +148,18 @@ data class Results(
     val undosUsed: Int = 0,
     val lastPegOnTarget: Boolean = false,
 )
+
+/**
+ * One Licenses entry's licence text or texts (spec §4; tech design §3.6).
+ *
+ * Carries the catalogue entry's stable id, **never an asset path**: route arguments are restorable,
+ * forgeable state (the `Gameplay(levelId)` and T-05-08 reasoning), so an id `LicenseCatalog` does
+ * not know is the screen's error state rather than a crash or a file lookup, and nothing this route
+ * carries reaches `AssetManager.open`. Its only outbound edge is `popBackStack()`.
+ *
+ * @property entryId a `LicenseCatalog` entry id.
+ */
+@Serializable
+data class LicenseText(
+    val entryId: String,
+)
