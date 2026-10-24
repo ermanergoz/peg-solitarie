@@ -33,8 +33,9 @@ const val HOME_STAGE_TEST_TAG = "home_stage"
 const val HOME_STAGE_ART_TEST_TAG = "home_stage_art"
 
 /**
- * Home's **stage** (ux-spec §4.2.4, D-03l): the weighted slot directly beneath the hero row that
- * holds the upper share of the screen's slack, and draws the game's own board into it.
+ * Home's **stage** (ux-spec §4.2.4, D-03l): the slot directly beneath the hero row that holds the
+ * larger share of the screen's slack — four fifths of the slack the window leaves with no Continue
+ * chip, less the chips' room (§4.2.5, D-03n) — and draws the game's own board into it.
  *
  * ## Why the slack holds a board now
  *
@@ -42,10 +43,11 @@ const val HOME_STAGE_ART_TEST_TAG = "home_stage_art"
  * ribbon and the Continue chips; on the founder's phone that nothing measured ≈172dp between two
  * islands of content. Tiles in the thumb zone and no hole in the middle are only both achievable
  * if what sits above the tiles *grows into* the space, and a content band must never do that — a
- * weighted child is measured at exactly its share, so at 0 the moment the column overflows. A
- * decoration may, because 0 is its correct size on a short screen: this is the **one** weighted
- * child on Home allowed to hold anything, and what it holds is decorative, non-interactive,
- * non-focusable and silent (§4.2.2 clause 4's single exception).
+ * band handed a share of the slack is handed 0 the moment the column overflows. A decoration may,
+ * because 0 is its correct size on a short screen: this is the **one** band on Home that takes slack
+ * and holds anything, and what it holds is decorative, non-interactive, non-focusable and silent
+ * (§4.2.2 clause 4's single exception). It is also where a Continue chip's room comes from when the
+ * chip arrives after first paint, so the bands below it hold still (§4.2.5).
  *
  * ## How big the board is
  *
@@ -63,7 +65,8 @@ const val HOME_STAGE_ART_TEST_TAG = "home_stage_art"
  * call, and nothing that depends on `HomeUiState`: it renders the same before and after the first
  * progress emission (criterion 15r).
  *
- * @param modifier the parent column's weight for the slot; the stage fills its width.
+ * @param modifier layout modifier. `HomeBandColumn` measures the stage at an exact height and
+ *   width, the slot's; the stage fills it.
  */
 @Composable
 internal fun HomeStage(modifier: Modifier = Modifier) {
