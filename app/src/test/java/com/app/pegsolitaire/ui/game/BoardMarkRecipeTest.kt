@@ -27,9 +27,9 @@ class BoardMarkRecipeTest {
         assertThat(standard.hintConnectorAlpha).isEqualTo(BoardMetrics.HINT_ARROW_ALPHA)
         assertThat(standard.hintRingDashes).isEqualTo(SOLID)
         assertThat(standard.halo).isFalse()
-        // Today's unearned star is the core set's `Outlined.Star`, which material-icons-core draws
-        // as a filled shape; the standard palette keeps it (CV-13).
-        assertThat(standard.unearnedStarHollow).isFalse()
+        // CV-13a: the unearned star is the hollow star in both palettes, so earned and unearned
+        // stars never differ by colour alone; it is the standard palette's only change of form.
+        assertThat(standard.unearnedStarHollow).isTrue()
     }
 
     /** CV-07 to CV-10: every value of §3.4's colour-blind column, written here rather than read back. */
@@ -70,17 +70,20 @@ class BoardMarkRecipeTest {
     }
 
     /**
-     * CV-AC08, on the star rows: earned (filled) against unearned (hollow). Asserted for the
-     * colour-blind palette, whose stars are §3.4's. The standard palette's two stars are both
-     * filled shapes today (gold against a pale `outlineVariant`), so its star pair differs in
-     * colour alone; CV-13 keeps that look, and the finding goes to the ux-designer.
+     * CV-AC08 as amended 2026-10-24, on the star rows: earned (filled) against unearned (hollow), in
+     * both palettes. CV-13a makes the standard palette's unearned star hollow too, so neither
+     * palette's stars differ by colour alone.
      */
     @Test
-    fun earnedAndUnearnedStarsDifferInAChannelThatIsNotHueInTheColourBlindPalette() {
-        val colorblind = BoardMarkPalette.Colorblind.recipe
-
-        assertThat(colorblind.look(BoardMark.EarnedStar).filled).isTrue()
-        assertThat(colorblind.look(BoardMark.UnearnedStar).filled).isFalse()
+    fun earnedAndUnearnedStarsDifferInAChannelThatIsNotHueInBothPalettes() {
+        BoardMarkPalette.entries.forEach { palette ->
+            assertWithMessage("$palette: the earned star")
+                .that(palette.recipe.look(BoardMark.EarnedStar).filled)
+                .isTrue()
+            assertWithMessage("$palette: the unearned star")
+                .that(palette.recipe.look(BoardMark.UnearnedStar).filled)
+                .isFalse()
+        }
     }
 
     /** §3.4: the hint source ring stays strictly larger than the selection ring, as `BoardCanvasTest` asks today. */

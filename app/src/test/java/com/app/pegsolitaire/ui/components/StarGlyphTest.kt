@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
@@ -36,13 +35,14 @@ import org.robolectric.annotation.GraphicsMode
 import kotlin.math.roundToInt
 
 /**
- * The star in each palette (docs/ux/colour-vision.md §3.4, CV-10; CV-AC05, CV-13).
+ * The star in each palette (docs/ux/colour-vision.md §3.4, CV-10, CV-13a; CV-AC05, CV-13).
  *
- * Every frame holds today's two stars — the gold-filled earned star and the `outlineVariant`
- * unearned one, drawn exactly as the Results row and the catalogue pips drew them before the
- * option — beside [StarGlyph]'s, so "the standard palette is today's pixels" is a comparison inside
- * one frame, not against a stored golden. Sampled on the 24-unit glyph: its centre (12, 12) lies
- * in the fill, and (12, 4.5) lies on the hollow outline's band below the top tip.
+ * Every frame holds today's earned star — gold-filled, drawn exactly as the Results row and the
+ * catalogue pips drew it before the option — beside [StarGlyph]'s, so "the standard earned star is
+ * today's pixels" is a comparison inside one frame, not against a stored golden. The unearned star
+ * is the hollow star in both palettes (CV-13a), so it is read for its band and its open centre.
+ * Sampled on the 24-unit glyph: its centre (12, 12) lies in the fill, and (12, 4.5) lies on the
+ * hollow outline's band below the top tip.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [STAR_ROBOLECTRIC_SDK], qualifiers = "w400dp-h800dp-xxhdpi")
@@ -52,12 +52,18 @@ class StarGlyphTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun theStandardStarsAreTodaysPixels() {
+    fun theStandardEarnedStarIsTodaysPixelsAndItsUnearnedStarIsHollow() {
         show(BoardMarkPalette.Standard)
         val frame = composeRule.renderedWindow()
+        val marks = boardMarksFor(BoardMarkPalette.Standard, darkTheme = false)
 
         assertWithMessage("earned").that(differing(frame, TODAY_EARNED, GLYPH_EARNED)).isEqualTo(0)
-        assertWithMessage("unearned").that(differing(frame, TODAY_UNEARNED, GLYPH_UNEARNED)).isEqualTo(0)
+        assertWithMessage("the unearned outline below the top tip")
+            .that(isColour(frame.at(GLYPH_UNEARNED, CENTRE_UNITS, OUTLINE_UNITS), marks.unearnedStarOutline))
+            .isTrue()
+        assertWithMessage("hollow: the background shows at the unearned star's centre")
+            .that(isColour(frame.at(GLYPH_UNEARNED, CENTRE_UNITS, CENTRE_UNITS), LightColors.background))
+            .isTrue()
     }
 
     @Test
@@ -107,12 +113,6 @@ class StarGlyphTest {
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.tertiary,
                         modifier = Modifier.testTag(TODAY_EARNED).goldGradientFill().size(STAR_DP.dp),
-                    )
-                    Icon(
-                        imageVector = Icons.Outlined.Star,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.outlineVariant,
-                        modifier = Modifier.testTag(TODAY_UNEARNED).size(STAR_DP.dp),
                     )
                     Box(Modifier.testTag(GLYPH_EARNED)) { StarGlyph(earned = true, size = STAR_DP.dp) }
                     Box(Modifier.testTag(GLYPH_UNEARNED)) { StarGlyph(earned = false, size = STAR_DP.dp) }
@@ -165,7 +165,6 @@ class StarGlyphTest {
 }
 
 private const val TODAY_EARNED = "today_earned"
-private const val TODAY_UNEARNED = "today_unearned"
 private const val GLYPH_EARNED = "glyph_earned"
 private const val GLYPH_UNEARNED = "glyph_unearned"
 private const val STAR_DP = 48

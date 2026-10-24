@@ -18,8 +18,9 @@ import com.app.pegsolitaire.ui.theme.BoardMarkPalette
  * @property hintConnectorAlpha the hint's source-to-target line's alpha.
  * @property hintRingDashes the dashes on each hint ring; [SOLID_RING] for a solid stroke.
  * @property halo whether a band of `surfaceContainerLowest` runs inside the selection ring (CV-07).
- * @property unearnedStarHollow whether an unearned star is drawn as a hollow outline rather than
- *   today's filled shape (CV-10).
+ * @property unearnedStarHollow whether an unearned star is the hollow star, its interior open, rather
+ *   than the filled shape drawn before CV-13a (CV-10a); hollow in both palettes, so earned and
+ *   unearned stars never differ by colour alone (CV-13a).
  */
 @Immutable
 data class BoardMarkRecipe(
@@ -45,7 +46,10 @@ val BoardMarkPalette.recipe: BoardMarkRecipe
 /** A hint ring with no dash pattern. */
 const val SOLID_RING = 0
 
-/** CV-13: exactly the board as it was drawn before the option existed. */
+/**
+ * CV-13: exactly the board as it was drawn before the option existed. CV-13a: the unearned star is
+ * hollow, its only change of form.
+ */
 private val STANDARD_RECIPE =
     BoardMarkRecipe(
         selectedRingRatio = BoardMetrics.SELECTED_RING_RATIO,
@@ -56,7 +60,7 @@ private val STANDARD_RECIPE =
         hintConnectorAlpha = BoardMetrics.HINT_ARROW_ALPHA,
         hintRingDashes = SOLID_RING,
         halo = false,
-        unearnedStarHollow = false,
+        unearnedStarHollow = true,
     )
 
 /** CV-07 to CV-10. */

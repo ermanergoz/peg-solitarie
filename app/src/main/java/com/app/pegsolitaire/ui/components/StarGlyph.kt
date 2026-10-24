@@ -21,11 +21,11 @@ import com.app.pegsolitaire.ui.theme.LocalBoardMarks
 import com.app.pegsolitaire.ui.theme.gradientFill
 
 /**
- * A star in the active palette (docs/ux/colour-vision.md §3.4, CV-10): earned — filled with the
- * palette's gradient and, when the palette has one, outlined over it — or unearned, in the
- * palette's outline colour. In the standard palette both are today's glyphs and colours; in the
- * colour-blind palette the unearned star is [StarOutline], hollow, so filled against hollow reads
- * without colour. Decorative: it adds no semantics, so every row that holds stars keeps speaking
+ * A star in the active palette (docs/ux/colour-vision.md §3.4, CV-10, CV-13a): earned — filled with
+ * the palette's gradient and, when the palette has one, outlined over it — or unearned, in the
+ * palette's outline colour. In both palettes the unearned star is [StarOutline], hollow, so filled
+ * against hollow reads without colour (CV-13a); the standard earned star is today's gold glyph,
+ * with no outline. Decorative: it adds no semantics, so every row that holds stars keeps speaking
  * for itself (`EarnedStarCountKey`, the catalogue's and the tutorial's descriptions).
  *
  * @param earned whether this star is earned.
@@ -64,9 +64,9 @@ fun StarGlyph(
 /**
  * The hollow star: the opaque layer of the core set's `Icons.TwoTone.Star`, which is Material's
  * `star_border` artwork — an outer star with the inner one cut out. `material-icons-core` ships no
- * hollow star of its own (its `Outlined.Star` is a filled shape, the glyph today's unearned stars
- * use), so this is built once from the dependency's vector rather than copied into the repo, and
- * drawn at the icon's own stroke weight, scaled with the size.
+ * hollow star of its own (its `Outlined.Star` is a filled shape, the glyph unearned stars used
+ * before CV-13a), so this is built once from the dependency's vector rather than copied into the
+ * repo, and drawn at the icon's own stroke weight, scaled with the size.
  */
 internal val StarOutline: ImageVector by lazy {
     val twoTone = Icons.TwoTone.Star
