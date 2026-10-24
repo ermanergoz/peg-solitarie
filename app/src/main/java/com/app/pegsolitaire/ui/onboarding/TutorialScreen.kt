@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
@@ -54,6 +55,7 @@ import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.ui.components.BoardCanvas
 import com.app.pegsolitaire.ui.components.boardStop
 import com.app.pegsolitaire.ui.components.boardStopLabel
+import com.app.pegsolitaire.ui.components.rememberBoardAnnouncer
 import com.app.pegsolitaire.ui.components.rememberTouchExplorationEnabled
 import com.app.pegsolitaire.ui.game.JumpHapticEffect
 import com.app.pegsolitaire.ui.theme.AppTheme
@@ -98,6 +100,11 @@ const val TUTORIAL_SCREEN_TEST_TAG = "tutorial_screen"
  * felt (D-01j): the game's own `ContextClick`, through the shared [JumpHapticEffect], under the
  * persisted Haptics switch the board state carries — and nothing else on this screen buzzes.
  *
+ * **TalkBack (D-TB as amended by D-TBa).** The board is the same stops as gameplay's — the slab is
+ * the board stop, each cell a stop — and speaks through the board's spoken channel, the shared board
+ * announcer: the selection, put-down, jump and wrong-tap lines, each step's line, the coach's hint and
+ * the done line ([TutorialBoardAnnouncements]). Words, not cues: nothing here plays or buzzes for them.
+ *
  * @param state the immutable tutorial state (single source of truth).
  * @param onCellTap emits the tapped board [Position] up to the ViewModel, which owns every rule.
  * @param onAnimationFinished invoked once a jump slide completes.
@@ -118,6 +125,12 @@ fun TutorialScreen(
     // here would duplicate the removal layering and the pitch ladder and let them drift.
     JumpSoundEffect(transition = state.board.animating)
     JumpHapticEffect(animatingMoveId = state.board.animating?.id, hapticsOn = state.board.hapticsOn)
+    // D-TB: the board's spoken channel — the shared board announcer — and every line it speaks here.
+    val announcer = rememberBoardAnnouncer()
+    val boardStopFocus = remember { FocusRequester() }
+    val gotItFocus = remember { FocusRequester() }
+    val touchExploration = rememberTouchExplorationEnabled()
+    TutorialBoardAnnouncements(state, announcer, boardStopFocus, gotItFocus, touchExploration)
 
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -157,9 +170,12 @@ fun TutorialScreen(
                     state = state,
                     onCellTap = onCellTap,
                     onAnimationFinished = onAnimationFinished,
+                    announcement = announcer.current,
+                    boardStopFocus = boardStopFocus,
+                    touchExploration = touchExploration,
                 )
                 TutorialCaption(captionRes = state.captionRes)
-                TutorialFooter(completed = state.completed, onDone = onDone)
+                TutorialFooter(completed = state.completed, onDone = onDone, gotItFocus = gotItFocus)
             }
         }
     }
@@ -240,10 +256,12 @@ private fun TutorialBoardSlab(
     state: TutorialUiState,
     onCellTap: (Position) -> Unit,
     onAnimationFinished: () -> Unit,
+    announcement: String?,
+    boardStopFocus: FocusRequester,
+    touchExploration: Boolean,
 ) {
     val animationsEnabled = rememberAnimationsEnabled()
     val pulse = remember { Animatable(SETTLED_SCALE) }
-    val boardStopFocus = remember { FocusRequester() }
     LaunchedEffect(state.coachTick) {
         if (state.coachTick > NO_COACH_YET && animationsEnabled) {
             pulse.animateTo(COACH_PULSE_SCALE, tween(TutorialAnim.COACH_PULSE_MS / PULSE_HALVES))
@@ -263,7 +281,7 @@ private fun TutorialBoardSlab(
                 .boardStop(
                     label = boardStopLabel(state.board.board.pegCount),
                     focusRequester = boardStopFocus,
-                    focusEnabled = rememberTouchExplorationEnabled(),
+                    focusEnabled = touchExploration,
                 ),
     ) {
         BoardCanvas(
@@ -275,6 +293,7 @@ private fun TutorialBoardSlab(
                     .aspectRatio(SQUARE)
                     .padding(dimensionResource(R.dimen.spacing_md)),
             interactive = true,
+            announcement = announcement,
         )
     }
 }
@@ -319,6 +338,7 @@ private fun TutorialCaption(captionRes: Int) {
 private fun TutorialFooter(
     completed: Boolean,
     onDone: () -> Unit,
+    gotItFocus: FocusRequester,
 ) {
     if (!completed) {
         Spacer(modifier = Modifier.fillMaxWidth())
@@ -339,6 +359,7 @@ private fun TutorialFooter(
             modifier =
                 Modifier
                     .fillMaxWidth()
+                    .focusRequester(gotItFocus)
                     .claySquish()
                     .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.large)
                     .background(brush = ctaGradientBrush(), shape = MaterialTheme.shapes.large),

@@ -99,16 +99,10 @@
     <!-- Shown while a Challenge board is generated off the main thread (CR-01). -->
     <string name="loading_level">Loading level</string>
     <!--
-      The wrong tap's screen-reader sentences (D-06c; docs/ux/invalid-tap-feedback.md §3.6, §6):
-      spoken politely on the gameplay board only, never in the tutorial. W1, W2, W3 in order.
-    -->
-    <string name="wrong_tap_empty_hole">Empty hole. Pick up a peg first.</string>
-    <string name="wrong_tap_other_peg">Already holding a peg. Tap it again to put it down.</string>
-    <string name="wrong_tap_not_a_destination">Can\'t jump there.</string>
-    <!--
       The board with TalkBack (D-TB as amended by D-TBa; docs/ux-spec.md §11.1 and §8). Every
       string here is spoken, never drawn. Rows and columns are spoken from 1 (BoardSpeechFormat).
-      29 strings and two plurals.
+      29 strings and two plurals. The three board_a11y_rejected_* lines replace the audio branch's
+      three wrong-tap sentences (D-06c), on both boards (D-TBa items 2 and 3).
     -->
     <!-- The board stop: "Board, 32 pegs left". -->
     <string name="board_a11y_label">Board, %1$s</string>

@@ -97,9 +97,8 @@ private const val REMOVAL_START = 1f
  *   the mark with animations off): on for the gameplay screen, off for the tutorial (D-01j(2))
  *   and for every read-only board.
  * @param announcement the text the host's announcer has for the board's polite channel right now,
- *   or `null`; the canvas carries it and chooses no wording (D-TBa, F-44).
- * @param announces whether the host has a channel at all, so the canvas node is a polite live region
- *   (the gameplay screen); the tutorial gains its channel later on this branch.
+ *   or `null`. An interactive board's canvas is always that channel's live region; it carries the
+ *   text and chooses no wording (D-TBa, F-44). A read-only board has no channel.
  */
 @Suppress("LongMethod") // One cohesive render unit: state capture + palette + the animation set.
 @Composable
@@ -111,7 +110,6 @@ fun BoardCanvas(
     interactive: Boolean = true,
     wrongTapCorrection: Boolean = false,
     announcement: String? = null,
-    announces: Boolean = false,
 ) {
     val spec = state.board.spec
     var canvasSize by remember { mutableStateOf(Size.Zero) }
@@ -260,7 +258,7 @@ fun BoardCanvas(
                         .onSizeChanged { canvasSize = it.toSize() }
                         .pointerInput(geometry) {
                             detectTapGestures { offset -> geometry.positionAt(offset)?.let(onCellTap) }
-                        }.then(if (announces) Modifier.boardAnnouncement(announcement) else Modifier),
+                        }.boardAnnouncement(announcement),
                 onDraw = draw,
             )
             // After the canvas, so the stops are above it for explore-by-touch.

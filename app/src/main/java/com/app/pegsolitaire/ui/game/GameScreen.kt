@@ -272,7 +272,6 @@ fun GameScreen(
                             wrongTapCorrection = true,
                             // D-06c, D-TBa: the board's canvas itself is the polite live region; no new node.
                             announcement = announcer.current,
-                            announces = true,
                         )
                     }
                 }

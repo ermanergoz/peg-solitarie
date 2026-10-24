@@ -10,11 +10,13 @@ import java.io.File
  * 2026-10-18 report item 4). Runner-free.
  *
  * No source under `ui/onboarding/` may name a wrong-tap correction channel — the reject haptic,
- * the gameplay sentences, the board's correction flag, its live region — nor read any setting
- * but the read-only Haptics seam. The tutorial reaches the jump haptic only through the shared
- * `JumpHapticEffect`, so it names no haptic API at all. Comments count too: a KDoc that names a
- * channel is where the next edit starts. `app/build.gradle.kts` declares this directory an input
- * of the unit-test tasks, so a comment-only edit re-runs the guard.
+ * the gameplay sentences, the board's correction flag — nor the semantics property behind the
+ * board's spoken channel, nor read any setting but the read-only Haptics seam. The tutorial does
+ * speak a wrong tap's line (D-TBa item 3), but only through the shared board announcer in
+ * `ui/components/`, which it reaches without naming any of these. It reaches the jump haptic only
+ * through the shared `JumpHapticEffect`, so it names no haptic API at all. Comments count too: a
+ * KDoc that names a channel is where the next edit starts. `app/build.gradle.kts` declares this
+ * directory an input of the unit-test tasks, so a comment-only edit re-runs the guard.
  */
 class TutorialSourceGuardTest {
     @Test
