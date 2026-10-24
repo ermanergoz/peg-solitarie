@@ -452,6 +452,31 @@ class HomeLayoutTest {
     }
 
     /**
+     * Criterion 15m read from the other side, at or above 400dp (the close report's INFO row 3; the
+     * loop-5 audit's M5c): the **full** pill paints its decorative glyph beside its label and its
+     * value, on all three pills.
+     *
+     * Until this test, the full pill was guarded only by accident: with the compact pill forced onto
+     * every window (M5c) every `HomeLayoutTest` case stayed green, and one `HomeStageTest` gap caught
+     * it by a single dp. This is [assertEachPillPaintsOnlyItsSurfaceAndItsTexts]'s pixel read turned
+     * round: inside each pill's padding and outside its two texts, the pill must paint something
+     * besides its surface — the glyph. The floor is far under what the glyphs measure here (the H-1
+     * probe read 196 px and 85 px on the Boards and Level pills), so it fails on an absent glyph and
+     * on nothing else.
+     */
+    @Test
+    @Config(qualifiers = WIDE_PHONE_QUALIFIER)
+    fun onAWidePhoneEveryFullPillPaintsItsGlyphBesideItsTexts() {
+        composeRule.renderHome(state = bothResumesState())
+
+        inkBesideTheTextsOfEachPill().forEachIndexed { index, ink ->
+            assertWithMessage("pill $index: px painted besides its surface and its texts, ${spanOf(ink)}")
+                .that(ink.size)
+                .isAtLeast(GLYPH_INK_FLOOR_PX)
+        }
+    }
+
+    /**
      * The three sentences, and the absence of a click action, asserted identically on both window
      * classes — one body so the two shapes cannot be checked against two different expectations,
      * which is the whole content of "the yield costs no readout".
@@ -619,36 +644,31 @@ class HomeLayoutTest {
     /**
      * Criterion 15m's "no decorative glyph", read where a glyph cannot hide: in what the pill paints.
      *
-     * Each pill is read inside its own padding (`spacing_sm`, the box its content is laid out in),
-     * skipping its label's and its value's own bounds, each widened by [TEXT_INK_MARGIN_DP] for the
-     * text's anti-aliased edge. Every pixel left must be the pill's `surfaceContainerHigh` in the
-     * light scheme the fixture draws in; any other is something else the pill paints. Read from the
-     * flat render ([renderedWindow]), where a fill is exact and no elevation shadow reaches into a
-     * pill. The texts are found by their text semantics alone, so a glyph that did carry a node
-     * would still be read.
+     * **First, what the pill lays out as text** (the close report's INFO row 1; the loop-5 audit's
+     * M3d). The pixel read below skips every node with text semantics, so a glyph drawn as text — a
+     * `Text("★")` before the label — is skipped with the label and passes it. Each pill must
+     * therefore lay out exactly two texts, its label and then its value, before its pixels count.
+     *
+     * Then each pill is read inside its own padding ([inkBesideTheTextsOfEachPill]): every pixel
+     * there that is outside its two texts must be its surface. Any other is something else the pill
+     * paints.
      */
     private fun assertEachPillPaintsOnlyItsSurfaceAndItsTexts() {
-        val window = composeRule.renderedWindow()
-        val surface = LightColors.surfaceContainerHigh.toArgb()
-        val padding = with(composeRule.density) { dimen(R.dimen.spacing_sm).toPx() }
-        val inkMargin = with(composeRule.density) { TEXT_INK_MARGIN_DP.dp.toPx() }
-        val pills =
-            composeRule
-                .onNode(hasTestTag(HOME_PROGRESS_RIBBON_TEST_TAG), useUnmergedTree = true)
-                .fetchSemanticsNode()
-                .children
-        assertThat(pills).hasSize(RIBBON_PILLS)
-
+        val pills = ribbonPills()
+        val expectedTexts =
+            listOf(
+                listOf(starsLabel, EARNED_STARS.toString()),
+                listOf(boardsLabel, boardsValue),
+                listOf(levelLabel, PERSISTED_LEVEL.toString()),
+            )
         pills.forEachIndexed { index, pill ->
-            val texts = pill.textsWithin().map { it.boundsInRoot.inflate(inkMargin) }
-            val read =
-                pill.boundsInRoot
-                    .deflate(padding)
-                    .wholePixels()
-                    .filter { pixel -> texts.none { it.contains(pixel.centre()) } }
-            val strays = read.filterNot { isPaintedIn(window.getPixel(it.x, it.y), surface) }
+            assertWithMessage("pill $index: the texts it lays out, in order")
+                .that(pill.textsWithin().map(::textOf))
+                .containsExactlyElementsIn(expectedTexts[index])
+                .inOrder()
+        }
 
-            assertWithMessage("pill $index: pixels read outside its texts").that(read).isNotEmpty()
+        inkBesideTheTextsOfEachPill().forEachIndexed { index, strays ->
             assertWithMessage(
                 "pill $index paints ${strays.size} px besides its surface and its texts, ${spanOf(strays)}",
             ).that(strays.size)
@@ -656,11 +676,54 @@ class HomeLayoutTest {
         }
     }
 
+    /**
+     * For each pill, left to right, the pixels it paints besides its surface and its texts.
+     *
+     * Each pill is read inside its own padding (`spacing_sm`, the box its content is laid out in),
+     * skipping its label's and its value's own bounds, each widened by [TEXT_INK_MARGIN_DP] for the
+     * text's anti-aliased edge. A pixel left that is not the pill's `surfaceContainerHigh`, in the
+     * light scheme the fixture draws in, is returned. Read from the flat render ([renderedWindow]),
+     * where a fill is exact and no elevation shadow reaches into a pill. The texts are found by their
+     * text semantics alone, so a glyph that did carry a node would still be read.
+     */
+    private fun inkBesideTheTextsOfEachPill(): List<List<IntOffset>> {
+        val window = composeRule.renderedWindow()
+        val surface = LightColors.surfaceContainerHigh.toArgb()
+        val padding = with(composeRule.density) { dimen(R.dimen.spacing_sm).toPx() }
+        val inkMargin = with(composeRule.density) { TEXT_INK_MARGIN_DP.dp.toPx() }
+
+        return ribbonPills().mapIndexed { index, pill ->
+            val texts = pill.textsWithin().map { it.boundsInRoot.inflate(inkMargin) }
+            val read =
+                pill.boundsInRoot
+                    .deflate(padding)
+                    .wholePixels()
+                    .filter { pixel -> texts.none { it.contains(pixel.centre()) } }
+
+            assertWithMessage("pill $index: pixels read outside its texts").that(read).isNotEmpty()
+            read.filterNot { isPaintedIn(window.getPixel(it.x, it.y), surface) }
+        }
+    }
+
+    /** The ribbon's three pills, left to right, in the unmerged tree where their texts are children. */
+    private fun ribbonPills(): List<SemanticsNode> {
+        val pills =
+            composeRule
+                .onNode(hasTestTag(HOME_PROGRESS_RIBBON_TEST_TAG), useUnmergedTree = true)
+                .fetchSemanticsNode()
+                .children
+        assertThat(pills).hasSize(RIBBON_PILLS)
+        return pills
+    }
+
     /** Every descendant carrying text: the pill's label and its value. */
     private fun SemanticsNode.textsWithin(): List<SemanticsNode> =
         children.flatMap { child ->
             listOfNotNull(child.takeIf { SemanticsProperties.Text in it.config }) + child.textsWithin()
         }
+
+    /** The text a node lays out. */
+    private fun textOf(node: SemanticsNode): String = node.config[SemanticsProperties.Text].joinToString("") { it.text }
 
     /** The pixels lying wholly inside this rect, in px. */
     private fun Rect.wholePixels(): List<IntOffset> =
@@ -804,6 +867,13 @@ private const val COMPACT_RIBBON_MAX_HEIGHT_DP = 56
  * clean at 1dp; 2dp is still half the `spacing_xs` a glyph beside a label would sit at.
  */
 private const val TEXT_INK_MARGIN_DP = 2
+
+/**
+ * The least glyph ink a full pill may paint beside its texts, in px: far under the 196 px and 85 px
+ * the H-1 probe read on the Boards and Level pills at `w412dp-h915dp`, and far over the anti-aliased
+ * fringe a text could leave past its widened bounds, which reads 0 on every compact pill.
+ */
+private const val GLYPH_INK_FLOOR_PX = 20
 
 /**
  * Rounding the band-gap read allows, in dp: far below the 8dp between the full set's `spacing_md`
