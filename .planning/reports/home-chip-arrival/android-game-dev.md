@@ -85,3 +85,17 @@ All in dp; 412×915 matches the spec's 326.3 / 230.3 / 134.3.
 Next: **code-auditor** — review `4ff4ec6...c388993` against brief §1 and §4, with Deviations 1–8 above.
 Then: **producer** — C10, the develop merge-in, once hint-undecided, check-gates and audio have merged.
 Then: **qa-engineer** — the 15e sitting first, then the device checks: 15v (all parts), 15w's device half, 18g, 26b (no board stop on this build), 29 (2). The C9 scenarios are not on this branch. Arm B is the C10 merge commit; until then the last commit that changes the APK is `6e3f385` (`c388993` is comments only).
+
+## Loop 1 — fixes for code-auditor FAIL (2026-10-24; `feed0bf..1d63674`; Loops: 1)
+> Producer note: returned as text; appended by the producer, condensed with every check kept.
+| Finding | Commit | Red | Green |
+|---|---|---|---|
+| 1 MEDIUM leaving chip live | `1d63674` | `aChipWhoseSaveIsGoneIsDrawnButInertWhileItsRoomCloses` (w412dp-h915dp, 4 frames after the save goes): pre-fix "nodes speaking the closing chip's title: expected empty, but was [node]"; inert modifier as no-op → same red; semantics cleared but touch live → red at the tap check (`HomeChipArrivalTest.kt:353`; tap aimed at the slot's current bounds, since the closing chip rides with the ribbon) | 13/13 |
+| 2 LOW 15w can't see a cut text | `feed0bf` | P13 (labels clipped 20 dp): 4/12 red, "'Stars' cut short vertically" | 12/12 |
+| 3 LOW 15t footer give-up | `1d63674` | P5: "footer against min(S₀/5, max(0, S₀ − R)): expected 0.0, but was 56.0" (412×915), "…17.0" (360×640) | 2/2 |
+| 4 LOW shadow cut | `1d63674` | no JVM test (hardware-rendered shadow) | → QA 15v part 2 |
+- Finding 1 mechanism: when the save is gone the slot (`HomeBandColumn.kt`) adds `Modifier.inert()` (clears semantics, consumes every pointer event); the slot carries `CONTINUE_CHIP_ROOM_TEST_TAG` so 15u still counts a drawn, textless chip.
+- Checks: `./gradlew --max-workers=4 check` on the final tree — pass, 11m11s, `:app` 1100 / `:domain` 274, 0 failures. Targeted `ui.home.*` + `ui.components.*` + ktlint/detekt — pass, 164 tests. Mutations applied in place, restored and `cmp`-verified.
+- Deviations: (1) finding 2 uses `GameStatusStripTest`'s proven form (line right edge vs laid-out width + `didOverflowHeight`), because `hasVisualOverflow` reads true on correct labels via `GetTextLayoutResult`; (2) the inert assertion reads the merged semantics tree; (3) production test tag `CONTINUE_CHIP_ROOM_TEST_TAG` (precedent `HOME_STAGE_TEST_TAG`); (4) finding 4 left to QA's device read; (5) `feed0bf` checked by targeted runs, the full Check on the final tree.
+- Open issue: a press on a closing chip still runs the visual squish (`claySquish` sees consumed presses); resumes nothing, ≤ 240 ms.
+- Handoff: code-auditor re-review `c388993..1d63674`; then C10 merge-in, then QA's sitting (incl. 15v part 2 for the shadow). Last APK-changing commit until C10: `1d63674`.
