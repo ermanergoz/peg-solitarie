@@ -180,3 +180,76 @@ Next: producer — send F1, F2 and F3 to the android-game-dev in fix mode, in `P
 After the fix, re-dispatch the code-auditor on the fix range together with the commit-16 merge-in. There is no tech-lead sign-off until then.
 
 VERDICT: FAIL
+
+## Loop 1 — re-review of `1f14267..c32172f` (2026-10-24)
+Branch: feature/licences-screen (committed by the producer) — reviewed `9903a5d`, `4948f3c`, `02af622` and the merge `c32172f` (parents `02af622`, `dbd0a6c`); the tree at `306541e` (code identical to `c32172f`)
+Ran on: claude-opus-5-5 at effort xhigh (the same Q-019 deviation as loop 0: pinned fable, run on opus)
+Loops: 1
+Lessons applied: none
+
+### Summary
+All three loop-0 findings are fixed, and each fix was verified independently:
+- **F1:** a forced recompile of `:app` main, debug and release, prints 0 warnings under C7's warnings-as-errors.
+- **F2:** my own naive-guard mutant now fails exactly the overflow test.
+- **F3:** the sources are joined once, in one function, outside composition.
+
+The develop merge (`c32172f`, which brings C7 and `scripts/check.sh`) auto-merged on disjoint hunks and left every licences file untouched. `./scripts/check.sh --max-workers=4` is green.
+
+### The fixes
+1. **F1 — fixed.**
+   - `9903a5d` puts `@param:StringRes` on exactly the seven loop-0 sites (`LicenseCatalog.kt:15,34,44,60,61,69`; `LicenseTextUiState.kt:35`). That is tech design §9.8's prescribed form.
+   - **Evidence:** `./scripts/check.sh --max-workers=4 --console=plain :app:compileDebugKotlin --rerun :app:compileReleaseKotlin --rerun …` executed both compilations, not up to date, and printed **0 `w:` and 0 `e:` lines**.
+   - C7's `allWarningsAsErrors.set(!unitTestCompilation)` (`build-logic/src/main/kotlin/android-app.gradle.kts:71`) is now on the tree, so any main warning would have failed the build.
+2. **F2 — fixed.**
+   - `4948f3c` keeps the old case, renamed honestly to `aSliceStartingPastTheTextFailsNamingTheAar`, and adds `aSliceWhoseEndOverflowsFailsNamingTheAar` with `start 1, length Long.MAX_VALUE` (`GoogleNoticeMergeTest.kt`).
+   - **Evidence:** in a throwaway worktree of `c32172f`, I replaced only `GoogleNoticeMerge.kt:123` with the naive `slice.start + slice.length <= txt.size`, then ran `./gradlew -p build-logic test`. Result: 100 tests, 1 failed, exactly that test ("expected `GoogleNoticeMergeException` but was `java.lang.IllegalArgumentException`").
+   - The guard is now pinned. The worktree has been removed.
+3. **F3 — fixed.**
+   - `02af622` adds `internal fun GoogleNotice.foundIn()` at `GoogleNoticesUiState.kt:35` with the one `", "` constant (`:37`). `git grep` at `c32172f` finds `joinToString` and `SOURCES_SEPARATOR` nowhere else under `ui/licenses`.
+   - `GoogleNoticesViewModel` uses it for the rows. `GoogleNoticeTextViewModel` uses it for `LicenseTextHeader.Notice(notice, foundIn, ordinal)`. `GoogleNoticeTextScreen.kt` only formats `header.foundIn`.
+   - The tests were updated to the new constructor, and no assertion was weakened.
+
+### The merge `c32172f` (develop `dbd0a6c`)
+**Auto-merged hunks read:**
+- `app/build.gradle.kts`: only check-gates' `implementation(libs.hilt.lifecycle.viewmodel.compose)` hunk. `id("google-notices")` stands at line 11, after `id("standards")`.
+- `SettingsRoute.kt`: check-gates' import moves to `androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel`. This branch's `onOpenLicenses` parameter and argument are intact.
+- `strings.xml`: 7 lines added by the hint branch, 0 removed, no duplicate `name`. The licences block (lines 418–530) is intact.
+
+**Licences files untouched by the merge.** `git diff 02af622 c32172f` over `ui/licenses`, `data/licenses`, the assets, the notices build-logic sources, `navigation` and `di` is empty.
+
+**The branch against develop.** `git diff dbd0a6c c32172f` (merge-base `dbd0a6c`) still touches none of the following, so **no 15e sitting** is needed and none of LN-7 item 6's coordinates are added:
+- `App.kt`, `MainActivity.kt`, `ui/home/`, `ui/theme/`, `res/font/`, a theme or the manifest;
+- `libs.versions.toml`, `build-logic/build.gradle.kts`, `dimens.xml` or `THIRD_PARTY.md`.
+
+### Loop-0 advisories
+- F4: corrected in the developer's loop-1 notes. The spec's LS-AC14 grep oracle still needs the ux-designer or tech-lead.
+- F5: routed to the tech-lead.
+- F6 and F7: declined, which is acceptable for advisories.
+- F8–F10: records, unchanged.
+- No new suppression, baseline, `@Ignore`, `!!` or opt-in arrived in `9903a5d..02af622`. Nothing to approve.
+
+### Checks
+- `./scripts/check.sh --max-workers=4 --console=plain` (log `scratchpad/ca-lic/check-lic-auditor-loop1.log`; HEAD `306541e`, clean tree) — **pass**: `BUILD SUCCESSFUL in 11m 10s`, exit 0, 107 tasks.
+  - Executed: the literal gates, the depth sweep, `:domain:koverVerify` and lint.
+  - Up to date: `:app` and build-logic tests, from the developer's run on the same code. They are re-run below.
+  - `:app:generateDebugGoogleNotices`, `generateReleaseGoogleNotices` and `verifyGoogleNoticesParity` are in the graph.
+- `./scripts/check.sh --max-workers=4 --console=plain :app:compileDebugKotlin --rerun :app:compileReleaseKotlin --rerun :app:testDebugUnitTest --rerun :build-logic:test --rerun` (log `scratchpad/ca-lic/rerun-lic-auditor-loop1.log`) — **pass**: `BUILD SUCCESSFUL in 11m 9s`, exit 0.
+  - 0 `w:` and 0 `e:` lines.
+  - `:app` 1,207 tests in 0 failures, 0 skipped, run fresh at 09:45.
+  - build-logic 100 tests, 0 failures, run fresh at 09:43.
+  - `:domain` 294 tests, 0 failures (develop's code, up to date).
+  - Lint: `0 errors, 59 warnings`. The +1 is develop's `GradleDependency`, and none of the 59 is in a licences file or the licences strings block.
+- Throwaway worktree of `c32172f`, naive-guard mutant, then `./gradlew -p build-logic test` — 1 of 100 failed, as intended (F2).
+- `git show` of `9903a5d`, `4948f3c`, `02af622`; `git diff 02af622 c32172f -- app/build.gradle.kts SettingsRoute.kt strings.xml`; `git grep joinToString|SOURCES_SEPARATOR c32172f -- ui/licenses`; duplicate-name scan of `strings.xml` — pass.
+
+### Open issues / risks
+- **A second develop merge-in follows:** `feature/audio-review` (brief §6: `DataModule.kt`, `strings.xml`, `app/build.gradle.kts`, keep-both). It needs its own `./scripts/check.sh` and the tech-lead's conflict-hunk re-read. This PASS covers `c32172f`.
+- **Still owed by other roles:**
+  - QA: the §8.2 device checks, on the release build with its generated assets.
+  - Release-manager: LS-AC11 and LS-AC12 (c).
+  - Tech-lead: F5.
+
+### Handoff
+Next: tech-lead — sign-off on `feature/licences-screen` at `c32172f`, including F5. QA's §8.2 device pass is still needed before the merge to develop.
+
+VERDICT: PASS
