@@ -76,10 +76,11 @@ class ColorblindPaletteContrastTest {
      * tokens on this tree set them, and the standard palette's "today" figures for rows 4, 5 and 8,
      * which are the only ones that exercise the alpha blend.
      *
-     * Rows 9, 10 and 11 in light are floors set by the Results sky, a backdrop colour that arrives
-     * with `feature/candy-backdrop` and is not on this tree; here the worst case is over the
-     * background and the catalogue card, so those three are held at or above the spec's floor
-     * instead of to it.
+     * Rows 9, 10 and 11 in light are floors the spec computed against a Results sky that direction B
+     * replaced with the Sparse wash (candy-backdrop B-23), which is never darker than the background
+     * in light. Here and under B the worst neighbour is the background or the catalogue card, so
+     * those three are held at or above the spec's figure, not to it, until the ux-designer restates
+     * them (tech-lead D-6).
      */
     @Test
     fun theComputedRatiosMatchTheSpecsTableWithinFiveHundredths() {
@@ -98,7 +99,7 @@ class ColorblindPaletteContrastTest {
                 .isWithin(TOLERANCE)
                 .of(floor.figure)
         }
-        LIGHT_FLOORS_SET_BY_THE_RESULTS_SKY.forEach { (row, figure) ->
+        LIGHT_STAR_FLOORS.forEach { (row, figure) ->
             assertWithMessage("Light, ${row.what}").that(row.worstOf(Vision.entries)).isAtLeast(figure - TOLERANCE)
         }
     }
@@ -365,8 +366,11 @@ private val SPEC_FLOORS: List<Floor>
             Floor(Theme.Light, Theme.Light.todayRow(CONNECTOR_ROW), 1.32),
         )
 
-/** Light rows 9 to 11: the spec's floors, which the Results sky sets; this tree's surfaces must clear them. */
-private val LIGHT_FLOORS_SET_BY_THE_RESULTS_SKY: List<Pair<MarkPair, Double>>
+/**
+ * Light rows 9 to 11: the spec's figures, which no surface on this tree or under backdrop direction B
+ * reaches (candy-backdrop B-23); this tree's worst case must clear them (tech-lead D-6).
+ */
+private val LIGHT_STAR_FLOORS: List<Pair<MarkPair, Double>>
     get() {
         val fill = Theme.Light.colourBlindRow(10)
         return listOf(
