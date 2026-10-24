@@ -150,6 +150,20 @@ data class Results(
 )
 
 /**
+ * The Licenses list (spec §3; tech design §3.6): what the app ships, with its licences; no
+ * arguments. Reached from Settings › About › Licenses and popped back to it.
+ */
+@Serializable
+data object Licenses
+
+/**
+ * The Google notices list (spec §4A; tech design §13.1 LN-4): every line of the generated index;
+ * no arguments. Reached from the Licenses screen's notices entry and popped back to it.
+ */
+@Serializable
+data object GoogleNotices
+
+/**
  * One Licenses entry's licence text or texts (spec §4; tech design §3.6).
  *
  * Carries the catalogue entry's stable id, **never an asset path**: route arguments are restorable,
