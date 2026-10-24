@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.ui.theme.clayEntrance
@@ -101,6 +102,9 @@ internal fun SettingsToggleRow(
  * It joins the [clayEntrance] cascade rather than sitting outside it, so the stagger still
  * reads strictly top-to-bottom: a header that appeared instantly above rows that fade in
  * would break the one visual rule the ordering exists to keep.
+ *
+ * It is a heading (spec LS-AC01 as amended, brief A1.4), so TalkBack's heading navigation moves
+ * section to section — on Settings and on the Licenses screen, which reuses this header.
  */
 @Composable
 internal fun SettingsSectionHeader(
@@ -114,7 +118,8 @@ internal fun SettingsSectionHeader(
         modifier =
             Modifier
                 .clayEntrance(entranceOrder)
-                .padding(horizontal = dimensionResource(R.dimen.spacing_sm)),
+                .padding(horizontal = dimensionResource(R.dimen.spacing_sm))
+                .semantics { heading() },
     )
 }
 
@@ -134,6 +139,10 @@ internal fun SettingsSectionHeader(
  * press animation for a tap that would do nothing. An `onClick = {}` would leave all three
  * in place — an actionable control with no action, which is an accessibility defect. The
  * signed-in Play Games row (D-06) is the one caller.
+ *
+ * The inert branch still merges the card's descendants (brief A1.1, spec LS-06 as amended): a
+ * `clickable` merges a tappable row by itself, and without the explicit merge an inert one was
+ * read as two stops, label then supporting line. It adds no role and no action.
  *
  * [trailingIcon] is `null` for the manage-choices row on purpose. The UMP form opens
  * in-app while the policy leaves for a browser, so the glyph's presence or absence is what
@@ -157,7 +166,11 @@ internal fun SettingsLinkRow(
                 .fillMaxWidth()
                 .heightIn(min = dimensionResource(R.dimen.settings_row_min_height))
                 .then(
-                    if (onClick != null) Modifier.claySquish().clickable(onClick = onClick) else Modifier,
+                    if (onClick != null) {
+                        Modifier.claySquish().clickable(onClick = onClick)
+                    } else {
+                        Modifier.semantics(mergeDescendants = true) {}
+                    },
                 ),
     ) {
         Row(

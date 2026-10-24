@@ -1,10 +1,13 @@
 package com.app.pegsolitaire.ui.settings
 
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -152,6 +155,26 @@ class SettingsPlayGamesTest {
 
         assertThat(generalTop).isLessThan(playGamesTop)
         assertThat(playGamesTop).isLessThan(privacyTop)
+    }
+
+    /**
+     * Brief A1.1, spec LS-06 as amended (loop 1, F-02): the inert signed-in statement row is ONE
+     * TalkBack stop — its label and supporting line merged into a single node — with no click
+     * action and no role, so it is read as a statement and never announced as a control.
+     */
+    @Test
+    fun theSignedInStatementRowIsOneStopWithNoClickActionAndNoRole() {
+        setContent(GamesSignInState.SignedIn(playerId = PLAYER_ID, displayName = DISPLAY_NAME))
+
+        val nodes = composeRule.onAllNodesWithText(signedInAs(DISPLAY_NAME)).fetchSemanticsNodes()
+
+        assertThat(nodes).hasSize(1)
+        val config = nodes.single().config
+        assertThat(config.contains(SemanticsActions.OnClick)).isFalse()
+        assertThat(config.contains(SemanticsProperties.Role)).isFalse()
+        assertThat(config[SemanticsProperties.Text].map { it.text })
+            .containsExactly(signedInAs(DISPLAY_NAME), app.getString(R.string.settings_play_games_signin_supporting))
+            .inOrder()
     }
 
     /** The laid-out top edge of the node carrying [text], in root coordinates. */

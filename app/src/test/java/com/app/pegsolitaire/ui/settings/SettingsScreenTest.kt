@@ -1,11 +1,14 @@
 package com.app.pegsolitaire.ui.settings
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.platform.games.GamesSignInState
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
@@ -38,11 +41,14 @@ class SettingsScreenTest {
     private val howToPlaySupporting get() = app.getString(R.string.settings_how_to_play_supporting)
     private val soundLabel get() = app.getString(R.string.settings_sound_label)
 
-    private fun setContent(onShowHowToPlay: () -> Unit = {}) {
+    private fun setContent(
+        onShowHowToPlay: () -> Unit = {},
+        state: SettingsUiState = SettingsUiState(),
+    ) {
         composeRule.setContent {
             AppTheme {
                 SettingsScreen(
-                    state = SettingsUiState(),
+                    state = state,
                     onToggleSound = {},
                     onToggleHaptics = {},
                     onShowHowToPlay = onShowHowToPlay,
@@ -88,6 +94,30 @@ class SettingsScreenTest {
         composeRule.waitForIdle()
 
         assertThat(opened).isEqualTo(1)
+    }
+
+    /**
+     * Spec LS-AC01 as amended (loop 1, F-09; brief A1.4): every Settings section header is a
+     * heading, so TalkBack's heading navigation moves section to section — and nothing else on
+     * the screen is one. One change to `SettingsSectionHeader`, never to a single header.
+     */
+    @Test
+    fun everySectionHeaderIsAHeading() {
+        val signedIn = GamesSignInState.SignedIn(playerId = "player", displayName = null)
+        setContent(state = SettingsUiState(gamesSignInState = signedIn))
+
+        val headings =
+            composeRule
+                .onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+                .fetchSemanticsNodes()
+                .map { node -> node.config[SemanticsProperties.Text].joinToString { it.text } }
+
+        assertThat(headings)
+            .containsExactly(
+                app.getString(R.string.settings_section_general),
+                app.getString(R.string.settings_section_play_games),
+                app.getString(R.string.settings_section_privacy),
+            ).inOrder()
     }
 }
 
