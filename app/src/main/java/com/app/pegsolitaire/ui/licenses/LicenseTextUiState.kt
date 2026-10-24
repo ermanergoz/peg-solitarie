@@ -2,13 +2,24 @@ package com.app.pegsolitaire.ui.licenses
 
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
+import com.app.pegsolitaire.data.licenses.GoogleNotice
 
-/** What a text screen names above its body: the catalogue entry it opened. */
+/** What a text screen names above its body: the catalogue entry, or the Google notice, it opened. */
 sealed interface LicenseTextHeader {
     /** A Licenses entry's bundled text or texts (spec §4). */
     @Immutable
     data class Bundled(
         val entry: LicenseEntry,
+    ) : LicenseTextHeader
+
+    /**
+     * One Google notice (spec §4B), with its "Notice n of m" when its name occurs more than once in
+     * the index (spec LS-12 as amended, F-08).
+     */
+    @Immutable
+    data class Notice(
+        val notice: GoogleNotice,
+        val ordinal: NoticeOrdinal?,
     ) : LicenseTextHeader
 }
 

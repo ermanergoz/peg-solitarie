@@ -163,3 +163,17 @@ data class Results(
 data class LicenseText(
     val entryId: String,
 )
+
+/**
+ * One Google notice's full text (spec §4B; tech design §13.1 LN-4).
+ *
+ * Carries the index line's key, **never a stem or a path**: the key is resolved against the index
+ * the APK carries, so an unknown key is the screen's error state and nothing this route carries
+ * reaches `AssetManager.open`. Its only outbound edge is `popBackStack()`.
+ *
+ * @property key a `licenses/google/index.tsv` key.
+ */
+@Serializable
+data class GoogleNoticeText(
+    val key: String,
+)
