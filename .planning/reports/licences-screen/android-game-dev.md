@@ -121,3 +121,10 @@ The seven fetched texts are LF with no trailing spaces.
 - **Corrections to loop 0 (auditor F4):** LS-AC07's grep prints five `okhttp` identifier/KDoc lines (no `Intent`/`Uri`/`URL`/`Socket`); LS-AC14's literal `assets.open` grep prints 0 because ktlint splits the call — the only two opens are the two sources; the loop-0 overflow mutation replaced both clauses at once (F2 now pins the second); the loop-0 C7 claim missed the `@StringRes` vals (F1).
 - **Not taken (advisory):** F5 `GoogleNoticeText` name clash → tech-lead (recommend `GoogleNoticeTextAsset`); F6 stem-collision branch untestable; F7 `flatMap` negligible. Records: F8 (sound counts, release-manager), F9 (U+2011 accepted), F10 (untested branch accepted).
 - **Handoff:** code-auditor re-review `1f14267..c32172f` (three fixes + the merge's auto-merged hunks); then qa-engineer §8.2; tech-lead sign-off incl. F5.
+
+## Merge-in 2 (2026-10-24; merge `a71f21d`, develop `6aa7624` incl. audio)
+> Producer note: returned as text; appended by the producer.
+- `git merge --no-ff --no-commit develop` — no unmerged paths; single Fable trailer. Auto-merged on disjoint lines: `app/build.gradle.kts` (+31, audio's build lines beside this branch's plugin line), `di/DataModule.kt` (+10, audio's binding block beside the licences block), `res/values/strings.xml` (+7). `SettingsScreen.kt`/`SettingsRoute.kt` untouched by this merge.
+- Auditor F8: `res/raw/` now ships the 12-file WAV set the catalogue's counts describe (Kenney 7, LilMati 2, CogFireStudios 1); no edit needed.
+- `./scripts/check.sh --max-workers=4` on `a71f21d` — pass, 12m 9s: `:app` 1,325; `:domain` 294 + depth sweep + fuzz; build-logic 100; 0 failures/skips; no `w:` from `app/src/main` (C7 live). Lint 0 errors, 64 warnings (+5, all audio's `AudioRouteClassifier.kt` API-level notices, the expected O8 `InlinedApi`).
+- Handoff: tech-lead sign-off re-reading the three auto-merged hunks; QA §8.2 device checks.
