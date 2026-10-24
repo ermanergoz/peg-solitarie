@@ -13,3 +13,23 @@ sealed interface LicenseAsset {
     /** The path under the APK's `assets/` directory. */
     val assetPath: String
 }
+
+/**
+ * One generated Google notice text, `licenses/google/<stem>.txt` (tech design §13.1 LN-3, LN-4).
+ *
+ * Built only by `parseGoogleNoticeIndex` from a stem the index gives; the constructor is
+ * `internal` and accepts exactly sixteen lowercase hex digits, so even a malformed index cannot
+ * turn this into a path outside `licenses/google/`.
+ *
+ * @property stem the first 16 hex digits of the text's SHA-256, as the index gives it.
+ */
+@JvmInline
+value class GoogleNoticeText internal constructor(
+    val stem: String,
+) : LicenseAsset {
+    init {
+        require(GoogleNoticeAssets.isHexId(stem)) { "A notice stem is sixteen lowercase hex digits." }
+    }
+
+    override val assetPath: String get() = GoogleNoticeAssets.textPath(stem)
+}
