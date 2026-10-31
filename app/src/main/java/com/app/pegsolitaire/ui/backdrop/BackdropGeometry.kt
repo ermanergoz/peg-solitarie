@@ -88,4 +88,117 @@ fun buildSceneModel(
     height: Float,
     rtl: Boolean,
     dimens: BackdropDimens,
-): SceneModel = SceneModel(density, width, height, emptyList(), emptyList(), emptyList(), 0f, 1f, 0f, 0f, 0f)
+): SceneModel {
+    val mirror: (Float) -> Float = { x -> if (rtl) width - x else x }
+    val acrossSign = if (rtl) -1f else 1f
+    return SceneModel(
+        density = density,
+        width = width,
+        height = height,
+        sky = skyStopsOf(density),
+        waves = wavesOf(density).map { it.toModel(width, height, dimens, mirror, acrossSign) },
+        lights =
+            lightsOf(density).map { (spec, period) ->
+                LightModel(
+                    centerX = mirror(spec.x * width),
+                    centerY = spec.y * height,
+                    diameter = dimens.diameter(spec.size),
+                    kind = spec.kind,
+                    periodMs = period,
+                    phase0 = spec.phase0,
+                    opacity = spec.opacity,
+                    set = spec.set,
+                )
+            },
+        calmEnd = calmEndOf(density) * height,
+        calmFade = dimens.lightCalmFade,
+        riseBelow = dimens.lightRiseBelow,
+        riseAbove = dimens.lightRiseAbove,
+        restPhase = dimens.lightRestPhase,
+    )
+}
+
+private fun skyStopsOf(density: BackdropDensity): List<SkyStop> =
+    when (density) {
+        BackdropDensity.Landscape -> BackdropMetrics.LANDSCAPE_SKY_STOPS
+        BackdropDensity.Quiet -> BackdropMetrics.QUIET_SKY_STOPS
+        BackdropDensity.Sparse -> BackdropMetrics.SPARSE_SKY_STOPS
+    }
+
+private fun wavesOf(density: BackdropDensity): List<WaveSpec> =
+    when (density) {
+        BackdropDensity.Landscape ->
+            listOf(
+                WaveSpec(BackdropMetrics.LANDSCAPE_WAVE_BACK, BackdropMotion.LANDSCAPE_WAVE_BACK_HALF_MS, back = true),
+                WaveSpec(
+                    BackdropMetrics.LANDSCAPE_WAVE_FRONT,
+                    BackdropMotion.LANDSCAPE_WAVE_FRONT_HALF_MS,
+                    back = false,
+                ),
+            )
+        BackdropDensity.Quiet ->
+            listOf(
+                WaveSpec(BackdropMetrics.QUIET_WAVE_BACK, BackdropMotion.QUIET_WAVE_BACK_HALF_MS, back = true),
+                WaveSpec(BackdropMetrics.QUIET_WAVE_FRONT, BackdropMotion.QUIET_WAVE_FRONT_HALF_MS, back = false),
+            )
+        BackdropDensity.Sparse -> emptyList()
+    }
+
+private fun lightsOf(density: BackdropDensity): List<Pair<LightSpec, Long>> =
+    when (density) {
+        BackdropDensity.Landscape -> BackdropMetrics.LANDSCAPE_LIGHTS.zip(BackdropMotion.LANDSCAPE_LIGHT_PERIODS_MS)
+        BackdropDensity.Quiet -> BackdropMetrics.QUIET_LIGHTS.zip(BackdropMotion.QUIET_LIGHT_PERIODS_MS)
+        BackdropDensity.Sparse -> emptyList()
+    }
+
+/** Sparse has no light, so its calm end is never read; 0 keeps the model total. */
+private fun calmEndOf(density: BackdropDensity): Float =
+    when (density) {
+        BackdropDensity.Landscape -> BackdropMetrics.LANDSCAPE_CALM_END
+        BackdropDensity.Quiet -> BackdropMetrics.QUIET_CALM_END
+        BackdropDensity.Sparse -> 0f
+    }
+
+/** Which of the two waves, before px: its placement, half-cycle and the sense of its bob. */
+private data class WaveSpec(
+    val placement: WavePlacement,
+    val halfCycleMs: Long,
+    val back: Boolean,
+)
+
+/**
+ * The back wave drifts toward the end edge and up as its swing rises, the front wave toward the
+ * start edge and down (candy-backdrop.md §3.4): `(+24dp, −4dp)` and `(−20dp, +4dp)` at swing +1.
+ */
+private fun WaveSpec.toModel(
+    width: Float,
+    height: Float,
+    dimens: BackdropDimens,
+    mirror: (Float) -> Float,
+    acrossSign: Float,
+): WaveModel {
+    val bobX = if (back) dimens.waveBackBobX else -dimens.waveFrontBobX
+    val bobY = if (back) -dimens.waveBackBobY else dimens.waveFrontBobY
+    val crestY = placement.crest * height
+    val depth = BackdropMetrics.WAVE_DEPTH * height
+    return WaveModel(
+        crestX = mirror(placement.cx * width),
+        crestY = crestY,
+        radiusX = BackdropMetrics.WAVE_RX * width,
+        radiusY = BackdropMetrics.WAVE_RY * height,
+        bottom = height + abs(bobY),
+        lipDepth = dimens.waveLipDepth,
+        sheenCenterY = crestY + dimens.waveSheenOffset + dimens.waveSheenHeight / 2f,
+        sheenRadiusX = BackdropMetrics.WAVE_SHEEN_HALF_WIDTH * width,
+        sheenRadiusY = dimens.waveSheenHeight / 2f,
+        bodyStopY = crestY + BackdropMetrics.WAVE_BODY_STOP * depth,
+        deepStopY = crestY + depth,
+        bobX = bobX * acrossSign,
+        bobY = bobY,
+        halfCycleMs = halfCycleMs,
+        alpha = if (back) BackdropMetrics.WAVE_BACK_ALPHA else FRONT_WAVE_ALPHA,
+    )
+}
+
+/** The front wave draws at full alpha over the back one. */
+private const val FRONT_WAVE_ALPHA = 1f

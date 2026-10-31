@@ -19,18 +19,18 @@ data class FinishColors(
 
 internal val LightFinishColors =
     FinishColors(
-        panelRim = Color.Transparent,
-        panelLip = Color.Transparent,
-        panelGloss = Color.Transparent,
-        panelGlow = Color.Transparent,
+        panelRim = LightBackdropPanelRim,
+        panelLip = LightBackdropPanelLip,
+        panelGloss = LightBackdropPanelGloss,
+        panelGlow = LightBackdropPanelGlow,
     )
 
 internal val DarkFinishColors =
     FinishColors(
-        panelRim = Color.Transparent,
-        panelLip = Color.Transparent,
-        panelGloss = Color.Transparent,
-        panelGlow = Color.Transparent,
+        panelRim = DarkBackdropPanelRim,
+        panelLip = DarkBackdropPanelLip,
+        panelGloss = DarkBackdropPanelGloss,
+        panelGlow = DarkBackdropPanelGlow,
     )
 
 /** The active finish palette, provided by `AppTheme` beside [LocalBackdropColors]. */
@@ -53,28 +53,28 @@ data class GelColors(
 ) {
     companion object {
         /** The Classic tile: violet, the house lead. */
-        val Violet = GelColors(top = Color.Transparent, mid = Color.Transparent, bottom = Color.Transparent, glow = GelGlowViolet)
+        val Violet = GelColors(top = GelVioletTop, mid = GelVioletMid, bottom = GelVioletBottom, glow = GelGlowViolet)
 
         /** The Challenge tile: pink, the house second. */
-        val Pink = GelColors(top = Color.Transparent, mid = Color.Transparent, bottom = Color.Transparent, glow = GelGlowPink)
+        val Pink = GelColors(top = GelPinkTop, mid = GelPinkMid, bottom = GelPinkBottom, glow = GelGlowPink)
 
         /** Text and glyphs on the gel: white. */
-        val onGel: Color = Color.Transparent
+        val onGel: Color = OnGel
 
         /** The glyph badge's fill. */
-        val badge: Color = Color.Transparent
+        val badge: Color = GelBadge
 
         /** The Challenge level chip's fill, and its text. */
-        val chip: Color = Color.Transparent
-        val chipText: Color = Color.Transparent
+        val chip: Color = GelChip
+        val chipText: Color = GelChipText
 
         /** The Classic tile's flat footprint: pegs and holes, and the Challenge bolt's tint. */
-        val artPeg: Color = Color.Transparent
-        val artHole: Color = Color.Transparent
+        val artPeg: Color = GelArtPeg
+        val artHole: Color = GelArtHole
 
         /** The tile's 1dp rim, its lip's top colour and its sheen's centre colour. */
-        val rim: Color = Color.Transparent
-        val lip: Color = Color.Transparent
-        val sheen: Color = Color.Transparent
+        val rim: Color = GelRim
+        val lip: Color = GelLip
+        val sheen: Color = GelSheen
     }
 }

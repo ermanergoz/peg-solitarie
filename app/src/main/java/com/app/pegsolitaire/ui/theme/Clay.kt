@@ -74,7 +74,7 @@ internal val LightClayColors =
         dimpleFill = LightDimpleFill,
         dimpleShadow = LightDimpleShadow,
         shadowTint = LightClayShadowTint,
-        titleGradient = LightCtaGradientColors,
+        titleGradient = LightTitleGradientColors,
     )
 
 internal val DarkClayColors =
@@ -86,7 +86,7 @@ internal val DarkClayColors =
         dimpleFill = DarkDimpleFill,
         dimpleShadow = DarkDimpleShadow,
         shadowTint = DarkClayShadowTint,
-        titleGradient = DarkCtaGradientColors,
+        titleGradient = DarkTitleGradientColors,
     )
 
 /** The active clay palette, provided by `AppTheme` alongside the color scheme. */

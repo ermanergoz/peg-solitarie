@@ -46,6 +46,6 @@ val FinishedContainer.recipe: FinishRecipe
             FinishedContainer.RescueBanner -> RIMMED_BANNER
         }
 
-private val HERO_SLAB = FinishRecipe(rim = false, lip = false, gloss = false, glow = false)
-private val GLOSSED_CHIP = FinishRecipe(rim = false, lip = false, gloss = false, glow = false)
-private val RIMMED_BANNER = FinishRecipe(rim = false, lip = false, gloss = false, glow = false)
+private val HERO_SLAB = FinishRecipe(rim = true, lip = true, gloss = false, glow = true)
+private val GLOSSED_CHIP = FinishRecipe(rim = true, lip = true, gloss = true, glow = true)
+private val RIMMED_BANNER = FinishRecipe(rim = true, lip = true, gloss = false, glow = false)
