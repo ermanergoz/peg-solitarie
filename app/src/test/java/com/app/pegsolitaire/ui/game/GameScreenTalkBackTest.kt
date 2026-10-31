@@ -494,6 +494,23 @@ class GameScreenTalkBackTest {
         assertThat(boardStopFocused()).isTrue()
     }
 
+    /**
+     * Defect ruling §7 (B-7): under touch exploration a selection is made on the focused cell, whose
+     * own text gains "selected" and is re-read by TalkBack, so the selection line is not put on the
+     * channel; the put-down that follows still is.
+     */
+    @Test
+    fun underTouchExplorationASelectionPutsNoLineAndItsPutDownStillDoes() {
+        startGame(touchExploration = true)
+        composeRule.mainClock.advanceTimeBy(ANNOUNCEMENT_ARM_GAP_MS)
+
+        activate(Position(row = 1, col = 3))
+        assertThat(channel()).isNull()
+
+        activate(Position(row = 1, col = 3))
+        assertChannel("Peg put down, row 2, column 4.")
+    }
+
     // ---- Helpers ---------------------------------------------------------------------------------
 
     private fun startGame(

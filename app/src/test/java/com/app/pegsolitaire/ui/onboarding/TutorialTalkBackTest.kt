@@ -252,6 +252,19 @@ class TutorialTalkBackTest {
         ).isEqualTo(cell(Position(row = 0, col = 0)).fetchSemanticsNode().id)
     }
 
+    /** Defect ruling §7 (B-7): in the tutorial too, a selection under touch exploration puts no line. */
+    @Test
+    fun underTouchExplorationASelectionPutsNoLineAndItsPutDownStillDoes() {
+        open(touchExploration = true)
+        composeRule.mainClock.advanceTimeBy(ANNOUNCEMENT_ARM_GAP_MS + PAST_THE_HOLD_MS)
+
+        activate(Position(row = 0, col = 0))
+        assertThat(channelText()).isNull()
+
+        activate(Position(row = 0, col = 0))
+        assertChannel("Peg put down, row 1, column 1.")
+    }
+
     // ---- Helpers ---------------------------------------------------------------------------------
 
     /** The board's channel: the tutorial's one live region, found by what it is, not by its tag. */
@@ -329,6 +342,9 @@ class TutorialTalkBackTest {
 
         /** Two of the accessibility delegate's 100 ms batches and a frame. */
         const val SERVICE_BATCHES_MS = 216L
+
+        /** Past the step line's one-second hold, so the channel is empty before the selection. */
+        const val PAST_THE_HOLD_MS = 1_200L
         const val STEP_ONE_LINE = "Step 1 of 3. Tap a peg, then tap the empty hole two cells away."
         const val STEP_TWO_LINE = "Step 2 of 3. Jumps work up, down, left and right — never diagonally."
         const val NO_PEG_LINE = "No peg here."

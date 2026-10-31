@@ -212,6 +212,10 @@ internal fun GameplayBoardAnnouncements(
  * on either board. A put-down is the selection cleared with nothing else moving: not by a jump, an
  * undo or a restart (each changes the board or its own ordinal), not by a rejected tap, and not by a
  * coach escalation that releases a held peg, which speaks only its hint line (§11.1).
+ *
+ * Under touch exploration the selection puts no line: every selection is then made on the focused
+ * cell, whose own text gains "selected" in the same frame, and TalkBack re-reads it (D-TBa item 11;
+ * the talkback-board defect ruling, §7, B-7). The put-down still speaks: it says what the re-read does not.
  */
 @Composable
 internal fun SelectionAnnouncements(
@@ -219,6 +223,7 @@ internal fun SelectionAnnouncements(
     announcer: BoardAnnouncer,
 ) {
     val format = rememberBoardSpeechFormat()
+    val touchExploration = rememberTouchExplorationEnabled()
     val now =
         SelectionView(
             board.selected,
@@ -232,7 +237,7 @@ internal fun SelectionAnnouncements(
         val samePosition = before.copy(selected = after.selected) == after
         when {
             !samePosition -> Unit
-            before.selected == null && after.selected != null ->
+            before.selected == null && after.selected != null && !touchExploration ->
                 announcer.announce(
                     format.announcement(
                         BoardEvent.Selected(after.selected, BoardSpeechModel.jumpsFrom(after.board, after.selected)),
