@@ -70,9 +70,9 @@ import kotlinx.coroutines.flow.first
  * violet Classic tile whose whole surface navigates to the catalog ([onPlayClassic]) and a pink
  * Challenge tile (with its persisted-level chip) whose whole surface enters Challenge
  * ([onPlayChallenge]) at the player's persisted [HomeUiState.challengeCurrentLevel] (CHAL-05) —
- * and an empty footer, which is the smaller share of that slack. Two slow-drifting low-alpha
- * blobs float behind the content (skipped when OS animations are off), the bands enter with a
- * stagger, and everything tappable squishes. Below the compact threshold of available height —
+ * and an empty footer, which is the smaller share of that slack. The `Scaffold` is transparent, so
+ * the app-wide backdrop (`ui/backdrop/SceneBackdrop.kt`, docs/ux/candy-backdrop.md) shows behind
+ * the bands; the bands enter with a stagger, and everything tappable squishes. Below the compact threshold of available height —
  * which reads the available **width** as well, since D-03k — the band spacing tightens, and on
  * the narrow class each progress pill drops its decorative glyph and puts its label beside its
  * value; no readout, control or band is ever dropped.
@@ -144,6 +144,8 @@ fun HomeScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onBackground,
         snackbarHost = { ClaySnackbarHost(snackbarHostState) },
     ) { contentPadding ->
         Box(
@@ -153,7 +155,6 @@ fun HomeScreen(
                     .padding(contentPadding),
             contentAlignment = Alignment.TopCenter,
         ) {
-            HomeBlobs()
             HomeBands(
                 state = state,
                 onPlayClassic = onPlayClassic,

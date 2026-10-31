@@ -13,7 +13,7 @@ import androidx.compose.animation.core.spring
  * dp/sp), so they live in this scoped object rather than `dimens.xml`
  * (QUAL-03). Board-specific ratios/durations stay in `BoardMetrics`/`GameAnim`;
  * this object owns the cross-screen clay juice: squish presses, staggered
- * entrances, celebration pops and ambient blob drift.
+ * entrances, celebration pops and the navigation fade.
  */
 object ClayAnim {
     /** Every tappable clay surface scales to this while pressed. */
@@ -37,12 +37,6 @@ object ClayAnim {
 
     /** Per-item stagger for catalog cards + home tiles. */
     const val ENTRANCE_STAGGER_MS = 40
-
-    /** One full ambient background-blob drift cycle (~8s, DESIGN-SYSTEM.md Home). */
-    const val BLOB_DRIFT_MS = 8000
-
-    /** Low alpha of the two ambient home background blobs. */
-    const val BLOB_ALPHA = 0.10f
 
     /**
      * How long one Results star takes to resolve: the duration `EarnedStar` hands to
