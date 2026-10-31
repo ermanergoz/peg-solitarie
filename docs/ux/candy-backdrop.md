@@ -4,7 +4,7 @@ task: candy-backdrop
 slug: scene-backdrop
 status: draft
 created: 2026-10-17
-revised: 2026-10-18 (third edition: direction B "Deep gloss", the founder's answer to Q-021)
+revised: 2026-10-18 (third edition: direction B "Deep gloss", the founder's answer to Q-021); 2026-10-31 (B-19a, BD-19 amended)
 stack: android-compose-game
 design-system: docs/ui/DESIGN-SYSTEM.md
 ip-verdict: .planning/reports/candy-backdrop/research-analyst.md (inspiration-only)
@@ -444,6 +444,57 @@ the second edition, whose sections §16 lists.
   - At the board's 10%, dark gloss puts the ribbon labels (`onSurfaceVariant`) at 4.10:1. At 6% they
     read ≥ 4.66:1.
   - In light, a white gloss under dark text only raises its contrast.
+
+- **B-19a (2026-10-31): The ribbon pills keep their gloss, and criterion 15m's pixel read admits
+  the finish** (amends B-19's reach into phase 15; a UX decision on the conflict in
+  `.planning/reports/candy-backdrop/android-game-dev.md`, Open issue 1). Pointer in
+  `docs/ux-spec.md`, criterion 15m.
+  - **The conflict.** `HomeLayoutTest.theNarrowClassPillPutsItsLabelBesideItsValueAndComposesNoGlyph`
+    (15m) reads every pixel inside each narrow pill's `spacing_sm` padding and outside its texts,
+    and expects flat `surfaceContainerHigh`. B-19's gloss covers the top 46% of the pill, inside
+    that area. The test reported "pill 0 paints 444 px besides its surface and its texts". No
+    build can satisfy both.
+  - **The ruling.** Option (b). B-19 stands on every ribbon pill, in both shapes. 15m's
+    requirement stands as written: no decorative glyph. Its pixel oracle changes: each read pixel
+    is compared against the pill's **finished surface at that pixel**, in the same theme and the
+    same run: the fill, the gloss gradient over it, and the rim and lip wherever the read area
+    meets them. It is no longer compared against flat `surfaceContainerHigh`. The read area, the
+    three pills, the text ink margin and every other assertion of the test are unchanged.
+  - **What the amended read must prove** (this role's properties; how it is computed is the
+    tech-lead's):
+    1. It passes on this branch's compact pills in light and in dark. Today's test runs one
+       theme; the amended one runs both, because the gloss differs by theme (70% white in light,
+       6% in dark).
+    2. **Red, light:** the H-1 audit's M3b mutation (the 20dp glyph put back inline before the
+       label, `onSurfaceVariant`) fails it on every pill.
+    3. **Red, dark:** the same mutation fails it in dark. The dark gloss is faint and the glyph is
+       lighter than the fill, so this is the case a loose tolerance would miss.
+    4. **Red, inside the gloss:** a glyph drawn inside the gloss band, the pill's top 46%, fails
+       it in both themes. A read that skipped the glossed rows would pass a glyph placed there.
+    5. Any tolerance is a named constant. It is wider than today's one level a channel only by
+       what the gloss gradient's own rendering needs, and reds 2–4 fail with it in place.
+  - **BD-19's carve-out.** BD-19 re-runs phase 15's criteria "with no test edited". This one edit,
+    to 15m's pixel oracle (`assertEachPillPaintsOnlyItsSurfaceAndItsTexts`, its tolerance
+    constant, and the theme parameter), is the one exception. It needs the code-auditor's line
+    that the oracle was amended, not weakened, with reds 2–4 shown failing. Every other phase-15
+    test stays unedited.
+
+  — Reasons:
+  - **15m is about a glyph, and the gloss is not one.** The flat-fill read stood in for "no glyph"
+    because the pill's surface was flat when phase 15 wrote it. B-19 changed the surface, not the
+    property. The test's own KDoc gives the reason for the read: a glyph "cannot avoid being
+    drawn". A read against the finished surface still catches exactly that.
+  - **One finish on Home's middle band.** The gear chip above the ribbon and the Continue chips
+    below it are glossed (B-19). A flat ribbon between them would look unfinished, or disabled,
+    beside its neighbours. The finish is a recipe per container, so option (a) removes the gloss
+    from the full pills too, on every window. Dropping it on the compact shape only would give one
+    readout two looks across widths.
+  - **Accessibility gives no reason for (a).** In light the gloss only raises the labels'
+    contrast. In dark, at 6%, the ribbon labels read ≥ 4.66:1 even at the pill's top edge (§5.3),
+    and no text reaches that edge: the compact pill's label starts below its 8dp padding, where
+    the gloss is weaker. Neither option changes a node, a target or an announcement.
+  - **It is the founder's pick.** The board's ribbon is glossed (Q-021, direction B), and B-19
+    names the ribbon pills.
 
 - **B-20: The calm band is made by the composition, not by a veil.** On Home and the game screen the
   band above the calm end (0.14 H) holds the sky alone: `SkyTop` to 0.12 H, then the start of the
@@ -1537,7 +1588,7 @@ edition's, with only their layer and element names updated.
 | **BD-16** | **Motion** (rewritten: B-05a, B-22). (a) **At rest:** with the scale at 0, every element is at its rest pose and the sheen is not drawn. Over 5 s idle on Home, gameplay and a Sparse screen, the device's `dumpsys gfxinfo` frame count is no higher than `develop`'s for the same screen in the same state. (b) **In motion:** Home moves exactly the 2 waves, the 9 lights and the 2 sheens; gameplay exactly the 2 waves and the 5 lights; Sparse nothing. Only translation and alpha vary. One frame source drives it. Scrolling Home at a fixed clock time leaves the backdrop's pixels unchanged. (c) **Settle**, per the tech-lead's idle-frame ruling (B-22's defaults until it lands): after the idle delay plus 2 s with no input, the frame count over the next 10 s is no higher than `develop`'s for the same screen in the same state (the timer's ticks only, on gameplay). One tap restarts the motion within 2 s, and that tap reaches its target unchanged. In battery saver the backdrop stays at rest | Test (pose model, test clock, the board's tap test with the observer present), QA (frame counts, battery saver) | as stated |
 | **BD-17** | **The board untouched, pixel for pixel** (D4: an in-run comparison, no file). `GameScreen` rendered with and without the backdrop, in light and dark, mid-game with a selection, legal-target dots and a hint showing: the slab's interior, inset 2dp from its edge, is identical. Likewise the interiors of the Home stage art, the gel tiles (clock fixed, no sheen passing) and the Continue chips | Test | zero differing pixels |
 | **BD-18** | **What sits under the board** is the opaque `surfaceContainerHigh` clay slab at full alpha, with its rim, lip and glow, and nothing else: no grid, no translucency, no blur, no gloss | Test, Auditor | as stated |
-| **BD-19** | **Layouts unchanged.** The phase-15 criteria 15g, 15j, 15k, 15n–15r, 18a–18e and 21a–21g re-run green on this branch, **with no test edited**. On the device, 18b's inset clause holds. With three-button navigation the system's scrim is visible over the waves, and with gesture navigation the handle is legible | Test, QA | all green; the scrim and the handle present |
+| **BD-19** | **Layouts unchanged** (amended 2026-10-31: B-19a). The phase-15 criteria 15g, 15j, 15k, 15m, 15n–15r, 18a–18e and 21a–21g re-run green on this branch, **with no test edited**, except 15m's pixel oracle, which B-19a amends and the code-auditor approves on its reds. On the device, 18b's inset clause holds. With three-button navigation the system's scrim is visible over the waves, and with gesture navigation the handle is legible | Test, QA | all green; the scrim and the handle present |
 | **BD-20** | **Font independence**: the backdrop alone, rendered at font scale 1.0 and 2.0 on the same window at the same clock time, is pixel-identical | Test | identical |
 | **BD-21** | **The sky is continuous across navigation** (amended: D6). On Home → catalogue → gameplay → Results → Home, with the test clock paused at a fixed backdrop time, every frame of every transition is rendered. Pixels are sampled where no stand-in draws and away from every wave and light: the calm band, and the sky between the band and the back crest | Test, QA (a screen recording) | at every frame, each sampled colour lies on the segment between that pixel's outgoing and incoming colours, within ±2/255 per channel: only a convex blend is allowed. The sky never lightens toward `background` |
 | **BD-22** | **RTL** (amended: D4). In `ar-XB` the scene, the waves' offsets and the sheen's travel are the mirror of LTR. An in-run comparison at a fixed clock time, under a stated tolerance constant, must fail on a deliberately unmirrored scene | Test, QA | mirrored |
