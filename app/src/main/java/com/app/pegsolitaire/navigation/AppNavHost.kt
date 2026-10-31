@@ -10,12 +10,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.app.pegsolitaire.ui.backdrop.BackdropClockDriver
 import com.app.pegsolitaire.ui.backdrop.BackdropFrames
+import com.app.pegsolitaire.ui.backdrop.BackdropMetrics
 import com.app.pegsolitaire.ui.backdrop.InfiniteBackdropFrames
 import com.app.pegsolitaire.ui.backdrop.LocalBackdropClock
 import com.app.pegsolitaire.ui.backdrop.LocalBackdropSceneReady
@@ -142,7 +145,6 @@ fun AppNavHost(
     },
     backdropFrames: BackdropFrames = InfiniteBackdropFrames,
 ) {
-    check(backdropFrames === backdropFrames)
     val sceneReady = rememberBackdropSceneReady()
     val clock = rememberBackdropClock()
     Surface(
@@ -151,6 +153,7 @@ fun AppNavHost(
         modifier = Modifier.fillMaxSize(),
     ) {
         CompositionLocalProvider(LocalBackdropSceneReady provides sceneReady, LocalBackdropClock provides clock) {
+            BackdropClockDriver(clock = clock, sceneReady = sceneReady, frames = backdropFrames)
             Box(modifier = Modifier.fillMaxSize().backdropInputObserver(clock)) {
                 AppNavGraph(
                     navController = navController,
@@ -160,6 +163,10 @@ fun AppNavHost(
                     resultsContent = resultsContent,
                     settingsContent = settingsContent,
                     tutorialContent = tutorialContent,
+                )
+                NavBackdrop(
+                    navController = navController,
+                    modifier = Modifier.matchParentSize().zIndex(BackdropMetrics.BACKDROP_Z_INDEX),
                 )
             }
         }
