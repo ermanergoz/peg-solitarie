@@ -236,6 +236,26 @@ class TutorialTalkBackTest {
     }
 
     /**
+     * Defect ruling §1, mechanism 3 ("Not a stop on opening"): while it holds a line the channel is
+     * a speaking leaf at the screen's top-left corner, the place Compose reads first. It is read
+     * last instead — one stop leads to it and none follows it — so a new screen's first focus does
+     * not land on the step-1 line.
+     */
+    @Test
+    fun whileTheChannelHoldsTheFirstStepsLineItIsTheLastStopInTheReadingOrder() {
+        turnOnATouchExplorationService()
+        open(touchExploration = true)
+        composeRule.mainClock.advanceTimeBy(ANNOUNCEMENT_ARM_GAP_MS + FRAME_MS)
+        assertThat(channelText()).isEqualTo(STEP_ONE_LINE)
+        val channel = channelNode()
+
+        val readJustBefore = everyNode().filter { composeRule.traversalBeforeOf(it) == channel.id }
+
+        assertThat(readJustBefore.map { it.id }).hasSize(1)
+        assertThat(composeRule.traversalBeforeOf(channel)).isNull()
+    }
+
+    /**
      * Defect ruling §3 (B-3): the board stop is a leaf with something to say, so Compose puts it in
      * its reading order — after Skip, before the first cell — and TalkBack does not read it first.
      */
@@ -272,6 +292,13 @@ class TutorialTalkBackTest {
         composeRule
             .onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.LiveRegion), useUnmergedTree = true)
             .fetchSemanticsNode()
+
+    /** Every node of the screen but its root, unmerged: each one a stop could be. */
+    private fun everyNode(): List<SemanticsNode> =
+        composeRule
+            .onAllNodes(SemanticsMatcher("any node") { true }, useUnmergedTree = true)
+            .fetchSemanticsNodes()
+            .filterNot { it.isRoot }
 
     private fun channelText(): String? =
         channelNode()

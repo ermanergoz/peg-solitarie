@@ -495,6 +495,30 @@ class GameScreenTalkBackTest {
     }
 
     /**
+     * Defect ruling §8, deviation 6: a jump action's focus move waits — for window focus, then for
+     * its gap — and a newer jump action cancels the one still waiting. Taken inside the first
+     * move's gap, the second action's destination takes focus, and the first's never does, so
+     * TalkBack is sent no stop on the way.
+     */
+    @Test
+    fun aJumpActionTakenWhileAnEarlierOnesFocusMoveWaitsCancelsItSoOnlyItsOwnDestinationTakesFocus() {
+        startGame(touchExploration = true)
+        composeRule.mainClock.autoAdvance = false
+        takeAction(ABOVE_CENTRE, "Jump down to row 4, column 4")
+        composeRule.mainClock.advanceTimeBy(FOCUS_MOVE_GAP_MS / 2)
+        takeAction(LEFT_OF_THE_OPENED_HOLE, "Jump right to row 3, column 4")
+
+        val trace =
+            List(TRACE_FRAMES) {
+                composeRule.mainClock.advanceTimeByFrame()
+                cellFocused(CENTRE) to cellFocused(OPENED_HOLE)
+            }
+
+        assertThat(trace.map { it.first }).doesNotContain(true)
+        assertThat(trace.last().second).isTrue()
+    }
+
+    /**
      * Defect ruling §7 (B-7): under touch exploration a selection is made on the focused cell, whose
      * own text gains "selected" and is re-read by TalkBack, so the selection line is not put on the
      * channel; the put-down that follows still is.
@@ -690,6 +714,9 @@ class GameScreenTalkBackTest {
         composeRule.waitForIdle()
     }
 
+    private fun cellFocused(cell: Position): Boolean =
+        cellNode(cell).fetchSemanticsNode().config.getOrNull(SemanticsProperties.Focused) == true
+
     private fun boardStopFocused(): Boolean =
         composeRule
             .onNodeWithTag(
@@ -728,6 +755,10 @@ class GameScreenTalkBackTest {
         /** After the opening jump, (4, 3)'s only jump lands on (2, 3). */
         val BELOW_CENTRE_TWO = Position(row = 4, col = 3)
         val TOP_LEFT_PEG = Position(row = 0, col = 2)
+
+        /** The peg the opening jump down removes: its hole is where (2, 1) then jumps right to. */
+        val OPENED_HOLE = Position(row = 2, col = 3)
+        val LEFT_OF_THE_OPENED_HOLE = Position(row = 2, col = 1)
         val DOWN_INTO_THE_CENTRE = Move(from = ABOVE_CENTRE, over = Position(2, 3), to = CENTRE)
 
         /** Three pegs: (3, 1) jumps (3, 2) into the centre, and (0, 2) is left stranded with it. */
