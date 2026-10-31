@@ -61,6 +61,8 @@ data class ClayColors(
     val dimpleShadow: Color,
     /** Violet-tinted spot/ambient shadow color (never harsh black). */
     val shadowTint: Color,
+    /** `TitleGradient` stops (vertical) for the Home title only (colour-vision.md TG-01). */
+    val titleGradient: List<Color>,
 )
 
 internal val LightClayColors =
@@ -72,6 +74,7 @@ internal val LightClayColors =
         dimpleFill = LightDimpleFill,
         dimpleShadow = LightDimpleShadow,
         shadowTint = LightClayShadowTint,
+        titleGradient = LightCtaGradientColors,
     )
 
 internal val DarkClayColors =
@@ -83,6 +86,7 @@ internal val DarkClayColors =
         dimpleFill = DarkDimpleFill,
         dimpleShadow = DarkDimpleShadow,
         shadowTint = DarkClayShadowTint,
+        titleGradient = DarkCtaGradientColors,
     )
 
 /** The active clay palette, provided by `AppTheme` alongside the color scheme. */
@@ -99,6 +103,20 @@ fun ctaGradientBrush(): Brush {
     return Brush.verticalGradient(
         CTA_LIGHT_STOP to stops.first(),
         CTA_DARK_STOP to stops.last(),
+    )
+}
+
+/**
+ * The Home title's vertical `TitleGradient` brush (colour-vision.md TG-01): the CTA brush's
+ * geometry — a light lip at [TITLE_LIGHT_STOP], the deep body from [TITLE_DARK_STOP] — in its own
+ * stops, one step deeper along the violet ramp, so both read ≥ 4.5:1 on the background.
+ */
+@Composable
+fun titleGradientBrush(): Brush {
+    val stops = LocalClayColors.current.titleGradient
+    return Brush.verticalGradient(
+        TITLE_LIGHT_STOP to stops.first(),
+        TITLE_DARK_STOP to stops.last(),
     )
 }
 
@@ -226,6 +244,12 @@ private const val CTA_LIGHT_STOP = 0f
 
 /** The gradient fraction from which the CTA dark body runs (label sits here). */
 private const val CTA_DARK_STOP = 0.5f
+
+/** The gradient fraction where the title's light lip ends (one constant per owner, beside the CTA's). */
+private const val TITLE_LIGHT_STOP = 0f
+
+/** The gradient fraction from which the title's deep body runs. */
+private const val TITLE_DARK_STOP = 0.5f
 
 /** Entrance progress end-points (0 = hidden/offset, 1 = settled). */
 private const val ENTRANCE_START = 0f
