@@ -147,7 +147,7 @@ class BackdropColorsTest {
     fun everyNewHueLiesInTheVioletPinkArc() {
         newTokens().forEach { (name, colour) ->
             val hue = colour.hueDegrees() ?: return@forEach
-            assertWithMessage("$name hue").that(hue).isIn(HUE_ARC)
+            assertWithMessage("$name hue $hue").that(hue in HUE_ARC).isTrue()
         }
     }
 
@@ -165,7 +165,8 @@ class BackdropColorsTest {
     @Test
     fun theLightWaveBodyStaysLilacToVioletBelowItsPinkCrest() {
         listOf(LightBackdropColors.waveBody, LightBackdropColors.waveDeep).forEach { colour ->
-            assertWithMessage("light wave body hue $colour").that(colour.hueDegrees()).isIn(WAVE_BODY_ARC)
+            val hue = colour.hueDegrees()
+            assertWithMessage("light wave body hue $hue").that(hue != null && hue in WAVE_BODY_ARC).isTrue()
         }
     }
 

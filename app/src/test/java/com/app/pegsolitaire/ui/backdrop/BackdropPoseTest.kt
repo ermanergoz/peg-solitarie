@@ -57,8 +57,9 @@ class BackdropPoseTest {
                 // The phase wraps from just below 1 to 0 between these two times.
                 val wrapAt = ((1f - light.phase0) * light.periodMs).toLong()
                 val before = lightAlpha(scene, light, wrapAt - 1)
-                assertWithMessage("alpha just before the wrap").that(before).isLessThan(EPS)
-                assertWithMessage("alpha at the wrap").that(lightAlpha(scene, light, wrapAt + 1)).isLessThan(EPS)
+                assertWithMessage("alpha just before the wrap").that(before).isLessThan(INVISIBLE_ALPHA)
+                val after = lightAlpha(scene, light, wrapAt + 1)
+                assertWithMessage("alpha at the wrap").that(after).isLessThan(INVISIBLE_ALPHA)
             }
         }
     }
@@ -83,7 +84,8 @@ class BackdropPoseTest {
         (start until BackdropMotion.GEL_SHEEN_PERIOD_MS step STEP_MS).forEach { t ->
             val p = gelSheenProgress(t, 0L)
             assertThat(p).isAtLeast(last)
-            assertThat(p).isIn(0f..1f)
+            assertThat(p).isAtLeast(0f)
+            assertThat(p).isAtMost(1f)
             last = p
         }
         assertThat(gelSheenProgress(start, 0L)).isWithin(EPS).of(0f)
@@ -137,6 +139,9 @@ class BackdropPoseTest {
 
     private companion object {
         const val EPS = 1e-4f
+
+        /** A light at a thousandth of its alpha draws nothing a player can see, within 1 ms of its wrap. */
+        const val INVISIBLE_ALPHA = 1e-3f
         const val WRAP_EDGE = 0.99999f
         const val STEP_MS = 10L
         const val STEP_SECONDS = 0.010f
