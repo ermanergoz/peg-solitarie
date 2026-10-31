@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
+import com.app.pegsolitaire.testing.assertInTouchMode
 import com.app.pegsolitaire.testing.nodeInfoHandedOut
 import com.app.pegsolitaire.testing.turnOnATouchExplorationService
 import com.app.pegsolitaire.ui.components.BOARD_STOP_TEST_TAG
@@ -60,6 +61,8 @@ import org.robolectric.annotation.GraphicsMode
  * accessibility manager before the content is composed).
  */
 @RunWith(RobolectricTestRunner::class)
+// A phone's state: Robolectric starts a window in touch mode only with native graphics (TouchMode.kt).
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [SEMANTICS_SDK], qualifiers = SEMANTICS_QUALIFIERS)
 class BoardSemanticsTest {
     @get:Rule
@@ -322,7 +325,6 @@ class BoardSemanticsTest {
      * on the slab, which has the board as its children and merges nothing, Compose counts it as neither.
      */
     @Test
-    @GraphicsMode(GraphicsMode.Mode.NATIVE) // Compose prunes with android.graphics.Region
     fun aServiceIsHandedTheBoardStopAsAScreenReaderFocusableLeaf() {
         turnOnATouchExplorationService()
         show(START, touchExploration = true)
@@ -372,6 +374,7 @@ class BoardSemanticsTest {
             }
         }
         composeRule.waitForIdle()
+        composeRule.assertInTouchMode()
     }
 
     private fun setTouchExploration(enabled: Boolean) {

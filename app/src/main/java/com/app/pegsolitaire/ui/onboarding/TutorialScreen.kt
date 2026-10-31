@@ -37,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -177,7 +178,12 @@ fun TutorialScreen(
                     touchExploration = touchExploration,
                 )
                 TutorialCaption(captionRes = state.captionRes)
-                TutorialFooter(completed = state.completed, onDone = onDone, gotItFocus = gotItFocus)
+                TutorialFooter(
+                    completed = state.completed,
+                    onDone = onDone,
+                    gotItFocus = gotItFocus,
+                    touchExploration = touchExploration,
+                )
             }
             // D-TB: the screen's spoken channel, drawn last, above everything (defect ruling §1).
             AnnouncementRegion(announcer)
@@ -343,6 +349,7 @@ private fun TutorialFooter(
     completed: Boolean,
     onDone: () -> Unit,
     gotItFocus: FocusRequester,
+    touchExploration: Boolean,
 ) {
     if (!completed) {
         Spacer(modifier = Modifier.fillMaxWidth())
@@ -364,6 +371,9 @@ private fun TutorialFooter(
                 Modifier
                     .fillMaxWidth()
                     .focusRequester(gotItFocus)
+                    // A clickable cannot take focus in touch mode, a phone's; completion moves focus
+                    // here under touch exploration only (defect ruling §2, B-2; TB-11 untouched).
+                    .focusProperties { if (touchExploration) canFocus = true }
                     .claySquish()
                     .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.large)
                     .background(brush = ctaGradientBrush(), shape = MaterialTheme.shapes.large),

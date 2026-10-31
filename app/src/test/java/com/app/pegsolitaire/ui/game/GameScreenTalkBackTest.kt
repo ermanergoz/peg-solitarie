@@ -48,6 +48,7 @@ import com.app.pegsolitaire.domain.usecase.GetHintUseCase
 import com.app.pegsolitaire.domain.usecase.HintOutcome
 import com.app.pegsolitaire.platform.ads.NoOpAdGateway
 import com.app.pegsolitaire.testing.RecordingHapticFeedback
+import com.app.pegsolitaire.testing.assertInTouchMode
 import com.app.pegsolitaire.testing.liveRegionsHandedOut
 import com.app.pegsolitaire.testing.traversalBeforeOf
 import com.app.pegsolitaire.testing.turnOnATouchExplorationService
@@ -81,6 +82,8 @@ import kotlin.time.TestTimeSource
  * pinned order (D-TBa loop 5, F-38) on a window that limits the board by height.
  */
 @RunWith(RobolectricTestRunner::class)
+// A phone's state: Robolectric starts a window in touch mode only with native graphics (TouchMode.kt).
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [TALKBACK_SCREEN_SDK], qualifiers = TALKBACK_SCREEN_QUALIFIERS)
 class GameScreenTalkBackTest {
     @get:Rule
@@ -420,7 +423,6 @@ class GameScreenTalkBackTest {
 
     /** Defect ruling §1: a service is handed the board's channel, the window's one live region, a leaf. */
     @Test
-    @GraphicsMode(GraphicsMode.Mode.NATIVE) // Compose prunes with android.graphics.Region
     fun aServiceIsHandedTheBoardsChannelAsTheWindowsOnlyLiveRegionAndALeaf() {
         turnOnATouchExplorationService()
         showState(GameUiState.initial(Boards.english33Initial))
@@ -436,7 +438,6 @@ class GameScreenTalkBackTest {
      * beside the banner's own region (23k).
      */
     @Test
-    @GraphicsMode(GraphicsMode.Mode.NATIVE) // Compose prunes with android.graphics.Region
     @Config(qualifiers = HEIGHT_LIMITED_QUALIFIERS)
     fun withTheBannerUpOverAHeightLimitedBoardAServiceIsStillHandedTheBoardsChannel() {
         turnOnATouchExplorationService()
@@ -454,7 +455,6 @@ class GameScreenTalkBackTest {
      * the title, until home-chip-arrival's timer fix reaches this branch — and precedes row 1's first cell.
      */
     @Test
-    @GraphicsMode(GraphicsMode.Mode.NATIVE) // Compose prunes with android.graphics.Region
     fun theBoardStopFollowsTheTitleAndPrecedesTheFirstCell() {
         turnOnATouchExplorationService()
         startGame(touchExploration = true)
@@ -487,6 +487,7 @@ class GameScreenTalkBackTest {
             }
         }
         composeRule.waitForIdle()
+        composeRule.assertInTouchMode()
         return game
     }
 
@@ -536,6 +537,7 @@ class GameScreenTalkBackTest {
             }
         }
         composeRule.waitForIdle()
+        composeRule.assertInTouchMode()
     }
 
     /** The script of TB-4: select, re-tap, select, jump, a hole with nothing held, another peg held. */

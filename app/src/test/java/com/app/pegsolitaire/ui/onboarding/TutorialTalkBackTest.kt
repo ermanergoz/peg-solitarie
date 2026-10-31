@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performSemanticsAction
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
+import com.app.pegsolitaire.testing.assertInTouchMode
 import com.app.pegsolitaire.testing.descriptionChangesSent
 import com.app.pegsolitaire.testing.nodeInfoHandedOut
 import com.app.pegsolitaire.testing.traversalBeforeOf
@@ -45,6 +46,8 @@ import java.time.Duration
  * (GD-TB-5).
  */
 @RunWith(RobolectricTestRunner::class)
+// A phone's state: Robolectric starts a window in touch mode only with native graphics (TouchMode.kt).
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [TUTORIAL_TALKBACK_SDK], qualifiers = TUTORIAL_TALKBACK_QUALIFIERS)
 class TutorialTalkBackTest {
     @get:Rule
@@ -172,7 +175,6 @@ class TutorialTalkBackTest {
      * leaf no cell covers, so step 2's line reaches TalkBack.
      */
     @Test
-    @GraphicsMode(GraphicsMode.Mode.NATIVE) // Compose prunes with android.graphics.Region
     fun onStepTwoAServiceIsHandedTheChannelAsAPoliteLeafWithTheStepLine() {
         turnOnATouchExplorationService()
         val tutorial = open(touchExploration = true)
@@ -188,7 +190,6 @@ class TutorialTalkBackTest {
 
     /** Defect ruling §1 (B-1): after the first step swap every line is still sent to the service. */
     @Test
-    @GraphicsMode(GraphicsMode.Mode.NATIVE) // Compose prunes with android.graphics.Region
     fun everyLineAfterTheFirstStepSwapIsSentToTheService() {
         turnOnATouchExplorationService()
         val tutorial = open(touchExploration = true)
@@ -220,7 +221,6 @@ class TutorialTalkBackTest {
      * node and never be sent, so the channel holds it until it is armed, then puts it on.
      */
     @Test
-    @GraphicsMode(GraphicsMode.Mode.NATIVE) // Compose prunes with android.graphics.Region
     fun theFirstStepsLineIsHeldUntilTheChannelIsArmedAndIsThenSent() {
         turnOnATouchExplorationService()
         composeRule.mainClock.autoAdvance = false
@@ -240,7 +240,6 @@ class TutorialTalkBackTest {
      * its reading order — after Skip, before the first cell — and TalkBack does not read it first.
      */
     @Test
-    @GraphicsMode(GraphicsMode.Mode.NATIVE) // Compose prunes with android.graphics.Region
     fun theBoardStopIsReadAfterSkipAndBeforeTheFirstCell() {
         turnOnATouchExplorationService()
         open(touchExploration = true)
@@ -281,6 +280,7 @@ class TutorialTalkBackTest {
             TutorialViewModel(SilentOnboardingRepository(), FixedHapticsSetting(on = true), TestApplicationScope)
         composeRule.setContent { AppTheme { TutorialRouteUnderTest(tutorial) } }
         composeRule.waitForIdle()
+        composeRule.assertInTouchMode()
         return tutorial
     }
 
