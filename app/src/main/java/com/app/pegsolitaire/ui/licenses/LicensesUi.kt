@@ -1,5 +1,7 @@
 package com.app.pegsolitaire.ui.licenses
 
+import androidx.compose.ui.text.style.TextDirection
+
 /**
  * The licences screens' own timing and counts (spec §4, §4A; brief §0.3, F6), scoped here rather
  * than in `ClayAnim` because no other screen uses them.
@@ -18,6 +20,14 @@ internal object LicensesUi {
      * entrance puts the first screenful in within about 560 ms; later items enter plainly.
      */
     const val STAGGERED_ROWS = 8
+
+    /**
+     * The text direction of every text on the four licences screens (spec LS-16; the tech-lead's
+     * re-run ruling, F-2): each paragraph takes the direction of its first strong character, so
+     * English reads left to right in any locale, and a paragraph with none (a section number, a
+     * rule of dashes) falls back to left to right, never to the layout's direction.
+     */
+    val TEXT_DIRECTION: TextDirection = TextDirection.ContentOrLtr
 
     /**
      * The entrance order of the list item at [position] (0 = the intro), or `null` past the first

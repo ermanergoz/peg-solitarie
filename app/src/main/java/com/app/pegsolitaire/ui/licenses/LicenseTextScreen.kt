@@ -27,6 +27,9 @@ import com.app.pegsolitaire.R
 import com.app.pegsolitaire.ui.licenses.LicenseTextHeader.Bundled
 import com.app.pegsolitaire.ui.theme.AppTheme
 
+/** The body's edge: an English document, hung from its left edge in every locale (spec LS-16). */
+private val BODY_EDGE = LicencesTextEdge.TextStart
+
 /** The bundled text body's test tag: the one `SelectionContainer` every paragraph sits in. */
 internal const val LICENSE_TEXT_BODY_TAG = "license_text_body"
 
@@ -41,6 +44,9 @@ internal const val LICENSE_TEXT_BODY_TAG = "license_text_body"
  * entry's title and credit as a heading, each part under its own heading when there are two, and
  * "End of text" last. Loading shows nothing for 300 ms, then the spinner; the error state sits
  * under the entry's name.
+ *
+ * Every text reads in its own direction. The body, an English document, hangs from the column's left
+ * edge in every locale, under a top bar that mirrors (spec LS-16).
  */
 @Composable
 fun LicenseTextScreen(
@@ -50,25 +56,27 @@ fun LicenseTextScreen(
 ) {
     val entry = (state.header as? Bundled)?.entry
     val title = stringResource(entry?.licenseName ?: R.string.licenses_title)
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        topBar = { LicensesTopBar(title = title, onBack = onBack) },
-    ) { contentPadding ->
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(contentPadding),
-            contentAlignment = Alignment.TopCenter,
-        ) {
-            when (state) {
-                is LicenseTextUiState.Loading ->
-                    LoadingAfterDelay(description = stringResource(R.string.licenses_loading))
-                is LicenseTextUiState.Failed -> TextColumn { FailedBody(entry) }
-                is LicenseTextUiState.Loaded ->
-                    SelectionContainer(modifier = Modifier.testTag(LICENSE_TEXT_BODY_TAG)) {
-                        TextColumn { LoadedBody(entry, state.parts) }
-                    }
+    ProvideLicencesText(BODY_EDGE) {
+        Scaffold(
+            modifier = modifier.fillMaxSize(),
+            topBar = { LicensesTopBar(title = title, onBack = onBack) },
+        ) { contentPadding ->
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(contentPadding),
+                contentAlignment = Alignment.TopCenter,
+            ) {
+                when (state) {
+                    is LicenseTextUiState.Loading ->
+                        LoadingAfterDelay(description = stringResource(R.string.licenses_loading))
+                    is LicenseTextUiState.Failed -> TextColumn { FailedBody(entry) }
+                    is LicenseTextUiState.Loaded ->
+                        SelectionContainer(modifier = Modifier.testTag(LICENSE_TEXT_BODY_TAG)) {
+                            TextColumn { LoadedBody(entry, state.parts) }
+                        }
+                }
             }
         }
     }
@@ -85,6 +93,7 @@ private fun TextColumn(content: @Composable () -> Unit) {
                 .verticalScroll(rememberScrollState())
                 .padding(dimensionResource(R.dimen.spacing_md)),
         verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_sm)),
+        horizontalAlignment = BODY_EDGE.horizontalAlignment,
     ) {
         content()
     }
@@ -123,7 +132,10 @@ private fun FailedBody(entry: LicenseEntry?) {
 @Composable
 private fun EntryHeading(entry: LicenseEntry) {
     val credit = (entry.lines.firstOrNull() as? LicenseLine.Plain)?.text
-    Column(modifier = Modifier.semantics(mergeDescendants = true) { heading() }) {
+    Column(
+        modifier = Modifier.semantics(mergeDescendants = true) { heading() },
+        horizontalAlignment = BODY_EDGE.horizontalAlignment,
+    ) {
         Text(
             text = stringResource(entry.title),
             style = MaterialTheme.typography.titleMedium,

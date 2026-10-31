@@ -21,7 +21,8 @@ import com.app.pegsolitaire.ui.theme.claySquish
 /**
  * The top bar all four licences screens share (spec §3.1, §4, §4A, §4B): a silent 48dp back with
  * the shared squish, and the [title] as the screen's heading, allowed to wrap (no `maxLines`).
- * Back makes no sound (D-09): it is back-navigation, not a forward CTA.
+ * Back makes no sound (D-09): it is back-navigation, not a forward CTA. The title reads in its own
+ * direction and hangs from the layout's start, beside the back arrow (spec LS-16).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,11 +41,13 @@ internal fun LicensesTopBar(
             }
         },
         title = {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.semantics { heading() },
-            )
+            ProvideLicencesText(LicencesTextEdge.LayoutStart) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.semantics { heading() },
+                )
+            }
         },
     )
 }

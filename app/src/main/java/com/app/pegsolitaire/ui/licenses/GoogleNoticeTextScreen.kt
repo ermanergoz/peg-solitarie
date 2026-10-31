@@ -27,6 +27,9 @@ import com.app.pegsolitaire.data.licenses.GoogleNotice
 import com.app.pegsolitaire.ui.licenses.LicenseTextHeader.Notice
 import com.app.pegsolitaire.ui.theme.AppTheme
 
+/** The body's edge: an English document, hung from its left edge in every locale (spec LS-16). */
+private val BODY_EDGE = LicencesTextEdge.TextStart
+
 /** The notice body's test tag: the lazy list that carries the scroll-to-node action (brief A1.6). */
 internal const val GOOGLE_NOTICE_TEXT_LIST_TAG = "google_notice_text_list"
 
@@ -39,6 +42,9 @@ internal const val GOOGLE_NOTICE_TEXT_LIST_TAG = "google_notice_text_list"
  * not acceptable on the 2 s-class phone, while a notice needs no whole-text selection. First the
  * plain "Found in" line, then the ordinal of a repeated name, then the paragraphs, "End of text"
  * last. Items are keyed by paragraph index and the list state is saveable.
+ *
+ * Every text reads in its own direction. The body, an English document, hangs from the column's left
+ * edge in every locale, under a top bar that mirrors (spec LS-16).
  */
 @Composable
 fun GoogleNoticeTextScreen(
@@ -47,39 +53,44 @@ fun GoogleNoticeTextScreen(
     modifier: Modifier = Modifier,
 ) {
     val header = state.header as? Notice
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        topBar = {
-            LicensesTopBar(
-                title = header?.notice?.name ?: stringResource(R.string.google_notice_text_unknown_title),
-                onBack = onBack,
-            )
-        },
-    ) { contentPadding ->
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(contentPadding),
-            contentAlignment = Alignment.TopCenter,
-        ) {
-            LazyColumn(
-                state = rememberLazyListState(),
+    ProvideLicencesText(BODY_EDGE) {
+        Scaffold(
+            modifier = modifier.fillMaxSize(),
+            topBar = {
+                LicensesTopBar(
+                    title = header?.notice?.name ?: stringResource(R.string.google_notice_text_unknown_title),
+                    onBack = onBack,
+                )
+            },
+        ) { contentPadding ->
+            Box(
                 modifier =
                     Modifier
-                        .fillMaxWidth()
-                        .widthIn(max = dimensionResource(R.dimen.content_max_width))
-                        .testTag(GOOGLE_NOTICE_TEXT_LIST_TAG),
-                contentPadding = PaddingValues(dimensionResource(R.dimen.spacing_md)),
-                verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_sm)),
+                        .fillMaxSize()
+                        .padding(contentPadding),
+                contentAlignment = Alignment.TopCenter,
             ) {
-                header?.let { noticeHeader(it) }
-                when (state) {
-                    is LicenseTextUiState.Loading ->
-                        item(key = LOADING_KEY) { LoadingAfterDelay(stringResource(R.string.licenses_loading)) }
-                    is LicenseTextUiState.Failed ->
-                        item(key = ERROR_KEY) { LicensesErrorText(stringResource(R.string.google_notice_text_error)) }
-                    is LicenseTextUiState.Loaded -> paragraphs(state.parts.flatMap { it.paragraphs })
+                LazyColumn(
+                    state = rememberLazyListState(),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .widthIn(max = dimensionResource(R.dimen.content_max_width))
+                            .testTag(GOOGLE_NOTICE_TEXT_LIST_TAG),
+                    contentPadding = PaddingValues(dimensionResource(R.dimen.spacing_md)),
+                    verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_sm)),
+                    horizontalAlignment = BODY_EDGE.horizontalAlignment,
+                ) {
+                    header?.let { noticeHeader(it) }
+                    when (state) {
+                        is LicenseTextUiState.Loading ->
+                            item(key = LOADING_KEY) { LoadingAfterDelay(stringResource(R.string.licenses_loading)) }
+                        is LicenseTextUiState.Failed ->
+                            item(key = ERROR_KEY) {
+                                LicensesErrorText(stringResource(R.string.google_notice_text_error))
+                            }
+                        is LicenseTextUiState.Loaded -> paragraphs(state.parts.flatMap { it.paragraphs })
+                    }
                 }
             }
         }

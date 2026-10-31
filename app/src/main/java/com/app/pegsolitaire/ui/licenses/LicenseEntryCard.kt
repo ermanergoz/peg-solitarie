@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -28,6 +29,12 @@ import androidx.compose.ui.semantics.semantics
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
+
+/**
+ * A tappable card's chevron, tagged so a test can find which side of its card it sits on (spec
+ * LS-16: the chrome mirrors). The chevron stays decorative: the tag adds no description and no stop.
+ */
+internal const val LICENCE_CARD_CHEVRON_TAG = "licence_card_chevron"
 
 /**
  * One clay card of the Licenses list (spec §3.1), the exact peer of a Settings row: the entry's
@@ -110,7 +117,10 @@ internal fun LicenceCard(
                     imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(dimensionResource(R.dimen.settings_row_icon_size)),
+                    modifier =
+                        Modifier
+                            .size(dimensionResource(R.dimen.settings_row_icon_size))
+                            .testTag(LICENCE_CARD_CHEVRON_TAG),
                 )
             }
         }

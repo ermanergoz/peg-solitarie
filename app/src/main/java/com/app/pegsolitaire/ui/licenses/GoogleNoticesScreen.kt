@@ -46,6 +46,9 @@ internal const val GOOGLE_NOTICES_LIST_TAG = "google_notices_list"
  * is keyed by index key with saveable state, so its place survives the round trip to a text. The
  * entrance stagger covers the first [LicensesUi.STAGGERED_ROWS] items, the intro counted (spec
  * F-23); later rows enter plainly. Loading shows the delayed spinner under the intro; Failed, the error, with no retry.
+ *
+ * Every text reads in its own direction and hangs from the layout's start edge, the right in an RTL
+ * layout, so a row keeps its mirrored shape (spec LS-16).
  */
 @Composable
 fun GoogleNoticesScreen(
@@ -55,51 +58,55 @@ fun GoogleNoticesScreen(
     modifier: Modifier = Modifier,
 ) {
     val rows = (state as? GoogleNoticesUiState.Loaded)?.rows.orEmpty()
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        topBar = { LicensesTopBar(title = stringResource(R.string.google_notices_title), onBack = onBack) },
-    ) { contentPadding ->
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(contentPadding),
-            contentAlignment = Alignment.TopCenter,
-        ) {
-            LazyColumn(
-                state = rememberLazyListState(),
+    ProvideLicencesText(LicencesTextEdge.LayoutStart) {
+        Scaffold(
+            modifier = modifier.fillMaxSize(),
+            topBar = { LicensesTopBar(title = stringResource(R.string.google_notices_title), onBack = onBack) },
+        ) { contentPadding ->
+            Box(
                 modifier =
                     Modifier
-                        .fillMaxWidth()
-                        .widthIn(max = dimensionResource(R.dimen.content_max_width))
-                        .testTag(GOOGLE_NOTICES_LIST_TAG)
-                        .semantics { collectionInfo = CollectionInfo(rowCount = rows.size, columnCount = 1) },
-                contentPadding = PaddingValues(dimensionResource(R.dimen.spacing_md)),
-                verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_md)),
+                        .fillMaxSize()
+                        .padding(contentPadding),
+                contentAlignment = Alignment.TopCenter,
             ) {
-                item(key = INTRO_KEY) {
-                    Text(
-                        text = stringResource(R.string.google_notices_intro),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.licencesEntrance(0),
-                    )
-                }
-                when (state) {
-                    GoogleNoticesUiState.Loading ->
-                        item(key = LOADING_KEY) { LoadingAfterDelay(stringResource(R.string.google_notices_loading)) }
-                    GoogleNoticesUiState.Failed ->
-                        item(key = ERROR_KEY) { LicensesErrorText(stringResource(R.string.google_notices_error)) }
-                    is GoogleNoticesUiState.Loaded ->
-                        itemsIndexed(rows, key = { _, row -> row.key }) { index, row ->
-                            GoogleNoticeRowCard(
-                                row = row,
-                                index = index,
-                                onOpenNotice = onOpenNotice,
-                                // The intro is item 0, so row `index` is item `index + 1` (F-23).
-                                modifier = Modifier.licencesEntrance(index + 1),
-                            )
-                        }
+                LazyColumn(
+                    state = rememberLazyListState(),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .widthIn(max = dimensionResource(R.dimen.content_max_width))
+                            .testTag(GOOGLE_NOTICES_LIST_TAG)
+                            .semantics { collectionInfo = CollectionInfo(rowCount = rows.size, columnCount = 1) },
+                    contentPadding = PaddingValues(dimensionResource(R.dimen.spacing_md)),
+                    verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_md)),
+                ) {
+                    item(key = INTRO_KEY) {
+                        Text(
+                            text = stringResource(R.string.google_notices_intro),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.licencesEntrance(0),
+                        )
+                    }
+                    when (state) {
+                        GoogleNoticesUiState.Loading ->
+                            item(key = LOADING_KEY) {
+                                LoadingAfterDelay(stringResource(R.string.google_notices_loading))
+                            }
+                        GoogleNoticesUiState.Failed ->
+                            item(key = ERROR_KEY) { LicensesErrorText(stringResource(R.string.google_notices_error)) }
+                        is GoogleNoticesUiState.Loaded ->
+                            itemsIndexed(rows, key = { _, row -> row.key }) { index, row ->
+                                GoogleNoticeRowCard(
+                                    row = row,
+                                    index = index,
+                                    onOpenNotice = onOpenNotice,
+                                    // The intro is item 0, so row `index` is item `index + 1` (F-23).
+                                    modifier = Modifier.licencesEntrance(index + 1),
+                                )
+                            }
+                    }
                 }
             }
         }

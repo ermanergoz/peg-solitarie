@@ -45,6 +45,9 @@ internal const val LICENSES_LIST_TAG = "licenses_list"
  * notices list ([onOpenGoogleNotices]); an inert entry does nothing. The entrance stagger covers
  * the first screenful ([LicensesUi.STAGGERED_ROWS]); later items, composed as they scroll in, enter
  * plainly rather than after a long delay.
+ *
+ * Every text reads in its own direction and hangs from the layout's start edge, the right in an RTL
+ * layout, so a card keeps its mirrored shape (spec LS-16).
  */
 @Composable
 fun LicensesScreen(
@@ -54,28 +57,30 @@ fun LicensesScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        topBar = { LicensesTopBar(title = stringResource(R.string.licenses_title), onBack = onBack) },
-    ) { contentPadding ->
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(contentPadding),
-            contentAlignment = Alignment.TopCenter,
-        ) {
-            LazyColumn(
-                state = rememberLazyListState(),
+    ProvideLicencesText(LicencesTextEdge.LayoutStart) {
+        Scaffold(
+            modifier = modifier.fillMaxSize(),
+            topBar = { LicensesTopBar(title = stringResource(R.string.licenses_title), onBack = onBack) },
+        ) { contentPadding ->
+            Box(
                 modifier =
                     Modifier
-                        .fillMaxWidth()
-                        .widthIn(max = dimensionResource(R.dimen.content_max_width))
-                        .testTag(LICENSES_LIST_TAG),
-                contentPadding = PaddingValues(dimensionResource(R.dimen.spacing_md)),
-                verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_md)),
+                        .fillMaxSize()
+                        .padding(contentPadding),
+                contentAlignment = Alignment.TopCenter,
             ) {
-                licensesItems(sections, onOpenEntry, onOpenGoogleNotices)
+                LazyColumn(
+                    state = rememberLazyListState(),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .widthIn(max = dimensionResource(R.dimen.content_max_width))
+                            .testTag(LICENSES_LIST_TAG),
+                    contentPadding = PaddingValues(dimensionResource(R.dimen.spacing_md)),
+                    verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_md)),
+                ) {
+                    licensesItems(sections, onOpenEntry, onOpenGoogleNotices)
+                }
             }
         }
     }
