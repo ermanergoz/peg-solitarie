@@ -31,7 +31,8 @@ internal object LicensesUi {
 
     /**
      * The entrance order of the list item at [position] (0 = the intro), or `null` past the first
-     * [STAGGERED_ROWS] items: an item composed as it scrolls in must not wait out a long delay.
+     * [STAGGERED_ROWS] items: an item below the fold, or composed only as it scrolls in, must not
+     * wait out a long delay.
      */
     fun entranceOrderOf(position: Int): Int? = position.takeIf { it < STAGGERED_ROWS }
 }

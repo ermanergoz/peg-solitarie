@@ -3,14 +3,14 @@ package com.app.pegsolitaire.ui.licenses
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -39,12 +39,17 @@ internal const val LICENSES_LIST_TAG = "licenses_list"
  * Stateless and fed the static catalogue — it has no ViewModel (LS-09, tech design §3.1's recorded
  * exception): no data source, no async work, no event beyond navigation. Its only state is the
  * list's saveable scroll position, so the position survives the round trip to a text (LS-AC02).
- * Items are keyed by entry id; the section headers reuse Settings' header, headings included.
+ * The section headers reuse Settings' header, headings included.
+ *
+ * The body is a plain `Column` in `verticalScroll`, not a lazy list (spec LS-15; the tech-lead's
+ * re-run ruling, F-4, departure T4): every item is in the semantics tree at every scroll position,
+ * so TalkBack's heading navigation reaches each section header from anywhere, as on Settings. The
+ * list is twenty-three static items, so composing them all at open costs little.
  *
  * A tappable entry plays the forward cue and opens its texts by **id** ([onOpenEntry]) or the
  * notices list ([onOpenGoogleNotices]); an inert entry does nothing. The entrance stagger covers
- * the first screenful ([LicensesUi.STAGGERED_ROWS]); later items, composed as they scroll in, enter
- * plainly rather than after a long delay.
+ * the first screenful ([LicensesUi.STAGGERED_ROWS]); later items, composed at open but below the
+ * fold, enter plainly rather than after a long delay.
  *
  * Every text reads in its own direction and hangs from the layout's start edge, the right in an RTL
  * layout, so a card keeps its mirrored shape (spec LS-16).
@@ -69,17 +74,17 @@ fun LicensesScreen(
                         .padding(contentPadding),
                 contentAlignment = Alignment.TopCenter,
             ) {
-                LazyColumn(
-                    state = rememberLazyListState(),
+                Column(
                     modifier =
                         Modifier
                             .widthIn(max = dimensionResource(R.dimen.content_max_width))
                             .fillMaxWidth()
+                            .verticalScroll(rememberScrollState())
+                            .padding(dimensionResource(R.dimen.spacing_md))
                             .testTag(LICENSES_LIST_TAG),
-                    contentPadding = PaddingValues(dimensionResource(R.dimen.spacing_md)),
                     verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_md)),
                 ) {
-                    licensesItems(sections, onOpenEntry, onOpenGoogleNotices)
+                    LicensesItems(sections, onOpenEntry, onOpenGoogleNotices)
                 }
             }
         }
@@ -87,34 +92,26 @@ fun LicensesScreen(
 }
 
 /** The intro, then each section's header over its entries, numbering the entrance in list order. */
-private fun LazyListScope.licensesItems(
+@Composable
+private fun ColumnScope.LicensesItems(
     sections: List<LicenseSection>,
     onOpenEntry: (String) -> Unit,
     onOpenGoogleNotices: () -> Unit,
 ) {
     var order = 0
-    val introOrder = order++
-    item(key = INTRO_KEY) {
-        Text(
-            text = stringResource(R.string.licenses_intro),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.licencesEntrance(introOrder),
-        )
-    }
+    Text(
+        text = stringResource(R.string.licenses_intro),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.licencesEntrance(order++),
+    )
     sections.forEach { section ->
-        val headerOrder = order++
-        item(key = "$HEADER_KEY_PREFIX${section.title}") {
-            SettingsSectionHeader(
-                title = stringResource(section.title),
-                entranceOrder = LicensesUi.entranceOrderOf(headerOrder),
-            )
-        }
+        SettingsSectionHeader(
+            title = stringResource(section.title),
+            entranceOrder = LicensesUi.entranceOrderOf(order++),
+        )
         section.entries.forEach { entry ->
-            val entryOrder = order++
-            item(key = entry.id) {
-                LicenseEntryItem(entry, onOpenEntry, onOpenGoogleNotices, Modifier.licencesEntrance(entryOrder))
-            }
+            LicenseEntryItem(entry, onOpenEntry, onOpenGoogleNotices, Modifier.licencesEntrance(order++))
         }
     }
 }
@@ -154,9 +151,6 @@ private fun LicenseEntryItem(
 @Composable
 internal fun Modifier.licencesEntrance(position: Int): Modifier =
     LicensesUi.entranceOrderOf(position)?.let { clayEntrance(it) } ?: this
-
-private const val INTRO_KEY = "intro"
-private const val HEADER_KEY_PREFIX = "header-"
 
 @Preview(name = "Licenses · light", showBackground = true)
 @Preview(name = "Licenses · dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)

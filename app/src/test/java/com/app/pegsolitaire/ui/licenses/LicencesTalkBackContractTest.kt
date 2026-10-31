@@ -6,10 +6,14 @@ import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performScrollToNode
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
@@ -137,6 +141,54 @@ class LicencesTalkBackContractTest {
         assertThat(headings()).containsExactlyElementsIn(expected.map { app.getString(it) }).inOrder()
     }
 
+    /**
+     * Device re-run F-4 and spec LS-15 (LS-AC06's F-4 half; the tech-lead's re-run ruling, A1.3):
+     * on a phone's window, with the list at its top, the title and each section header is in the
+     * tree as a heading, so TalkBack's heading navigation can reach it from anywhere on the screen.
+     */
+    @Test
+    @Config(qualifiers = TALKBACK_PHONE_WINDOW)
+    fun eachLicensesHeadingIsInTheTreeAsAHeadingWithTheListAtItsTop() {
+        setLicenses()
+
+        assertEachLicensesHeadingIsInTheTree("the list at its top")
+    }
+
+    /** As above, with the list scrolled to its middle: to the Protocol Buffers entry. */
+    @Test
+    @Config(qualifiers = TALKBACK_PHONE_WINDOW)
+    fun eachLicensesHeadingIsInTheTreeAsAHeadingWithTheListScrolledToItsMiddle() {
+        setLicenses()
+        scrollTheListTo(LicenseEntryIds.PROTOBUF)
+
+        assertEachLicensesHeadingIsInTheTree("the list scrolled to its middle")
+    }
+
+    /** As above, with the list scrolled to its end: to the notices entry. */
+    @Test
+    @Config(qualifiers = TALKBACK_PHONE_WINDOW)
+    fun eachLicensesHeadingIsInTheTreeAsAHeadingWithTheListScrolledToItsEnd() {
+        setLicenses()
+        scrollTheListTo(LicenseEntryIds.GOOGLE_NOTICES)
+
+        assertEachLicensesHeadingIsInTheTree("the list scrolled to its end")
+    }
+
+    /** O-1's precondition: every entry is in the tree, by its title, before any scroll. */
+    @Test
+    @Config(qualifiers = TALKBACK_PHONE_WINDOW)
+    fun everyLicensesEntryIsInTheTreeWithItsTitleOnAPhoneWindow() {
+        setLicenses()
+
+        val entries = LicenseCatalog.sections.flatMap { it.entries }
+        assertThat(entries).hasSize(LICENSES_ENTRY_COUNT)
+        entries.forEach { entry ->
+            composeRule
+                .onNode(hasText(app.getString(entry.title)), useUnmergedTree = true)
+                .assertExists("${entry.id}: its title in the tree, unscrolled, on a phone's window")
+        }
+    }
+
     @Test
     fun theChevronCarriesNoDescription() {
         setLicenses()
@@ -162,6 +214,22 @@ class LicencesTalkBackContractTest {
             }
         }
         composeRule.waitForIdle()
+    }
+
+    private fun scrollTheListTo(entryId: String) {
+        val entry = requireNotNull(LicenseCatalog.entry(entryId))
+        composeRule.onNodeWithTag(LICENSES_LIST_TAG).performScrollToNode(hasText(app.getString(entry.title)))
+        composeRule.waitForIdle()
+    }
+
+    /** Header by header, never as a count (F-19): the title and each section header, as a heading. */
+    private fun assertEachLicensesHeadingIsInTheTree(where: String) {
+        (listOf(R.string.licenses_title) + LicenseCatalog.sections.map { it.title }).forEach { id ->
+            val heading = app.getString(id)
+            composeRule
+                .onNode(hasText(heading) and isHeading(), useUnmergedTree = true)
+                .assertExists("\"$heading\" in the tree as a heading, with $where")
+        }
     }
 
     private fun tappableEntries(): List<LicenseEntry> =
@@ -210,6 +278,12 @@ private const val TALKBACK_ROBOLECTRIC_SDK = 34
 
 /** Tall enough that the lazy lists compose every one of their items at once. */
 private const val TALKBACK_TALL_WINDOW = "w411dp-h4000dp"
+
+/** A phone's window, the one the device has (the tech-lead's re-run ruling, A1.3 and probe 8). */
+private const val TALKBACK_PHONE_WINDOW = "w411dp-h891dp"
+
+/** Two fonts, three sound packs, eleven open-source entries, two Google entries (spec §3.2). */
+private const val LICENSES_ENTRY_COUNT = 18
 
 /** The three sound packs and the Google SDK entry (spec §5.1). */
 private const val INERT_ENTRY_COUNT = 4
