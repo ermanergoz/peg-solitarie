@@ -80,6 +80,11 @@ class LicencesRtlTextDirectionTest {
     private val apacheParagraphs by lazy { paragraphsOf(BundledLicenseText.Apache2) }
     private val noticeParagraphs by lazy { paragraphsOf(BundledLicenseText.ChromiumBsd3) }
 
+    // The bodies of a curated-text and the notice-text fixture: the text's paragraphs, then one with
+    // no strong character, so the direction and edge oracles run on the fallback to left to right.
+    private val fredokaBody by lazy { fredokaParagraphs + DASH_RULE }
+    private val noticeBody by lazy { noticeParagraphs + DASH_RULE }
+
     // ---- LS-AC19: every text resolves to a left-to-right paragraph --------------------------------
 
     @Test
@@ -111,10 +116,11 @@ class LicencesRtlTextDirectionTest {
         assertKindsChecked(
             checked,
             "a paragraph of a curated text" to fredokaParagraphs.first(),
+            "a paragraph with no strong character" to DASH_RULE,
             "End of text" to text(R.string.license_text_end),
         )
         val shown =
-            fredokaParagraphs + jakartaNoticeParagraphs + apacheParagraphs +
+            fredokaBody + jakartaNoticeParagraphs + apacheParagraphs +
                 listOf(
                     text(fredoka.title),
                     lineText(fredoka.lines.first()),
@@ -160,9 +166,10 @@ class LicencesRtlTextDirectionTest {
             "a \"Found in\" line" to foundIn(LONG_SOURCES),
             "an ordinal line" to ordinal(NOTICE_ORDINAL.index, NOTICE_ORDINAL.count),
             "a paragraph of a notice" to noticeParagraphs.first(),
+            "a paragraph with no strong character" to DASH_RULE,
             "End of text" to text(R.string.license_text_end),
         )
-        assertThat(checked).containsAtLeastElementsIn((noticeParagraphs + NOTICE.name).toSet())
+        assertThat(checked).containsAtLeastElementsIn((noticeBody + NOTICE.name).toSet())
     }
 
     @Test
@@ -210,6 +217,7 @@ class LicencesRtlTextDirectionTest {
     fun theChromeStillMirrorsInARightToLeftLayout() {
         val screens = listOf(licenses(), fredokaText(), notices(), noticeText())
         start(screens.first(), LayoutDirection.Rtl)
+        val wrapped = mutableSetOf<String>()
 
         screens.forEach { screen ->
             show(screen)
@@ -218,8 +226,10 @@ class LicencesRtlTextDirectionTest {
             assertWithMessage("${screen.name}: the back button's left edge, right of the title's right edge")
                 .that(back.edge(Side.Left))
                 .isAtLeast(title.edge(Side.Right) - TOLERANCE_PX)
-            assertLinesHangFrom(title, title.edge(Side.Right), Side.Right)
+            assertLinesHangFrom(title, title.edge(Side.Right), Side.Right, wrapped)
         }
+        // The title's edge check bites only on a title that wraps: the notice text's does.
+        assertWithMessage("the top bar titles that wrap").that(wrapped).contains(WRAPPING_TITLE)
         listOf(licenses(), notices()).forEach { screen ->
             show(screen)
             val chevrons =
@@ -300,22 +310,22 @@ class LicencesRtlTextDirectionTest {
         start(licenses(), LayoutDirection.Ltr)
         val wrapped = mutableSetOf<String>()
 
-        assertTopBarTitleHangsFrom(Side.Left)
+        assertTopBarTitleHangsFrom(Side.Left, wrapped)
         atEveryPositionOf(LICENSES_LIST_TAG, licensesScrollTargets()) {
             assertListLinesHangFromTheStartEdge(LICENSES_LIST_TAG, Side.Left, wrapped)
         }
         show(notices())
-        assertTopBarTitleHangsFrom(Side.Left)
+        assertTopBarTitleHangsFrom(Side.Left, wrapped)
         atEveryPositionOf(GOOGLE_NOTICES_LIST_TAG, noticeRowTargets()) {
             assertListLinesHangFromTheStartEdge(GOOGLE_NOTICES_LIST_TAG, Side.Left, wrapped)
         }
         listOf(fredokaText(), jakartaText()).forEach { screen ->
             show(screen)
-            assertTopBarTitleHangsFrom(Side.Left)
+            assertTopBarTitleHangsFrom(Side.Left, wrapped)
             assertBodyLinesHangFromTheLeftEdge(LICENSE_TEXT_BODY_TAG, wrapped)
         }
         show(noticeText())
-        assertTopBarTitleHangsFrom(Side.Left)
+        assertTopBarTitleHangsFrom(Side.Left, wrapped)
         atEveryPositionOf(GOOGLE_NOTICE_TEXT_LIST_TAG, noticeTextTargets()) {
             assertBodyLinesHangFromTheLeftEdge(GOOGLE_NOTICE_TEXT_LIST_TAG, wrapped)
         }
@@ -325,6 +335,7 @@ class LicencesRtlTextDirectionTest {
             foundIn(LONG_SOURCES),
             fredokaParagraphs.maxBy { it.length },
             noticeParagraphs.maxBy { it.length },
+            WRAPPING_TITLE,
         )
     }
 
@@ -364,7 +375,7 @@ class LicencesRtlTextDirectionTest {
     private fun fredokaText() =
         Shown("License text, Fredoka") {
             LicenseTextScreen(
-                LicenseTextUiState.Loaded(Bundled(fredoka), listOf(LoadedTextPart(null, fredokaParagraphs))),
+                LicenseTextUiState.Loaded(Bundled(fredoka), listOf(LoadedTextPart(null, fredokaBody))),
                 onBack = {},
             )
         }
@@ -391,7 +402,7 @@ class LicencesRtlTextDirectionTest {
     private fun noticeText() =
         Shown("Google notice text") {
             GoogleNoticeTextScreen(
-                LicenseTextUiState.Loaded(NOTICE_HEADER, listOf(LoadedTextPart(null, noticeParagraphs))),
+                LicenseTextUiState.Loaded(NOTICE_HEADER, listOf(LoadedTextPart(null, noticeBody))),
                 onBack = {},
             )
         }
@@ -418,7 +429,7 @@ class LicencesRtlTextDirectionTest {
         NOTICE_ROWS.map { row -> row.ordinal?.let { hasText(ordinal(it)) } ?: hasText(row.name) }
 
     private fun noticeTextTargets(): List<SemanticsMatcher> =
-        noticeParagraphs.map { hasText(it) } + hasText(text(R.string.license_text_end))
+        noticeBody.map { hasText(it) } + hasText(text(R.string.license_text_end))
 
     // ---- The direction oracle -------------------------------------------------------------------
 
@@ -495,16 +506,19 @@ class LicencesRtlTextDirectionTest {
         texts.forEach { assertLinesHangFrom(it, contentLeft, Side.Left, wrapped) }
     }
 
-    private fun assertTopBarTitleHangsFrom(side: Side) {
+    private fun assertTopBarTitleHangsFrom(
+        side: Side,
+        wrapped: MutableSet<String>,
+    ) {
         val title = topBarTitle()
-        assertLinesHangFrom(title, title.edge(side), side)
+        assertLinesHangFrom(title, title.edge(side), side, wrapped)
     }
 
     private fun assertLinesHangFrom(
         node: SemanticsNode,
         edge: Float,
         side: Side,
-        wrapped: MutableSet<String> = mutableSetOf(),
+        wrapped: MutableSet<String>,
     ) {
         val layout = drawnLayoutOf(node)
         val text = layout.layoutInput.text.text
@@ -637,6 +651,19 @@ private const val LONG_SOURCES =
     "ads-mobile-sdk, hsdp, play-services-ads-identifier, play-services-appset, play-services-base, " +
         "play-services-basement"
 
+/**
+ * A real notice name from the shipped index (`licenses/google/index.tsv`, its longest), long enough
+ * that the top bar's title wraps at a phone's width, so the title's edge check bites.
+ */
+private const val WRAPPING_TITLE = "AndroidX lifecycle viewmodel savedstate library"
+
+/**
+ * A rule of dashes, a paragraph of the shipped notices (`c15ad8d2096909c1` and others) with no
+ * strong character: under [LicensesUi.TEXT_DIRECTION] it falls back to left to right, never to the
+ * layout's direction.
+ */
+private const val DASH_RULE = "------------------"
+
 /** A notice name long enough that a row's title wraps at a phone's width. */
 private const val LONG_NAME =
     "Protocol Buffers Java Lite runtime, as carried inside Google Play services and the Mobile Ads SDK"
@@ -650,7 +677,7 @@ private val NOTICE_ROWS =
     )
 
 private val NOTICE =
-    GoogleNotice("000000000000000e", "Cronet", LONG_SOURCES.split(", "), "e000000000000000")
+    GoogleNotice("000000000000000e", WRAPPING_TITLE, LONG_SOURCES.split(", "), "e000000000000000")
 
 private val NOTICE_ORDINAL = NoticeOrdinal(2, 4)
 
