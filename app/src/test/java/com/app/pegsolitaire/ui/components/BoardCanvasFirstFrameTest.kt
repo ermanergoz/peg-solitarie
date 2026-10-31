@@ -2,7 +2,6 @@ package com.app.pegsolitaire.ui.components
 
 import android.graphics.Bitmap
 import android.graphics.Color
-import android.provider.Settings
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
@@ -12,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.domain.model.Boards
+import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.testing.applySystemBarInsets
 import com.app.pegsolitaire.testing.renderedWindow
 import com.app.pegsolitaire.ui.home.HOME_STAGE_ART_TEST_TAG
@@ -25,7 +25,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import kotlin.math.ceil
@@ -55,8 +54,10 @@ import kotlin.math.floor
 @Config(sdk = [HOME_ROBOLECTRIC_SDK])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class BoardCanvasFirstFrameTest {
+    private val motion = SystemMotionScale()
+
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createComposeRule(effectContext = motion)
 
     /** A read-only board, as the Classic tile and the Continue thumbnail draw one. */
     @Test
@@ -82,11 +83,7 @@ class BoardCanvasFirstFrameTest {
     @Test
     @Config(qualifiers = "w411dp-h915dp")
     fun theFirstFrameOfTheHomeStageDrawsItsPegsOnTheSlab() {
-        Settings.Global.putFloat(
-            RuntimeEnvironment.getApplication().contentResolver,
-            Settings.Global.ANIMATOR_DURATION_SCALE,
-            ANIMATIONS_OFF,
-        )
+        motion.turnAnimationsOff()
         composeRule.mainClock.autoAdvance = false
         composeRule.renderHome(state = chipsState(classic = false, challenge = false))
         composeRule.applySystemBarInsets(top = STATUS_BAR_DP.dp, bottom = NAVIGATION_BAR_DP.dp)
@@ -126,9 +123,6 @@ class BoardCanvasFirstFrameTest {
             (ceil(bounds.left).toInt() until floor(bounds.right).toInt()).map { x -> window.getPixel(x, y) }
         }
 }
-
-/** Robolectric's off value for the OS animator scale — the reduced-motion setting. */
-private const val ANIMATIONS_OFF = 0f
 
 /** The design baseline's system bars: a 24dp status bar and a 48dp navigation bar. */
 private const val STATUS_BAR_DP = 24

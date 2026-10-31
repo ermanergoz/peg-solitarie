@@ -1,6 +1,5 @@
 package com.app.pegsolitaire.ui.home
 
-import android.provider.Settings
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.Snapshot
@@ -26,6 +25,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
+import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.testing.applySystemBarInsets
 import com.app.pegsolitaire.testing.renderedWindow
 import com.app.pegsolitaire.ui.home.fixture.DEFAULT_FONT_SCALE
@@ -47,7 +47,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import kotlin.math.ceil
@@ -88,8 +87,10 @@ import kotlin.math.min
 @Config(sdk = [HOME_ROBOLECTRIC_SDK])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class HomeChipArrivalTest {
+    private val motion = SystemMotionScale()
+
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createComposeRule(effectContext = motion)
 
     // ---- Criterion 15s: nothing a player can tap moves -------------------------
 
@@ -167,11 +168,7 @@ class HomeChipArrivalTest {
     @Test
     @Config(qualifiers = "w412dp-h915dp")
     fun withAnimationsOffTheRoomIsOpenInTheNextFrame() {
-        Settings.Global.putFloat(
-            RuntimeEnvironment.getApplication().contentResolver,
-            Settings.Global.ANIMATOR_DURATION_SCALE,
-            ANIMATIONS_OFF,
-        )
+        motion.turnAnimationsOff()
         val state = renderWithThePausedClock()
         val noChip = readFrame()
 
@@ -770,9 +767,6 @@ private const val NAVIGATION_BAR_DP = 48
 
 /** Criteria 15s and 15t's ±0.5dp. */
 private const val TOLERANCE_DP = 0.5f
-
-/** Robolectric's value for the OS animator scale with animations off — the reduced-motion setting. */
-private const val ANIMATIONS_OFF = 0f
 
 /**
  * Past Home's entrance cascade before an emission (15u): the last band's stagger plus
