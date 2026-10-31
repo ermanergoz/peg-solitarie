@@ -1,5 +1,13 @@
 # Founder questions (newest first)
 
+## Q-027 — Should the standard colours get the stronger marks and stars too?   (answered)
+Date: 2026-10-24    Asked by: ux-designer
+Context: The colour-blind palette (a Settings switch, off by default) draws the board's marks and the stars so that any colour vision can read them. In your standard colours they are faint by the studio's contrast rule, though normal colour vision tells them apart. Empty stars are now hollow in both palettes, a rule fix, so in your colours an empty star is a thin pale outline that is easy to miss at the catalogue's small size. This is taste: it changes the look.
+Options: 1) Keep the standard colours exactly as they are (default, being built)  2) Stars only: the empty star's outline takes the colour-blind palette's deeper grey; the board is unchanged  3) Everything: the standard colours also get the solid move dots, the darker amber hints in light and the colour-blind palette's stars (the halo and the dashed hint rings stay colour-blind only)
+Recommendation: ux-designer picks 2 for 3.0.0. Empty stars stay readable as outlines, the board you approved is untouched, and it is one value. 3 is worth a look after 3.0.0 ships, once you have seen the colour-blind palette on a device. (feature/colour-vision: .planning/reports/colour-vision/ux-designer-star-ruling.md; docs/ux/colour-vision.md §12.6)
+Blocks: nothing (option 1 is specified and being built; 2 and 3 are constant changes, docs/ux/colour-vision.md §3.4, §7 and §12.6)
+Answer: 2 — stars only: the standard palette's empty-star outline takes the colour-blind palette's deeper grey; the board is unchanged (2026-10-24, AskUserQuestion). Rides colour-vision's next developer round, before its 15e sitting (BoardMarks.kt is a start-path file).
+
 ## Q-025 — Headphones off, and a wired headset, for the audio release QA   (open)
 Date: 2026-10-24    Asked by: tech-lead (via the producer)
 Context: QA's GM6 session proved the headphone branch of the Silent/Vibrate gate (Q-010). The "phone itself
@@ -100,6 +108,7 @@ Blocks: candy-backdrop spec and build reviews, phase-14 R-1 QA and sign-off, che
 Answer: 3 — Opus for every Fable-pinned role until 3.0.0 is published (2026-10-17). Recorded as a deviation
 from studio staffing in every report; mitigations: fresh reviewers, Check and mutation probes run by the reviewer.
 Addendum 2026-10-23 (founder, in chat): "all limits reset. continue. you can use fable as well for supervision now" — Fable is available again for the supervising roles (reviews, checks, sign-offs); dispatches from now run those roles on their pinned model. Authoring runs already in flight on Opus may finish on Opus.
+Addendum 2026-10-24 (founder, in chat, after every pinned dispatch hit HTTP 429 at 20:30): "We run out of fable. You can keep using opus" — option 3 stands again: every Fable-pinned role runs on Opus, each report recording the deviation, with the same mitigations.
 
 ## Q-018 — minSdk 24 → 26: when, if ever?   (answered)
 Date: 2026-10-17    Asked by: tech-lead
