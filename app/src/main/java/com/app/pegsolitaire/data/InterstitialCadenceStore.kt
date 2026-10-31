@@ -95,7 +95,7 @@ class InterstitialCadenceStore
     @Inject
     constructor(
         private val dataStore: DataStore<Preferences>,
-        @ApplicationScope private val scope: CoroutineScope,
+        @param:ApplicationScope private val scope: CoroutineScope,
     ) {
         /** The D-13 in-memory half: interstitials shown since this process's current session began. */
         private val sessionCount = MutableStateFlow(0)

@@ -2,7 +2,6 @@ package com.app.pegsolitaire.ui.game
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.test.SemanticsMatcher
@@ -31,6 +30,8 @@ import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
 import com.app.pegsolitaire.platform.ads.NoOpAdGateway
+import com.app.pegsolitaire.testing.RecordingHapticFeedback
+import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
@@ -72,8 +73,11 @@ import kotlin.time.TestTimeSource
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [ROBOLECTRIC_SDK])
 class GameFlowTest {
+    /** The animation scale the screen's effects and its reduced-motion gate read; on unless a test turns it off. */
+    private val motion = SystemMotionScale()
+
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createComposeRule(effectContext = motion)
 
     private val context get() = RuntimeEnvironment.getApplication()
 
@@ -231,6 +235,26 @@ class GameFlowTest {
         assertThat(haptics.events).isEmpty()
     }
 
+    /**
+     * The 7c race on the gameplay call site of the shared jump haptic (Ruling 2, test 12).
+     *
+     * With the OS animator scale at zero the board takes its snap path, which sets and clears
+     * `animating` in one frame. The keyed effect must still see the move id, as the jump cue
+     * does. `TutorialHapticsTest` holds the other call site, because a guard on one call site of
+     * a shared effect says nothing about the other.
+     */
+    @Test
+    fun aJumpStillFiresTheHapticWhenTheOsAnimationScaleIsZero() {
+        motion.turnAnimationsOff()
+        startGame(Boards.english33Initial, settings = AllOnSettingsRepository)
+
+        tapCell(row = 3, col = 1)
+        tapCell(row = 3, col = 3)
+
+        assertPegCount(INITIAL_PEG_COUNT - 1)
+        assertThat(haptics.events).containsExactly(HapticFeedbackType.ContextClick)
+    }
+
     private fun startGame(
         initialBoard: Board,
         settings: SettingsRepository = AllOnSettingsRepository,
@@ -373,16 +397,3 @@ private class FixedSettingsRepository(
 
 /** The default all-on settings (hints + sound + haptics), matching the fail-open defaults. */
 private val AllOnSettingsRepository = FixedSettingsRepository()
-
-/**
- * A [HapticFeedback] that records every fire instead of buzzing, so the SET-02 gate is
- * asserted JVM-side. The physical *feel* of the tick is device-only and is covered by
- * the end-of-phase manual checkpoint (VALIDATION Manual-Only).
- */
-private class RecordingHapticFeedback : HapticFeedback {
-    val events = mutableListOf<HapticFeedbackType>()
-
-    override fun performHapticFeedback(hapticFeedbackType: HapticFeedbackType) {
-        events += hapticFeedbackType
-    }
-}

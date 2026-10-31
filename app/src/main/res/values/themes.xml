@@ -4,6 +4,18 @@
       Minimal launch/host theme. Compose draws the entire UI via MaterialTheme,
       so this only needs to provide a no-action-bar window background. Uses a
       framework theme to avoid pulling in the legacy Material Components library.
+
+      It also sets the one thing about the status bar the window decides (F-2,
+      tech-lead phase-15 sign-off, Decision 3). Edge to edge, the bar has no colour
+      of its own and the app's background shows through it, so only its icons are
+      the window's: dark here, on the light theme's near-white background. The
+      parent does not ask for dark icons, so without this item they drew white,
+      about 1.1:1. res/values-night/themes.xml overrides this item, and only this
+      item, for the dark theme. The theme sets it rather than Compose, so it holds
+      from the window's first frame, before any composition. WindowThemeTest
+      resolves both halves.
     -->
-    <style name="Theme.PegSolitaire" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.PegSolitaire" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
 </resources>

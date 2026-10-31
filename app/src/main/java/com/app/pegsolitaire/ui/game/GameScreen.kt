@@ -1,29 +1,19 @@
-// The screen and its private, single-purpose parts: the top bar, its four labels/indicators,
-// the confirm dialog, and the nine one-shot feedback effects (one haptic + seven sound cues +
-// the ad-message snackbar). Each is a handful of lines and each exists only for this screen;
-// splitting them across files to satisfy a per-file count would scatter the screen's own
-// composition for no reader's benefit. The cue effects in particular are deliberately adjacent
-// to JumpHaptic — they are clones of its idiom and are read against it.
-@file:Suppress("TooManyFunctions")
-
 package com.app.pegsolitaire.ui.game
 
+import android.os.Build
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -31,7 +21,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -47,9 +36,9 @@ import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.audio.JumpSoundEffect
 import com.app.pegsolitaire.audio.LocalSoundPlayer
 import com.app.pegsolitaire.audio.SoundCue
-import com.app.pegsolitaire.audio.SoundParams
 import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Position
@@ -58,11 +47,16 @@ import com.app.pegsolitaire.ui.components.ClaySnackbarHost
 import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.ctaGradientBrush
-import com.app.pegsolitaire.ui.theme.withTabularFigures
-import kotlinx.coroutines.delay
 
 /** Test tag of the board-state node carrying the [PegCountKey]/[GameStatusKey]/[LegalTargetCountKey] semantics. */
 const val GAME_STATE_TEST_TAG = "game_state"
+
+/**
+ * Test tag of the board's clay slab — the surface whose edge the board keeps once each system bar
+ * is applied once (ux-spec §4.3.1, criterion 18c). A tag, not a description: the slab announces
+ * nothing.
+ */
+const val GAME_BOARD_SLAB_TEST_TAG = "game_board_slab"
 
 /** Semantics: pegs currently on the board — lets the flow test assert a jump removed one peg. */
 val PegCountKey = SemanticsPropertyKey<Int>("PegCount")
@@ -80,10 +74,24 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
 /**
  * The stateless playable-board screen (Route/Screen/Leaf middle layer).
  *
- * Renders [state] and forwards events; owns no game logic (state hoisting). An M3
- * [Scaffold] hosts a [TopAppBar] (a back nav, the title, the live `mm:ss` elapsed
- * timer D-04, and the [RestartControl] D-06 action) over a centered
- * `surfaceContainerHigh` board panel containing the [BoardCanvas]. Reaching a
+ * Renders [state] and forwards events; owns no game logic (state hoisting).
+ *
+ * ## The chrome, after D-04/D-05
+ *
+ * There is **no Material top app bar** (criterion 16). An M3 [Scaffold] hosts a column of three
+ * things: the [GameStatusStrip] (back, context title, live `mm:ss` timer — status only), the
+ * centred `surfaceContainerHigh` board panel containing the [BoardCanvas], and the
+ * [GameActionDock] (Undo · Hint · Show-moves · Restart) pinned below it in the thumb zone. The
+ * board takes the space the two leave, so the dock is on screen at every viewport height and
+ * font scale — a dock the player has to scroll to would be worse than the bar it replaced.
+ *
+ * **Each system bar is applied exactly once** (D-05d, ux-spec §4.3.1, criterion 18b): by the
+ * `Scaffold`'s content padding, which this column applies. Neither the strip nor the dock applies
+ * an inset of its own — both used to, which hung an empty status-bar-tall band above the strip and
+ * took 72dp from the board on a 360x640dp phone.
+ *
+ * Nothing the player can *use* was removed: all five controls, the context-aware title, the
+ * timer label and every handler signature this composable takes are the ones it had. Reaching a
  * terminal [GameStatus] no longer raises an in-screen dialog — the ViewModel emits a
  * one-shot finish event and [GameRoute] navigates to Results (D-05); only the
  * mid-game confirm [AlertDialog] (D-06) still overlays, when [GameUiState.confirmRestart].
@@ -92,6 +100,11 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  * ASST-03/D-06/D-08) an inline, non-blocking [NoWinBanner] surfaces over the still-visible,
  * still-interactive board (Undo · Restart · Home, D-09) — a Stuck board is rescued via Undo
  * rather than auto-navigating; only a Won game routes to Results.
+ *
+ * When the last Hint search ended Undecided ([GameUiState.hintUndecided], GD-HT-1) the
+ * [HintUndecidedNotice] takes the banner's slot instead — never the banner, which now means a
+ * proven dead end. Its display time, its put-away and its "never twice" memory are the
+ * screen's ([UndecidedNoticeSlot]); nothing about them is reported back to the ViewModel.
  *
  * The assist funnel reaches the player through exactly two surfaces here, both driven purely
  * from hoisted state: the modal [AdOfferDialog] whenever [GameUiState.pendingAdOffer] is set
@@ -107,7 +120,7 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  *
  * @param state the immutable UI state to render.
  * @param onCellTap forwards a tapped board [Position] to the ViewModel.
- * @param onRestart top-bar restart intent (VM decides confirm vs. immediate reset).
+ * @param onRestart the dock's restart intent (the VM decides confirm vs. immediate reset).
  * @param onConfirmRestart confirms a restart (mid-game confirm dialog).
  * @param onDismissRestart dismisses the mid-game restart confirmation.
  * @param onAnimationFinished signals the jump slide completed.
@@ -120,19 +133,30 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  * @param onDismissAdOffer the player declined the offer, tapped the scrim or pressed back —
  *   all three are the same event, and none of them charges or changes anything (D-06).
  * @param onHome leaves to the Home root from the rescue banner (D-09); wired to the same
- *   destination as the top-bar back nav ([onNavigateBack]).
- * @param onNavigateBack leaves the gameplay screen (top-bar back nav).
+ *   destination as the status strip's back control ([onNavigateBack]).
+ * @param onNavigateBack leaves the gameplay screen (the status strip's back chip).
  * @param modifier layout modifier for the screen.
  * @param challengeLevel the Challenge level number when this is a Challenge game (drives
- *   the "Level N" top-bar title, S2/D-03), or `null` for Classic (app-name title). This
+ *   the "Level N" strip title, S2/D-03), or `null` for Classic (app-name title). This
  *   is a pure presentation flag — it reaches only the title slot, never the board logic.
  *
- * The `LongMethod` suppression below carries an inline list of every surface this composable
- * hosts, and that list is the point of it: the screen must not silently absorb another surface
- * without the reader of that line finding out. Amend the list rather than growing under it,
- * and never add a second suppression or a detekt baseline entry in its place.
+ * The `LongMethod` suppression below rests on the list of every surface this composable hosts,
+ * the last paragraph of this KDoc, and that list is the point of it: the screen must not silently
+ * absorb another surface without the reader of that list finding out. Amend the list, one line
+ * per surface, rather than growing under it, and never add a second suppression or a detekt
+ * baseline entry in its place.
+ *
+ * Surfaces hosted, one per line:
+ * - the [Scaffold];
+ * - the status strip, [GameStatusStrip];
+ * - the snackbar host, [ClaySnackbarHost];
+ * - the board panel, [BoardCanvas], with the wrong-tap answer and its live region (D-06, D-06c);
+ * - the Undecided notice, [UndecidedNoticeSlot];
+ * - the action dock, [GameActionDock];
+ * - the restart confirmation, `RestartConfirmDialog`;
+ * - the ad offer, [AdOfferDialog].
  */
-@Suppress("LongMethod") // Scaffold + top bar + snackbar host + board panel + confirm and ad-offer dialogs.
+@Suppress("LongMethod") // one screen hosts every surface its KDoc lists
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameScreen(
@@ -153,13 +177,15 @@ fun GameScreen(
     challengeLevel: Int? = null,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    val wrongTapAnnouncement = rememberWrongTapAnnouncement(state)
 
-    JumpHaptic(animatingMoveId = state.animating?.id, hapticsOn = state.hapticsOn)
-    JumpSound(transition = state.animating)
+    JumpHapticEffect(animatingMoveId = state.animating?.id, hapticsOn = state.hapticsOn)
+    JumpSoundEffect(transition = state.animating)
     SelectionSound(selectionTick = state.selectionTick)
     DeselectionSound(deselectionTick = state.deselectionTick)
     UndoSound(undoTick = state.undoTick)
     InvalidTapSound(rejectedTapTick = state.rejectedTapTick)
+    WrongTapHaptic(rejectedTapTick = state.rejectedTapTick, hapticsOn = state.hapticsOn)
     HintSound(hintSource = state.hintSource)
     WinSound(status = state.status)
     AdMessageSnackbarEffect(
@@ -171,76 +197,103 @@ fun GameScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         snackbarHost = { ClaySnackbarHost(snackbarHostState) },
-        topBar = {
-            GameTopBar(
-                elapsedSeconds = state.elapsedSeconds,
-                showHints = state.showHints,
-                canUndo = state.canUndo,
-                solverThinking = state.solverThinking,
-                challengeLevel = challengeLevel,
-                onRestart = onRestart,
-                onToggleHints = onToggleHints,
-                onUndo = onUndo,
-                onHint = onHint,
-                onNavigateBack = onNavigateBack,
-            )
-        },
     ) { contentPadding ->
-        Box(
+        Column(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .padding(contentPadding)
-                    .padding(dimensionResource(R.dimen.board_screen_margin))
-                    .testTag(GAME_STATE_TEST_TAG)
-                    .semantics {
-                        pegCountValue = state.board.pegCount
-                        gameStatusValue = state.status.name
-                        legalTargetCountValue = state.legalTargets.size
-                    },
-            contentAlignment = Alignment.Center,
+                    .padding(contentPadding),
         ) {
-            if (state.isLoading) {
-                LoadingIndicator()
-            } else {
-                Surface(
-                    shape = MaterialTheme.shapes.extraLarge,
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    modifier =
-                        Modifier
-                            .clayShadow(
-                                dimensionResource(R.dimen.elevation_card),
-                                MaterialTheme.shapes.extraLarge,
-                            ).widthIn(max = dimensionResource(R.dimen.board_max_size))
-                            .fillMaxWidth()
-                            .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO),
-                ) {
-                    BoardCanvas(
-                        state = state,
-                        onCellTap = onCellTap,
-                        onAnimationFinished = onAnimationFinished,
-                        modifier = Modifier.padding(dimensionResource(R.dimen.spacing_md)),
+            GameStatusStrip(
+                elapsedSeconds = state.elapsedSeconds,
+                challengeLevel = challengeLevel,
+                onNavigateBack = onNavigateBack,
+            )
+            Box(
+                modifier =
+                    Modifier
+                        // The board takes whatever the strip and the dock leave, so both stay
+                        // on screen at every viewport height — the dock in particular, which
+                        // is the whole point of moving the actions into the thumb zone.
+                        .weight(BOARD_WEIGHT)
+                        .fillMaxWidth()
+                        .padding(dimensionResource(R.dimen.board_screen_margin))
+                        .testTag(GAME_STATE_TEST_TAG)
+                        .semantics {
+                            pegCountValue = state.board.pegCount
+                            gameStatusValue = state.status.name
+                            legalTargetCountValue = state.legalTargets.size
+                        },
+                contentAlignment = Alignment.Center,
+            ) {
+                if (state.isLoading) {
+                    LoadingIndicator()
+                } else {
+                    Surface(
+                        shape = MaterialTheme.shapes.extraLarge,
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        modifier =
+                            Modifier
+                                .clayShadow(
+                                    dimensionResource(R.dimen.elevation_card),
+                                    MaterialTheme.shapes.extraLarge,
+                                ).widthIn(max = dimensionResource(R.dimen.board_max_size))
+                                .fillMaxWidth()
+                                .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO)
+                                .testTag(GAME_BOARD_SLAB_TEST_TAG),
+                    ) {
+                        BoardCanvas(
+                            state = state,
+                            onCellTap = onCellTap,
+                            onAnimationFinished = onAnimationFinished,
+                            modifier =
+                                Modifier
+                                    .padding(dimensionResource(R.dimen.spacing_md))
+                                    // D-06c: the board itself is the polite live region; no new node.
+                                    .wrongTapAnnouncement(wrongTapAnnouncement),
+                            // D-06: the gameplay board corrects a wrong tap on the tapped cell.
+                            wrongTapCorrection = true,
+                        )
+                    }
+                }
+                // The rescue banner overlays the still-interactive board (non-blocking, D-08):
+                // it sits in the same Box so taps still reach the board beneath it. Only a
+                // no-win/stuck position raises it; a Won game routes to Results instead.
+                //
+                // Its slot is shared with the Undecided notice (D-04f), one occupant at a time:
+                // a proof outranks an Undecided, so the notice's slot is composed only while no
+                // banner is up (criterion 23h). What the notice does once raised is its own.
+                if (state.showRescueBanner) {
+                    NoWinBanner(
+                        message =
+                            stringResource(
+                                if (state.noWinningMove) R.string.nowin_message else R.string.stuck_message,
+                            ),
+                        onUndo = onUndo,
+                        onRestart = onRestart,
+                        onHome = onHome,
+                        modifier =
+                            Modifier
+                                .align(Alignment.BottomCenter)
+                                .fillMaxWidth(),
+                    )
+                } else {
+                    UndecidedNoticeSlot(
+                        raised = state.hintUndecided,
+                        modifier = Modifier.align(Alignment.BottomCenter),
                     )
                 }
             }
-            // The rescue banner overlays the still-interactive board (non-blocking, D-08):
-            // it sits in the same Box so taps still reach the board beneath it. Only a
-            // no-win/stuck position raises it; a Won game routes to Results instead.
-            if (state.showRescueBanner) {
-                NoWinBanner(
-                    message =
-                        stringResource(
-                            if (state.noWinningMove) R.string.nowin_message else R.string.stuck_message,
-                        ),
-                    onUndo = onUndo,
-                    onRestart = onRestart,
-                    onHome = onHome,
-                    modifier =
-                        Modifier
-                            .align(Alignment.BottomCenter)
-                            .fillMaxWidth(),
-                )
-            }
+            GameActionDock(
+                showHints = state.showHints,
+                canUndo = state.canUndo,
+                solverThinking = state.solverThinking,
+                onUndo = onUndo,
+                onHint = onHint,
+                onToggleHints = onToggleHints,
+                onRestart = onRestart,
+                modifier = Modifier.padding(dimensionResource(R.dimen.spacing_md)),
+            )
         }
     }
 
@@ -265,71 +318,6 @@ fun GameScreen(
 }
 
 /**
- * Fires one light haptic tick as each jump animation begins (SET-02 / D-15).
- *
- * Haptic emission is a Compose UI concern, so it lives here rather than in the ViewModel:
- * the screen reads the already-collected [GameUiState.hapticsOn] gate (it never touches
- * `SettingsRepository`) and the effect is keyed on the [MoveTransition.id] move ordinal —
- * so it fires exactly once per jump, not once per recomposition. When the setting is off
- * nothing fires and gameplay is otherwise identical.
- *
- * [HapticFeedbackType.ContextClick] is the lightest type in the pinned Compose BOM that is
- * available across the whole supported range (`CONTEXT_CLICK`, API 23 ≤ minSdk 24) — the
- * newer `SegmentTick`/`GestureEnd` constants map to API-34-only platform constants and
- * would be silent on most devices, and `LongPress` is far too heavy for a peg hop.
- *
- * @param animatingMoveId the in-flight jump's move ordinal, or `null` when settled.
- * @param hapticsOn the persisted haptics gate carried by the UI state.
- */
-@Composable
-private fun JumpHaptic(
-    animatingMoveId: Int?,
-    hapticsOn: Boolean,
-) {
-    val haptics = LocalHapticFeedback.current
-    LaunchedEffect(animatingMoveId) {
-        if (animatingMoveId != null && hapticsOn) {
-            haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
-        }
-    }
-}
-
-/**
- * Plays the pitched jump cue as each jump lands, then layers the peg-removal cue under it
- * (SOUND-01/SOUND-02).
- *
- * Keyed on [MoveTransition.id] — the same move ordinal [JumpHaptic] uses — so it fires
- * exactly once per jump rather than once per recomposition. The pitch comes from
- * [MoveTransition.runIndex], the same-peg ladder step (D-05/D-06); because that index is
- * derived from the move history rather than stored, undoing and replaying a jump replays
- * its original pitch (D-08) with nothing to keep in sync here.
- *
- * Every jump removes exactly one peg, so the two cues always co-occur; the removal trails
- * by [SoundParams.REMOVAL_LAYER_DELAY_MS] so it reads as a texture layer beneath the pitched
- * pop instead of a second competing hit.
- *
- * **The seven sound cues take no enable/disable gate parameter, and that asymmetry with
- * [JumpHaptic] is deliberate.** `hapticsOn` is carried in [GameUiState] because a haptic can
- * only ever be blocked *before* it fires. Audio cannot: SOUND-05 requires silencing one-shots
- * that are already in flight, which only the object holding the live stream ids can do. The
- * audio gate therefore lives inside the player implementation, which subscribes to the
- * persisted setting itself. Do not "fix" this by copying the `hapticsOn` plumbing — a UI-state
- * flag can block future calls and nothing else, and adding one would give the mute two
- * disagreeing sources of truth.
- */
-@Composable
-private fun JumpSound(transition: MoveTransition?) {
-    val sound = LocalSoundPlayer.current
-    LaunchedEffect(transition?.id) {
-        if (transition != null) {
-            sound.playJump(runIndex = transition.runIndex)
-            delay(SoundParams.REMOVAL_LAYER_DELAY_MS.toLong())
-            sound.play(SoundCue.PegRemove)
-        }
-    }
-}
-
-/**
  * Plays the pick-up cue whenever a peg is selected (SOUND-02).
  *
  * Selection only — putting a peg back down takes [DeselectionSound]. D-05a originally had
@@ -337,17 +325,16 @@ private fun JumpSound(transition: MoveTransition?) {
  * two events sounded the same. What survives is that a deselect is a *successful* action, not
  * a rejection, and must never fire the invalid-tap cue.
  *
- * The `> 0` guard is required, not defensive: it is the second half of the phantom-cue fix
- * whose first half is the ordinal carry-forward in `GameViewModel`. The carry-forward stops a
- * state rebuild from changing the key; this guard stops a genuinely fresh state at 0 from
- * firing on first composition.
+ * Keyed through [NewOrdinalEffect], the second half of the phantom-cue fix whose first half is
+ * the ordinal carry-forward in `GameViewModel`. The carry-forward stops a state rebuild from
+ * changing the key; [NewOrdinalEffect] never fires for the ordinal a composition first sees, so
+ * neither a genuinely fresh state at 0 nor a screen recreated with a carried ordinal (a rotation)
+ * plays a pick-up made before it (sound-designer F-1).
  */
 @Composable
 private fun SelectionSound(selectionTick: Int) {
     val sound = LocalSoundPlayer.current
-    LaunchedEffect(selectionTick) {
-        if (selectionTick > 0) sound.play(SoundCue.Select)
-    }
+    NewOrdinalEffect(selectionTick) { sound.play(SoundCue.Select) }
 }
 
 /**
@@ -356,14 +343,12 @@ private fun SelectionSound(selectionTick: Int) {
  * [SoundCue.Deselect] is the [SoundCue.Select] pop reversed and pitched down a whole tone, so
  * the put-down reads as the same sound family as the pick-up without reading as the same
  * event. It is a successful action, so this is deliberately *not* the invalid-tap cue.
- * `> 0` guard as in [SelectionSound].
+ * Keyed through [NewOrdinalEffect] as [SelectionSound] is.
  */
 @Composable
 private fun DeselectionSound(deselectionTick: Int) {
     val sound = LocalSoundPlayer.current
-    LaunchedEffect(deselectionTick) {
-        if (deselectionTick > 0) sound.play(SoundCue.Deselect)
-    }
+    NewOrdinalEffect(deselectionTick) { sound.play(SoundCue.Deselect) }
 }
 
 /**
@@ -371,15 +356,13 @@ private fun DeselectionSound(deselectionTick: Int) {
  *
  * D-09 reads Undo as an in-game *assist* control, not a navigational CTA, so it keeps its own
  * distinct event cue rather than the button click. The ordinal only advances past both of
- * `onUndo`'s guards, so a declined grant or an empty history stays silent. `> 0` guard as in
- * [SelectionSound].
+ * `onUndo`'s guards, so a declined grant or an empty history stays silent. Keyed through
+ * [NewOrdinalEffect] as [SelectionSound] is.
  */
 @Composable
 private fun UndoSound(undoTick: Int) {
     val sound = LocalSoundPlayer.current
-    LaunchedEffect(undoTick) {
-        if (undoTick > 0) sound.play(SoundCue.Undo)
-    }
+    NewOrdinalEffect(undoTick) { sound.play(SoundCue.Undo) }
 }
 
 /**
@@ -387,13 +370,38 @@ private fun UndoSound(undoTick: Int) {
  *
  * Reserved for real rejections: an empty or out-of-play cell with no selection, or an illegal
  * destination while a peg is selected. A deselect is not one of those (D-05a) — it takes
- * [DeselectionSound]. `> 0` guard as in [SelectionSound].
+ * [DeselectionSound]. Keyed through [NewOrdinalEffect] as [SelectionSound] is, like the wrong
+ * tap's haptic and announcement, so after a rotation the cue never sounds alone for a tap made
+ * before it.
  */
 @Composable
 private fun InvalidTapSound(rejectedTapTick: Int) {
     val sound = LocalSoundPlayer.current
-    LaunchedEffect(rejectedTapTick) {
-        if (rejectedTapTick > 0) sound.play(SoundCue.InvalidTap)
+    NewOrdinalEffect(rejectedTapTick) { sound.play(SoundCue.InvalidTap) }
+}
+
+/**
+ * The wrong tap's reject haptic (D-06b, `docs/ux/invalid-tap-feedback.md` §3.4): one
+ * [HapticFeedbackType.Reject] per wrong tap, at the tap — the platform's own `REJECT`, two short
+ * pulses — and never on a selection, a put-down or a jump. Gated by [wrongTapHapticFires] on
+ * `hapticsOn` and API 30, checked here in our own code; no ignore-global-setting flag, as for the
+ * jump. Nothing else gates it: with Sound off or the ringer on Vibrate the tap still buzzes.
+ *
+ * Private to the gameplay screen, beside [InvalidTapSound], so the tutorial — which answers a
+ * wrong tap with its redirect alone (D-01j(2), tech-lead Ruling 3) — cannot call it. Keyed through
+ * [NewOrdinalEffect], as the tick cues are, so a screen recomposed from scratch with a carried
+ * ordinal (a rotation) does not buzz for a tap made before it.
+ */
+@Composable
+private fun WrongTapHaptic(
+    rejectedTapTick: Int,
+    hapticsOn: Boolean,
+) {
+    val haptics = LocalHapticFeedback.current
+    NewOrdinalEffect(rejectedTapTick) {
+        if (wrongTapHapticFires(hapticsOn, Build.VERSION.SDK_INT)) {
+            haptics.performHapticFeedback(HapticFeedbackType.Reject)
+        }
     }
 }
 
@@ -475,102 +483,6 @@ private fun AdMessageSnackbarEffect(
             )
         }
     }
-}
-
-/**
- * The gameplay top bar: a back nav, the context-aware title, the live `mm:ss` elapsed
- * timer (D-04), the [UndoControl] (ASST-02), the [HintControl] (ASST-01), the
- * [HintToggleControl], and the [RestartControl] (D-06). Stateless — every value/handler
- * is hoisted. The title slot is the only mode-aware element (S2): a non-null
- * [challengeLevel] renders the "Level N" indicator, else the app name; the actions row is
- * identical in both modes.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun GameTopBar(
-    elapsedSeconds: Int,
-    showHints: Boolean,
-    canUndo: Boolean,
-    solverThinking: Boolean,
-    challengeLevel: Int?,
-    onRestart: () -> Unit,
-    onToggleHints: () -> Unit,
-    onUndo: () -> Unit,
-    onHint: () -> Unit,
-    onNavigateBack: () -> Unit,
-) {
-    TopAppBar(
-        navigationIcon = {
-            IconButton(
-                onClick = onNavigateBack,
-                modifier =
-                    Modifier
-                        .claySquish()
-                        .size(dimensionResource(R.dimen.top_bar_touch_target)),
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = stringResource(R.string.navigate_back),
-                    modifier = Modifier.size(dimensionResource(R.dimen.top_bar_icon_size)),
-                )
-            }
-        },
-        title = { GameTopBarTitle(challengeLevel = challengeLevel) },
-        actions = {
-            ElapsedTimeLabel(elapsedSeconds = elapsedSeconds)
-            UndoControl(canUndo = canUndo, onUndo = onUndo)
-            HintControl(solverThinking = solverThinking, onHint = onHint)
-            HintToggleControl(showHints = showHints, onToggleHints = onToggleHints)
-            RestartControl(onRestart = onRestart)
-        },
-    )
-}
-
-/**
- * The context-aware gameplay title (S2 / D-03). In Challenge mode ([challengeLevel] set)
- * it renders the neutral "Level N" indicator (`titleLarge`, `onSurface` — deliberately
- * NOT accent per UI-SPEC S3) with a `challenge_level_indicator_desc` screen-reader
- * description; otherwise it renders the static app-name title. This is the sole
- * presentation delta — no `if (challenge)` reaches the board/selection/jump logic.
- */
-@Composable
-private fun GameTopBarTitle(challengeLevel: Int?) {
-    if (challengeLevel != null) {
-        val description = stringResource(R.string.challenge_level_indicator_desc, challengeLevel)
-        Text(
-            text = stringResource(R.string.challenge_level_indicator, challengeLevel),
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.semantics { contentDescription = description },
-        )
-    } else {
-        Text(
-            text = stringResource(R.string.app_name),
-            style = MaterialTheme.typography.titleLarge,
-        )
-    }
-}
-
-/**
- * The live `mm:ss` elapsed timer shown in the gameplay top bar (D-04).
- *
- * The zero-padded time is a computed clock string ([GameTimerFormat]), not a string
- * resource; the `elapsed_time` content description is attached for screen readers so
- * the value is announced as the elapsed time rather than a bare number. It uses
- * tabular figures so ticking digits never shift the label horizontally.
- */
-@Composable
-private fun ElapsedTimeLabel(elapsedSeconds: Int) {
-    val description = stringResource(R.string.elapsed_time)
-    Text(
-        text = GameTimerFormat.format(elapsedSeconds),
-        style = MaterialTheme.typography.titleMedium.withTabularFigures(),
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier =
-            Modifier
-                .padding(end = dimensionResource(R.dimen.spacing_sm))
-                .semantics { contentDescription = description },
-    )
 }
 
 /**
@@ -657,3 +569,6 @@ private fun RestartConfirmDialog(
         },
     )
 }
+
+/** The board takes the height the status strip and the action dock leave between them. */
+private const val BOARD_WEIGHT = 1f

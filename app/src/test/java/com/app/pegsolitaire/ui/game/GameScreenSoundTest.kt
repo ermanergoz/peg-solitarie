@@ -27,6 +27,7 @@ import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
 import com.app.pegsolitaire.platform.ads.NoOpAdGateway
+import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
@@ -53,8 +54,9 @@ import kotlin.time.TestTimeSource
  * already uses for `LocalHapticFeedback`.
  *
  * Two things it deliberately pins beyond "the right cue fired":
- *  - **A fresh state makes no sound at all** — the `> 0` ordinal guards hold on first
- *    composition, which is half of the phantom-cue fix (RESEARCH Pitfall 2).
+ *  - **A fresh state makes no sound at all** — the ordinal guards hold on first composition
+ *    (`NewOrdinalEffect` for Select, Deselect, Undo and InvalidTap), which is half of the
+ *    phantom-cue fix (RESEARCH Pitfall 2).
  *  - **The screen has no audio gate.** Unlike `hapticsOn`, silencing is the player's job
  *    (SOUND-05 needs to stop one-shots already in flight), so the screen calls the player
  *    unconditionally and the persisted setting never reaches the UI state.
@@ -62,8 +64,11 @@ import kotlin.time.TestTimeSource
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [SCREEN_SOUND_ROBOLECTRIC_SDK])
 class GameScreenSoundTest {
+    /** The animation scale the screen's effects and its reduced-motion gate read; on unless a test turns it off. */
+    private val motion = SystemMotionScale()
+
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createComposeRule(effectContext = motion)
 
     private val context get() = RuntimeEnvironment.getApplication()
 
@@ -84,6 +89,87 @@ class GameScreenSoundTest {
         settleRemovalLayer()
 
         assertThat(sounds.cues).containsExactly(SoundCue.Jump, SoundCue.PegRemove).inOrder()
+    }
+
+    /**
+     * The same pair **with the OS animation scale at zero** (criteria 7c and 25).
+     *
+     * Criterion 25 says in so many words that "sound is unaffected by this switch", and it
+     * was: `dumpsys audio` recorded **one** player event per jump with animations off against
+     * two 60 ms apart with them on — on the tutorial *and* on a real Challenge board, so this
+     * is the shipped game's own defect and not the tutorial's. The mechanism is a cancellation:
+     * with animations disabled `runJumpAnimation` takes the snap path, `onAnimationFinished()`
+     * clears `animating` in the same frame, and the keyed effect's coroutine dies inside the
+     * 60 ms the removal layer waits.
+     *
+     * No test had ever run this path, which is exactly why it survived to a device session
+     * (`qa-engineer.md` G-2). This is that test, and it belongs here as much as on the
+     * tutorial: the cue is shared, so the guard has to sit on both screens or the next lift
+     * will find only one of them covered.
+     */
+    @Test
+    fun aJumpStillLayersTheRemovalCueWhenTheOsAnimationScaleIsZero() {
+        disableOsAnimations()
+        startGame(chainBoard())
+
+        tapCell(row = CHAIN_ROW, col = 0)
+        sounds.clear()
+
+        tapCell(row = CHAIN_ROW, col = 2)
+        settleRemovalLayer()
+
+        assertThat(sounds.cues).containsExactly(SoundCue.Jump, SoundCue.PegRemove).inOrder()
+        // The layering is a layering, not two cues in a heap: the pitched pop first, the
+        // texture under it. Reduced motion may not reorder the pair.
+        assertThat(sounds.events.first().cue).isEqualTo(SoundCue.Jump)
+    }
+
+    /** And the ladder is the ladder with animations off: the fix may not cost the pitch. */
+    @Test
+    fun theJumpPitchStillClimbsWhenTheOsAnimationScaleIsZero() {
+        disableOsAnimations()
+        startGame(chainBoard())
+
+        jump(fromCol = 0, toCol = 2)
+        settleRemovalLayer()
+        val firstJump = sounds.events.first { it.cue == SoundCue.Jump }
+        sounds.clear()
+        jump(fromCol = 2, toCol = 4)
+        settleRemovalLayer()
+        val secondJump = sounds.events.first { it.cue == SoundCue.Jump }
+
+        assertThat(firstJump.rate).isEqualTo(SoundParams.jumpRate(0))
+        assertThat(secondJump.rate).isEqualTo(SoundParams.jumpRate(1))
+        assertThat(sounds.cues).containsExactly(SoundCue.Select, SoundCue.Jump, SoundCue.PegRemove).inOrder()
+    }
+
+    /**
+     * The move id is the move ordinal, so it **recycles after an undo** — and the cue has to
+     * fire again for the replayed jump.
+     *
+     * This is the property that decides how the cancellation above may be fixed. Latching the
+     * last non-null transition and keying on its id would survive the snap path and quietly
+     * silence this case, because the replayed jump carries the id the latch is already holding.
+     * The null gap between two jumps is load-bearing; only the delayed second cue may outlive
+     * the effect.
+     */
+    @Test
+    fun aJumpReplayedAfterAnUndoSoundsAgainEvenThoughItsMoveIdIsReused() {
+        disableOsAnimations()
+        startGame(chainBoard())
+
+        jump(fromCol = 0, toCol = 2)
+        settleRemovalLayer()
+        composeRule
+            .onNodeWithContentDescription(context.getString(R.string.undo_action))
+            .performClick()
+        composeRule.waitForIdle()
+        sounds.clear()
+
+        jump(fromCol = 0, toCol = 2)
+        settleRemovalLayer()
+
+        assertThat(sounds.cues).containsExactly(SoundCue.Select, SoundCue.Jump, SoundCue.PegRemove).inOrder()
     }
 
     @Test
@@ -193,7 +279,7 @@ class GameScreenSoundTest {
         assertThat(sounds.preloadCalls).isEqualTo(0)
     }
 
-    // ---- The screen has no audio gate (deliberate JumpHaptic asymmetry) -----
+    // ---- The screen has no audio gate (deliberate JumpHapticEffect asymmetry) ---
 
     @Test
     fun theScreenStillCallsThePlayerWhenTheSoundSettingIsOff() {
@@ -269,6 +355,17 @@ class GameScreenSoundTest {
         }
         composeRule.waitForIdle()
         return viewModel
+    }
+
+    /**
+     * Turns the animation scale off for this test, the way a player with reduced motion has it:
+     * the composition's `MotionDurationScale` goes to 0, and both `rememberAnimationsEnabled()` and
+     * every `Animatable` read it, so the whole screen takes the disabled path, clock included,
+     * rather than a mocked approximation of it. Under Compose's test rule a `Settings.Global` write
+     * reaches neither.
+     */
+    private fun disableOsAnimations() {
+        motion.turnAnimationsOff()
     }
 
     /** Selects the peg at [fromCol] then taps [toCol] — one jump along the chain row. */

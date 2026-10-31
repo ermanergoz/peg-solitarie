@@ -37,6 +37,24 @@ data object ClassicCatalog
 data object Settings
 
 /**
+ * The interactive tutorial (ONB-01, D-01/D-01g): three micro-puzzles on a live board; no
+ * arguments.
+ *
+ * Reached from Home on first run and from Settings > How to play on replay, and **its only
+ * outbound edge is `popBackStack()`** — so it lands back wherever the player entered from,
+ * and it is deliberately *not* reachable from `Gameplay` or `Results`. That absence is a
+ * contract, not an omission (§5.1 prohibition 4): a tutorial that could reach `Results` could
+ * bank a star, and a banked tutorial star corrupts the Home Stars pill on the player's very
+ * first launch.
+ *
+ * Being a destination is also what scopes its `TutorialViewModel` to one visit: the entry is
+ * cleared on pop, so a replay from Settings always restarts at step 1 (D-01g), which an
+ * Activity-scoped holder would have got wrong.
+ */
+@Serializable
+data object Tutorial
+
+/**
  * The playable gameplay screen for one board — Classic or Challenge (CLAS-02 / CHAL-01).
  *
  * A single unified `LevelRef` carried as one route (Open-Q2): Classic navigates with a

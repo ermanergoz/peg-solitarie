@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.data.HomeProgress
 import com.app.pegsolitaire.data.ImportOutcome
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
@@ -71,6 +72,10 @@ import kotlin.time.TestTimeSource
  *    board load and a resume-restore all carry them forward, because a fresh `0` is a
  *    *changed* key for a one-shot effect sitting at a higher value and would fire a cue
  *    the player never triggered.
+ *  - **The rejected-tap ordinal carries its cell** (D-06, `docs/ux/invalid-tap-feedback.md`
+ *    §3.7, WT-1 to WT-6): every wrong tap records where it landed, a successful action touches
+ *    neither half, and a board install carries the ordinal but clears the cell, which named a
+ *    cell of the board being replaced.
  *
  * Robolectric backs `SavedStateHandle.toRoute<Gameplay>()`; `Dispatchers.setMain` with a
  * `StandardTestDispatcher` keeps the async board loads and the ticker deterministic.
@@ -258,6 +263,101 @@ class GameViewModelSoundTest {
             cancelTickers()
         }
 
+    // ---- The wrong-tap signal: the ordinal and its cell (D-06, WT-1 to WT-4) ---
+
+    @Test
+    fun aTapOnAnEmptyHoleWithNothingHeldRecordsThatHoleAndTicksOnce() =
+        runTest(testDispatcher) {
+            // WT-1 (W1).
+            val viewModel = viewModelFor(chainStrip())
+            runCurrent()
+            assertThat(viewModel.uiState.value.rejectedTapCell).isNull()
+
+            viewModel.onCellTap(EMPTY_HOLE)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.rejectedTapTick).isEqualTo(1)
+            assertThat(viewModel.uiState.value.rejectedTapCell).isEqualTo(EMPTY_HOLE)
+        }
+
+    @Test
+    fun aTapOnAnotherPegWhileOneIsHeldRecordsThatPegAndKeepsTheSelection() =
+        runTest(testDispatcher) {
+            // WT-2 (W2): the locked tap rule — the selection does not move to the tapped peg.
+            val viewModel = viewModelFor(chainStrip())
+            runCurrent()
+            viewModel.onCellTap(HELD_PEG)
+            runCurrent()
+            val targets = viewModel.uiState.value.legalTargets
+
+            viewModel.onCellTap(OTHER_PEG)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.rejectedTapTick).isEqualTo(1)
+            assertThat(viewModel.uiState.value.rejectedTapCell).isEqualTo(OTHER_PEG)
+            assertThat(viewModel.uiState.value.selected).isEqualTo(HELD_PEG)
+            assertThat(viewModel.uiState.value.legalTargets).isEqualTo(targets)
+        }
+
+    @Test
+    fun aTapOnAHoleThatIsNotADestinationRecordsThatHoleAndLeavesTheBoard() =
+        runTest(testDispatcher) {
+            // WT-3 (W3).
+            val viewModel = viewModelFor(chainStrip())
+            runCurrent()
+            viewModel.onCellTap(HELD_PEG)
+            runCurrent()
+
+            viewModel.onCellTap(NOT_A_DESTINATION)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.rejectedTapTick).isEqualTo(1)
+            assertThat(viewModel.uiState.value.rejectedTapCell).isEqualTo(NOT_A_DESTINATION)
+            assertThat(viewModel.uiState.value.board.pegs).isEqualTo(chainStrip().pegs)
+        }
+
+    @Test
+    fun aSelectionAPutDownAndALegalJumpLeaveTheWrongTapSignalAlone() =
+        runTest(testDispatcher) {
+            // WT-4: none of the successful actions is a wrong tap, and none of them resets one —
+            // ending the board's answer to the last wrong tap is the board's own job.
+            val viewModel = viewModelFor(chainStrip())
+            runCurrent()
+            viewModel.onCellTap(EMPTY_HOLE)
+            runCurrent()
+
+            viewModel.onCellTap(STRANDED_PEG) // a selection with zero legal jumps
+            runCurrent()
+            assertThat(viewModel.uiState.value.legalTargets).isEmpty()
+            assertWrongTapSignal(viewModel, tick = 1, cell = EMPTY_HOLE)
+
+            viewModel.onCellTap(STRANDED_PEG) // the put-down
+            runCurrent()
+            assertWrongTapSignal(viewModel, tick = 1, cell = EMPTY_HOLE)
+
+            jump(viewModel, fromCol = 0, toCol = 2) // a selection, then a legal jump
+            runCurrent()
+            assertThat(viewModel.uiState.value.animating).isNotNull()
+            assertWrongTapSignal(viewModel, tick = 1, cell = EMPTY_HOLE)
+
+            cancelTickers()
+        }
+
+    @Test
+    fun aLegalTapRightAfterAWrongTapActsNormally() =
+        runTest(testDispatcher) {
+            // WT-11's state half: a wrong tap locks nothing.
+            val viewModel = viewModelFor(chainStrip())
+            runCurrent()
+            viewModel.onCellTap(EMPTY_HOLE)
+
+            viewModel.onCellTap(HELD_PEG)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.selected).isEqualTo(HELD_PEG)
+            assertThat(viewModel.uiState.value.legalTargets).containsExactly(EMPTY_HOLE)
+        }
+
     // ---- The undo ordinal (SOUND-02) -----------------------------------------
 
     @Test
@@ -371,6 +471,9 @@ class GameViewModelSoundTest {
             assertThat(after.deselectionTick).isEqualTo(before.deselectionTick)
             assertThat(after.undoTick).isEqualTo(before.undoTick)
             assertThat(after.rejectedTapTick).isEqualTo(before.rejectedTapTick)
+            // WT-6: the cell named a cell of the board the restart replaced.
+            assertThat(before.rejectedTapCell).isEqualTo(EMPTY_HOLE)
+            assertThat(after.rejectedTapCell).isNull()
         }
 
     @Test
@@ -384,11 +487,13 @@ class GameViewModelSoundTest {
 
             viewModel.onCellTap(Position(row = 0, col = 0))
             assertThat(viewModel.uiState.value.rejectedTapTick).isEqualTo(1)
+            assertThat(viewModel.uiState.value.rejectedTapCell).isEqualTo(Position(row = 0, col = 0))
 
             runCurrent() // the generated board replaces the loading state
 
             assertThat(viewModel.uiState.value.isLoading).isFalse()
             assertThat(viewModel.uiState.value.rejectedTapTick).isEqualTo(1)
+            assertThat(viewModel.uiState.value.rejectedTapCell).isNull()
 
             cancelTickers()
         }
@@ -415,8 +520,28 @@ class GameViewModelSoundTest {
 
             assertThat(resumed.uiState.value.canUndo).isTrue()
             assertThat(resumed.uiState.value.rejectedTapTick).isEqualTo(1)
+            assertThat(resumed.uiState.value.rejectedTapCell).isNull()
 
             cancelTickers()
+        }
+
+    @Test
+    fun aClassicBoardInstalledInPlaceOfAnUnusableSnapshotCarriesTheOrdinalAndClearsTheCell() =
+        runTest(testDispatcher) {
+            // The fourth install site (installClassicBoard): a Continue with nothing stored
+            // falls back to the fresh Classic board, replacing the loading placeholder.
+            val viewModel = viewModelFor(chainStrip(), resume = true)
+            assertThat(viewModel.uiState.value.isLoading).isTrue()
+
+            viewModel.onCellTap(Position(row = 0, col = 0))
+            assertThat(viewModel.uiState.value.rejectedTapTick).isEqualTo(1)
+
+            runCurrent() // nothing to restore: the Classic board is installed instead
+
+            assertThat(viewModel.uiState.value.isLoading).isFalse()
+            assertThat(viewModel.uiState.value.board.pegs).isEqualTo(chainStrip().pegs)
+            assertThat(viewModel.uiState.value.rejectedTapTick).isEqualTo(1)
+            assertThat(viewModel.uiState.value.rejectedTapCell).isNull()
         }
 
     @Test
@@ -432,6 +557,7 @@ class GameViewModelSoundTest {
             assertThat(state.deselectionTick).isEqualTo(0)
             assertThat(state.undoTick).isEqualTo(0)
             assertThat(state.rejectedTapTick).isEqualTo(0)
+            assertThat(state.rejectedTapCell).isNull()
             assertThat(state.animating).isNull()
             assertThat(state.status).isEqualTo(GameStatus.Playing)
         }
@@ -457,6 +583,15 @@ class GameViewModelSoundTest {
 
     /** Cancels every live `viewModelScope` so a running ticker cannot hang `runTest`. */
     private fun cancelTickers() = viewModelStore.clear()
+
+    private fun assertWrongTapSignal(
+        viewModel: GameViewModel,
+        tick: Int,
+        cell: Position,
+    ) {
+        assertThat(viewModel.uiState.value.rejectedTapTick).isEqualTo(tick)
+        assertThat(viewModel.uiState.value.rejectedTapCell).isEqualTo(cell)
+    }
 
     private fun viewModelFor(
         board: Board,
@@ -556,6 +691,21 @@ private const val SEPARATE_ROW_LENGTH = 3
 /** A small Challenge level — the generation cost is the point, not the difficulty. */
 private const val CHALLENGE_LEVEL = 1
 
+/** On [GameViewModelSoundTest]'s chain strip (pegs at cols 0, 1, 3 and 5): an empty hole. */
+private val EMPTY_HOLE = Position(row = 0, col = 2)
+
+/** The chain strip's peg at col 0, whose one legal destination is [EMPTY_HOLE]. */
+private val HELD_PEG = Position(row = 0, col = 0)
+
+/** Another peg on the strip, not the held one. */
+private val OTHER_PEG = Position(row = 0, col = 3)
+
+/** An empty hole that is not a destination of [HELD_PEG]. */
+private val NOT_A_DESTINATION = Position(row = 0, col = 4)
+
+/** The strip's peg at col 5, which has no legal jump. */
+private val STRANDED_PEG = Position(row = 0, col = 5)
+
 /**
  * A [LevelRepository] serving one fixed board through Classic, and the real pure-domain
  * generator through Challenge (as the production source does), so the async load path this
@@ -611,6 +761,8 @@ private class InMemoryProgressRepository : ProgressRepository {
 
     /** Unused by this screen — no per-board leaderboard read happens here. */
     override suspend fun classicBests(): Map<ClassicBoard, Int> = emptyMap()
+
+    override fun observeHomeProgress(): Flow<HomeProgress> = flowOf(HomeProgress.UNKNOWN)
 
     override fun observeResults(mode: String): Flow<List<LevelResult>> = flowOf(emptyList())
 

@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.data.HomeProgress
 import com.app.pegsolitaire.data.ImportOutcome
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
@@ -29,10 +30,12 @@ import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
+import com.app.pegsolitaire.domain.usecase.HintOutcome
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
 import com.app.pegsolitaire.platform.ads.RewardOutcome
 import com.google.common.truth.Truth.assertThat
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -423,6 +426,48 @@ class GameViewModelResumeTest {
             cancelTickers()
         }
 
+    // ---- The Undecided notice is never part of the snapshot (GD-HT-2) -------
+
+    /**
+     * AC-15 and criterion 23g's resume half: the notice is transient. A game left — and its
+     * process killed — while the notice is up comes back on its board with neither the
+     * notice nor the rescue banner.
+     *
+     * The body runs inside `try`/`finally`: both boards are mid-game, so their tickers are
+     * live, and a failed assertion that skipped [cancelTickers] would leave `runTest`'s
+     * end-of-test drain spinning on virtual time instead of reporting the failure.
+     */
+    @Test
+    fun theUndecidedNoticeIsNotRestoredOnResume() =
+        runTest(testDispatcher) {
+            try {
+                val undecided = mockk<GetHintUseCase>()
+                every { undecided.invoke(any(), any(), any(), any(), any()) } returns HintOutcome.Undecided
+                val left = viewModelFor(sixPegStrip(), getHintUseCase = undecided)
+                jump(left, fromCol = FIRST_JUMP_FROM_COL, toCol = FIRST_JUMP_TO_COL)
+                runCurrent()
+                left.onHintRequested()
+                runCurrent()
+                check(left.uiState.value.hintUndecided) { "the notice must be up when the game is left" }
+                val boardLeft = left.uiState.value.board
+                left.onLeaveScreen()
+                runCurrent()
+                cancelTickers()
+
+                val resumed = viewModelFor(sixPegStrip(), resume = true)
+                runCurrent()
+
+                val state = resumed.uiState.value
+                assertThat(state.isLoading).isFalse()
+                assertThat(state.board.pegs).isEqualTo(boardLeft.pegs)
+                assertThat(state.hintUndecided).isFalse()
+                assertThat(state.noWinningMove).isFalse()
+                assertThat(state.showRescueBanner).isFalse()
+            } finally {
+                cancelTickers()
+            }
+        }
+
     // ---- Helpers -------------------------------------------------------------
 
     /** The board + history state a game was left in, captured before the snapshot write. */
@@ -482,6 +527,7 @@ class GameViewModelResumeTest {
         resume: Boolean = false,
         levelId: String = ClassicLevelIds.ENGLISH33,
         timeSource: TimeSource = TestTimeSource(),
+        getHintUseCase: GetHintUseCase = GetHintUseCase(),
     ): GameViewModel {
         if (!this::levelRepository.isInitialized) {
             levelRepository = CountingLevelRepository(board)
@@ -506,7 +552,7 @@ class GameViewModelResumeTest {
                         timeSource = timeSource,
                         defaultDispatcher = testDispatcher,
                         adGateway = GrantingAds,
-                        getHintUseCase = GetHintUseCase(),
+                        getHintUseCase = getHintUseCase,
                         savedStateHandle = SavedStateHandle(args),
                     ) as T
             }
@@ -621,6 +667,8 @@ private class RecordingProgressRepository : ProgressRepository {
 
     /** Unused by this screen — no per-board leaderboard read happens here. */
     override suspend fun classicBests(): Map<ClassicBoard, Int> = emptyMap()
+
+    override fun observeHomeProgress(): Flow<HomeProgress> = flowOf(HomeProgress.UNKNOWN)
 
     override fun observeResults(mode: String): Flow<List<LevelResult>> = flowOf(emptyList())
 

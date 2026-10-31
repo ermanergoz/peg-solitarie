@@ -11,12 +11,20 @@ import org.gradle.api.GradleException
  *  - ktlint (`org.jlleitschuh.gradle.ktlint`) — format/lint.
  *  - a custom `dpSpLiteralCheck` — no raw numeric `.dp`/`.sp` literals in UI code
  *    (no built-in detekt/ktlint rule covers this; QUAL-03).
- *  - a custom `adIdLiteralCheck` — no ad-unit-ID literal anywhere in `src/main`
+ *  - a custom `adIdLiteralCheck` — no ad-unit-ID literal anywhere in shipped source
  *    (PLAT-06; ad IDs are `buildConfigField`/`resValue` only).
  *  - a custom `gamesIdLiteralCheck` — no Play Games leaderboard/achievement ID
- *    literal anywhere in `src/main` (PLAT-06 / D-17; the games half of the same rule).
- *  - a custom `audioFocusLiteralCheck` — no audio-focus request anywhere in `src/main`
+ *    literal anywhere in shipped source (PLAT-06 / D-17; the games half of the same rule).
+ *  - a custom `audioFocusLiteralCheck` — no audio-focus request anywhere in shipped source
  *    (SOUND-06; holding no focus is what stops the game ducking the user's music).
+ *
+ * "Shipped source" is `SourceSetPolicy.shippedSourceRoots()` — every file under `src/main`,
+ * `src/release` and `src/debug`, test source sets deliberately excluded — and a
+ * configuration-time tripwire below fails the build the day a source set appears that
+ * neither list classifies.
+ *
+ * It also makes every `Test` task in both modules self-heal a truncated result store (F1,
+ * below), so a clobbered or interrupted run can never wedge a later one.
  */
 plugins {
     id("dev.detekt")
@@ -28,6 +36,28 @@ extensions.configure<DetektExtension> {
     ignoreFailures.set(false)
     parallel.set(true)
     config.setFrom(rootProject.files("config/detekt/detekt.yml"))
+}
+
+// ---- F1: self-heal a truncated test-result store (docs/tech-design.md §9.6) ----------
+// A store truncated by an interrupted or clobbered run makes Gradle's own
+// SerializableTestResultStore.hasResults() throw EOFException before any test runs, and it
+// does so on every later invocation until the directory is deleted by hand (M2 in
+// .planning/reports/phase-15/tech-lead-depthsweep.md). AbstractTestTask.executeTests() reads
+// the previous store — for previously-failed-first ordering — BEFORE it deletes the binary
+// directory, so the task cannot recover from a file it is about to discard. `doFirst` runs
+// before the task action, which is early enough; `--rerun-tasks` does not help, because the
+// read happens inside the action whatever made the task run.
+//
+// Why here and not per module: this plugin is applied by both `:app` and `:domain`, so one
+// block covers `:domain:test`, `:domain:depthSweep`, `:domain:fuzz` and
+// `:app:testDebugUnitTest`, and every Test task registered later. Per-module copies are the
+// copy-paste a convention plugin exists to prevent. Cost: these tasks forfeit
+// previously-failed-first ordering, which is immaterial here. It captures only the task's own
+// DirectoryProperty — no Project reference at execution time — so it stays
+// configuration-cache safe.
+tasks.withType<Test>().configureEach {
+    val binaryResults = binaryResultsDirectory
+    doFirst { binaryResults.get().asFile.deleteRecursively() }
 }
 
 // ---- detekt must see the build-type source sets, not just src/main -----------
@@ -48,20 +78,48 @@ extensions.configure<DetektExtension> {
 //    are not a working substitute either;
 //  - `detektDebug`/`detektRelease` each re-analyse `src/main`, so every main-source
 //    finding would be reported two or three times, and they add type resolution (and a
-//    compile classpath) to what is otherwise a parse-only gate;
-//  - `detektRelease`'s NAME matches `app/build.gradle.kts`'s `contains("elease")` ad-ID
-//    guard, so it cannot be invoked directly without real AdMob IDs.
+//    compile classpath) to what is otherwise a parse-only gate.
+// A fourth reason used to be listed here and is now FALSE, recorded so it is not
+// rediscovered as a fact: `detektRelease`'s name once matched `app/build.gradle.kts`'s
+// `contains("elease")` release gate, so it could not be invoked without real AdMob IDs.
+// That gate is now a packaging-verb test (`ReleaseInvocation`), `detektRelease` is
+// directly invocable, and reason 1 above was decisive on its own anyway.
 // Widening keeps one task, one config, one report, and one name in `check`, and matches
 // every other gate in this file: a list of relative source roots filtered to those that
 // exist. `src/main` and `src/test` are already covered by detekt's defaults; a new
-// build-type or flavour source set must be added to this list.
+// build-type or flavour source set must be added to `SourceSetPolicy` — and the tripwire
+// below is what makes that sentence enforceable instead of aspirational.
 val variantSourceRoots =
-    listOf("debug", "release", "testDebug")
-        .flatMap { listOf("src/$it/java", "src/$it/kotlin") }
+    SourceSetPolicy
+        .variantSourceRoots()
         .map { layout.projectDirectory.dir(it).asFile }
         .filter { it.exists() }
 
 tasks.named<Detekt>("detekt").configure { source(variantSourceRoots) }
+
+// ---- F-9: the unknown-source-set tripwire ------------------------------------
+// Both root lists in this file are hand-maintained, and "the KDoc tells the next reader to
+// extend the list" is exactly the protection that failed in F-1. So the day a `src/staging`
+// or a product-flavour source set appears, configuration FAILS here — naming both lists and
+// the decision each needs — instead of three literal gates silently scanning a directory
+// that no longer holds all the shipped source. Configuration time is deliberate: at
+// execution time the gates would have to run to report it, and `check` is precisely the
+// command someone adding a build type does not run first.
+val unknownSourceSets =
+    SourceSetPolicy.unknownSourceSetNames(
+        layout.projectDirectory
+            .dir(SourceSetPolicy.SOURCE_DIR)
+            .asFile
+            .listFiles()
+            .orEmpty()
+            .filter { it.isDirectory }
+            .map { it.name }
+            .sorted(),
+    )
+
+if (unknownSourceSets.isNotEmpty()) {
+    throw GradleException(SourceSetPolicy.unknownSourceSetMessage(path, unknownSourceSets))
+}
 
 // ---- QUAL-03: custom "no raw dp/sp literal" gate -----------------------------
 // Captured at configuration time (the convention plugin has no compose/AGP types,
@@ -116,10 +174,27 @@ val dpSpLiteralCheck =
 // Ad IDs are per-build-type values (Google's test units in debug, real untracked ones
 // in release), so they can only exist as `buildConfigField` / `resValue`. This gate is
 // what makes that a rule rather than a convention: it fails the build on any
-// `ca-app-pub-` substring in shipped source or resources. It scans `src/main` only —
-// `src/test` legitimately asserts on the Google test-publisher prefix.
-val adIdSourceRoots = listOf("src/main/java", "src/main/kotlin", "src/main/res")
-    .map { layout.projectDirectory.dir(it).asFile }
+// `ca-app-pub-` substring in shipped source or resources.
+//
+// It reads every file of every SHIPPED source set — `src/main`, `src/release`, `src/debug` —
+// and no test source set. Every file, not a code-and-res subset: the manifest is where
+// AdMob's setup puts the app ID, and `assets/` and Java `resources/` ship too, so the
+// source-set list is the only list and the tripwire guards it (design §9.3, amended
+// 2026-10-18). `src/release` is the half that reaches the store; `src/debug` is not cosmetic
+// either, because D-05's rule is "Google's test units in debug, real untracked ones in
+// release", so a real unit id there serves real ads to a developer's own build, which is
+// AdMob invalid traffic. `src/test` and `src/testDebug` are excluded on purpose: they
+// legitimately assert on the Google test-publisher prefix, spell Play Games key names and
+// may name the audio-focus API. The full reasoning, and the tripwire that keeps this list
+// honest, are on `SourceSetPolicy`.
+val shippedSourceRoots =
+    SourceSetPolicy.shippedSourceRoots().map { layout.projectDirectory.dir(it).asFile }
+
+// What the three failure messages below say they scanned, derived from the list itself: a
+// gate whose failure text misdescribes its own scope is how F-1's false claim happened.
+val shippedScopeSentence =
+    "Scanned: ${SourceSetPolicy.SHIPPED_SOURCE_ROOTS_DESCRIPTION}. Test source sets are " +
+        "excluded on purpose (see SourceSetPolicy)."
 
 // The AdMob ID publisher prefix, shared by app IDs (`…~…`) and unit IDs (`…/…`).
 val adIdMarker = "ca-app-pub-"
@@ -149,10 +224,10 @@ val adIdLiteralCheck =
     tasks.register("adIdLiteralCheck") {
         group = "verification"
         description =
-            "Fails on ad-unit-ID literals in src/main (use buildConfigField/resValue)."
+            "Fails on ad-unit-ID literals in shipped source (use buildConfigField/resValue)."
         doLast {
             val offenders = mutableListOf<String>()
-            adIdSourceRoots.filter { it.exists() }.forEach { root ->
+            shippedSourceRoots.filter { it.exists() }.forEach { root ->
                 root.walkTopDown()
                     .filter { it.isFile }
                     .forEach { file ->
@@ -170,9 +245,10 @@ val adIdLiteralCheck =
             }
             if (offenders.isNotEmpty()) {
                 throw GradleException(
-                    "Ad-unit-ID literals are forbidden in src/main (PLAT-06 / D-05). " +
+                    "Ad-unit-ID literals are forbidden in shipped source (PLAT-06 / D-05). " +
                         "IDs differ per build type — declare them as buildConfigField/resValue " +
-                        "in app/build.gradle.kts and read them via platform/ads/AdIds.kt:\n  " +
+                        "in app/build.gradle.kts and read them via platform/ads/AdIds.kt. " +
+                        "$shippedScopeSentence\n  " +
                         offenders.joinToString("\n  "),
                 )
             }
@@ -183,16 +259,19 @@ val adIdLiteralCheck =
 // The games sibling of `adIdLiteralCheck`, and it exists because that gate cannot cover
 // this: it scans for `ca-app-pub-`, which no leaderboard or achievement ID contains.
 // Same 27 values, same rule — they are per-build-type `buildConfigField`s resolved from
-// an untracked `local.properties`, never source. Reuses `adIdSourceRoots`, so it scans
-// `src/main` only: `src/test` legitimately spells key names (see `BuildConfigIdsTest`).
+// an untracked `local.properties`, never source. Reuses `shippedSourceRoots`, so it reads
+// every file under `src/main`, `src/release` and `src/debug` — the manifest, `assets/` and
+// Java `resources/` included, wherever an ID could be pasted — and no test source set:
+// `src/test` legitimately spells key names (see `BuildConfigIdsTest`) and `src/testDebug`
+// is the same exemption.
 val gamesIdLiteralCheck =
     tasks.register("gamesIdLiteralCheck") {
         group = "verification"
         description =
-            "Fails on Play Games leaderboard/achievement ID literals in src/main (use buildConfigField)."
+            "Fails on Play Games leaderboard/achievement ID literals in shipped source (use buildConfigField)."
         doLast {
             val offenders = mutableListOf<String>()
-            adIdSourceRoots.filter { it.exists() }.forEach { root ->
+            shippedSourceRoots.filter { it.exists() }.forEach { root ->
                 root.walkTopDown()
                     .filter { it.isFile }
                     .forEach { file ->
@@ -210,10 +289,10 @@ val gamesIdLiteralCheck =
             }
             if (offenders.isNotEmpty()) {
                 throw GradleException(
-                    "Play Games leaderboard/achievement ID literals are forbidden in src/main " +
-                        "(PLAT-06 / D-17). IDs differ per build type — declare them in the " +
+                    "Play Games leaderboard/achievement ID literals are forbidden in shipped " +
+                        "source (PLAT-06 / D-17). IDs differ per build type — declare them in the " +
                         "buildConfigField loop in app/build.gradle.kts and read them via " +
-                        "platform/games/GamesIds.kt:\n  " +
+                        "platform/games/GamesIds.kt. $shippedScopeSentence\n  " +
                         offenders.joinToString("\n  "),
                 )
             }
@@ -225,16 +304,20 @@ val gamesIdLiteralCheck =
 // request, so an app that holds no focus can neither duck nor be ducked. An omission
 // with no gate rots the first time someone adds a focus request "to be polite". This
 // makes "the player's podcast never dips" a fact CI re-proves on every commit rather
-// than a one-off UAT observation. It reuses `adIdSourceRoots`, so it scans `src/main`
-// only — `src/test` may still name the API in an assertion.
+// than a one-off UAT observation. It reuses `shippedSourceRoots`, so it reads every file under
+// `src/main`, `src/release` and `src/debug`, whatever its content type — `src/debug` matters
+// most here, because SOUND-06's evidence
+// is gathered on debug builds and a focus request added there would silently falsify every
+// "the player's podcast never dips" observation. No test source set is scanned: `src/test`
+// may still name the API in an assertion.
 val audioFocusLiteralCheck =
     tasks.register("audioFocusLiteralCheck") {
         group = "verification"
         description =
-            "Fails on audio-focus requests in src/main (SOUND-06: the app holds no focus)."
+            "Fails on audio-focus requests in shipped source (SOUND-06: the app holds no focus)."
         doLast {
             val offenders = mutableListOf<String>()
-            adIdSourceRoots.filter { it.exists() }.forEach { root ->
+            shippedSourceRoots.filter { it.exists() }.forEach { root ->
                 root.walkTopDown()
                     .filter { it.isFile }
                     .forEach { file ->
@@ -255,7 +338,9 @@ val audioFocusLiteralCheck =
                     "Audio focus must never be requested (SOUND-06). Ducking is initiated by a " +
                         "focus request — an app that holds no focus cannot duck the player's " +
                         "music or podcast, so the omission IS the implementation. Play through " +
-                        "SoundPool with USAGE_GAME attributes and leave AudioManager alone:\n  " +
+                        "SoundPool with USAGE_GAME attributes and never request audio focus from " +
+                        "AudioManager (reading the ringer mode and the output devices is fine). " +
+                        "$shippedScopeSentence\n  " +
                         offenders.joinToString("\n  "),
                 )
             }

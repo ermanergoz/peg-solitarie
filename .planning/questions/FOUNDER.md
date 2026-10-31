@@ -1,5 +1,332 @@
 # Founder questions (newest first)
 
+## Q-027 — Should the standard colours get the stronger marks and stars too?   (answered)
+Date: 2026-10-24    Asked by: ux-designer
+Context: The colour-blind palette (a Settings switch, off by default) draws the board's marks and the stars so that any colour vision can read them. In your standard colours they are faint by the studio's contrast rule, though normal colour vision tells them apart. Empty stars are now hollow in both palettes, a rule fix, so in your colours an empty star is a thin pale outline that is easy to miss at the catalogue's small size. This is taste: it changes the look.
+Options: 1) Keep the standard colours exactly as they are (default, being built)  2) Stars only: the empty star's outline takes the colour-blind palette's deeper grey; the board is unchanged  3) Everything: the standard colours also get the solid move dots, the darker amber hints in light and the colour-blind palette's stars (the halo and the dashed hint rings stay colour-blind only)
+Recommendation: ux-designer picks 2 for 3.0.0. Empty stars stay readable as outlines, the board you approved is untouched, and it is one value. 3 is worth a look after 3.0.0 ships, once you have seen the colour-blind palette on a device. (feature/colour-vision: .planning/reports/colour-vision/ux-designer-star-ruling.md; docs/ux/colour-vision.md §12.6)
+Blocks: nothing (option 1 is specified and being built; 2 and 3 are constant changes, docs/ux/colour-vision.md §3.4, §7 and §12.6)
+Answer: 2 — stars only: the standard palette's empty-star outline takes the colour-blind palette's deeper grey; the board is unchanged (2026-10-24, AskUserQuestion). Rides colour-vision's next developer round, before its 15e sitting (BoardMarks.kt is a start-path file).
+
+## Q-025 — Headphones off, and a wired headset, for the audio release QA   (open)
+Date: 2026-10-24    Asked by: tech-lead (via the producer)
+Context: QA's GM6 session proved the headphone branch of the Silent/Vibrate gate (Q-010). The "phone itself
+mutes" branch (D2, D3, D6, D7 on the speaker; D5's second half) and the wired branch (D4) were out of reach
+because the Bluetooth headphones stayed connected and no wired headset was attached; QA may not toggle a radio.
+Options: 1) Before QA's next phone session, power off or unpair the Bluetooth headphones and leave a USB-C or
+3.5 mm headset plugged in if you have one; QA runs D2–D4 itself 2) Leave the hardware as it is; those halves are
+recorded as JVM + emulator evidence in the Q-PUBLISH-3.0.0 summary
+Recommendation: tech-lead picks 1 — two minutes of hardware setup and no testing by you closes the one branch of
+Q-010 that is your own requirement, muting on the phone speaker.
+Blocks: nothing
+Answer:
+
+## Q-024 — A physical phone for the silent-mode and headphone checks   (answered)
+Date: 2026-10-23    Asked by: producer (for qa-engineer)
+Context: The audio build mutes the speaker on Silent/Vibrate but keeps sound on headphones (Q-010). Ten device checks
+(D1–D10) need a real phone with wired and Bluetooth headphones; only emulators are attached. Everything else runs on
+emulators, and unit tests cover the logic.
+Options: 1) Connect an Android phone by USB with USB debugging on, when convenient; QA runs D1–D10 itself (the founder
+never tests by hand) 2) Accept emulator + unit-test evidence for the phone-only halves; recorded as unverified in the
+3.0.0 release notes to you, never silently passed
+Recommendation: producer picks 1 — the speaker/headphone split is exactly the kind of behaviour emulators fake.
+Blocks: nothing now; audio's QA verdict carries the phone-only items as BLOCKED until answered
+Answer: 1 — the founder will connect an Android phone by USB with USB debugging on, when convenient (2026-10-23, AskUserQuestion); QA runs D1–D10 and the other phone-only halves itself.
+
+## Q-023 — Make the board playable with TalkBack in 3.0.0?   (answered)
+Date: 2026-10-21    Asked by: game-designer (via producer)
+Context: With TalkBack on, the board can't be heard or played, in the game or the tutorial: a blind player can open 3.0.0
+but never make a move. The studio rule is that every app meets its platform's accessibility rules before it ships; this
+misses it. Making the board playable is one small branch that can run alongside the rest of the 3.0.0 work.
+Options: 1) Make the board playable with TalkBack in 3.0.0; the release waits for it only if it is the last thing left
+2) Ship 3.0.0 with the board named and its peg count spoken, but not playable; playable in 3.1
+3) Ship 3.0.0 as it is; fix it later. (Options 2 and 3 ship below the studio's accessibility rule and need your explicit OK.)
+Recommendation: game-designer picks 1 — the only option that meets the rule; likely costs no release time (runs in
+parallel); under 2 and 3 a blind player can still spend hints and watch an ad for one they cannot use. If at Gate 2 the
+board is the only item left, "wait, or ship option 2" goes into Q-PUBLISH-3.0.0. (.planning/reports/ux-spec-folds/game-designer-talkback-board.md)
+Blocks: nothing now (the studio proceeds with 1 by default); release/3.0.0 reads the answer before its cut
+Answer: 1 — make the board playable with TalkBack in 3.0.0 (2026-10-21, AskUserQuestion). The branch runs in parallel; release/3.0.0 waits for it only if it is the last item left.
+
+## Q-022 — The Turkish store listing describes the old app   (answered)
+Date: 2026-10-18    Asked by: release-manager
+Context: The live Play listing has its own Turkish text ("5 farklı oyun modu") written for the old app;
+14 other languages show translated English (saved in the Console or automatic: only you can see which).
+The new en-US copy is drafted in docs/store/ (feature/phase-14-release-docs) for your approval at Gate 2.
+Options: 1) The studio drafts a tr-TR translation of the new copy for you to approve at Gate 2
+2) Delete the Turkish translation so Turkish users see the English text (or Play's automatic translation)
+3) You write the Turkish text yourself
+Recommendation: release-manager picks 1 — a stale text describing features that are gone is a Play policy
+exposure, and a drafted translation costs no extra round trip at Gate 2.
+Blocks: nothing (the Gate 2 store-asset line)
+Answer: 1 — the studio drafts tr-TR for approval at Gate 2 (2026-10-18).
+
+## Q-021 — Which look should the menu and game backgrounds take?   (answered)
+Date: 2026-10-18    Asked by: ux-designer
+Context: You asked for Candy Crush's aliveness, not a copy: glassy, with something in the back. Three directions
+are drawn and animated (Home and game, light and dark) in docs/ux/backdrop-directions.html on feature/candy-backdrop
+(published privately for the founder). The board, layout and colours you kept stay as they are in all three.
+Options: 1) A · Frosted glass  2) B · Deep gloss: a deep violet world with glossy waves, rising soft lights and gel
+mode cards (the biggest change)  3) C · Airy daylight  4) None of these: tell us what to adjust
+Recommendation: ux-designer picks 1 (closest to "glassy", keeps the cards, cheapest to build and run).
+Blocks: candy-backdrop build
+Answer: 2 — B · Deep gloss (2026-10-18). The research-analyst's addendum finds B clean on conditions A.3/A.4
+(.planning/reports/candy-backdrop/research-analyst.md on feature/candy-backdrop).
+
+## Q-020 — How much of the candy scene goes on the game screen?   (answered — direction reopened)
+Date: 2026-10-17    Asked by: ux-designer
+Context: The menu gets the full sweets landscape you asked for: frosted hills with drips and sprinkles, clouds,
+and a lollipop, a cane, a gumdrop and a cupcake beside the board picture. The game screen gets a calmer version
+so your eye stays on the pegs. All three options are readable and IP-safe; this is taste.
+Options: 1) Calm game screen (default, being built): cotton-candy sky, clouds behind the title, frosted hills
+with sprinkles under and behind the board; the standing sweets stay on the menu  2) Full scene on the game
+screen too: the lollipop, cane, gumdrop and cupcake also stand on the hills around the board (on phones they
+mostly peek out from below it; fully on tablets)  3) Plain game screen: sky and clouds only, no hills
+Recommendation: ux-designer picks 1 — the game screen joins the same candy world while nothing stands next to
+the board you are solving; 2 is the busiest frame, but on phones the sweets would mostly show as pieces
+peeking out from behind the board and the buttons; 3 is calmest but loses the candy feel you asked for.
+Blocks: nothing (option 1 is specified and buildable; 2 and 3 are constant changes, docs/ux/candy-backdrop.md §3.3)
+Answer: none of the three (2026-10-17), verbatim: "I wanted you to get inspired by the aliveness of candy crush
+not to copy it. galssy look with something in the back maybe? Idk but get my approval. Show me the design first".
+So the sweets-landscape direction is reopened: the ux-designer shows visual directions (a glossy/glassy, lively
+look with depth behind it) and the founder approves one before anything is built. The candy-backdrop build now
+waits on that approval (next question, Q-021).
+
+## Q-019 — Fable limit reached again; how do the Fable-pinned roles finish v1.1?   (answered)
+Date: 2026-10-17    Asked by: producer
+Context: Both Fable dispatches in flight died on HTTP 429 "You've reached your Fable limit": qa-engineer
+phase-15 loop 3 (`req_011Cg8FSKsGNXgPkGc5fvo6t`, cut at its start) and ux-designer candy-backdrop spec
+(`req_011Cg8FSCnNYKh3QkBpoYdpJ`, sections 0–2 of docs/ux/candy-backdrop.md written). code-auditor, qa-engineer,
+tech-lead, ux-designer and game-designer are pinned to Fable; plugin 1.0.0 has no fallback. Q-003/Q-014
+already allow Opus for the phase-15 review chain and rulings only.
+Options: 1) Top up Fable (/usage-credits) and continue as staffed, no deviation 2) Wait for the Fable
+allowance to reset 3) Opus for every Fable-pinned role until 3.0.0 is published, each report recording
+the deviation (reviewers then share the developer's model)
+Recommendation: producer — 1 if the spend is acceptable, since the code-auditor and qa-engineer are the
+gates that make review independent of the Opus-written code; else 3, with fresh reviewers that run the
+Check and their own mutation probes rather than trusting recorded results.
+Blocks: candy-backdrop spec and build reviews, phase-14 R-1 QA and sign-off, check-gates reviews, the release QA
+Answer: 3 — Opus for every Fable-pinned role until 3.0.0 is published (2026-10-17). Recorded as a deviation
+from studio staffing in every report; mitigations: fresh reviewers, Check and mutation probes run by the reviewer.
+Addendum 2026-10-23 (founder, in chat): "all limits reset. continue. you can use fable as well for supervision now" — Fable is available again for the supervising roles (reviews, checks, sign-offs); dispatches from now run those roles on their pinned model. Authoring runs already in flight on Opus may finish on Opus.
+Addendum 2026-10-24 (founder, in chat, after every pinned dispatch hit HTTP 429 at 20:30): "We run out of fable. You can keep using opus" — option 3 stands again: every Fable-pinned role runs on Opus, each report recording the deviation, with the same mitigations.
+
+## Q-018 — minSdk 24 → 26: when, if ever?   (answered)
+Date: 2026-10-17    Asked by: tech-lead
+Context: The studio rule names minSdk 26 for new products; this published app ships 3.0.0 at 24, and
+raising it drops API 24–25 installs from updates. Technically nothing forces either (docs/tech-design.md §1.3).
+Options: 1) raise to 26 in 3.0.0  2) raise in the first minor after 3.0.0 whose Play Console device
+statistics show API 24–25 under 1 % of active installs  3) hold 24 indefinitely
+Recommendation: tech-lead picks 2 — no technical cost is paid by waiting and no player is dropped on a guess.
+The design records 24 as the ruling for 3.0.0 either way.
+Blocks: nothing
+Answer: 3 — keep minSdk 24 indefinitely, unless a technical need appears (2026-10-17). docs/tech-design.md §1.3 to record it.
+
+## Q-017 — Store-art provenance: achievement icons, listing icon, feature graphic   (answered)
+Date: 2026-10-17    Asked by: release-manager (Q-F3 / F-4)
+Context: THIRD_PARTY.md §7 holds four PENDING FOUNDER rows for art that lives only in the Play Console;
+rules/ip-policy.md blocks the release while a row lacks a licence.
+Options: 1) I drew them 2) generated with an AI tool 3) downloaded / bought 4) not sure (studio redraws)
+Recommendation: release-manager — an information request, not a decision.
+Blocks: THIRD_PARTY.md completeness → cutting release/3.0.0
+Answer: "you did it" (2026-10-17) — the studio produced them in its own sessions. The files are on the
+founder's Desktop, dated 2026-09-14/15: `PegSolitaire Achievement Icons/` (20 PNGs, a01..a20),
+`PegSolitaire Leaderboard Icons/` (7 PNGs), `peg-solitaire-icon-512.png`, `peg-solitaire-feature-1024x500.png`.
+Rows to be written as own work by the release-manager, with the files' sha256 and how they were made.
+
+## Q-016 — Store listing copy: rewrite for the new app, or keep?   (answered)
+Date: 2026-10-17    Asked by: release-manager
+Context: The live listing was written for the old app (versionCode 2), which had no Challenge ladder,
+leaderboards, cloud save or sound. Screenshots are already settled: the studio recaptures them after
+the candy backdrop lands. The copy and the ≤ 500-char release notes are taste.
+Options: 1) The studio drafts new short + full descriptions and the release notes into docs/store/;
+         you approve them at Gate 2  2) The current copy still fits; the studio drafts only the release
+         notes  3) You write the copy yourself; the studio checks the limits and checks it against the changelog
+Recommendation: release-manager picks 1. The rewrite is complete, so old copy almost certainly
+describes features that are gone and misses the ones that are new. Approval at Gate 2 adds no extra
+round trip.
+Blocks: nothing mechanical; the store-asset line of the Gate 2 summary
+Answer: 1 — the studio drafts new short + full descriptions and the release notes into docs/store/;
+founder approves them at Gate 2 (2026-10-17).
+
+## Q-015 — Play App Signing: keep your existing key or let Google make a new one?   (answered)
+Date: 2026-10-17    Asked by: release-manager
+Context: The first upload of 3.0.0 enrols the app in Play App Signing (D-21: not enrolled yet).
+Enrolment is one-way. The key you choose signs every copy players get from now on.
+Options: 1) Upload your existing release key as the app signing key; keep using it as the upload key
+         2) Let Google generate a new app signing key; your existing key becomes the upload key only
+Recommendation: release-manager picks 1. It keeps every copy of the old app installed today
+upgradable to 3.0.0, and it keeps the Play Games credential already registered for that key's SHA-1
+valid. Option 2 needs a new PGS credential before T-1 can pass, and gains nothing this release needs.
+Blocks: the first upload (F-3, F-11); nothing before it
+Answer: 1 — keep the existing release key as the app signing key and as the upload key (2026-10-17).
+
+## Q-014 — Fable-pinned tech-lead and ux-designer rulings for the rest of phase 15   (answered)
+Date: 2026-09-29    Asked by: producer
+Context: The font fix (Q-013) needs a tech-lead ruling (bundle the OFL fonts vs repair the Google
+Fonts provider) and the ux-designer has two open spec rulings (15p gap reading; the 15e "both arms
+installed" precondition, E-1). Both roles are pinned to Fable, which is exhausted; 0.6.2 has no
+fallback. Q-003 covered only the phase-15 review chain.
+Options: 1) Opus for phase 15 2) Wait for Fable 3) Founder tops up Fable
+Recommendation: producer — 1, so phase 15 can finish.
+Blocks: phase-15 font fix and merge
+Answer: 1 — Opus for the tech-lead and ux-designer rulings for the rest of phase 15 (2026-09-29),
+each recorded as a deviation. Scoped to phase 15.
+
+## Q-013 — The app's fonts have never loaded on any device; when do we fix it?   (answered)
+Date: 2026-09-29    Asked by: producer (from qa-engineer F-A/F-B, qa-engineer-loop2.md)
+Context: `Type.kt` builds `AppTypography` before the Fredoka/Nunito families exist, so every style
+has a null family and Roboto renders everywhere, since 2026-08-26 (unreleased; `main` predates it).
+The provider certificate in `font_certs.xml` is also corrupt. Every phase-15 fit measurement was
+taken in Roboto.
+Options: 1) Fix inside phase 15 and re-walk the fit criteria 2) Separate phase after merge
+3) Drop the custom fonts
+Recommendation: producer — 1.
+Blocks: nothing
+Answer: 1 — fix inside phase 15 (2026-09-29); founder sees screenshots in the real faces before merge.
+
+## Q-012 — Should a wrong tap also buzz?   (answered)
+Date: 2026-09-29    Asked by: ux-designer (queued by producer)
+Context: docs/ux/invalid-tap-feedback.md gives a wrong tap a shake (or a still dashed ring under
+reduced motion) and, by default, the platform "reject" haptic on API 30+, gated by Settings > Haptics,
+never the jump's ContextClick.
+Options: 1) Yes, buzz 2) No buzz
+Recommendation: ux-designer — 1.
+Blocks: nothing
+Answer: 1 — yes, buzz (2026-09-29).
+
+## Q-011 — The audio follow-up needs four Fable-pinned roles and Fable is exhausted   (answered)
+Date: 2026-09-29    Asked by: producer
+Context: After Q-008–Q-010 the audio work needs the sound-designer (recipes, WAV conversion,
+re-levelling), tech-lead (silent-mode design), ux-designer (wrong-tap visual partner) and
+research-analyst (per-file licence verdicts), all pinned to Fable; Fable returns HTTP 429
+(req_011CfWkWg9kgDK8skQV5QcMF). Q-006 was a one-time exception; 0.6.2 has no Fable fallback.
+Options: 1) Wait for Fable 2) Run the four on Opus 3) Founder tops up Fable
+Recommendation: producer — 1; the audio work is small and nothing waits on it.
+Blocks: audio-review follow-up
+Answer: 2 — run them on Opus (2026-09-29). Exception scoped to these four audio steps; each report
+records the deviation. Not a standing policy change.
+
+## Q-010 — Should the game go quiet when the phone is on Silent or Vibrate?   (answered)
+Date: 2026-09-29    Asked by: sound-designer (queued by producer)
+Context: Game sounds follow media volume only, so Silent/Vibrate does not mute them; rules/audio.md
+says silent mode must be honoured. A strict reading would also mute players wearing headphones.
+Options: 1) mute on Silent/Vibrate, always 2) mute on Silent/Vibrate only on the phone speaker;
+headphones keep sound 3) keep today's behaviour and record an exception to the rule
+Recommendation: sound-designer — 2. The tech-lead costs it before it is built.
+Blocks: nothing
+Answer: 2 — mute on the phone speaker only; headphones keep sound (2026-09-29).
+
+## Q-009 — Sound file format: convert to WAV, keep OGG, or remake in-house?   (answered)
+Date: 2026-09-29    Asked by: sound-designer (queued by producer)
+Context: rules/audio.md wants WAV for SFX (OGG only for music); all 12 are OGG (72 KB). WAV adds
+about 255 KB (+12 %).
+Options: 1) convert the kept sounds to WAV from their originals, fixing levels in the same pass
+2) keep OGG and ask the studio to allow OGG for sourced effects 3) remake the whole set in-house
+Recommendation: sound-designer — 1.
+Blocks: nothing
+Answer: 1 — convert to WAV, re-levelled in the same pass (2026-09-29).
+
+## Q-008 — Pick new sounds for peg removal and the wrong-tap   (answered)
+Date: 2026-09-29    Asked by: sound-designer (queued by producer)
+Context: The removal sound is the jump sound again (spectral similarity 0.998); the wrong-tap "bong"
+is too low for a phone speaker. A/B clips: .planning/qa/audio-review/candidates/ab/ (git-ignored).
+Options: 1) removal squish (a) + wrong-tap soft tok (a) 2) removal pfft (b) + wrong-tap muted bwop
+(b) 3) mix and match 4) keep both. Optional: hint soft glint (a).
+Recommendation: sound-designer — 1, keep the hint.
+Blocks: nothing
+Answer: mix and match (2026-09-29), by the clips the founder named:
+- peg removal: **keep today's sound** (`ab_jump_run_with_remove_incumbent`) — no replacement;
+- wrong tap: **candidate a, "soft tok"** (`ab_select_invalid_x2_deselect_a`);
+- hint: **candidate a, "soft glint"** (`ab_hint_a`).
+
+## Q-005 — Home hero: how should the top of Home fill the screen?   (answered)
+Date: 2026-09-28    Asked by: ux-designer
+Context: Per your Q-004 answer the peg-cross logo goes, the title is re-seated, and the empty band
+between the stats and the cards must go. A default is specified and will be built (docs/ux-spec.md
+§4.2.4, D-03l); this only asks whether you prefer another direction. Stats, cards and colours stay.
+Options: 1) Board stage — the title sits left-aligned beside the gear on one line; the space below
+it holds a large clay board showing a game in progress, which grows or shrinks with the screen (not
+drawn on small phones) 2) No art, one block — no picture anywhere; the title sits right on the stats,
+and title + stats + Continue + mode cards form one block in the lower part of the screen, with only
+the gear and the soft background blobs above 3) Bigger cards — no picture; title line as in 1; on
+taller phones the mode cards and Continue chips grow taller (bigger art, bigger tap areas) to take
+the space — this changes the mode cards you said you like
+Recommendation: ux-designer picks 1 — it removes the gap on every phone without moving the mode
+cards out of thumb reach, shows the actual game instead of a logo, and costs nothing at cold start
+(one drawing, replacing the logo's). 2 leaves the top third of a tall phone empty, which is the
+original "looks empty" complaint; 3 spends the space on the part you asked to keep.
+Blocks: nothing (default 1 is specified and buildable)
+Answer: 1 — board stage (2026-09-29). Founder confirmed the ux-designer's default (D-03l, §4.2.4).
+
+## Q-004 — What bothers you about the new Home screen?   (answered)
+Date: 2026-09-28    Asked by: producer
+Context: Founder reviewed the phase-15 build on the emulator and said "I don't really like this
+screen" (Home), plus two gameplay notes: the dock icons do not show whether they are on or off, and
+the gameplay title and elapsed time are too small.
+Options: 1) Empty middle gap 2) Stats ribbon 3) Mode cards 4) Overall look (multi-select)
+Recommendation: none — taste; asked to scope the ux-designer's rework.
+Blocks: nothing
+Answer: Empty middle gap, the peg-cross logo, and how the title sits (2026-09-28). Stats ribbon,
+mode cards and the overall palette/style were not selected — keep them.
+
+## Q-003 — Fable credits are exhausted and the whole phase-15 review chain is staffed on Fable   (answered)
+Date: 2026-09-28    Asked by: producer
+Context: Phase 15 is code-complete (S1–S8 committed, each on a green `check`). Both reviewers died
+on HTTP 429 "You've reached your Fable limit": code-auditor `req_011CfVursaCjxSYYoSr3Cco1`,
+qa-engineer `req_011CfVutjoBky6dChQ5jGKZa`. Per the plugin's agent definitions, code-auditor,
+qa-engineer, tech-lead and ux-designer are all `model: fable`, while android-game-dev is
+`model: opus` — that split is what makes the audit independent of the author. Nothing merges to
+develop without code-auditor PASS, qa-engineer PASS and tech-lead sign-off (rules/gitflow.md), so
+the phase cannot close until this is resolved. Only the founder can buy credits.
+Options:
+  1) Top up Fable (`/usage-credits`) and re-dispatch the chain as staffed — no deviation.
+  2) Substitute **Sonnet** for the three review roles on this phase. Independence from the author is
+     preserved (Sonnet ≠ the developer's Opus), recorded as a deviation in each report and here.
+  3) Wait for the Fable allowance to reset before reviewing.
+Recommendation: producer — 1 if the spend is acceptable, because the code-auditor is the phase's most
+consequential gate and it is deliberately staffed on a stronger reviewer; otherwise 2, which keeps
+the property that actually matters (a different model from the one that wrote the code) and lets the
+device session happen now. Never substitute **Opus** for the reviewers: that is the developer's own
+model and would make the audit self-review in all but name.
+Blocks: phase-15 review, tech-lead sign-off and the merge to develop. Phase-15 implementation is done
+and committed, so nothing is lost by waiting.
+Answer: **Use Opus for the review** (2026-09-28). The founder chose Opus after the producer's
+recommendation against it was stated in this question, and reaffirmed it in a second message.
+Recorded as a **deviation from studio staffing**: the reviewers now run on the same model as the
+author (android-game-dev is `model: opus`), so rules/studio.md standing rule 1 is upheld only by its
+other mechanisms — a freshly spawned agent per reviewer, receiving the requirements and the diff and
+explicitly barred from the developer's reports, its reasoning and the studio log. Every phase-15
+review report must carry this deviation. Mitigations applied by the producer: reviewers instructed to
+run the Check command and the §10 prohibition commands themselves rather than trusting recorded
+results, and to hunt specifically for assertions that cannot fail.
+
+## Q-902 — Do the in-game actions move to the bottom?   (answered)
+Date: 2026-09-21    Asked by: ux-designer
+Context: You said "redesign the icons on the top" and "remove toolbar from the game" in one breath.
+The code says those are one surface: `GameScreen.kt:502` is a single `TopAppBar` holding the back
+arrow, the title and all five controls. So the spec reads it as one change and splits it.
+Options: 1) Split — read-only status (back, title, timer) stays top, the four actions (Undo, Hint,
+Show-moves, Restart) move to a thumb-zone dock at the bottom 2) Keep all four icons visually on
+top, redrawn as a clay cluster
+Recommendation: ux-designer picks 1 — rules/compose.md requires primary actions in the lower thumb
+zone of a 6.7-inch phone, and Undo (the control a peg-solitaire player uses most) is currently in
+the worst-reachable corner. Choosing 2 swaps §4.3 and §4.4 of docs/ux-spec.md and changes nothing else.
+Blocks: nothing (default 1 is specified and buildable)
+Answer: 1 — the split (2026-09-21). Founder confirmed: status strip on top (back, title, timer), four actions in a thumb-zone dock at the bottom.
+
+## Q-901 — Home hero art direction   (answered)
+Date: 2026-09-21    Asked by: ux-designer
+Context: Home gains a titled hero band to fill the emptiness you named. Three treatments are
+equally buildable; this is taste, and cold start is a measured gate (≤ 950 ms, PLAT-08 C1).
+Options: 1) A static decorative peg cluster in Candy Clay 2) A slowly drifting mini board idling
+behind the title 3) No art — a larger gradient title alone
+Recommendation: ux-designer picks 1 — it costs no asset licence, cannot distract from the two mode
+tiles, and adds nothing to the cold-start critical path. Option 2 competes with the two `HomeBlobs`
+already drifting there and puts a running animation on that path. Option 3 is also step 3 of the
+spec's degradation path, so if the cold-start measurement forces it, that answer is already built.
+Blocks: nothing (default 1 is specified and buildable)
+Answer: 1 — static decorative peg cluster (2026-09-21). Founder confirmed the default; no drifting mini-board, no title-only treatment.
+
 ## Q-007 — Refresh the rules snapshot from v0.5.1 to plugin 0.6.2 now?   (answered)
 Date: 2026-09-29    Asked by: producer
 Context: The installed plugin is 0.6.2 (latest release), but this product's `.claude/rules/` was the

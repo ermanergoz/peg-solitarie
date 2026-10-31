@@ -59,7 +59,12 @@
     <!-- The Challenge tile's supporting line: the player's persisted ladder position (CHAL-05). -->
     <string name="challenge_tile_continue">Continue — Level %1$d</string>
     <string name="coming_soon">Coming soon</string>
-    <string name="how_to_play">How to play</string>
+    <!--
+      `how_to_play` was deleted in Phase 15 (ux-spec §8 Deleted): its only caller was Home's
+      information icon, which D-02 removes. The tutorial's one permanent entry point is now
+      the Settings › General row below, which carries its own label.
+    -->
+
 
     <!-- Classic catalog. -->
     <string name="catalog_title">Classic</string>
@@ -86,11 +91,20 @@
     <string name="hint_action">Hint</string>
     <!-- Announced while the Solver computes a hint; the control is disabled (D-10). -->
     <string name="hint_thinking">Finding a move</string>
-    <!-- Show-possible-moves toggle (icon-only; content description reflects the on/off state, D-02). -->
+    <!--
+      Show-possible-moves switch (icon-only, D-02). Its ONE constant name in both states: the state
+      is announced by the switch role, never by swapping the name (D-04e, ux-spec §4.4.1).
+    -->
     <string name="show_moves_on">Show possible moves</string>
-    <string name="show_moves_off">Hide possible moves</string>
     <!-- Shown while a Challenge board is generated off the main thread (CR-01). -->
     <string name="loading_level">Loading level</string>
+    <!--
+      The wrong tap's screen-reader sentences (D-06c; docs/ux/invalid-tap-feedback.md §3.6, §6):
+      spoken politely on the gameplay board only, never in the tutorial. W1, W2, W3 in order.
+    -->
+    <string name="wrong_tap_empty_hole">Empty hole. Pick up a peg first.</string>
+    <string name="wrong_tap_other_peg">Already holding a peg. Tap it again to put it down.</string>
+    <string name="wrong_tap_not_a_destination">Can\'t jump there.</string>
 
     <!--
       Inline no-win / stuck rescue banner (ASST-03, D-06/D-08/D-09). One shared banner
@@ -100,6 +114,13 @@
     -->
     <string name="nowin_message">No winning move — undo or restart</string>
     <string name="stuck_message">No moves left — undo or restart</string>
+    <!--
+      D-04f / ux-spec §4.4.2 and §8. The Undecided notice: a hint search that stopped with no
+      move and no proof. Two sentences, never the rescue banner's "problem — what to do" shape,
+      and none of the ruling's forbidden words (criterion 23b). The tr-TR copy of record lives in
+      the spec only: the app has no Turkish locale.
+    -->
+    <string name="hint_undecided_message">Hint couldn\'t work this position out in time. It may still be winnable.</string>
     <string name="rescue_restart">Restart</string>
 
     <!-- Results. -->
@@ -132,17 +153,57 @@
 
     <!--
       ============================ Phase-5 copy ============================
-      Settings (SET-01/SET-02, D-14..D-17). The sound supporting line states the
-      honest Phase-5 truth — the choice is saved now and consumed when the audio
-      pass lands (D-16) — while haptics describes the feedback that fires today
-      (D-15). settings_action is the Home gear's content description.
+      Settings (SET-01/SET-02, D-14..D-17). Both supporting lines describe feedback that
+      fires today: haptics has since Phase 5 (D-15), and sound since Phase 7 — its line
+      said "Saved for the upcoming sound effects" until Phase 15 corrected it (ux-spec §8
+      Fixed), which was honest when it was written and stale for eight phases after.
+      settings_action is the Home gear's content description.
     -->
     <string name="settings_title">Settings</string>
     <string name="settings_action">Settings</string>
     <string name="settings_sound_label">Sound</string>
-    <string name="settings_sound_supporting">Saved for the upcoming sound effects</string>
+    <string name="settings_sound_supporting">Play the jump, button and celebration sounds</string>
     <string name="settings_haptics_label">Haptics</string>
     <string name="settings_haptics_supporting">Vibrate lightly on each jump</string>
+
+    <!--
+      Phase-15: the tutorial's one permanent entry point (ONB-01, D-02a; ux-spec §4.5, §8).
+      "Replay" is deliberate — a first-run player meets the tutorial automatically and never
+      reads this line first, so the row only ever describes going back to it.
+    -->
+    <string name="settings_how_to_play_label">How to play</string>
+    <string name="settings_how_to_play_supporting">Replay the tutorial</string>
+
+    <!--
+      Phase-15: the Home progress ribbon (NAV-01/PERS-03/CHAL-05, D-03/D-03c/D-03h;
+      ux-spec §4.2, §8).
+
+      `stat_value_unknown` is an em dash, and it is what a pill shows both before the first
+      read lands AND when the read failed — the two are deliberately indistinguishable, and
+      neither is ever rendered as `0`, because zero is a real answer for a brand-new player
+      and reporting it for a broken read would lie to an experienced one (D-03h).
+      `stat_value_unknown_desc` is what a screen reader says in its place, so the em dash is
+      never spoken as punctuation.
+
+      The Boards pill's denominator is a FORMAT ARGUMENT, never a literal: it is supplied at
+      the call site from the Classic catalogue's own size, so a stored row cannot change a
+      shipped number and a sixth board would move it without a copy edit.
+    -->
+    <string name="stat_value_unknown">—</string>
+    <string name="stat_value_unknown_desc">not yet available</string>
+    <!--
+      A pill's whole announcement, label then value: "Stars, 7" — or "Stars, not yet
+      available" when the value is unknown. It is a format rather than a bare comma joined in
+      code because the separator between a label and its value is locale-specific, and because
+      a merged semantics node that carried both a contentDescription and its children's text
+      would be read as the description ALONE by TalkBack, silently dropping the label. This is
+      the string ux-spec §8's table does not list; see the report's Deviations.
+    -->
+    <string name="home_stat_pill_desc">%1$s, %2$s</string>
+    <string name="home_stat_stars_label">Stars</string>
+    <string name="home_stat_boards_label">Boards</string>
+    <string name="home_stat_level_label">Level</string>
+    <string name="home_stat_boards_value">%1$d/%2$d</string>
 
     <!--
       Home "Continue" affordances for a saved in-progress game (PERS-03, D-01/D-03). Each
@@ -155,12 +216,41 @@
     <string name="resume_challenge_title">Continue Challenge</string>
     <string name="resume_challenge_supporting">Pick up Level %1$d where you left off</string>
 
-    <!-- Onboarding overlay (first-run how-to-play of the orthogonal jump). -->
+    <!--
+      ============================ Phase-15 copy ============================
+      The interactive tutorial (ONB-01, D-01/D-01a-i; ux-spec §8). Verbatim from the
+      Copywriting Contract. The three step captions REPLACE the onboarding_step_* prose
+      the deleted overlay read; `onboarding_got_it` and `onboarding_skip` are reused
+      unchanged, so the tutorial adds no button copy of its own.
+
+      There is deliberately no "boxed in / Undo" line: the tutorial has no Undo control
+      and its boards make being stuck impossible, so promising a rescue from an impossible
+      failure would teach the player to expect failure (§5, §4.4).
+    -->
+    <!-- The pip row's single announcement, e.g. "Step 2 of 3" (one semantics node). -->
+    <string name="tutorial_step_progress">Step %1$d of %2$d</string>
+    <!-- T1 teaches the jump itself. -->
+    <string name="tutorial_step_1_caption">Tap a peg, then tap the empty hole two cells away.</string>
+    <!-- T2 teaches the other axis, and that diagonals are never offered. -->
+    <string name="tutorial_step_2_caption">Jumps work up, down, left and right — never diagonally.</string>
+    <!-- T3 teaches the goal. -->
+    <string name="tutorial_step_3_caption">Keep jumping. Clear the board down to one peg.</string>
+    <!-- Shown with the completion star and the CTA, once T3 is cleared. -->
+    <string name="tutorial_done_caption">That\'s the whole game. Go clear a board.</string>
+
+    <!--
+      The two action labels the retired first-run overlay authored, now the interactive
+      tutorial's completion CTA and Skip action. They keep their names and their values
+      (ux-spec §8 "Reused unchanged"): the shared `onboarding_` prefix is not a licence to
+      sweep the group.
+
+      `onboarding_step_1/2/3` were deleted with the retired first-run sheet in Phase 15 (§8
+      Deleted, verified by grep as having no other caller) — the three
+      `tutorial_step_*_caption` lines above are their rewrites, shortened to one line each
+      because the player is now doing the thing the sentence used to describe.
+    -->
     <string name="onboarding_got_it">Got it</string>
     <string name="onboarding_skip">Skip tutorial</string>
-    <string name="onboarding_step_1">Tap a peg, then tap an empty hole two cells away.</string>
-    <string name="onboarding_step_2">The peg jumps straight over its neighbor — only up, down, left, or right.</string>
-    <string name="onboarding_step_3">The jumped peg is removed. Clear the board down to one peg.</string>
 
     <!--
       ============================ Phase-9 copy ============================

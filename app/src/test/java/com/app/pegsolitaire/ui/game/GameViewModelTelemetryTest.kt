@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelStore
 import app.cash.turbine.test
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.data.HomeProgress
 import com.app.pegsolitaire.data.ImportOutcome
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
@@ -32,10 +33,12 @@ import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
+import com.app.pegsolitaire.domain.usecase.HintOutcome
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
 import com.app.pegsolitaire.platform.ads.RewardOutcome
 import com.google.common.truth.Truth.assertThat
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -269,6 +272,45 @@ class GameViewModelTelemetryTest {
             // ADS-06 charges nothing for "no winning move"; D-09 counts nothing either.
             assertThat(repository.snapshots[ProgressPersistenceKeys.MODE_CLASSIC]?.hintsUsed)
                 .isEqualTo(NO_ASSISTS)
+        }
+
+    /**
+     * AC-14 (GD-HT-5; D-09 unchanged): a hint that came back Undecided revealed nothing, so
+     * it is not a hint used. The allowance is read through the next hints' offer behaviour,
+     * as the allowance specs read it — every free hint is still there afterwards, and only
+     * the one past them raises the offer — and the hint-free claim through the finish event.
+     */
+    @Test
+    fun anUndecidedHintDoesNotCountAsAHintUsed() =
+        telemetryTest {
+            val undecidedThenFound = listOf(HintOutcome.Undecided, HintOutcome.Found(openingMove()))
+            val thenFound = mockk<GetHintUseCase>()
+            every { thenFound.invoke(any(), any(), any(), any(), any()) } returnsMany undecidedThenFound
+            val allowanceKept = viewModelFor(winnableStrip(), getHintUseCase = thenFound)
+            runCurrent()
+            allowanceKept.onHintRequested()
+            runCurrent()
+            check(allowanceKept.uiState.value.hintUndecided) { "the first hint must come back Undecided" }
+
+            repeat(AssistAllowanceLimits.FREE_HINTS) {
+                allowanceKept.onHintRequested()
+                runCurrent()
+                assertThat(allowanceKept.uiState.value.pendingAdOffer).isNull()
+                assertThat(allowanceKept.uiState.value.hintSource).isEqualTo(at(LEFT_PEG_COL))
+            }
+            allowanceKept.onHintRequested()
+            runCurrent()
+            assertThat(allowanceKept.uiState.value.pendingAdOffer).isEqualTo(AdReason.HINT)
+
+            val undecided = mockk<GetHintUseCase>()
+            every { undecided.invoke(any(), any(), any(), any(), any()) } returns HintOutcome.Undecided
+            val hintFree = viewModelFor(winnableStrip(), getHintUseCase = undecided)
+            runCurrent()
+            hintFree.onHintRequested()
+            runCurrent()
+            check(hintFree.uiState.value.hintUndecided) { "the hint must come back Undecided" }
+
+            assertThat(solveTheStrip(hintFree).telemetry.hintsUsed).isEqualTo(NO_ASSISTS)
         }
 
     @Test
@@ -581,6 +623,7 @@ class GameViewModelTelemetryTest {
         progressRepository: ProgressRepository = mockk(relaxed = true),
         resume: Boolean = false,
         levelId: String = ClassicLevelIds.ENGLISH33,
+        getHintUseCase: GetHintUseCase = GetHintUseCase(),
     ): GameViewModel {
         val args =
             mapOf<String, Any?>(
@@ -601,7 +644,7 @@ class GameViewModelTelemetryTest {
                         timeSource = TestTimeSource(),
                         defaultDispatcher = testDispatcher,
                         adGateway = adGateway,
-                        getHintUseCase = GetHintUseCase(),
+                        getHintUseCase = getHintUseCase,
                         savedStateHandle = SavedStateHandle(args),
                     ) as T
             }
@@ -771,6 +814,8 @@ private class TelemetryProgressRepository(
 
     /** Unused by this screen — no per-board leaderboard read happens here. */
     override suspend fun classicBests(): Map<ClassicBoard, Int> = emptyMap()
+
+    override fun observeHomeProgress(): Flow<HomeProgress> = flowOf(HomeProgress.UNKNOWN)
 
     override fun observeResults(mode: String): Flow<List<LevelResult>> = flowOf(emptyList())
 
