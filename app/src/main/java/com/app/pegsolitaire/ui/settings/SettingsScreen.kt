@@ -33,6 +33,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -46,6 +47,9 @@ import com.app.pegsolitaire.ui.theme.clayEntrance
 import com.app.pegsolitaire.ui.theme.claySquish
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+
+/** The capped content column's test tag (the tech-lead's re-run ruling, F-3). */
+internal const val SETTINGS_CONTENT_TAG = "settings_content"
 
 /**
  * The stateless Settings screen (SET-01, SET-02, D-14).
@@ -154,10 +158,11 @@ fun SettingsScreen(
             Column(
                 modifier =
                     Modifier
-                        .fillMaxWidth()
                         .widthIn(max = dimensionResource(R.dimen.content_max_width))
+                        .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
-                        .padding(dimensionResource(R.dimen.spacing_md)),
+                        .padding(dimensionResource(R.dimen.spacing_md))
+                        .testTag(SETTINGS_CONTENT_TAG),
                 verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_md)),
             ) {
                 GeneralSection(
