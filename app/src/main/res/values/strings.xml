@@ -82,6 +82,21 @@
     <!-- Gameplay top bar (timer + back; restart_board reused from Phase 1). -->
     <string name="navigate_back">Navigate back</string>
     <string name="elapsed_time">Elapsed time</string>
+    <!--
+      D-05e (ux-spec §4.3.2, §8), with its whole-minute fallback (tech-lead defect ruling §2, B-2):
+      the timer's content description is its label, a comma and the elapsed time in whole minutes,
+      "Elapsed time, 5 minutes", or "Elapsed time, under a minute" below one. So TalkBack says the
+      time and not only what the clock is, and the description changes at most once a minute: with
+      the seconds in it, TalkBack spoke the focused timer again as they ticked. Minutes are floored,
+      never rounded up, and never roll into hours, as the clock never rolls them. The join is a
+      format string, so the order belongs to the copy and not to the code.
+    -->
+    <string name="elapsed_time_spoken">%1$s, %2$s</string>
+    <plurals name="duration_minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
+    <string name="duration_under_a_minute">under a minute</string>
     <!-- Challenge gameplay top-bar "Level N" title + its screen-reader description (S2, D-03). -->
     <string name="challenge_level_indicator">Level %1$d</string>
     <string name="challenge_level_indicator_desc">Challenge level %1$d</string>
