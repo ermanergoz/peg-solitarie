@@ -44,6 +44,8 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -54,7 +56,7 @@ import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.ui.components.AnnouncementRegion
 import com.app.pegsolitaire.ui.components.BoardCanvas
-import com.app.pegsolitaire.ui.components.boardStop
+import com.app.pegsolitaire.ui.components.BoardStop
 import com.app.pegsolitaire.ui.components.boardStopLabel
 import com.app.pegsolitaire.ui.components.rememberBoardAnnouncer
 import com.app.pegsolitaire.ui.components.rememberTouchExplorationEnabled
@@ -278,13 +280,15 @@ private fun TutorialBoardSlab(
                 .size(dimensionResource(R.dimen.tutorial_board_size))
                 .scale(pulse.value)
                 .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.extraLarge)
-                // D-TB: the slab is the board stop, so a touch on its rim finds the board.
-                .boardStop(
-                    label = boardStopLabel(state.board.board.pegCount),
-                    focusRequester = boardStopFocus,
-                    focusEnabled = touchExploration,
-                ),
+                // D-TB: the slab is the cells' group, its first child the board stop (ruling §3).
+                .semantics { isTraversalGroup = true },
     ) {
+        BoardStop(
+            label = boardStopLabel(state.board.board.pegCount),
+            focusRequester = boardStopFocus,
+            focusEnabled = touchExploration,
+            modifier = Modifier.fillMaxSize(),
+        )
         BoardCanvas(
             state = state.board,
             onCellTap = onCellTap,

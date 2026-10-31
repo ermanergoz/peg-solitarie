@@ -49,7 +49,21 @@ internal fun descriptionChangesSent(): List<String> =
         .filter { it.contentChangeTypes and AccessibilityEvent.CONTENT_CHANGE_TYPE_CONTENT_DESCRIPTION != 0 }
         .mapNotNull { it.contentDescription?.toString()?.replace(ZERO_WIDTH_SPACE, "") }
 
+/**
+ * The virtual id of the node a service reads next after [node], from the traversal hint Compose
+ * writes while a service runs, or `null` when [node] has none: a node outside Compose's order.
+ */
+internal fun ComposeContentTestRule.traversalBeforeOf(node: SemanticsNode): Int? {
+    val provider = checkNotNull(composeHost().accessibilityNodeProvider) { "no node provider" }
+    val info = provider.createAccessibilityNodeInfo(node.id) ?: return null
+    provider.addExtraDataToAccessibilityNodeInfo(node.id, info, TRAVERSAL_BEFORE_KEY, null)
+    return if (info.extras.containsKey(TRAVERSAL_BEFORE_KEY)) info.extras.getInt(TRAVERSAL_BEFORE_KEY) else null
+}
+
 private fun accessibilityManager(): AccessibilityManager =
     RuntimeEnvironment.getApplication().getSystemService(AccessibilityManager::class.java)
 
 private const val ZERO_WIDTH_SPACE = "​"
+
+/** Compose\'s test-only extra for the traversal hint (ui 1.11.3, `ExtraDataTestTraversalBeforeVal`). */
+private const val TRAVERSAL_BEFORE_KEY = "android.view.accessibility.extra.EXTRA_DATA_TEST_TRAVERSALBEFORE_VAL"

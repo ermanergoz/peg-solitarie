@@ -1,6 +1,7 @@
 package com.app.pegsolitaire.ui.components
 
 import android.view.accessibility.AccessibilityManager
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Surface
@@ -15,12 +16,15 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
@@ -28,6 +32,9 @@ import androidx.compose.ui.unit.dp
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
+import com.app.pegsolitaire.testing.nodeInfoHandedOut
+import com.app.pegsolitaire.testing.turnOnATouchExplorationService
+import com.app.pegsolitaire.ui.components.BOARD_STOP_TEST_TAG
 import com.app.pegsolitaire.ui.game.BoardMetrics
 import com.app.pegsolitaire.ui.game.GameUiState
 import com.app.pegsolitaire.ui.theme.AppTheme
@@ -40,6 +47,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * The board's stops (D-TB as amended by D-TBa, `docs/ux-spec.md` §11.1): a [BoardCanvas] hosted on a
@@ -65,20 +73,23 @@ class BoardSemanticsTest {
     fun theBoardStopSpeaksTheBoardAndItsPegsLeftWithNoRole() {
         show(START)
 
-        val slab = slab().fetchSemanticsNode().config
-        assertThat(slab.getOrNull(SemanticsProperties.ContentDescription)).containsExactly("Board, 32 pegs left")
-        assertThat(slab.getOrNull(SemanticsProperties.Role)).isNull()
+        val stop = boardStop().fetchSemanticsNode().config
+        assertThat(stop.getOrNull(SemanticsProperties.ContentDescription)).containsExactly("Board, 32 pegs left")
+        assertThat(stop.getOrNull(SemanticsProperties.Role)).isNull()
+        // Loop 3 (defect ruling §3): the cells' group is the slab's own, and the stop is read first in it.
+        val slab = composeRule.onNodeWithTag(SLAB_TAG).fetchSemanticsNode().config
         assertThat(slab.getOrNull(SemanticsProperties.IsTraversalGroup)).isTrue()
+        assertThat(stop.getOrNull(SemanticsProperties.TraversalIndex)).isEqualTo(BoardTraversal.STOP_BEFORE_CELLS)
     }
 
     @Test
     fun theBoardStopsClickIsUnlabelledAndActivatingItReachesNoCell() {
         show(START)
 
-        val click = slab().fetchSemanticsNode().config.getOrNull(SemanticsActions.OnClick)
+        val click = boardStop().fetchSemanticsNode().config.getOrNull(SemanticsActions.OnClick)
         assertThat(click).isNotNull()
         assertThat(click?.label).isNull()
-        slab().performSemanticsAction(SemanticsActions.OnClick)
+        boardStop().performSemanticsAction(SemanticsActions.OnClick)
         composeRule.waitForIdle()
 
         assertThat(taps).isEmpty()
@@ -250,7 +261,7 @@ class BoardSemanticsTest {
         show(START, touchExploration = false)
 
         assertThat(cellNodes()).hasSize(Boards.English33.size)
-        for (node in cellNodes() + slab().fetchSemanticsNode()) {
+        for (node in cellNodes() + boardStop().fetchSemanticsNode()) {
             assertWithMessage("${node.config.getOrNull(BoardCellPositionKey) ?: "the board stop"}")
                 .that(
                     node.config.getOrNull(SemanticsActions.RequestFocus) == null &&
@@ -263,7 +274,7 @@ class BoardSemanticsTest {
     fun withTouchExplorationOnEveryCellAndTheBoardStopCanTakeInputFocus() {
         show(START, touchExploration = true)
 
-        for (node in cellNodes() + slab().fetchSemanticsNode()) {
+        for (node in cellNodes() + boardStop().fetchSemanticsNode()) {
             assertWithMessage("${node.config.getOrNull(BoardCellPositionKey) ?: "the board stop"}")
                 .that(
                     node.config.getOrNull(SemanticsActions.RequestFocus) != null &&
@@ -306,6 +317,22 @@ class BoardSemanticsTest {
 
     // ---- Helpers ---------------------------------------------------------------------------------
 
+    /**
+     * Defect ruling §3 (B-3): a service is handed the board stop as a screen-reader-focusable leaf;
+     * on the slab, which has the board as its children and merges nothing, Compose counts it as neither.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE) // Compose prunes with android.graphics.Region
+    fun aServiceIsHandedTheBoardStopAsAScreenReaderFocusableLeaf() {
+        turnOnATouchExplorationService()
+        show(START, touchExploration = true)
+        val stop = composeRule.onNodeWithContentDescription("Board, ", substring = true).fetchSemanticsNode()
+        val info = checkNotNull(composeRule.nodeInfoHandedOut(stop)) { "the board stop is not handed out" }
+
+        assertThat(info.isScreenReaderFocusable).isTrue()
+        assertThat(info.childCount).isEqualTo(0)
+    }
+
     private fun show(
         state: GameUiState,
         interactive: Boolean = true,
@@ -323,17 +350,17 @@ class BoardSemanticsTest {
             AppTheme {
                 val current = state()
                 val stopFocus = remember { FocusRequester() }
-                val stop =
+                // As the hosts compose it: the slab is the cells' group, the board stop its first child.
+                val group = if (interactive) Modifier.semantics { isTraversalGroup = true } else Modifier
+                Surface(modifier = Modifier.size(SLAB_SIZE.dp).testTag(SLAB_TAG).then(group)) {
                     if (interactive) {
-                        Modifier.boardStop(
+                        BoardStop(
                             label = boardStopLabel(current.board.pegCount),
                             focusRequester = stopFocus,
                             focusEnabled = rememberTouchExplorationEnabled(),
+                            modifier = Modifier.fillMaxSize(),
                         )
-                    } else {
-                        Modifier
                     }
-                Surface(modifier = Modifier.size(SLAB_SIZE.dp).testTag(SLAB_TAG).then(stop)) {
                     BoardCanvas(
                         state = current,
                         onCellTap = { taps += it },
@@ -352,7 +379,7 @@ class BoardSemanticsTest {
         shadowOf(manager).setTouchExplorationEnabled(enabled)
     }
 
-    private fun slab(): SemanticsNodeInteraction = composeRule.onNodeWithTag(SLAB_TAG)
+    private fun boardStop(): SemanticsNodeInteraction = composeRule.onNodeWithTag(BOARD_STOP_TEST_TAG)
 
     private fun cell(position: Position): SemanticsNodeInteraction =
         composeRule.onNode(SemanticsMatcher.expectValue(BoardCellPositionKey, position))

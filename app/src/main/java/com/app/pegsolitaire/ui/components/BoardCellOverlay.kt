@@ -15,12 +15,12 @@ import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
-import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.traversalIndex
@@ -105,10 +105,9 @@ internal fun BoardCellOverlay(
 }
 
 /**
- * The board stop (§11.1, stop 1), applied by each host to its board's slab so a touch on the slab's
- * rim finds the board: [label] ("Board, 32 pegs left"), no role, and a click action that does
- * nothing (D-TBa item 8), so a double-tap on it is consumed and never falls through to a cell. The
- * slab is the cells' traversal group, so every cell is read before anything that overlaps the slab.
+ * The board stop's semantics (§11.1, stop 1), carried by [BoardStop]: [label] ("Board, 32 pegs
+ * left"), no role, and a click action that does nothing (D-TBa item 8), so a double-tap on it is
+ * consumed and never falls through to a cell.
  *
  * @param focusRequester where a host moves focus after a step change or a banner's Undo or Restart.
  * @param focusEnabled whether the stop can take input focus — only while touch exploration is on.
@@ -122,10 +121,44 @@ internal fun Modifier.boardStop(
         .focusRequester(focusRequester)
         .focusable(enabled = focusEnabled)
         .semantics {
-            isTraversalGroup = true
             contentDescription = label
             onClick(label = null) { true }
         }
+
+/** Test tag of the board stop's own node ([BoardStop]). */
+internal const val BOARD_STOP_TEST_TAG = "board_stop"
+
+/** Where the board stop sits among the slab's stops. */
+internal object BoardTraversal {
+    /** Before the cells, whose indices run row-major from `0f`. */
+    const val STOP_BEFORE_CELLS = -1f
+}
+
+/**
+ * The board stop (§11.1, stop 1) as a leaf of its own, composed by each host as its slab's first
+ * child at the slab's size, so a touch on the slab's rim finds the board (the talkback-board defect
+ * ruling, §3). On the slab itself, whose children are the board, the stop merged nothing and was a
+ * leaf of nothing, so Compose left it out of its reading order; a leaf with words is in it, read
+ * first within the slab's group. Drawn beneath the board, it covers no cell.
+ *
+ * @param focusRequester where a host moves focus after a step change or a banner's Undo or Restart.
+ * @param focusEnabled whether the stop can take input focus — only while touch exploration is on.
+ */
+@Composable
+internal fun BoardStop(
+    label: String,
+    focusRequester: FocusRequester,
+    focusEnabled: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier =
+            modifier
+                .testTag(BOARD_STOP_TEST_TAG)
+                .boardStop(label = label, focusRequester = focusRequester, focusEnabled = focusEnabled)
+                .semantics { traversalIndex = BoardTraversal.STOP_BEFORE_CELLS },
+    )
+}
 
 /** The board stop's words for [pegsLeft]: "Board, 32 pegs left". */
 @Composable

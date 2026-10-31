@@ -47,9 +47,9 @@ import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.ui.components.AnnouncementRegion
 import com.app.pegsolitaire.ui.components.BoardCanvas
+import com.app.pegsolitaire.ui.components.BoardStop
 import com.app.pegsolitaire.ui.components.ClaySnackbarHost
 import com.app.pegsolitaire.ui.components.GameplayBoardAnnouncements
-import com.app.pegsolitaire.ui.components.boardStop
 import com.app.pegsolitaire.ui.components.boardStopLabel
 import com.app.pegsolitaire.ui.components.rememberBoardAnnouncer
 import com.app.pegsolitaire.ui.components.rememberTouchExplorationEnabled
@@ -260,13 +260,18 @@ fun GameScreen(
                                     .fillMaxWidth()
                                     .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO)
                                     .testTag(GAME_BOARD_SLAB_TEST_TAG)
-                                    // D-TB: the slab is the board stop, so a touch on its rim finds the board.
-                                    .boardStop(
-                                        label = boardStopLabel(state.board.pegCount),
-                                        focusRequester = boardStopFocus,
-                                        focusEnabled = touchExploration,
-                                    ).semantics { traversalIndex = GameTraversal.BOARD_BEFORE_BANNER },
+                                    // D-TB: the slab is the cells' group, its first child the board stop (ruling §3).
+                                    .semantics {
+                                        isTraversalGroup = true
+                                        traversalIndex = GameTraversal.BOARD_BEFORE_BANNER
+                                    },
                         ) {
+                            BoardStop(
+                                label = boardStopLabel(state.board.pegCount),
+                                focusRequester = boardStopFocus,
+                                focusEnabled = touchExploration,
+                                modifier = Modifier.fillMaxSize(),
+                            )
                             BoardCanvas(
                                 state = state,
                                 onCellTap = onCellTap,

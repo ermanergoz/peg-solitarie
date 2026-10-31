@@ -19,6 +19,7 @@ import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.testing.descriptionChangesSent
 import com.app.pegsolitaire.testing.nodeInfoHandedOut
+import com.app.pegsolitaire.testing.traversalBeforeOf
 import com.app.pegsolitaire.testing.turnOnATouchExplorationService
 import com.app.pegsolitaire.ui.components.ANNOUNCEMENT_ARM_GAP_MS
 import com.app.pegsolitaire.ui.components.ANNOUNCEMENT_REGION_TEST_TAG
@@ -232,6 +233,24 @@ class TutorialTalkBackTest {
         assertThat(channelText()).isEqualTo(STEP_ONE_LINE)
         letTheServiceHear()
         assertThat(descriptionChangesSent()).contains(STEP_ONE_LINE)
+    }
+
+    /**
+     * Defect ruling §3 (B-3): the board stop is a leaf with something to say, so Compose puts it in
+     * its reading order — after Skip, before the first cell — and TalkBack does not read it first.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE) // Compose prunes with android.graphics.Region
+    fun theBoardStopIsReadAfterSkipAndBeforeTheFirstCell() {
+        turnOnATouchExplorationService()
+        open(touchExploration = true)
+        val stop = boardStop().fetchSemanticsNode()
+        val skip = composeRule.onNodeWithText("Skip tutorial").fetchSemanticsNode()
+
+        assertThat(composeRule.traversalBeforeOf(skip)).isEqualTo(stop.id)
+        assertThat(
+            composeRule.traversalBeforeOf(stop),
+        ).isEqualTo(cell(Position(row = 0, col = 0)).fetchSemanticsNode().id)
     }
 
     // ---- Helpers ---------------------------------------------------------------------------------

@@ -21,6 +21,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -48,10 +49,12 @@ import com.app.pegsolitaire.domain.usecase.HintOutcome
 import com.app.pegsolitaire.platform.ads.NoOpAdGateway
 import com.app.pegsolitaire.testing.RecordingHapticFeedback
 import com.app.pegsolitaire.testing.liveRegionsHandedOut
+import com.app.pegsolitaire.testing.traversalBeforeOf
 import com.app.pegsolitaire.testing.turnOnATouchExplorationService
 import com.app.pegsolitaire.ui.components.ANNOUNCEMENT_ARM_GAP_MS
 import com.app.pegsolitaire.ui.components.ANNOUNCEMENT_REGION_TEST_TAG
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
+import com.app.pegsolitaire.ui.components.BOARD_STOP_TEST_TAG
 import com.app.pegsolitaire.ui.components.BoardCellPositionKey
 import com.app.pegsolitaire.ui.components.FOCUS_MOVE_GAP_MS
 import com.app.pegsolitaire.ui.theme.AppTheme
@@ -91,14 +94,14 @@ class GameScreenTalkBackTest {
     // ---- TB-1: the board stop on the real slab ---------------------------------------------
 
     @Test
-    fun theSlabIsTheBoardStopAndActivatingItChangesNothing() {
+    fun theBoardStopIsItsOwnStopAndActivatingItChangesNothing() {
         val game = startGame()
         val before = game.uiState.value
 
-        val slab = composeRule.onNodeWithTag(GAME_BOARD_SLAB_TEST_TAG)
-        assertThat(slab.fetchSemanticsNode().config.getOrNull(SemanticsProperties.ContentDescription))
+        val stop = composeRule.onNodeWithTag(BOARD_STOP_TEST_TAG)
+        assertThat(stop.fetchSemanticsNode().config.getOrNull(SemanticsProperties.ContentDescription))
             .containsExactly("Board, 32 pegs left")
-        slab.performSemanticsAction(SemanticsActions.OnClick)
+        stop.performSemanticsAction(SemanticsActions.OnClick)
         composeRule.waitForIdle()
 
         assertThat(game.uiState.value).isEqualTo(before)
@@ -266,7 +269,7 @@ class GameScreenTalkBackTest {
         bannerButton(R.string.undo_action).performClick()
         settleFocusMove()
 
-        composeRule.onNodeWithTag(GAME_BOARD_SLAB_TEST_TAG).assertIsFocused()
+        composeRule.onNodeWithTag(BOARD_STOP_TEST_TAG).assertIsFocused()
     }
 
     @Test
@@ -278,8 +281,8 @@ class GameScreenTalkBackTest {
         bannerButton(R.string.rescue_restart).performClick()
         composeRule.waitForIdle()
 
-        val slab = composeRule.onNodeWithTag(GAME_BOARD_SLAB_TEST_TAG).fetchSemanticsNode().config
-        assertThat(slab.getOrNull(SemanticsProperties.Focused)).isNull()
+        val stop = composeRule.onNodeWithTag(BOARD_STOP_TEST_TAG).fetchSemanticsNode().config
+        assertThat(stop.getOrNull(SemanticsProperties.Focused)).isNull()
     }
 
     // ---- Loop 1, F-2: a focus move is always a change, even onto the focused target -------------
@@ -290,13 +293,13 @@ class GameScreenTalkBackTest {
         strand()
         bannerButton(R.string.undo_action).performClick()
         settleFocusMove()
-        composeRule.onNodeWithTag(GAME_BOARD_SLAB_TEST_TAG).assertIsFocused()
+        composeRule.onNodeWithTag(BOARD_STOP_TEST_TAG).assertIsFocused()
         strand()
 
         composeRule.mainClock.autoAdvance = false
         bannerButton(R.string.undo_action).performClick()
 
-        assertLostThenRegained(focusTrace { composeRule.onNodeWithTag(GAME_BOARD_SLAB_TEST_TAG) })
+        assertLostThenRegained(focusTrace { composeRule.onNodeWithTag(BOARD_STOP_TEST_TAG) })
     }
 
     @Test
@@ -331,7 +334,7 @@ class GameScreenTalkBackTest {
         settleFocusMove()
 
         assertThat(game.uiState.value.pendingAdOffer).isNotNull()
-        assertThat(slabFocused()).isFalse()
+        assertThat(boardStopFocused()).isFalse()
     }
 
     @Test
@@ -346,7 +349,7 @@ class GameScreenTalkBackTest {
         settleFocusMove()
 
         assertThat(game.uiState.value.confirmRestart).isTrue()
-        assertThat(slabFocused()).isFalse()
+        assertThat(boardStopFocused()).isFalse()
     }
 
     // ---- Loop 2, L1-1 and L1-3: a banner Restart moves focus once the restart has happened -------
@@ -359,7 +362,7 @@ class GameScreenTalkBackTest {
         composeRule.mainClock.autoAdvance = false
         bannerButton(R.string.rescue_restart).performClick()
 
-        assertLostThenRegained(focusTrace { composeRule.onNodeWithTag(GAME_BOARD_SLAB_TEST_TAG) })
+        assertLostThenRegained(focusTrace { composeRule.onNodeWithTag(BOARD_STOP_TEST_TAG) })
     }
 
     @Test
@@ -368,13 +371,13 @@ class GameScreenTalkBackTest {
         bannerButton(R.string.rescue_restart).performClick()
         settleFocusMove()
         assertThat(game.uiState.value.confirmRestart).isTrue()
-        assertThat(slabFocused()).isFalse()
+        assertThat(boardStopFocused()).isFalse()
 
         composeRule.mainClock.autoAdvance = false
         composeRule.runOnIdle { game.onConfirmRestart() }
 
         assertThat(game.uiState.value.restartTick).isEqualTo(1)
-        assertLostThenRegained(focusTrace { composeRule.onNodeWithTag(GAME_BOARD_SLAB_TEST_TAG) })
+        assertLostThenRegained(focusTrace { composeRule.onNodeWithTag(BOARD_STOP_TEST_TAG) })
     }
 
     @Test
@@ -383,7 +386,7 @@ class GameScreenTalkBackTest {
         bannerButton(R.string.rescue_restart).performClick()
         composeRule.runOnIdle { game.onDismissRestart() }
         settleFocusMove()
-        assertThat(slabFocused()).isFalse()
+        assertThat(boardStopFocused()).isFalse()
 
         // The dock's Restart, confirmed: no longer the banner's, so it moves nothing (§11.1).
         composeRule.runOnIdle { game.onRestart() }
@@ -391,7 +394,7 @@ class GameScreenTalkBackTest {
         settleFocusMove()
 
         assertThat(game.uiState.value.restartTick).isEqualTo(1)
-        assertThat(slabFocused()).isFalse()
+        assertThat(boardStopFocused()).isFalse()
     }
 
     // ---- 26b's pin (D-TBa loop 5, F-38): the slab before the banner on every window -----------
@@ -444,6 +447,24 @@ class GameScreenTalkBackTest {
         assertThat(regions).hasSize(2)
         assertThat(board).hasSize(1)
         assertThat(board.single().childCount).isEqualTo(0)
+    }
+
+    /**
+     * Defect ruling §3 (B-3): on gameplay the board stop follows the strip's last stop in the order —
+     * the title, until home-chip-arrival's timer fix reaches this branch — and precedes row 1's first cell.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE) // Compose prunes with android.graphics.Region
+    fun theBoardStopFollowsTheTitleAndPrecedesTheFirstCell() {
+        turnOnATouchExplorationService()
+        startGame(touchExploration = true)
+        val stop = composeRule.onNodeWithContentDescription("Board, ", substring = true).fetchSemanticsNode()
+        val title = composeRule.onNodeWithText(string(R.string.app_name)).fetchSemanticsNode()
+
+        assertThat(composeRule.traversalBeforeOf(title)).isEqualTo(stop.id)
+        assertThat(
+            composeRule.traversalBeforeOf(stop),
+        ).isEqualTo(cellNode(Position(row = 0, col = 2)).fetchSemanticsNode().id)
     }
 
     // ---- Helpers ---------------------------------------------------------------------------------
@@ -611,10 +632,10 @@ class GameScreenTalkBackTest {
         composeRule.waitForIdle()
     }
 
-    private fun slabFocused(): Boolean =
+    private fun boardStopFocused(): Boolean =
         composeRule
             .onNodeWithTag(
-                GAME_BOARD_SLAB_TEST_TAG,
+                BOARD_STOP_TEST_TAG,
             ).fetchSemanticsNode()
             .config
             .getOrNull(SemanticsProperties.Focused) ==
