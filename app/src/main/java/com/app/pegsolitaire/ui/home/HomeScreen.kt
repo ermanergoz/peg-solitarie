@@ -27,6 +27,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -49,9 +50,12 @@ import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.ui.components.ClaySnackbarHost
 import com.app.pegsolitaire.ui.theme.AppTheme
+import com.app.pegsolitaire.ui.theme.FinishedContainer
 import com.app.pegsolitaire.ui.theme.clayEntrance
 import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
+import com.app.pegsolitaire.ui.theme.finishGlow
+import com.app.pegsolitaire.ui.theme.glossFinish
 import com.app.pegsolitaire.ui.theme.goldGradientFill
 import kotlinx.coroutines.flow.first
 
@@ -72,10 +76,10 @@ import kotlinx.coroutines.flow.first
  * ([onPlayChallenge]) at the player's persisted [HomeUiState.challengeCurrentLevel] (CHAL-05) —
  * and an empty footer, which is the smaller share of that slack. The `Scaffold` is transparent, so
  * the app-wide backdrop (`ui/backdrop/SceneBackdrop.kt`, docs/ux/candy-backdrop.md) shows behind
- * the bands; the bands enter with a stagger, and everything tappable squishes. Below the compact threshold of available height —
- * which reads the available **width** as well, since D-03k — the band spacing tightens, and on
- * the narrow class each progress pill drops its decorative glyph and puts its label beside its
- * value; no readout, control or band is ever dropped.
+ * the bands; the bands enter with a stagger, and everything tappable squishes. Below the compact
+ * threshold of available height — which reads the available **width** as well, since D-03k — the
+ * band spacing tightens, and on the narrow class each progress pill drops its decorative glyph and
+ * puts its label beside its value; no readout, control or band is ever dropped.
  *
  * **Home carries no tutorial chrome at all** (Phase 15, D-02). There is no information or
  * help icon anywhere on this screen, and no overlay: the tutorial is the `Tutorial` nav
@@ -479,15 +483,17 @@ private fun ResumeTile(
     // top-bar How-to-play and Settings icons, which D-09 requires to stay silent (the full
     // exclusion list is in the withClickSound KDoc). Resume does not route through ModeTile,
     // so it carries its own wrap.
+    val chip = MaterialTheme.colorScheme.tertiaryContainer
     Card(
         onClick = withClickSound(SoundCue.ButtonForward, onResume),
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent, contentColor = contentColorFor(chip)),
         modifier =
             Modifier
                 .clayEntrance(entranceOrder)
                 .claySquish()
-                .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.large)
+                .finishGlow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.large)
+                .glossFinish(FinishedContainer.ContinueChip, MaterialTheme.shapes.large, fill = chip)
                 .fillMaxWidth()
                 .heightIn(min = dimensionResource(R.dimen.resume_tile_min_height)),
     ) {

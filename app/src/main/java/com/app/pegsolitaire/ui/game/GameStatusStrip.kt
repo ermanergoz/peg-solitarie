@@ -17,9 +17,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
@@ -30,8 +32,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.ui.theme.AppTheme
-import com.app.pegsolitaire.ui.theme.clayShadow
+import com.app.pegsolitaire.ui.theme.FinishedContainer
 import com.app.pegsolitaire.ui.theme.claySquish
+import com.app.pegsolitaire.ui.theme.finishGlow
+import com.app.pegsolitaire.ui.theme.glossFinish
 import com.app.pegsolitaire.ui.theme.withTabularFigures
 
 /** Semantics tag the tests use to locate the status strip — never its copy (ux-spec §13). */
@@ -121,10 +125,15 @@ internal fun GameStatusStrip(
  */
 @Composable
 private fun BackChip(onNavigateBack: () -> Unit) {
+    val chip = MaterialTheme.colorScheme.surfaceContainerHigh
     Surface(
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.clayShadow(dimensionResource(R.dimen.elevation_pressed), CircleShape),
+        color = Color.Transparent,
+        contentColor = contentColorFor(chip),
+        modifier =
+            Modifier
+                .finishGlow(dimensionResource(R.dimen.elevation_pressed), CircleShape)
+                .glossFinish(FinishedContainer.BackChip, CircleShape, fill = chip),
     ) {
         IconButton(
             onClick = onNavigateBack,
@@ -199,13 +208,16 @@ private fun GameContextTitle(
 @Composable
 private fun TimerPill(elapsedSeconds: Int) {
     val description = stringResource(R.string.elapsed_time)
+    val pill = MaterialTheme.colorScheme.surfaceContainerHigh
     Surface(
         shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = Color.Transparent,
+        contentColor = contentColorFor(pill),
         modifier =
             Modifier
                 .heightIn(min = dimensionResource(R.dimen.game_timer_pill_height))
-                .clayShadow(dimensionResource(R.dimen.elevation_pressed), MaterialTheme.shapes.small)
+                .finishGlow(dimensionResource(R.dimen.elevation_pressed), MaterialTheme.shapes.small)
+                .glossFinish(FinishedContainer.TimerPill, MaterialTheme.shapes.small, fill = pill)
                 .testTag(GAME_TIMER_PILL_TEST_TAG),
     ) {
         Box(
