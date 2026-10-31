@@ -27,7 +27,11 @@ fun AppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    CompositionLocalProvider(LocalClayColors provides if (darkTheme) DarkClayColors else LightClayColors) {
+    CompositionLocalProvider(
+        LocalClayColors provides if (darkTheme) DarkClayColors else LightClayColors,
+        LocalBackdropColors provides if (darkTheme) DarkBackdropColors else LightBackdropColors,
+        LocalFinishColors provides if (darkTheme) DarkFinishColors else LightFinishColors,
+    ) {
         MaterialTheme(
             colorScheme = if (darkTheme) DarkColors else LightColors,
             typography = AppTypography,

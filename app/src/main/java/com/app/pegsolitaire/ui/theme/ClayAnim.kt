@@ -28,6 +28,13 @@ object ClayAnim {
     /** Fade+slide-up entrance duration for cards/tiles (micro-range 150–300ms). */
     const val ENTRANCE_MS = 240
 
+    /**
+     * The navigation cross-fade: the `NavHost`'s own default of navigation-compose 2.9.8 made
+     * explicit on its four transitions, and the backdrop's sky cross-fade (candy-backdrop.md B-13a,
+     * the tech-lead's D2). One constant, so the two cannot drift apart.
+     */
+    const val NAV_TRANSITION_MS = 700
+
     /** Per-item stagger for catalog cards + home tiles. */
     const val ENTRANCE_STAGGER_MS = 40
 

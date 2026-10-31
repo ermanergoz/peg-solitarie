@@ -1,17 +1,34 @@
 package com.app.pegsolitaire.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.app.pegsolitaire.ui.backdrop.BackdropFrames
+import com.app.pegsolitaire.ui.backdrop.InfiniteBackdropFrames
+import com.app.pegsolitaire.ui.backdrop.LocalBackdropClock
+import com.app.pegsolitaire.ui.backdrop.LocalBackdropSceneReady
+import com.app.pegsolitaire.ui.backdrop.backdropInputObserver
+import com.app.pegsolitaire.ui.backdrop.rememberBackdropClock
+import com.app.pegsolitaire.ui.backdrop.rememberBackdropSceneReady
 import com.app.pegsolitaire.ui.classic.ClassicCatalogRoute
 import com.app.pegsolitaire.ui.game.GameRoute
 import com.app.pegsolitaire.ui.home.HomeRoute
 import com.app.pegsolitaire.ui.onboarding.TutorialRoute
 import com.app.pegsolitaire.ui.results.ResultsRoute
 import com.app.pegsolitaire.ui.settings.SettingsRoute
+import com.app.pegsolitaire.ui.theme.ClayAnim
 
 /**
  * The Home actions, hoisted so [AppNavHost]'s content is test-injectable: the two mode
@@ -69,6 +86,20 @@ private typealias ResultsContent =
  * @param resultsContent the Results destination body (defaults to [ResultsRoute]).
  * @param settingsContent the Settings destination body (defaults to [SettingsRoute], D-14).
  * @param tutorialContent the Tutorial destination body (defaults to [TutorialRoute], D-01g).
+ * @param backdropFrames where the backdrop's clock waits for frames: the infinite-animation frame
+ *   clock in production; a test that needs the clock to run injects frames from the test clock.
+ *
+ * ## The backdrop host (docs/ux/candy-backdrop.md, the tech-lead's R1, A2, A5, A6)
+ *
+ * The root is the window-filling theme `Surface` the app lacked (F-32, D1): text that names no
+ * colour takes `onBackground` in both themes even though every screen's container is transparent.
+ * Inside it the scene-ready flag and the one backdrop clock are provided, the clock is driven, and
+ * one `Box` — whose observer tells the clock about every pointer-down and key-down without
+ * consuming any — holds the `NavHost` and, **composed after it**, the backdrop drawn behind it at
+ * `BACKDROP_Z_INDEX`. The order matters: the `NavHost` sets its graph, and restores a saved back
+ * stack, during its own composition, so the backdrop composed after it reads the right density on
+ * the first frame. The four transitions are the `NavHost`'s own default fade made explicit on
+ * `ClayAnim.NAV_TRANSITION_MS`, the one duration the backdrop's cross-fade also uses (D2).
  */
 @Composable
 fun AppNavHost(
@@ -109,8 +140,51 @@ fun AppNavHost(
     tutorialContent: @Composable (onExit: () -> Unit) -> Unit = { onExit ->
         TutorialRoute(onExit = onExit)
     },
+    backdropFrames: BackdropFrames = InfiniteBackdropFrames,
 ) {
-    NavHost(navController = navController, startDestination = Home) {
+    check(backdropFrames === backdropFrames)
+    val sceneReady = rememberBackdropSceneReady()
+    val clock = rememberBackdropClock()
+    Surface(
+        color = MaterialTheme.colorScheme.background,
+        contentColor = MaterialTheme.colorScheme.onBackground,
+        modifier = Modifier.fillMaxSize(),
+    ) {
+        CompositionLocalProvider(LocalBackdropSceneReady provides sceneReady, LocalBackdropClock provides clock) {
+            Box(modifier = Modifier.fillMaxSize().backdropInputObserver(clock)) {
+                AppNavGraph(
+                    navController = navController,
+                    homeContent = homeContent,
+                    catalogContent = catalogContent,
+                    gameplayContent = gameplayContent,
+                    resultsContent = resultsContent,
+                    settingsContent = settingsContent,
+                    tutorialContent = tutorialContent,
+                )
+            }
+        }
+    }
+}
+
+/** The six-screen graph itself, with the four explicit fades on [ClayAnim.NAV_TRANSITION_MS]. */
+@Composable
+private fun AppNavGraph(
+    navController: NavHostController,
+    homeContent: HomeContent,
+    catalogContent: @Composable (onSelect: (String) -> Unit, onNavigateBack: () -> Unit) -> Unit,
+    gameplayContent: @Composable (onFinished: (Results) -> Unit, onNavigateBack: () -> Unit) -> Unit,
+    resultsContent: ResultsContent,
+    settingsContent: @Composable (onBack: () -> Unit, onShowHowToPlay: () -> Unit) -> Unit,
+    tutorialContent: @Composable (onExit: () -> Unit) -> Unit,
+) {
+    NavHost(
+        navController = navController,
+        startDestination = Home,
+        enterTransition = { fadeIn(tween(ClayAnim.NAV_TRANSITION_MS)) },
+        exitTransition = { fadeOut(tween(ClayAnim.NAV_TRANSITION_MS)) },
+        popEnterTransition = { fadeIn(tween(ClayAnim.NAV_TRANSITION_MS)) },
+        popExitTransition = { fadeOut(tween(ClayAnim.NAV_TRANSITION_MS)) },
+    ) {
         composable<Home> {
             // homeContent slot: onPlayClassic, onPlayChallenge(level),
             // onResumeClassic(levelId), onResumeChallenge(level), onOpenSettings,

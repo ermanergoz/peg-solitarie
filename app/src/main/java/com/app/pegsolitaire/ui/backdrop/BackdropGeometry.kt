@@ -118,7 +118,8 @@ fun buildSceneModel(
     )
 }
 
-private fun skyStopsOf(density: BackdropDensity): List<SkyStop> =
+/** A density's sky stops: what the sky node draws, with no scene model built. */
+internal fun skyStopsOf(density: BackdropDensity): List<SkyStop> =
     when (density) {
         BackdropDensity.Landscape -> BackdropMetrics.LANDSCAPE_SKY_STOPS
         BackdropDensity.Quiet -> BackdropMetrics.QUIET_SKY_STOPS
