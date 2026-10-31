@@ -1,8 +1,10 @@
 package com.app.pegsolitaire.ui.onboarding
 
 import android.os.Looper
+import android.view.View
 import android.view.accessibility.AccessibilityManager
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
@@ -15,7 +17,11 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performSemanticsAction
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
-import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
+import com.app.pegsolitaire.testing.descriptionChangesSent
+import com.app.pegsolitaire.testing.nodeInfoHandedOut
+import com.app.pegsolitaire.testing.turnOnATouchExplorationService
+import com.app.pegsolitaire.ui.components.ANNOUNCEMENT_ARM_GAP_MS
+import com.app.pegsolitaire.ui.components.ANNOUNCEMENT_REGION_TEST_TAG
 import com.app.pegsolitaire.ui.components.BoardCellPositionKey
 import com.app.pegsolitaire.ui.components.FOCUS_MOVE_GAP_MS
 import com.app.pegsolitaire.ui.theme.AppTheme
@@ -27,6 +33,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import java.time.Duration
 
 /**
@@ -45,6 +52,8 @@ class TutorialTalkBackTest {
     @Test
     fun theFirstStepsLineIsSpokenOnOpeningAndFocusIsNotMoved() {
         open(touchExploration = true)
+        // Loop 3: the channel speaks once armed (defect ruling §1, mechanism 5).
+        composeRule.mainClock.advanceTimeBy(ANNOUNCEMENT_ARM_GAP_MS + FRAME_MS)
 
         assertChannel("Step 1 of 3. Tap a peg, then tap the empty hole two cells away.")
         assertThat(boardStop().fetchSemanticsNode().config[SemanticsProperties.Focused]).isFalse()
@@ -156,7 +165,95 @@ class TutorialTalkBackTest {
         composeRule.onNodeWithText("Got it").assertIsFocused()
     }
 
+    /**
+     * Defect ruling §1 (B-1): T2 fills the 3 × 3 grid, so its nine cells tile the canvas, and a node
+     * that later-drawn stops cover is pruned from what a service is handed. The channel must be a
+     * leaf no cell covers, so step 2's line reaches TalkBack.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE) // Compose prunes with android.graphics.Region
+    fun onStepTwoAServiceIsHandedTheChannelAsAPoliteLeafWithTheStepLine() {
+        turnOnATouchExplorationService()
+        val tutorial = open(touchExploration = true)
+        playTheOnlyMove(tutorial)
+        idlePastTheStepBeat()
+        composeRule.waitForIdle()
+
+        val channel = checkNotNull(composeRule.nodeInfoHandedOut(channelNode())) { "the channel is pruned on T2" }
+        assertThat(channel.liveRegion).isEqualTo(View.ACCESSIBILITY_LIVE_REGION_POLITE)
+        assertThat(channel.childCount).isEqualTo(0)
+        assertThat(channel.contentDescription?.toString()?.replace(ZERO_WIDTH_SPACE, "")).isEqualTo(STEP_TWO_LINE)
+    }
+
+    /** Defect ruling §1 (B-1): after the first step swap every line is still sent to the service. */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE) // Compose prunes with android.graphics.Region
+    fun everyLineAfterTheFirstStepSwapIsSentToTheService() {
+        turnOnATouchExplorationService()
+        val tutorial = open(touchExploration = true)
+        playTheOnlyMove(tutorial)
+        idlePastTheStepBeat()
+        composeRule.waitForIdle()
+        letTheServiceHear()
+        repeat(THREE) {
+            activate(T2_EMPTY_HOLE)
+            letTheServiceHear()
+        }
+        playTheOnlyMove(tutorial)
+        letTheServiceHear()
+        idlePastTheStepBeat()
+        composeRule.waitForIdle()
+        while (tutorial.uiState.value.board.board.pegCount > 1) playTheOnlyMove(tutorial)
+        idlePastTheStepBeat()
+        composeRule.waitForIdle()
+        letTheServiceHear()
+
+        assertThat(tutorial.uiState.value.completed).isTrue()
+        assertThat(descriptionChangesSent())
+            .containsAtLeast(STEP_TWO_LINE, NO_PEG_LINE, T2_COACH_LINE, T2_JUMP_LINE, DONE_LINE)
+            .inOrder()
+    }
+
+    /**
+     * Defect ruling §1, mechanism 5: a line set in a new screen's first frames can arrive with its
+     * node and never be sent, so the channel holds it until it is armed, then puts it on.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE) // Compose prunes with android.graphics.Region
+    fun theFirstStepsLineIsHeldUntilTheChannelIsArmedAndIsThenSent() {
+        turnOnATouchExplorationService()
+        composeRule.mainClock.autoAdvance = false
+        open(touchExploration = true)
+        composeRule.mainClock.advanceTimeByFrame()
+
+        assertThat(channelText()).isNull()
+
+        composeRule.mainClock.advanceTimeBy(ANNOUNCEMENT_ARM_GAP_MS + FRAME_MS)
+        assertThat(channelText()).isEqualTo(STEP_ONE_LINE)
+        letTheServiceHear()
+        assertThat(descriptionChangesSent()).contains(STEP_ONE_LINE)
+    }
+
     // ---- Helpers ---------------------------------------------------------------------------------
+
+    /** The board's channel: the tutorial's one live region, found by what it is, not by its tag. */
+    private fun channelNode(): SemanticsNode =
+        composeRule
+            .onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.LiveRegion), useUnmergedTree = true)
+            .fetchSemanticsNode()
+
+    private fun channelText(): String? =
+        channelNode()
+            .config
+            .getOrNull(SemanticsProperties.ContentDescription)
+            ?.single()
+            ?.replace(ZERO_WIDTH_SPACE, "")
+
+    /** Lets Compose's accessibility delegate send what changed: its batches are 100 ms apart. */
+    private fun letTheServiceHear() {
+        composeRule.mainClock.advanceTimeBy(SERVICE_BATCHES_MS)
+        composeRule.waitForIdle()
+    }
 
     private fun open(touchExploration: Boolean): TutorialViewModel {
         val manager = RuntimeEnvironment.getApplication().getSystemService(AccessibilityManager::class.java)
@@ -193,8 +290,8 @@ class TutorialTalkBackTest {
     }
 
     private fun assertChannel(line: String) {
-        val canvas = composeRule.onNodeWithTag(BOARD_CANVAS_TEST_TAG).fetchSemanticsNode().config
-        assertThat(canvas.getOrNull(SemanticsProperties.ContentDescription)?.single()?.replace(ZERO_WIDTH_SPACE, ""))
+        val channel = composeRule.onNodeWithTag(ANNOUNCEMENT_REGION_TEST_TAG).fetchSemanticsNode().config
+        assertThat(channel.getOrNull(SemanticsProperties.ContentDescription)?.single()?.replace(ZERO_WIDTH_SPACE, ""))
             .isEqualTo(line)
     }
 
@@ -210,6 +307,15 @@ class TutorialTalkBackTest {
         /** Frames enough for a step's install, its focus move's clear, gap and request. */
         const val TRACE_FRAMES = 30
         const val BOARD_STOP_PREFIX = "Board, "
+
+        /** Two of the accessibility delegate's 100 ms batches and a frame. */
+        const val SERVICE_BATCHES_MS = 216L
+        const val STEP_ONE_LINE = "Step 1 of 3. Tap a peg, then tap the empty hole two cells away."
+        const val STEP_TWO_LINE = "Step 2 of 3. Jumps work up, down, left and right — never diagonally."
+        const val NO_PEG_LINE = "No peg here."
+        const val T2_COACH_LINE = "Hint: row 1, column 2, jump down to row 3, column 2."
+        const val T2_JUMP_LINE = "Row 1, column 2 to row 3, column 2. Removed row 2, column 2. 1 peg left."
+        const val DONE_LINE = "That's the whole game. Go clear a board."
         const val ZERO_WIDTH_SPACE = "​"
     }
 }

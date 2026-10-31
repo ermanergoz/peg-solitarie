@@ -43,8 +43,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.ui.components.AnnouncementRegion
 import com.app.pegsolitaire.ui.components.BoardAnnouncer
-import com.app.pegsolitaire.ui.components.boardAnnouncement
 import com.app.pegsolitaire.ui.components.rememberBoardAnnouncer
 import com.app.pegsolitaire.ui.components.rememberBoardSpeechFormat
 import com.app.pegsolitaire.ui.game.GameTimerFormat
@@ -133,8 +133,7 @@ fun ResultsScreen(
                         .fillMaxSize()
                         .padding(contentPadding)
                         .verticalScroll(rememberScrollState())
-                        .padding(dimensionResource(R.dimen.spacing_md))
-                        .boardAnnouncement(announcer.current),
+                        .padding(dimensionResource(R.dimen.spacing_md)),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
@@ -171,6 +170,8 @@ fun ResultsScreen(
         if (state.adScrimVisible) {
             AdQuiescenceScrim()
         }
+        // D-TB: the screen's spoken channel, drawn last, above everything (defect ruling §4).
+        AnnouncementRegion(announcer)
     }
 }
 

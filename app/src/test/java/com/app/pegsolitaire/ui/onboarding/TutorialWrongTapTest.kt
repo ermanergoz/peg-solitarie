@@ -20,6 +20,7 @@ import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.tutorial.TutorialBoards
 import com.app.pegsolitaire.testing.RecordingHapticFeedback
 import com.app.pegsolitaire.testing.renderedWindow
+import com.app.pegsolitaire.ui.components.ANNOUNCEMENT_REGION_TEST_TAG
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.components.BoardGeometry
 import com.app.pegsolitaire.ui.game.BoardMetrics
@@ -140,7 +141,7 @@ class TutorialWrongTapTest {
     /** The board's channel as a speech engine reads it: the repeat mark is unspoken. */
     private fun channel(): String? =
         composeRule
-            .onNodeWithTag(BOARD_CANVAS_TEST_TAG)
+            .onNodeWithTag(ANNOUNCEMENT_REGION_TEST_TAG)
             .fetchSemanticsNode()
             .config
             .getOrNull(SemanticsProperties.ContentDescription)

@@ -36,6 +36,7 @@ import com.app.pegsolitaire.domain.usecase.GetHintUseCase
 import com.app.pegsolitaire.platform.ads.NoOpAdGateway
 import com.app.pegsolitaire.testing.RecordingHapticFeedback
 import com.app.pegsolitaire.testing.renderedWindow
+import com.app.pegsolitaire.ui.components.ANNOUNCEMENT_REGION_TEST_TAG
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.components.BoardGeometry
 import com.app.pegsolitaire.ui.theme.AppTheme
@@ -178,7 +179,7 @@ class GameScreenWrongTapTest {
         composeRule.waitForIdle()
 
         // Nothing left to read on a later swipe: no description, no text, no action.
-        val board = composeRule.onNodeWithTag(BOARD_CANVAS_TEST_TAG).fetchSemanticsNode().config
+        val board = composeRule.onNodeWithTag(ANNOUNCEMENT_REGION_TEST_TAG).fetchSemanticsNode().config
         assertThat(board.getOrNull(SemanticsProperties.ContentDescription)).isNull()
         assertThat(board.getOrNull(SemanticsProperties.Text)).isNull()
         assertThat(board.getOrNull(SemanticsProperties.LiveRegion)).isEqualTo(LiveRegionMode.Polite)
@@ -300,7 +301,7 @@ class GameScreenWrongTapTest {
     /** The board's live-region text right now, or `null` when it carries none. */
     private fun boardAnnouncement(): String? =
         composeRule
-            .onNodeWithTag(BOARD_CANVAS_TEST_TAG)
+            .onNodeWithTag(ANNOUNCEMENT_REGION_TEST_TAG)
             .fetchSemanticsNode()
             .config
             .getOrNull(SemanticsProperties.ContentDescription)
@@ -308,7 +309,7 @@ class GameScreenWrongTapTest {
 
     /** The board is a polite live region whose text is [sentence], as a screen reader reads it. */
     private fun assertAnnounced(sentence: Int) {
-        val board = composeRule.onNodeWithTag(BOARD_CANVAS_TEST_TAG).fetchSemanticsNode().config
+        val board = composeRule.onNodeWithTag(ANNOUNCEMENT_REGION_TEST_TAG).fetchSemanticsNode().config
         val expected = RuntimeEnvironment.getApplication().getString(sentence)
         assertThat(board.getOrNull(SemanticsProperties.LiveRegion)).isEqualTo(LiveRegionMode.Polite)
         assertThat(boardAnnouncement()?.let(::spoken)).isEqualTo(expected)

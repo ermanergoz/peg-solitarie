@@ -45,6 +45,7 @@ import com.app.pegsolitaire.audio.SoundCue
 import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Position
+import com.app.pegsolitaire.ui.components.AnnouncementRegion
 import com.app.pegsolitaire.ui.components.BoardCanvas
 import com.app.pegsolitaire.ui.components.ClaySnackbarHost
 import com.app.pegsolitaire.ui.components.GameplayBoardAnnouncements
@@ -158,7 +159,8 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  * - the [Scaffold];
  * - the status strip, [GameStatusStrip];
  * - the snackbar host, [ClaySnackbarHost];
- * - the board panel, [BoardCanvas], with the wrong-tap answer, its stops and its spoken channel (D-06, D-TB);
+ * - the spoken channel, [AnnouncementRegion], last and above everything (D-TB);
+ * - the board panel, [BoardCanvas], with the wrong-tap answer and its stops (D-06, D-TB);
  * - the rescue banner, [NoWinBanner];
  * - the Undecided notice, [UndecidedNoticeSlot];
  * - the action dock, [GameActionDock];
@@ -208,120 +210,122 @@ fun GameScreen(
         hostState = snackbarHostState,
     )
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        snackbarHost = { ClaySnackbarHost(snackbarHostState) },
-    ) { contentPadding ->
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(contentPadding),
-        ) {
-            GameStatusStrip(
-                elapsedSeconds = state.elapsedSeconds,
-                challengeLevel = challengeLevel,
-                onNavigateBack = onNavigateBack,
-            )
-            Box(
+    Box(modifier = modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            snackbarHost = { ClaySnackbarHost(snackbarHostState) },
+        ) { contentPadding ->
+            Column(
                 modifier =
                     Modifier
-                        // The board takes whatever the strip and the dock leave, so both stay
-                        // on screen at every viewport height — the dock in particular, which
-                        // is the whole point of moving the actions into the thumb zone.
-                        .weight(BOARD_WEIGHT)
-                        .fillMaxWidth()
-                        .padding(dimensionResource(R.dimen.board_screen_margin))
-                        .testTag(GAME_STATE_TEST_TAG)
-                        .semantics {
-                            pegCountValue = state.board.pegCount
-                            gameStatusValue = state.status.name
-                            legalTargetCountValue = state.legalTargets.size
-                            // D-TBa loop 5 (F-38): one group, so the slab's index orders it first.
-                            isTraversalGroup = true
-                        },
-                contentAlignment = Alignment.Center,
+                        .fillMaxSize()
+                        .padding(contentPadding),
             ) {
-                if (state.isLoading) {
-                    LoadingIndicator()
-                } else {
-                    Surface(
-                        shape = MaterialTheme.shapes.extraLarge,
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        modifier =
-                            Modifier
-                                .clayShadow(
-                                    dimensionResource(R.dimen.elevation_card),
-                                    MaterialTheme.shapes.extraLarge,
-                                ).widthIn(max = dimensionResource(R.dimen.board_max_size))
-                                .fillMaxWidth()
-                                .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO)
-                                .testTag(GAME_BOARD_SLAB_TEST_TAG)
-                                // D-TB: the slab is the board stop, so a touch on its rim finds the board.
-                                .boardStop(
-                                    label = boardStopLabel(state.board.pegCount),
-                                    focusRequester = boardStopFocus,
-                                    focusEnabled = touchExploration,
-                                ).semantics { traversalIndex = GameTraversal.BOARD_BEFORE_BANNER },
-                    ) {
-                        BoardCanvas(
-                            state = state,
-                            onCellTap = onCellTap,
-                            onAnimationFinished = onAnimationFinished,
-                            modifier = Modifier.padding(dimensionResource(R.dimen.spacing_md)),
-                            // D-06: the gameplay board corrects a wrong tap on the tapped cell.
-                            wrongTapCorrection = true,
-                            // D-06c, D-TBa: the board's canvas itself is the polite live region; no new node.
-                            announcement = announcer.current,
+                GameStatusStrip(
+                    elapsedSeconds = state.elapsedSeconds,
+                    challengeLevel = challengeLevel,
+                    onNavigateBack = onNavigateBack,
+                )
+                Box(
+                    modifier =
+                        Modifier
+                            // The board takes whatever the strip and the dock leave, so both stay
+                            // on screen at every viewport height — the dock in particular, which
+                            // is the whole point of moving the actions into the thumb zone.
+                            .weight(BOARD_WEIGHT)
+                            .fillMaxWidth()
+                            .padding(dimensionResource(R.dimen.board_screen_margin))
+                            .testTag(GAME_STATE_TEST_TAG)
+                            .semantics {
+                                pegCountValue = state.board.pegCount
+                                gameStatusValue = state.status.name
+                                legalTargetCountValue = state.legalTargets.size
+                                // D-TBa loop 5 (F-38): one group, so the slab's index orders it first.
+                                isTraversalGroup = true
+                            },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (state.isLoading) {
+                        LoadingIndicator()
+                    } else {
+                        Surface(
+                            shape = MaterialTheme.shapes.extraLarge,
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            modifier =
+                                Modifier
+                                    .clayShadow(
+                                        dimensionResource(R.dimen.elevation_card),
+                                        MaterialTheme.shapes.extraLarge,
+                                    ).widthIn(max = dimensionResource(R.dimen.board_max_size))
+                                    .fillMaxWidth()
+                                    .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO)
+                                    .testTag(GAME_BOARD_SLAB_TEST_TAG)
+                                    // D-TB: the slab is the board stop, so a touch on its rim finds the board.
+                                    .boardStop(
+                                        label = boardStopLabel(state.board.pegCount),
+                                        focusRequester = boardStopFocus,
+                                        focusEnabled = touchExploration,
+                                    ).semantics { traversalIndex = GameTraversal.BOARD_BEFORE_BANNER },
+                        ) {
+                            BoardCanvas(
+                                state = state,
+                                onCellTap = onCellTap,
+                                onAnimationFinished = onAnimationFinished,
+                                modifier = Modifier.padding(dimensionResource(R.dimen.spacing_md)),
+                                // D-06: the gameplay board corrects a wrong tap on the tapped cell.
+                                wrongTapCorrection = true,
+                            )
+                        }
+                    }
+                    // The rescue banner overlays the still-interactive board (non-blocking, D-08):
+                    // it sits in the same Box so taps still reach the board beneath it. Only a
+                    // no-win/stuck position raises it; a Won game routes to Results instead.
+                    //
+                    // Its slot is shared with the Undecided notice (D-04f), one occupant at a time:
+                    // a proof outranks an Undecided, so the notice's slot is composed only while no
+                    // banner is up (criterion 23h). What the notice does once raised is its own.
+                    if (state.showRescueBanner) {
+                        NoWinBanner(
+                            message =
+                                stringResource(
+                                    if (state.noWinningMove) R.string.nowin_message else R.string.stuck_message,
+                                ),
+                            // §11.1: once the action has happened, focus moves to the board stop.
+                            onUndo = {
+                                onUndo()
+                                bannerFocusMove(BannerAction.Undo)
+                            },
+                            onRestart = {
+                                onRestart()
+                                bannerFocusMove(BannerAction.Restart)
+                            },
+                            onHome = onHome,
+                            modifier =
+                                Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .fillMaxWidth(),
+                        )
+                    } else {
+                        UndecidedNoticeSlot(
+                            raised = state.hintUndecided,
+                            modifier = Modifier.align(Alignment.BottomCenter),
                         )
                     }
                 }
-                // The rescue banner overlays the still-interactive board (non-blocking, D-08):
-                // it sits in the same Box so taps still reach the board beneath it. Only a
-                // no-win/stuck position raises it; a Won game routes to Results instead.
-                //
-                // Its slot is shared with the Undecided notice (D-04f), one occupant at a time:
-                // a proof outranks an Undecided, so the notice's slot is composed only while no
-                // banner is up (criterion 23h). What the notice does once raised is its own.
-                if (state.showRescueBanner) {
-                    NoWinBanner(
-                        message =
-                            stringResource(
-                                if (state.noWinningMove) R.string.nowin_message else R.string.stuck_message,
-                            ),
-                        // §11.1: once the action has happened, focus moves to the board stop.
-                        onUndo = {
-                            onUndo()
-                            bannerFocusMove(BannerAction.Undo)
-                        },
-                        onRestart = {
-                            onRestart()
-                            bannerFocusMove(BannerAction.Restart)
-                        },
-                        onHome = onHome,
-                        modifier =
-                            Modifier
-                                .align(Alignment.BottomCenter)
-                                .fillMaxWidth(),
-                    )
-                } else {
-                    UndecidedNoticeSlot(
-                        raised = state.hintUndecided,
-                        modifier = Modifier.align(Alignment.BottomCenter),
-                    )
-                }
+                GameActionDock(
+                    showHints = state.showHints,
+                    canUndo = state.canUndo,
+                    solverThinking = state.solverThinking,
+                    onUndo = onUndo,
+                    onHint = onHint,
+                    onToggleHints = onToggleHints,
+                    onRestart = onRestart,
+                    modifier = Modifier.padding(dimensionResource(R.dimen.spacing_md)),
+                )
             }
-            GameActionDock(
-                showHints = state.showHints,
-                canUndo = state.canUndo,
-                solverThinking = state.solverThinking,
-                onUndo = onUndo,
-                onHint = onHint,
-                onToggleHints = onToggleHints,
-                onRestart = onRestart,
-                modifier = Modifier.padding(dimensionResource(R.dimen.spacing_md)),
-            )
         }
+        // D-TB: the screen's spoken channel, drawn last, above everything (defect ruling §1).
+        AnnouncementRegion(announcer)
     }
 
     if (state.confirmRestart) {

@@ -47,6 +47,10 @@ import com.app.pegsolitaire.domain.usecase.GetHintUseCase
 import com.app.pegsolitaire.domain.usecase.HintOutcome
 import com.app.pegsolitaire.platform.ads.NoOpAdGateway
 import com.app.pegsolitaire.testing.RecordingHapticFeedback
+import com.app.pegsolitaire.testing.liveRegionsHandedOut
+import com.app.pegsolitaire.testing.turnOnATouchExplorationService
+import com.app.pegsolitaire.ui.components.ANNOUNCEMENT_ARM_GAP_MS
+import com.app.pegsolitaire.ui.components.ANNOUNCEMENT_REGION_TEST_TAG
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.components.BoardCellPositionKey
 import com.app.pegsolitaire.ui.components.FOCUS_MOVE_GAP_MS
@@ -64,6 +68,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import kotlin.time.TestTimeSource
 
 /**
@@ -183,6 +188,8 @@ class GameScreenTalkBackTest {
     @Test
     fun aRevealedHintIsSpokenAsItsLine() {
         val game = startGame(hint = fixedHint(HintOutcome.Found(DOWN_INTO_THE_CENTRE)))
+        // Loop 3: the channel speaks once armed (defect ruling §1, mechanism 5).
+        composeRule.mainClock.advanceTimeBy(ANNOUNCEMENT_ARM_GAP_MS)
 
         composeRule.runOnIdle { game.onHintRequested() }
         composeRule.waitForIdle()
@@ -408,6 +415,37 @@ class GameScreenTalkBackTest {
         assertThat(banner.boundsInRoot.left).isLessThan(slab.boundsInRoot.left)
     }
 
+    /** Defect ruling §1: a service is handed the board's channel, the window's one live region, a leaf. */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE) // Compose prunes with android.graphics.Region
+    fun aServiceIsHandedTheBoardsChannelAsTheWindowsOnlyLiveRegionAndALeaf() {
+        turnOnATouchExplorationService()
+        showState(GameUiState.initial(Boards.english33Initial))
+
+        val regions = composeRule.liveRegionsHandedOut()
+        assertThat(regions).hasSize(1)
+        assertThat(regions.single().childCount).isEqualTo(0)
+    }
+
+    /**
+     * Defect ruling §9 (B-9): with the banner up over a board limited by height, the cells, the
+     * banner and the dock cover what shows of the canvas; the channel is still handed out, a leaf,
+     * beside the banner's own region (23k).
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE) // Compose prunes with android.graphics.Region
+    @Config(qualifiers = HEIGHT_LIMITED_QUALIFIERS)
+    fun withTheBannerUpOverAHeightLimitedBoardAServiceIsStillHandedTheBoardsChannel() {
+        turnOnATouchExplorationService()
+        showState(GameUiState.initial(Boards.english33Initial).copy(stuck = true))
+
+        val regions = composeRule.liveRegionsHandedOut()
+        val board = regions.filterNot { it.text?.toString() == string(R.string.stuck_message) }
+        assertThat(regions).hasSize(2)
+        assertThat(board).hasSize(1)
+        assertThat(board.single().childCount).isEqualTo(0)
+    }
+
     // ---- Helpers ---------------------------------------------------------------------------------
 
     private fun startGame(
@@ -533,10 +571,10 @@ class GameScreenTalkBackTest {
             hasClickAction() and hasText(string(label)) and hasAnyAncestor(hasTestTag(NOWIN_BANNER_TEST_TAG)),
         )
 
-    /** The canvas's channel as a speech engine reads it: the repeat mark is unspoken. */
+    /** The board's channel as a speech engine reads it: the repeat mark is unspoken. */
     private fun channel(): String? =
         composeRule
-            .onNodeWithTag(BOARD_CANVAS_TEST_TAG)
+            .onNodeWithTag(ANNOUNCEMENT_REGION_TEST_TAG)
             .fetchSemanticsNode()
             .config
             .getOrNull(SemanticsProperties.ContentDescription)
@@ -544,8 +582,8 @@ class GameScreenTalkBackTest {
             ?.replace(ZERO_WIDTH_SPACE, "")
 
     private fun assertChannel(line: String) {
-        val canvas = composeRule.onNodeWithTag(BOARD_CANVAS_TEST_TAG).fetchSemanticsNode().config
-        assertThat(canvas.getOrNull(SemanticsProperties.LiveRegion)).isNotNull()
+        val region = composeRule.onNodeWithTag(ANNOUNCEMENT_REGION_TEST_TAG).fetchSemanticsNode().config
+        assertThat(region.getOrNull(SemanticsProperties.LiveRegion)).isNotNull()
         assertThat(channel()).isEqualTo(line)
     }
 

@@ -9,16 +9,23 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.testing.descriptionChangesSent
+import com.app.pegsolitaire.testing.liveRegionsHandedOut
+import com.app.pegsolitaire.testing.turnOnATouchExplorationService
+import com.app.pegsolitaire.ui.components.ANNOUNCEMENT_ARM_GAP_MS
 import com.app.pegsolitaire.ui.theme.AppTheme
+import com.app.pegsolitaire.ui.theme.ClayAnim
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * TB-8 (D-TB as amended by D-TBa item 7, `docs/ux-spec.md` §11.1, "Results"): the star row is one
@@ -46,6 +53,8 @@ class ResultsScreenTalkBackTest {
         // On a paused clock: the star pops would otherwise run the clock past the line's hold.
         composeRule.mainClock.autoAdvance = false
         show(SOLVED_TWO_STARS.copy(playCelebration = true))
+        // Loop 3: the channel speaks once armed (defect ruling §1, mechanism 5).
+        composeRule.mainClock.advanceTimeBy(ANNOUNCEMENT_ARM_GAP_MS)
         repeat(SETTLE_FRAMES) { composeRule.mainClock.advanceTimeByFrame() }
 
         val regions =
@@ -88,6 +97,8 @@ class ResultsScreenTalkBackTest {
                 }
             }
         }
+        // Loop 3: the channel speaks once armed (defect ruling §1, mechanism 5).
+        composeRule.mainClock.advanceTimeBy(ANNOUNCEMENT_ARM_GAP_MS)
         repeat(SETTLE_FRAMES) { composeRule.mainClock.advanceTimeByFrame() }
         assertThat(spokenLines()).containsExactly("Solved! — 2 of 3 stars, 2 pegs left.")
         composeRule.mainClock.advanceTimeBy(PAST_THE_HOLD_MS)
@@ -99,10 +110,59 @@ class ResultsScreenTalkBackTest {
         assertThat(starRows()).isEmpty()
         shown = true
         Snapshot.sendApplyNotifications()
+        composeRule.mainClock.advanceTimeBy(ANNOUNCEMENT_ARM_GAP_MS)
         repeat(SETTLE_FRAMES) { composeRule.mainClock.advanceTimeByFrame() }
 
         assertThat(starRows()).hasSize(1)
         assertThat(spokenLines()).isEmpty()
+    }
+
+    /** Defect ruling §4 (a), B-4: a service is handed one live region on Results, and it is a leaf. */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE) // Compose prunes with android.graphics.Region
+    fun aServiceIsHandedOneLiveRegionOnResultsAndItIsALeaf() {
+        turnOnATouchExplorationService()
+        show(SOLVED_TWO_STARS)
+
+        val regions = composeRule.liveRegionsHandedOut()
+        assertThat(regions).hasSize(1)
+        assertThat(regions.single().childCount).isEqualTo(0)
+    }
+
+    /**
+     * Defect ruling §4 (b), B-4: the summary waits for the channel's arm, then is sent once — not
+     * again as the count-up lays the screen out, and not when its hold ends.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE) // Compose prunes with android.graphics.Region
+    fun theSummaryWaitsForTheArmAndIsSentOnceThroughTheCountUpAndTheHoldsEnd() {
+        turnOnATouchExplorationService()
+        composeRule.mainClock.autoAdvance = false
+        show(SOLVED_TWO_STARS.copy(playCelebration = true))
+        composeRule.mainClock.advanceTimeByFrame()
+        assertThat(spokenLines()).isEmpty()
+
+        composeRule.mainClock.advanceTimeBy(ANNOUNCEMENT_ARM_GAP_MS + FRAME_MS)
+        assertThat(spokenLines()).containsExactly(SUMMARY)
+        composeRule.mainClock.advanceTimeBy(ClayAnim.SCORE_COUNT_UP_MS + PAST_THE_HOLD_MS)
+
+        assertThat(descriptionChangesSent().filter { it == SUMMARY }).hasSize(1)
+    }
+
+    /** Defect ruling §4 (c): a Results restored from its saved state sends the service no second summary. */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE) // Compose prunes with android.graphics.Region
+    fun aRestoredResultsSendsTheServiceNoSecondSummary() {
+        turnOnATouchExplorationService()
+        val restorer = StateRestorationTester(composeRule)
+        restorer.setContent { AppTheme { ResultsOver(SOLVED_TWO_STARS.copy(playCelebration = true)) } }
+        composeRule.mainClock.advanceTimeBy(ANNOUNCEMENT_ARM_GAP_MS + PAST_THE_HOLD_MS)
+        val sentBefore = descriptionChangesSent().size
+
+        restorer.emulateSavedInstanceStateRestore()
+        composeRule.mainClock.advanceTimeBy(ANNOUNCEMENT_ARM_GAP_MS + PAST_THE_HOLD_MS)
+
+        assertThat(descriptionChangesSent().drop(sentBefore)).doesNotContain(SUMMARY)
     }
 
     private fun starRows() =
@@ -141,6 +201,8 @@ class ResultsScreenTalkBackTest {
 
         /** Frames for the latch's effect to run and the line to reach the semantics tree. */
         const val SETTLE_FRAMES = 3
+        const val FRAME_MS = 16L
+        const val SUMMARY = "Solved! — 2 of 3 stars, 2 pegs left."
 
         val SOLVED_TWO_STARS =
             ResultsUiState(

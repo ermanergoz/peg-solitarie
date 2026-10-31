@@ -52,6 +52,7 @@ import com.app.pegsolitaire.audio.JumpSoundEffect
 import com.app.pegsolitaire.audio.SoundCue
 import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.domain.model.Position
+import com.app.pegsolitaire.ui.components.AnnouncementRegion
 import com.app.pegsolitaire.ui.components.BoardCanvas
 import com.app.pegsolitaire.ui.components.boardStop
 import com.app.pegsolitaire.ui.components.boardStopLabel
@@ -170,13 +171,14 @@ fun TutorialScreen(
                     state = state,
                     onCellTap = onCellTap,
                     onAnimationFinished = onAnimationFinished,
-                    announcement = announcer.current,
                     boardStopFocus = boardStopFocus,
                     touchExploration = touchExploration,
                 )
                 TutorialCaption(captionRes = state.captionRes)
                 TutorialFooter(completed = state.completed, onDone = onDone, gotItFocus = gotItFocus)
             }
+            // D-TB: the screen's spoken channel, drawn last, above everything (defect ruling §1).
+            AnnouncementRegion(announcer)
         }
     }
 }
@@ -256,7 +258,6 @@ private fun TutorialBoardSlab(
     state: TutorialUiState,
     onCellTap: (Position) -> Unit,
     onAnimationFinished: () -> Unit,
-    announcement: String?,
     boardStopFocus: FocusRequester,
     touchExploration: Boolean,
 ) {
@@ -293,7 +294,6 @@ private fun TutorialBoardSlab(
                     .aspectRatio(SQUARE)
                     .padding(dimensionResource(R.dimen.spacing_md)),
             interactive = true,
-            announcement = announcement,
         )
     }
 }
