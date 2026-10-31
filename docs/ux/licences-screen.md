@@ -2,9 +2,9 @@
 role: ux-designer
 task: licences-screen (its own branch, `feature/licences-screen`, since 2026-10-18 — direction-B A9; first drafted on 2026-10-17 as candy-backdrop's companion item)
 slug: licences-screen
-status: draft — second edition, loop 2 (checked PASS at loop 2; the loop-2 fold is non-blocking and precedes the qa-engineer's session); address ruling after QA's F-1 (LS-14; §10 rows 38–42); device re-run rulings after QA's re-run, O-2, F-4 and F-2 (LS-15, LS-16, LS-AC19; §10 rows 43–45)
+status: draft — second edition, loop 2 (checked PASS at loop 2; the loop-2 fold is non-blocking and precedes the qa-engineer's session); address ruling after QA's F-1 (LS-14; §10 rows 38–42); device re-run rulings after QA's re-run, O-2, F-4 and F-2 (LS-15, LS-16, LS-AC19; §10 rows 43–45); LS-15 ruled for a scrolling list after QA's F-4 re-check and the tech-lead's R1 (§10 row 46)
 created: 2026-10-17
-revised: 2026-10-24 (second edition; loops 1 and 2 the same day; the address ruling the same day, after the qa-engineer's F-1; the device re-run rulings the same day, after the qa-engineer's re-run)
+revised: 2026-11-01 (LS-15 ruling, after `qa-engineer-recheck.md` and `tech-lead-f4-ruling.md` R1); 2026-10-24 (second edition; loops 1 and 2 the same day; the address ruling the same day, after the qa-engineer's F-1; the device re-run rulings the same day, after the qa-engineer's re-run)
 stack: android-compose-game
 design-system: docs/ui/DESIGN-SYSTEM.md
 sources: THIRD_PARTY.md (on this branch via `develop` c5f2c54; its 3.0.0 rows); docs/tech-design.md §3.1, §3.6, §13, §13.1 (LN-1–LN-8), §14.1 row LN, §16 #20, §17; docs/ux-spec.md §4.5, §11, §11.1 (D-TB, D-TBa; on this branch since `develop` 4069b53); .planning/questions/FOUNDER.md Q-023 (on this branch since 4069b53); .planning/reports/candy-backdrop/tech-lead-architecture.md R4, R5, D10, D11; .planning/reports/candy-backdrop/tech-lead-direction-b.md A9, E6, E7, open issue 7; .planning/reports/phase-14/research-analyst-release-docs-licences.md (rows A–J, the Apache table); .planning/reports/phase-14/research-analyst-font-licences.md (verdict 2, open issues 1–3); .planning/reports/licences-screen/research-analyst-mpl.md (the MPL-2.0 verdict, the exact PSL version, two full hashes); .planning/reports/licences-screen/ux-designer-check.md (F-01–F-18, folded in loop 1); docs/audio/CREDITS.md (feature/audio-review, the WAV set); docs/ui/DESIGN-SYSTEM.md (the no-backdrop contrast pairs); .planning/reports/licences-screen/tech-lead-brief.md (the build brief: §0–§8 and Amendment 1, A1.1–A1.9, which answer §9 item 7(f)–(k)); .planning/reports/licences-screen/ux-designer-check-loop2.md (PASS; F-19–F-30, folded in loop 2); ui/settings/SettingsScreen.kt; .planning/reports/licences-screen/qa-engineer.md (F-1; the §8.2 item 1 note on `play-services-ads-identifier`) and its screenshots and TalkBack transcript under `.planning/qa/licences-screen/` (the address ruling); .planning/reports/licences-screen/android-game-dev.md (deviations 5 and 6; "Loop 2 — QA F-1", `2d433b8`); app/src/main/assets/licenses/Jakarta-Inject-NOTICE.md; res/values/strings.xml (the licences block); .planning/reports/licences-screen/qa-engineer-rerun.md (O-1, O-2, F-2, F-4) and its TalkBack transcripts and screenshots under `.planning/qa/licences-screen/rerun/` (the device re-run rulings)
@@ -413,6 +413,70 @@ is spelt the same in both, so the Google screens need no second spelling.
   text body already holds all its headings, and Jakarta passed in both directions. If the
   tech-lead's ruling finds the experience cannot be delivered in 3.0.0, the question comes back to
   this role through the producer; the build does not downgrade it on its own.
+  *(LS-15 ruling, 2026-11-01: **restated for a scrolling list.** The text above is kept as the
+  record. It came back to this role as foreseen, through the tech-lead's R1
+  (`tech-lead-f4-ruling.md`) after QA's re-check (`qa-engineer-recheck.md`, F-4).)*
+  **What changed in the facts.** The text above rested on two premises, and both were wrong:
+  - **"The headings are in the tree, so TalkBack can reach them."** Compose gives TalkBack only the
+    nodes that are on screen, verified in the pinned Compose source (R1, Layer 1). TalkBack reaches
+    a heading that is off screen only through its own page scroll, and TalkBack chooses where focus
+    lands after that scroll. The top-bar title is a heading that is always on screen, so going up,
+    whenever no section header above is on screen, it is the nearest heading TalkBack can see and
+    TalkBack does not scroll back. No change to this screen's composables
+    controls either behaviour.
+  - **"Settings meets the property as built."** Settings passes only because it nearly fits on one
+    screen. A Settings that scrolls is expected to behave the same way. So the "two adjacent
+    screens must not answer the same gesture differently" reason now points the other way: the
+    restated rule below is what both screens give.
+  - Reason 3, "the cost is small", also falls. The only design that meets the text above is a
+    redesign, option E below.
+  **The contract for 3.0.0.** With TalkBack's reading control on Headings, on the Licenses screen:
+  1. **Going down, every heading is reached in order.** From the back button, swipes down reach
+     the title, Fonts, Sounds, Open-source software and Google libraries in that order, none
+     skipped and none repeated. The same holds from an entry in the middle of the list: every
+     heading below it is reached in order.
+  2. **One kind of stop between two headings is accepted going down:** a stop that TalkBack makes
+     after its own page scroll, when no heading is on screen. That stop must be a **whole card,
+     title first**: pass line 2, or pass line 3 for an inert card. A card read without its title,
+     or as a bare "Button", still fails. At most one such stop follows each TalkBack page scroll;
+     a non-heading stop with no scroll before it is a finding, because TalkBack takes the next
+     heading once it is on screen. (At 100 % one scroll, and so one such stop, was seen between
+     Open-source software and Google libraries; at 200 % there may be more.)
+  3. **Going up, and from the title with the list scrolled, the behaviour is the platform's.**
+     QA records it and does not grade it. Today that is "Google libraries" then the title going
+     up, and the title only from the title. Any card TalkBack stops on in these runs is still
+     graded by pass line 2.
+  4. **The list composes all its items** (the non-lazy `Column`, R1 option A). This is kept. It is
+     necessary for point 1, and the Compose tests of LS-AC06 guard it. It is no longer claimed to
+     be sufficient.
+  5. **Past the last heading and before the first** stays the platform's, as above.
+  **Why this is acceptable for the player.**
+  - The screen always opens at the top, and its reading order starts there. Learning the page's
+    shape is a pass downward, and that pass now names all five headings in order.
+  - A player in the middle of the list who swipes up hears the title. That under-reports the
+    sections, which is reason 1's harm. By R1's analysis it is what TalkBack does on any Compose
+    list that scrolls under a pinned heading title, so it is the platform's behaviour rather than
+    this screen's, and the way out is the platform's too: swipe down, or scroll to the top.
+  - Linear swipes and TalkBack's scroll actions still reach every entry. Nothing is unreachable.
+  **Options this role rejects for 3.0.0** (R1's table; the rejected B and C are the tech-lead's and
+  stand):
+  - **E, a pinned section index** (four visible controls that scroll the list, so all five headings
+    stay on screen). It is the only design that meets the text above. It is rejected because it
+    serves a gesture by adding chrome for everyone:
+    - a second navigation row on a 23-item screen, and four more stops before the list;
+    - a pattern that no other screen in the product has, and that Android does not use for a
+      list of this length;
+    - and a new design-and-build loop in the week 3.0.0 is meant to ship.
+    It is not an art-direction choice between equals: the restated contract is the platform's
+    own, and E costs every player screen space to change TalkBack's search. No founder question is
+    drafted. E is recorded here as the shape to reach for if this screen ever grows past about
+    eight sections.
+  - **D, the title scrolls with the list.** It changes the top bar that every screen of the
+    product shares, and going up TalkBack would still land through its own scroll, so it is
+    unproven. Rejected.
+  The four-screen scope is unchanged. The other three screens have one heading each, or hold all
+  their headings (Jakarta passed both ways). A later screen with headings inside a scrolling list
+  inherits this restated contract, not the text above.
 - **LS-16: Every text reads in its own direction; a list's lines hang from the mirrored start
   edge, a text screen's body from its own left edge** *(device re-run ruling, 2026-10-24, on the
   qa-engineer's F-2. It confirms the intent of §4's "Direction" and of §5.1's "the texts stay left
@@ -929,6 +993,11 @@ Three properties hold on every screen:
   table marks is reached in both directions, from any stop and at any scroll position, with
   nothing else between two headings (LS-15, pass line 4 as restated). On the Licenses screen that
   holds for the four section headers whether or not they are on screen.)*
+  *(LS-15 ruling, 2026-11-01: restated for a scrolling list. Going down, every heading is reached
+  in order, and a stop TalkBack makes after its own page scroll is accepted only if it is a whole
+  card, title first. Going up, and from the title with the list scrolled, the behaviour is the
+  platform's: recorded, not graded. Being in the semantics tree is necessary, not sufficient.
+  LS-15, pass line 4.)*
 - **Lists are collections.** The intent is that TalkBack announces position on the notices list
   ("row 12 of 108"), rows counted alone. *(Loop 1, F-04: "as Compose gives it" is **superseded** — a
   `LazyColumn` publishes list-level info and not, by itself, per-item info, and the intro would have
@@ -1032,6 +1101,11 @@ dark, at 100 % and 200 %).** PASS when all of these hold; any one failing is FAI
    a bare "Button", fails this line, or line 3 for an inert card, whichever navigation lands on
    it. It is not accepted as platform behaviour. It was seen only after heading navigation's
    scroll fallback, and LS-15's fix is expected to remove it.)*
+   *(LS-15 ruling, 2026-11-01: "LS-15's fix is expected to remove it" is superseded. The cause is
+   the card's own speech, built from whichever of its texts are on screen, and the tech-lead's R2
+   fixes it: each card carries its whole label as its own description, so it is read whole, title
+   first, at any scroll position. The line itself stands, and it is graded on every card stop of
+   every run, heading runs included.)*
 3. every inert entry is announced as **one** stop with its lines, and without "button" or
    "double-tap to activate" *(loop 1, F-02)*;
 4. heading navigation stops on exactly the headings the table marks;
@@ -1046,6 +1120,22 @@ dark, at 100 % and 200 %).** PASS when all of these hold; any one failing is FAI
    whatever the list is made of. A list that composes only the rows on screen, and so hides the
    headers off screen, fails it. Run at 100 % and at 200 %, where more headers are off screen. One
    theme suffices, because colour does not change the tree.)*
+   *(LS-15 ruling, 2026-11-01: **restated again**, and the restatement above is kept as the
+   record. TalkBack reaches an off-screen heading only through its own page scroll, so "from any
+   stop and at any scroll position" and "both directions" are not the app's to deliver. The line
+   now reads, with TalkBack's reading control on Headings:
+   (a) **down from the back button**, swipes reach the title, then every section header in the
+   table's order, none skipped and none repeated; **down from an entry in the middle of the
+   list**, every heading below it is reached in order;
+   (b) between two headings going down, the only accepted non-heading stop is the stop TalkBack
+   makes right after one of its own page scrolls, at most one per scroll, and it must be a whole
+   card, title first (pass line 2 or 3). A non-heading stop with no TalkBack scroll before it, a
+   card read without its title, or a paragraph or the intro as such a stop, fails;
+   (c) **up from any stop, and down from the title with the list scrolled**, are recorded and not
+   graded. Pass line 2 still grades every card stop in them;
+   (d) past the last heading and before the first stay the platform's.
+   The list still composes every item, and a lazy list still fails (LS-AC06's Compose half).
+   On the text screens, which hold all their headings, the line is unchanged.)*
 5. on a text screen, continuous reading proceeds to "End of text" (on Cronet's notice, at least
    twenty paragraphs are read continuously and TalkBack's scroll reaches the end);
 6. the loading description, when it appears, and the error text are each spoken once when they
@@ -1201,7 +1291,7 @@ clock, no network. Each test is watched failing once before it is trusted (R5).)
 | **LS-AC02** (amended) | Four round trips keep their place: Settings → Licenses → Fredoka → back → back; Licenses → Jakarta Dependency Injection (a two-text entry) → back; Licenses → Open-source notices → a row → back → back; and system back equals the back button on every screen. The Licenses list's and the notices list's first visible index survive their round trips | Compose (`AppNavHost` with `NavFlowTest`'s stand-ins, a fixture index), QA | as stated, on gesture and three-button navigation |
 | **LS-AC03** (amended) | `LicenseCatalogTest`: the catalogue equals §3.2's table **in its order**, written into the test as the expected list from §3.2.1, and contains none of §3.2's never-listed items; every `BundledLicenseText.assetPath` names a file under `src/main/assets/licenses/` that exists and is non-empty; every committed file in that directory is opened by at least one entry (the first edition's "exactly once" is superseded: `Apache-2.0.txt` is opened by seven entries through one enum constant), and **the directory holds files only and no subdirectory** *(loop 2, F-27 and the brief's §0.2: the second edition's "`google/` excluded" excluded nothing — the generated tree lives under `build/` and is never in `src/main/assets/licenses/`; a committed subdirectory there would be LN-3's violation, and the files-only assertion fails on it whatever its name; the generated tree is LS-AC12's)*. The release-manager diffs §3.2.1 against THIRD_PARTY.md at checklist items 1.4 and 6 | JVM; release-manager | equal, in order; none present; every file referenced; no subdirectory |
 | **LS-AC05** (amended; loop 1 F-03: nine, not eight) | Every curated text (the nine files of §7: `Fredoka-OFL.txt`, `Nunito-OFL.txt`, `Apache-2.0.txt`, `Jakarta-Inject-NOTICE.md`, `Protobuf-BSD-3-Clause.txt`, `Chromium-BSD-3-Clause.txt`, `CheckerQual-MIT.txt`, `PublicSuffixList-NOTICE.txt`, `MPL-2.0.txt`) opens and is complete: `reflowLicenseText`'s whitespace-normalised join equals the whitespace-normalised asset for each (JVM); each is read through the real `AssetManager` (Robo); on the License text screen the body is one `Column` with one node per paragraph, a selection can span two paragraphs *(loop 2, the check's open issue 3 and the brief's §4.1: if Robolectric cannot deliver the long-press-and-drag gesture, the Compose clause is the **structural** half — both paragraphs sit under one `SelectionContainer` and no paragraph has one of its own — stated so in the developer's report; §8.2 item 8 is the behavioural half, on the device. The test is narrowed, never dropped)*, a two-text entry shows "Notice" then its licence heading in that order, and "End of text" is the last node (Compose); re-flows at 1.0 and 2.0 font scale with no truncation (QA) | JVM (re-flow) + Robo (the reads through `AssetManager`) + Compose + QA | as stated |
-| **LS-AC06** (amended; loop 1 F-02) | §5.1's TalkBack contract holds on all four screens: the reading order of its table; headings on exactly the nodes it marks (and not on the "Found in" line, F-13); `Role.Button` and the click label on every tappable entry and row; **each of the four inert entries is exactly one node in the merged tree, carrying its title, credit, licence and address text, with no `OnClick` action and no `Role`** (`onAllNodesWithText(<title>)` in the merged tree finds one node; its config has neither `SemanticsActions.OnClick` nor `SemanticsProperties.Role`); the chevron carries no description; the loading description and the error text are polite live regions (Compose, with `SemanticsProperties.LiveRegion` asserted); the seven-point pass line (QA, TalkBack on, light and dark, 100 % and 200 %). *(Address ruling, 2026-10-24, QA's F-1: the merged-tree assertions passed while the device read each address as a stop of its own, so the criterion gains an **unmerged-tree** oracle. No node that carries one of the five addresses is focusable or has a focus action of its own, and the address text is reachable only through its card's merged node: `LicencesTalkBackContractTest.anAddressIsPartOfItsCardsStopAndNeverAStopOfItsOwn`, red before `2d433b8` ("kenney-interface-sounds: … RequestFocus"), green after. The merged-tree assertions stand beside it.)* *(Device re-run ruling, 2026-10-24, F-4 and LS-15: pass line 4 is restated. Heading navigation reaches every heading in both directions, from any stop and at any scroll position, with nothing else between two headings. The Compose half is owed to the tech-lead's re-run ruling, which names the test. This role's intent is a test that is red on the build QA re-ran (`2d433b8`) and green on the fix. It asserts the property heading navigation depends on, header by header and never as a count (F-19's rule): with the Licenses list scrolled to its end, and again to its middle, the title and each of the four section headers is found by its text as a heading in the semantics tree.)* | Compose + QA | as stated |
+| **LS-AC06** (amended; loop 1 F-02) | §5.1's TalkBack contract holds on all four screens: the reading order of its table; headings on exactly the nodes it marks (and not on the "Found in" line, F-13); `Role.Button` and the click label on every tappable entry and row; **each of the four inert entries is exactly one node in the merged tree, carrying its title, credit, licence and address text, with no `OnClick` action and no `Role`** (`onAllNodesWithText(<title>)` in the merged tree finds one node; its config has neither `SemanticsActions.OnClick` nor `SemanticsProperties.Role`); the chevron carries no description; the loading description and the error text are polite live regions (Compose, with `SemanticsProperties.LiveRegion` asserted); the seven-point pass line (QA, TalkBack on, light and dark, 100 % and 200 %). *(Address ruling, 2026-10-24, QA's F-1: the merged-tree assertions passed while the device read each address as a stop of its own, so the criterion gains an **unmerged-tree** oracle. No node that carries one of the five addresses is focusable or has a focus action of its own, and the address text is reachable only through its card's merged node: `LicencesTalkBackContractTest.anAddressIsPartOfItsCardsStopAndNeverAStopOfItsOwn`, red before `2d433b8` ("kenney-interface-sounds: … RequestFocus"), green after. The merged-tree assertions stand beside it.)* *(Device re-run ruling, 2026-10-24, F-4 and LS-15: pass line 4 is restated. Heading navigation reaches every heading in both directions, from any stop and at any scroll position, with nothing else between two headings. The Compose half is owed to the tech-lead's re-run ruling, which names the test. This role's intent is a test that is red on the build QA re-ran (`2d433b8`) and green on the fix. It asserts the property heading navigation depends on, header by header and never as a count (F-19's rule): with the Licenses list scrolled to its end, and again to its middle, the title and each of the four section headers is found by its text as a heading in the semantics tree.)* *(LS-15 ruling, 2026-11-01: that Compose half stays and is **necessary, not sufficient**. It guards against a list that composes only what is on screen, and it cannot see what TalkBack is given (`tech-lead-f4-ruling.md`, R1). The device half is pass line 4 as restated again on 2026-11-01: down in order, one whole-card stop at most after each TalkBack page scroll, and the up and title-mid-list runs recorded, not graded. R2's label tests join it for pass line 2: each card's merged node carries its whole label, title first, as its own description, and its texts are hidden from accessibility; the tests are the tech-lead's to name.)* | Compose + QA | as stated |
 | **LS-AC08** (amended, E7) | All four routes — `Licenses`, `LicenseText`, `GoogleNotices`, `GoogleNoticeText` — are Sparse (BD-06's `BackdropDensityTest`) and draw transparent containers (BD-14's `TransparentContainersTest`). **Owned by whichever of `feature/licences-screen` and `feature/candy-backdrop` lands on `develop` second**; the first to land asserts nothing about the backdrop | Compose, on the second branch | as stated |
 | **LS-AC10** (amended) | No new dependency (`git diff develop...HEAD -- gradle/libs.versions.toml build-logic/build.gradle.kts` adds no coordinate, LN-7 item 6) and no new permission; colours and dimensions from tokens only, no new `dimens.xml` token (§5.1); light and dark `@Preview`s for every new public composable; **one Compose UI test per screen's main flow, four screens**: Licenses (open from Settings, read the four sections, open Fredoka, open the notices entry); License text (load, `performScrollTo()` on the "End of text" node of the `Column` body, a two-text entry, the error state through a fake `LicenseTextSource`); Google notices (load from a fixture index, open a row, the error state from a malformed fixture); Google notice text (load a fixture text, scroll **the list** to "End of text" with `performScrollToNode` as LS-AC15 — loop 1 F-01 — then the unknown-key error state); warning-free under C7 once check-gates is on `develop` | Auditor, Check | as stated |
 | **LS-AC11** (amended; loop 1 F-03) | `unzip -l <aab> \| grep 'base/assets/licenses/'` lists the **nine** curated texts of §7 by name — `Fredoka-OFL.txt`, `Nunito-OFL.txt`, `Apache-2.0.txt`, `Jakarta-Inject-NOTICE.md`, `Protobuf-BSD-3-Clause.txt`, `Chromium-BSD-3-Clause.txt`, `CheckerQual-MIT.txt`, `PublicSuffixList-NOTICE.txt`, `MPL-2.0.txt` — plus `google/index.tsv` and every stem file the index names (LN-7 item 4) | release-manager (checklist 1.4 and 4.6a) | all present |
@@ -1236,6 +1326,19 @@ where the generated assets are the release variant's. Each item is a screenshot 
    - from an entry in the middle of the list, both ways.
    Each run records every stop. Any card read without its title, or as a bare "Button", is
    recorded against pass line 2 (O-1).
+   *(LS-15 ruling, 2026-11-01: the runs stay; their grading changes. Every run records every
+   stop and every TalkBack scroll.)*
+   | Run | Graded |
+   |---|---|
+   | Down from the back button to the last heading | **Pass line 4 (a), (b):** the five headings in order, none skipped or repeated; a non-heading stop only right after a TalkBack page scroll, at most one per scroll, a whole card, title first |
+   | From an entry in the middle of the list, down | **Pass line 4 (a), (b)**, for the headings below that entry |
+   | From an entry in the middle of the list, up; up from the last entry; from the title with the list scrolled, down | **Recorded, not graded** for heading order (pass line 4 (c)). Pass line 2 grades every card stop |
+   | Every run, every card stop | **Pass line 2 or 3:** read once, whole, title first; "Button" and the hint on a tappable card only |
+   - At 100 % on the release-candidate check. At 200 %, the down run is graded the same way when
+     it is run; for the 3.0.0 re-check of F-4 it is not owed (the founder's reduced scope), and
+     the producer decides whether to run it.
+   - A run that fails is reported once, with its transcript. A recorded run is never repeated in
+     the hope of another result.
 3. **Round trips** (LS-AC02): both back routes, gesture and three-button; the lists return to where
    they were.
 4. **Airplane mode** (LS-AC07): every screen and every text opens with no network; no outbound
@@ -1437,6 +1540,11 @@ where the generated assets are the release variant's. Each item is a screenshot 
       `content_max_width`, centred", and that stands.
     If the ruling finds that LS-15 cannot be delivered in 3.0.0, it comes back to this role through
     the producer. Nothing in the build waits on this role.
+    *(2026-11-01 — **closed for LS-15.** It came back: `tech-lead-f4-ruling.md` R1 found LS-15 as
+    written not deliverable by any change to this screen. This role restated it for a scrolling
+    list (option F), rejected the section index (E) and the scrolling title (D), and kept the
+    non-lazy list (A); LS-15, pass lines 2 and 4, LS-AC06, §8.2 item 2. The merge condition R5
+    item 1 is met by this ruling. LS-16's half was closed by QA's re-check, F-2 PASS.)*
 19. **RTL across the rest of the app: for the producer to schedule; it does not block this
     branch** (LS-16, Scope). QA notes that the cause, a text that names no direction taking the
     layout's, applies app-wide. Settings shares this screen's section header and row pattern. So an
@@ -1502,3 +1610,4 @@ is the index of them.
 | 43 | 2026-10-24, device re-run | The notices list's position by ear: every row's position equals its index line number and the last is N; the total after "of" is TalkBack's wording ("over a hundred" for 108 in TalkBack 16) and is not graded; the exact total stays with the Compose half's `rowCount` N; "says 'N of N'" superseded | qa-engineer re-run **O-2** (`tb-notices-linear-light100.txt`) | §4A; §5.1 "Lists are collections"; LS-AC13; §8.2 item 10 |
 | 44 | 2026-10-24, device re-run | **LS-15**: heading navigation reaches every heading in both directions, from any stop and at any scroll position, with nothing else between two headings; required on the Licenses list for 3.0.0, with no lazy-list limit accepted; what TalkBack does past the last heading or before the first is the platform's; a card read without its title or as a bare "Button" fails pass line 2 (O-1); pass line 4 restated | qa-engineer re-run **F-4** and **O-1** (`tb-licenses-headings-*.txt`, `tb-jakarta-headings-*.txt`, `t02-licenses-sliver.png`) | LS-15; §5.1 "Headings are headings"; pass lines 2 and 4; LS-AC06; §8.2 item 2; §9 item 18 |
 | 45 | 2026-10-24, device re-run | **LS-16**: every text reads in its own direction, so its characters stay in written order in any locale; a list's lines hang from the mirrored start edge, a text screen's body from its left edge; the chrome mirrors; "the default content-based text direction" superseded; new **LS-AC19**; the rest of the app routed | qa-engineer re-run **F-2** (`s23`–`s26`) | LS-16; §4; §4B; §5; §5.1 RTL; LS-AC19; §8.2 item 6; §9 items 18 and 19 |
+| 46 | 2026-11-01, LS-15 ruling | **LS-15 restated for a scrolling list** (option F): going down, every heading is reached in order, from the top and from a mid-list entry; a non-heading stop between two headings is accepted only right after a TalkBack page scroll, at most one per scroll, and only as a whole card, title first; going up, and from the title with the list scrolled, recorded and not graded; the non-lazy list kept, and its Compose tests named necessary, not sufficient; "from any stop and at any scroll position … both directions" superseded. Pass line 2's "LS-15's fix is expected to remove it" superseded by the tech-lead's R2 (each card speaks its whole label). The pinned section index (E) and the scrolling title (D) rejected for 3.0.0; no founder question | `qa-engineer-recheck.md` **F-4** (`tb-f4-*.txt`); `tech-lead-f4-ruling.md` **R1** (Compose exposes only on-screen nodes; TalkBack's page scroll) and **R2** | LS-15; §5.1 "Headings are headings"; pass lines 2 and 4; LS-AC06; §8.2 item 2; §9 item 18 |
