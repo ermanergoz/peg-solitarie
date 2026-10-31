@@ -33,6 +33,9 @@ private val BODY_EDGE = LicencesTextEdge.TextStart
 /** The bundled text body's test tag: the one `SelectionContainer` every paragraph sits in. */
 internal const val LICENSE_TEXT_BODY_TAG = "license_text_body"
 
+/** The capped content column's test tag, in every body state (the tech-lead's re-run ruling, F-3). */
+internal const val LICENSE_TEXT_COLUMN_TAG = "license_text_column"
+
 /**
  * The License text screen (spec §4, LS-08, LS-10; tech design §3.6): one entry's bundled text or
  * texts, re-flowed.
@@ -88,10 +91,11 @@ private fun TextColumn(content: @Composable () -> Unit) {
     Column(
         modifier =
             Modifier
-                .fillMaxWidth()
                 .widthIn(max = dimensionResource(R.dimen.content_max_width))
+                .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
-                .padding(dimensionResource(R.dimen.spacing_md)),
+                .padding(dimensionResource(R.dimen.spacing_md))
+                .testTag(LICENSE_TEXT_COLUMN_TAG),
         verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_sm)),
         horizontalAlignment = BODY_EDGE.horizontalAlignment,
     ) {

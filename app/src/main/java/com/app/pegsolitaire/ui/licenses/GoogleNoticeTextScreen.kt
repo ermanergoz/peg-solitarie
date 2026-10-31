@@ -74,8 +74,8 @@ fun GoogleNoticeTextScreen(
                     state = rememberLazyListState(),
                     modifier =
                         Modifier
-                            .fillMaxWidth()
                             .widthIn(max = dimensionResource(R.dimen.content_max_width))
+                            .fillMaxWidth()
                             .testTag(GOOGLE_NOTICE_TEXT_LIST_TAG),
                     contentPadding = PaddingValues(dimensionResource(R.dimen.spacing_md)),
                     verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_sm)),
