@@ -15,6 +15,7 @@ import androidx.compose.ui.layout.MeasurePolicy
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.SemanticsPropertyKey
@@ -27,6 +28,7 @@ import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.unit.Constraints
 import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Position
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -79,9 +81,15 @@ internal fun BoardCellOverlay(
     val measurePolicy = remember(spec) { cellsMeasurePolicy(spec) }
     val focusManager = LocalFocusManager.current
     val scope = rememberCoroutineScope()
+    val window = LocalWindowInfo.current
+    val latestMove = remember { LatestFocusMove() }
     val onJumpTaken: (Position) -> Unit = { to ->
         val target = requesters[to]
-        if (touchExploration && target != null) scope.launch { focusManager.moveInputFocusTo(target) }
+        if (touchExploration &&
+            target != null
+        ) {
+            latestMove.replace(scope.launch { focusManager.moveInputFocusTo(target, window) })
+        }
     }
     Layout(
         content = {
@@ -245,3 +253,13 @@ private fun cellsMeasurePolicy(spec: BoardSpec): MeasurePolicy =
 
 /** A cell's centre is half its side from its top-left corner. */
 private const val HALVES = 2f
+
+/** The jump action's latest focus move: a newer one cancels one still waiting for window focus (§8). */
+private class LatestFocusMove {
+    private var job: Job? = null
+
+    fun replace(next: Job) {
+        job?.cancel()
+        job = next
+    }
+}

@@ -3,11 +3,15 @@ package com.app.pegsolitaire.ui.game
 import android.view.accessibility.AccessibilityManager
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.WindowInfo
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -467,12 +471,36 @@ class GameScreenTalkBackTest {
         ).isEqualTo(cellNode(Position(row = 0, col = 2)).fetchSemanticsNode().id)
     }
 
+    /**
+     * Defect ruling §8 (B-8): confirming the banner's Restart closes the dialog in the same update,
+     * while the dialog's window still holds window focus, and TalkBack ignores a move made then. The
+     * move waits until the app's window has window focus again.
+     */
+    @Test
+    fun aBannerRestartConfirmedInItsDialogMovesFocusOnlyOnceTheWindowHasFocusAgain() {
+        val windowFocused = mutableStateOf(true)
+        val game = noWinningMoveBannerUp(windowFocused)
+        bannerButton(R.string.rescue_restart).performClick()
+        settleFocusMove()
+        assertThat(game.uiState.value.confirmRestart).isTrue()
+
+        composeRule.runOnIdle { windowFocused.value = false }
+        composeRule.runOnIdle { game.onConfirmRestart() }
+        settleFocusMove()
+        assertThat(boardStopFocused()).isFalse()
+
+        composeRule.runOnIdle { windowFocused.value = true }
+        settleFocusMove()
+        assertThat(boardStopFocused()).isTrue()
+    }
+
     // ---- Helpers ---------------------------------------------------------------------------------
 
     private fun startGame(
         board: Board = Boards.english33Initial,
         hint: GetHintUseCase = GetHintUseCase(),
         touchExploration: Boolean = false,
+        windowFocused: State<Boolean>? = null,
     ): GameViewModel {
         val manager = RuntimeEnvironment.getApplication().getSystemService(AccessibilityManager::class.java)
         shadowOf(manager).setTouchExplorationEnabled(touchExploration)
@@ -480,7 +508,17 @@ class GameScreenTalkBackTest {
         viewModel = game
         composeRule.setContent {
             AppTheme {
-                CompositionLocalProvider(LocalHapticFeedback provides haptics, LocalSoundPlayer provides sounds) {
+                val window = LocalWindowInfo.current
+                val shownWindow =
+                    remember(window, windowFocused) {
+                        windowFocused?.let { FocusControlledWindow(window, it) }
+                            ?: window
+                    }
+                CompositionLocalProvider(
+                    LocalHapticFeedback provides haptics,
+                    LocalSoundPlayer provides sounds,
+                    LocalWindowInfo provides shownWindow,
+                ) {
                     val current = viewModel
                     if (shown && current != null) key(current) { GameScreenOver(current) }
                 }
@@ -611,8 +649,9 @@ class GameScreenTalkBackTest {
     }
 
     /** One move made, then a Hint that proves the position lost: the banner over a game in play. */
-    private fun noWinningMoveBannerUp(): GameViewModel {
-        val game = startGame(hint = fixedHint(HintOutcome.ProvenDead), touchExploration = true)
+    private fun noWinningMoveBannerUp(windowFocused: State<Boolean>? = null): GameViewModel {
+        val game =
+            startGame(hint = fixedHint(HintOutcome.ProvenDead), touchExploration = true, windowFocused = windowFocused)
         tapCell(ABOVE_CENTRE)
         tapCell(CENTRE)
         composeRule.runOnIdle { game.onHintRequested() }
@@ -746,4 +785,15 @@ private object TalkBackSettings : SettingsRepository {
     override suspend fun setSoundOn(on: Boolean) = Unit
 
     override suspend fun setHapticsOn(on: Boolean) = Unit
+}
+
+/** The real window, with window focus as the test sets it: the confirm dialog holding it, or not (§8). */
+private class FocusControlledWindow(
+    private val real: WindowInfo,
+    private val focused: State<Boolean>,
+) : WindowInfo {
+    override val isWindowFocused: Boolean get() = focused.value
+    override val keyboardModifiers get() = real.keyboardModifiers
+    override val containerSize get() = real.containerSize
+    override val containerDpSize get() = real.containerDpSize
 }

@@ -7,10 +7,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.WindowInfo
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 
 /**
  * Whether touch exploration is on (`AccessibilityManager.isTouchExplorationEnabled`): the platform's
@@ -57,8 +60,17 @@ internal const val FOCUS_MOVE_GAP_MS = 200L
  * public clear that leaves focus nowhere: `FocusManager` has only `clearFocus(force)` and `moveFocus`,
  * and the variant that keeps the owner's focus is on the internal `FocusOwner`. QA checks it on the
  * device; in touch mode, where TalkBack's players are, nothing takes the focus in between.
+ *
+ * It first waits until [window] has window focus: a move made while another window still holds it,
+ * such as a confirm dialog closing in the same update, is one TalkBack ignores, and it then places
+ * focus itself (the talkback-board defect ruling, §8, B-8). Made with the window focused, which is
+ * every other move, it runs at once. A caller's newer move cancels one still waiting.
  */
-internal suspend fun FocusManager.moveInputFocusTo(target: FocusRequester) {
+internal suspend fun FocusManager.moveInputFocusTo(
+    target: FocusRequester,
+    window: WindowInfo,
+) {
+    snapshotFlow { window.isWindowFocused }.first { it }
     clearFocus(force = true)
     delay(FOCUS_MOVE_GAP_MS)
     target.requestFocus()

@@ -5,6 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalWindowInfo
 import com.app.pegsolitaire.ui.components.ChangeEffect
 import com.app.pegsolitaire.ui.components.moveInputFocusTo
 
@@ -33,12 +34,13 @@ internal fun rememberBannerFocusMove(
     touchExploration: Boolean,
 ): (BannerAction) -> Unit {
     val focusManager = LocalFocusManager.current
+    val window = LocalWindowInfo.current
     val awaited = remember { AwaitedBannerAction() }
     NewOrdinalEffect(state.undoTick) {
-        if (awaited.take(BannerAction.Undo)) focusManager.moveInputFocusTo(boardStopFocus)
+        if (awaited.take(BannerAction.Undo)) focusManager.moveInputFocusTo(boardStopFocus, window)
     }
     NewOrdinalEffect(state.restartTick) {
-        if (awaited.take(BannerAction.Restart)) focusManager.moveInputFocusTo(boardStopFocus)
+        if (awaited.take(BannerAction.Restart)) focusManager.moveInputFocusTo(boardStopFocus, window)
     }
     // After the two ordinals, so an action that happened is taken before anything withdraws it.
     val withdrawn = state.pendingAdOffer != null || !state.showRescueBanner
