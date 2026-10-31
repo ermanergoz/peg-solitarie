@@ -16,7 +16,7 @@ import com.app.pegsolitaire.ui.theme.AppTheme
 import com.app.pegsolitaire.ui.theme.GelColors
 
 /**
- * The Classic gel tile's trailing art (candy-backdrop.md §3.5.2, the tech-lead's A4): the same
+ * The Classic gel tile's trailing art (backdrop spec §3.5.2, the tech-lead's A4): the same
  * footprint `StaticBoardArt` drew, flat and white on the gel — pegs `GelArtPeg`, holes `GelArtHole`,
  * with no sphere shading, specular or dimple. One draw node that reads `BoardGeometry` for the cell
  * centres and its `BoardMetrics` radius ratios, and edits neither. Decorative: no semantics, as

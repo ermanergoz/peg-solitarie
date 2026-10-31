@@ -76,7 +76,7 @@ import kotlinx.coroutines.flow.first
  * Challenge tile (with its persisted-level chip) whose whole surface enters Challenge
  * ([onPlayChallenge]) at the player's persisted [HomeUiState.challengeCurrentLevel] (CHAL-05) —
  * and an empty footer, which is the smaller share of that slack. The `Scaffold` is transparent, so
- * the app-wide backdrop (`ui/backdrop/SceneBackdrop.kt`, docs/ux/candy-backdrop.md) shows behind
+ * the app-wide backdrop (`ui/backdrop/SceneBackdrop.kt`, backdrop spec) shows behind
  * the bands; the bands enter with a stagger, and everything tappable squishes. Below the compact
  * threshold of available height — which reads the available **width** as well, since D-03k — the
  * band spacing tightens, and on the narrow class each progress pill drops its decorative glyph and
@@ -653,7 +653,7 @@ private fun ModeTile(
 ) {
     // Wrapped at the shared leaf, so Classic and Challenge each inherit the forward click once.
     // The Card paints nothing: the gel is drawn by `gelSurface` beneath the content, and its ripple
-    // is the gel's own deep colour, so pressing darkens it (candy-backdrop.md §3.5.2, A4).
+    // is the gel's own deep colour, so pressing darkens it (backdrop spec §3.5.2, A4).
     GelRipple(gel) {
         Card(
             onClick = withClickSound(SoundCue.ButtonForward, onClick),
@@ -681,7 +681,7 @@ private fun ModeTile(
  */
 internal const val CONTENT_WEIGHT = 1f
 
-/** Classic's sheen leads; Challenge's follows by `GEL_SHEEN_CHALLENGE_DELAY_MS` (candy-backdrop.md §3.5.2). */
+/** Classic's sheen leads; Challenge's follows by `GEL_SHEEN_CHALLENGE_DELAY_MS` (backdrop spec §3.5.2). */
 private const val CLASSIC_SHEEN_DELAY_MS = 0L
 
 /**

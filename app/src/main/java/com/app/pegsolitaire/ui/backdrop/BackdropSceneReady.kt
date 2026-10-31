@@ -12,7 +12,7 @@ import androidx.compose.runtime.withFrameNanos
  * Whether the backdrop's scene may be composed yet (the tech-lead's R3 and A6): false on the
  * host's first frame, true from the next. The waves, the lights, the clock's start and the
  * battery-saver read all sit behind it, so Home's first frame costs what a static gradient costs
- * (candy-backdrop.md §7, B-11a).
+ * (backdrop spec §7, B-11a).
  *
  * The `State` itself is provided, not its value, so only the readers that call `.value` recompose
  * when it flips. The default is always ready, so a preview or a component test outside the host

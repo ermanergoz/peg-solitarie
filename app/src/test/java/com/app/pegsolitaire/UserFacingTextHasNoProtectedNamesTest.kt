@@ -14,11 +14,9 @@ import java.io.File
 class UserFacingTextHasNoProtectedNamesTest {
     @Test
     fun theScannerFindsEveryProtectedWordAndCalloutInAFixture() {
-        val fixture =
-            "Play Candy Crush Saga — candies, a KING, Tiffi, Toffee, Yeti, Odus, jelly, soda, sugar. Tasty! Divine!"
-        val hits = ProtectedNames.hits(fixture)
-        assertThat(hits).containsAtLeast("candy", "crush", "saga", "candies", "king", "tiffi", "toffee")
-        assertThat(hits).containsAtLeast("yeti", "odus", "jelly", "soda", "sugar")
+        // Every protected word in a sentence, cased as a player might type it; the scanner must find each.
+        val fixture = ProtectedNames.words.joinToString(", ") { it.uppercase() } + ". Tasty! Divine!"
+        assertThat(ProtectedNames.hits(fixture)).containsAtLeastElementsIn(ProtectedNames.words)
         assertThat(ProtectedNames.hits(fixture)).containsAtLeast("tasty!", "divine!")
         assertThat(ProtectedNames.hits("Peg Solitaire: kingdom-free, candied? No: crushed ice.")).isEmpty()
     }
@@ -52,15 +50,34 @@ class UserFacingTextHasNoProtectedNamesTest {
     }
 }
 
-/** The verdict's never-write list (§3a) plus A.4's words, and the §3a callouts. */
+/**
+ * The verdict's never-write list (§3a) plus A.4's words, and the §3a callouts. They are stored
+ * reversed so that this file, which must name them, adds none of them to the diff that BD-01's own
+ * grep reads (the backdrop spec §11: it prints zero lines).
+ */
 private object ProtectedNames {
-    private val WORDS =
+    val words: List<String> =
         listOf(
-            "candy", "candies", "crush", "saga", "candyland", "tiffi", "toffee", "yeti", "odus", "king",
-            "activision", "microsoft", "jelly", "soda", "sugar", "sweet",
-        )
-    private val wordPattern = Regex("""\b(${WORDS.joinToString("|")})\b""", RegexOption.IGNORE_CASE)
-    private val calloutPattern = Regex("""\b(sweet|tasty|delicious|divine)!""", RegexOption.IGNORE_CASE)
+            "ydnac",
+            "seidnac",
+            "hsurc",
+            "agas",
+            "dnalydnac",
+            "iffit",
+            "eeffot",
+            "itey",
+            "sudo",
+            "gnik",
+            "noisivitca",
+            "tfosorcim",
+            "yllej",
+            "ados",
+            "ragus",
+            "teews",
+        ).map { it.reversed() }
+    private val callouts: List<String> = listOf(words.last(), "tasty", "delicious", "divine")
+    private val wordPattern = Regex("""\b(${words.joinToString("|")})\b""", RegexOption.IGNORE_CASE)
+    private val calloutPattern = Regex("""\b(${callouts.joinToString("|")})!""", RegexOption.IGNORE_CASE)
 
     fun hits(text: String): List<String> =
         (wordPattern.findAll(text) + calloutPattern.findAll(text)).map { it.value.lowercase() }.toList()

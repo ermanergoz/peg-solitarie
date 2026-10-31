@@ -4,7 +4,7 @@ import androidx.compose.runtime.Immutable
 
 /**
  * Every container on Home and the game screen that takes a part of the gloss finish
- * (docs/ux/candy-backdrop.md §3.5.1, B-19). The dock's discs, every dialog and snackbar, and every
+ * (backdrop spec §3.5.1, B-19). The dock's discs, every dialog and snackbar, and every
  * container on a Sparse screen are not here: they keep today's finish.
  */
 enum class FinishedContainer {

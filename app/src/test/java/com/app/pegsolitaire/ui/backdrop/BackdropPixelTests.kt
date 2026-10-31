@@ -112,8 +112,7 @@ class BoardInteriorIdentityTest {
     private fun cornerPx(id: Int): Float =
         ApplicationProvider.getApplicationContext<Context>().resources.getDimension(id)
 
-    private fun bounds(matcher: SemanticsMatcher): Rect =
-        rule.onNode(matcher).fetchSemanticsNode().boundsInRoot
+    private fun bounds(matcher: SemanticsMatcher): Rect = rule.onNode(matcher).fetchSemanticsNode().boundsInRoot
 
     private companion object {
         /** A point in the English cross's blocked top-start corner: the slab's fill and nothing else. */
@@ -245,7 +244,7 @@ class BackdropStatusBandTest {
     }
 
     private companion object {
-        /** The design baseline's status bar (candy-backdrop.md §3.3). */
+        /** The design baseline's status bar (backdrop spec §3.3). */
         const val STATUS_BAND = 24
     }
 }

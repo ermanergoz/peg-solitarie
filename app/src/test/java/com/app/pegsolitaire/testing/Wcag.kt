@@ -7,10 +7,10 @@ import kotlin.math.sqrt
 
 /*
  * WCAG 2.x arithmetic over `Color.kt` tokens, for the JVM tests that prove a spec's ratios from the
- * shipped values rather than trusting the document (candy-backdrop.md §5, colour-vision.md §4).
+ * shipped values rather than trusting the document (backdrop spec §5, colour-vision.md §4).
  *
  * Translucent layers composite in gamma-encoded sRGB, channel by channel, as Compose's default
- * alpha draw does (candy-backdrop.md §5's stated method), so [over] and [lerpSrgb] work on the
+ * alpha draw does (backdrop spec §5's stated method), so [over] and [lerpSrgb] work on the
  * encoded components and only [wcagLuminance] linearises.
  */
 
@@ -77,7 +77,7 @@ internal fun Color.hueDegrees(): Double? {
 
 /**
  * The lowest edge contrast a container keeps against ANY adjacent colour, when its edge is the
- * stronger of fill-versus-neighbour and rim-versus-neighbour (candy-backdrop.md §5.2):
+ * stronger of fill-versus-neighbour and rim-versus-neighbour (backdrop spec §5.2):
  * `√((R + 0.05) / (F + 0.05))`, with the rim the brighter of the two.
  */
 internal fun edgeFloor(

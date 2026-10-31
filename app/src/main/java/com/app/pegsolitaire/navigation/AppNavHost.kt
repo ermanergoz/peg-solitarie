@@ -92,7 +92,7 @@ private typealias ResultsContent =
  * @param backdropFrames where the backdrop's clock waits for frames: the infinite-animation frame
  *   clock in production; a test that needs the clock to run injects frames from the test clock.
  *
- * ## The backdrop host (docs/ux/candy-backdrop.md, the tech-lead's R1, A2, A5, A6)
+ * ## The backdrop host (backdrop spec, the tech-lead's R1, A2, A5, A6)
  *
  * The root is the window-filling theme `Surface` the app lacked (F-32, D1): text that names no
  * colour takes `onBackground` in both themes even though every screen's container is transparent.

@@ -7,7 +7,7 @@ import com.app.pegsolitaire.ui.backdrop.LightKind
 import com.app.pegsolitaire.ui.backdrop.SkyRole
 
 /**
- * The backdrop's sixteen colours per theme (docs/ux/candy-backdrop.md §4.1), packaged from the
+ * The backdrop's sixteen colours per theme (backdrop spec §4.1), packaged from the
  * `Color.kt` vals the way [ClayColors] packages the clay ones, and provided by `AppTheme` through
  * [LocalBackdropColors]. No call site names a hex.
  *

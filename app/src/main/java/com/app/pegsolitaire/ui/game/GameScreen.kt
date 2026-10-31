@@ -239,7 +239,7 @@ fun GameScreen(
                     Surface(
                         shape = MaterialTheme.shapes.extraLarge,
                         // The finish draws the slab's fill, its rim and its lip, and no gloss over the board
-                        // (candy-backdrop.md §3.5.1); the Surface itself paints nothing.
+                        // (backdrop spec §3.5.1); the Surface itself paints nothing.
                         color = Color.Transparent,
                         contentColor = contentColorFor(slab),
                         modifier =

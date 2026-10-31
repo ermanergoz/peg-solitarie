@@ -34,7 +34,7 @@ data class SceneModel(
 )
 
 /**
- * One wave at its rest pose (candy-backdrop.md §3.2): the upper half of an ellipse whose top is
+ * One wave at its rest pose (backdrop spec §3.2): the upper half of an ellipse whose top is
  * the crest, unioned with the rectangle beneath it down to [bottom]. Its pose only translates it,
  * by its bob amplitudes times `−cos(π t / T)`.
  */
@@ -169,7 +169,7 @@ private data class WaveSpec(
 
 /**
  * The back wave drifts toward the end edge and up as its swing rises, the front wave toward the
- * start edge and down (candy-backdrop.md §3.4): `(+24dp, −4dp)` and `(−20dp, +4dp)` at swing +1.
+ * start edge and down (backdrop spec §3.4): `(+24dp, −4dp)` and `(−20dp, +4dp)` at swing +1.
  */
 private fun WaveSpec.toModel(
     width: Float,

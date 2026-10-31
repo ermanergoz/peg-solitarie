@@ -54,7 +54,7 @@ const val HOME_HERO_TEST_TAG = "home_hero"
  * with the content, and D-03a's deletion of Home's bar and §5's "no M3 `TopAppBar`" are untouched —
  * what the row shares with the deleted bar is one row's geometry, which is not a component. It is
  * the first thing in the column: nothing is drawn above the title but the column's top padding and
- * the backdrop's calm band behind everything (candy-backdrop.md B-20).
+ * the backdrop's calm band behind everything (backdrop spec B-20).
  *
  * The title takes `titleGradientBrush()` at `displaySmall`, takes the width the gear
  * leaves, and has **no `maxLines`**: it is never truncated and never scaled down, so at a large

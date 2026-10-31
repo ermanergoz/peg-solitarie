@@ -12,7 +12,7 @@ import kotlin.math.abs
 
 /**
  * BD-11 (a)–(f), (h), (i) on the pure builder, with [BackdropDimens] resolved from real `Resources`
- * at the spec's four windows (candy-backdrop.md §11). Lights move only vertically, so (a)–(c) are
+ * at the spec's four windows (backdrop spec §11). Lights move only vertically, so (a)–(c) are
  * proved exactly from each light's extremes rather than sampled.
  */
 @RunWith(RobolectricTestRunner::class)

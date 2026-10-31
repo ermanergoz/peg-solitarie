@@ -20,7 +20,7 @@ import com.app.pegsolitaire.R
 import com.app.pegsolitaire.ui.backdrop.BackdropMetrics
 
 /**
- * The finish's glow (candy-backdrop.md §3.5.1, the tech-lead's A3): `clayShadow`'s geometry and
+ * The finish's glow (backdrop spec §3.5.1, the tech-lead's A3): `clayShadow`'s geometry and
  * elevation, unchanged, with [tint] as its ambient and spot colour in place of the clay shadow's —
  * pink in light, violet in dark, or a gel tile's own glow. Used only where the recipe marks a glow;
  * `clayShadow` and its other callers are untouched.
@@ -33,7 +33,7 @@ fun Modifier.finishGlow(
 ): Modifier = shadow(elevation = elevation, shape = shape, ambientColor = tint, spotColor = tint)
 
 /**
- * The gloss finish drawn as part of a container's own fill (candy-backdrop.md §3.5.1, A3): its
+ * The gloss finish drawn as part of a container's own fill (backdrop spec §3.5.1, A3): its
  * [fill] when given, the white gloss fading from the top edge when [container]'s recipe has one,
  * the 1dp rim whose outer edge is the container's edge, and the 2dp lip inside its top — in that
  * order, behind the content. Everything is built once per size, direction and theme.

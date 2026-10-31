@@ -17,9 +17,9 @@ import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Test
 
 /**
- * BD-08: every constraint of docs/ux/candy-backdrop.md §4.1, computed from the `Color.kt` values the
+ * BD-08: every constraint of backdrop spec §4.1, computed from the `Color.kt` values the
  * app ships rather than trusted from the document, plus the research-analyst's C1 (lights are bokeh,
- * not bubbles) and C3 (no pink jelly band) as the tech-lead's A8 states them. A retuned token must
+ * not bubbles) and C3 (a lilac-to-violet wave body) as the tech-lead's A8 states them. A retuned token must
  * still pass every one of these; the hexes themselves are not asserted.
  */
 class BackdropColorsTest {
@@ -192,12 +192,25 @@ class BackdropColorsTest {
             val b = t.backdrop
             val f = t.finish
             listOf(
-                "skyTop" to b.skyTop, "skyMid" to b.skyMid, "skyLow" to b.skyLow, "skyDeep" to b.skyDeep,
-                "sparseLow" to b.sparseLow, "waveCrest" to b.waveCrest, "waveBody" to b.waveBody,
-                "waveDeep" to b.waveDeep, "waveLip" to b.waveLip, "waveSheen" to b.waveSheen,
-                "pearlCore" to b.pearlCore, "pearlRim" to b.pearlRim, "pinkCore" to b.pinkCore,
-                "pinkRim" to b.pinkRim, "violetCore" to b.violetCore, "violetRim" to b.violetRim,
-                "panelRim" to f.panelRim, "panelLip" to f.panelLip, "panelGloss" to f.panelGloss,
+                "skyTop" to b.skyTop,
+                "skyMid" to b.skyMid,
+                "skyLow" to b.skyLow,
+                "skyDeep" to b.skyDeep,
+                "sparseLow" to b.sparseLow,
+                "waveCrest" to b.waveCrest,
+                "waveBody" to b.waveBody,
+                "waveDeep" to b.waveDeep,
+                "waveLip" to b.waveLip,
+                "waveSheen" to b.waveSheen,
+                "pearlCore" to b.pearlCore,
+                "pearlRim" to b.pearlRim,
+                "pinkCore" to b.pinkCore,
+                "pinkRim" to b.pinkRim,
+                "violetCore" to b.violetCore,
+                "violetRim" to b.violetRim,
+                "panelRim" to f.panelRim,
+                "panelLip" to f.panelLip,
+                "panelGloss" to f.panelGloss,
                 "panelGlow" to f.panelGlow,
             ).map { (n, c) -> "${t.name} $n" to c }
         } +
@@ -205,9 +218,15 @@ class BackdropColorsTest {
                 listOf("gel top" to g.top, "gel mid" to g.mid, "gel bottom" to g.bottom, "gel glow" to g.glow)
             } +
             listOf(
-                "onGel" to GelColors.onGel, "badge" to GelColors.badge, "chip" to GelColors.chip,
-                "chipText" to GelColors.chipText, "artPeg" to GelColors.artPeg, "artHole" to GelColors.artHole,
-                "rim" to GelColors.rim, "lip" to GelColors.lip, "sheen" to GelColors.sheen,
+                "onGel" to GelColors.onGel,
+                "badge" to GelColors.badge,
+                "chip" to GelColors.chip,
+                "chipText" to GelColors.chipText,
+                "artPeg" to GelColors.artPeg,
+                "artHole" to GelColors.artHole,
+                "rim" to GelColors.rim,
+                "lip" to GelColors.lip,
+                "sheen" to GelColors.sheen,
             )
 
     private data class Theme(

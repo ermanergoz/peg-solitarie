@@ -5,7 +5,7 @@ import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Test
 
 /**
- * BD-10: the composition constants are candy-backdrop.md §3.3, §4.3 and §4.4, transcribed here from
+ * BD-10: the composition constants are backdrop spec §3.3, §4.3 and §4.4, transcribed here from
  * the spec's tables, so a drifted constant fails rather than moving the scene.
  */
 class BackdropMetricsTest {

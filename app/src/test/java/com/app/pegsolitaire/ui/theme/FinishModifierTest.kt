@@ -21,7 +21,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The gloss finish as drawn (candy-backdrop.md §3.5.1, the tech-lead's A3): every finished container
+ * The gloss finish as drawn (backdrop spec §3.5.1, the tech-lead's A3): every finished container
  * draws a rim on its edge and a lip inside its top; a glossed chip is lighter at its top than its
  * fill; a slab's fill away from its edge is exactly its fill, with no gloss over the board.
  */

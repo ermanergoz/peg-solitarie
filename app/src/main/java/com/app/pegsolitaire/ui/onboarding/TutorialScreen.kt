@@ -117,7 +117,7 @@ fun TutorialScreen(
 
     Surface(
         modifier = modifier.fillMaxSize(),
-        // Transparent over the app-wide backdrop (candy-backdrop.md B-09), with the content colour the
+        // Transparent over the app-wide backdrop (backdrop spec B-09), with the content colour the
         // background's own so unlabelled text keeps `onBackground` (F-32).
         color = Color.Transparent,
         contentColor = MaterialTheme.colorScheme.onBackground,

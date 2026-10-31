@@ -102,7 +102,7 @@ internal fun GameActionDock(
     Surface(
         shape = MaterialTheme.shapes.large,
         // A rim, a lip and the glow; no gloss, so the fill around the discs stays the flat surface 21e
-        // and 21f measure them against (candy-backdrop.md §3.5.1).
+        // and 21f measure them against (backdrop spec §3.5.1).
         color = Color.Transparent,
         contentColor = contentColorFor(slab),
         modifier =

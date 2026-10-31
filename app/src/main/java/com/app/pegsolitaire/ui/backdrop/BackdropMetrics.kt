@@ -2,7 +2,7 @@ package com.app.pegsolitaire.ui.backdrop
 
 import androidx.compose.runtime.Immutable
 
-/** Which `BackdropColors` sky token a sky stop takes (candy-backdrop.md §3.3). */
+/** Which `BackdropColors` sky token a sky stop takes (backdrop spec §3.3). */
 enum class SkyRole { Top, Mid, Low, Deep, SparseLow }
 
 /** One stop of a density's vertical sky gradient: a fraction of the window height and its colour role. */
@@ -12,17 +12,17 @@ data class SkyStop(
     val role: SkyRole,
 )
 
-/** The three kinds of light, each a core and a rim colour (candy-backdrop.md §3.2). */
+/** The three kinds of light, each a core and a rim colour (backdrop spec §3.2). */
 enum class LightKind { Pearl, Pink, Violet }
 
 /**
- * Which set a light belongs to (candy-backdrop.md §3.3): Home's [Lane] lights may reach above the
+ * Which set a light belongs to (backdrop spec §3.3): Home's [Lane] lights may reach above the
  * title's reach and never overlap; its [Low] lights never rise above it; the game screen's [Upper]
  * lights stay above the spinner's band and its [Lower] lights below it.
  */
 enum class LightSet { Lane, Low, Upper, Lower }
 
-/** A light's diameter, one of the six `backdrop_light_*` size tokens (candy-backdrop.md §4.2). */
+/** A light's diameter, one of the six `backdrop_light_*` size tokens (backdrop spec §4.2). */
 enum class LightSize { Xs, Sm, Md, Lg, Xl, Xxl }
 
 /**
@@ -48,7 +48,7 @@ data class WavePlacement(
 )
 
 /**
- * The backdrop's unitless ratios, anchors and lists (candy-backdrop.md §4.3), beside
+ * The backdrop's unitless ratios, anchors and lists (backdrop spec §4.3), beside
  * `BoardMetrics` and `HomeStageMetrics`. Every position the scene draws is one of these or a
  * `dimens.xml` token; the builder invents none. Durations live in [BackdropMotion].
  */
@@ -131,7 +131,7 @@ object BackdropMetrics {
     /** ...and out from this share on, so it wraps from top to bottom only while invisible. */
     const val LIGHT_FADE_OUT = 0.85f
 
-    /** Home's nine lights, H1 to H9 (candy-backdrop.md §3.3); periods in [BackdropMotion]. */
+    /** Home's nine lights, H1 to H9 (backdrop spec §3.3); periods in [BackdropMotion]. */
     val LANDSCAPE_LIGHTS: List<LightSpec> =
         listOf(
             LightSpec(0.08f, 0.27f, LightSize.Md, LightKind.Pearl, 0.13f, 0.90f, LightSet.Lane),
@@ -145,7 +145,7 @@ object BackdropMetrics {
             LightSpec(0.50f, 0.94f, LightSize.Xs, LightKind.Pearl, 0.41f, 0.80f, LightSet.Low),
         )
 
-    /** The game screen's five lights, G1 to G5 (candy-backdrop.md §3.3); periods in [BackdropMotion]. */
+    /** The game screen's five lights, G1 to G5 (backdrop spec §3.3); periods in [BackdropMotion]. */
     val QUIET_LIGHTS: List<LightSpec> =
         listOf(
             LightSpec(0.13f, 0.19f, LightSize.Sm, LightKind.Pearl, 0.14f, 0.80f, LightSet.Upper),

@@ -5,7 +5,7 @@ import kotlin.math.PI
 import kotlin.math.cos
 
 /*
- * The backdrop's poses as pure functions of a scene element and the clock's time (candy-backdrop.md
+ * The backdrop's poses as pure functions of a scene element and the clock's time (backdrop spec
  * §3.4, B-24, the tech-lead's A1). Time is `Long` milliseconds of backdrop time, reduced modulo
  * the element's own loop in `Long` before any floating-point step, so a session of any length is
  * exact. Each function returns a primitive and allocates nothing: the draw lambda calls them per

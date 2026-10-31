@@ -22,7 +22,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * BD-27's layout half and the gel tiles' own contract (candy-backdrop.md §3.5.2, B-18, the
+ * BD-27's layout half and the gel tiles' own contract (backdrop spec §3.5.2, B-18, the
  * tech-lead's A4): each mode tile is deep gel beneath its top band, its white text starts at or below
  * `gel_top_band` at 1.0 and 2.0 font scale, pressing darkens it, and it announces exactly what the
  * clay tile did.

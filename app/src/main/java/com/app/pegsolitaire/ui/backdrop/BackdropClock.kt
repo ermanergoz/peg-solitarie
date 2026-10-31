@@ -157,7 +157,11 @@ internal class LiveBackdropClock : BackdropClock {
     suspend fun run(frames: BackdropFrames) {
         val ease = Ease()
         // A resume counts as input (A5.2): a clock that had settled eases back in rather than staying frozen.
-        if (!started) rate = RATE_FULL else if (rate != RATE_FULL) ease.towards(rate, RATE_FULL)
+        if (!started) {
+            rate = RATE_FULL
+        } else if (rate != RATE_FULL) {
+            ease.towards(rate, RATE_FULL)
+        }
         started = true
         var idleMs = 0.0
         var shown = density

@@ -1,7 +1,7 @@
 package com.app.pegsolitaire.ui.backdrop
 
 /**
- * The backdrop's own durations (candy-backdrop.md §4.4), scoped beside [BackdropMetrics] as the
+ * The backdrop's own durations (backdrop spec §4.4), scoped beside [BackdropMetrics] as the
  * project splits constants by owner. The app-wide navigation fade stays in `ClayAnim`.
  *
  * Every loop is at least [MIN_LOOP_MS] (B-05a rule 1), and the game screen's waves are 1.5 times

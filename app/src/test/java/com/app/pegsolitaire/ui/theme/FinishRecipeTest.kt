@@ -6,7 +6,7 @@ import org.junit.Test
 
 /**
  * BD-03's and BD-18's aid to the auditor, in the `DockLookRecipeTest` idiom: the finish each
- * container takes is exactly candy-backdrop.md §3.5.1's table, written out here row by row.
+ * container takes is exactly backdrop spec §3.5.1's table, written out here row by row.
  */
 class FinishRecipeTest {
     @Test

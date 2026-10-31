@@ -7,17 +7,29 @@ import kotlin.math.abs
 import kotlin.math.hypot
 
 /**
- * BD-11 (g) and BD-16 (a), (b) on the pure pose functions (candy-backdrop.md §3.4): the rest poses,
+ * BD-11 (g) and BD-16 (a), (b) on the pure pose functions (backdrop spec §3.4): the rest poses,
  * the envelope's wrap, the sheen's quarter, every drifting speed ≤ 8dp/s, and exact `Long` time.
  * Dimensions are the spec's dp at one px per dp, so a px speed is a dp speed.
  */
 class BackdropPoseTest {
     private val dimens =
         BackdropDimens(
-            lightXs = 28f, lightSm = 36f, lightMd = 44f, lightLg = 52f, lightXl = 64f, lightXxl = 76f,
-            lightRiseBelow = 32f, lightRiseAbove = 80f, lightCalmFade = 48f,
-            waveLipDepth = 4f, waveSheenOffset = 8f, waveSheenHeight = 24f,
-            waveBackBobX = 24f, waveBackBobY = 4f, waveFrontBobX = 20f, waveFrontBobY = 4f,
+            lightXs = 28f,
+            lightSm = 36f,
+            lightMd = 44f,
+            lightLg = 52f,
+            lightXl = 64f,
+            lightXxl = 76f,
+            lightRiseBelow = 32f,
+            lightRiseAbove = 80f,
+            lightCalmFade = 48f,
+            waveLipDepth = 4f,
+            waveSheenOffset = 8f,
+            waveSheenHeight = 24f,
+            waveBackBobX = 24f,
+            waveBackBobY = 4f,
+            waveFrontBobX = 20f,
+            waveFrontBobY = 4f,
         )
     private val scenes =
         listOf(BackdropDensity.Landscape, BackdropDensity.Quiet).map {

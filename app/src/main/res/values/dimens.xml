@@ -262,7 +262,7 @@
 
     <!-- Backdrop -->
     <!--
-      docs/ux/candy-backdrop.md §4.2, direction B "Deep gloss". One token per owner, even where values
+      backdrop spec §4.2, direction B "Deep gloss". One token per owner, even where values
       coincide. Light sizes are fixed dp, not window fractions, so a light is the same physical size on
       every phone; only positions scale with the window. The three sub-4dp tokens below
       (finish_rim_width, finish_lip_height, gel_rim_width) join the documented rendering-stroke

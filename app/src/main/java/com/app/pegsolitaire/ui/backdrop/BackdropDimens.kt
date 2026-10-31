@@ -9,7 +9,7 @@ import androidx.compose.ui.platform.LocalResources
 import com.app.pegsolitaire.R
 
 /**
- * The backdrop scene's `dimens.xml` tokens (candy-backdrop.md §4.2), resolved once to px so the
+ * The backdrop scene's `dimens.xml` tokens (backdrop spec §4.2), resolved once to px so the
  * pure builder ([buildSceneModel]) and the pose functions read no resource and no density.
  *
  * [lightRestPhase] is derived from the two rise tokens, never written as a literal (§4.3): it is

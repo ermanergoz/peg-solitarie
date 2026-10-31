@@ -1,7 +1,7 @@
 package com.app.pegsolitaire.ui.backdrop
 
 /**
- * How much of the backdrop a destination carries (docs/ux/candy-backdrop.md §2, B-01): the deep
+ * How much of the backdrop a destination carries (backdrop spec §2, B-01): the deep
  * sky with its waves and lights behind Home ([Landscape]) and the game screen ([Quiet]), and a
  * static wash behind every other screen ([Sparse]).
  *

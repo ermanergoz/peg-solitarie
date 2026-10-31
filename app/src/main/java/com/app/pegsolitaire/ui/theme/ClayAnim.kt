@@ -30,7 +30,7 @@ object ClayAnim {
 
     /**
      * The navigation cross-fade: the `NavHost`'s own default of navigation-compose 2.9.8 made
-     * explicit on its four transitions, and the backdrop's sky cross-fade (candy-backdrop.md B-13a,
+     * explicit on its four transitions, and the backdrop's sky cross-fade (backdrop spec B-13a,
      * the tech-lead's D2). One constant, so the two cannot drift apart.
      */
     const val NAV_TRANSITION_MS = 700

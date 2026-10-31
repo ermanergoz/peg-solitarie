@@ -14,7 +14,7 @@ import com.app.pegsolitaire.ui.backdrop.LocalBackdropClock
 import com.app.pegsolitaire.ui.backdrop.SceneBackdrop
 
 /**
- * The density a destination carries (candy-backdrop.md §2, the tech-lead's R1): Home the
+ * The density a destination carries (backdrop spec §2, the tech-lead's R1): Home the
  * landscape, the game screen — Classic and Challenge alike, one destination — the quiet scene, and
  * everything else the wash. "Everything else" is deliberately the `else` branch, so a destination
  * added later gets Sparse, which is text-safe from edge to edge.

@@ -120,7 +120,7 @@ internal val LightTitleGradientColors = listOf(Color(0xFF7C3AED), Color(0xFF5B21
 internal val DarkTitleGradientColors = listOf(Color(0xFFC4B5FD), Color(0xFFA78BFA))
 
 // ---------------------------------------------------------------------------
-// The backdrop, direction B "Deep gloss" (docs/ux/candy-backdrop.md §4.1). Consumed by
+// The backdrop, direction B "Deep gloss" (backdrop spec §4.1). Consumed by
 // `ui/theme/BackdropColors.kt`. `BackdropSkyTop` is the theme's `background` (BD-09).
 // ---------------------------------------------------------------------------
 
@@ -159,7 +159,7 @@ internal val DarkBackdropLightVioletCore = Color(0x298B5CF6)
 internal val DarkBackdropLightVioletRim = Color(0x478B5CF6)
 
 // ---------------------------------------------------------------------------
-// The gloss finish on Home's and the game screen's containers (candy-backdrop.md §3.5.1).
+// The gloss finish on Home's and the game screen's containers (backdrop spec §3.5.1).
 // Consumed by `ui/theme/FinishColors.kt`.
 // ---------------------------------------------------------------------------
 
@@ -174,7 +174,7 @@ internal val DarkBackdropPanelGloss = Color(0x0FFFFFFF)
 internal val DarkBackdropPanelGlow = Color(0x738B5CF6)
 
 // ---------------------------------------------------------------------------
-// The gel mode tiles (candy-backdrop.md §3.5.2): one value in both themes.
+// The gel mode tiles (backdrop spec §3.5.2): one value in both themes.
 // Consumed by `ui/theme/FinishColors.kt`'s `GelColors`.
 // ---------------------------------------------------------------------------
 

@@ -40,7 +40,7 @@ import com.app.pegsolitaire.ui.theme.ClayAnim
 import com.app.pegsolitaire.ui.theme.LocalBackdropColors
 import com.app.pegsolitaire.ui.theme.rememberAnimationsEnabled
 
-/** The backdrop root's test tag (candy-backdrop.md §12). Never announced. */
+/** The backdrop root's test tag (backdrop spec §12). Never announced. */
 const val BACKDROP_TEST_TAG = "backdrop"
 
 /** A layer the backdrop draws, for the semantics hook (BD-07). */
@@ -60,7 +60,7 @@ private var SemanticsPropertyReceiver.backdropLayersValue by BackdropLayersKey
 private var SemanticsPropertyReceiver.backdropMotionValue by BackdropMotionKey
 
 /**
- * The backdrop behind every screen (docs/ux/candy-backdrop.md §2–§3, direction B): the density's
+ * The backdrop behind every screen (backdrop spec §2–§3, direction B): the density's
  * sky, and on Home and the game screen two waves and the lights, drawn from `BackdropColors` and the
  * pure [buildSceneModel]. Stateless with respect to app state: it reads no route and no `UiState`,
  * only [density], the theme, the window and [LocalBackdropClock], whose time it reads in draw.

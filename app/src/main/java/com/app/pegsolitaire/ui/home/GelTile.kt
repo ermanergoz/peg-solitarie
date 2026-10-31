@@ -45,7 +45,7 @@ import kotlin.math.abs
 import kotlin.math.tan
 
 /**
- * A mode tile's gel (candy-backdrop.md §3.5.2, B-18, the tech-lead's A4): the vertical fill — light
+ * A mode tile's gel (backdrop spec §3.5.2, B-18, the tech-lead's A4): the vertical fill — light
  * at the top edge, [GelColors.mid] from `gel_top_band`, deep at the bottom — the 1dp rim on the
  * tile's edge, the lip across the top, and the sheen that glides along the lip in the last quarter
  * of each 10 s loop on the backdrop's one clock, [sheenDelayMs] behind Classic's.

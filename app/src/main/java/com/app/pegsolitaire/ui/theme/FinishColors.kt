@@ -5,7 +5,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 /**
- * The gloss finish's themed colours (docs/ux/candy-backdrop.md §3.5.1, B-19): the 1dp rim, the
+ * The gloss finish's themed colours (backdrop spec §3.5.1, B-19): the 1dp rim, the
  * 2dp lip, the white gloss and the coloured glow that replaces the clay shadow's tint on Home's
  * and the game screen's hero containers. Provided by `AppTheme` through [LocalFinishColors].
  */
@@ -37,7 +37,7 @@ internal val DarkFinishColors =
 val LocalFinishColors = staticCompositionLocalOf { LightFinishColors }
 
 /**
- * One gel mode tile's colour family (docs/ux/candy-backdrop.md §3.5.2, B-18): its vertical fill,
+ * One gel mode tile's colour family (backdrop spec §3.5.2, B-18): its vertical fill,
  * light at the top edge, [mid] from `gel_top_band` and deep at the bottom edge, and its glow. The
  * same in both themes, so a plain holder with no `CompositionLocal` (the tech-lead's A3, E12).
  *

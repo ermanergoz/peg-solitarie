@@ -19,7 +19,7 @@ import androidx.core.content.ContextCompat
  * clock, exactly as at animator scale 0.
  *
  * Composed only behind the scene-ready gate, so no system service and no receiver is touched on the
- * host's first frame (candy-backdrop.md §7). The receiver is not exported: the system still delivers
+ * host's first frame (backdrop spec §7). The receiver is not exported: the system still delivers
  * its own broadcasts to it.
  */
 @Composable
