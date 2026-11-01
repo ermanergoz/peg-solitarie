@@ -188,8 +188,14 @@ internal class LiveBackdropClock : BackdropClock {
             if (ease.target == RATE_FULL && idleMs >= idleDelayMs(shown)) ease.towards(rate, RATE_NONE)
             rate = ease.step(dtMs)
             val scale = coroutineContext[MotionDurationScale]?.scaleFactor ?: DEFAULT_SCALE
-            timeExact += dtMs * rate / scale
-            time.longValue = timeExact.toLong()
+            // "Remove animations" can land between two frames: the next frame's callbacks run
+            // before the recomposition that stops this loop, so a frame may read scale 0. Such a
+            // frame is the rest path and leaves the time where it is; dividing by it would make
+            // the time infinite (or NaN) for good (the code-auditor's F1).
+            if (scale > NO_SCALE && scale.isFinite()) {
+                timeExact += dtMs * rate / scale
+                time.longValue = timeExact.toLong()
+            }
         }
     }
 
@@ -235,6 +241,9 @@ internal class LiveBackdropClock : BackdropClock {
         const val NO_FRAME = -1L
         const val NANOS_PER_MS = 1_000_000.0
         const val DEFAULT_SCALE = 1f
+
+        /** The animator scale "Remove animations" reports; time only runs above it. */
+        const val NO_SCALE = 0f
         val SETTLE_MS: Double = BackdropMotion.BACKDROP_SETTLE_MS.toDouble()
     }
 }
