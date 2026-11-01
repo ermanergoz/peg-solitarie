@@ -4,7 +4,7 @@ task: candy-backdrop
 slug: scene-backdrop
 status: draft
 created: 2026-10-17
-revised: 2026-10-18 (third edition: direction B "Deep gloss", the founder's answer to Q-021); 2026-10-31 (B-19a, BD-19 amended); 2026-11-01 (B-22a, the sheen at a settle; BD-01's grep scope); 2026-11-01 (B-09b, BD-09's status-strip rule); 2026-11-01 (B-11b, the scene opens after Home's entrance and fades in)
+revised: 2026-10-18 (third edition: direction B "Deep gloss", the founder's answer to Q-021); 2026-10-31 (B-19a, BD-19 amended); 2026-11-01 (B-22a, the sheen at a settle; BD-01's grep scope); 2026-11-01 (B-09b, BD-09's status-strip rule); 2026-11-01 (B-11b, the scene opens after Home's entrance and fades in); 2026-11-01 (B-11c, BD-23 (d)'s items (2) and (6) restated)
 stack: android-compose-game
 design-system: docs/ui/DESIGN-SYSTEM.md
 ip-verdict: .planning/reports/candy-backdrop/research-analyst.md (inspiration-only)
@@ -128,7 +128,7 @@ place; a later ruling is `B-nna` with a pointer. §1.1 holds the 2026-10-17 deci
 | B-08 The backdrop announces nothing, takes no focus, adds no string | **kept**; its test keys name the new layers | §11 BD-15 |
 | B-09 Transparent containers; insets as today | **kept**, amended by B-09a (the host `Surface` the app lacked, D1) and B-09b (2026-11-01: the status strip is `background` on every screen) | B-09a, B-09b |
 | B-10 No "candy" or "sweet" in new identifiers | **kept**, extended by B-10a ("jelly") | B-10a |
-| B-11 The scene is off Home's first frame | **kept**, clarified by B-11a (what frame 1 now holds); its timing amended by B-11b (2026-11-01: the scene opens when Home's entrance ends, and fades in) | B-11a, B-11b, §7 |
+| B-11 The scene is off Home's first frame | **kept**, clarified by B-11a (what frame 1 now holds); its timing amended by B-11b (2026-11-01: the scene opens when Home's entrance ends, and fades in); its device pass line restated by B-11c (2026-11-01) | B-11a, B-11b, B-11c, §7 |
 | B-12 Standing sweets in the stage's wings | **void**, withdrawn by B-12a | B-12a |
 | B-13 The sky is continuous across navigation | **kept**, amended by B-13a (one 700 ms constant, D2) | B-13a |
 | B-14 The dark theme is a night scene in luminance bands | **superseded** by B-14a (the slab-rim rule) | B-14a, §5.2 |
@@ -546,6 +546,81 @@ the second edition, whose sections §16 lists.
     `motion-consistency` favours the one fade the backdrop already has.
   - **Reduced motion keeps B-11a.** With nothing animating, there is nothing to wait for and
     nothing to fade.
+
+- **B-11c (2026-11-01): BD-23 (d)'s tolerance is defined, and its items (2) and (6) are restated**
+  (amends BD-23 (d). This is a UX decision on the qa-engineer's Open issue 1 in
+  `.planning/reports/candy-backdrop/qa-engineer-j5.md`. No code, token or test changes.)
+  - **Reading 1: "±2/255" means two code values.** It is 2 code values on the 8-bit channel being
+    measured, as in BD-21's "±2/255 per channel". On the fraction it is ε = 2/|C_full − C_sky|. On
+    the J-5 probe that is 2/56 ≈ 0.036 in light and 2/75 ≈ 0.027 in dark.
+    - The qa-engineer's reading is the line's meaning.
+    - Read literally, as 2/255 of the fraction, it is a unit error. The fraction has no 255 in it,
+      and on this probe 2/255 of it is less than half a code value, which is below the codec's noise.
+  - **Reading 2: "Home's second recorded frame" means Home's second frame.** Only recorded frames
+    in which Home's own content changes are Home's. A recorded frame that changes only the status
+    bar belongs to the system, not to Home. The qa-engineer's reading is the line's meaning.
+  - **Why item (2) still had to change: its 500 ms bound was unsound in two ways.**
+    1. **It contradicted B-11b.** B-11b accepts a first-draw stall of 120–290 ms on the fade's
+       first visible frame.
+       - While that frame is drawn, the screen still shows the frame before the open, and the fade's
+         clock keeps running.
+       - The visible rise of the 700 ms linear fade is therefore 700 ms, minus the stall, minus the
+         two ε bands at its ends. At the worst accepted stall that is ≈ 370 ms in light and
+         ≈ 390 ms in dark. B-11b's own text says so: "the rest is still a visible 370 ms ramp".
+       - The 500 ms came from the B-11a report's check, which counted the stall as time on the
+         ramp. That arithmetic was wrong.
+       - `light-1` shows the effect. Its ramp's tail runs at the 700 ms pace: 0.46 → 0.96 in 367 ms,
+         which is ≈ 0.73 s for a full rise. Extrapolated back, the fade's clock started ≈ 0.2 s
+         before its first visible frame appeared. That is a stall inside B-11b's range, not a short
+         fade.
+    2. **It depended on the recorder.** `screenrecord` writes a frame only when the screen changes,
+       16–420 ms apart on the bench. The span "last frame at 0 to first frame at 1" ends on whatever
+       frames happened to be written.
+       - It can grow by up to one recorder gap at each end, so a 300 ms fade with a 200 ms gap
+         beside it could pass.
+       - It also moved with the band chosen: 483 ms against 614 ms on the same run.
+       - The recorder can only lengthen that span, never shorten it. It was not the cause of
+         `light-1`'s shortfall; the stall was.
+  - **The corrected item (2) measures the ramp's pace between two frames the recorder wrote**, both
+    at fraction ≥ 0.50.
+    - **Why ≥ 0.50:** at B-11b's worst accepted stall, the first frame after the stall sits at
+      ≈ 0.44–0.47. Frames from 0.50 on are back on the fade's own line, so the stall cannot shorten
+      the measure.
+    - **Why the recorder cannot bias it:** both times are real presentation times. The cadence
+      decides only which frames exist, never the time between two of them.
+    - **The noise:** the codec's ±ε at each end is counted against the pass, so the measure is a
+      lower bound on the true pace.
+    - **The bound, 350 ms:** half the token's pace. Any two frames ≥ 50 ms apart on a 700 ms
+      linear ramp reach it after the noise allowance. No linear fade of 350 ms or less can pass, and
+      neither can the rejected 240 ms decelerate, whose tail reads ≈ 190–235 ms. B-11b's "a fade
+      under about 300 ms would read as a pop" is therefore always a fail.
+    - **What the device does not check:** that the fade is exactly `NAV_TRANSITION_MS` long. That
+      is BD-23 (a)'s test, on the test clock.
+  - **Item (6) is restated with the Home-frame rule.** Whether the scene arrives on Home's
+    rendered frame 2 or frame 3 is BD-23 (a)'s test. The recorder writes nothing while Home does not
+    change, so a recording cannot count Home's rendered frames.
+  - **Items (1), (3), (4), (5) and (7) keep their meaning.** (1) is reworded in code values. (3) and
+    (4) cannot pass falsely on a sparse recorder:
+    - a recorder gap can only merge steps into a larger one, or push "fully in" later;
+    - on this bench a gap is a time the screen held still, which is what the player saw.
+  - **Counts.** They were left unstated for (5)–(7) and battery saver, and are set here at what the
+    J-5 visit ran:
+    - (5) and (7): one run, either theme;
+    - (6): two cold starts per theme;
+    - battery saver: two cold starts per theme.
+  - **A run (2) cannot resolve is replaced, not judged:** too few recorded frames on the ramp's
+    upper half. Three unresolved runs in a row make (2) VOID on that instrument, never a pass.
+
+  — Reasons:
+  - **A pass line must measure the product, not the instrument.** The old (2) failed a fade B-11b
+    accepts, and it could pass a fade B-11b rejects, depending on where the recorder's frames fell.
+  - **What the player sees is unchanged.** The rest of the fade is the same 700 ms linear ramp,
+    the step bound (3) still catches a pop, and (a) still pins the duration on the test clock.
+  - **Both readings follow the line's own words.** "±2/255" is the per-channel notation BD-21
+    already uses. A "Home frame" is a frame Home drew, and Home did not draw the status bar.
+  - **The new bound was set after the J-5 data was seen.** Its value is derived from B-11b alone:
+    the 700 ms token and the 300 ms pop line. The J-5 verdict does not hinge on it: every run reads
+    ≥ 486 ms, so any bound from 300 to 486 ms gives the same result.
 
 - **B-12a: Withdrawn: nothing stands anywhere.** No motif is drawn on Home's stage or anywhere else.
   The stage is exactly what D-03l built, plus the rim, lip and glow of B-19 on its art. —
@@ -1824,7 +1899,7 @@ edition's, with only their layer and element names updated.
 | **BD-20** | **Font independence**: the backdrop alone, rendered at font scale 1.0 and 2.0 on the same window at the same clock time, is pixel-identical | Test | identical |
 | **BD-21** | **The sky is continuous across navigation** (amended: D6). On Home → catalogue → gameplay → Results → Home, with the test clock paused at a fixed backdrop time, every frame of every transition is rendered. Pixels are sampled where no stand-in draws and away from every wave and light: the calm band, and the sky between the band and the back crest | Test, QA (a screen recording) | at every frame, each sampled colour lies on the segment between that pixel's outgoing and incoming colours, within ±2/255 per channel: only a convex blend is allowed. The sky never lightens toward `background` |
 | **BD-22** | **RTL** (amended: D4). In `ar-XB` the scene, the waves' offsets and the sheen's travel are the mirror of LTR. An in-run comparison at a fixed clock time, under a stated tolerance constant, must fail on a deliberately unmirrored scene | Test, QA | mirrored |
-| **BD-23** | **Cold start** (amended: D7, D8; 2026-11-01: B-11b amends (a) and adds (d) and (e)). (a) After Home's first frame, `backdropLayers` = {Sky}, no wave or light is drawn and the clock has not started. **Animations on:** Waves and Lights stay absent, the clock unstarted and the motion AtRest, until `BACKDROP_SCENE_OPEN_MS` of animator-scaled time has passed; they are present within two `advanceTimeByFrame()` after it. The scene's alpha, read from a test-only hook beside the three existing ones, is 0 at the open and rises linearly to 1 over `NAV_TRANSITION_MS`, within one frame's step. It stays 1 from then on, through a navigation away from Home and back, which fades the sky and the scene by B-13a and never the scene alone again. At animator scale 2 the open is at twice the value. **Animations off:** Waves and Lights are present within two `advanceTimeByFrame()` of the first frame, at alpha 1, with no fade. (b) 15e on this branch, by §6.5's protocol under R3, is **PASS**; a VOID sitting is not a pass. (c) A separate block after 15e, animations **on**: ≥ 10 kept samples per arm, interleaved A/B in blocks of five with the first of each block discarded, reading "Janky frames" one second after `am start -W` returns. The open now falls inside this read window (≈ 0.44–1.14 s). The moved draw is measured by J-5 as amended in the tech-lead's J-4b §5 (`sleep 2`, RT_late), and (c) stays open until J-5. (d) **The open and the fade, on the device** (B-11b): see the pass line. (e) **The open covers Home's longest cascade:** the real `HomeScreen`, with both Continue chips composed at its first composition, under the test clock, at animator scale 1 and 2. The last band's pixels are stable from the open on, and the test fails if Home lengthens its cascade | Test, QA | (a) as stated; (b) PASS; (c) `median_B ≤ median_A + 1`; (e) as stated. (d), on the QA device, animations on, cold starts (`am force-stop`, then launch) to Home, ≥ 5 per theme in light and dark, each in a 60 fps screen recording. QA picks one sample pixel on the front wave in Home's footer. It must be clear of every container, of every light's vertical path (lights move only vertically, so a column clear of H6, H7 and H9's extents is clear), and above the navigation bar. QA records it in the report. The scene's fraction on a frame is `(C − C_sky) / (C_full − C_sky)` on that pixel's channel with the largest difference, with `C_sky` read before the open and `C_full` after the fade. **Pass:** (1) before the Challenge tile has reached its final alpha and position, the fraction is 0 within ±2/255, and no wave or light pixel shows anywhere; (2) the fraction never decreases, within ±2/255, and its rise from 0 to 1 spans ≥ 500 ms of recording; (3) no single frame-to-frame step exceeds 0.50. This admits the bench's worst first-draw stall (≈ 290 ms, a step of ≈ 0.44 at 700 ms), and it fails a pop or any fade under ≈ 300 ms; (4) the scene is fully in ≤ 2.0 s after Home's first recorded frame; (5) a tap on the Classic tile made during the fade opens the catalogue; (6) at animator scale 0, the scene is fully present by Home's second recorded frame, with no intermediate fraction; (7) Home → catalogue → Home within the same run shows only the 700 ms cross-fade: once Home is fully in, the fraction never drops back to 0, and no second delayed fade follows. In battery saver, (1)–(4) hold at the rest pose |
+| **BD-23** | **Cold start** (amended: D7, D8; 2026-11-01: B-11b amends (a) and adds (d) and (e); B-11c restates (d)'s pass line). (a) After Home's first frame, `backdropLayers` = {Sky}, no wave or light is drawn and the clock has not started. **Animations on:** Waves and Lights stay absent, the clock unstarted and the motion AtRest, until `BACKDROP_SCENE_OPEN_MS` of animator-scaled time has passed; they are present within two `advanceTimeByFrame()` after it. The scene's alpha, read from a test-only hook beside the three existing ones, is 0 at the open and rises linearly to 1 over `NAV_TRANSITION_MS`, within one frame's step. It stays 1 from then on, through a navigation away from Home and back, which fades the sky and the scene by B-13a and never the scene alone again. At animator scale 2 the open is at twice the value. **Animations off:** Waves and Lights are present within two `advanceTimeByFrame()` of the first frame, at alpha 1, with no fade. (b) 15e on this branch, by §6.5's protocol under R3, is **PASS**; a VOID sitting is not a pass. (c) A separate block after 15e, animations **on**: ≥ 10 kept samples per arm, interleaved A/B in blocks of five with the first of each block discarded, reading "Janky frames" one second after `am start -W` returns. The open now falls inside this read window (≈ 0.44–1.14 s). The moved draw is measured by J-5 as amended in the tech-lead's J-4b §5 (`sleep 2`, RT_late), and (c) stays open until J-5. (d) **The open and the fade, on the device** (B-11b): see the pass line. (e) **The open covers Home's longest cascade:** the real `HomeScreen`, with both Continue chips composed at its first composition, under the test clock, at animator scale 1 and 2. The last band's pixels are stable from the open on, and the test fails if Home lengthens its cascade | Test, QA | (a) as stated; (b) PASS; (c) `median_B ≤ median_A + 1`; (e) as stated. (d) (restated 2026-11-01 by B-11c: the tolerance defined, (2) and (6) restated, counts set), on the QA device, animations on, cold starts (`am force-stop`, then launch) to Home, ≥ 5 per theme in light and dark, each in a screen recording. `screenrecord` writes a frame only when the screen changes, so no frame rate is assumed, and every time is a recorded frame's presentation time. QA picks one sample pixel P on the front wave in Home's footer. It must be clear of every container, of every light's vertical path (lights move only vertically, so a column clear of H6, H7 and H9's extents is clear), and above the navigation bar. QA records it in the report. The measured channel is P's channel with the largest `|C_full − C_sky|`, with `C_sky` read before the open and `C_full` after the fade. The scene's fraction on a frame is `(C − C_sky) / (C_full − C_sky)`. **Tolerance:** every "±2/255" in (d) is 2 code values on the measured channel, which is ε = `2 / |C_full − C_sky|` on the fraction. "At 0" means within 2 code values of `C_sky`, and "at 1" means within 2 code values of `C_full`. **Pass:** (1) before the Challenge tile has reached its final alpha and position, P is at 0, and no wave or light pixel shows anywhere; (2) **never back, and a gradual ramp.** (a) From the open to the end of the recording, the measured channel never moves back toward `C_sky` by more than 2 code values from the furthest value it has reached. (b) Let A be the first recorded frame at fraction ≥ 0.50, and B the last recorded frame before the first frame at 1. The ramp's pace `D = (t_B − t_A) / (f_B − f_A + 2ε)` is ≥ 350 ms. If B is not after A, or `t_B − t_A` < 50 ms, the run is unresolved for (2): it neither passes nor fails, and another cold start in the same theme replaces it. Three unresolved runs in a row make (2) VOID, never a pass. D is a lower bound on the pace the player saw, and neither the first-draw stall nor the recorder's cadence can shorten it. The fade's exact duration is (a)'s test; (3) no step between consecutive recorded frames exceeds 0.50. This admits the bench's worst first-draw stall (≈ 290 ms, a step of ≈ 0.44 at 700 ms), and it fails a pop or any fade under ≈ 300 ms; (4) the scene is at 1 ≤ 2.0 s after Home's first recorded frame; (5) once, in either theme: a tap on the Classic tile made during the fade opens the catalogue; (6) at animator scale 0, two cold starts per theme: the scene goes from 0 to 1 in one recorded frame, with no recorded frame between 0 and 1, and that frame is Home's second frame on the recording. Home's frames are its first recorded frame and each later recorded frame in which the app's area changes. The app's area is the window between `statusInset` and the navigation bar's top edge, sampled on a grid of ≤ 6 px pitch. A frame changes it when more than 6 samples move by more than 6 code values from the previous Home frame. QA fixes that noise threshold before reading, and may tighten it but never loosen it. A recorded frame that changes only the status bar or the navigation bar is not a Home frame. Whether that frame is Home's rendered frame 2 or 3 is (a)'s test; (7) once, in either theme: Home → catalogue → Home within the same run shows only the 700 ms cross-fade. Once Home is fully in, the fraction never drops back to 0, and no second delayed fade follows. In battery saver, two cold starts per theme: (1)–(4) hold at the rest pose |
 | **BD-24** | **Greyscale.** Device captures of Home, gameplay and Settings, converted to greyscale, keep every BD-12, BD-13 and BD-27 ratio. Pegs remain distinct from holes, and the two gel tiles are told apart by their labels and glyphs | QA | as stated |
 | **BD-25** | **Previews** (amended: D4; the goldens are struck). Every new public composable has light and dark `@Preview`s: each density, the gel tiles, the glossed pills and chips. Screen previews go through `BackdropPreviewHost` with the clock fixed | Auditor | present |
 | **BD-26** | **THIRD_PARTY.md.** On the release branch the §1 idea row is present and its "What was taken" cell describes direction B (§9). No §2 row was added for the backdrop, and the licences screen does not list the row | Auditor, release-manager | as stated |
