@@ -14,24 +14,24 @@ The files keep `fastlane supply`'s metadata layout, but they are pasted by hand.
 | `en-US/title.txt` | App name | 30 | 13 |
 | `en-US/short_description.txt` | Short description | 80 | 76 |
 | `en-US/full_description.txt` | Full description | 4,000 | 2,145 |
-| `en-US/changelogs/30000.txt` | Release notes ("What's new"), versionCode 30000 | 500 | 456 |
+| `en-US/changelogs/30000.txt` | Release notes ("What's new"), versionCode 30000 | 500 | 472 |
 | `tr-TR/title.txt` | App name (Turkish translation) | 30 | 13 |
-| `tr-TR/short_description.txt` | Short description (Turkish) | 80 | 71 |
-| `tr-TR/full_description.txt` | Full description (Turkish) | 4,000 | 2,447 |
-| `tr-TR/changelogs/30000.txt` | Release notes (Turkish), versionCode 30000 | 500 | 477 |
+| `tr-TR/short_description.txt` | Short description (Turkish) | 80 | 66 |
+| `tr-TR/full_description.txt` | Full description (Turkish) | 4,000 | 2,311 |
+| `tr-TR/changelogs/30000.txt` | Release notes (Turkish), versionCode 30000 | 500 | 464 |
 
 The tr-TR texts were drafted on 2026-10-21 for Q-022 (founder, 2026-10-18: the studio drafts tr-TR for
-approval at Gate 2). They translate the en-US texts line for line, with one addition: the full
-description ends with "Oyunun arayüzü İngilizcedir." ("The game's interface is in English."), because the
-app has no Turkish strings (no `values-tr` on `develop` or any open branch) and the listing should not
-suggest otherwise. The founder may delete that line at Gate 2. Button names are given with the app's
-English label in brackets, e.g. "İpucu (Hint)", "Ayarlar'dan (Settings)", so a Turkish player can find
-them. The title stays "Peg Solitaire": the live Turkish listing uses that title too (public page,
+approval at Gate 2). Since `feature/turkish-locale` (merged to `develop` for 3.0.0, Q-031) the app has a
+Turkish interface (`values-tr`), so on the release branch of 2026-11-01 the tr-TR texts were replaced
+with `docs/ux/localisation-tr.md` §10: re-voiced to "sen" (Q-031), without the old closing line
+"Oyunun arayüzü İngilizcedir." (D-14) and without the English labels in brackets ("İpucu (Hint)",
+"Ayarlar'dan (Settings)"), which would now gloss a Turkish button with itself. Button names are the
+app's own Turkish labels (§3 glossary of that spec). The title stays "Peg Solitaire": the live Turkish listing uses that title too (public page,
 `hl=tr&gl=TR`, read 2026-10-21). "Piyon" (peg), "delik" (hole) and "tahta" (board) are the words the
 founder's own live Turkish text uses.
 
 Lengths are Unicode characters, counted without the file's final newline (`python3`, `len()`); re-counted
-2026-10-21 after the hint lines were rewritten.
+2026-11-01 on `release/3.0.0` after the tr-TR re-voice and the 3.0.0 release-note lines.
 
 **Hint claims follow the game-designer's ruling** (`.planning/reports/phase-14/game-designer-hint-timeout.md`
 §4, "Today" column): the texts say that a shown hint is a real winning move, and never that "no winning

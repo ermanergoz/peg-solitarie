@@ -1,7 +1,10 @@
 Peg Solitaire sıfırdan yeniden yapıldı:
-- Uygulamalı bir eğitim, daha dolu bir ana ekran ve başparmağınızın ulaştığı oyun düğmeleri
-- Büyük tahtalarda, yerleşik bir açılış kitabıyla daha hızlı ipuçları
-- Her hamle için ses, müziğinizi durdurmadan
-- İsteğe bağlı Play Games oturumu: 20 başarım, 7 skor tablosu ve bulut kaydı
-- Parlak yeni bir görünüm ve renk körlüğüne uygun palet seçeneği
-- Reklamlar: ödüllü reklam yalnızca siz seçtiğinizde, seviyeler arasında ara sıra reklam
+- Türkçe arayüz
+- Meydan okuma: yeni yıldız aralıkları ve yeni zorluk eğrisi
+- Tam ekran oyun
+- Uygulamalı eğitim; ana ekranda Devam et kayıtlı tahtanı gösterir
+- Büyük tahtalarda daha hızlı ipuçları
+- Her hamle için ses, müziğini durdurmadan
+- Play Games: 20 başarım, 7 skor tablosu, bulut kaydı
+- Parlak yeni görünüm ve renk körlüğüne uygun palet
+- Ödüllü reklam yalnızca sen seçtiğinde; seviyeler arasında ara sıra reklam
