@@ -34,8 +34,9 @@ internal class BoardLook(
 /**
  * The board's geometry and palette for one composition. Colors and stroke widths are resolved
  * here because DrawScope can read neither `MaterialTheme` nor resources; dimens are converted
- * dp → px (DrawScope draws in pixels), and every stroke is built once per geometry, never in the
- * draw lambda.
+ * dp → px (DrawScope draws in pixels), and every stroke the palette carries is built once per
+ * geometry. The draw lambda rebuilds none of them on a frame the composition sized; on one it has
+ * not, it rebuilds only the dashed hint rings' strokes, for that frame's geometry ([hintRingStroke]).
  *
  * The palette is read on the interactive path only (docs/ux/colour-vision.md §3.3): a read-only
  * board draws pegs and holes, which no palette touches, so it reads no `LocalBoardMarks` and takes
@@ -150,8 +151,13 @@ internal fun DrawScope.drawHintRing(
     }
 }
 
-/** A hint ring's stroke: solid for [SOLID_RING], else [dashes] dashes around a ring of [radius]. */
-private fun hintRingStroke(
+/**
+ * A hint ring's stroke: solid for [SOLID_RING], else [dashes] dashes around a ring of [radius]. The
+ * one builder of both hint strokes: [rememberBoardLook] builds them for the composed geometry, and
+ * `BoardCanvas` rebuilds the dashed ones for a frame the composition has not sized, since a dash
+ * pattern is cut for one radius (colour-vision §3.2, amended 2026-11-01).
+ */
+internal fun hintRingStroke(
     radius: Float,
     widthPx: Float,
     dashes: Int,

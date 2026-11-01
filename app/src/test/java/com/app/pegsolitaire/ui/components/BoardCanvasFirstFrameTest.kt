@@ -117,6 +117,30 @@ class BoardCanvasFirstFrameTest {
     }
 
     /**
+     * The same board with its hint up: the first frame dashes both hint rings for the radii it draws
+     * them at — eight dashes each, starting at the top (docs/ux/colour-vision.md §3.4) — as every
+     * later frame does, and not with strokes built for a geometry the composition had not yet sized.
+     */
+    @Test
+    fun theFirstFrameOfAColourBlindBoardDashesItsHintRingsAsTheSettledFrameDoes() {
+        val scene = PaletteScene.midGame(Boards.english33Initial)
+        motion.turnAnimationsOff()
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            AppTheme(darkTheme = false, boardMarkPalette = BoardMarkPalette.Colorblind) {
+                BoardCanvas(
+                    state = scene.state,
+                    onCellTap = {},
+                    onAnimationFinished = {},
+                    modifier = Modifier.size(INTERACTIVE_CANVAS_DP.dp),
+                )
+            }
+        }
+
+        assertTheFirstFrameIsTheSettledFrame(BOARD_CANVAS_TEST_TAG)
+    }
+
+    /**
      * Reads the tagged node's pixels in the frame the paused clock left, then in the settled frame:
      * the first must carry ink and equal the second.
      */

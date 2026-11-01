@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.toSize
 import com.app.pegsolitaire.domain.model.Cell
 import com.app.pegsolitaire.domain.model.Position
+import com.app.pegsolitaire.ui.game.BoardMarkRecipe
 import com.app.pegsolitaire.ui.game.BoardMetrics
 import com.app.pegsolitaire.ui.game.GameAnim
 import com.app.pegsolitaire.ui.game.GameUiState
@@ -224,15 +225,18 @@ fun BoardCanvas(
         // that rebuilds `geometry` for its size, so it draws with a geometry of the frame's own
         // size: the pegs arrive in the frame their slab does, and stay on it while it resizes
         // (ux-spec §4.2.5 part 4, §10). It keeps the composed geometry's recipe, so the marks keep
-        // the palette's radii (colour-vision §3.4). In steady state the sizes match and nothing is
-        // allocated.
-        val frameGeometry = if (geometrySize == size) geometry else BoardGeometry.forCanvas(spec, size, recipe)
+        // the palette's radii (colour-vision §3.4), and the dashed hint rings are stroked for its
+        // radii (§3.2, amended). In steady state the sizes match and nothing is allocated.
+        val unsizedFrame = geometrySize != size
+        val frameGeometry = if (unsizedFrame) BoardGeometry.forCanvas(spec, size, recipe) else geometry
         drawBoard(
             state = state,
             geometry = frameGeometry,
             palette = palette,
+            recipe = recipe,
             interactive = interactive,
             animations = animations,
+            unsizedFrame = unsizedFrame,
         )
     }
 }
@@ -378,13 +382,19 @@ private class BoardAnimationValues(
     val wrongTap: WrongTapFeedback,
 )
 
-/** Draws the whole board for one frame. */
+/**
+ * Draws the whole board for one frame. [unsizedFrame] is whether the composition has not sized this
+ * frame — the first frame, a resize frame — so [geometry] was built for it in the draw, with
+ * [recipe], the composed geometry's.
+ */
 private fun DrawScope.drawBoard(
     state: GameUiState,
     geometry: BoardGeometry,
     palette: BoardPalette,
+    recipe: BoardMarkRecipe,
     interactive: Boolean,
     animations: BoardAnimationValues,
+    unsizedFrame: Boolean,
 ) {
     if (!geometry.isReady) return
     val board = state.board
@@ -417,7 +427,7 @@ private fun DrawScope.drawBoard(
     val hintSource = state.hintSource
     val hintTarget = state.hintTarget
     if (interactive && hintSource != null && hintTarget != null) {
-        drawHintHighlight(geometry, palette, hintSource, hintTarget)
+        drawHintHighlight(geometry, palette, hintSource, hintTarget, unsizedFrame, recipe.hintRingDashes)
     }
 
     if (transition != null) {
@@ -584,28 +594,44 @@ private fun DrawScope.drawSelectedPeg(
  * glow sits above the connector where they overlap. The rings' colour, alphas and strokes are the
  * palette's: `tertiary` at 0.9 and solid in the standard palette; in the colour-blind one opaque,
  * dashed, and amber in light (colour-vision CV-09).
+ *
+ * A dash pattern is cut for one radius, and the palette's dashed strokes were cut for the composed
+ * geometry's, which is zero-sized on a first frame. So on an [unsizedFrame] the dashed rings are
+ * stroked here for [geometry]'s radii, with [hintRingDashes] dashes, through the builder the palette
+ * used (colour-vision §3.2, amended); a solid stroke has no pattern and is drawn as it is.
  */
 private fun DrawScope.drawHintHighlight(
     geometry: BoardGeometry,
     palette: BoardPalette,
     source: Position,
     target: Position,
+    unsizedFrame: Boolean,
+    hintRingDashes: Int,
 ) {
     val sourceCenter = geometry.center(source)
     val targetCenter = geometry.center(target)
     val ringColor = palette.hint.copy(alpha = palette.hintRingAlpha)
+    val restroke = unsizedFrame && palette.hintRingsDashed
     drawHintRing(
         ringColor,
         targetCenter,
         geometry.hintTargetRingRadius,
-        palette.hintTargetStroke,
+        if (restroke) {
+            hintRingStroke(geometry.hintTargetRingRadius, palette.ringWidthPx, hintRingDashes)
+        } else {
+            palette.hintTargetStroke
+        },
         palette.hintRingsDashed,
     )
     drawHintRing(
         ringColor,
         sourceCenter,
         geometry.hintSourceRingRadius,
-        palette.hintSourceStroke,
+        if (restroke) {
+            hintRingStroke(geometry.hintSourceRingRadius, palette.ringWidthPx, hintRingDashes)
+        } else {
+            palette.hintSourceStroke
+        },
         palette.hintRingsDashed,
     )
     drawLine(
