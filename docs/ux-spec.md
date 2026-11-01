@@ -519,6 +519,22 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > window-focus note), §13 (a pointer), §14 (TB-6, TB-8), §16 (the ids pointer). One id is added,
 > D-TBc. No string, token or colour changes.
 >
+> *(2026-11-01 — **D-TBd**; QA's B-8, `.planning/reports/talkback-board/qa-engineer-device2.md`, with
+> the fallback the tech-lead pre-ruled in `.planning/reports/talkback-board/tech-lead-defect-ruling.md`
+> §8. Written on Opus under Q-019.)* After the rescue banner's Restart is confirmed in its dialog,
+> TalkBack puts focus on the gameplay screen's first stop, the back button ("Navigate back"), 3 times
+> out of 3, and never on the board stop. The window-focus wait (F4) did not change that. Ruled as
+> **D-TBd** (§3), the pre-ruled fallback:
+> - for a banner Restart confirmed in its dialog only, focus rests where TalkBack places it as the
+>   dialog closes, which is the screen's first stop. The board stop also passes;
+> - the restart line is still owed once and in full, and focus is not moved again after it rests;
+> - the banner's Undo, a banner Restart made without the dialog, a declined dialog and every other
+>   row stay as written.
+>
+> Edits: §3 (D-TBd), §11.1 (the focus table's banner row, and a pointer under "How focus moves"), §13
+> (a pointer: no new assertion), §14 (TB-7, with a new pass line), §16 (the ids pointer). One id is
+> added, D-TBd. No code changes, and no string, token or colour changes.
+>
 > **Twelfth revision (the reduced-motion live gate) — 2026-10-24 — AMENDMENT.** Written on Opus under
 > Q-019, not on the role's pinned Fable. It carries three of this role's rulings on
 > `bugfix/reduced-motion-live-gate`, from `.planning/reports/reduced-motion-live-gate/tech-lead-ruling.md`
@@ -1787,6 +1803,55 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
       `navigation/`, which costs a 15e sitting.
     - Option (a) would make the game's flow depend on whether a screen reader is running, and the
       tech-lead does not rule its risk (a finish lost on rotation) into this loop.
+
+- **D-TBd** *(2026-11-01 — **amendment, build loop**. UX ruling on QA's **B-8**,
+  `.planning/reports/talkback-board/qa-engineer-device2.md`. It applies the fallback the tech-lead
+  pre-ruled in `.planning/reports/talkback-board/tech-lead-defect-ruling.md` §8, on
+  `feature/talkback-board`. Written on Opus under Q-019. Amends §11.1's focus-table row "Undo or Restart
+  from the rescue banner" and TB-7. §11.1's "How focus moves", §13 and §16 gain pointers. Their first
+  wording is kept.)*: **a banner Restart confirmed in its dialog leaves focus where TalkBack puts it as
+  the dialog closes: the gameplay screen's first stop.** The restart confirm dialog is a window of its
+  own. When it closes, TalkBack places focus itself in the window it returns to. The banner's Restart,
+  which had focus before the dialog, has gone with the banner, so TalkBack starts at the top of the
+  screen.
+  - In session 2 that was the timer. In session 3, after the board stop joined the order, it was the
+    back button, "Navigate back", 3 times out of 3.
+  - The app's move to the board stop is still made, now after the window regains focus (the
+    tech-lead's §8, F4). TalkBack did not follow it, before or after that wait.
+  1. **Scope.** This applies only to the rescue banner's Restart, when it opens the restart confirm
+     dialog and the player confirms.
+     - The banner's Undo, and a banner Restart that the ViewModel applies without the dialog, keep the
+       board stop as their target, as written.
+     - The dock's Restart keeps focus on itself: that button survives the dialog.
+     - Declining the dialog leaves focus on the banner's Restart, and nothing moves.
+  2. **What is expected after the confirm:**
+     - "Board restarted. *N* pegs left." is spoken once and in full;
+     - focus then rests on the screen's first stop in 26b's order, the back button ("Navigate back"),
+       read once. The board stop also passes, for a TalkBack that follows the app's move;
+     - once focus rests, nothing moves it until the player does. D-TBb's half-second note is the one
+       exception: if the first stop is read in full and the board stop's read starts no later than
+       half a second after it ends, the run passes as the board stop;
+     - TalkBack's own window name as the dialog closes ("Peg Solitaire") is TalkBack's and is not
+       judged.
+  3. **No code.** The app's move stays, and so does its wait for window focus. Where TalkBack does not
+     follow, the move does no harm, and where TalkBack does follow, the move lands on the board stop.
+     No string changes.
+  — Four reasons:
+  - **The cause is TalkBack's window change, not the app's target.** The board stop was chosen because
+    "the banner leaves the screen with the button that had focus", and that is still true. The device
+    shows that TalkBack does not take a focus move into a window it is returning to. F4 was the one
+    mechanism ruled for this, and it did not change the result.
+  - **Nothing is hidden or false.** The restart line says what happened and how many pegs are left
+    before focus lands. The board is the restarted one when the player reaches it.
+  - **The top of the screen is where every screen in this document is met** (D-TBa item 6). The board
+    stop is three swipes on: title, timer, board stop. "Navigate back" is read aloud as a button before
+    any double-tap, so it is never activated unheard.
+  - **A second move that fights TalkBack's placement** risks the failures this spec already rules out:
+    focus moved after it has rested, and a stop read twice (D-TBb's third reason).
+
+  **Recorded, not hidden.** Like D-TBb's floor, this is TalkBack's own placement, and the producer names
+  it beside that floor in the Q-PUBLISH-3.0.0 summary's TalkBack lines. If a later build or TalkBack
+  version lands on the board stop, that passes, and this ruling needs no change.
 
 ---
 
@@ -5443,7 +5508,7 @@ Every announcement says only what the cells then say, so it is never the only re
 | A jump by tap | The destination cell — the one activated — which now says "peg" |
 | A jump by action | **Moved:** the destination cell. Focus moves there, so both ways of jumping end on the peg that moved. *(2026-10-24 — D-TBb.)* On every route to the action. When it came through TalkBack's menu, the source cell is the 3.0.0 floor ("Two routes to a jump action", below) |
 | Undo, Hint or Restart from the dock (Restart once its confirm dialog closes; *(loop 4)* Undo or Hint once the opt-in dialog is declined) | That dock control. *(Loop 4.)* When the opt-in dialog is accepted and an ad plays, the ad is its own screen, and focus on return is TalkBack's own placement; D-TB moves none |
-| Undo or Restart from the rescue banner | **Moved:** the board stop, because the banner leaves the screen with the button that had focus |
+| Undo or Restart from the rescue banner | **Moved:** the board stop, because the banner leaves the screen with the button that had focus. *(2026-11-01 — D-TBd.)* A Restart confirmed in its dialog: the screen's first stop, the back button, where TalkBack places focus as the dialog closes; the board stop also passes. A declined dialog: the banner's Restart, unmoved |
 | The rescue banner rising | Unchanged. *(Loop 4, D-TBa items 1 and 4.)* The banner's message is announced by its own region. Its message and its buttons are stops after the last cell and before the dock |
 | The Undecided notice rising *(loop 4)* | Unchanged: on the Hint control the player activated. The notice is announced by its own region, and it is one stop after the last cell and before the dock |
 | The Undecided notice put away *(loop 4)* | D-TB moves no focus. The notice is the hint branch's (§4.4.2 there) |
@@ -5474,6 +5539,11 @@ input focus, and TalkBack follows input focus.
   double-tap and reading-control routes and after the banner's Undo and Restart. The fallback above
   is therefore **not triggered and not applied**: input focus and the four moves stay. It applies to a
   move only if TalkBack follows that move on no route.
+- *(2026-11-01 — D-TBd; QA's B-8.)* After a banner Restart confirmed in its dialog, the device shows
+  TalkBack not following the move, before and after the window-focus wait: focus landed on the board
+  stop 0 times out of 3. TalkBack places focus itself as the dialog window closes. That case is ruled
+  by D-TBd (§3): the screen's first stop passes. The move stays. The fallback above is still not
+  triggered, because TalkBack follows the same move after the banner's Undo.
 
 *(2026-10-24 — D-TBb, §3; QA's B-5, `.planning/reports/talkback-board/qa-engineer.md`.)* **Two routes
 to a jump action.** A peg's jump actions are reached two ways:
@@ -5848,6 +5918,10 @@ its return of focus when it closes, cannot be driven from `ui-test`, so the rout
 by TB-7's and TB-9's device half. The gate's assertions owed above (TB-11) stand as written.
 *(2026-10-24 — D-TBc; QA's B-6.)* D-TBc owes no new assertion either. TB-8's owed summary tests stand,
 and a win is judged on the device by its summary (TB-8 as amended).
+*(2026-11-01 — D-TBd; QA's B-8.)* D-TBd owes no new assertion and withdraws none. The tech-lead's
+window-focus test (its §8) asserts the app's request, input focus on the board stop once the window has
+focus again, and it stands. Where TalkBack's focus lands after the dialog closes is judged on the
+device only, by TB-7's new pass line.
 
 **Owed, new** — every one watched fail once before it is trusted: criteria **15n–15r** (Home, §4.2.4,
 including the unit test that replays the stage's recorded move list from the English start),
@@ -6914,6 +6988,31 @@ TB-7. **Focus stays on the board.** After a selection, a put-down or a rejected 
         never at the top of the screen" stands on every route.
       - The fallback above ("If TalkBack does not follow") is not triggered: TalkBack follows on two
         routes and after the banner's Undo and Restart.
+      *(Amended 2026-11-01 — D-TBd; QA's B-8.)*
+      - **A banner Restart confirmed in its dialog** is judged by the pass line below, not by "puts it
+        on the board stop" and not by "never at the top of the screen". On the device, TalkBack places
+        focus itself as the dialog closes, on the screen's first stop.
+      - The banner's Undo, a banner Restart made without the dialog, and the dock's Restart are judged
+        as written above. The previous bullet's "after the banner's … Restart" does not cover a
+        Restart confirmed in its dialog.
+      - **Pass line (TB-7, a banner Restart confirmed in its dialog).** Raise the rescue banner
+        (`stuck_message` or `nowin_message`), double-tap its Restart, then double-tap the dialog's
+        confirm button. The run passes when, in this order:
+        1. "Board restarted. *N* pegs left." is spoken once and in full, with *N* the new board's
+           count;
+        2. focus then rests on the gameplay screen's first stop, "Navigate back", or on the board
+           stop, "Board, *N* pegs left", read once with its current text;
+        3. no further focus move follows in the 5 s after that read, unless the player makes it.
+
+        TalkBack's window name between them ("Peg Solitaire") is not judged. The run fails if:
+        - the restart line is missing, repeated or cut off;
+        - focus rests on any other stop: the title, the timer, a cell or a dock control;
+        - a stop is read in full and then left by a move the player did not make. "Navigate back"
+          followed by the board stop passes only if the board stop's read starts no later than half
+          a second after "Navigate back" ends.
+
+        Declining the dialog passes when focus returns to the banner's Restart and nothing moves. The
+        device pass is three confirms and one decline, read from the speech log.
 
 TB-8. **The result is spoken.** When Results opens after a finished game, `results_a11y_summary` is
       announced once — the headline, `catalog_stars_earned` with a total of 3, and
@@ -7163,6 +7262,8 @@ the audio amendment.
 *(Pointer 2026-10-24 — D-TBb and D-TBc.)* "D-TBb" and "D-TBc" join the same series for the same
 reason, and the D-TB headings on this branch's tree carry no other id of that form. Neither changes a
 trace: like D-TB, both trace to the studio baseline and to Q-023.
+*(Pointer 2026-11-01 — D-TBd.)* "D-TBd" joins the same series for the same reason. It changes no
+trace.
 
 ---
 
