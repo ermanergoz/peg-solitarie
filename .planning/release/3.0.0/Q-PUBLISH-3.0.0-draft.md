@@ -23,15 +23,24 @@ after the bundle exists. Lines below are collected from the sign-offs; each name
 - **Reduced-motion switch latency:** a system switch reaches the game about 10 s later (platform delay, accepted).
 - **Chip room effect (C11 §3):** one animation effect on Home is keyed on the motion gate (`HomeBandColumn.kt:273`); P3 shows it strands nothing; fixed in 3.0.1.
 
-**Candy backdrop** (candy sign-off and J-2 ruling; final wording depends on J-4/J-5):
-- Cold start on the emulator bench costs **+44.5 ms** (455.0 vs 410.5 ms; null floor 6.5 ms; threshold 100 ms) — PASS; the ≤ 2 s phone bar was not re-measured on a phone.
-- **If it ships unfixed:** a one-off hitch of about **+220 ms** in the first five frames after Home's first paint (the backdrop scene's first draw, on the RenderThread), measured on the emulator bench; no steady-state jank. Shipping it unfixed is a founder `Q-<NNN>` under J-4c, not a studio call.
+**Candy backdrop** (shipped with the J-4b fix; `candy-backdrop/tech-lead-signoff-final.md` §4, closed by `ux-designer-bd23d-bs.md`; merged `da886ed`). Emulator only; no physical phone was measured:
+- **Cold start (TTID): +44.5 ms** against develop on `Pixel_9a_bench` (455.0 vs 410.5 ms; null floor 6.5 ms; line 100 ms) — PASS (`qa-engineer-15e.md`). J-4b did not touch the start path.
+- **Settle of the first five frames after Home's first paint: +57.7 ms** against develop (458.2 vs 400.5 ms; null floor 30.2 ms; line 100 ms) — PASS (`qa-engineer-j5.md`). Before the J-4b fix it was +216 to +225 ms.
+- **Remaining frame-1 cost** comes from Home's own finishes: RenderThread +68 ms on frame 1 (208.1 vs 139.7 ms), +22 / +11 ms on frames 2–3, and a ≈ 7.5 MB stencil attachment; consistent with the +44.5 ms TTID (3.0.1 item).
+- **The moved scene draw:** one stall of about **49 ms** (develop: 33 ms) on a still Home, about 0.6 s after the entrance. **No steady-state jank.**
+- **What the player sees:** the waves and lights appear after Home's entrance (440 ms at animator scale 1) and fade in over 700 ms, once per host start (including every configuration-change recreation). A tap during the fade may be delayed once, never lost. With animations off, the scene appears on frame 3 with no fade.
+- **Battery saver:** BD-23 (d) PASSES on the existing four runs (all rendered dark: API 36 forces dark in battery saver), item (4) at most 1.288 s after the Challenge tile settles against ≤ 1.56 s; the earlier `bs-light-2` 45 ms "miss" was a line defect (anchor inside the system splash), not a product finding (B-11d).
+- **Scope:** one emulator, API 36, Skia (OpenGL) via host-GLES translation, debug APKs. The ≤ 2 s phone start bar (D-03j, PLAT-08) was not re-measured on a phone; a phone GPU with a warm shader cache will likely show smaller first-draw costs, which the bench cannot show either way.
 
 **Evidence scope (whole release)**
 - **Emulator-only evidence:** no physical device was available (founder directive 2026-10-31). Phone-only checks are unverified: tutorial step lines on a phone, L1-2, cold start ≤ 2 s on a phone, audio speaker-mute and wired-headset branches (Q-025, if not answered with option 1), CV-AC14 if not run.
 - **Reduced QA** (directive 2): device re-runs checked only fixed defects plus one smoke pass; candy rows skipped are filed for 3.0.1.
 - **Staffing:** every Fable-pinned review since 2026-10-24 ran on Opus (Q-019); a superior-model re-audit was recommended (e.g. before the first script-route upload).
 - Audio blocked items (60 fps recording, P4c listen) if still open at the cut.
+
+**Release Check (cut, 2026-11-01):** `FUZZ_SEEDS=100000 ./scripts/check.sh --rerun-tasks` green on `release/3.0.0` (code = `develop` `da886ed`): the whole 10,000-level space fuzzed with 0 failures, 1,937 unit tests, `:domain` line coverage 99.0 %, the four literal gates run.
+
+**Conditional line (§16 #30):** only if the release device pass cannot raise the Undecided notice (D-13): "the notice's TalkBack traversal: tree-order and speech-output evidence only".
 
 ## Checklist and store state (filled at 4.8)
 - Checklist: `<n ticked / n>`; founder items F-1..F-14 status from the operator checklist.

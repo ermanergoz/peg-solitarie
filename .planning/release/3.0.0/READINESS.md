@@ -1,98 +1,99 @@
-# 3.0.0 release readiness — before `release/3.0.0` is cut
+# 3.0.0 release readiness — `release/3.0.0` cut, pre-device-pass state
 
-Date: 2026-11-01. Author: release-manager. Read at `develop` = `d251c3b` (talkback-board merged).
-**`release/3.0.0` is NOT cut.** `feature/candy-backdrop` is on HOLD (tech-lead sign-off addendum
-2026-11-01: BD-23 (c) open on the J-4 path, a ~+220 ms first-draw hitch on the RenderThread).
-Nothing here bumps `VERSION`, tags, uploads or asks the founder anything. `VERSION` already reads
-`3.0.0` on `develop` (it was set in phase 14), so item 2.2 is a read, not a bump.
+Date: 2026-11-01. Author: release-manager. **`release/3.0.0` is cut** from `develop` = `da886ed`
+(`feature/candy-backdrop` merged, the last branch-cut row), in the worktree
+`/Users/ermanergoz/Desktop/PegSolitarie-release`. Not merged to `main`, not tagged, nothing uploaded,
+no founder question asked: Gate 2 comes later. The earlier pre-cut revision of this file (read at
+`d251c3b`, candy on HOLD) is in git history.
 
-States: **done** (evidence observed today), **owed** (studio work left, owner named),
-**founder** (founder-only, `[F]`, waits on the operator checklist / F-items), **post-cut** (cannot be
-done before the branch exists or the bundle is built).
+States: **done** (evidence observed today, in `.planning/reports/release-3.0.0/release-manager-cut.md`),
+**owed** (studio work left, owner named), **founder** (founder-only, `[F]`, waits on the operator
+checklist / F-items), **device** (the release device pass, §3), **post-build** (needs the AAB of 4.3).
 
 ## 1. Release checklist (`docs/release-checklist.md`), item by item
 
 ### §1 Before the branch is cut
 | # | State | Evidence / what is left |
 |---|---|---|
-| 1.1 | **owed (one row)** | Merged on `develop` (first-parent merge commits): R1 `b1a6cf9`, check-gates (R-2) `dbd0a6c`, audio `6aa7624`, RM `053e9cc`, F-1 home-chip-arrival `305f741`, colour-vision `1bc442f`, LN licences-screen `bc95b2a`, PU play-upload `1dd1080`, TB talkback-board `d251c3b`. **Not merged: `feature/candy-backdrop`** (row 7, kept in 3.0.0 by Q-028 answer 1) — HOLD. `bugfix/solver-deadline-task` (row DT) not merged. `git status --porcelain` empty in this worktree. **Update 2026-11-01:** row DT is DEFERRED to 3.0.1, owner tech-lead (unmerged, not in 3.0.0): the producer's decision, as recorded in `develop`'s `.planning/reports/STATUS.md` (2026-11-01 entry). At `d251c3b` that file still reads "row DT, optional pre-cut" (`:62`), so 1.1 is ticked only once the producer's 2026-11-01 STATUS line is on `develop`. Only candy remains |
-| 1.1a | **done in substance, tick at the cut** | Merge `d251c3b` exists; `git diff --name-only d251c3b^1 d251c3b -- app/src/main` lists 18 files incl. `ui/components/BoardSpeech.kt`; tech-lead sign-off PASS names code `2fe6568` and `develop` = merge base; QA device3 PASS on `ergoz_studio` (an emulator: the brief allows the `Pixel_9` emulator, directive 4). Re-run condition (3)'s `git diff --quiet` at the cut |
-| 1.2 | **owed** | `FUZZ_SEEDS=100000 ./scripts/check.sh --rerun-tasks` on the final `develop` (after candy). Not run today on purpose: the host must stay quiet for candy's bench visit (STATUS 06:30) and the tree is not final |
-| 1.3 | **owed** | `git diff v1.0..develop -- '*/src/*'` suppression grep, reviewed hit by hit, on the final tree |
-| 1.4 | **owed (small)** | 0 `PENDING FOUNDER` in `THIRD_PARTY.md` (F-4 provenance appears closed — confirm §7 rows read as verified). Licences merge `bc95b2a` exists. Owed: the candy row (`THIRD_PARTY.md:87`, "not yet built") follows candy's fate at 2.4a; §16 #20 re-read |
-| 1.5 | **done today** | Only open question: Q-025 (headphones/wired headset, audio release QA). Its `Blocks:` line does not name the release cut; it lands in Q-PUBLISH as unverified if unanswered |
-| 1.6 | **owed (record at cut)** | `git rev-list v1.0..develop --count` = **1260** at `d251c3b`; re-count at the cut |
-| 1.7 | **owed (Gate 2, not the cut)** | `scripts/play-upload.sh` is on `develop` (`1dd1080`, blob `259c9bb`). 1.7's text now states the as-built contract (T-2, done in the docs pass). Owed before the tick: the producer records the route (script or Console), and the tech-lead's PU close sync (§2 item 6) |
+| 1.1 | **done** | `git status --porcelain` empty at the cut. Every branch-cut row merged (first-parent merges): R1 `b1a6cf9`, R-2 `dbd0a6c`, audio `6aa7624`, RM `053e9cc`, F-1 `305f741`, colour-vision `1bc442f`, LN `bc95b2a`, TB `d251c3b`, candy `da886ed`. Row DT deferred to 3.0.1, owner tech-lead (producer's decision `4135e2d`, on `develop` via `47cb7e0`). PU blocks Gate 2 only (1.7) |
+| 1.1a | **done** | Merge `d251c3b` exists and brought `ui/components/BoardSpeech.kt` among its `app/src/main` files; reviews and sign-off as read pre-cut (tech-lead sign-off PASS, QA device3 PASS on `ergoz_studio`) |
+| 1.2 | **done** | `FUZZ_SEEDS=100000 ./scripts/check.sh --rerun-tasks --console=plain` → `exit 0`, BUILD SUCCESSFUL in 11 m 38 s, 107 tasks, 107 executed. Fuzz: whole space, 10,000 levels examined (requested 100,000), determinism pass, 0 failures. 1,937 unit tests, 0 failed, 0 skipped. Quiet host: 1-min load 4.31 at start, 4.32 at end (≤ 5.0). Run on `release/3.0.0` = `develop` `da886ed` code (only docs edits on top), so it serves 1.2 and 3.1 alike |
+| 1.3 | **reviewed, not ticked — to the code-auditor** | `git diff v1.0..HEAD -- '*/src/*'` grep: **44 hits**, read one by one. 12 `@Suppress` in `app/src/main`; 31 in tests (`!!` in test assertions, `UNCHECKED_CAST`, `unused` arch fixtures, test `LargeClass`/`LongParameterList`); 1 false positive (`SemanticsProperties.Disabled`). Approval lines found for the main-source ones in `ProgressRepository` (×2), `ProgressSubmitter`, `CloudProgressCodec` (phase-13 sweep, phase-15), `GameScreen` (hint-undecided, audio-review), `BoardCanvas` (colour-vision loop 0). **No approval line found** for `SnapshotMapper` `TooManyFunctions`, `GamesIds` `CyclomaticComplexMethod`, `PlayGamesService` `TooManyFunctions`, `GameViewModel` `TooManyFunctions/LongParameterList/LargeClass`, `ModeGlyphs` `MagicNumber` ×2, nor for the test-side `UNCHECKED_CAST`/`unused` set. The release-manager does not approve suppressions: one code-auditor pass over the list closes it |
+| 1.4 | **done (pre-cut half)** | 0 `PENDING FOUNDER`; §6 U-1..U-5 closed, U-6 closes at 3.5; licences merge `bc95b2a` exists; candy and licences rows updated (2.4a). §16 #20's remainder is 3.5 / 4.6a |
+| 1.5 | **done** | Only open question Q-025, `Blocks: nothing` |
+| 1.6 | **done** | `git rev-list v1.0..release/3.0.0 --count` = **1366**; 214 `feat`, 89 `fix`/`perf` subjects (no-merges) |
+| 1.7 | **owed (Gate 2)** | script on `develop` since `1dd1080`; the producer records the route (script or Console) and the tech-lead's PU close before the tick |
 
-### §2 Cutting the branch — all **post-cut**
-| # | Pre-cut state |
+### §2 Cutting the branch
+| # | State |
 |---|---|
-| 2.1 | post-cut |
-| 2.2 | `VERSION` = `3.0.0` already (read) |
-| 2.3 | versionCode 30000 to check in `app/build.gradle.kts`; published max read by founder (F-13) |
-| 2.4 | `CHANGELOG.md` `[3.0.0] — unreleased` exists; date at cut. Draft corrections: `CHANGELOG-draft.md` |
-| 2.4a | Markers today: colour-vision and licences pending markers are **stale** (both merged) — remove; candy markers stay until its fate is known; `docs/store/README.md` tables (lines 57–66) likewise |
-| 2.5 | owed at cut; adding the TalkBack store line (now allowed, 1.1a) means re-reading notes ↔ changelog |
-| 2.5a | optional; R1 merged, so the hint copy **may** be raised (choose at cut) |
-| 2.6 | **done pre-cut (T-4)**: the `CLAUDE.md` and `AGENTS.md` Build command is `./gradlew :app:bundleRelease` (this branch); at the cut 2.6 is a `grep` read |
-| 2.7 | post-cut |
+| 2.1 | **done** — `release/3.0.0` from `develop` `da886ed` (worktree add) |
+| 2.2 | **done** — `VERSION` = `3.0.0` |
+| 2.3 | **done [S] / founder [F]** — `versionName "3.0.0"`, `versionCode = 30_000` = 3·10000+0·100+0 > published 2; the Console read of the published max is F-13 |
+| 2.4 | **owed at the merge to main** — `## [3.0.0] — unreleased` stays undated until the tag (the section's own rule); dated on the release branch right before step 5 |
+| 2.4a | **done** — all pending branches merged (`--is-ancestor` exit 0 for audio-review, colour-vision, licences-screen, candy-backdrop, phase-15-ux-refresh); markers removed in `CHANGELOG.md`, `THIRD_PARTY.md` (branch table, candy row, Apache row, LN bullet) and `docs/store/README.md` (both pending tables); `grep -n 'pending:' CHANGELOG.md` silent. Listing lengths unchanged (no store text edited) |
+| 2.5 | **owed with the TalkBack store line** — the CHANGELOG now carries the TalkBack bullet; the store texts make no TalkBack claim yet. If the line is added (Gate 2 offer), it is counted, word-checked and read against the changelog then |
+| 2.5a | **taken in the changelog only** — R1 merged (`b1a6cf9`); the CHANGELOG Changed bullet says "no winning move" appears only when proven. Store copy not raised (founder's choice at Gate 2) |
+| 2.6 | **done** — `CLAUDE.md` and `AGENTS.md` Build command: `./gradlew :app:bundleRelease` |
+| 2.7 | **done** — this cut's commit `chore(release): 3.0.0` |
 
-### §3 Gates on the release branch — all **post-cut** (3.1–3.7). Note for 3.5: re-check okhttp version against row J; 3.5b versions 22.0.0 / 1.4.0 / 4.0.0 / 2.0.1.
+### §3 Gates on the release branch
+| # | State |
+|---|---|
+| 3.1 | **done** — as 1.2; log `build/release-check.log` (git-ignored); both fuzz lines present; no gate task `FROM-CACHE` (the 5 `UP-TO-DATE` lines are action-less lifecycle tasks: `preBuild`, `generateDebugAssets`, `testClasses`) |
+| 3.2 | **done** — `test ! -e domain/build/fuzz-failures.txt` after an executed `:domain:fuzz` |
+| 3.3 | **done** — `:domain:koverVerify` executed; `./gradlew :domain:koverXmlReport --offline` exit 0, `report.xml` 12:41:55 (after the run): LINE missed 9 covered 912 = **99.0 %** (912/921) at bound 90, not below the recorded 99.0 % |
+| 3.4 | **done** — 8 of 8 literal-gate tasks executed (`:app` and `:domain` × ad-ID, Games-ID, audio-focus, dp/sp) |
+| 3.5 | **partly done — per-coordinate diff owed (research-analyst)** — `:app:dependencies --configuration releaseRuntimeClasspath` exit 0: **191** resolved coordinates. Every non-AndroidX group appears in `THIRD_PARTY.md`; AndroidX falls under the §5b family row. okhttp **4.11.0** (row J's address holds). No `cronet-embedded` (cronet-api/common/fallback/shared 143.7445.0, Java-only). The diff against the 192 coordinates of the 2026-09-15 report needs that report's list in comparable form: the research-analyst's, which also closes §5b and U-6 |
+| 3.5a | **owed (studio, post-build for its AAB half)** — NOTICE scan of the 191 artifacts not run in this pass |
+| 3.5b | **done** — versions printed are 22.0.0 (games-v2), 1.4.0 (ads-mobile-sdk), 4.0.0 (UMP), 2.0.1 (hsdp), unchanged |
+| 3.6 | **reviewed — no secret; one question to the producer** — outside `.planning/`: no key, keystore or credential (only test fixtures such as `"fixture-store-password"`, `/fixture/keys/upload.jks`, and docs prose). Inside `.planning/` reports: absolute paths naming the macOS user (`/Users/ermanergoz/…`, studio worktrees, one Downloads path) appear in many reports. Not a credential; whether "no path or account identifier in a tracked file" covers report provenance paths is for the producer to rule |
+| 3.7 | **done** — `git status --porcelain` clean after the commit; `find` for `*.jks`/`*.keystore`/`keystore.properties` empty |
 
 ### §4 The artifact
 | # | State |
 |---|---|
-| 4.1, 4.2 | **founder** (F-7, F-8) |
-| 4.1a, 4.4 | studio reads, **founder** supplies Console comparands (F-13) |
-| 4.3 | post-cut; its text names `:app:bundleRelease` (T-4 done) |
-| 4.5, 4.6, 4.6a, 4.7 | post-cut (4.7's wording, T-5, is done; 4.5's mapping check, T-8, is owed) |
-| 4.8 | post-cut; draft lines ready in `Q-PUBLISH-3.0.0-draft.md`; exact command written (T-6 and T-11 done) |
+| 4.1, 4.2 | **founder** (F-7, F-8) — no `PLAY_UPLOAD_*` variable is set on this host (names checked, no values read) |
+| 4.3 | **founder-blocked** — `:app:bundleRelease` depends on `verifyReleaseSigning` and the real-ID gates, so it cannot run without 4.1/4.2. Not attempted |
+| 4.1a, 4.4, 4.5, 4.6, 4.6a, 4.7 | **post-build** (T-8 for 4.5 still owed) |
+| 4.8 | **post-build**; draft in `Q-PUBLISH-3.0.0-draft.md` (candy lines now measured) |
 
-### §5 Store copy verification — **founder** + QA after upload (5.0 needs F-2's 24 h test-device registration).
-### §6–§8 — post-release.
+### §5 — **founder** + QA after upload. §6–§8 — post-release.
 
-## 2. Docs syncs owed before the branch is cut
-(Owner in brackets; producer schedules. All docs-only, on `feature/*` off `develop`, never on the release branch unless a pure doc.)
-1. **home-chip-arrival** [ux-designer]: spec folds — 29 (1) v35 placement and "below API 35", §6.2 mechanism bullet, 18f sentences, §4.3.2 fallback note, §8 string rows (tech-lead sign-off Open issue 1). **Release checklist 1.1 names these as before-cut.**
-2. **home-chip-arrival** [tech-lead]: `docs/tech-design.md` mirror rows — defect ruling Open issue 4; C11 ruling §5 items 1–5; device ruling §2 re-attempt rule into §10's 15e row; §16 #28 census wording (15 calls / 10 files / one gate key `HomeBandColumn.kt:273`).
-3. **colour-vision** [tech-lead]: tech-design §3 (root collection, `LocalBoardMarks`, composed-vs-frame stroke split, amended §3.2); §10 (sitting record, key-validity reading, smoke, forward rule attempt 2); §14.1 row 6b closed; §16 CV-a, CV-b, CV-AC14 follow-up.
-4. **licences-screen** [tech-lead]: tech-design §3.6 — T4 (non-lazy `Column`), the F-2 wrapper, R2; §10 — the 15e "first-frame test" reading.
-5. **talkback-board** [tech-lead]: row TB closed in §14.1 (merge `d251c3b`); [ux-designer] SN-1 (CV-AC11 two-star Results unreachable) spec correction.
-6. **play-upload** [tech-lead]: PU close (sign-off §7 (a)–(e)); due before 1.7 is ticked, not before the cut.
-7. **candy-backdrop** [tech-lead]: §8.5 two-frame oracle (STATUS 06:30), after its merge.
-8. **release-manager (me), on the release branch or a docs branch before it:** CHANGELOG corrections (`CHANGELOG-draft.md`), `docs/store/README.md` pending tables + Accessibility-claims paragraph (TalkBack now merged), en-US/tr-TR TalkBack store line if wanted, T-2/T-4/T-5/T-6/T-7/T-9/T-10/T-11 checklist and README texts, `CLAUDE.md` Build command (2.6).
+## 2. Docs syncs
+Items 1–6 of the pre-cut list landed with `0ac2abd` (tech-design sync), `8a7cb89` (ux folds) and
+`452f187` (release prep). Still owed, none blocking the cut:
+- **candy-backdrop** [tech-lead + ux-designer]: the D1 docs sync (BD-23 (a), B-08 wording; tech-design D1 line) and §8.5's two-frame oracle, due right after the merge (candy sign-off §5 item 4).
+- **tech-lead** next sync: Conditions 7–9 of `tech-lead-docs-signoff.md` (§10 first-frame threshold, §8.6 item 3 pointer, bundletool host-tool row).
+- Conditions 4–6 of that sign-off (release-manager): **done on this branch** — T-11 lapse wording, the quiet-host read in 1.2/3.1, the bare `bash -n <` syntax check, and the release plan's stray spaces.
 
-## 3. Release device-pass list (collected from the sign-offs)
+## 3. Release device-pass list (for the qa-engineer)
 Founder directive 4: emulator only unless a phone is attached; each phone-only item then goes to Q-PUBLISH as unverified.
+
+**D-1 preconditions (tech-lead docs sign-off, Condition 2; binding before the pass runs):**
+- **(a) Signing.** `bundletool build-apks` with no `--ks` signs with `~/.android/debug.keystore`, so the installed APKs carry the **debug** signature, not the upload key's. **A Play Games sign-in failure on this install is expected and is not a 3.0.0 defect**; Play Games is verified from the track download (§5). **Any install of the app under another signature must be removed first** (`adb -s <serial> uninstall com.erman.pegsolitarie`). Never pass `--ks` with the upload key (it would put the keystore passwords on a command line).
+- **(b) Device.** Both bundletool calls name the emulator explicitly: `--device-id=<serial of ergoz_studio>`, **never `Pixel_9a_bench`** (reserved for 15e sittings, §10), and never `--connected-device` alone.
+- **(c) Real ad IDs.** The release build carries the real ad units (`docs/ad-testing-safety.md` §1), so it runs **only on an emulator or on a phone already registered as an AdMob test device** (§2–§3 there). Never tap an ad without the "Test Ad" label.
+- Commands: `bundletool build-apks --bundle=app/build/outputs/bundle/release/app-release.aab --output=.planning/qa/release-3.0.0/3.0.0.apks --device-id=<serial>` then `bundletool install-apks --apks=.planning/qa/release-3.0.0/3.0.0.apks --device-id=<serial>`. The `.apks` stays under `.planning/qa/`, never in `app/build/outputs/` (4.7). bundletool is not installed on this host yet (Homebrew `bundletool`). D-1 waits for the AAB (4.3, founder-blocked) and for 4.6's sha256.
+
 | # | Item | Source | Phone needed? |
 |---|---|---|---|
-| D-1 | Palette + TalkBack 2-minute check on the release build (final tree incl. candy), installed from the uploaded AAB itself, after 4.6's sha256 matches: `bundletool build-apks --bundle=app/build/outputs/bundle/release/app-release.aab --output=<qa dir>/3.0.0.apks --connected-device`, then `bundletool install-apks --apks=<qa dir>/3.0.0.apks`. Chosen over a separate `:app:assembleRelease` APK because it tests the very bytes Play receives and the per-device splits Play serves, not a second build that could differ. bundletool is not on this host yet (Homebrew `bundletool`, a host tool to install before the pass). The check: colour-blind palette on, TalkBack on, one gameplay game — read a cell, select a peg, reveal a hint, make one jump; selection ring, target marks, dashed hint ring draw; lines spoken. Failure = 3.0.0 defect | talkback sign-off §2 | no |
+| D-1 | Palette + TalkBack 2-minute check on the release AAB (preconditions above): colour-blind palette on, TalkBack on, one game — read a cell, select a peg, reveal a hint, make one jump; selection ring, target marks, dashed hint ring draw; lines spoken. Failure = 3.0.0 defect | talkback sign-off §2 | no (emulator) |
 | D-2 | The 6 tutorial step lines repeated (both routes) | talkback sign-off §3, D-TBe | phone if attached; else device3 stands |
-| D-3 | L1-2: hardware keyboard with TalkBack on | talkback sign-off §3 | phone + keyboard only; else 3.0.1 QA, untested line in Q-PUBLISH |
-| D-4 | CV-AC14: system colour correction with the game | colour-vision sign-off item 1 | no (fits if time; else 3.0.1 QA) |
-| D-5 | 23e device half (off-book Hint notice after a live Remove-animations switch) | RM sign-off Handoff, §14.1 RM | no |
+| D-3 | L1-2: hardware keyboard with TalkBack on | talkback sign-off §3 | phone + keyboard; else Q-PUBLISH untested line |
+| D-4 | CV-AC14: system colour correction with the game | colour-vision sign-off item 1 | no |
+| D-5 | 23e device half (off-book Hint notice after a live Remove-animations switch) | RM sign-off | no |
 | D-6 | One tap on the real launcher icon with a game resident | RM observation 3 | no |
 | D-7 | English-33 in landscape, published 2.0 vs 3.0.0 | RM observation 2, §14.2 | no (needs the 2.0 build) |
-| D-8 | Settings rows after the 0–13 renumbering: colour-blind row (4), Play Games (5–8), About (9), Licenses (10), Privacy (11–13) — present, ordered, TalkBack-reachable; Licenses opens offline | colour-vision sign-off (licences merge-in) | no |
+| D-8 | Settings rows 0–13: colour-blind (4), Play Games (5–8), About (9), Licenses (10), Privacy (11–13) — present, ordered, TalkBack-reachable; Licenses opens offline, over the backdrop | colour-vision sign-off; candy `d0a65ae` | no |
 | D-9 | Audio Q-010 branches D2–D4 (speaker mute, wired headset) | Q-025 | phone + hardware |
-| D-10 | Cold start ≤ 2 s on a mid-range phone (D-03j, PLAT-08) — not re-measured after candy's +44.5 ms | candy sign-off Open issue 2 | phone |
-| D-11 | `compose-performance-audit` for the backdrop — owed before release (rules/compose.md); part of candy's J-4a | candy sign-off Open issue 3 | no (developer) |
+| D-10 | Cold start ≤ 2 s on a mid-range phone (D-03j, PLAT-08); emulator figures are candy's +44.5 ms TTID / +57.7 ms settle | candy final sign-off §4 | phone |
+| D-11 | `compose-performance-audit` for the backdrop (rules/compose.md) — **closed by candy's J-4a/J-4b** (`android-game-dev-perf-audit.md`, ruled in `tech-lead-j4b-ruling.md`); not owed again | candy sign-off | — |
 | D-12 | §5 store-copy items 5.0–5.10 (after upload) | checklist §5 | phone (founder's) |
+| **D-13** | **§16 #30, the notice half:** with TalkBack on, raise an off-book Classic hint until the Undecided notice shows ("couldn't work it out"; R1's QA saw 17/17 off-book hints Undecided on API 36) — check 23j item 5's spoken order and 23d (the notice spoken). If it cannot be raised, the one Q-PUBLISH line "the notice's TalkBack traversal: tree-order and speech-output evidence only" applies | tech-design §16 #30; tech-lead docs sign-off Condition 3 | no (emulator `ergoz_studio`) |
+| **D-14** | **§16 #30, the banner's actions-menu Dismiss:** with the "no winning move" / hint banner showing, open TalkBack's actions menu on it and choose Dismiss; the banner goes and focus lands sensibly | tech-design §16 #30; Condition 3 | no |
+| **D-15** | Candy on the release build: backdrop behind Home, gameplay and the Licenses screens; fades in after Home's entrance; static with animations off (frame 3, no fade); no visible stall beyond the recorded one | candy final sign-off §4 | no |
+| **D-16** | Store screenshots recaptured after candy (Q-016: plain captures; `THIRD_PARTY.md` U-5/§7) — ≥ 4 phone screenshots, en-US/tr-TR | THIRD_PARTY.md §6 U-5 | no (emulator capture), store use is the founder's |
 
-## 4. T-items (play-upload, QA + tech-lead sign-off §6) — status
-State after the 2026-11-01 docs pass and its loop 1: every T-item is done except T-8 (owed) and T-1's act (the founder's).
-| Item | Gate-2 weight | Status | Where it lands |
-|---|---|---|---|
-| T-1 provision key (regular file, outside every repo, placed only after the approval file exists) | must (script route) | text done 2026-11-01 (operator Step 8 item 1, checklist §4 note); the act is the founder's | operator checklist Step 8 + checklist §4 note |
-| T-2 rewrite 1.7 and the §4 note to the as-built contract + merge `1dd1080` | must | done 2026-11-01 (docs pass, `release-manager-docs-pass.md`) | `docs/release-checklist.md` |
-| T-3 compare bundle sha256 with 4.6 before the real run | must | done 2026-11-01 (docs pass, `release-manager-docs-pass.md`) | checklist 4.6/§4 note |
-| T-4 4.3 names `:app:bundleRelease` (both routes) | must | done 2026-11-01 (docs pass, `release-manager-docs-pass.md`) | checklist 4.3, `CLAUDE.md` Build command (2.6) |
-| T-5 4.7: exactly one AAB with 4.6's hash | must | done 2026-11-01 (docs pass, `release-manager-docs-pass.md`) | checklist 4.7 |
-| T-6 4.8's exact command `PLAY_SERVICE_ACCOUNT_JSON=<abs key path> ./scripts/play-upload.sh` from the `-done` checkout after P0–P7 | must | done 2026-11-01 (docs pass, `release-manager-docs-pass.md`) | checklist 4.8, Q-PUBLISH draft |
-| T-7 upload report without fastlane's `json_key` row | must with T-6 | done 2026-11-01 (docs pass, `release-manager-docs-pass.md`) | checklist §4 note, T-7 bullet (`docs/release-checklist.md:130-132`); binds `.planning/reports/publish-3.0.0/release-manager-upload.md` |
-| T-8 mapping check in 4.5 | recommended | owed | checklist 4.5 |
-| T-9 release plan item 2 | not gating | done 2026-11-01 (docs pass, `release-manager-docs-pass.md`) | `14-RELEASE-PLAN.md` |
-| T-10 `docs/store/README.md` "uploaded as they are" → no studio script uploads them | not gating | done 2026-11-01 (docs pass, `release-manager-docs-pass.md`) | store README |
-| T-11 only `./scripts/play-upload.sh` (never `/bin/bash …`) — E-1 stopgap | must | done 2026-11-01 (docs pass, `release-manager-docs-pass.md`) | 1.7, §4 note, upload report |
-| TL-1 a fastlane failure is fixed by a script branch, never a hand-typed `fastlane supply` | must with T-6 | done 2026-11-01 (docs pass, `release-manager-docs-pass.md`) | checklist §4 note |
-If the producer records the Console route under 1.7 instead, only T-4 gates (T-2 should still land).
+## 4. T-items (play-upload) — status
+Unchanged from the pre-cut revision: every T-item done except **T-8** (mapping check in 4.5, owed, post-build) and **T-1**'s act (the founder's).

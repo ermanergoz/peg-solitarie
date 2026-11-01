@@ -8,8 +8,8 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 **Why this convention.** Keep a Changelog is written for the person who uses the software, not the
 person who wrote it — one section per release, grouped by *Added / Changed / Fixed / Removed*, one
 bullet per delivered capability rather than one per commit. That is the right shape here: this
-release carries 810 commits since `v1.0` (`develop` 0582e3f, 2026-10-21; re-counted at the cut,
-checklist item 1.6), and a dump of even its 154 `feat` subjects would be a log, not a
+release carries 1366 commits since `v1.0` (counted at the cut, `release/3.0.0` off `develop`
+da886ed, 2026-11-01, checklist item 1.6), and a dump of even its 214 `feat` subjects would be a log, not a
 changelog. Each release section therefore has two layers:
 
 1. **the player's layer** — *Added / Changed / Fixed*, written for someone who plays the game and
@@ -42,11 +42,8 @@ Milestone **v1.1 ships as product version 3.0.0**, tag `v3.0.0`, versionCode `30
 a false claim. Sources: `.planning/ROADMAP.md` phases 6–15 (success criteria, written in outcome
 language) and the phase summaries under `.planning/phases/*/`.*
 
-*Entries marked **(pending: `<branch>`)** describe work on a branch that has not merged into
-`develop` yet. When the branch merges, the marker is removed. If it does not reach
-`release/3.0.0`, the entry is deleted at the release cut (checklist item 2.4a), together with its
-line in `docs/store/` (see `docs/store/README.md`). This keeps the 3.0.0 section complete without
-claiming work that has not landed.*
+*Every branch this section describes merged into `develop` before `release/3.0.0` was cut
+(checklist item 2.4a, 2026-11-01), so no entry carries a pending marker.*
 
 A complete rewrite of Peg Solitaire, and the first build of this codebase to reach the store. The
 game now has a voice, remembers you across devices, competes, and answers hints on the big boards
@@ -59,13 +56,17 @@ from a built-in opening book.
   it ends. A wrong tap costs nothing, with no error and no red. Three taps without progress bring
   more help, never a block. Skip is on every step, system back does the same, and the tutorial does
   not come back on the next launch. Replay it from Settings › General.
-- **A colorblind palette** *(pending: `feature/colour-vision`)*. A switch in Settings › General, off
+- **A colorblind palette**. A switch in Settings › General, off
   by default. Turned on, it makes the selection, the legal targets, the hint marks and the stars
   readable by brightness and pattern as well as colour, for red-green and blue-yellow colour blindness
   and for full colour blindness alike.
-- **A Licenses screen** *(pending: `feature/licences-screen`)* in Settings › About lists the fonts,
+- **A Licenses screen** in Settings › About lists the fonts,
   sounds and open-source software the game is made with, and opens their licence texts in the app,
   offline.
+- **Play the board with TalkBack.** With TalkBack on, every cell of the board is a stop that says
+  what is on it; select a peg and jump with a double-tap or from TalkBack's actions menu, and each
+  jump is spoken with the pegs left. The tutorial speaks each step's board and instruction, and the
+  Results screen reads its summary once.
 - **Sound.** Every meaningful action makes a sound: a pitch-varied jump that rises through a run,
   distinct peg removal, peg pick-up and put-down, undo, a quiet non-punishing tap on an illegal
   move, button presses, the win, and a rising star-pop that lands in step with the Results
@@ -130,10 +131,10 @@ from a built-in opening book.
 - **The game's typefaces are built in**. Fredoka and
   Nunito ship inside the app, so the first screen is drawn in the right fonts on every device,
   offline and without Google Play services.
-- **A new glossy look** *(pending: `feature/candy-backdrop`)*. A deep violet backdrop with soft
-  colour waves and slowly drifting light sits behind the menu and the board, and the Home mode
-  cards have a glossy finish. The board and the pegs are unchanged. The motion stops when the
-  system's animations are turned off.
+- **A new glossy look**. A deep violet backdrop with soft colour waves and slowly drifting light
+  sits behind the menu, the board and the Licenses screens, and the Home mode cards have a glossy
+  finish. The waves and lights fade in just after the Home screen appears. The board and the pegs
+  are unchanged. The motion stops when the system's animations are turned off.
 - **Faster hints on the big boards.** Asking for a hint from the opening positions of
   European-37, Asymmetric-39 or Wiegleb-45 now returns a real winning move inside the same
   one-and-a-half-second deadline. It is answered from an opening book that covers the first moves
@@ -142,6 +143,11 @@ from a built-in opening book.
   bands are derived from that board's own fewest-peg floor rather than from one shared assumption.
 - **A hint you ask for while the board is changing is cancelled**, rather than arriving late and
   pointing at a position you have left.
+- **Turning off animations takes effect while you play.** Switching "Remove animations" on or off in
+  the system settings now reaches the game without restarting it (within about ten seconds, the
+  system's own delay).
+- **When a hint cannot work out a position in time, it says so** instead of claiming there is no
+  winning move; "no winning move" now appears only when it is proven.
 
 ### Fixed
 
@@ -161,6 +167,10 @@ from a built-in opening book.
 - **The star celebration's pacing and pitch** were reworked so the stars land one at a time rather
   than on top of each other.
 - **The launcher icon** is scaled to sit correctly beside its neighbours on the home screen.
+- **Home no longer jumps when your Continue chips appear** a moment after launch.
+- **TalkBack now reads the game timer's value,** in whole minutes; before, it said only "Elapsed
+  time".
+- **Navigation buttons stay readable in dark mode** with three-button navigation.
 - **Sign-in was fragile in a dozen small ways** — a prompt that could flash back open, an error
   message that replayed, a tap that did nothing while a round trip was in flight, a cancel treated
   as a failure instead of a decline. All of them are gone.
@@ -192,10 +202,14 @@ code.*
 - Test determinism: the unit suite's DataStore fixtures run against an in-memory double rather
   than real file I/O, removing a wall-clock hang reproduced 5 times in 23 runs and absent in 52
   runs afterwards.
-- Two studio-rule gaps are **open** at the time of writing and are release blockers, not silent
-  omissions: `check` carries no coverage gate and no `FUZZ_SEEDS` fuzz harness, so the generator's
-  solvability is asserted on sampled levels rather than at the 100,000-seed scale the release rule
-  requires. Tracked as R-2 and R-7 in
-  `.planning/reports/phase-14/tech-lead-signoff-r3-signing.md` §G.
+- `check` carries a `:domain` line-coverage gate (kover, bound 90 %) and an exhaustive fuzz harness
+  over the whole 10,000-level Challenge space (`FUZZ_SEEDS`), merged with
+  `feature/phase-14-check-gates` (`dbd0a6c`).
+- Board speech is built by a pure model with no Android dependency, pinned by an architecture
+  test; the accessibility overlay is semantics-only above the unchanged tap path.
+- The Licenses screen's Google SDK notices are generated at build time and bundled under
+  `assets/licenses/`.
+- The backdrop is drawn in-repo with Compose Canvas behind the navigation host, on one clock, from
+  colour tokens; it adds no dependency and no asset file.
 
 [3.0.0]: https://semver.org/ "tag v3.0.0 — link replaced with the repository compare URL when the repository has a remote"
