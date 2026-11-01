@@ -1,5 +1,16 @@
 # Founder questions (newest first)
 
+## Q-041 — How to spend the last ~10% of the weekly usage before the founder's reserve?   (answered)
+Date: 2026-11-01    Asked by: producer
+Context: /usage showed 80% (all models) / 72% (Fable), reset 2026-11-06 08:00 Europe/Istanbul; founder keeps ≥ 10% in reserve.
+Options: 1) Finish in-flight, then pause until the reset 2) Continue on Sonnet only 3) Stop everything now
+Answer: 1 — finish in-flight agents, then pause; resume after 2026-11-06 with Sonnet for developer/QA work, Opus for code-auditor and sign-off (founder, 2026-11-01, AskUserQuestion).
+
+## Q-040 — How much of the Challenge change goes in 3.0.0?   (answered)
+Date: 2026-11-01    Asked by: producer
+Options: 1) Minimal (bands + shift) 2) Minimal + pool fixes 3) Everything
+Answer: "let the player get 3 stars. remove first like 30 levels", clarified "i remove i meant shift" — star bands + a 30-level difficulty SHIFT (LEVEL_OFFSET = 30, numbering unchanged); fail-proof levels, freeform at 10, pool changes and 3-star skill achievements deferred to 3.0.1 (docs/gdd.md GD-SB-21; recorded onboarding deviation).
+
 ## Q-039 — Which heading font in every language?   (answered)
 Date: 2026-11-01    Asked by: producer (research-analyst specimen, .planning/reports/turkish-locale/research-analyst-fonts.md on feature/turkish-locale)
 Options: 1) Fredoka + composed Turkish letters 2) Sour Gummy 3) Baloo 2 4) Quicksand
