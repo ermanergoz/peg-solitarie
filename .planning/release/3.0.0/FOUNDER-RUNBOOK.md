@@ -11,8 +11,11 @@ typed into chat, or printed by any command below.
 2. **F-7 / 4.1 — GDPR message.** AdMob → Privacy & messaging: confirm a consent message is
    *published* for Peg Solitaire.
 3. **F-7 / 4.1 — `local.properties`.** The build runs from a clean checkout of the tag:
-   `/Users/ermanergoz/Desktop/PegSolitarie-v3.0.0` (detached at `v3.0.0`, `a3f2221`; the studio
-   checked `git describe --exact-match` = `v3.0.0`). It has **no** `local.properties` yet (neither
+   `/Users/ermanergoz/Desktop/PegSolitarie-v3.0.0`, detached at `v3.0.0`. **Re-cut 2026-11-01:** the
+   tag moved from `a3f2221` to the new `release/3.0.0` merge on `main` (the hash is in
+   `.planning/reports/release-3.0.0/release-manager-recut.md`), and the release-manager moved this
+   checkout to it with `git checkout --detach v3.0.0`; step B's guard still checks
+   `git describe --exact-match` = `v3.0.0`. It has **no** `local.properties` yet (neither
    does `PegSolitarie-release`). Copy yours in, without opening it in chat:
    `! cp -p /Users/ermanergoz/Desktop/PegSolitarie/local.properties /Users/ermanergoz/Desktop/PegSolitarie-v3.0.0/local.properties`
    (the file is git-ignored there).
@@ -42,6 +45,16 @@ The release-manager records its sha256 (`shasum -a 256 <aab>`) and versionName (
 exactly one artifact with the 4.6 hash, 3.5a post-bundle NOTICE check; the qa-engineer runs D-1
 (palette + TalkBack on the AAB) and D-16 (store screenshots from this candidate). Then the
 producer writes the one-screen summary and asks you **Q-PUBLISH-3.0.0**.
+
+**4.6a's Fredoka half, if you check it yourself** (the studio does not build the AAB; founder,
+2026-11-01). The two shipped Fredoka files must equal the recipe's outputs byte for byte:
+
+```
+! python3 -I -c "import json,hashlib,zipfile; d='/Users/ermanergoz/Desktop/PegSolitarie-v3.0.0/'; z=zipfile.ZipFile(d+'app/build/outputs/bundle/release/app-release.aab'); r=json.load(open(d+'fonts/fredoka-tr/recipe.json')); [print(w['output'].split('/')[-1], 'match' if hashlib.sha256(z.read('base/res/font/'+w['output'].split('/')[-1])).hexdigest()==w['output_sha256'] else 'DIFFERS') for w in r['weights']]"
+```
+
+Expected: `fredoka_medium.ttf match`, `fredoka_semibold.ttf match` (`0effcf32…1b157d4f`, 50,444 B;
+`5c764171…4890823c`, 50,408 B). `DIFFERS`, or a `KeyError` (the file is not in the bundle), stops the upload.
 
 ## D. Comparands (you, when the producer asks — F-13)
 
