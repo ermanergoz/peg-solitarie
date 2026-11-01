@@ -1,0 +1,5 @@
+# Build-only tools for fonts/fredoka-tr (docs/tech-design.md §11.1, Q-039); nothing here ships.
+# fontTools does not promise byte-identical output across releases, so a bump re-runs
+# `build.sh --record` and re-records the outputs' sha256 in recipe.json as a reviewed change.
+fonttools==4.60.1
+opentype-sanitizer==9.2.0

@@ -9,6 +9,9 @@
       and without one it forces the light bar back. Do not remove that item as unused or
       deprecated. The same style and parent, restated whole, because styles do not merge across
       qualifiers.
+      (2026-11-01, D-05g: below API 35 the window is now edge to edge too, through MainActivity's
+      enableEdgeToEdge(), tech design 3.8 (e), which sets the bars there at run time; the items in
+      both theme pairs are unchanged.)
     -->
     <style name="Theme.PegSolitaire" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowLightStatusBar">false</item>

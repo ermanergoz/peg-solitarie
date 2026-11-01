@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The languages Android 13+ offers for this app under Settings › System › Languages › App
+  languages (docs/ux/localisation-tr.md D-9, §7.4): English, the unqualified values folder, and
+  every values-<language> folder that holds a strings.xml. That system list is the app's only
+  language picker; with no choice made there, the app follows the system language, as Android 12
+  and older always do. AppLanguagesTest derives the expected list from the resource folders, so a
+  new language needs its line here, and its entry in app/build.gradle.kts's localeFilters.
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="tr" />
+</locale-config>

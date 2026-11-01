@@ -5,6 +5,7 @@ import android.media.AudioManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
@@ -17,6 +18,8 @@ import com.app.pegsolitaire.platform.games.GamesService
 import com.app.pegsolitaire.platform.games.save.DebugSnapshotPickerEntry
 import com.app.pegsolitaire.ui.theme.AppThemeRoot
 import com.app.pegsolitaire.ui.theme.BoardMarkPaletteState
+import com.app.pegsolitaire.ui.window.LocalSystemBars
+import com.app.pegsolitaire.ui.window.WindowInsetsSystemBars
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -31,7 +34,9 @@ import javax.inject.Inject
  * injected [SoundPlayer] into [LocalSoundPlayer] is hosting too: it hands the composition
  * a dependency it cannot inject for itself and does nothing with it. The player's
  * lifecycle stays entirely in `App`/Hilt; in particular the startup preload is **not**
- * here, because SOUND-01 needs the decode to start before an activity exists.
+ * here, because SOUND-01 needs the decode to start before an activity exists. Handing the
+ * host this activity's window and the system-bar seam (D-05g) is hosting in the same sense:
+ * which bars a destination shows is the host's policy, never decided here.
  *
  * It is also where the three platform bootstraps start: the consent flow (CONS-01, D-16) —
  * see [consentGateway] — the opt-in-gated Play Games sign-in (PGS-01, D-01) — see
@@ -144,6 +149,14 @@ class MainActivity : ComponentActivity() {
     lateinit var boardMarkPalette: BoardMarkPaletteState
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // D-05g part 5 (tech design §3.8 (e)): the window goes edge to edge on every API level, not
+        // only where the platform forces it (35+). Below 35 the window used to fit the system bars,
+        // and the platform painted Material.Light's opaque #757575 status bar over every screen — the
+        // founder's "gray tint". With androidx's defaults the status bar is transparent on every level
+        // (its icons follow the same uiMode the theme reads, so F-2 holds), and the navigation bar's
+        // contrast stays enforced: this sets it true and nothing sets it false. Before
+        // super.onCreate(), as androidx documents; it touches no injected field.
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         // V1 (docs/tech/audio-silent-mode.md §2.5): with nothing playing, the volume keys would
         // otherwise step the RINGER on some builds, down into Vibrate — where the speaker gate
@@ -167,9 +180,14 @@ class MainActivity : ComponentActivity() {
         progressSubmitter.start()
         debugSnapshotPickerEntry.onIntent(intent, lifecycleScope)
         setContent {
-            CompositionLocalProvider(LocalSoundPlayer provides soundPlayer) {
+            CompositionLocalProvider(
+                LocalSoundPlayer provides soundPlayer,
+                // D-05g (tech design §3.8 (a)): the board and Results hide this window's bars; the
+                // host applies its destinations' bar policy to the window handed to it here.
+                LocalSystemBars provides WindowInsetsSystemBars,
+            ) {
                 AppThemeRoot(palette = boardMarkPalette.palette) {
-                    AppNavHost(navController = rememberNavController())
+                    AppNavHost(hostWindow = window, navController = rememberNavController())
                 }
             }
         }

@@ -4,6 +4,7 @@ import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -31,6 +32,7 @@ import com.app.pegsolitaire.ui.backdrop.BackdropDensity
 import com.app.pegsolitaire.ui.backdrop.BackdropPreviewHost
 import com.app.pegsolitaire.ui.licenses.LicenseTextHeader.Bundled
 import com.app.pegsolitaire.ui.theme.AppTheme
+import com.app.pegsolitaire.ui.window.stableSystem
 
 /** The body's edge: an English document, hung from its left edge in every locale (spec LS-16). */
 private val BODY_EDGE = LicencesTextEdge.TextStart
@@ -70,6 +72,7 @@ fun LicenseTextScreen(
             containerColor = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.onBackground,
             topBar = { LicensesTopBar(title = title, onBack = onBack) },
+            contentWindowInsets = WindowInsets.stableSystem,
         ) { contentPadding ->
             Box(
                 modifier =

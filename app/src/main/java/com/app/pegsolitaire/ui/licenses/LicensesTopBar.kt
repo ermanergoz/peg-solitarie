@@ -1,5 +1,8 @@
 package com.app.pegsolitaire.ui.licenses
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
@@ -19,6 +22,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.ui.theme.claySquish
+import com.app.pegsolitaire.ui.window.stableSystem
 
 /**
  * The top bar all four licences screens share (spec §3.1, §4, §4A, §4B): a silent 48dp back with
@@ -34,6 +38,7 @@ internal fun LicensesTopBar(
     onBack: () -> Unit,
 ) {
     TopAppBar(
+        windowInsets = WindowInsets.stableSystem.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
         colors =
             TopAppBarDefaults.topAppBarColors(
                 containerColor = Color.Transparent,

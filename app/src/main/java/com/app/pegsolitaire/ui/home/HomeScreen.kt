@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -68,6 +69,7 @@ import com.app.pegsolitaire.ui.theme.finishGlow
 import com.app.pegsolitaire.ui.theme.glossFinish
 import com.app.pegsolitaire.ui.theme.goldGradientFill
 import com.app.pegsolitaire.ui.theme.rememberAnimationsEnabled
+import com.app.pegsolitaire.ui.window.stableSystem
 import kotlinx.coroutines.flow.first
 import kotlin.math.roundToInt
 
@@ -164,6 +166,7 @@ fun HomeScreen(
         containerColor = Color.Transparent,
         contentColor = MaterialTheme.colorScheme.onBackground,
         snackbarHost = { ClaySnackbarHost(snackbarHostState) },
+        contentWindowInsets = WindowInsets.stableSystem,
     ) { contentPadding ->
         Box(
             modifier =
