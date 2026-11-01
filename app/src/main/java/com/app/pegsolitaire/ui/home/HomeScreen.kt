@@ -39,8 +39,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.audio.SoundCue
@@ -489,6 +491,11 @@ private fun ContinueChips(
             supporting = stringResource(R.string.resume_classic_supporting),
             entranceOrder = if (classicAtFirstComposition) FIRST_CHIP_ENTRANCE_ORDER else LATE_CHIP_ENTRANCE_ORDER,
             board = classic.board,
+            // The saved position's pegs left, spoken as the chip's state (D-03p, §11).
+            spokenState =
+                classic.board?.let { saved ->
+                    pluralStringResource(R.plurals.board_a11y_pegs_left, saved.pegCount, saved.pegCount)
+                },
             onResume = { onResumeClassic(classic.levelId) },
         )
     }
@@ -511,8 +518,10 @@ private fun ContinueChips(
                 },
             // A procedural level has no memorable footprint, so this chip keeps the
             // generic play arrow: a thumbnail of a board the player cannot recognise
-            // would be decoration pretending to be information.
+            // would be decoration pretending to be information. With no position, it has
+            // no state to speak either.
             board = null,
+            spokenState = null,
             onResume = { onResumeChallenge(challengeResumeLevel) },
         )
     }
@@ -532,13 +541,25 @@ private data class ClassicResume(
  * surface resumes. Stateless: the caller decides whether it renders at all and what
  * [onResume] carries.
  *
- * **Behaviour, ordering and data are unchanged across Phase 15** (§4.2 band 3, and §4.2.1
- * oracle 3 — the chip's presence, its title, its supporting line and its resume target are
- * what the cloud-save device tests read). The one change is cosmetic: a [board] renders the
- * saved board's own footprint in place of the generic play arrow, so a player recognises
- * *which* board is waiting. `null` keeps the arrow, which is what the Challenge chip wants.
+ * **Behaviour, ordering and data are unchanged** (§4.2 band 3, and §4.2.1 oracle 3 — the
+ * chip's presence, its title, its supporting line and its resume target are what the
+ * cloud-save device tests read). What a [board] changes is cosmetic and spoken (D-03p,
+ * §4.2.7): the chip's trailing art is the [ResumeThumbnail] of the player's saved position in
+ * place of the generic play arrow, and the chip's one stop speaks that position's pegs left as
+ * its state ("14 pegs left"), so the picture is never the only record of the player's progress.
+ * No `contentDescription` is set anywhere inside the chip: merged into it, one would be spoken
+ * instead of the title. `null` keeps the arrow and no state, which is what the Challenge chip
+ * wants.
  *
- * @param board the footprint to show as the trailing accent, or `null` for the play arrow.
+ * **The art never sets the chip's height.** The row is inset `spacing_md` at its ends and
+ * `spacing_sm` at its top and bottom, and the text column carries `spacing_sm` more of its own,
+ * so the text sets the chip's height exactly as `spacing_md` all round always did: 48 + 2 × 16 =
+ * 80dp at default font scale, against the slab's 56 + 2 × 8 = 72dp. The chip's height is an input
+ * to the narrow fit (15k) and to the chips' room (D-03n), so no figure that reads it moves.
+ *
+ * @param board the saved position to show as the trailing art, or `null` for the play arrow.
+ * @param spokenState the chip's state for TalkBack — the saved position's pegs left — or `null`
+ *   for none, which is what the Challenge chip has.
  */
 @Composable
 private fun ResumeTile(
@@ -546,6 +567,7 @@ private fun ResumeTile(
     supporting: String,
     entranceOrder: Int,
     board: Board?,
+    spokenState: String?,
     onResume: () -> Unit,
 ) {
     // SOUND-04 / D-09 / D-11: Continue is a navigational CTA, so it clicks. The cue is attached
@@ -565,18 +587,25 @@ private fun ResumeTile(
                 .finishGlow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.large)
                 .glossFinish(FinishedContainer.ContinueChip, MaterialTheme.shapes.large, fill = chip)
                 .fillMaxWidth()
-                .heightIn(min = dimensionResource(R.dimen.resume_tile_min_height)),
+                .heightIn(min = dimensionResource(R.dimen.resume_tile_min_height))
+                .then(if (spokenState != null) Modifier.semantics { stateDescription = spokenState } else Modifier),
     ) {
         Row(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(dimensionResource(R.dimen.spacing_md)),
+                    .padding(
+                        horizontal = dimensionResource(R.dimen.spacing_md),
+                        vertical = dimensionResource(R.dimen.spacing_sm),
+                    ),
             horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_md)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
-                modifier = Modifier.weight(CONTENT_WEIGHT),
+                modifier =
+                    Modifier
+                        .weight(CONTENT_WEIGHT)
+                        .padding(vertical = dimensionResource(R.dimen.spacing_sm)),
                 verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_xs)),
             ) {
                 Text(
@@ -600,10 +629,7 @@ private fun ResumeTile(
                             .size(dimensionResource(R.dimen.mode_glyph_size)),
                 )
             } else {
-                StaticBoardArt(
-                    board = board,
-                    modifier = Modifier.size(dimensionResource(R.dimen.home_resume_thumb_size)),
-                )
+                ResumeThumbnail(board = board)
             }
         }
     }

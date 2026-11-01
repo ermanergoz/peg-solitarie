@@ -77,10 +77,14 @@
     <!-- One progress-ribbon pill glyph. Decorative: the pill speaks as one node. -->
     <dimen name="home_stat_pill_glyph_size">20dp</dimen>
     <!--
-      The Classic Continue chip's board thumbnail — the saved board's own footprint in place
-      of the generic play arrow. Only ever drawn when a Classic resume exists.
+      The Classic Continue chip's board thumbnail — the player's saved position in place of the
+      generic play arrow. Only ever drawn when a Classic resume exists.
+      D-03p / ux-spec §4.2.7, §6.1: 40dp to 56dp, now the edge of the miniature slab that holds the
+      saved position, its board inset spacing_xs (48dp of board). The slab sits spacing_sm inside the
+      chip's top and bottom edges at least, 56 + 2 x 8 = 72dp against the text column's 80dp, so the
+      chip's height is unchanged: the art never sets it.
     -->
-    <dimen name="home_resume_thumb_size">40dp</dimen>
+    <dimen name="home_resume_thumb_size">56dp</dimen>
     <!-- A mode tile's trailing art: the Classic footprint / the Challenge bolt. -->
     <dimen name="home_tile_art_size">56dp</dimen>
     <!--

@@ -18,7 +18,9 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.DpRect
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.Boards
+import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.ui.home.HOME_PROGRESS_RIBBON_TEST_TAG
 import com.app.pegsolitaire.ui.home.HomeScreen
 import com.app.pegsolitaire.ui.home.HomeUiState
@@ -101,6 +103,51 @@ internal fun chipsState(
         classicResumeLevelId = RESUMABLE_LEVEL_ID.takeIf { classic },
         classicResumeBoard = Boards.european37Initial.takeIf { classic },
         challengeResumeLevel = STAMPED_RESUME_LEVEL.takeIf { challenge },
+    )
+
+/**
+ * A Classic save's position partway through a game (D-03p, criterion 15aa): English-33 with 14 pegs
+ * left, where a recorded line of 18 legal jumps from the start arrives (`HomeViewModelTest` replays
+ * that line through the real codec), written out peg by peg.
+ */
+internal val MID_GAME_ENGLISH_BOARD: Board =
+    listOf(
+        Position(row = 0, col = 4),
+        Position(row = 1, col = 2),
+        Position(row = 1, col = 3),
+        Position(row = 2, col = 0),
+        Position(row = 2, col = 1),
+        Position(row = 2, col = 4),
+        Position(row = 2, col = 5),
+        Position(row = 2, col = 6),
+        Position(row = 3, col = 6),
+        Position(row = 4, col = 1),
+        Position(row = 4, col = 2),
+        Position(row = 4, col = 4),
+        Position(row = 5, col = 4),
+        Position(row = 6, col = 2),
+    ).fold(Board(spec = Boards.English33, pegs = 0L)) { board, peg -> board.withPeg(peg) }
+
+/** A Classic save one move from the end: a single peg, in the centre. */
+internal val ONE_PEG_ENGLISH_BOARD: Board =
+    Board(spec = Boards.English33, pegs = 0L).withPeg(Position(row = 3, col = 3))
+
+/** What the Classic chip speaks for those two positions (verbatim from `strings.xml`, `board_a11y_pegs_left`). */
+internal const val MID_GAME_PEGS_LEFT = "14 pegs left"
+internal const val ONE_PEG_LEFT = "1 peg left"
+
+/**
+ * A Classic save on the English board at [board] — or, with `null`, the chip as the play arrow draws
+ * it, a shape `HomeViewModel` no longer produces (the tech-lead's ruling 1) but `ResumeTile` still
+ * renders for the Challenge chip — with the ribbon filled and, if asked, the Challenge save beside it.
+ */
+internal fun classicSaveState(
+    board: Board?,
+    challenge: Boolean = false,
+): HomeUiState =
+    chipsState(classic = false, challenge = challenge).copy(
+        classicResumeLevelId = ClassicLevelIds.ENGLISH33,
+        classicResumeBoard = board,
     )
 
 /** Every chip state, in 15p's order: none, Classic only, Challenge only, both. */
