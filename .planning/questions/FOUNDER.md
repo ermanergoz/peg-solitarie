@@ -1,6 +1,6 @@
 # Founder questions (newest first)
 
-## Q-029 — How should the 3.0.0 bundle reach Play: the upload script or the Console?   (open)
+## Q-029 — How should the 3.0.0 bundle reach Play: the upload script or the Console?   (answered)
 Date: 2026-11-01    Asked by: release-manager (via the producer)
 Context: Checklist item 1.7 needs the upload route recorded before Gate 2. The studio's upload script is merged
 and reviewed (only a `VAR=value` or bare `env` prefix may precede it — rule T-11); it needs a Play service-account
@@ -9,7 +9,7 @@ Options: 1) The studio's upload script (gated by the approval file) 2) Manual up
 Recommendation: release-manager — 2 for 3.0.0: no service-account key on the Mac, and the publish gate still has
 the known `/usr/bin/env` gap (E-1) until the plugin fix lands; the script route can follow from 3.0.1.
 Blocks: release-3.0.0 checklist 1.7 (Gate 2) | nothing else
-Answer:
+Answer: 2 — manual upload in the Play Console (founder, 2026-11-01, in chat).
 
 ## Q-028 — Does the candy backdrop ship in 3.0.0?   (answered)
 Date: 2026-10-31    Asked by: producer
