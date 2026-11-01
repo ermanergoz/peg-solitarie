@@ -53,7 +53,7 @@ Modes chosen by me (no AskUserQuestion in this role): a pre-mortem on the clear 
 1. **Proposed founder question, non-blocking — for the producer to queue** (rules/reporting.md format):
 
    ```
-   ## Q-031 — Should Classic use the same star bands as Challenge?   (open)
+   ## Q-037 — Should Classic use the same star bands as Challenge?   (open)
    Date: 2026-11-01    Asked by: game-designer
    Context: You asked for Challenge to count 3/2/1 pegs as 1/2/3 stars and to clear on any of them. Classic today still
    needs the board's proven floor to count at all (one peg, or two on Diamond-41): a finish at two or three pegs above it
@@ -98,3 +98,23 @@ Next: **producer** — commit `docs/gdd.md`, `.planning/REQUIREMENTS.md` and thi
 **release-manager:** the `FUZZ_SEEDS=100000` run on the release branch; changelog and store lines per gdd §16; the Phase-16-into-3.0.0 sequencing call with the producer.
 
 **gsd (through the producer):** Phase 16 with CSB-01…08 and CLC-01…06; the `PROJECT.md` row; the todo closure.
+
+## Amendment 1 — 2026-11-01: the tech-lead's F-1…F-5, the ux-designer's D-SB-1…6, Q-037
+Only `docs/gdd.md` and this report were edited; `docs/ux-spec.md`, `docs/tech-design.md` and every other file were not touched (a developer and the ux-designer work in this worktree).
+
+**Tech-lead brief (`tech-lead-brief.md`, 80b8e5a; tech-design c31860d) — all five findings taken, none contested:**
+- F-1 → gdd §9 (the recorded line is never loaded on a resume: `solution == null`, `onRecordedLine = false` in `applyRestored`, so the hint goes to the solver directly), §12.3(3) rewritten with that mechanism and with the restart ruling (an old-stamp restart regenerates through the level-load path; a current-stamp one keeps the stored board — built in C3, not true before), SB-V7 corrected and SB-V8 added.
+- F-2 → gdd §8 closing paragraph: the generator does not grade a finish; it reads `ChallengeClearRule.CLEAR_MAX_PEGS` for G6 and nothing else of the rule.
+- F-3 → gdd §4 tier row and §7.3: `failProof` is on the tier; `FREEFORM_SHARE_DENOMINATOR` is a `GeneratorConstants` contract constant.
+- F-4 → gdd §7.3: the share bounds and "all five by 300" are tuning targets, measured first (M3), asserted once they hold; a miss comes back to me, never to the developer.
+- F-5 → gdd §14 row GD-SB-13 re-pointed to `GameViewModelResumeTest` with the two restart tests; the mapper gets the narrower stamp-pass-through and the C6 one-peg-by-mode tests.
+- The three rulings that answered my open issues are folded in: §4 (the function's home and shape, two mode-branch sites, `Won` keeps its name), §8 I5 (uniform footprint copies with `minimumPegs = 1`; `SnapshotMapper` case 2 by mode), §12.2 (the old 2.0 app persisted only to Realm; no file collides; nothing to migrate). Open issues 2 and 3 above are closed by the brief.
+
+**Ux-designer's spec (b8e4c8c, §3 D-SB-1…6, §4.4.3, §4.6) — acknowledged, no objection, no change requested:**
+- D-SB-4 (the Challenge proven-dead banner dismissable by a tap outside its buttons): consistent with the rules, recorded as **GD-SB-19** with the boundary that matters — the dismissal clears only the proof flag, is never charged, counted or undoable, plays no cue; the proof stands and a Hint on the same position raises the banner again, free; the stuck banner is never dismissable in either mode; Classic's proven-dead banner unchanged. Tests added in gdd §14 (`dismissingTheProvenDeadBannerClearsOnlyTheProofFlagAndChargesNothing`, `onlyTheChallengeProvenDeadBannerCarriesTheDismissAction`), SB-V9 and SB-U5 in §15, SB-Q6 extended.
+- D-SB-2 (next band up only): meets GD-SB-08's rule; my two-band one-star line is superseded, recorded as **GD-SB-20**; gdd §16 now carries the decided copy for all four strings (D-SB-1…3), including the plurals and format arguments, and names the ux-spec §8 D-SB table as the Turkish copy of record (D-SB-6).
+- One placement note taken from the spec: `GameScreenTest` does not exist; the two game-screen tests live in the existing game-screen test files or a new `GameScreenRescueBannerTest` (gdd §14).
+
+**Founder question id.** Q-031 was already taken (the ux-designer's Turkish register); the Classic-bands question above is **Q-037**, corrected in place. Classic is unchanged in 3.0.0 per the directive's "on challenge" (gdd §1, §6.2, GD-SB-06, §17); Q-037 asks only about 3.1.
+
+**Checks for this amendment:** `Read .planning/reports/challenge-star-bands/tech-lead-brief.md` (all 178 lines) — pass; `Read docs/ux-spec.md:4345-4450` (§4.4.3, D-SB-3/D-SB-4 as specified) — pass; one haiku Explore helper located the D-SB-1…6 definitions (`docs/ux-spec.md:2022-2072`) and quoted them — pass; the GDD edits re-read in the tool's returned state. Nothing run; nothing committed — the producer commits `docs/gdd.md` and this report.

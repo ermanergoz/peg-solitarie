@@ -52,9 +52,10 @@ Challenge, in the founder's words.
 
 **What is not said, and how it is decided here.** The directive does not say what a finish with
 four or more pegs is beyond "can't move to the next step": §3 R6 keeps it as today's stuck board,
-now with no star and a message that names the threshold. It does not name Classic: §3 R8 leaves
-Classic exactly as it is, and a non-blocking founder question about aligning Classic is drafted in
-the game-designer's report. It does not say how many levels "the first levels" are: §7 fixes the
+now with no star and a message that names the threshold. It does not name Classic — it says "on
+challenge" — so §3 R8 leaves Classic exactly as it is in 3.0.0; the non-blocking founder question
+**Q-037** (queued by the producer from the game-designer's report) asks only whether Classic
+adopts the bands in 3.1. It does not say how many levels "the first levels" are: §7 fixes the
 cut at fifty on measurable grounds and records it as a designer decision the founder can move by
 one constant.
 
@@ -147,7 +148,7 @@ below are the shipped ones; the tech-lead names any type this change adds.
 | `BoardSpec` | `:domain` | `inPlay`, `target?`, `minimumPegs` (1 default; 2 on Diamond-41) | generated specs always carry 1 (§8 I5) |
 | `GameStatus` | `:domain` | `Playing` / `Won` / `Stuck` | the status of a Challenge board is computed by R5/R6, a Classic board by R4; `Won` reads "cleared" in Challenge. Its KDoc ("a single peg remains") is stale today and is corrected with this change |
 | `GeneratedLevel` | `:domain` | `levelNumber`, `startingBoard`, `solution`, `generatorVersion` | `generatorVersion` becomes 2 (§8 I7) |
-| `DifficultyTier` | `:domain` | `solutionLength`, `minSolutionLength`, `footprintPool`, `pegRange`, `minOpeningMoves`, `minSpread`, `freeformIntroLevel`, `scoreMultiplier` | computed with the level offset (§7); gains the fail-proof flag for levels 1–4 and the freeform share (§8 G6, G7) |
+| `DifficultyTier` | `:domain` | `solutionLength`, `minSolutionLength`, `footprintPool`, `pegRange`, `minOpeningMoves`, `minSpread`, `freeformIntroLevel`, `scoreMultiplier` | computed with the level offset (§7); gains `failProof` for levels 1–4 (G6). The freeform share is a generator contract constant, `GeneratorConstants.FREEFORM_SHARE_DENOMINATOR`, not a tier field (tech-lead ruling, brief §2; G7) |
 | `ScoreResult` | `:domain` | `stars`, `score`, `pegsRemaining`, `pegsCleared`, `elapsedSeconds` | `stars` for Challenge come from R5, not from `ScoreCalculator.stars(…, minimumPegs)` |
 | `GameFinish` | `:app` | `ScoreResult`, `SolveTelemetry`, `minimumPegs` | emitted for every Challenge clear (1–3 stars), not only for `pegCount <= minimumPegs` |
 | `GameUiState.stuck` | `:app` | the rescue-banner flag | set for a Challenge terminal board with 4+ pegs; never for a cleared one |
@@ -161,6 +162,11 @@ below are the shipped ones; the tech-lead names any type this change adds.
 
 The one structural rule this change adds: **the Challenge cleared test exists in exactly one
 `:domain` function, and `GameViewModel`, `ResultsViewModel` and `ResultsUiState` all read it.**
+Ruled by the tech-lead (`.planning/reports/challenge-star-bands/tech-lead-brief.md` §1(b)):
+`scoring/ChallengeClearRule` with `ChallengeFinish` (`Cleared(stars)` / `NotCleared`),
+`CLEAR_MAX_PEGS` and `PERFECT_STARS`; the mode branch lives at exactly two `:app` sites,
+`GameViewModel.statusFor` and `ResultsUiState.isSolved`, and `ResultsViewModel` reads the state's
+property; `GameStatus.Won` keeps its name.
 Three separate `pegsRemaining == 1` comparisons across two files are how the Diamond-41 record gap
 survived to phase 10 (CR-01); the 3.0.0 change must not reintroduce that shape with a `<= 3`.
 
@@ -224,8 +230,8 @@ two-peg finish on a board that reaches one. The founder's bands are absolute; so
 `ScoreCalculator.stars(pegsRemaining, minimumPegs)`: at or below the board's floor → 3; within
 two pegs above it → 2; otherwise 1 (R11). Classic Results opens only for a won board (R4), so in
 play a Classic result is always three stars; the lower bands remain defensive. The founder's
-directive does not touch this; the alignment question is drafted for the founder and does not
-block.
+directive says "on challenge", so Classic is unchanged in 3.0.0; Q-037 (non-blocking) asks only
+about 3.1.
 
 ### 6.3 Score (unchanged)
 
@@ -317,8 +323,14 @@ intro is re-stated as phase-3 D-08 meant it — "freeform shapes introduced at h
   from the level's own PRNG (`FREEFORM_SHARE_DENOMINATOR = 2`; a draw of 0 means freeform), so
   the canonical shapes keep appearing and the pool widening means what the table says.
 
-Both are designer decisions (GD-SB-11), measurable: over levels 10..1,000 the freeform share lies
-in `[0.35, 0.65]`, and all five canonical footprints occur by level 300.
+Both are designer decisions (GD-SB-11). `FREEFORM_SHARE_DENOMINATOR` lives in
+`GeneratorConstants` as a contract constant — it changes every level. The two measurables — over
+levels 10..1,000 the *accepted* freeform share lies in `[0.35, 0.65]`, and all five canonical
+footprints occur by level 300 — are **tuning targets, not mechanism guarantees**: the draw is per
+attempt, and the accepted share depends on the two kinds' gate pass rates (tech-lead F-4). The
+developer measures them first (the brief's M3) and asserts them only once they hold; a miss comes
+back to the game-designer, who moves the bound or the denominator — never to the developer's
+judgement.
 
 ### 7.4 Fail-proof opening [3.0.0 change]
 
@@ -357,8 +369,12 @@ exact. Each invariant below is proven by the test named in §14.
   Diamond-41 *Classic floor* may not ride along with it. Today the pool holds `Boards.Diamond41`
   itself with its floor of 2 (`DifficultyTiers.kt:70`); it is practically unreachable only
   because of the freeform takeover (§7.3), and the mix makes it reachable, so this invariant is
-  now load-bearing. The tech-lead chooses the mechanism (a footprint-only spec per pool entry, or
-  a copy with the default target).
+  now load-bearing. Ruled by the tech-lead (brief §1(c)): every canonical pool entry is a footprint
+  copy built uniformly from `Boards.CLASSIC_SPECS` with `minimumPegs = 1` and its `target` kept,
+  never a Diamond-41 special case; tests that compared specs by identity compare footprints. The
+  resume path gets the same floor: a Challenge blob without a stored target resolves to one peg by
+  mode (`SnapshotMapper`, the brief's C6), so no footprint's Classic floor can re-enter through a
+  snapshot.
 - **I6 — Versioned.** Every level carries `generatorVersion`; the fuzz harness and the fixtures
   assert the current value.
 - **I7 — Contract bump [3.0.0 change].** The cut, the fail-proof gate, the freeform mix and I5
@@ -390,9 +406,11 @@ For G6 the fallback is not acceptable: the fail-proof property is asserted by te
 1–4 of the shipped contract (§14 row G6), so if a level ever had to fall back past G6 the test
 fails and the developer re-tunes rather than ships a failable opening.
 
-**What the generator does not do.** It does not target a peg count other than one, does not
-read the star rule, does not know about modes or stars. R5 is applied to the terminal board at
-play time; the generator's only promise to R5 is I1 and I5.
+**What the generator does not do.** It does not target a peg count other than one and does not
+grade a finish; it reads the clear threshold, `ChallengeClearRule.CLEAR_MAX_PEGS`, for G6 and
+nothing else of the rule — one constant, read rather than copied, because a copy would drift
+(tech-lead F-2). It does not know about modes or stars. R5 is applied to the terminal board at
+play time; the generator's promises to R5 are I1, I5 and G6.
 
 ## 9. Hints and undo
 
@@ -405,8 +423,9 @@ and built on `bugfix/hint-undecided`, merged as `b1a6cf9`) and the phase-9 assis
   `nowin_message`), **Undecided** (deadline, node ceiling or attempt limit — the neutral notice,
   never the banner). A cancelled search is silent. The 1.5 s deadline stands (D-07).
 - The hint's target is the board's perfect finish: `minimumPegs`, one peg on every Challenge
-  board (§8 I5). The recorded line is used while the player is on it; off it, the opening book
-  (Classic) then the solver.
+  board (§8 I5). The recorded line is used while the player is on it, and never after a resume — a
+  restored game loads no recorded line (`solution == null`, `onRecordedLine = false` in
+  `applyRestored`; tech-lead F-1); off it, the opening book (Classic) then the solver.
 - A hint that reveals no move is never charged (ADS-06, GD-HT-5); a revealed hint spends one
   unit of the per-level free allowance (3 hints, 5 undos; `AssistAllowance`), after which the
   opt-in rewarded offer applies (ADS-01/02). Restart and a new level refill the allowance and
@@ -425,6 +444,17 @@ Restart and Home. Phase 8 already made the identical ruling for Diamond-41's two
 extends it to every Challenge board. Classic keeps today's `nowin_message`. The hint does not
 search for a two- or three-peg line in 3.0.0; a tiered hint ("no line to one peg; here is a line
 to two") is a 3.1 candidate recorded in §17, not a promise.
+
+**The banner can be put away — ux-spec D-SB-4, acknowledged (GD-SB-19).** The ux-designer made
+the Challenge proven-dead banner dismissable by a tap anywhere on it but its three buttons
+(`docs/ux-spec.md` §4.4.3, b8e4c8c), because at 200 % text scale it covers nearly the whole board
+and its own sentence invites the player to keep playing. That is consistent with the rules here,
+and the boundary it keeps is the one that matters: a dismissal clears the proof *flag* and nothing
+else — it is not a hint, not a move, not an undo; it is never charged, never counted and plays no
+cue (GD-HT-5, D-09) — and the proof itself stands, so a Hint tapped on the same position returns
+Proven dead again, free, and raises the banner again. The **stuck** banner (R6) is not
+dismissable in either mode: there is nothing to play beneath it, and Undo, Restart and Home are
+the only ways on. Classic's proven-dead banner stays as shipped (R8; 3.1 alignment with Q-037).
 
 ## 10. Onboarding
 
@@ -546,10 +576,12 @@ The Play listing's existing users run the founder's **earlier, different applica
 (versionName 2.0, versionCode 2); milestone v1.0 of this codebase was tagged and never uploaded
 (`14-RELEASE-PLAN.md` §1). So the only devices holding *this* codebase's data are the founder's
 and the testers' pre-release builds. The migration below is specified so that none of them
-loses anything, and so that it is correct for any future contract change too. Whether the old
-2.0 application's on-disk files collide with this app's Room database name or DataStore file is
-an architecture question for the tech-lead, raised in the game-designer's report; it is outside
-this ruling but inside "nobody gets a broken resume".
+loses anything, and so that it is correct for any future contract change too. The old 2.0
+application's on-disk files were the tech-lead's question and are ruled (brief §1(a),
+tech-design §7.4): it persisted only to Realm (`files/pegsolitarie.realm`); this app opens Room
+`peg_solitaire.db` and DataStore `app_prefs`; no name collides, so a store update meets no foreign
+schema and nothing is migrated, deleted or read. Importing its old bests is the tech-lead's own
+non-blocking founder question (recommended no).
 
 ### 12.3 Rules — GD-SB-13
 
@@ -566,13 +598,20 @@ this ruling but inside "nobody gets a broken resume".
    merge could not express it anyway.
 3. **An in-progress Challenge snapshot resumes on its stored board.** The blob stores the
    initial board and the move history, never "regenerate level N" (phase-5 D-06;
-   `ResumeSnapshotDto` KDoc), so a snapshot stamped `generatorVersion = 1` continues exactly the
-   board the player left, with undo and elapsed time intact. Its hints degrade honestly: the
-   recorded line for the *new* level N will not match the stored board, the legality guard
-   rejects it and the solver answers instead (§9). Its finish is graded by R5/R6 and recorded
-   under its level number. Restart serves level N's new board. The stamp is left as written; new
-   snapshots are stamped 2. Discarding old snapshots is rejected: it is the one path that loses
-   a player's game, and it buys nothing the stamp does not already give.
+   `ResumeSnapshotDto` KDoc), and `SnapshotMapper` never reads the stamp, so a snapshot stamped
+   `generatorVersion = 1` continues exactly the board the player left, with undo and elapsed time
+   intact (tech-lead confirmed, brief §1(b)). Its hint goes to the solver directly: a restored
+   game loads no recorded line (`solution == null`, `onRecordedLine = false` in
+   `applyRestored`), so there is no line to reject — an earlier edition of this item named a
+   legality-guard rejection, which was the wrong mechanism for the same outcome (F-1). Its finish
+   is graded by R5/R6 and recorded under its level number. **Restart regenerates when the stamp
+   is old** — a tech-lead ruling built in the brief's C3, not true of the code before this
+   change: the ViewModel keeps the restored stamp, and a Challenge restart whose stamp is not the
+   current `GENERATOR_VERSION` does the reset bookkeeping, clears the snapshot and takes the
+   level-load path, which serves level N's current board and its recorded line; a current-stamp
+   or fresh game keeps today's regeneration-free restart (D-06). New snapshots are stamped 2.
+   Discarding old snapshots is rejected: it is the one path that loses a player's game, and it
+   buys nothing the stamp does not already give.
 4. **The cloud payload is not re-versioned.** `schemaVersion` stays 1: no field changes, and 1
    and 2 were always valid star values. The decoder's refusal of a *newer* version is untouched.
 5. **Play Games is not touched.** Achievements already unlocked stay unlocked; ladder
@@ -601,19 +640,21 @@ Entries are never deleted; a superseded one gets a "superseded by" line.
 | GD-SB-03 | A terminal Challenge board with four or more pegs is stuck and stays on the board under the rescue banner (R6); no Results variant, no "accept this finish" action. The 2026-08-30 todo's option 1 is taken for 2–3 pegs and option 2's "keep stuck on the board" for 4+. | closes `.planning/todos/pending/2026-08-30-decide-whether-stuck-finishes-reach-results-1-2-stars.md` for Challenge |
 | GD-SB-04 | Every clear advances the ladder past its level (R7). | phase-3 D-02 "only a 1-peg solve unlocks level N+1"; phase-3 D-10 for 2–3 pegs |
 | GD-SB-05 | HINT_FREE, UNDO_FREE and SPEED_SOLVE require a 3-star clear; CENTER_FINISH already does; first-clear, level-5, ladder and star tiers count any clear (§11.2). | phase-12 D-01, D-04 for Challenge |
-| GD-SB-06 | Classic is unchanged (R8). A non-blocking founder question about aligning Classic's bands is drafted in the game-designer's report; until answered, Classic stays as shipped. | — |
+| GD-SB-06 | Classic is unchanged in 3.0.0 (R8): the directive says "on challenge". Q-037 (non-blocking, queued by the producer) asks only whether Classic adopts the bands relative to each board's floor in 3.1. | — |
 | GD-SB-07 | Results headline tiers for Challenge: 3 stars "Perfect!", 2 "Solved!", 1 "Cleared!"; the STUCK tier remains only as the defensive branch for a route reached with an uncleared peg count. | phase-2 D-08 (names the 1-star tier) |
 | GD-SB-08 | Information rules for the two surfaces: a 1- or 2-star Challenge Results screen states how many pegs the next star needs; the Challenge stuck banner states the pegs that remained and that three or fewer clears the level (§16). Wording and layout are the ux-designer's. | — |
 | GD-SB-09 | The ladder cut: `LEVEL_OFFSET = 50`; level N deals what the previous curve dealt at N + 50 (§7.1, §7.2). Seeds stay keyed on the visible level. | phase-3 D-05's "levels ~1–10 are easy/tutorial-ish" (the tutorial now carries that job) |
 | GD-SB-10 | Levels 1–4 are fail-proof (G6, `FAIL_PROOF_LEVELS = 4`). | — (makes rules/puzzle-design.md's onboarding rule true of Challenge) |
 | GD-SB-11 | Freeform intro at visible level 10; from it, freeform and canonical are drawn with equal probability per attempt (G7). | phase-3 D-08 as built (freeform took over entirely from level 40) |
 | GD-SB-12 | `GENERATOR_VERSION` becomes 2; golden fixtures regenerated; fuzz at 100,000 on the release branch; no parallel v1 generator kept (§8 I7). | the `GeneratorConstants` KDoc's "a bump ships as a parallel generator" — moot while no store build exists |
-| GD-SB-13 | Migration: numbers kept, results not re-graded, old snapshots resume on their stored board, cloud schema unchanged, Play Games untouched, Room not bumped (§12.3). | — |
+| GD-SB-13 | Migration: numbers kept, results not re-graded, old snapshots resume on their stored board and an old-stamp restart regenerates (tech-lead ruling, brief §1(b)), cloud schema unchanged, Play Games untouched, Room not bumped (§12.3). | — |
 | GD-SB-14 | The Challenge cleared test is one `:domain` function read by `GameViewModel`, `ResultsViewModel` and `ResultsUiState` (§4). | extends the CR-01 ruling of phase 10 |
 | GD-SB-15 | Every generated `BoardSpec` carries `minimumPegs == 1` (I5, G8); the Diamond-41 footprint never carries the Classic floor into Challenge. | — |
 | GD-SB-16 | Interstitial eligibility keeps its meaning: every Results entry is a win; a stuck board never reaches Results (§11.4). | — (confirms phase-10 D-14) |
 | GD-SB-17 | The tutorial and its copy are unchanged; no text about stars is added anywhere before the first graded Results screen (§10). | — |
 | GD-SB-18 | In Challenge the proven-dead banner says one peg is out of reach and that the level may still be cleared with two or three pegs; it never says the level is lost (§9). | extends phase 8's Diamond-41 ruling; phase-8 D-02's banner meaning for Challenge |
+| GD-SB-19 | Ux-spec D-SB-4 acknowledged: the Challenge proven-dead banner may be dismissed by a tap outside its buttons. Rule boundary: a dismissal clears only the proof flag, is never charged, counted or undoable and plays no cue; the proof stands and a Hint on the same position raises the banner again, free; the stuck banner (R6) is never dismissable in either mode; Classic's proven-dead banner is unchanged (§9). | — |
+| GD-SB-20 | Ux-spec D-SB-2 acknowledged: the Results next-star line names the next band up only ("Leave 2 pegs for 2 stars." at one star, "Leave 1 peg for 3 stars." at two) and both numbers come from the clear function through `ResultsUiState`. This supersedes §16's earlier two-band proposal at one star; GD-SB-08's information rule (the peg count of the next band up) is met, and the three star slots show the whole scale. | §16 (first edition) |
 
 **Rulings recorded elsewhere and in force.** GD-HT-1…6, the hint outcomes
 (`.planning/reports/phase-14/game-designer-hint-timeout.md`); the tutorial boards T1–T3
@@ -665,9 +706,10 @@ with no wall clock; the fuzz harness honours `FUZZ_SEEDS` and writes failing see
 | §6.4 | Bests merge | `ProgressMergeTest` (laws); new `ProgressRepositoryTest.aLaterThreeStarClearUpgradesAOneStarBest`, `aLaterOneStarClearLeavesAThreeStarBestUntouched` | existing + new |
 | GD-SB-05 | Skill awards need 3 stars | new `PlaySessionDaoTest.aOneStarHintFreeClearDoesNotCountAsAHintFreeSolve`, `aThreeStarHintFreeClearCountsAsAHintFreeSolve`, `aOneStarClearUnderSixtySecondsDoesNotCountAsASpeedSolve` | new |
 | GD-SB-16 | Eligibility | new `ResultsViewModelTest.aOneStarChallengeClearIsInterstitialEligible`; `InterstitialCadenceStateTest` unchanged | new |
-| GD-SB-07/08 | Copy | new `ResultsScreenTest.aOneStarChallengeResultShowsTheClearedHeadlineAndTheNextStarLine`, `aTwoStarChallengeResultShowsTheNextStarLine`, `aPerfectChallengeResultShowsNoNextStarLine`; new `GameScreenTest.aStuckChallengeBoardShowsTheChallengeStuckMessageWithItsPegCount`; existing `ResultsScreenTest.solvedChallengeShowsExactlyOneNextLevelAndNoReplayOrRetry` | new + existing |
-| GD-SB-13 | Old snapshots resume | new `SnapshotMapperTest.aSnapshotStampedWithGeneratorVersionOneRestoresOnItsStoredBoard`; `MigrationTest` (v1 → v2 rows survive) | new + existing |
-| GD-SB-18 | Banner copy | new `GameScreenTest.aProvenDeadChallengeBoardSaysOnePegIsOutOfReachNotThatTheLevelIsLost` | new |
+| GD-SB-07/08 | Copy | new `ResultsScreenTest.aOneStarChallengeResultShowsTheClearedHeadlineAndTheNextStarLine`, `aTwoStarChallengeResultShowsTheNextStarLine`, `aPerfectChallengeResultShowsNoNextStarLine`; new `aStuckChallengeBoardShowsTheChallengeStuckMessageWithItsPegCount` in the game screen's existing test files or a new `GameScreenRescueBannerTest` (there is no `GameScreenTest`; ux-spec §4.4.3); existing `ResultsScreenTest.solvedChallengeShowsExactlyOneNextLevelAndNoReplayOrRetry` | new + existing |
+| GD-SB-13 | Old snapshots resume; an old-stamp restart regenerates | new `GameViewModelResumeTest.aSnapshotStampedWithGeneratorVersionOneRestoresOnItsStoredBoard` (the stamp is a ViewModel property — the mapper never reads it, tech-lead F-5), `restartOfAResumedOldStampLevelServesTheLevelsCurrentBoardAndItsRecordedLine`, `restartOfAResumedCurrentStampLevelKeepsItsStoredBoardWithoutRegenerating`; new `SnapshotMapperTest.aSnapshotStampedWithAnotherGeneratorVersionPassesTheStampThroughUntouched`, `aChallengeBlobWithoutAStoredTargetOnTheDiamondFootprintResolvesToOnePeg`, `aClassicBlobWithoutAStoredTargetOnTheDiamondFootprintKeepsItsFloorOfTwo`; `MigrationTest` (v1 → v2 rows survive) | new + existing |
+| GD-SB-18 | Banner copy | new `aProvenDeadChallengeBoardSaysOnePegIsOutOfReachNotThatTheLevelIsLost` (same placement as the GD-SB-07/08 row) | new |
+| GD-SB-19 | Dismissal clears only the proof flag; the stuck banner never dismisses | new `GameViewModelTest.dismissingTheProvenDeadBannerClearsOnlyTheProofFlagAndChargesNothing` (flag false; `stuck`, allowances, counters, clock, board and selection unchanged; a second Hint on the same position returns Proven dead again, free); new `NoWinBannerTest.onlyTheChallengeProvenDeadBannerCarriesTheDismissAction` (the stuck banner in both modes and Classic's proven-dead banner carry none) | new |
 
 Coverage: `:domain` line coverage ≥ 90 % (kover, tech-design §8.4) must hold after the change.
 
@@ -732,8 +774,20 @@ emulator and records an observed `result:` line per item, never a pre-ticked box
   the same at 3 stars, then all three are. (GD-SB-05 tests)
 - **SB-V7** Given a resume snapshot stamped `generatorVersion = 1` with a valid history, when
   restored, then the stored initial board replayed by that history is on screen with undo
-  available and the elapsed time carried; the level number is the stamped one.
-  (`aSnapshotStampedWithGeneratorVersionOneRestoresOnItsStoredBoard`)
+  available and the elapsed time carried; the level number is the stamped one; a Hint request
+  goes to the solver (no recorded line is loaded on a resume).
+  (`GameViewModelResumeTest.aSnapshotStampedWithGeneratorVersionOneRestoresOnItsStoredBoard`)
+- **SB-V8** Given a resumed Challenge level whose stamp is not the current generator version,
+  when the player restarts, then the level's current board and its recorded line are served
+  through the level-load path; given a current-stamp resume or a fresh game, then Restart keeps
+  the stored board without regenerating.
+  (`restartOfAResumedOldStampLevelServesTheLevelsCurrentBoardAndItsRecordedLine`,
+  `restartOfAResumedCurrentStampLevelKeepsItsStoredBoardWithoutRegenerating`)
+- **SB-V9** Given a Challenge board under the proven-dead banner, when the player dismisses the
+  banner, then only the proof flag clears — `stuck`, the allowances, the assist counters, the
+  clock, the board and the selection are unchanged, nothing is charged or counted — and a Hint
+  tapped on the same position returns Proven dead again at no charge.
+  (`dismissingTheProvenDeadBannerClearsOnlyTheProofFlagAndChargesNothing`)
 
 ### UI (Compose UI tests)
 
@@ -749,6 +803,9 @@ emulator and records an observed `result:` line per item, never a pre-ticked box
 - **SB-U4** Given TalkBack, when a 1-star Results opens, then the summary announced once is
   "Cleared! — 1 of 3 stars, 3 pegs left." in the existing `results_a11y_summary` shape, and the
   next-star line is a stop. (ux-designer's TalkBack script; QA SB-Q7)
+- **SB-U5** Given the Challenge proven-dead banner, when the player taps its message or padding,
+  then the banner leaves and the board plays; given the stuck banner in either mode or Classic's
+  proven-dead banner, then no such tap removes it. (`onlyTheChallengeProvenDeadBannerCarriesTheDismissAction`)
 
 ### Persistence (instrumented or Robolectric where the DAO is exercised)
 
@@ -776,8 +833,10 @@ emulator and records an observed `result:` line per item, never a pre-ticked box
 - **SB-Q5** Levels 1–4 cannot be finished uncleared: on each, play deliberately badly (jump
   away from clusters) and record the terminal peg count; it is never above 3.
 - **SB-Q6** Tap Hint on a Challenge position proven dead (the developer supplies a sequence):
-  the banner says one peg is out of reach and that the level may still be cleared; finish the
-  board to 2 or 3 pegs and confirm Results opens with 2 or 1 stars.
+  the banner says one peg is out of reach and that the level may still be cleared; tap its
+  message — it leaves, no cue plays, the hint allowance is unchanged; tap Hint again — it
+  returns at once; then finish the board to 2 or 3 pegs and confirm Results opens with 2 or 1
+  stars. On a stuck board (SB-Q4) a tap on the banner's message does nothing.
 - **SB-Q7** TalkBack on: SB-U4's announcement on a 1-star Results; the stuck banner's message is
   read when it appears.
 - **SB-Q8** Signed in: after a 1-star clear of level N, the Challenge Ladder leaderboard shows
@@ -797,18 +856,21 @@ emulator and records an observed `result:` line per item, never a pre-ticked box
 ## 16. Copy contract
 
 Information rules are the game-designer's; the final wording, its tr-TR translation, TalkBack
-announcements and layout are the ux-designer's, within these rules. Every string lands in
-`app/src/main/res/values/strings.xml`; the app has no `values-tr` today, and the Turkish copy
-of record for the tr-TR work lives in the ux-spec and `docs/store/tr-TR/`. This table is the
-complete list of strings the change adds, changes or leaves alone, for the Turkish
-localisation branch.
+announcements and layout are the ux-designer's, within these rules — and are now decided:
+`docs/ux-spec.md` §3 D-SB-1…6, §4.4.3 and §4.6 (b8e4c8c). The en-US column below is the decided
+copy; where it differs from this file's first edition the ux-designer's wording stands, and the
+two differences are recorded as GD-SB-19 and GD-SB-20 (§13). Every string lands in
+`app/src/main/res/values/strings.xml`; the app has no `values-tr` today, and the Turkish copy of
+record for the four new strings is the ux-spec's §8 D-SB table (D-SB-6), which
+`feature/turkish-locale` carries into `values-tr`. This table is the complete list of strings the
+change adds, changes or leaves alone.
 
-| Resource | Status | en-US proposal (ux-designer finalises) | Rule it must satisfy |
+| Resource | Status | en-US (decided, ux-spec D-SB-1…3) | Rule it must satisfy |
 |---|---|---|---|
-| `results_headline_cleared` | **new** | "Cleared!" | names a pass that is not a solve; one word plus the house exclamation mark, like its two siblings |
-| `results_next_star_hint` | **new** | 2 stars: "Leave 1 peg for 3 stars." · 1 star: "Leave 2 pegs for 2 stars, 1 for 3." (two resources or one with plurals, the developer's call) | states the peg count of the next band up; no "try again", no "almost", no time or score advice |
-| `stuck_message_challenge` | **new** | "No moves left with %1$d pegs — leave 3 or fewer to clear the level. Undo or restart." | names the exact count and the threshold 3; keeps the banner's "problem — what to do" shape; never "lost", "failed", "game over" |
-| `nowin_message_challenge` | **new** | "No way down to one peg from here. You may still clear the level with 2 or 3 pegs — or undo or restart." | GD-SB-18: one peg out of reach; a clear *may* still be possible (no promise); never "lost" |
+| `results_headline_cleared` | **new** | "Cleared!" | names a pass that is not a solve; one word plus the house exclamation mark, like its two siblings (D-SB-1) |
+| `results_next_star_hint` | **new**, one plural resource | "Leave 2 pegs for 2 stars." after a one-star clear; "Leave 1 peg for 3 stars." after a two-star one — the next band up only; both numbers from the clear function through `ResultsUiState`, never typed (D-SB-2, GD-SB-20) | states the peg count of the next band up; no "try again", no "almost", no time or score advice |
+| `stuck_message_challenge` | **new**, plurals | "No moves left with %1$d pegs — leave %2$d or fewer to clear the level. Undo or restart." (`%2$d` = `CLEAR_MAX_PEGS`; shown with 5 and 3) (D-SB-3) | names the exact count and the threshold; keeps the banner's "problem — what to do" shape; never "lost", "failed", "game over" |
+| `nowin_message_challenge` | **new**, plurals | "One peg is out of reach from here — you may still clear the level with %1$d pegs or fewer, or undo or restart." (`%1$d` = `CLEAR_MAX_PEGS`) (D-SB-3) | GD-SB-18: one peg out of reach *from here*; a clear *may* still be possible (no promise); never "lost". Dismissable by a tap outside its buttons (D-SB-4, GD-SB-19) |
 | `results_headline_perfect` / `_solved` | unchanged | "Perfect!" / "Solved!" | now reachable in Challenge at 3 and 2 stars |
 | `results_headline_stuck` | unchanged | "Out of moves" | defensive branch only; never shown in play |
 | `action_next_level`, `action_retry`, `action_home` | unchanged | | Next level on every clear; Retry on the defensive branch only |
@@ -863,11 +925,12 @@ feature landing after the cut); this file only says what the phase delivers.
 5. `./gradlew check` green; code-auditor review; QA device pass SB-Q1…Q11; tech-lead
    sign-off; `FUZZ_SEEDS=100000` on the release branch (rules/testing.md).
 
-**Owners.** game-designer: this file, the rule, the ACs' intent. ux-designer: wording, tr-TR,
-TalkBack, the next-star line's placement, ux-spec §4.3/§4.4/§8 rows. tech-lead: the shape and
-home of the cleared function, the `BoardSpec` target mechanism for pool entries, confirmation
-that the resume path and hint path behave as §12.3(3) says, the old-application on-disk
-question, tech-design §7.1/§7.3 updates. android-game-dev: builds test-first. qa-engineer: judges.
+**Owners.** game-designer: this file, the rule, the ACs' intent. ux-designer: ruled
+(ux-spec b8e4c8c, D-SB-1…6, §4.4.3, §4.6, §8) — wording, tr-TR, TalkBack, the next-star line,
+the proven-dead banner's dismissal; acknowledged here as GD-SB-19 and GD-SB-20. tech-lead: ruled on
+2026-11-01 (`.planning/reports/challenge-star-bands/tech-lead-brief.md` §1; tech-design §7.1,
+§7.4) — the cleared function's home and shape, the pool-spec copies, the resume and restart
+mechanism, the old application's files; the sign-off transcribes M1–M5 into tech-design §7.3. android-game-dev: builds test-first. qa-engineer: judges.
 release-manager: changelog and store lines (§16), the fuzz run at release settings. producer:
 Phase 16 in `ROADMAP.md`, the todo closure, the founder question, `PROJECT.md` Key Decisions row.
 
@@ -875,8 +938,8 @@ Phase 16 in `ROADMAP.md`, the todo closure, the founder question, `PROJECT.md` K
 
 - A tiered hint that, when one peg is proven unreachable, searches for a two- or three-peg
   line (§9). Needs a new solver target and book semantics; it also raises Undecided rates.
-- Classic alignment with the band model — only if the founder answers the drafted question
-  that way.
+- Classic alignment with the band model — only if the founder answers Q-037 that way, and 3.1
+  at the earliest; 3.0.0 ships Classic unchanged.
 - A star forecast in the gameplay status strip (§10).
 - Curve re-tuning by playtest (D-07) — the cut shifts the curve, it does not re-tune it.
 - A per-level best of "fewest pegs left" alongside stars — redundant with stars under R5;
