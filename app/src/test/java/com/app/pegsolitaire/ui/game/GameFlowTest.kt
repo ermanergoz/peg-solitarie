@@ -1,6 +1,5 @@
 package com.app.pegsolitaire.ui.game
 
-import android.provider.Settings
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -32,6 +31,7 @@ import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
 import com.app.pegsolitaire.platform.ads.NoOpAdGateway
 import com.app.pegsolitaire.testing.RecordingHapticFeedback
+import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
@@ -73,8 +73,11 @@ import kotlin.time.TestTimeSource
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [ROBOLECTRIC_SDK])
 class GameFlowTest {
+    /** The animation scale the screen's effects and its reduced-motion gate read; on unless a test turns it off. */
+    private val motion = SystemMotionScale()
+
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createComposeRule(effectContext = motion)
 
     private val context get() = RuntimeEnvironment.getApplication()
 
@@ -126,8 +129,10 @@ class GameFlowTest {
                     minimumPegs = nearWin.spec.minimumPegs,
                 ),
             )
+        // The timer stays on the still-present screen. Its description starts with `elapsed_time`
+        // and goes on to the spoken duration (D-05e, §4.3.2), so the label is matched as its start.
         composeRule
-            .onNodeWithContentDescription(context.getString(R.string.elapsed_time))
+            .onNodeWithContentDescription(context.getString(R.string.elapsed_time), substring = true)
             .assertIsDisplayed()
     }
 
@@ -242,7 +247,7 @@ class GameFlowTest {
      */
     @Test
     fun aJumpStillFiresTheHapticWhenTheOsAnimationScaleIsZero() {
-        Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, ANIMATIONS_OFF)
+        motion.turnAnimationsOff()
         startGame(Boards.english33Initial, settings = AllOnSettingsRepository)
 
         tapCell(row = 3, col = 1)
@@ -335,9 +340,6 @@ private const val LEVEL_ID_ARG = "levelId"
 
 /** The English-33 start: 33 holes minus the empty center. */
 private const val INITIAL_PEG_COUNT = 32
-
-/** The OS animator duration scale a player with reduced motion has set (criterion 25). */
-private const val ANIMATIONS_OFF = 0f
 
 /** This flow drives the English-33 board, which occupies a 7×7 lattice. */
 private const val ENGLISH33_GRID_DIMENSION = 7

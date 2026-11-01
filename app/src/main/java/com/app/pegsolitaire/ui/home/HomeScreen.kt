@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -30,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
@@ -53,6 +53,7 @@ import com.app.pegsolitaire.ui.theme.clayEntrance
 import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.goldGradientFill
+import com.app.pegsolitaire.ui.theme.rememberAnimationsEnabled
 import kotlinx.coroutines.flow.first
 
 /**
@@ -61,16 +62,17 @@ import kotlinx.coroutines.flow.first
  *
  * Renders [state] and forwards events; owns no logic (state hoisting). An M3
  * [Scaffold] with **no top bar at all** (Phase 15, D-03/D-05c) hosts the five scrolling
- * bands of [HomeBands], capped at `content_max_width` and centred, with the height left over
- * split 3 : 1 between the stage beneath the hero and the footer below the tiles (§4.2.2,
- * §4.2.4, D-03i, D-03l): the hero row (the gradient Fredoka title start-aligned beside the
+ * bands of [HomeBands], capped at `content_max_width` and centred. The height left over with no
+ * Continue chip is split four fifths to the stage beneath the hero and one fifth to the footer
+ * below the tiles, and a chip that arrives takes its room from the stage alone (§4.2.2, §4.2.4,
+ * §4.2.5, D-03i, D-03l, D-03n): the hero row (the gradient Fredoka title start-aligned beside the
  * Settings gear that opens the Settings destination, Phase-5 D-14), the stage — a clay board
  * showing a game in progress, as large as the slack allows and not drawn when there is none —
  * the read-only progress ribbon, up to two Continue chips, the two chunky clay mode tiles — a
  * violet Classic tile whose whole surface navigates to the catalog ([onPlayClassic]) and a pink
  * Challenge tile (with its persisted-level chip) whose whole surface enters Challenge
  * ([onPlayChallenge]) at the player's persisted [HomeUiState.challengeCurrentLevel] (CHAL-05) —
- * and an empty footer, which is the smaller share of that slack. Two slow-drifting low-alpha
+ * and an empty footer, one fifth of that slack. Two slow-drifting low-alpha
  * blobs float behind the content (skipped when OS animations are off), the bands enter with a
  * stagger, and everything tappable squishes. Below the compact threshold of available height —
  * which reads the available **width** as well, since D-03k — the band spacing tightens, and on
@@ -265,49 +267,55 @@ private fun PlayGamesSignInErrorSnackbarEffect(
 /**
  * Home's five bands (§4.2): hero, progress ribbon, Continue chips, mode tiles, footer — one
  * `verticalScroll` column capped at `content_max_width` and centred, inside a
- * `BoxWithConstraints` that reads the height available to it (§4.2.2, D-03i).
+ * `BoxWithConstraints` that reads the height available to it (§4.2.2, D-03i). The column is
+ * [HomeBandColumn], whose measure policy gives every band its height and splits the slack
+ * (§4.2.5, D-03n).
  *
  * ## Why it scrolls, and why the scroll is not a place to put things
  *
  * Home did **not** scroll before this refresh, and at 200% font scale with two Continue chips
  * it already overflowed, so the scroll is a fix rather than polish. It exists for the overflow
- * case only: the first-paint rule (D-03f) requires bands 3 and 4 — the Continue chips and both
- * mode tiles — to be fully within the first viewport at default font scale on a 360x640dp
- * phone, and on that window the **compact band set** below is what keeps them there. A
- * Continue chip reachable only by scrolling is a broken device oracle, not a layout compromise.
+ * case only: the first-paint rule (D-03f), as criterion 15k states it, requires the hero row, the
+ * whole ribbon, both Continue chips and the first mode tile complete in the first viewport at
+ * default font scale on a 360x640dp phone, and on that window the **compact band set** below does
+ * better than that — measured on NATIVE text metrics and on the device, the whole column fits it,
+ * 0dp over. A Continue chip reachable only by scrolling is a broken device oracle, not a layout
+ * compromise.
  *
- * ## The slack: the stage and the footer, 3 : 1
+ * ## The slack: four fifths to the stage, one fifth to the footer — of the slack with no chip
  *
- * The larger share is the [HomeStage], directly beneath the hero row, and the smaller one an
- * empty `Spacer` **as** band 5. So on a tall phone most of the slack goes *above* the ribbon, the
- * Continue chips and the mode tiles, which stay one contiguous group in the lower thumb half of a
- * 6.7-inch screen (§11 "One-handed use") with a visible margin left below them rather than the
- * tiles sitting on the navigation bar — and that share is a clay board showing a game in progress
- * rather than a hole (§4.2.4, D-03l). No slack sits between the ribbon and the chips any more:
- * that is where the founder's ≈172dp of blank was.
+ * The slack is the height the bands leave the column, and D-03n splits the slack the window leaves
+ * with **no** Continue chip, S₀, which is fixed for the window: one fifth is the empty footer below
+ * the tiles, as band 5, and the rest is the [HomeStage] directly beneath the hero row. A Continue
+ * chip that arrives after first paint — every chip does, once `HomeViewModel` has decoded the saves
+ * — takes its room from the stage alone. So the ribbon rides up on the stage's bottom edge and the
+ * mode tiles, which a thumb may already be heading for, hold still; where the stage cannot give the
+ * whole room they move by what it could not give, and no more (§4.2.5, criteria 15s and 15t).
  *
- * **`heightIn(min = available)` is the whole mechanism, and the modifier order is contract.**
- * `verticalScroll` measures its content with an unbounded maximum height, and a `Column`
- * distributes weight over its maximum main-axis size only while that is finite — over its
- * **minimum** once it is not. Setting the minimum to the available height therefore hands the
- * stage and the footer exactly the slack between the viewport and the fixed bands, and hands them
- * **nothing** the moment the fixed bands exceed it, which is precisely when the column must
- * scroll instead. No other modifier in the chain may set a height. (Verified on the pinned
- * Compose BOM: at 411x915dp the tiles take the slack, and with a band taller than the viewport
- * the weighted children measure 0 and the column scrolls.)
+ * So on a tall phone most of the slack still goes *above* the ribbon, the Continue chips and the
+ * mode tiles, which stay one contiguous group in the lower thumb half of a 6.7-inch screen (§11
+ * "One-handed use") with a visible margin left below them rather than the tiles sitting on the
+ * navigation bar — and that share is a clay board showing a game in progress rather than a hole
+ * (§4.2.4, D-03l). No slack sits between the ribbon and the chips: that is where the founder's
+ * ≈172dp of blank was.
  *
- * The **previous** shape — one fixed `Spacer(spacing_lg)` — is what put the founder's empty
+ * **The column reports its own height, so nothing in the chain around it sets one.**
+ * `verticalScroll` measures its content with an unbounded maximum height, so [HomeBandColumn] is
+ * handed the height this `BoxWithConstraints` measured instead. It is exactly that tall, padding
+ * included, while its bands fit, and taller by the overflow once they do not, which is precisely
+ * when the column must scroll.
+ *
+ * The shape before D-03i — one fixed `Spacer(spacing_lg)` — is what put the founder's empty
  * space at the bottom of the screen instead of the middle: a top-aligned column in a
  * `fillMaxSize` scroll container sends every unspent pixel to the footer. Measured on device
  * as the Classic tile's centre at 1173px against a 1212px midline with the bottom 34% bare.
  *
- * **No content band may be weighted** (§4.2.2 clause 4). A weighted child with `fill = true`
- * is measured at exactly its share, so a weighted hero would be measured at **0** the moment
- * the fixed bands exceed the viewport — clipped to nothing at 200% font scale, which criterion
- * 14 forbids. The weight holders are therefore the footer `Spacer` and the stage, whose one
+ * **No content band takes slack** (§4.2.2 clause 4). A band handed a share of the slack is handed
+ * **0** the moment the fixed bands exceed the viewport, so a hero that took slack would be clipped
+ * to nothing at 200% font scale, which criterion 14 forbids. The stage takes it because its one
  * drawing is decoration for which 0 is the right size on a short screen — the single exception
- * clause 4 makes (§4.2.4). Neither is a band: no entrance order of its own, no squish, nothing
- * tappable, focusable or announced.
+ * clause 4 makes (§4.2.4) — and the footer is space, not a band: neither has an entrance order of
+ * its own, a squish, or anything tappable, focusable or announced.
  *
  * ## `fillMaxSize()` belongs on the Box and nowhere else
  *
@@ -347,22 +355,27 @@ private fun PlayGamesSignInErrorSnackbarEffect(
  * slack. 400dp is the boundary because 360dp is the narrowest supported window and the next common
  * width is the 412dp class, so no shipping device sits on it.
  *
- * ## What the narrow class still does not fit, and why the criterion says so
+ * ## What the narrow class fits, and why the criterion is written for the overflow
  *
- * After every yield that costs no readout the compact-narrow set is ≈640dp against the **568dp** a
- * 360x640dp phone offers (640 less a 24dp status bar and a 48dp three-button navigation bar), so
- * it is ~72dp over and **the screen scrolls**. Criterion 15h asserted a no-scroll fit and is
- * retired as false; 15k requires what is achievable and measurable instead — the hero row, the
- * whole ribbon, both Continue chips and the first mode tile complete in the first viewport, the
- * second mode tile **breaking the fold** so there is no false bottom, and the rest one plain
- * scroll of ≤ 120dp away. Every one of the remaining 72dp is a readout, a target or a route
- * (§4.2.3's table), so there is nothing left to take at a price this screen is willing to pay.
+ * §4.2.3's arithmetic put the compact-narrow set at ≈640dp against the **568dp** a 360x640dp phone
+ * offers (640 less a 24dp status bar and a 48dp three-button navigation bar), ~72dp over, and
+ * criterion 15h, a no-scroll fit, was retired as false on that reading. The reading was
+ * Robolectric's LEGACY text metrics, which over-wrap: on NATIVE metrics and on the device the
+ * column fits that window with **0dp** over, both Continue chips and both tiles whole (the H-1
+ * audit's F-1). 15k stands as written, for any window where the column does overflow — the hero
+ * row, the whole ribbon, both Continue chips and the first mode tile complete in the first
+ * viewport, the second mode tile **breaking the fold** so there is no false bottom, and the rest
+ * one plain scroll of ≤ 120dp away — and `HomeLayoutTest` reads it on a shorter window where the
+ * overflow is real. Every band the compact set keeps is a readout, a target or a route (§4.2.3's
+ * table), so there is nothing left to take at a price this screen is willing to pay.
  *
  * ## The entrance cascade
  *
  * `clayEntrance` order runs strictly downward — hero 0, ribbon 1, Continue chips 2..3, tiles
  * after — so nothing fades in above something that arrived before it (§10). Conditional chips
- * keep the ordering contiguous by counting only what is shown.
+ * keep the ordering contiguous by counting only what is shown. A chip that arrives after first
+ * paint takes no stagger, so its fade starts with its room ([ContinueChips], §4.2.5), and nothing
+ * a chip does restarts the cascade: the stage's entrance is the stage's own, run once with Home.
  */
 @Composable
 private fun HomeBands(
@@ -374,80 +387,132 @@ private fun HomeBands(
     onOpenSettings: () -> Unit,
 ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val availableHeight = maxHeight
         // `maxWidth` is a second READ of a value this BoxWithConstraints has already measured,
         // not a second measuring pass, so the width term costs nothing (§4.2.3 part 1).
-        val bandSet = homeBandSetFor(availableWidth = maxWidth, availableHeight = availableHeight)
+        val bandSet = homeBandSetFor(availableWidth = maxWidth, availableHeight = maxHeight)
         val bandSpacing =
             dimensionResource(if (bandSet.compact) R.dimen.spacing_sm else R.dimen.spacing_md)
-        Column(
+        val ribbonShape = ribbonShapeFor(bandSet = bandSet, availableWidth = maxWidth, bandSpacing = bandSpacing)
+        // The tiles' cascade order follows the chips shown, so the stagger stays contiguous (§10).
+        val chipsShown = listOfNotNull(state.classicResumeLevelId, state.challengeResumeLevel).size
+        val classicTileOrder = FIRST_CHIP_ENTRANCE_ORDER + chipsShown
+        val animationsEnabled = rememberAnimationsEnabled()
+        val classicRoom = rememberChipRoom(present = state.classicResumeLevelId != null, animationsEnabled)
+        val challengeRoom = rememberChipRoom(present = state.challengeResumeLevel != null, animationsEnabled)
+        val stageArtFade = remember { mutableStateOf(StageArtFade.None) }
+        HomeBandColumn(
+            availableHeightPx = constraints.maxHeight,
+            bandSpacing = bandSpacing,
+            onStageArtFade = { fade -> if (stageArtFade.value != fade) stageArtFade.value = fade },
             modifier =
                 Modifier
                     .align(Alignment.TopCenter)
                     .verticalScroll(rememberScrollState())
-                    .heightIn(min = availableHeight)
                     .widthIn(max = dimensionResource(R.dimen.content_max_width))
                     .padding(bandSpacing),
-            verticalArrangement = Arrangement.spacedBy(bandSpacing),
-        ) {
-            HomeHero(onOpenSettings = onOpenSettings)
-            // The stage: most of the slack, directly beneath the hero row (§4.2.4 clause 3), so
-            // the ribbon, the chips and the tiles form one contiguous lower group in the thumb
-            // zone and the slack reads as the game's own board instead of a hole. It is the one
-            // weighted child allowed to hold anything, because 0 is its correct size when the
-            // column overflows (clause 4's single exception).
-            HomeStage(modifier = Modifier.weight(STAGE_WEIGHT))
-            HomeProgressRibbon(
-                compact = bandSet.compactPills,
-                totalStars = state.totalStars,
-                classicBoardsCleared = state.classicBoardsCleared,
-                challengeCurrentLevel = state.challengeCurrentLevel,
-            )
-
-            var entranceOrder = RIBBON_ENTRANCE_ORDER + 1
-            val resumeLevelId = state.classicResumeLevelId
-            if (resumeLevelId != null) {
-                ResumeTile(
-                    title = stringResource(R.string.resume_classic_title),
-                    supporting = stringResource(R.string.resume_classic_supporting),
-                    entranceOrder = entranceOrder++,
-                    board = state.classicResumeBoard,
-                    onResume = { onResumeClassic(resumeLevelId) },
+            hero = { HomeHero(onOpenSettings = onOpenSettings) },
+            // The stage: the larger share of the slack, directly beneath the hero row (§4.2.4
+            // clause 3), so the ribbon, the chips and the tiles form one contiguous lower group in
+            // the thumb zone and the slack reads as the game's own board instead of a hole.
+            stage = {
+                HomeStage(
+                    artFade = stageArtFade.value,
+                    artFadeProgress = { stageMotionProgress(classicRoom, challengeRoom) },
                 )
-            }
-            // The Challenge Continue carries the SNAPSHOT's stamped level (WR-03),
-            // never challengeCurrentLevel — the ladder flow can lag at a cold start
-            // while the stamp always names the level the saved board really is.
-            val challengeResumeLevel = state.challengeResumeLevel
-            if (challengeResumeLevel != null) {
-                ResumeTile(
-                    title = stringResource(R.string.resume_challenge_title),
-                    supporting =
-                        stringResource(
-                            R.string.resume_challenge_supporting,
-                            challengeResumeLevel,
-                        ),
-                    entranceOrder = entranceOrder++,
-                    // A procedural level has no memorable footprint, so this chip keeps the
-                    // generic play arrow: a thumbnail of a board the player cannot recognise
-                    // would be decoration pretending to be information.
-                    board = null,
-                    onResume = { onResumeChallenge(challengeResumeLevel) },
+            },
+            ribbon = {
+                HomeProgressRibbon(
+                    shape = ribbonShape,
+                    totalStars = state.totalStars,
+                    classicBoardsCleared = state.classicBoardsCleared,
+                    challengeCurrentLevel = state.challengeCurrentLevel,
                 )
-            }
-            ClassicTile(entranceOrder = entranceOrder++, onPlayClassic = onPlayClassic)
-            ChallengeTile(
-                currentLevel = state.challengeCurrentLevel,
-                entranceOrder = entranceOrder,
-                onPlayChallenge = onPlayChallenge,
-            )
-            // Band 5 — the footer. It stops being a comment and becomes the slack it was
-            // reserved for: still empty of content (§4.2), and now the smaller share of the
-            // margin that keeps the tiles off the navigation bar.
-            Spacer(modifier = Modifier.weight(SLACK_BELOW_TILES_WEIGHT))
-        }
+            },
+            chips = {
+                ContinueChips(
+                    state = state,
+                    classicRoom = classicRoom,
+                    challengeRoom = challengeRoom,
+                    onResumeClassic = onResumeClassic,
+                    onResumeChallenge = onResumeChallenge,
+                )
+            },
+            tiles = {
+                ClassicTile(entranceOrder = classicTileOrder, onPlayClassic = onPlayClassic)
+                ChallengeTile(
+                    currentLevel = state.challengeCurrentLevel,
+                    entranceOrder = classicTileOrder + 1,
+                    onPlayChallenge = onPlayChallenge,
+                )
+            },
+        )
     }
 }
+
+/**
+ * Band 3 — the Continue chips present, Classic over Challenge (§4.2, PERS-03, D-03): none, one or
+ * two, each a [ResumeTile] carrying exactly what its resume needs, so the host never guesses, and
+ * each in its own room of the band column ([ChipRoomSlot]), which opens as the chip arrives and
+ * closes, the chip still shown, as it leaves (§4.2.5).
+ *
+ * A chip present at Home's first composition takes its place in the entrance cascade, counted on
+ * from the ribbon's over the chips shown, so the cascade stays contiguous (§10). A chip that
+ * arrives later — the usual case, once `HomeViewModel` has decoded the saves — takes no stagger, so
+ * its fade starts in the frame its room starts to open and no empty room shows ahead of it.
+ */
+@Composable
+private fun ContinueChips(
+    state: HomeUiState,
+    classicRoom: ChipRoom,
+    challengeRoom: ChipRoom,
+    onResumeClassic: (levelId: String) -> Unit,
+    onResumeChallenge: (level: Int) -> Unit,
+) {
+    val classicAtFirstComposition = remember { state.classicResumeLevelId != null }
+    val challengeAtFirstComposition = remember { state.challengeResumeLevel != null }
+    ChipRoomSlot(
+        value = state.classicResumeLevelId?.let { ClassicResume(levelId = it, board = state.classicResumeBoard) },
+        room = classicRoom,
+    ) { classic ->
+        ResumeTile(
+            title = stringResource(R.string.resume_classic_title),
+            supporting = stringResource(R.string.resume_classic_supporting),
+            entranceOrder = if (classicAtFirstComposition) FIRST_CHIP_ENTRANCE_ORDER else LATE_CHIP_ENTRANCE_ORDER,
+            board = classic.board,
+            onResume = { onResumeClassic(classic.levelId) },
+        )
+    }
+    // The Challenge Continue carries the SNAPSHOT's stamped level (WR-03),
+    // never challengeCurrentLevel — the ladder flow can lag at a cold start
+    // while the stamp always names the level the saved board really is.
+    ChipRoomSlot(value = state.challengeResumeLevel, room = challengeRoom) { challengeResumeLevel ->
+        ResumeTile(
+            title = stringResource(R.string.resume_challenge_title),
+            supporting =
+                stringResource(
+                    R.string.resume_challenge_supporting,
+                    challengeResumeLevel,
+                ),
+            entranceOrder =
+                when {
+                    !challengeAtFirstComposition -> LATE_CHIP_ENTRANCE_ORDER
+                    classicAtFirstComposition -> FIRST_CHIP_ENTRANCE_ORDER + 1
+                    else -> FIRST_CHIP_ENTRANCE_ORDER
+                },
+            // A procedural level has no memorable footprint, so this chip keeps the
+            // generic play arrow: a thumbnail of a board the player cannot recognise
+            // would be decoration pretending to be information.
+            board = null,
+            onResume = { onResumeChallenge(challengeResumeLevel) },
+        )
+    }
+}
+
+/** What the Classic Continue chip resumes: the saved board's id, and its footprint for the thumbnail. */
+private data class ClassicResume(
+    val levelId: String,
+    val board: Board?,
+)
 
 /**
  * A gold "Continue" clay chip for one mode's saved in-progress game (PERS-03, D-01).
@@ -709,27 +774,6 @@ private fun ModeTile(
 internal const val CONTENT_WEIGHT = 1f
 
 /**
- * How Home's vertical slack is split — the stage beneath the hero row and the empty footer
- * `Spacer` as band 5 — when there is any slack to split (§4.2.2 clause 3, D-03i, D-03l).
- *
- * 3 : 1 keeps the first mode tile's **top** edge at or below the midpoint in every state on
- * every device at or above `home_compact_threshold_height` (worst case, a fresh install at
- * exactly 720dp: tile top 405dp against a 360dp midpoint) while still leaving the tiles a
- * visible margin above the navigation bar instead of sitting on it. D-03l moved the upper share
- * from between bands 2 and 3 to the stage and left its value alone — the constant is renamed for
- * its new owner, not re-tuned.
- *
- * Deliberately **not** [CONTENT_WEIGHT], even though the denominator is a 1f: that constant is
- * one share of a `Row`'s free *width* beside a fixed accent, and this file's own convention is
- * that a shared literal is a place for two owners to disagree. These two are the only weights
- * on the vertical axis, and no content band may ever join them (clause 4 — a weighted content
- * band measures at exactly its share, so it measures 0 the moment the fixed bands overflow; the
- * stage may hold the weight only because it is decoration, for which 0 is the right size).
- */
-private const val STAGE_WEIGHT = 3f
-private const val SLACK_BELOW_TILES_WEIGHT = 1f
-
-/**
  * Entrance-cascade order of Home's fixed bands (§10: 40ms stagger, strictly downward).
  *
  * Only the first two are constants: the Continue chips and the mode tiles are conditional, so
@@ -739,6 +783,16 @@ private const val SLACK_BELOW_TILES_WEIGHT = 1f
  */
 internal const val HERO_ENTRANCE_ORDER = 0
 internal const val RIBBON_ENTRANCE_ORDER = 1
+
+/** The first Continue chip's order, straight after the ribbon's; the rest are counted on from it. */
+private const val FIRST_CHIP_ENTRANCE_ORDER = RIBBON_ENTRANCE_ORDER + 1
+
+/**
+ * A Continue chip arriving after Home's first composition enters with no stagger delay, so its
+ * fade starts with its room (§4.2.5, "The motion"); the bands drawn at first paint have already
+ * run their cascade, and their counted orders are unchanged.
+ */
+private const val LATE_CHIP_ENTRANCE_ORDER = 0
 
 @Preview(name = "Home · light")
 @Composable
@@ -794,10 +848,11 @@ private fun HomeScreenDarkPreview() {
 /**
  * The compact-narrow band set (§4.2.2, §4.2.3), which is otherwise only visible on a short
  * narrow device: the same busiest state as the dark preview, on the design baseline's own
- * 360x640dp window. The hero row should sit directly above the ribbon with no stage between
- * them (the column overflows, so the stage is 0), each progress pill should read "label value"
- * on one line with no glyph, and the Challenge tile should be cut by the bottom edge rather than
- * sitting below it — that fold is criterion 15k part 2, not a clipping bug.
+ * 360x640dp window. Each progress pill should read "label value" on one line with no glyph, and
+ * both Continue chips and both mode tiles should be whole, with the footer's fifth of the slack
+ * below them (§4.2.5). A preview draws no system bars, so the column has all 640dp and the stage
+ * still holds a small board — 67dp, measured on NATIVE metrics — where the 568dp a phone with its
+ * bars offers leaves the stage 10dp with both chips in, and no board at all.
  *
  * In **both** themes, per rules/compose.md: the compact band set is the one a 360dp-wide phone
  * always gets (§4.2.3), so it is not a variant that only needs checking in one of them.

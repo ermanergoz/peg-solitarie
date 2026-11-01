@@ -28,11 +28,11 @@ import com.app.pegsolitaire.platform.games.GamesSignInState
  * fail-*closed*, and its only authority is the consent framework itself (T-09-30 — no
  * geo-IP check, no region string, no cached inference).
  *
- * @property soundOn whether sound effects are enabled (SET-01). Persisted only this
- *   phase — there is no audio engine yet (D-16), so the switch saves the choice for the
- *   later audio pass rather than muting anything today.
- * @property hapticsOn whether haptic feedback is enabled (SET-02). Wired for real:
- *   `GameScreen` fires a light tick on each jump only while this is on (D-15).
+ * @property soundOn whether sound effects are enabled (SET-01). The switch is live, and its
+ *   gate is the sound player's own (SOUND-05): the player reads the choice straight from the
+ *   repository, so switching it off also silences cues already playing.
+ * @property hapticsOn whether haptic feedback is enabled (SET-02). It gates the jump's light
+ *   tick (D-15) and the wrong tap's reject buzz (D-06b).
  * @property colorblindPaletteOn whether the colour-blind palette is on (CV-03, CV-04): the board
  *   marks, the stars and the tutorial's done pip draw in it. Device-local; default `false`.
  * @property privacyOptionsRequired whether UMP reports that a privacy-options form must be

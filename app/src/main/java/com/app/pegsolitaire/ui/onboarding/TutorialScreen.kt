@@ -348,13 +348,20 @@ private fun TutorialFooter(
     }
 }
 
-/** One earned star in the active palette, popped in like the Results stars. Decorative: it announces nothing. */
+/**
+ * One earned star in the active palette, popped in with the Results star vocabulary. Decorative: it
+ * announces nothing.
+ *
+ * Reduced motion is the clock's, as in `rememberPopIn`: the spring always runs, and its effect is never
+ * keyed on the gate. Composed with animations off, the star starts settled; turned off mid-pop, the spring
+ * takes the new scale from the composition's clock and ends at full size within two frames.
+ */
 @Composable
 private fun CompletionStar() {
     val animationsEnabled = rememberAnimationsEnabled()
     val scale = remember { Animatable(if (animationsEnabled) STAR_POP_START else SETTLED_SCALE) }
-    LaunchedEffect(animationsEnabled) {
-        if (animationsEnabled) scale.animateTo(SETTLED_SCALE, ClayAnim.overshootSpring())
+    LaunchedEffect(Unit) {
+        scale.animateTo(SETTLED_SCALE, ClayAnim.overshootSpring())
     }
     StarGlyph(
         earned = true,

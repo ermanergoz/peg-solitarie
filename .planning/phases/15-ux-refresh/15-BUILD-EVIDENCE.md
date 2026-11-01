@@ -7,6 +7,70 @@ Written by the android-game-dev executing S5–S8 of `15-PLAN.md`, 2026-09-28, o
 
 ## Cold-start measurement
 
+### Criterion 15e — `bugfix/home-chip-arrival`, 2026-10-24 (qa-engineer) — **PASS**
+
+Run under `docs/ux-spec.md` §6.5 (second edition, preconditions 1–9 as folded) and
+`.planning/reports/home-chip-arrival/tech-lead-brief.md` §5. Report:
+`.planning/reports/home-chip-arrival/qa-engineer.md`. Raw files (git-ignored):
+`.planning/qa/home-chip-arrival/sitting/attempt-5/` (`samples.csv`, `swaps.csv`, `monitor.log`,
+`before.txt`, `after.txt`, `stats.txt`). Attempts 1–4 the same day were **VOID** (another worktree's
+Gradle build started inside each of them) and are not evidence; they are listed in the report.
+
+**Verdict.** `median_B − median_A` = 398.5 − 382.5 = **16.0 ms** ≤ `max(2 × floor, 100 ms)` = **100 ms**,
+with `floor` = |402.0 − 396.0| = **6.0 ms** (VOID line 150 ms). **PASS.**
+
+**P-1.2.** `diff ~/.android/avd/Pixel_9a.avd/config.ini ~/.android/avd/Pixel_9a_bench.avd/config.ini`
+shows exactly `AvdId` (Pixel_9a → Pixel_9a_bench), `avd.ini.displayname` (Pixel 9a → Pixel 9a bench)
+and `disk.dataPartition.size` (6G → 16G); the two `.ini` files differ only in `path` and `path.rel`.
+No extra key.
+
+#### Builds
+
+| | Arm A | Arm B |
+|---|---|---|
+| Commit | `6aa7624` = `git merge-base develop bugfix/home-chip-arrival` | `7448713`, the C10 merge (branch head `5a38f49` adds only the developer report) |
+| Build | `./gradlew --no-daemon :app:assembleDebug` in a detached throwaway worktree (removed afterwards) | same, in `PegSolitarie-home` at `5a38f49` |
+| APK sha256 | `35effc511fe52202e5fef9362591741d52157a30d4ad26171f3cecbaedb64a3d` | `9d507a88c23cfce5b144619f4bdbf95b93eaf45b7eab728dbede1b3afd2decaa` |
+| Signer | `8a4e64a3…c1a4a6` | `8a4e64a3…c1a4a6` |
+| `style/Theme.PegSolitaire` | `()`, `(night)` | `()`, `(night)`, `(v27)` size 2, `(night-v27)` size 2 |
+
+Schema identity: `git diff 6aa7624 7448713 -- app/schemas` empty; no `*PreferencesKey` added or removed.
+
+#### Preconditions
+
+| # | Precondition | Recorded value | Held? |
+|---|---|---|---|
+| 1 | `Pixel_9a_bench`, API 36, debug, animations off | `emu avd name` Pixel_9a_bench; sdk 36; debug APKs; scales 0/0/0; font 1.0; `wm` 1080x2424 / 420; light; gesture navigation. Cold-booted `-no-snapshot-load -no-snapshot-save -no-boot-anim` at 10:13:54 for this session; the sitting of record (13:05:57) followed four voided attempts on that boot | Yes (see report, deviation D-2) |
+| 2 | Exactly one emulator | `qemu-system` processes 1 (`emulator-5554`); `adb devices` also lists the physical GM6, which is not an emulator | Yes |
+| 3 | No Gradle build | host polled every 10 s through the attempt (37 readings, 13:05:57–13:11:59): no `GradleWrapperMain`, no Gradle daemon, worker or Kotlin daemon above 3 % CPU | Yes |
+| 4 | 1-min load ≤ 5.0 at both ends | before 13:05:57 (launcher idle since 12:53:53): `2.31 2.69 3.05`; after 13:12:02 (60 s after the last sample, app force-stopped, launcher in front): `1.51 2.15 2.69`; peak during 3.43 | Yes |
+| 5 | ART normalised after each swap | `cmd package compile -m speed -f` after all 20 installs; `pm art dump com.erman.pegsolitarie` read for **our** package at every swap: `[status=verify] [reason=cmdline]` on both arms | Yes (same state) |
+| 6 | Component resolved from the device | `com.erman.pegsolitarie/com.app.pegsolitaire.MainActivity` | Yes |
+| 7 | Swap only at block boundaries | `install -r -d --no-incremental` at each block start; installed `base.apk` sha256 matched its label after all 20 swaps | Yes |
+| 8 | ~200-level ladder | re-seeded before the session (it had been emptied since 2026-10-18): 200 rows, `SUM(stars)` 401, `challenge_current_level` 111, one Classic save; Home read "Stars 401", "Level 111"; after the sitting 200 / 401 / one Classic save | Yes |
+| 9 | `Data-Free` ≥ 4 GB at both ends | start `13600820K / 16337876K total = 83% free`; end `13533576K / 16337876K total = 82% free` | Yes |
+
+Every sample reported `LaunchState: COLD`.
+
+#### Null control (arm B's APK in both positions; blocks N1/N2 interleaved)
+
+| Field | N1 | N2 |
+|---|---|---|
+| Samples | 5 blocks × 5, first of each discarded, **20 recorded** | same |
+| TotalTime min / median / max (ms) | 366 / **402.0** / 426 | 380 / **396.0** / 433 |
+| Raw (ms) | 404, 410, 392, 385, 415, 397, 405, 416, 366, 413, 397, 393, 400, 395, 405, 407, 426, 398, 417, 387 (discarded 475, 397, 471, 485, 477) | 381, 413, 394, 380, 396, 399, 396, 413, 400, 433, 419, 382, 391, 407, 391, 381, 410, 400, 395, 390 (discarded 474, 487, 473, 460, 481) |
+
+#### The two arms (interleaved A/B, blocks 1–10, 13:08:30–13:11:02)
+
+| Field | Arm A (`6aa7624`) | Arm B (`7448713`) |
+|---|---|---|
+| Samples | 5 blocks × 5, first of each discarded, **20 recorded** | same |
+| TotalTime min / median / max (ms) | 353 / **382.5** / 403 | 375 / **398.5** / 410 |
+| Raw (ms) | 371, 371, 392, 383, 369, 374, 388, 383, 385, 358, 400, 374, 384, 402, 353, 392, 377, 382, 403, 380 (discarded 461, 470, 475, 463, 436) | 407, 375, 405, 384, 377, 375, 393, 381, 407, 405, 401, 398, 402, 400, 399, 381, 410, 400, 388, 391 (discarded 490, 419, 424, 484, 472) |
+
+**Threshold** `max(2 × 6.0, 100)` = 100 ms. **Delta** 16.0 ms. **PASS.** Precision caveat as below:
+emulator numbers on a shared host, no reading of the ≤ 2 s bar; only the relative delta is the gate.
+
 ### Criterion 15e — the sitting of record, 2026-10-18 (qa-engineer, sign-off H-3) — **PASS**
 
 Run by the qa-engineer under `tech-lead-signoff.md` Decision 1 (P-1 to P-4), which amends Ruling 2 of

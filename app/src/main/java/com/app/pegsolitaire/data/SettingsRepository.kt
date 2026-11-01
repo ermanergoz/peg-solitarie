@@ -15,8 +15,9 @@ import javax.inject.Singleton
  * The single source of truth for player-tunable gameplay settings.
  *
  * Four flags so far: [hintsEnabled] (legal-destination dots drawn on the board),
- * [soundOn] (SET-01 — persisted flag only for now; no audio engine yet, D-16),
- * [hapticsOn] (SET-02 — gates the light haptic fired on a jump, D-15) and
+ * [soundOn] (SET-01 — its gate is the sound player's own, SOUND-05: the player collects this
+ * flow, so switching it off also silences cues already playing), [hapticsOn] (SET-02 —
+ * gates the jump's light tick, D-15, and the wrong tap's reject buzz, D-06b) and
  * [colorblindPaletteOn] (docs/ux/colour-vision.md CV-04 — the board marks, stars and done pip
  * in the colour-blind palette).
  *

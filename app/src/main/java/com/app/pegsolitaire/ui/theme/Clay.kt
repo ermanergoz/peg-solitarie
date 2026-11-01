@@ -4,7 +4,6 @@
 
 package com.app.pegsolitaire.ui.theme
 
-import android.provider.Settings
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -17,9 +16,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.MotionDurationScale
 import androidx.compose.ui.composed
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
@@ -30,7 +31,6 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.unit.Dp
@@ -206,20 +206,24 @@ fun Modifier.clayEntrance(order: Int): Modifier {
 }
 
 /**
- * Whether decorative animations should run: `false` when the OS animator
- * duration scale (`Settings.Global.ANIMATOR_DURATION_SCALE`) is 0 — the
- * contract's reduced-motion gate. Functional transitions still occur instantly.
+ * Whether decorative animations should run: `false` while the animation scale
+ * is 0, as the system reports it with "Remove animations" on — the contract's
+ * reduced-motion gate. Functional transitions still occur instantly.
+ *
+ * The scale is the [MotionDurationScale] of the composition's own coroutine
+ * context, the one every `Animatable` in it runs on, so the gate and the
+ * animation clock are one reader of one value and cannot disagree. On a device
+ * it is Compose's window scale, which follows
+ * `Settings.Global.ANIMATOR_DURATION_SCALE` through Compose's own observer. It is
+ * snapshot state, so a toggle with the app resident recomposes every reader and
+ * the next wrong tap, star or entrance takes the path the setting says now. A
+ * composition with no scale in its context (a preview, a test that provides
+ * none) runs its animations at [DEFAULT_ANIMATOR_SCALE], and the gate is on.
  */
 @Composable
 fun rememberAnimationsEnabled(): Boolean {
-    val context = LocalContext.current
-    return remember(context) {
-        Settings.Global.getFloat(
-            context.contentResolver,
-            Settings.Global.ANIMATOR_DURATION_SCALE,
-            DEFAULT_ANIMATOR_SCALE,
-        ) != DISABLED_ANIMATOR_SCALE
-    }
+    val motionScale = rememberCoroutineScope().coroutineContext[MotionDurationScale]
+    return (motionScale?.scaleFactor ?: DEFAULT_ANIMATOR_SCALE) != DISABLED_ANIMATOR_SCALE
 }
 
 /** The gradient fraction where the CTA light lip ends. */
@@ -232,7 +236,7 @@ private const val CTA_DARK_STOP = 0.5f
 private const val ENTRANCE_START = 0f
 private const val ENTRANCE_END = 1f
 
-/** The OS default animator duration scale. */
+/** The scale animations run at when a composition carries none: Compose's default, and the OS default. */
 private const val DEFAULT_ANIMATOR_SCALE = 1f
 
 /** Animator scale value meaning "animations disabled". */
