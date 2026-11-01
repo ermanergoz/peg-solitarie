@@ -3,6 +3,7 @@ package com.app.pegsolitaire.data.resume
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.domain.assist.AssistAllowance
 import com.app.pegsolitaire.domain.assist.AssistAllowanceLimits
+import com.app.pegsolitaire.domain.generator.GeneratorConstants
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardConstants
 import com.app.pegsolitaire.domain.model.BoardSpec
@@ -271,6 +272,62 @@ class SnapshotMapperTest {
             .isEqualTo(BoardConstants.MINIMUM_PEGS_DEFAULT)
     }
 
+    // ---- A legacy blob's floor is resolved by mode (tech-lead brief §1(b); docs/gdd.md I5) ----
+    //
+    // Both blobs carry the same Diamond-41 footprint and no `minimumPegs` key; only the mode
+    // differs. The Classic floor of two is the Classic board's; a Challenge level on that
+    // footprint was built backwards from one peg, so one is its floor (I5).
+
+    @Test
+    fun aChallengeBlobWithoutAStoredTargetOnTheDiamondFootprintResolvesToOnePeg() {
+        val restored =
+            SnapshotMapper
+                .decode(legacyBlobFor(pegsOnTheDiamondFootprint(), mode = ProgressPersistenceKeys.MODE_CHALLENGE))
+                ?.let { SnapshotMapper.fromDto(it, RulesEngine) }
+
+        assertThat(restored).isNotNull()
+        assertThat(restored!!.initialBoard.spec.minimumPegs).isEqualTo(BoardConstants.MINIMUM_PEGS_DEFAULT)
+    }
+
+    @Test
+    fun aClassicBlobWithoutAStoredTargetOnTheDiamondFootprintKeepsItsFloorOfTwo() {
+        val restored =
+            SnapshotMapper
+                .decode(legacyBlobFor(pegsOnTheDiamondFootprint(), mode = ProgressPersistenceKeys.MODE_CLASSIC))
+                ?.let { SnapshotMapper.fromDto(it, RulesEngine) }
+
+        assertThat(restored).isNotNull()
+        assertThat(restored!!.initialBoard.spec.minimumPegs).isEqualTo(BoardConstants.DIAMOND41_FEWEST_PEGS_FLOOR)
+    }
+
+    @Test
+    fun aSnapshotStampedWithAnotherGeneratorVersionPassesTheStampThroughUntouched() {
+        // The mapper never reads the stamp (GDD §12.3(3), tech-lead F-5): an older contract's
+        // stamp, or one this build has never heard of, comes back exactly as written, with the
+        // stored board. What a stamp means for a restart is the ViewModel's business.
+        listOf(OLDER_GENERATOR_VERSION, UNKNOWN_GENERATOR_VERSION).forEach { version ->
+            assertThat(version).isNotEqualTo(GeneratorConstants.GENERATOR_VERSION)
+            val played = play(MOVES_PLAYED)
+            val stamped =
+                SnapshotMapper.toDto(
+                    mode = ProgressPersistenceKeys.MODE_CHALLENGE,
+                    levelId = STAMPED_LEVEL.toString(),
+                    initialBoard = Boards.english33Initial,
+                    moveHistory = played.history,
+                    elapsedMs = ELAPSED_MS,
+                    challenge = ChallengeStamp(level = STAMPED_LEVEL, generatorVersion = version),
+                )
+
+            val restored = restore(stamped)
+
+            assertThat(restored).isNotNull()
+            assertThat(restored!!.challenge)
+                .isEqualTo(ChallengeStamp(level = STAMPED_LEVEL, generatorVersion = version))
+            assertBoardMatches(actual = restored.currentBoard, expected = played.currentBoard)
+            assertThat(restored.moveHistory).isEqualTo(played.history)
+        }
+    }
+
     @Test
     fun aForgedNonPositiveTargetYieldsNoResume() {
         // T-08-21: a `<= 0` target would make the solver's `pegCount <= minimumPegs`
@@ -464,15 +521,28 @@ class SnapshotMapperTest {
      * these tests turn on the footprint matching `Boards.CLASSIC_SPECS` exactly — a
      * typo would silently convert a catalog-resolution test into a fallback test.
      */
-    private fun legacyBlobFor(board: Board): String {
+    private fun legacyBlobFor(
+        board: Board,
+        mode: String = ProgressPersistenceKeys.MODE_CLASSIC,
+    ): String {
         val footprint = board.spec.inPlay.joinToString(",") { "[${it.row},${it.col}]" }
         val target = board.spec.target
         return """
-            {"mode":"${ProgressPersistenceKeys.MODE_CLASSIC}","levelId":"$CLASSIC_LEVEL_ID",
+            {"mode":"$mode","levelId":"$CLASSIC_LEVEL_ID",
             "inPlay":[$footprint],"targetRow":${target?.row},"targetCol":${target?.col},
             "initialPegs":${board.pegs},"moves":[],"elapsedMs":$ELAPSED_MS}
             """.trimIndent().replace("\n", "")
     }
+
+    /**
+     * A few pegs on the Diamond-41 footprint — the shape a Challenge level can be dealt on since
+     * the mix (GDD §7.3) — so a blob of it is told apart only by the mode it was saved under.
+     */
+    private fun pegsOnTheDiamondFootprint(): Board =
+        Board(spec = Boards.Diamond41, pegs = 0L)
+            .withPeg(Position(row = 4, col = 2))
+            .withPeg(Position(row = 4, col = 3))
+            .withPeg(Position(row = 0, col = 4))
 
     /** A footprint no Classic catalog entry carries — the Challenge freeform case. */
     private fun freeformBoard(): Board =
@@ -559,6 +629,10 @@ class SnapshotMapperTest {
         const val CLASSIC_LEVEL_ID = "cross-33"
         const val STAMPED_LEVEL = 7
         const val GENERATOR_VERSION = 1
+
+        /** The contract before 3.0.0's, and one no build has shipped: neither is the current one. */
+        const val OLDER_GENERATOR_VERSION = 1
+        const val UNKNOWN_GENERATOR_VERSION = 99
         const val OFF_BOARD_INDEX = 99
 
         /** WARN-02 forgery: a negative row can never name a bit in the peg mask. */
