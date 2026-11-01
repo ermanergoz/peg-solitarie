@@ -1,8 +1,13 @@
 package com.app.pegsolitaire.ui.home
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -283,13 +288,19 @@ class HomeChipArrivalTest {
      *
      * Read in the flat render, in every frame whose room is open by at least [INKED_ROOM_DP] — past
      * the chip's 16dp entrance slide, so its fading top edge is inside its room: between the ribbon
-     * and the first tile something is drawn besides the background.
+     * and the first tile something is drawn besides the background — on a window-filling
+     * `background` surface drawn under Home, as its opaque `Scaffold` drew before BD-14, and with the
+     * gap checked empty before the chip comes, so the read cannot pass on an empty room.
      */
     @Test
     @Config(qualifiers = "w412dp-h915dp")
     fun aChipThatArrivesAfterFirstPaintFadesInWithItsRoomWithNoStaggerDelay() {
-        val state = renderWithThePausedClock()
+        val state = renderWithThePausedClock(underlay = { FlatBackground() })
         val noChip = readFrame()
+        val ribbonBottom = bounds(composeRule.onNodeWithTag(HOME_PROGRESS_RIBBON_TEST_TAG)).bottom
+        assertWithMessage("no chip yet: px drawn between the ribbon and the first tile")
+            .that(inkBetween(ribbonBottom, noChip.classicTile))
+            .isEqualTo(0)
         composeRule.runOnUiThread {
             state.value = chipsState(classic = true, challenge = false)
             Snapshot.sendApplyNotifications()
@@ -484,10 +495,10 @@ class HomeChipArrivalTest {
      * Home with no chip, its clock paused, the insets supplied and the entrance cascade run out:
      * from here on, a frame happens only when a test advances one.
      */
-    private fun renderWithThePausedClock(): MutableState<HomeUiState> {
+    private fun renderWithThePausedClock(underlay: @Composable () -> Unit = {}): MutableState<HomeUiState> {
         composeRule.mainClock.autoAdvance = false
         val state = mutableStateOf(chipsState(classic = false, challenge = false))
-        renderWithInsets(state, DEFAULT_FONT_SCALE)
+        renderWithInsets(state, DEFAULT_FONT_SCALE, underlay)
         composeRule.mainClock.advanceTimeBy(CASCADE_SETTLED_MS)
         return state
     }
@@ -582,8 +593,9 @@ class HomeChipArrivalTest {
     private fun renderWithInsets(
         state: MutableState<HomeUiState>,
         fontScale: Float,
+        underlay: @Composable () -> Unit = {},
     ) {
-        composeRule.renderHome(state, fontScale = fontScale)
+        composeRule.renderHome(state, fontScale = fontScale, underlay = underlay)
         composeRule.applySystemBarInsets(top = STATUS_BAR_DP.dp, bottom = NAVIGATION_BAR_DP.dp)
     }
 
@@ -747,6 +759,11 @@ class HomeChipArrivalTest {
         val overflow: Dp,
     )
 }
+
+/** The flat field Home's opaque `Scaffold` drew before BD-14: the background, filling the window. */
+@Composable
+private fun FlatBackground() =
+    Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {}
 
 /**
  * Both of 15s's walks as one: no chip → the Classic chip → both → none, then → the Challenge chip →

@@ -121,6 +121,9 @@ internal val EVERY_CHIP_STATE: List<HomeUiState>
  * @param overlay drawn over Home in the same composition and the same theme, after it, so it lies
  *   on top. Empty by default, so every caller that passes none composes exactly the tree it always
  *   did. `HomeLayoutTest` draws criterion 15m's reference finishes here (B-19a).
+ * @param underlay drawn under Home in the same composition and theme, before it. Empty by default,
+ *   so every caller that passes none composes exactly the tree it always did. `HomeChipArrivalTest`
+ *   draws the flat background Home's opaque `Scaffold` drew before BD-14 here.
  */
 internal fun ComposeContentTestRule.renderHome(
     state: HomeUiState,
@@ -132,6 +135,7 @@ internal fun ComposeContentTestRule.renderHome(
     fontScale: Float = DEFAULT_FONT_SCALE,
     darkTheme: Boolean = false,
     overlay: @Composable () -> Unit = {},
+    underlay: @Composable () -> Unit = {},
 ) = renderHome(
     state = mutableStateOf(state),
     onPlayChallenge = onPlayChallenge,
@@ -142,13 +146,14 @@ internal fun ComposeContentTestRule.renderHome(
     fontScale = fontScale,
     darkTheme = darkTheme,
     overlay = overlay,
+    underlay = underlay,
 )
 
 /**
  * The settable overload, for the tests that need a live recomposition — Home fills the ribbon
  * *after* first paint, so "shows the placeholder, then the value" is only honest when it is
- * asserted across one state change rather than across two compositions. [darkTheme] and [overlay]
- * are the other overload's.
+ * asserted across one state change rather than across two compositions. [darkTheme], [overlay]
+ * and [underlay] are the other overload's.
  */
 internal fun ComposeContentTestRule.renderHome(
     state: MutableState<HomeUiState>,
@@ -160,6 +165,7 @@ internal fun ComposeContentTestRule.renderHome(
     fontScale: Float = DEFAULT_FONT_SCALE,
     darkTheme: Boolean = false,
     overlay: @Composable () -> Unit = {},
+    underlay: @Composable () -> Unit = {},
 ) {
     setContent {
         // The font scale is provided rather than set through a resource qualifier because there
@@ -173,6 +179,7 @@ internal fun ComposeContentTestRule.renderHome(
             // graphics would measure text a player never sees. Light unless a test states dark;
             // never read from the configuration, so no test depends on the host's night mode.
             AppTheme(darkTheme = darkTheme) {
+                underlay()
                 HomeScreen(
                     state = state.value,
                     onPlayClassic = {},
