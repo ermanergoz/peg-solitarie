@@ -4,7 +4,7 @@ task: candy-backdrop
 slug: scene-backdrop
 status: draft
 created: 2026-10-17
-revised: 2026-10-18 (third edition: direction B "Deep gloss", the founder's answer to Q-021); 2026-10-31 (B-19a, BD-19 amended); 2026-11-01 (B-22a, the sheen at a settle; BD-01's grep scope)
+revised: 2026-10-18 (third edition: direction B "Deep gloss", the founder's answer to Q-021); 2026-10-31 (B-19a, BD-19 amended); 2026-11-01 (B-22a, the sheen at a settle; BD-01's grep scope); 2026-11-01 (B-09b, BD-09's status-strip rule)
 stack: android-compose-game
 design-system: docs/ui/DESIGN-SYSTEM.md
 ip-verdict: .planning/reports/candy-backdrop/research-analyst.md (inspiration-only)
@@ -126,7 +126,7 @@ place; a later ruling is `B-nna` with a pointer. §1.1 holds the 2026-10-17 deci
 | B-06 Hero objects untouched and opaque | **superseded in part** by B-06a: opacity and the slab's interior kept, the finish changed, the tile fills replaced | B-06a, §3.5 |
 | B-07 No per-mode tint | **kept** | §2 |
 | B-08 The backdrop announces nothing, takes no focus, adds no string | **kept**; its test keys name the new layers | §11 BD-15 |
-| B-09 Transparent containers; insets as today | **kept**, amended by B-09a (the host `Surface` the app lacked, D1) | B-09a |
+| B-09 Transparent containers; insets as today | **kept**, amended by B-09a (the host `Surface` the app lacked, D1) and B-09b (2026-11-01: the status strip is `background` on every screen) | B-09a, B-09b |
 | B-10 No "candy" or "sweet" in new identifiers | **kept**, extended by B-10a ("jelly") | B-10a |
 | B-11 The scene is off Home's first frame | **kept**, clarified by B-11a (what frame 1 now holds) | B-11a, §7 |
 | B-12 Standing sweets in the stage's wings | **void**, withdrawn by B-12a | B-12a |
@@ -345,6 +345,65 @@ the second edition, whose sections §16 lists.
 
   — Without it, a transparent `Scaffold`'s text that names no colour falls back to black in dark
   mode, which is rules/compose.md's F-32.
+
+- **B-09b (2026-11-01): The status strip is `background` on every screen; BD-09 no longer compares
+  it with `develop`** (amends BD-09, §3.3, §5.5 and §8.3; a UX decision on the qa-engineer's Open
+  issue 2 in `.planning/reports/candy-backdrop/qa-engineer-device.md`).
+  - **The conflict.** BD-09 asked for the status-bar band to be pixel-identical to `develop` on
+    every screen. On `develop` the M3 `TopAppBar`s of the catalogue, Results, Settings, Licences and
+    Licence text reach under the status bar and paint the band in their own container colour
+    (measured on the device: light `#FBF9FF`, dark `#241E31`). B-09, B-09a and BD-14 make those
+    bars transparent, resting and scrolled, so on this branch the band shows the wash's flat top,
+    `SkyTop` = `background` (light `#F4F1FA`, dark `#1B1626`): at most 9/255 per channel apart, but
+    over the whole band. No build can meet both criteria. BD-09's premise ("`SkyTop` equals
+    `background`, so the band is unchanged") held only where `develop` already showed `background`
+    there: Home outside the old orbs, gameplay and the tutorial.
+  - **The ruling.** BD-14 stands, and BD-09 is restated as the property it was meant to protect:
+    the strip is one known, flat, text-safe colour on every screen, and the status icons keep their
+    appearance and their contrast. The rule, which BD-09 now checks:
+    1. **The strip.** On Home, gameplay, the tutorial, the catalogue, Results, Settings, Licences and
+       Licence text; in light and dark; at rest and in motion; on a settled screen at the top of its
+       scroll: every pixel of the band from the window's top edge to `statusInset` (the top
+       `WindowInsets.statusBars` inset), outside the system's own boxes (the clock, notification and
+       status icons, and the display cutout), equals the theme's `background`, which is
+       `BackdropSkyTop`: light `#F4F1FA`, dark `#1B1626`, within ±1/255 per channel.
+    2. **Where it holds.** On every window whose `statusInset` is at most 0.12 H, where the sky is
+       flat `SkyTop` on all three densities and no light is visible (B-20). Every QA window meets it:
+       the Pixel_9's 54dp of 923dp is 0.059 H. A shorter window, such as a split-screen half, is
+       outside the criterion; there the band below 0.12 H is the sky's own blend, still zone T.
+    3. **The icons.** The status-bar icon appearance stays the app's current one: dark icons in the
+       light theme, light icons in the dark theme. Nothing on this branch sets the system-bar style,
+       and `MainActivity` is untouched (the tech-lead's R1). Against the strip, sampled at glyph
+       cores: the clock digits ≥ 4.5:1 and every status icon ≥ 3:1 (WCAG 1.4.3 and 1.4.11), in both
+       themes.
+  - **Expected values** (computed; the device reading governs). Assuming AOSP's single-tone icon
+    tints (dark icons 60% black, light icons white):
+    - light: 5.57:1 on the strip, against 5.65:1 on `develop`'s top-bar strip; with opaque black
+      icons, 18.8:1 against 20.1:1;
+    - dark: 17.6:1 on the strip, against 16.1:1 on `develop`'s.
+    - Both clear 4.5:1 with margin. Light falls by under 0.1, dark rises.
+  - **What this does not change.** No code, no token, no test oracle: the strip already measures
+    flat `background` on every screen, in motion too (the qa-engineer's BD-09 row), and by the
+    qa-engineer's report the automated half of BD-09 already takes the form "equals `background`".
+    If a test instead compares the strip against `develop`, its oracle follows this ruling; that
+    is the code-auditor's line to confirm. The status icons' appearance and
+    the navigation bar (§5.5) are untouched.
+
+  — Reasons:
+  - **B-09's own reason.** A backdrop must not stop under the bars. Painting the strip in the old
+    bar colour would put a seam between the strip (`#FBF9FF`) and the transparent bar right under
+    it (`#F4F1FA`), a seam `develop` does not have. On `develop` the strip and the bar are one
+    surface, and on this branch they are still one surface: the wash's flat top band.
+  - **One strip colour across the core flow.** On `develop` the strip changes colour between Home
+    and the catalogue. On this branch it never does, which is what B-01 and BD-21 want.
+  - **The alternative undoes BD-14.** Opaque top bars again would cut the Sparse wash under every
+    title and restore the two-surface look B-23 removed.
+  - **Accessibility is unchanged.** The strip stays zone T, the icon appearance stays correct, and
+    the icons' contrast moves by less than 0.1 in light and rises in dark.
+  - **The difference is in the same tone.** It is at most 9/255 per channel, from one pale lavender to
+    another, and from one deep violet to another.
+  - **No code change.** The build that is measured is the build that ships, and the final cold-start
+    sitting (BD-23 (b), (c)) is not voided.
 
 - **B-10a: New identifiers, KDoc, test tags and strings also avoid "jelly"** (extends B-10). "Gel",
   "Gloss", "Wave", "Light" and "Sheen" are fine. The lights are `BackdropLight` in code, and
@@ -719,9 +778,9 @@ tables against the constants.
 | Quiet | `0.00` SkyTop | `0.12` SkyTop | `0.34` SkyMid | `0.66` SkyLow | `1.00` SkyDeep |
 | Sparse | `0.00` SkyTop | `0.12` SkyTop | `1.00` SparseLow | — | — |
 
-`SkyTop` equals the theme's `background` (BD-09). The status-bar area and the top of every screen are
-therefore pixel-identical to today, and the status-bar icon appearance the app uses today stays
-correct. Landscape and Quiet share their stop values but keep one constant each (one owner per
+`SkyTop` equals the theme's `background` (BD-09). The status-bar area of every screen is therefore
+flat `background`: as today on Home, gameplay and the tutorial, and in place of the old top-bar colour
+on the four top-bar screens (B-09b). The status-bar icon appearance the app uses today stays correct. Landscape and Quiet share their stop values but keep one constant each (one owner per
 constant).
 
 **Waves (L2).**
@@ -1239,8 +1298,11 @@ where the gel only darkens downward:
   and any display cutout (B-09). No content moves: each bar is still applied to the content exactly
   once, by the same layer as today (18b, 18c and Home's 15k/15p geometry keep their numbers; BD-19).
 - **Status bar.** `SkyTop` equals `background`, and no light enters the calm band, so the status-bar
-  area is pixel-identical to today on every screen, with no exception now that the orbs are gone. The
-  status-bar icon appearance stays correct in both themes.
+  area is flat `background` on every screen, in light and dark, at rest and in motion (B-09b). That is
+  today's strip on Home, gameplay and the tutorial. On the catalogue, Results, Settings and the
+  Licences screens it replaces the strip their opaque `TopAppBar`s used to paint, by at most 9/255
+  per channel. The status-bar icon appearance stays correct in both themes, and the icons keep their
+  contrast against the strip (B-09b, item 3).
 - **Navigation bar.** The waves and the deep sky lie under it on Home and the game screen. With
   three-button navigation the system's contrast scrim stays on: nothing may set
   `isNavigationBarContrastEnforced` to `false`, and `MainActivity` is not touched (the tech-lead's R1).
@@ -1467,8 +1529,8 @@ As §5.5:
 - The content applies each bar once, exactly as built: Home, gameplay and the four top-bar screens
   through the `Scaffold`'s content padding, and the tutorial through `safeDrawingPadding()` on its
   column.
-- `SkyTop` keeps the status-bar area pixel-identical, and the navigation bar's contrast scrim stays
-  enforced.
+- `SkyTop` makes the status-bar area flat `background` on every screen (B-09b), and the navigation
+  bar's contrast scrim stays enforced.
 - No scroll container draws under a transparent top bar (the tech-lead's R1).
 
 ### 8.4 Windows
@@ -1608,7 +1670,7 @@ edition's, with only their layer and element names updated.
 | **BD-06** | **Density per destination**: Home is Landscape; gameplay is Quiet, for Classic and for Challenge; the tutorial, catalogue, Results, Settings, Licences and Licence text are Sparse. A restore case (R5): a restored back stack whose top is `Gameplay` is Quiet on the first frame | Test, QA | as listed |
 | **BD-07** | **Layers per density** (rewritten). Read from the backdrop's `backdropLayers` property: Landscape {Sky, Waves, Lights}; Quiet {Sky, Waves, Lights}; Sparse {Sky}. The model's light count is 9, 5 and 0 | Test | as listed, on the three reference windows and in Home's three chip states. No stage-wing node or tag exists anywhere in the code |
 | **BD-08** | **Colour constraints**, computed from `Color.kt` in a JVM test (the dark clause rewritten: B-14a replaces "every dark colour ≤ 0.0095 or ≥ 0.165"). Every constraint of §4.1: `SkyTop` equals `background`; zone T's L bounds; the sky order; Sparse's side of the background, sampled at 11 points; every lane light's rim composite at 0.47 H (≥ 0.503 light, ≤ 0.0786 dark); the rim rule's floor for every container in §5.2's table, by the √ formula; the gel text pairs and their channel monotonicity; the dark gloss under `onSurfaceVariant` ≥ 4.5:1; and every opaque or tinted new token's hue within 250°–336° | Test | all hold |
-| **BD-09** | **The status-bar area is pixel-identical to today** on Home, gameplay and every Sparse screen, in light and dark, at rest and in motion. The top `statusInset` band is compared against `develop`'s, with no exception now that the orbs are gone | QA, Test | identical (within the tech-lead's stated ±1 dithering tolerance, if one is needed) |
+| **BD-09** | **The status strip is `background`** (amended 2026-11-01: B-09b; the earlier "pixel-identical to `develop`" contradicted BD-14 on the four top-bar screens). On Home, gameplay, the tutorial, the catalogue, Results, Settings, Licences and Licence text, in light and dark, at rest and in motion, on a settled screen at the top of its scroll: every pixel of the band from the window's top edge to `statusInset`, outside the system's clock, icon and cutout boxes, is compared against the theme's `background` (`BackdropSkyTop`), not against `develop`. The status-bar icons are sampled at their glyph cores against the strip | QA, Test | Every compared pixel within ±1/255 per channel of light `#F4F1FA` / dark `#1B1626`. The icon appearance is dark in light and light in dark, as on `develop`. The clock digits read ≥ 4.5:1 and every status icon ≥ 3:1 against the strip, in both themes. It applies on windows whose `statusInset` ≤ 0.12 H, which every QA window meets |
 | **BD-10** | **Composition constants** (rewritten) match §3.3, §4.3 and §4.4: every sky stop; each wave's `cx`, crest, `WAVE_RX`, `WAVE_RY`, depth, body stop, alpha, bob tokens and half-cycle; each light's `x`, `y`, size, kind, `φ0`, opacity, set and period; the calm ends, `TITLE_REACH` and the spinner band; the sheen constants; the idle and settle constants; the list lengths 9 and 5; and every loop ≥ `MIN_LOOP_MS` | Test | equal |
 | **BD-11** | **Geometry and pose rules** (rewritten), on the pure model with `BackdropDimens` resolved from real `Resources` at `w360dp-h640dp`, `w412dp-h915dp`, `w800dp-h1280dp` and `w1280dp-h800dp`: (a) each Landscape lane light's, each Quiet upper light's and each Quiet lower light's x-extent is pairwise disjoint within its set; (b) every Landscape low light's highest top edge is ≥ 0.47 H; (c) every Quiet upper light's lowest bottom edge is ≤ 0.33 H, and every lower light's highest top edge ≥ 0.59 H; (d) no wave pixel lies above 0.47 H on Landscape at any pose, so the crest minus its bob is ≥ 0.47 H; (e) at every pose both waves span the full window width and reach below its bottom edge; (f) for every light and phase, the alpha is 0 whenever the top edge is at or above the calm end, and never above `opacity × (topEdge − calmEnd) / calm fade`; (g) the rest poses are as §3.4, the envelope is 0 at the wrap, and every drifting speed is ≤ 8dp/s; (h) `gel_top_band` ≤ `ModeTile`'s top content padding; (i) in RTL the model is the exact mirror | Test | all hold. (a)–(c) are phase-independent, because lights move only vertically, so they are proved exactly, not sampled |
 | **BD-12** | **Text contrast on the device**: every uncontained text in §5.1's table, sampled against the backdrop directly behind it at rest and in motion, at the top of the scroll and scrolled to the end, at 1.0 and 2.0, in light and dark, at 360×640dp and on the Pixel_9 | QA | Body and label text ≥ 4.5:1. The Home title ≥ 4.5:1 at rest at 1.0, and ≥ 3:1 for every sampled glyph pixel when wrapped |
