@@ -234,7 +234,7 @@ private class SheenBand(
             val brush =
                 Brush.horizontalGradient(
                     0f to Color.Transparent,
-                    SHEEN_CENTRE to GelColors.sheen,
+                    BackdropMetrics.GEL_SHEEN_CENTRE to GelColors.sheen,
                     1f to Color.Transparent,
                     startX = -half - abs(lean),
                     endX = half + abs(lean),
@@ -244,7 +244,5 @@ private class SheenBand(
             val after = if (toEnd > 0f) width + reach else -reach
             return SheenBand(path, brush, before, after)
         }
-
-        private const val SHEEN_CENTRE = 0.5f
     }
 }

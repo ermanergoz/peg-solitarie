@@ -30,6 +30,9 @@ object BackdropMotion {
     /** One gel sheen loop: a glint in its last quarter. */
     const val GEL_SHEEN_PERIOD_MS = 10_000L
 
+    /** Classic's sheen leads: it passes with no delay into the loop (backdrop spec §3.5.2). */
+    const val GEL_SHEEN_CLASSIC_DELAY_MS = 0L
+
     /** How far the Challenge tile's sheen follows Classic's. */
     const val GEL_SHEEN_CHALLENGE_DELAY_MS = 600L
 

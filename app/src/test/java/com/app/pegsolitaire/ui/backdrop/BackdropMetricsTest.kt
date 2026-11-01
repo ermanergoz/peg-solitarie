@@ -85,6 +85,19 @@ class BackdropMetricsTest {
         assertThat(BackdropMetrics.BACKDROP_Z_INDEX).isEqualTo(-1f)
     }
 
+    /**
+     * BD-05's scoping (the code-auditor's F3): the front wave draws at full alpha over the back one
+     * (§3.2), the gel sheen's brush peaks at its band's centre line (§3.5.2), and Classic's sheen
+     * leads with no delay while Challenge's follows (§3.5.2) — each in the holder BD-05 names.
+     */
+    @Test
+    fun theFrontWavesAlphaTheSheensPeakAndClassicsLeadAreTheSpecs() {
+        assertThat(BackdropMetrics.WAVE_FRONT_ALPHA).isEqualTo(1f)
+        assertThat(BackdropMetrics.GEL_SHEEN_CENTRE).isEqualTo(0.5f)
+        assertThat(BackdropMotion.GEL_SHEEN_CLASSIC_DELAY_MS).isEqualTo(0L)
+        assertThat(BackdropMotion.GEL_SHEEN_CHALLENGE_DELAY_MS).isGreaterThan(BackdropMotion.GEL_SHEEN_CLASSIC_DELAY_MS)
+    }
+
     @Test
     fun everyLoopIsAtLeastNineSeconds() {
         assertThat(BackdropMotion.MIN_LOOP_MS).isEqualTo(9_000L)

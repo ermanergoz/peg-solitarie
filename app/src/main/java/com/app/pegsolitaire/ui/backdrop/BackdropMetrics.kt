@@ -108,6 +108,9 @@ object BackdropMetrics {
     /** The back wave's per-draw alpha: each of its fill, lip and sheen, with no offscreen layer. */
     const val WAVE_BACK_ALPHA = 0.60f
 
+    /** The front wave draws at full alpha over the back one (backdrop spec §3.2). */
+    const val WAVE_FRONT_ALPHA = 1f
+
     /** Half the width of a wave's sheen, as a share of W. */
     const val WAVE_SHEEN_HALF_WIDTH = 0.42f
 
@@ -166,6 +169,9 @@ object BackdropMetrics {
 
     /** The share of its 10 s loop after which the gel sheen passes. */
     const val GEL_SHEEN_START = 0.75f
+
+    /** Where across its band the gel sheen's brush peaks in `GelSheen`: its centre line (§3.5.2). */
+    const val GEL_SHEEN_CENTRE = 0.5f
 
     /** The backdrop host is drawn behind the `NavHost` it is composed after (the tech-lead's R1). */
     const val BACKDROP_Z_INDEX = -1f

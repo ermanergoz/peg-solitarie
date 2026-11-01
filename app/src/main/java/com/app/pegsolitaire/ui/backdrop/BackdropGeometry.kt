@@ -197,9 +197,6 @@ private fun WaveSpec.toModel(
         bobX = bobX * acrossSign,
         bobY = bobY,
         halfCycleMs = halfCycleMs,
-        alpha = if (back) BackdropMetrics.WAVE_BACK_ALPHA else FRONT_WAVE_ALPHA,
+        alpha = if (back) BackdropMetrics.WAVE_BACK_ALPHA else BackdropMetrics.WAVE_FRONT_ALPHA,
     )
 }
-
-/** The front wave draws at full alpha over the back one. */
-private const val FRONT_WAVE_ALPHA = 1f

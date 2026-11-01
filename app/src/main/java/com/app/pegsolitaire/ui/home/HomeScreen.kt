@@ -558,7 +558,7 @@ private fun ClassicTile(
 ) {
     ModeTile(
         gel = GelColors.Violet,
-        sheenDelayMs = CLASSIC_SHEEN_DELAY_MS,
+        sheenDelayMs = BackdropMotion.GEL_SHEEN_CLASSIC_DELAY_MS,
         glyph = rememberClassicGlyph(),
         title = stringResource(R.string.classic_tile_title),
         entranceOrder = entranceOrder,
@@ -680,9 +680,6 @@ private fun ModeTile(
  * and a second copy of the same 1f would be a place for the two to disagree.
  */
 internal const val CONTENT_WEIGHT = 1f
-
-/** Classic's sheen leads; Challenge's follows by `GEL_SHEEN_CHALLENGE_DELAY_MS` (backdrop spec §3.5.2). */
-private const val CLASSIC_SHEEN_DELAY_MS = 0L
 
 /**
  * How Home's vertical slack is split — the stage beneath the hero row and the empty footer
