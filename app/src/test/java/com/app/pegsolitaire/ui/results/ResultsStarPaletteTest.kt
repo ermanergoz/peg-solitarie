@@ -43,7 +43,7 @@ import org.robolectric.annotation.GraphicsMode
  * and both themes:
  * - an unearned star is the hollow star, so its centre shows what lies beneath it: on the production
  *   host, the Results sky (CV-13a; CV-AC05 as amended, §12.5). The screen is rendered in
- *   `BackdropTestHost` at Results' density, Sparse (candy-backdrop §12), and 'beneath' is read from
+ *   `BackdropTestHost` at Results' density, Sparse (the backdrop spec §12), and 'beneath' is read from
  *   the same host with the screen taken out;
  * - an earned star's centre shows its fill: gold in the standard palette and in dark, amber in the
  *   light colour-blind palette;
