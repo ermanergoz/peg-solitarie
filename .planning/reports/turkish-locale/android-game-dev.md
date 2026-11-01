@@ -1,11 +1,11 @@
 # android-game-dev report — turkish-locale
 Date: 2026-11-01
-Branch: feature/turkish-locale (a1fb23d..f289546)
+Branch: feature/turkish-locale (a1fb23d..2fd358d; this role's commits are a1fb23d..f289546 and, in loop 1, 9ed227b and 2fd358d)
 Skills loaded: ergoz-soft:standards (role: android-game-dev; rules read in full from the plugin, since the snapshot is 0.6.2 against plugin 1.0.0: studio.md, reporting.md, gitflow.md, skills-policy.md, logging.md, memory.md, puzzle-design.md, play-store.md, kotlin-android.md, compose.md, testing.md, ip-policy.md; the product's .claude/rules/lessons.md), superpowers:test-driven-development (with writing-good-tests.md), gitflow, compose-skill, compose-ui, android-viewmodel, android-coroutines, android-testing
 Ran in parallel with: feature/home-continue-live-boards, feature/challenge-star-bands (not read; their string deltas come through the producer, spec §9.3)
 Ran on: claude-opus-5-5 at effort max
 Fan-out: none
-Loops: 0
+Loops: 1 (the code-auditor's FAIL, `.planning/reports/turkish-locale/code-auditor.md` at `3d81752`; see Loop 1)
 Lessons applied: none (the snapshot has no active lessons)
 
 ## Summary
@@ -174,9 +174,28 @@ Language switch (C-4). Nothing resolves a string where it could outlive the swit
 - `CloudSaveDescriptionFormatter` resolves at commit time, by design (the string's own comment).
 - `MainActivity` declares no `configChanges`, so a language change recreates it.
 
+## Loop 1 — the code-auditor's findings 1 and 2
+Dispatched by the producer after the code-auditor's FAIL (`.planning/reports/turkish-locale/code-auditor.md`, `3d81752`). The two findings are fixed in `9ed227b` (finding 1) and `2fd358d` (finding 2). Everything above stands as the first round's record.
+
+- **Finding 1, fixed.** `ui/UserFacingTextHasNoProtectedNamesTest.kt:36` asserted on `it.parentFile.name`. The toolchain types `File.parentFile` as `File?`, so the line added the warning "Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type 'File?'". The assertion now reads `it.relativeTo(appMain).invariantSeparatorsPath` and expects `res/values-tr/strings.xml`, the form the root-package copy already uses. There is no `!!` and no safe call. Correction to the first round: "None from the other new files" (Checks, Style) was wrong. My warning grep matched the new files' names and missed this touched file. This round matches the `w:` lines against the branch's full list of touched test files.
+- **Finding 2, fixed.** `AppLanguagesTest` took every `values-<x>` folder holding a `strings.xml` as language `<x>`, so a later `values-night/strings.xml` would have demanded a "night" locale. It now reads each folder through `languageOfValuesFolder()`:
+  - It skips the mobile-network qualifiers.
+  - It accepts a two- or three-letter language with an optional `rXX` region (`tr`, `tr-TR`), or a `b+` BCP-47 tag (`sr-Latn`).
+  - It returns null for anything else: `values`, `values-night`, `values-v35`, `values-night-v35`, `values-car` (the UI mode), `values-sw600dp`, and a folder that isn't a `values` folder.
+  - Test-first: the self-test `theFolderReaderTakesALanguageOnlyFromALanguageQualifier` ran red against the old rule, extracted unchanged ("expected: tr-TR, but was: tr-rTR"), then green.
+- **Not done, on the producer's instruction.** The tech-lead's M-1 to M-5 (Nunito headings on a Turkish device, `docs/tech-design.md` §11.1): the founder rejected that in Q-038 ("change the font for all languages"), and a new contract will follow. The `UnusedAttribute` lint warning stands, approved by the code-auditor (finding 3). Nothing else on the branch changed.
+
+Checks, loop 1:
+- `./gradlew :app:compileDebugUnitTestKotlin --rerun` — before: 74 `w:` lines, 4 of them in touched test files. After: 73, of which 3 are in touched files, all the v1 `createComposeRule` deprecation of the three screen suites (tech-design §9.8's recorded exception). Matched with `grep -F -f` against `git diff --name-only 37d3052 -- app/src/test`.
+- `./gradlew :app:testDebugUnitTest --tests "com.app.pegsolitaire.locale.AppLanguagesTest"` — fail, as intended (1 of 5: the self-test against the old rule), then pass, 5 of 5.
+- `./gradlew :app:testDebugUnitTest --tests "*UserFacingTextHasNoProtectedNamesTest"` — pass (2 + 4).
+- Mutation, the auditor's own scenario: a temporary `app/src/main/res/values-night/strings.xml` with one string — AppLanguagesTest passes 5 of 5 (the old rule would have demanded `night` in `locales_config.xml`). The file was removed.
+- `./gradlew :app:ktlintCheck :app:detekt` — pass. Two lines were wrapped, and the reader was folded into one `when` (detekt's ReturnCount).
+- `./gradlew check` — pass: `BUILD SUCCESSFUL in 11m 13s`, 107 actionable tasks (19 executed, 88 up-to-date), exit 0. `:app:testDebugUnitTest` 200 suites, 1,668 tests (one more than round 1, the new self-test), `:domain:test` 294, `:domain:depthSweep` 1 (ran), `:domain:fuzz` 1, `build-logic` 100: 0 failures, 0 errors, 0 skipped. `:app:lintDebug` ran: 0 errors.
+
 ## Handoff
-Next: producer — route escalation 1 (Fredoka glyphs) to the tech-lead and the ux-designer, and 2 (Roborazzi goldens vs tech-design §8.5) and 4 (localeConfig and localeFilters sign-off) to the tech-lead; send the two parallel branches' string deltas or a rebase when they land (spec §9.3); store copy to the release-manager (spec §10).
-Next: code-auditor — review `a1fb23d..f289546` against `docs/ux/localisation-tr.md` §4, §5, §7 and this report. Decide open issue 3 (the `UnusedAttribute` lint warning). Check that `values-tr` is §5 verbatim: re-run the comparison, or diff any key against the table.
+Next: code-auditor — the loop-1 check of `9ed227b` and `2fd358d`: findings 1 and 2 (Loop 1). The rest of the first review stands.
+Next: producer — the new font contract, which replaces M-1 to M-5 after Q-038, when it is ready. Also the string deltas, or a rebase, of `feature/home-continue-live-boards` and `feature/challenge-star-bands` (spec §9.3). Store copy stays with the release-manager (spec §10).
 Next: qa-engineer — the device session in Turkish per spec §8, on a build of this branch:
 - C-1 to C-7, at 100 % and 200 % font scale on a 360×640dp window. C-2 is expected to fail for the five Fredoka strings of open issue 1 until that is decided; record what renders.
 - C-5 on Android 13+: App languages lists English and Türkçe.
