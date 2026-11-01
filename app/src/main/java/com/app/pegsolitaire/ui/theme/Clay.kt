@@ -112,16 +112,21 @@ fun goldGradientBrush(): Brush = Brush.linearGradient(LocalClayColors.current.go
  * offscreen so the blend never bleeds onto the background.
  */
 @Composable
-fun Modifier.goldGradientFill(): Modifier {
-    val brush = goldGradientBrush()
-    return graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+fun Modifier.goldGradientFill(): Modifier = gradientFill(goldGradientBrush())
+
+/**
+ * Recolors the wrapped content with [brush], the content's own alpha as the mask; offscreen so
+ * nothing bleeds onto the background. [goldGradientFill]'s blend with the brush as a parameter, so
+ * a star or pip in another palette's fill (docs/ux/colour-vision.md §3.4) needs no copy of it.
+ */
+internal fun Modifier.gradientFill(brush: Brush): Modifier =
+    graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
         .drawWithCache {
             onDrawWithContent {
                 drawContent()
                 drawRect(brush = brush, blendMode = BlendMode.SrcAtop)
             }
         }
-}
 
 /**
  * The clay double-shadow feel: a normal Compose [shadow] whose spot + ambient

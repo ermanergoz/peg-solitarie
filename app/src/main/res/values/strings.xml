@@ -181,6 +181,10 @@
     <string name="settings_haptics_label">Haptics</string>
     <string name="settings_haptics_supporting">Vibrate lightly on each jump</string>
 
+    <!-- Colorblind palette (docs/ux/colour-vision.md §3.1). -->
+    <string name="settings_colorblind_label">Colorblind palette</string>
+    <string name="settings_colorblind_supporting">Clearer moves, hints and stars</string>
+
     <!--
       Phase-15: the tutorial's one permanent entry point (ONB-01, D-02a; ux-spec §4.5, §8).
       "Replay" is deliberate — a first-run player meets the tutorial automatically and never

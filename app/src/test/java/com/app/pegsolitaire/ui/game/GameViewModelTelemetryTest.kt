@@ -848,6 +848,10 @@ private class TelemetryProgressRepository(
 
 /** Hints/sound/haptics all on; this spec is about the counters, not the feedback gates. */
 private object TelemetrySettings : SettingsRepository {
+    override val colorblindPaletteOn: Flow<Boolean> = flowOf(false)
+
+    override suspend fun setColorblindPaletteOn(on: Boolean) = Unit
+
     override val hintsEnabled: Flow<Boolean> = flowOf(true)
 
     override val soundOn: Flow<Boolean> = flowOf(true)

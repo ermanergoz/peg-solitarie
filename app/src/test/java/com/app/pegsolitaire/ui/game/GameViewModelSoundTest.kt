@@ -796,6 +796,10 @@ private class InMemoryProgressRepository : ProgressRepository {
 
 /** Hints/haptics/sound all on; this spec is about the ordinals, not the gates. */
 private object SoundSettings : SettingsRepository {
+    override val colorblindPaletteOn: Flow<Boolean> = flowOf(false)
+
+    override suspend fun setColorblindPaletteOn(on: Boolean) = Unit
+
     override val hintsEnabled: Flow<Boolean> = flowOf(true)
 
     override val soundOn: Flow<Boolean> = flowOf(true)
