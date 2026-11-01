@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -25,8 +26,11 @@ import androidx.compose.ui.res.dimensionResource
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.app.pegsolitaire.ui.theme.ClayAnim
+import com.app.pegsolitaire.ui.theme.FinishedContainer
 import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
+import com.app.pegsolitaire.ui.theme.finishGlow
+import com.app.pegsolitaire.ui.theme.glossFinish
 import com.app.pegsolitaire.ui.theme.rememberAnimationsEnabled
 
 /** Semantics tag the tests use to locate the action dock — never its copy (ux-spec §13). */
@@ -94,12 +98,17 @@ internal fun GameActionDock(
     onRestart: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val slab = MaterialTheme.colorScheme.surfaceContainerHigh
     Surface(
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        // A rim, a lip and the glow; no gloss, so the fill around the discs stays the flat surface 21e
+        // and 21f measure them against (backdrop spec §3.5.1).
+        color = Color.Transparent,
+        contentColor = contentColorFor(slab),
         modifier =
             modifier
-                .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.large)
+                .finishGlow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.large)
+                .glossFinish(FinishedContainer.DockSlab, MaterialTheme.shapes.large, fill = slab)
                 .fillMaxWidth()
                 .testTag(GAME_ACTION_DOCK_TEST_TAG),
     ) {

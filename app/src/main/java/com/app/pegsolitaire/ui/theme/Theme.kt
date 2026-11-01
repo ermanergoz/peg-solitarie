@@ -37,6 +37,8 @@ fun AppTheme(
     val boardMarks = remember(boardMarkPalette, darkTheme) { boardMarksFor(boardMarkPalette, darkTheme) }
     CompositionLocalProvider(
         LocalClayColors provides if (darkTheme) DarkClayColors else LightClayColors,
+        LocalBackdropColors provides if (darkTheme) DarkBackdropColors else LightBackdropColors,
+        LocalFinishColors provides if (darkTheme) DarkFinishColors else LightFinishColors,
         LocalBoardMarks provides boardMarks,
     ) {
         MaterialTheme(

@@ -35,6 +35,14 @@ internal class SystemMotionScale(
         scaleFactor = ON
     }
 
+    /**
+     * Developer options' "Animator duration scale" at [factor] (1.5×, 2×, 5×): every animation runs
+     * [factor] times as long, and the reduced-motion gate stays on.
+     */
+    fun slowAnimationsBy(factor: Float) {
+        scaleFactor = factor
+    }
+
     companion object {
         /** The system default: animations at their own speed. */
         const val ON = 1f

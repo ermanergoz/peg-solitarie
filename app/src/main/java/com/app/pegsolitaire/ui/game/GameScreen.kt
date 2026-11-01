@@ -21,12 +21,14 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
@@ -54,10 +56,12 @@ import com.app.pegsolitaire.ui.components.boardStopLabel
 import com.app.pegsolitaire.ui.components.rememberBoardAnnouncer
 import com.app.pegsolitaire.ui.components.rememberTouchExplorationEnabled
 import com.app.pegsolitaire.ui.theme.BoardMarkPaletteKey
+import com.app.pegsolitaire.ui.theme.FinishedContainer
 import com.app.pegsolitaire.ui.theme.LocalBoardMarks
-import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.ctaGradientBrush
+import com.app.pegsolitaire.ui.theme.finishGlow
+import com.app.pegsolitaire.ui.theme.glossFinish
 
 /** Test tag of the board-state node carrying the [PegCountKey]/[GameStatusKey]/[LegalTargetCountKey] semantics. */
 const val GAME_STATE_TEST_TAG = "game_state"
@@ -218,6 +222,8 @@ fun GameScreen(
     Box(modifier = modifier.fillMaxSize()) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
+            containerColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onBackground,
             snackbarHost = { ClaySnackbarHost(snackbarHostState) },
         ) { contentPadding ->
             Column(
@@ -254,14 +260,22 @@ fun GameScreen(
                     if (state.isLoading) {
                         LoadingIndicator()
                     } else {
+                        val slab = MaterialTheme.colorScheme.surfaceContainerHigh
                         Surface(
                             shape = MaterialTheme.shapes.extraLarge,
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            // The finish draws the slab's fill, its rim and its lip, and no gloss over the board
+                            // (backdrop spec §3.5.1); the Surface itself paints nothing.
+                            color = Color.Transparent,
+                            contentColor = contentColorFor(slab),
                             modifier =
                                 Modifier
-                                    .clayShadow(
+                                    .finishGlow(
                                         dimensionResource(R.dimen.elevation_card),
                                         MaterialTheme.shapes.extraLarge,
+                                    ).glossFinish(
+                                        FinishedContainer.BoardSlab,
+                                        MaterialTheme.shapes.extraLarge,
+                                        fill = slab,
                                     ).widthIn(max = dimensionResource(R.dimen.board_max_size))
                                     .fillMaxWidth()
                                     .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO)

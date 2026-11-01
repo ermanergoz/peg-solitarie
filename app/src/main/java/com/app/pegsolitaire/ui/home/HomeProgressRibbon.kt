@@ -13,9 +13,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.testTag
@@ -26,8 +28,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.Constraints
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.domain.model.Boards
+import com.app.pegsolitaire.ui.theme.FinishedContainer
 import com.app.pegsolitaire.ui.theme.clayEntrance
-import com.app.pegsolitaire.ui.theme.clayShadow
+import com.app.pegsolitaire.ui.theme.finishGlow
+import com.app.pegsolitaire.ui.theme.glossFinish
 import com.app.pegsolitaire.ui.theme.goldGradientFill
 import com.app.pegsolitaire.ui.theme.withTabularFigures
 import kotlin.math.max
@@ -185,12 +189,15 @@ private fun StatPill(
                 R.dimen.home_stat_pill_compact_min_height
             },
         )
+    val pill = MaterialTheme.colorScheme.surfaceContainerHigh
     Surface(
         shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = Color.Transparent,
+        contentColor = contentColorFor(pill),
         modifier =
             modifier
-                .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.medium)
+                .finishGlow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.medium)
+                .glossFinish(FinishedContainer.RibbonPill, MaterialTheme.shapes.medium, fill = pill)
                 .heightIn(min = minHeight)
                 .clearAndSetSemantics { contentDescription = description },
     ) {
