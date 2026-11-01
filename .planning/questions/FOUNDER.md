@@ -1,5 +1,21 @@
 # Founder questions (newest first)
 
+## Q-029 — How should the 3.0.0 bundle reach Play: the upload script or the Console?   (open)
+Date: 2026-11-01    Asked by: release-manager (via the producer)
+Context: Checklist item 1.7 needs the upload route recorded before Gate 2. The studio's upload script is merged
+and reviewed (only a `VAR=value` or bare `env` prefix may precede it — rule T-11); it needs a Play service-account
+key placed on this Mac after the approval file exists. The Console route needs no key on the Mac.
+Options: 1) The studio's upload script (gated by the approval file) 2) Manual upload in the Play Console
+Recommendation: release-manager — 2 for 3.0.0: no service-account key on the Mac, and the publish gate still has
+the known `/usr/bin/env` gap (E-1) until the plugin fix lands; the script route can follow from 3.0.1.
+Blocks: release-3.0.0 checklist 1.7 (Gate 2) | nothing else
+Answer:
+
+## Q-028 — Does the candy backdrop ship in 3.0.0?   (answered)
+Date: 2026-10-31    Asked by: producer
+Context: Recorded after the fact; the founder answered in chat with the 2026-10-31 22:00 directives (STATUS.md).
+Answer: candy-backdrop STAYS in 3.0.0; goal: finish 3.0.0 this week (2026-10-31).
+
 ## Q-027 — Should the standard colours get the stronger marks and stars too?   (answered)
 Date: 2026-10-24    Asked by: ux-designer
 Context: The colour-blind palette (a Settings switch, off by default) draws the board's marks and the stars so that any colour vision can read them. In your standard colours they are faint by the studio's contrast rule, though normal colour vision tells them apart. Empty stars are now hollow in both palettes, a rule fix, so in your colours an empty star is a thin pale outline that is easy to miss at the catalogue's small size. This is taste: it changes the look.
@@ -18,7 +34,7 @@ Recommendation: producer picks 1 — meets the studio's accessibility rule; boar
 Blocks: nothing
 Answer: 1 — keep it in 3.0.0 (2026-10-24, AskUserQuestion).
 
-## Q-025 — Headphones off, and a wired headset, for the audio release QA   (open)
+## Q-025 — Headphones off, and a wired headset, for the audio release QA   (answered)
 Date: 2026-10-24    Asked by: tech-lead (via the producer)
 Context: QA's GM6 session proved the headphone branch of the Silent/Vibrate gate (Q-010). The "phone itself
 mutes" branch (D2, D3, D6, D7 on the speaker; D5's second half) and the wired branch (D4) were out of reach
@@ -29,7 +45,7 @@ recorded as JVM + emulator evidence in the Q-PUBLISH-3.0.0 summary
 Recommendation: tech-lead picks 1 — two minutes of hardware setup and no testing by you closes the one branch of
 Q-010 that is your own requirement, muting on the phone speaker.
 Blocks: nothing
-Answer:
+Answer: 2 — by the founder's 2026-10-31 directive "physical device is unavailable. Use emulator" (recorded by the producer 2026-11-01): those halves go into the Q-PUBLISH-3.0.0 summary as JVM + emulator evidence.
 
 ## Q-024 — A physical phone for the silent-mode and headphone checks   (answered)
 Date: 2026-10-23    Asked by: producer (for qa-engineer)
