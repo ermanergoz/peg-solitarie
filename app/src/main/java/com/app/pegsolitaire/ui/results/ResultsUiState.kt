@@ -36,12 +36,16 @@ import com.app.pegsolitaire.domain.model.BoardConstants
  *   completes — and stay `false` for a play that beat nothing (or was never recorded at
  *   all, D-08) — so the "New best!" cue only ever appears on a genuine improvement.
  * @property playCelebration whether THIS entry into Results should sound the star-pop
- *   celebration (D-16). Like [newBests] it is a one-shot cue a recomposition cannot
- *   re-fire, but its scope is wider than one composition: it is `true` only on the first
- *   construction for a given `SavedStateHandle`, so a configuration change (same instance)
- *   and a process-death restore or back navigation (new instance, same handle) alike yield
- *   `false` and re-entering the same Results shows the stars silently. Unlike the recorded
- *   best it does not depend on a solve — a stuck one-star finish still earns its one pop.
+ *   celebration (D-16). It is `true` only on the first construction for a given
+ *   `SavedStateHandle`, so a process-death restore (a new instance over the same handle)
+ *   yields `false`. It is not lowered afterwards: a configuration change keeps the same
+ *   instance, and so does a return onto the same entry while it stays on the back stack, so
+ *   on both the latch is still `true` and a composition keyed on it alone fires again. A
+ *   consumer that must fire once per result keeps its own saved memory too, as the spoken
+ *   summary does (`rememberSaveable`, loop 1 of the talkback-board review, F-1). Unlike the
+ *   recorded best it does not depend on a solve — a stuck one-star finish still earns its one
+ *   pop. (Corrected 2026-10-24; this read "a configuration change (same instance) … yield
+ *   `false`", which the code never did.)
  * @property adScrimVisible the INT-04 quiescence signal: `true` from the instant an
  *   ad-eligible continue tap is accepted until the interstitial presentation *resolves*
  *   — dismissed, failed to show, or cancelled. The screen renders it as a plain dim that

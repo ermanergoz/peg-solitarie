@@ -9,6 +9,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -67,15 +68,18 @@ private const val REMOVAL_START = 1f
  * In read-only mode ([interactive] `= false`, the catalog mini-preview D-11) the leaf
  * renders only the resting pegs and the recessed start-empty hole: it suppresses tap
  * emission (no `pointerInput`), the selection ring, the legal-destination dots and all
- * animation. The default ([interactive] `= true`) keeps the full gameplay behavior.
+ * animation. The default ([interactive] `= true`) keeps the full gameplay behavior, and adds one
+ * TalkBack stop per in-play cell over the canvas (D-TB, `docs/ux-spec.md` §11.1), a layer that takes
+ * no pointer input; the board stop itself sits on the host's slab. A read-only board gains no stop.
  *
  * **The wrong tap (D-06, `docs/ux/invalid-tap-feedback.md` §3).** The leaf answers the latest
  * wrong tap the state records, on the tapped cell, by drawing and by nothing else: while a peg
  * is held, a **redirect** — the held ring nudges, or the held peg's dots re-pop — and, when
  * [wrongTapCorrection] is on, a **correction** of the tapped cell: a head-shake, or with
- * animations off a still dashed mark. It plays no cue, fires no haptic and announces nothing
- * (§3.8): those are screen-level effects beside `GameScreen`, which the tutorial — sharing this
- * leaf — must not inherit. A read-only board never draws any of it.
+ * animations off a still dashed mark. It plays no cue and fires no haptic (§3.8): those are
+ * screen-level effects beside `GameScreen`, which the tutorial — sharing this leaf — must not
+ * inherit. Nor does it choose or carry any words: the host's announcer does, on the screen's own
+ * spoken channel (§3.8 as D-TBa's F-44 reads it). A read-only board never draws any of it.
  *
  * **The palette (docs/ux/colour-vision.md §3.3–§3.4).** An interactive board draws its selection,
  * legal-target marks and hint in the palette `AppTheme` provides through `LocalBoardMarks`, with
@@ -94,7 +98,7 @@ private const val REMOVAL_START = 1f
  *   the mark with animations off): on for the gameplay screen, off for the tutorial (D-01j(2))
  *   and for every read-only board.
  */
-@Suppress("LongMethod") // One cohesive render unit: state capture + palette (with its marks) + the animation set.
+@Suppress("LongMethod") // One render unit: state, palette + marks, animations, and the playable board's stops (D-TB).
 @Composable
 fun BoardCanvas(
     state: GameUiState,
@@ -203,24 +207,7 @@ fun BoardCanvas(
             wrongTap = wrongTap,
         )
 
-    Canvas(
-        modifier =
-            modifier
-                .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO)
-                .testTag(BOARD_CANVAS_TEST_TAG)
-                .onSizeChanged { canvasSize = it.toSize() }
-                .then(
-                    // Read-only previews never attach a tap handler, so they can
-                    // never emit onCellTap (the parent Card owns the tap).
-                    if (interactive) {
-                        Modifier.pointerInput(geometry) {
-                            detectTapGestures { offset -> geometry.positionAt(offset)?.let(onCellTap) }
-                        }
-                    } else {
-                        Modifier
-                    },
-                ),
-    ) {
+    val draw: DrawScope.() -> Unit = {
         // A canvas's first frame, and each frame of a resize, is drawn before the recomposition
         // that rebuilds `geometry` for its size, so it draws with a geometry of the frame's own
         // size: the pegs arrive in the frame their slab does, and stay on it while it resizes
@@ -237,6 +224,53 @@ fun BoardCanvas(
             interactive = interactive,
             animations = animations,
             unsizedFrame = unsizedFrame,
+        )
+    }
+    if (interactive) {
+        // The playable board: the canvas with its tap handler exactly as before — its tag, its size
+        // callback and its pointerInput, so a finger, the drawing and every test that taps the canvas
+        // by its bounds are unchanged (TB-11) — and over it one TalkBack stop per in-play cell (D-TB).
+        val speech =
+            remember(state.board, state.selected, state.legalTargets, state.hintSource, state.hintTarget) {
+                BoardSpeechModel.of(
+                    board = state.board,
+                    selected = state.selected,
+                    legalTargets = state.legalTargets,
+                    hintSource = state.hintSource,
+                    hintTarget = state.hintTarget,
+                )
+            }
+        Box(modifier = modifier.aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO)) {
+            Canvas(
+                modifier =
+                    Modifier
+                        .matchParentSize()
+                        .testTag(BOARD_CANVAS_TEST_TAG)
+                        .onSizeChanged { canvasSize = it.toSize() }
+                        .pointerInput(geometry) {
+                            detectTapGestures { offset -> geometry.positionAt(offset)?.let(onCellTap) }
+                        },
+                onDraw = draw,
+            )
+            // After the canvas, so the stops are above it for explore-by-touch.
+            BoardCellOverlay(
+                spec = spec,
+                speech = speech,
+                touchExploration = rememberTouchExplorationEnabled(),
+                onCellTap = onCellTap,
+                modifier = Modifier.matchParentSize().testTag(BOARD_CELLS_TEST_TAG),
+            )
+        }
+    } else {
+        // Read-only previews compose today's canvas and nothing else: no tap handler, so they can
+        // never emit onCellTap (the parent Card owns the tap), and no TalkBack stop (D-TBa item 9).
+        Canvas(
+            modifier =
+                modifier
+                    .aspectRatio(BoardMetrics.BOARD_ASPECT_RATIO)
+                    .testTag(BOARD_CANVAS_TEST_TAG)
+                    .onSizeChanged { canvasSize = it.toSize() },
+            onDraw = draw,
         )
     }
 }

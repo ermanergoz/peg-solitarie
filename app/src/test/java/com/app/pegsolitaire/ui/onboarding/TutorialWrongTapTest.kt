@@ -1,22 +1,26 @@
 package com.app.pegsolitaire.ui.onboarding
 
 import android.graphics.Bitmap
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithContentDescription
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
-import com.app.pegsolitaire.R
+import com.app.pegsolitaire.audio.FakeSoundPlayer
+import com.app.pegsolitaire.audio.LocalSoundPlayer
+import com.app.pegsolitaire.audio.SoundCue
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.tutorial.TutorialBoards
+import com.app.pegsolitaire.testing.RecordingHapticFeedback
 import com.app.pegsolitaire.testing.renderedWindow
+import com.app.pegsolitaire.ui.components.ANNOUNCEMENT_REGION_TEST_TAG
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.components.BoardGeometry
 import com.app.pegsolitaire.ui.game.BoardMetrics
@@ -27,7 +31,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import kotlin.math.roundToInt
@@ -49,6 +52,9 @@ import kotlin.math.roundToInt
 class TutorialWrongTapTest {
     @get:Rule
     val composeRule = createComposeRule()
+
+    private val haptics = RecordingHapticFeedback()
+    private val sounds = FakeSoundPlayer()
 
     @Test
     fun aWrongTapWithNothingHeldShowsNothingNewOnTheBoard() {
@@ -86,21 +92,27 @@ class TutorialWrongTapTest {
         assertThat(dotChanged.last()).isFalse()
     }
 
+    /**
+     * D-TBa items 2 and 3 (A1.2 item 5 of the talkback-board brief): the tutorial now speaks D-TB's
+     * neutral line for each wrong tap, once, on the board's one channel — its words, not a cue. What
+     * stays is D-01j(2)'s silence of the correction: no reject haptic and no invalid-tap sound here,
+     * and no shake or mark, which the two tests above pin by the board's pixels.
+     */
     @Test
-    fun theTutorialBoardIsNoLiveRegionAndNoWrongTapIsAnnounced() {
+    fun aWrongTapInTheTutorialSpeaksItsLineOnceWithNoRejectHapticAndNoSound() {
         val viewModel = startOnT2()
 
         tapCell(T2_EMPTY_HOLE) // T-W1
+        assertThat(channel()).isEqualTo("No peg here.")
         tapCell(T2_MOVABLE_PEG)
         tapCell(T2_IMMOVABLE_PEG) // T-W2
+        assertThat(channel()).isEqualTo("Put down the selected peg first.")
         tapCell(T2_ILLEGAL_HOLE) // T-W3
+        assertThat(channel()).isEqualTo("Not a jump target.")
 
         assertThat(viewModel.uiState.value.board.rejectedTapTick).isEqualTo(THREE_WRONG_TAPS)
-        composeRule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.LiveRegion)).assertCountEquals(0)
-        WRONG_TAP_SENTENCES.map(RuntimeEnvironment.getApplication()::getString).forEach { sentence ->
-            composeRule.onAllNodesWithContentDescription(sentence, substring = true).assertCountEquals(0)
-            composeRule.onAllNodesWithText(sentence, substring = true).assertCountEquals(0)
-        }
+        assertThat(haptics.events).doesNotContain(HapticFeedbackType.Reject)
+        assertThat(sounds.cues).doesNotContain(SoundCue.InvalidTap)
     }
 
     // ---- Helpers ---------------------------------------------------------------------------
@@ -111,7 +123,9 @@ class TutorialWrongTapTest {
             TutorialViewModel(SilentOnboardingRepository(), FixedHapticsSetting(on = true), TestApplicationScope)
         composeRule.setContent {
             AppTheme {
-                TutorialRouteUnderTest(viewModel)
+                CompositionLocalProvider(LocalHapticFeedback provides haptics, LocalSoundPlayer provides sounds) {
+                    TutorialRouteUnderTest(viewModel)
+                }
             }
         }
         composeRule.waitForIdle()
@@ -123,6 +137,16 @@ class TutorialWrongTapTest {
         assertThat(viewModel.uiState.value.board.board).isEqualTo(TutorialBoards.T2)
         return viewModel
     }
+
+    /** The board's channel as a speech engine reads it: the repeat mark is unspoken. */
+    private fun channel(): String? =
+        composeRule
+            .onNodeWithTag(ANNOUNCEMENT_REGION_TEST_TAG)
+            .fetchSemanticsNode()
+            .config
+            .getOrNull(SemanticsProperties.ContentDescription)
+            ?.single()
+            ?.replace("\u200B", "")
 
     private fun tapCell(cell: Position) {
         clickCell(cell)
@@ -196,10 +220,6 @@ class TutorialWrongTapTest {
 
         /** An in-play empty hole on T2 that is never a legal destination. */
         val T2_ILLEGAL_HOLE = Position(row = 2, col = 2)
-
-        /** The gameplay board's three sentences (D-06c), which the tutorial must never speak. */
-        val WRONG_TAP_SENTENCES =
-            listOf(R.string.wrong_tap_empty_hole, R.string.wrong_tap_other_peg, R.string.wrong_tap_not_a_destination)
     }
 }
 
