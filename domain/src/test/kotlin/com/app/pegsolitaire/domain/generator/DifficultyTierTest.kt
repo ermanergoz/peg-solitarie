@@ -14,8 +14,8 @@ import org.junit.Test
  * VALUES (D-07). Magic numbers (the sampled level bounds) are intentional and
  * acceptable in test code — the sampled range IS the spec.
  *
- * Generator contract 2 (docs/gdd.md §7.1, GD-SB-09): level N deals what the previous curve
- * dealt at N + 50. The previous curve is read through the `internal` oracle
+ * Generator contract 2 (docs/gdd.md §7.1, GD-SB-09, the founder's Q-040): level N deals what
+ * the previous curve dealt at N + 30. The previous curve is read through the `internal` oracle
  * `forLevel(levelNumber, levelOffset = 0)`, and its level-1 values are also written out by hand
  * (the GDD's worked table), so the oracle itself is checked against arithmetic, not trusted.
  */
@@ -115,39 +115,37 @@ class DifficultyTierTest {
     // ---- Generator contract 2: the shift along the curve (GD-SB-09) ----
 
     @Test
-    fun levelOneDealsTheTierTheOldCurveDealtAtLevelFiftyOne() {
+    fun levelOneDealsTheTierTheOldCurveDealtAtLevelThirtyOne() {
         val levelOne = DifficultyTiers.forLevel(1)
 
-        // The GDD §7.1 worked row for visible level 1, by hand: S = 3 + 50 / 25 = 5, a gate floor
-        // of max(3, 5 - 1) = 4, pegs (4 + 1)..(5 + 1 + 2), a pool of 1 + 50 / 50 = 2 footprints
-        // (English-33, European-37), a multiplier of 1 + 50 / 20 = 3.
-        assertThat(levelOne.solutionLength).isEqualTo(5)
-        assertThat(levelOne.minSolutionLength).isEqualTo(4)
-        assertThat(levelOne.pegRange).isEqualTo(5..8)
-        assertThat(levelOne.footprintPool.map { it.footprint })
-            .containsExactly(Boards.English33.footprint, Boards.European37.footprint)
-            .inOrder()
-        assertThat(levelOne.scoreMultiplier).isEqualTo(3)
-        // ...and it is exactly the previous curve's level 51.
-        assertThat(levelOne).isEqualTo(DifficultyTiers.forLevel(51, levelOffset = 0))
+        // The GDD §7.1 worked row for visible level 1, by hand: S = 3 + 30 / 25 = 4, a gate floor
+        // of max(3, 4 - 1) = 3, pegs (3 + 1)..(4 + 1 + 2), a pool of 1 + 30 / 50 = 1 footprint
+        // (English-33), a multiplier of 1 + 30 / 20 = 2.
+        assertThat(levelOne.solutionLength).isEqualTo(4)
+        assertThat(levelOne.minSolutionLength).isEqualTo(3)
+        assertThat(levelOne.pegRange).isEqualTo(4..7)
+        assertThat(levelOne.footprintPool.map { it.footprint }).containsExactly(Boards.English33.footprint)
+        assertThat(levelOne.scoreMultiplier).isEqualTo(2)
+        // ...and it is exactly the previous curve's level 31.
+        assertThat(levelOne).isEqualTo(DifficultyTiers.forLevel(31, levelOffset = 0))
     }
 
     @Test
-    fun everyLevelDealsTheTierTheOldCurveDealtFiftyLevelsLater() {
+    fun everyLevelDealsTheTierTheOldCurveDealtThirtyLevelsLater() {
         // SB-D5: every field, the freeform intro included — one constant on both sides, compared
         // against the visible level when a footprint is picked.
         for (n in 1..2000) {
-            assertWithMessage("tier of level %s against the previous curve's level %s", n, n + 50)
+            assertWithMessage("tier of level %s against the previous curve's level %s", n, n + 30)
                 .that(DifficultyTiers.forLevel(n))
-                .isEqualTo(DifficultyTiers.forLevel(n + 50, levelOffset = 0))
+                .isEqualTo(DifficultyTiers.forLevel(n + 30, levelOffset = 0))
         }
     }
 
     @Test
-    fun theSolutionLengthCapIsReachedAtLevelSixHundredAndTwentySix() {
-        // 3 + (625 + 50) / 25 = 30 is the cap; one level earlier, 3 + 674 / 25 = 29.
-        assertThat(DifficultyTiers.forLevel(625).solutionLength).isEqualTo(29)
-        assertThat(DifficultyTiers.forLevel(626).solutionLength).isEqualTo(30)
+    fun theSolutionLengthCapIsReachedAtLevelSixHundredAndFortySix() {
+        // 3 + (645 + 30) / 25 = 30 is the cap; one level earlier, 3 + 674 / 25 = 29.
+        assertThat(DifficultyTiers.forLevel(645).solutionLength).isEqualTo(29)
+        assertThat(DifficultyTiers.forLevel(646).solutionLength).isEqualTo(30)
         assertThat(DifficultyTiers.forLevel(ChallengeLevelBounds.MAX).solutionLength).isEqualTo(30)
     }
 }

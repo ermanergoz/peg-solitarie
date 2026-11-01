@@ -130,14 +130,14 @@ class QualityGateTest {
     // ---- Generator contract 2 (docs/gdd.md §7) ------------------------------------------------
 
     @Test
-    fun levelOneDealsSixPegsAndAFiveJumpLine() {
-        // SB-D6: the old levels 1-50, where any single jump was already a pass, are gone.
+    fun levelOneDealsFivePegsAndAFourJumpLine() {
+        // SB-D6 (Q-040): level 1 plays like the old level 31, so the old levels 1-25, where any
+        // single jump was already a pass, are behind the start; nothing is deleted or renumbered.
         val level = LevelGenerator.generate(1)
 
-        assertThat(level.startingBoard.pegCount).isEqualTo(6)
-        assertThat(level.solution).hasSize(5)
-        assertThat(level.startingBoard.spec.footprint)
-            .isIn(listOf(Boards.English33.footprint, Boards.European37.footprint))
+        assertThat(level.startingBoard.pegCount).isEqualTo(5)
+        assertThat(level.solution).hasSize(4)
+        assertThat(level.startingBoard.spec.footprint).isEqualTo(Boards.English33.footprint)
     }
 
     @Test
