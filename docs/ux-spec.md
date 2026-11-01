@@ -4,7 +4,7 @@ phase: 15
 slug: ux-refresh
 status: draft
 created: 2026-09-21
-revised: 2026-10-24; 2026-10-31 (15m pointer, B-19a); 2026-11-01 (pre-release folds: D-05e's fallback and D-05f's v35 mechanism as built; SN-1 in docs/ux/colour-vision.md)
+revised: 2026-10-24; 2026-10-31 (15m pointer, B-19a); 2026-11-01 (pre-release folds: D-05e's fallback and D-05f's v35 mechanism as built; SN-1 in docs/ux/colour-vision.md); 2026-11-01 (D-03p: the stage withdrawn, Home's slack above the hero, the Classic Continue chip shows the saved position)
 stack: android-compose-game
 design-system: docs/ui/DESIGN-SYSTEM.md
 ---
@@ -584,6 +584,41 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > Each place gains a dated note beside its first wording. The colour-vision correction SN-1 is
 > folded in `docs/ux/colour-vision.md` (CV-AC11). No string, token, colour or id is added by this
 > entry.
+>
+> **Thirteenth revision — 2026-11-01 — FOUNDER-FEEDBACK AMENDMENT (the stage withdrawn; the Classic
+> Continue chip shows the saved position).** On `feature/home-continue-live-boards`, cut from
+> `develop` at `15d02fe`. The founder reviewed Home and said, verbatim: "on the home screen, on the
+> top on initial launch, there is a representative half played game visual. remove that. Continue
+> classic and continue challenge shows half played boards that is great but moves made by the player
+> is not visible there" — and, the same day, corrected the second half: "continue challenge is
+> fine, my mistake. Keep it as it is". Both are this role's. Ruled as **D-03p** (§3, specified in
+> **§4.2.7**; criteria **15x–15ab**), two parts:
+>
+> - **The stage goes, and Home's slack goes above the hero row.** Q-005 named this direction as its
+>   option 2 on 2026-09-28 and pre-ruled its mechanism; the founder, having seen option 1 built, now
+>   chooses it. The slot D-03l put beneath the hero row and D-03n made the chips' room moves **above**
+>   the hero row as plain space — the **headroom** — and holds nothing: no art, no node, no gap of its
+>   own. The title, the gear, the ribbon, the Continue chips and the mode tiles are then one
+>   contiguous block in the lower part of the screen, with the backdrop's sky above it. D-03n's
+>   quantities stand: the footer is one fifth of the no-chip slack, the headroom the rest less the
+>   chips' room, and the tiles hold still when a chip arrives; what rides up on the room now is the
+>   hero row with the ribbon, not the ribbon alone.
+> - **The Classic Continue chip's thumbnail is the player's saved position**, rebuilt from the
+>   snapshot `HomeViewModel` already loads — the pegs as the player left them, never the catalogue's
+>   start board — at 56dp on a miniature slab, with the chip's height, copy, presence rule and resume
+>   target unchanged, and with TalkBack told the pegs left. **The Challenge chip is unchanged**: the
+>   play arrow stays, on the founder's own correction.
+>
+> Edits: this entry; §1 (a row); §2 (files); §3 (D-03p; pointers on D-03b, D-03i, D-03l, D-03m and
+> D-03n); §4.2 (bands 1 and 3), §4.2.1 (oracle 3's note), §4.2.2 (clauses 3–5), §4.2.3, §4.2.4 and
+> §4.2.5 (status pointers), **§4.2.7** (new); §5; §6.1 (two tokens retired, one value changed); §6.4;
+> §6.5; §8 (one plural reused); §9; §10; §11; §12; §13 (retargets); §14 (15x–15ab, and pointers on
+> 15k, 15l, 15p–15v); §15 (Q-005's answer revised); §16. `docs/ux/candy-backdrop.md` §8.1 and
+> `docs/ux/colour-vision.md` §3 gain one pointer each. **Not reopened:** 15n and 15o (the one-row
+> hero), 15g's midpoint, 15k, D-03n's ratio and its room motion, D-03o, the oracles of §4.2.1, the
+> band order, the tiles, the ribbon, the palette and the backdrop. No string is added (one existing
+> plural is spoken in one more place); two tokens are retired and one changes value; one scoped
+> ratio is retired; no colour, asset or dependency changes.
 
 ---
 
@@ -611,6 +646,13 @@ amendment.** The table above is the record of the original asks and is left as i
 | Home: "I don't really like this screen" — scoped to the empty middle gap, the peg-cross logo and how the title sits | **D-03l** | The logo goes; the title sits start-aligned in one row with the gear; the blank band becomes a stage — a static board showing a game in progress, sized by the slack. Ribbon, cards and palette kept. §4.2.4, Q-005. |
 | "I like the in-game icons, but I can't really say if they are on or off" | **D-04e** | Icons kept. Actions get one look with no on/off; the one toggle gets the only on/off look, marked by shape (check mark / slash), fill and ring, and speaks as a switch. §4.4.1. |
 | "Elapsed time and the title seem too small. They could be reworked." | **D-05d** | Title `titleLarge` 22sp, timer `headlineSmall` 24sp in a 40dp clay pill; the double system-bar inset removed, so the board loses nothing. §4.3.1. |
+
+**The founder's note on the built stage, 2026-11-01 — the second founder-feedback amendment.** The
+two tables above are left as they read.
+
+| Note (verbatim) | Decision | Verdict |
+|-----------------|----------|---------|
+| "on the home screen, on the top on initial launch, there is a representative half played game visual. remove that. Continue classic and continue challenge shows half played boards that is great but moves made by the player is not visible there" — and, the same day: "continue challenge is fine, my mistake. Keep it as it is" | **D-03p** | The stage is withdrawn; Home's slack becomes headroom **above** the hero row (Q-005's option 2, which the founder now chooses), so title, stats, Continue and cards are one block in the lower part of the screen. The Classic Continue chip's thumbnail becomes the player's **saved position** at 56dp on a small slab, the chip otherwise unchanged. The Challenge chip keeps its play arrow. §4.2.7. |
 
 ---
 
@@ -641,6 +683,15 @@ re-sized with the insets applied once (D-05d, §4.3.1) and its dock gains a stat
 `ShowMovesOffIcon`, `res/values/{dimens,strings}.xml`, and `ui/game/GameScreen.kt` if the developer
 chooses to keep the insets in the strip and dock and set the `Scaffold`'s content insets to none
 (§4.3.1).
+
+*(2026-11-01 — D-03p amendment.)* No screen is added or removed. **Home** loses its stage and gains
+headroom above the hero row (§4.2.7); its Classic Continue chip's thumbnail becomes the saved
+position. Files touched: `ui/home/HomeStage.kt` (**deleted**, with `StageArtFade`,
+`HomeStageBoardState` and `HomeStageMetrics`), `ui/home/HomeBandColumn.kt` (the slot moves above
+the hero and composes nothing), `ui/home/HomeScreen.kt` (the Classic chip's art and its
+`stateDescription`), `ui/home/HomeBoardArt.kt` (the thumbnail's slab; `StaticBoardArt` itself is
+unchanged), `ui/home/HomeViewModel.kt` and `HomeUiState.kt` (the saved position in place of the
+catalogue's start board), and `res/values/dimens.xml` (two tokens retired, one changed).
 
 *(2026-10-21 — D-04f amendment.)* No screen is added or removed. **Gameplay** gains one
 non-interactive surface, the **Undecided notice**, in the rescue banner's slot (§4.4.2), and the
@@ -953,6 +1004,11 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   window. The rationale above still binds the replacement: the hero's decoration is still the
   game's own board art, licence-free and asset-free — now a clay board showing a game in progress,
   drawn into the slack rather than above the title. Q-005 asks the art direction again.)*
+  *(Withdrawn 2026-11-01 — founder-feedback amendment, **D-03p**, §4.2.7. The hero carries **no
+  decoration at all** now: the stage goes, on the founder's note, and the slack sits above the hero
+  row as plain headroom. The rationale's one surviving consequence is on the Continue chip: the only
+  board art left on Home is the mode tiles' footprints and the Classic chip's thumbnail, which is now
+  the player's own saved position — still the game's own pegs, still licence-free and asset-free.)*
 
 - **D-03c:** The progress ribbon shows **three pills: Stars · Boards · Level**, and each pill
   renders a neutral em-dash placeholder when its value is not yet known. — Three is the most the
@@ -1074,6 +1130,11 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   stage takes the rest less the chips' room, so a chip's arrival moves the stage and the ribbon and
   never the tiles. The rest of the mechanism stands: the `BoxWithConstraints`, the scroll column,
   `heightIn(min = available)`, clause 4 with its one exception, and clause 6.)*
+  *(Amended 2026-11-01 — see **D-03p**, §4.2.7. The upper share of the slack moves once more, from
+  beneath the hero row to **above** it, and becomes plain headroom. Clause 3 therefore reads "above
+  the hero row"; clause 4 loses its one exception, because no child on Home holds a drawing in slack
+  any more; clause 5 is exact again — the headroom and the footer are space, not bands. D-03n's
+  footer, room and tile rule stand.)*
 
 - **D-03j** *(2026-09-28 — folded in from the tech-lead's ruling
   `.planning/reports/phase-15/tech-lead-coldstart-gate.md` §4, which corrects a gate that report's
@@ -1199,6 +1260,11 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   *(Amended 2026-10-21 — see **D-03n**. The stage stands, and so does its art. Its height is no longer
   three quarters of the current slack. It is the slack less the chips' room less a footer fixed for
   the window, so the stage, and not the tiles, absorbs a Continue chip's arrival.)*
+  *(Amended 2026-11-01 — see **D-03p**, §4.2.7. **Part 3 is withdrawn**: the founder, having seen the
+  stage built, asked for it to go, which is Q-005's option 2. The slack sits **above** the hero row as
+  headroom and holds nothing. Parts 1 and 2 — no logo, the title in one row with the gear — stand
+  unchanged, and so does every reason given here against a hole between two islands of content: the
+  block below the headroom is contiguous.)*
 
 - **D-03m** *(2026-09-29 — **amendment**. UX ruling on the qa-engineer's escalation **E-1** on
   criterion 15p part 1, `.planning/reports/15-founder-feedback/qa-engineer.md`. Amends D-03l's hero
@@ -1220,6 +1286,8 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   in Fredoka as it does in Roboto. The title's 44dp line box is shorter than the gear's 48dp in either
   face. "Peg Solitaire" measures 205.7dp in Fredoka SemiBold against 205.5dp in Roboto, and the title
   has 296dp of room at 360dp width.
+  *(Pointer 2026-11-01 — D-03p, §4.2.7. The visible reading stands and now has one element fewer to
+  read: the stage-art slab is gone from the list of visible elements. The row's "no floor" stands.)*
 
 - **D-03n** *(2026-10-21 — **amendment**. UX ruling on the qa-engineer's loop-3 finding **F-1**,
   `.planning/reports/15-founder-feedback/qa-engineer-loop3.md`, routed by the tech-lead's phase-15
@@ -1251,6 +1319,12 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   after it. One fifth rather than one quarter is the smallest change that pins the tiles on every
   measured phone window, 360×640dp included. It also keeps the founder's own one-chip state within
   ≈4dp of the layout they approved (H-4). The arithmetic and the options weighed are in §4.2.5.
+  *(Amended 2026-11-01 — see **D-03p**, §4.2.7. The quantities stand: S₀, R, the one-fifth footer,
+  "the tiles move by max(0, R − ⅘ S₀) and only downward", and the room's motion. What gives up the
+  room is no longer the stage, which is withdrawn, but the **headroom above the hero row**; so part
+  1's "the hero row keeps the same bounds" is superseded — the hero row and the ribbon ride up
+  together by the chips' room — and part 4's "the stage slab is never drawn without its pegs" has no
+  subject. The tiles' and the footer's rule, the whole reason for this decision, is unchanged.)*
 
 - **D-03o** *(2026-10-21 — **amendment**. UX ruling on the qa-engineer's **O-2**
   (`15-founder-feedback/qa-engineer.md`, carried open in `qa-engineer-loop3.md`) and this role's own
@@ -1272,6 +1346,77 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   Every label is one short word that fits a 360dp pill whole at 200% ("Boards" ≈77dp against ≈93dp of
   room), so stacking costs only height on a column that already scrolls there (15i). One shape for all
   three keeps the band reading as one band.
+
+- **D-03p** *(2026-11-01 — **founder-feedback amendment**, UX ruling on the founder's note of
+  2026-11-01 — "on the home screen, on the top on initial launch, there is a representative half
+  played game visual. remove that. Continue classic and continue challenge shows half played boards
+  that is great but moves made by the player is not visible there" — and the founder's same-day
+  correction, "continue challenge is fine, my mistake. Keep it as it is". Amends D-03b, D-03l part
+  3, D-03n parts 1 and 4, and clauses 3–5 of D-03i as D-03l amended them; revises Q-005's answer;
+  specified in **§4.2.7**; criteria **15x–15ab**. Built on `feature/home-continue-live-boards`.)*:
+  **the stage is withdrawn, Home's slack sits above the hero row as headroom, and the Classic
+  Continue chip shows the player's saved position.** Two parts.
+  **(1) The headroom.** The slot D-03l put beneath the hero row, and D-03n made the source of the
+  Continue chips' room, moves **above** the hero row and holds nothing: no art, no node, no
+  semantics, no band gap of its own. Its height is D-03n's stage height under a new name,
+  max(0, ⅘ S₀ − R); the footer stays one fifth of the no-chip slack S₀, fixed for the window; and S₀
+  loses one band gap, since a slot that is space brings no gap. The hero row, the ribbon, the
+  Continue chips and the mode tiles are one contiguous block under the headroom, every gap between
+  them the band gap, with the backdrop's sky and lights above the title. When a chip arrives, the
+  room still opens from the headroom: the tiles and the footer hold still wherever the headroom can
+  give the room, exactly as D-03n rules, and the hero row and the ribbon ride up on it together —
+  the one change to D-03n's table.
+  **(2) The Classic thumbnail.** The Classic Continue chip's trailing art becomes the **saved
+  position**: the board as the player left it, rebuilt by the same codec the resume path uses
+  (`SnapshotMapper.fromDto`, the replay of the stored moves from the stored initial board) from the
+  snapshot `HomeViewModel` already loads to validate the board id (CR-01) — never the catalogue's
+  start board, which is what `classicResumeBoard` carried until now. It is drawn by the unchanged
+  read-only `BoardCanvas` on a miniature `surfaceContainerHigh` slab at `home_resume_thumb_size`,
+  raised from 40dp to **56dp**, inset `spacing_sm` from the chip's top and bottom edges so the chip's
+  height does not change. The chip's presence rule, title, supporting line, resume target, cue and
+  squish are unchanged; a snapshot that decodes and names a catalogue board but does not rebuild
+  keeps the play arrow. TalkBack is told what the picture shows: the chip's node gains a
+  `stateDescription` of `board_a11y_pegs_left` — "14 pegs left" — and the thumbnail itself stays
+  decorative, with no stop and no description of its own. **The Challenge chip is unchanged**: it
+  keeps the play arrow, on the founder's correction, and §4.2's reason for it stands.
+  — The founder's two sentences are one judgement about the same thing: a board on Home should be
+  *theirs*. The stage showed a game nobody played, and the chip's thumbnail showed a board nobody
+  had touched — the start position, because the catalogue descriptor was the board in hand when
+  the id was validated. The chip now shows the position the player will resume into, and the stage,
+  which could never show a player's own game without a visible swap after first paint (§4.2.4's
+  rejected "show the player's own saved board on the stage"), goes. Where the slack goes once the
+  stage is gone is the question Q-005 already answered in the abstract. Its option 2 — "no picture
+  anywhere; … title, stats, Continue and mode cards form one block in the lower part of the screen"
+  — is the only placement that keeps every rule this screen has paid for: the tiles in the thumb
+  zone (15g) and no hole between two islands of content (Q-004, 15p). A slot beneath the hero
+  row with nothing in it is the hole moved up by one band — the title above it would "belong to
+  neither", in D-03l's own words — and a slot between the ribbon and the chips is D-03i's ≈172dp.
+  Only space above the first element is not a gap between elements, and above the title the
+  backdrop's sky, lights and waves (`docs/ux/candy-backdrop.md`) are a designed scene, not blank.
+  Q-005 noted that option 2 "leaves the top third of a tall phone empty — the original 'looks
+  empty' complaint in a new place"; that was true of the plain `HomeBlobs` background it was
+  written against and is not true over the backdrop, and the founder has now chosen it with the
+  stage in front of them. The hero row rides up with the ribbon because the alternatives are worse:
+  taking the room from the footer moves the tiles (the defect D-03n removed), and pinning the hero
+  while the ribbon rides up reopens a gap under the title. The gear is a secondary control that no
+  thumb is heading for ≈0.6s after a cold start, the only moment a chip arrives while Home is drawn
+  (§4.2.5); the title is a heading, not a target. Q-005's option 2 said "only the gear … above it";
+  that was written before D-03l seated the title and the gear in one row, and 15o is kept: a lone
+  gear in the top corner is the corner D-02 called the hardest to reach, and splitting the row
+  reopens "how the title sits". The thumbnail is 56dp and not larger because the chip's height is
+  an input to the 360×640dp fit (§4.2.3, 15k) and to D-03n's room: at default scale the text column
+  is 48dp inside `spacing_md` padding, 80dp, and 56dp inside `spacing_sm` insets is 72dp, so the art
+  never sets the chip's height; 64dp would equal it to the dp, a margin this document does not
+  write. At 56dp a 7-wide board has 6.9dp cells — pegs ≈4.7dp across, holes ≈2.2dp — and a 9-wide
+  one 5.3dp; the position reads as a pattern of what is left, which is what "moves made by the
+  player" means at a glance, and the pegs-left count is spoken so the picture is never the only
+  record (rules/compose.md, §11). The slab is kept because the dimples are drawn for
+  `surfaceContainerHigh`, not for gold, and because a board on a slab reads as a board. The arrow
+  fallback keeps the chip's presence rule where it was so that oracle 3 (§4.2.1) and the cloud-save
+  checklist are untouched by a cosmetic change; whether a snapshot that will not rebuild should
+  offer a Continue at all is a data-layer question, routed in the report, not decided here.
+  Screens, layout and decoration are this role's (rules/studio.md); the founder's taste was asked
+  once (Q-005) and has now been given twice.
 
 ### In-game controls (ASST-01, ASST-02, CLAS-02, SCOR-02, proposed UX-03)
 
@@ -2144,6 +2289,10 @@ when animations are off. **No info button (D-02).**
 > end of the same row, on every window — followed by the **stage** that holds the slack. There is
 > no hero art above the title any more and no `home_hero_min_height`/`home_hero_art_size`. The
 > gear, its description, its silence and "No info button" are unchanged.
+>
+> *(Amended 2026-11-01 — founder-feedback amendment, **D-03p**, §4.2.7.)* "Followed by the stage"
+> is withdrawn: band 1 is the hero row and nothing else, and Home's slack sits **above** it as
+> headroom that holds nothing. The row, the gear and "No info button" are unchanged.
 
 **2 — Progress ribbon.** One `Row`, three equal-weight clay pills, `home_stat_pill_min_height`,
 `spacing_sm` between them, each a `surfaceContainerHigh` `shapes.medium` surface with
@@ -2173,6 +2322,14 @@ visual addition: the Classic chip's trailing accent becomes a `home_resume_thumb
 thumbnail of the saved board instead of a generic play arrow, since
 `classicResumeLevelId` already identifies the board and the catalogue is static — no new data.
 The Challenge chip keeps the play arrow (a procedural level has no memorable footprint).
+
+> *(Amended 2026-11-01 — founder-feedback amendment, **D-03p**, §4.2.7.)* "Of the saved board" is
+> made exact: the thumbnail is the **saved position** — the pegs as the player left them, rebuilt
+> from the snapshot by the resume codec — and never the catalogue's start board, which is what the
+> build drew. `home_resume_thumb_size` becomes 56dp on a miniature slab, inside the chip's unchanged
+> height. "No new data" still holds: the snapshot is the one `HomeViewModel` already loads. **The
+> Challenge chip's sentence above stands as written** — the founder asked for a Challenge
+> thumbnail and withdrew the ask the same day.
 
 **4 — Mode tiles.** `ClassicTile` and `ChallengeTile` keep their containers, glyph badges, titles,
 supporting slots, entrance stagger, squish, `ButtonForward` cue and every callback
@@ -2204,6 +2361,11 @@ polish.
 > one contiguous lower group. The intent of this paragraph is unchanged and better served — the
 > tiles stay in the lower half (criterion 15g, recomputed in §4.2.4), and the slack stops reading as
 > a hole because it now holds the hero's board.
+>
+> *(Amended 2026-11-01 — founder-feedback amendment, **D-03p**, §4.2.7.)* The slack now sits
+> **above the hero row** as headroom, so the hero row joins the contiguous group: title, ribbon,
+> chips and tiles are one block in the lower part of the screen, and the slack is the backdrop's sky
+> above the title, not a hole between two elements. The tiles stay in the lower half (15g).
 
 **First-paint rule (D-03f).** Scrolling exists for the overflow case, not as a place to put
 things. At **default font scale on a 360×640dp phone with both Continue chips present**, bands 3
@@ -2243,6 +2405,11 @@ why §5.1 forbids the tutorial from going near it.
 | 1 | **Challenge ladder position** | The Challenge tile's level chip (`challenge_tile_continue`, "Continue — Level N", `HomeScreen.kt:544-558`) — unchanged — **and** additionally the ribbon's Level pill | The tile chip is the oracle and stays exactly as it is. The Level pill is **additive**; if the two ever disagree the tile is right. Both read the same `challengeCurrentLevel`, so they cannot diverge by construction. *(2026-09-28, D-03k: on the **narrow class** the pill stops being merely additive and becomes this oracle's **above-the-fold witness**, because the tile chip is across the fold there — reached by one plain scroll of ≤ 120dp, criterion 15k. The tile chip is still the authority and still unchanged; "cannot diverge by construction" is what makes the witness sound, and it is why the ribbon may not be dropped to buy space.)* |
 | 2 | **Classic per-board stars** | The **Classic catalog**, as gold pips under each board preview (`BoardPreview.kt:100-123`, `ClassicBoardUiState.earnedStars`) — this refresh does not touch that screen | Per-board stars have never been on Home and are not being moved there. What must survive is the **path**: the Classic tile remains a single tap from Home to the catalog, and the catalog's pips are untouched. The ribbon's **Stars pill is an aggregate total and is explicitly NOT a replacement for the per-board pips** — do not "simplify" the catalog by pointing at it. |
 | 3 | **Continue / resume affordance** | Home band 3, up to two gold chips — behaviour, data and ordering unchanged (`HomeScreen.kt:293-318`) | Visible on first paint without scrolling (first-paint rule above). The added board thumbnail is cosmetic; the chip's presence, its title, its supporting line and its resume target are the oracle. |
+
+*(Pointer 2026-11-01 — D-03p, §4.2.7.)* Oracle 3's row stands: the chip's presence, its title, its
+supporting line and its resume target are the oracle, and the thumbnail is not. What the thumbnail
+*shows* is now the saved position rather than the start board, and the chip speaks the pegs left as
+a state; neither changes what a tester reads for tests 10/11/13.
 
 **Considered and rejected**, so the trade-off is visible rather than lost:
 
@@ -2456,11 +2623,17 @@ the threshold read width (§4.2.3).
    midpoint property above still holds, with the tiles lower than before. The two weights become one
    ratio in a scoped constants object (§6.4), and how the stage and the footer receive their heights is
    the developer's: the behaviour is the contract, as clause 2 says.
+   *(Amended 2026-11-01 — **D-03p**, §4.2.7.)* The upper share moves **above the hero row** and is
+   plain headroom: max(0, ⅘ S₀ − R), where S₀ now counts four band gaps rather than five, since the
+   headroom brings none. The footer is unchanged. Nothing may sit between the hero row and the
+   ribbon, between the ribbon and the chips, or between the chips and the tiles.
 4. **No content band may be weighted.** A weighted child with `fill = true` is measured at exactly
    its share, so a weighted hero would be measured at exactly **0** the moment the fixed bands
    exceed the viewport — clipped to nothing at 200% font scale, which criterion 14 forbids. This is
    why the hero does not simply grow to absorb the slack, and it is not available as a later
    "simplification". Empty `Spacer`s are the only safe weight holders on this screen.
+   *(2026-11-01 — D-03p.)* D-03l's one exception — a decorative drawing in the slack — is withdrawn
+   with the stage. The clause reads as first written again: nothing on Home holds slack but space.
 5. **The spacers are not bands.** No `clayEntrance`, no `claySquish`, no semantics, no test tag,
    no background. §10's entrance cascade is unchanged and the chips and tiles keep the orders they
    are counted into today (`HomeScreen.kt:315-351`).
@@ -2642,6 +2815,9 @@ D-03i left them. Reading `maxWidth` costs nothing — it is a second read of a v
 *(Pointer 2026-10-21 — D-03n, §4.2.5.)* "The 3 : 1 slack" here is superseded on every width: the
 footer is one fifth of the no-chip slack, fixed for the window, and the stage is the rest less the
 chips' room. Everything else in this paragraph stands.
+*(Pointer 2026-11-01 — D-03p, §4.2.7.)* "The hero's decorative art" and "the stage" are both gone:
+the rest of the slack is headroom above the hero row. The threshold's width term and the compact
+set's steps are untouched.
 
 **Part 2 — the compact-narrow ribbon. The last yield, and it costs no readout.** Below
 `home_compact_threshold_width`, and only there, each progress pill takes the **compact pill**:
@@ -2785,6 +2961,15 @@ it is trusted, which is the lesson of MB-1:
 > room. Wherever this subsection says the stage is weight 3 or three quarters of the slack, and the
 > footer weight 1 or a quarter, read §4.2.5. Everything else here stands: the hero row, the stage, its
 > art, its tokens, its position and the clause exceptions.
+>
+> *(Withdrawn in part 2026-11-01 — founder-feedback amendment, **D-03p**, §4.2.7.)* **The stage is
+> gone.** Everything in this subsection about the stage — the slot beneath the hero row, "The stage",
+> "The stage art", its position, its entrance, its tokens, the three clause exceptions, the
+> stage columns of both arithmetic tables, "Cold start", and the owed tests 15p's art half, 15q and
+> 15r — is superseded: the slack is headroom **above** the hero row and holds nothing. **The hero
+> row stands whole**: one row, the title start-aligned, the gear at the end, no floor (D-03m), 15n
+> and 15o unchanged. "What the founder saw" and the rejected options are the record of why the stage
+> was built; §4.2.7 records why it goes.
 
 **What the founder saw, measured off `home-founder.png`** (1080×2424px, a 411×923dp phone, one
 Classic Continue chip): the peg cluster (120dp) above a centred title; the ribbon; then **≈172dp of
@@ -3200,6 +3385,15 @@ No string, colour or dependency is added. One token is retired.
 > art, its tokens and its position stand except how the stage gets its height. Criteria 15f, 15k, 15p
 > and 15r stand, with the pointers noted below. Criterion 15g stands with one reading ruled: its
 > "unused space" is the no-chip slack S₀ (below, "How 15g's 'unused space' is read").
+>
+> *(Amended 2026-11-01 — founder-feedback amendment, **D-03p**, §4.2.7.)* The stage is withdrawn,
+> so wherever this subsection says "the stage" as the thing that gives up the chips' room, read
+> **"the headroom above the hero row"**; wherever it says the hero row holds still, read **"the hero
+> row rides up with the ribbon"**; and "The stage art at the end of its range" and part 4's stage
+> half have no subject. Everything else stands word for word: S₀ (now with four band gaps, §4.2.7),
+> R, the one-fifth footer, the tiles' rule, 15g's reading, the room's motion, the rejected options
+> and the 15e sitting. Criteria 15s–15v carry the same reading, and §4.2.7 restates the rule so a
+> reader needs this subsection only for its reasons.
 
 **What QA recorded.** A cold start of a player with both saves, screen-recorded on the Pixel_9a at
 its native window and read frame by frame (`15f/r2/coldstart9s.mp4`, frames `f_020`–`f_035`):
@@ -3500,6 +3694,217 @@ binds there only as "no break". Nothing changes on that class.
 **What this owes in tests:** criterion 15w. Today's code fails it at 2.0 (the labels lay out on two and
 three lines). `HomeProgressRibbon`'s KDoc on the weighted label is the developer's to update with the
 code.
+
+#### 4.2.7 The stage withdrawn: headroom above the hero row, and the Classic chip shows the saved position (D-03p — founder-feedback amendment, 2026-11-01)
+
+> **Status.** This answers the founder's note of 2026-11-01, quoted in §1, and the founder's
+> same-day correction that the Challenge chip stays as it is. It applies to the branch that lands
+> D-03p, `feature/home-continue-live-boards`, cut from `develop` at `15d02fe`, and retro-certifies
+> nothing. **What stands:** §4.2.2's `BoxWithConstraints`, scroll column and modifier order; D-03n's
+> S₀, R, one-fifth footer, tile rule and room motion (§4.2.5); D-03o (§4.2.6); the hero row of D-03l
+> and D-03m (15n, 15o); 15g's midpoint and its ruled reading; 15k, 15l (one reading, below), 15m and
+> 15w; §4.2.1's three oracles and four rejections; the band order; the Challenge chip. **What goes:**
+> the stage — the slot beneath the hero row, its art, its tokens, its fade and its position test
+> (§4.2.4 "The stage"; 15q; 15r; 15p's art half). **What changes:** where the slack sits, what rides
+> up when a chip arrives, and the Classic Continue chip's art, size and spoken state.
+
+**What the founder saw.** On their one-chip phone: the title row; beneath it a ≈230dp clay board
+showing a constant English-33 mid-game position (§4.2.5's table) — a game they had never played; the
+ribbon; a "Continue Classic" chip whose 40dp thumbnail was the board's **start** position, because
+`HomeViewModel` handed the screen the catalogue descriptor's `previewBoard`, the board in hand when
+it validated the stored id (CR-01); a "Continue Challenge" chip with the play arrow; the two tiles.
+The founder asked for the board at the top to go and for the Continue chips to show the moves they
+had made, then withdrew the second ask for Challenge.
+
+**The column after D-03p**, top to bottom, inside §4.2.2's unchanged `BoxWithConstraints` and scroll
+column, band spacing and padding `spacing_md` in the full set and `spacing_sm` in the compact set:
+
+| # | Child of the column | Height | Notes |
+|---|---|---|---|
+| 0 | **Headroom** — space above the hero row | max(0, ⅘ S₀ − R); **0** when the column overflows | Not a child that composes anything: no art, no node, no test tag, no semantics, no band gap of its own. It is where the Continue chips' room comes from. |
+| 1 | **Hero row** — gradient title (start) + Settings gear chip (end) | as D-03m: as tall as its tallest child | Unchanged. The first **element** in the column, no longer the first child. Its top is the column's top padding plus the headroom. |
+| 2 | Progress ribbon | unchanged | One band gap below the hero row, in every chip state. |
+| 3 | Continue chips (0, 1 or 2) | unchanged | Presence, order, copy, target and cue unchanged. The **Classic** chip's trailing art is the saved position (below); the Challenge chip is unchanged. |
+| 4 | Mode tiles | unchanged | |
+| 5 | Footer — space below the second tile | min(S₀ ⁄ 5, max(0, S₀ − R)) — D-03n | Unchanged. |
+
+**The rule, restated with the headroom.** Every quantity is measured inside §4.2.2's
+`BoxWithConstraints`, at the column's width.
+
+- **S₀, the no-chip slack:** the available height, less the hero row, the ribbon, the two tiles, the
+  column's padding and the **four** band gaps the column has with no chip — hero→ribbon,
+  ribbon→tile 1, tile 1→tile 2, and the footer's gap, which it brings at any height, even 0 —
+  floored at 0. One gap fewer than D-03n counted, because the stage brought a gap and the headroom
+  brings none: S₀ is 16dp larger on the full set and 8dp larger on the compact set than §4.2.5's
+  figures, on every window.
+- **R, the chips' room:** unchanged — for each Continue chip present, its height plus the one band
+  gap it brings; 0 with no chip.
+- **Footer** = min(S₀ ⁄ 5, max(0, S₀ − R)) — unchanged.
+- **Headroom** = max(0, ⅘ S₀ − R).
+- So the column is exactly the available height while it fits; once R exceeds S₀ the headroom and
+  the footer are both 0 and the column overflows and scrolls (criteria 14, 15i), with the hero row at
+  the top padding, exactly where D-03m put it on every overflowing window.
+- **The tiles move by max(0, R − ⅘ S₀)** from where they sit with no chip, only downward — D-03n's
+  rule, unchanged. Tile 1's top with the room given is `padding + ⅘ S₀ + hero + ribbon + 2 gaps`,
+  against D-03n's three gaps: one gap higher, of which ⅘ comes back through the larger S₀, so the
+  tiles sit ≈3dp higher on the full set and ≈1.6dp higher on the compact set than §4.2.5's table
+  puts them, and 15g's midpoint holds with the same margins less that.
+- **Every gap between two consecutive visible elements is the band gap** — 16dp in the full set,
+  8dp in the compact set — in every chip state on every window, read as D-03m defines a visible
+  element (title and gear, pills, chips, tiles). No element has slack between it and the next: the
+  headroom is above the first element and the footer below the last, and neither is a gap between
+  two elements (15y). This is 15p's intent — no hole in the middle — made exact without an art
+  floor to carry it.
+
+**What moves when a chip arrives, or leaves.** §4.2.5's table with one row changed and one removed:
+
+| Element | When a chip arrives, or leaves |
+|---|---|
+| Headroom | **Gives up exactly the chips' room.** 0 at most. |
+| Hero row — title and gear | **Rides up on the headroom's lower edge** by exactly the chips' room, with the ribbon, as one block. *(D-03n had it hold still; the stage beneath it was what moved.)* |
+| Progress ribbon | **Rides up** by exactly the chips' room, one band gap below the hero row throughout. |
+| Continue chips | Appear between the ribbon and the tiles, in their unchanged order. |
+| Mode tiles | **Hold still** wherever the headroom can give the room. Where it cannot, they move down by exactly what it could not give, and no more (D-03n). |
+| Footer | **Holds still** wherever the headroom can give the room; otherwise as D-03n. |
+
+The motion is §4.2.5's "The motion", verbatim, with "the stage" read as "the headroom" and "the
+ribbon rides up" read as "the hero row and the ribbon ride up together": the room opens from 0 over
+`ClayAnim.ENTRANCE_MS` with `ClayAnim.ENTRANCE_EASING` and no overshoot, the room includes the chip's
+band gap, the late chip takes no stagger delay, a chip leaving runs it in reverse, nothing is
+announced, and with OS animations off the frame after the emission is the settled layout. There is
+no art to fade: "The stage art at the end of its range" has no subject. The entrance cascade is
+unchanged and independent of the room (§4.2.5; 15u, 15v): the hero still enters first, at order 0,
+and a chip that lands mid-cascade restarts nothing.
+
+**Why the hero row may move now, when D-03n pinned it.** D-03n pinned what a thumb is heading for:
+the tiles, and the chips themselves. It pinned the hero row too because the stage beneath it could
+absorb the room without anyone above it moving. With the slack above the hero row, something must
+ride up on the room, and the choice is between the hero row with the ribbon, the tiles (the defect
+D-03n removed), or a gap opening under the title (the complaint D-03l answered). The hero row is a
+heading and a secondary control; a chip arrives while Home is drawn only ≈0.6s after a cold start
+(§4.2.5), while the entrance cascade is settling, and the gear is not what a player taps in that
+second. On every return to Home the chips are already in `HomeUiState` and nothing moves.
+
+**The arithmetic, on QA's two windows** (§4.2.5's readings, projected; the re-walk on the branch
+governs). The Pixel_9a's native window, 411×923dp, 845dp usable, full set: S₀ was 407.9dp with five
+gaps and is **423.9dp** with four; each chip's room is 96dp. The 360×640dp window QA measured, 564dp
+usable, compact set: S₀ was 228dp and is **236dp**; each chip's room is 88dp. Each cell gives the
+headroom / the footer / tile 1's top, in dp, top of the content = 0:
+
+| Window, chips | D-03n: the stage / the footer / tile 1's top | **D-03p: the headroom / the footer / tile 1's top** | The hero row's top |
+|---|---|---|---|
+| Native, none | 326.3 / 81.6 / 577.7 | **339.1 / 84.8 / 574.5** | 355.1 |
+| Native, one — the founder's | 230.3 / 81.6 / 577.7 | **243.1 / 84.8 / 574.5** | 259.1 |
+| Native, both | 134.3 / 81.6 / 577.7 | **147.1 / 84.8 / 574.5** | 163.1 |
+| 360×640, none | 182.4 / 45.6 / 354.4 | **188.8 / 47.2 / 352.8** | 196.8 |
+| 360×640, one | 94.4 / 45.6 / 354.4 | **100.8 / 47.2 / 352.8** | 108.8 |
+| 360×640, both | 6.4 / 45.6 / 354.4 | **12.8 / 47.2 / 352.8** | 20.8 |
+
+Every tile top sits below its window's 15g midpoint (476.8dp native; 334dp at 360×640dp), as before.
+On the founder's own one-chip phone the title now sits about 259dp below the top of the content —
+a little above the screen's vertical third — with the backdrop above it and nothing but band gaps
+below it. The three-button 360×640dp case (540dp usable) has S₀ 212dp and ⅘ S₀ 169.6dp against both
+chips' 176dp: a **6.4dp** shortfall, half of D-03n's 12.8dp, and still 15t's case.
+
+**The narrow class.** On the design baseline, `w360dp-h640dp` with a 24dp status bar and a 48dp
+three-button bar (568dp usable), §4.2.4's D-03m column `hero 8..56 · stage (0) · ribbon 72..128 · …`
+loses the stage's gap: **hero 8..56 · ribbon 64..120 · chip 128..236 · chip 244..352 · tile 360..468 ·
+tile 476..592** on the LEGACY arithmetic, 8dp shorter than before, and on real metrics the window
+that overflowed 0dp now has 8dp to spare. 15k holds with more margin; its overflow branch is still
+read on `w360dp-h560dp`.
+
+**The Classic Continue chip's thumbnail.**
+
+- **What it shows: the saved position.** `HomeViewModel` already opens the Classic snapshot to learn
+  which board to resume (`loadSnapshot`, CR-01). The position is `SnapshotMapper.fromDto(dto,
+  rulesEngine)?.currentBoard` — the resume path's own codec: the stored initial board with the stored
+  moves replayed through the rules engine — taken from that same `ResumeSnapshotDto` after the
+  catalogue check, and carried to the screen in `HomeUiState` in place of the descriptor's
+  `previewBoard` (the field is re-documented or renamed; the screen still never maps an id to a
+  board, QUAL-01). A snapshot with no moves shows the start board, which is then also the saved
+  position. **The thumbnail follows the save**: the resume-modes flow re-emits when a snapshot is
+  written, the collector reloads and rebuilds, and the next Home shows the new position (15aa).
+- **How it is drawn.** `StaticBoardArt` (`HomeBoardArt.kt`) unchanged — the read-only `BoardCanvas`
+  with `GameUiState.initial(board)`, pegs and dimples only, no palette read (colour-vision CV-AC06
+  unaffected) — inside a miniature slab: a `surfaceContainerHigh` square of `home_resume_thumb_size`
+  (**56dp**, changed from 40dp), `shapes.extraSmall`, **no `finishGlow` and no `glossFinish`** — the
+  backdrop spec's rule that nothing glossy lies over a board (`docs/ux/candy-backdrop.md` §3.5) —
+  holding the canvas inset `spacing_xs`, so the board itself is 48dp. The slab carries one test tag,
+  `HOME_RESUME_THUMB_TEST_TAG`, and nothing else.
+- **Where it sits.** The chip's trailing end, vertically centred, `spacing_md` after the text column,
+  `spacing_md` from the chip's end edge, and **`spacing_sm` from the chip's top and bottom edges**:
+  the row's vertical padding becomes `spacing_sm` and the text column carries `spacing_sm` more of its
+  own, so the text column is still 48 + 2 × 16 = 80dp at default font scale and the art 56 + 2 × 8 =
+  72dp. **The chip's height is unchanged in every state and at every font scale**: the art never sets
+  it. The chip's height is an input to 15k's fit and to D-03n's room, which is why 64dp — equal to the
+  text column to the dp — is not taken. At 360dp width the text keeps ≥ 240dp, three times
+  "Pick up your saved board" at default scale.
+- **Every catalogue board fits.** `BoardGeometry` fits the footprint's bounding box into the square:
+  6.9dp cells for English-33 and European-37, 6.0dp for Asymmetric-39, 5.3dp for Diamond-41 and
+  Wiegleb-45; pegs 0.34 and holes 0.16 of a cell across (`BoardMetrics`), so pegs are ≈3.6–4.7dp and
+  holes ≈1.7–2.2dp. The position reads as a pattern of what is left — enough to tell a fresh board
+  from a half-cleared one and a near-win from either, which is what the founder asked to see — and
+  not cell by cell; the count is spoken (below). A larger read is one tap away, on the board itself.
+- **When the position cannot be rebuilt.** A snapshot that decodes and names a catalogue board but
+  whose moves do not replay (`fromDto` returns `null`: a forged or corrupt history) shows the **play
+  arrow** — today's Challenge accent, at `mode_glyph_size` — and nothing else changes: the chip's
+  presence rule (decode + catalogue id, CR-01) is as it was, so oracle 3 and the cloud-save checklist
+  read exactly what they read today. Whether such a snapshot should offer a Continue at all is a
+  data-layer question for the tech-lead and is routed in the report, not decided here.
+- **The Challenge chip is unchanged**: the play arrow, `board = null`, and §4.2's sentence for it.
+- **TalkBack.** The thumbnail is decorative and stays so: the read-only `BoardCanvas` attaches no
+  semantics, the slab has a test tag only, and no read-only board has a stop (§11.1, D-TBa item 9).
+  **No `contentDescription` is set anywhere inside the chip** — a merged description would be spoken
+  *instead of* the title (`strings.xml`'s own note at `home_stat_pill_desc`; §11). The chip's clickable
+  node instead gains a **`stateDescription`** of `board_a11y_pegs_left` for the saved position's peg
+  count — "14 pegs left" — so a screen-reader player hears the progress the picture shows. The visible
+  copy is unchanged; the chip is still one stop; 26b's Home order is unchanged; the order of name,
+  state and role inside the utterance is TalkBack's own (§4.3.2). The arrow fallback carries no state.
+- **Both themes.** The slab's token has its dark variant; the pegs and dimples are the gameplay
+  board's own and read no palette (CV-AC06 holds: Home still reads no palette).
+- **Cold start (D-03g).** No new read: the snapshot read is the one CR-01 already makes. The rebuild
+  is a replay of at most 44 moves through `RulesEngine.legalMoves`, pure CPU, run in the collector
+  after the read where the catalogue check already runs — never on Home's first frame, which draws no
+  chip (D-03n). The first frame **loses** one `BoardCanvas` draw, the stage's; the thumbnail's draw was
+  already in §6.5's table, conditional on a Classic resume. The branch touches `ui/home/`, a start-path
+  directory, so it sits its own 15e by §6.5's "Any later branch" row, arm A its merge-base with
+  `develop`; a regression would be a surprise.
+- **Previews.** `HomeScreen`'s busiest and compact previews draw the Classic chip with a mid-game
+  board, not `european37Initial`, so the preview shows what ships.
+
+**Considered and rejected**, so none is re-proposed:
+
+- *Keep the hero row at the top and leave the slot beneath it empty.* The hole, moved up one band:
+  the title "belongs to neither" (D-03l), and on the founder's phone it is ≈243dp of nothing under the
+  title.
+- *Put the slack between the ribbon and the chips.* D-03i's ≈172dp, the founder's first complaint.
+- *Take the chips' room from the footer.* Moves the tiles under a thumb — D-03n's defect.
+- *Let the tiles or chips grow into the slack.* Q-005's option 3: changes the cards the founder keeps,
+  and a content band holding slack is clause 4's forbidden case.
+- *Pin the title and gear at the top and let the ribbon ride up alone.* Opens a gap under the title
+  when a chip arrives.
+- *Leave only the gear at the top, as Q-005's option 2 first read.* Written before D-03l seated the
+  title and the gear in one row; a lone gear in the top corner is the corner D-02 called the hardest to
+  reach, and it reopens "how the title sits" (15o).
+- *Show the player's own board on the stage instead of removing it.* §4.2.4 rejected it for a visible
+  swap after first paint and a fresh install with nothing to show; the founder asked for the stage to
+  go.
+- *A larger thumbnail by growing the chip.* The chip's height is 15k's and D-03n's input; 64dp inside
+  the unchanged chip equals the text column to the dp and is a margin this document does not write.
+- *The thumbnail with no slab, on the gold chip.* The dimples are drawn for `surfaceContainerHigh`,
+  and a board on a slab reads as a board; the slab costs 8dp of edge.
+- *The peg count in the supporting line.* Changes oracle 3's visible copy and adds a string for a
+  number TalkBack can carry as state; not taken.
+- *A `contentDescription` on the thumbnail.* Merged into the chip, it would be spoken instead of the
+  title.
+- *Withhold the chip when the snapshot will not rebuild.* The consistent rule by WR-02's own
+  reasoning, and a data-layer change to the presence rule; routed to the tech-lead rather than ruled
+  from the screen.
+- *A Challenge thumbnail.* Asked and withdrawn by the founder the same day; §4.2's reason stands.
+
+**What this owes in tests**: criteria **15x–15ab** (§14), each watched failing once on today's code
+before it is trusted, with the §13 retargets of the stage's tests. The two §13 idioms bind: no
+`bottom ≤ contentBottom()` containment and no zero-inset window.
 
 ### 4.3 Gameplay status strip — `GameStatusStrip.kt` (CLAS-02, SCOR-02, D-04/D-05a/D-05b)
 
@@ -4280,6 +4685,10 @@ Things a reader might expect from this spec and will not find, each on purpose:
 - **No logo or emblem on Home** *(2026-09-28, D-03l)*. The hero's only decoration is the stage —
   the game's own board, drawn into the slack — and it is not tappable, not focusable and not
   announced (§4.2.4).
+  *(2026-11-01, D-03p.)* **No stage either.** The hero has no decoration at all; nothing is
+  composed above the title but headroom, which is space. Home's only board art is the mode tiles'
+  footprints and the Classic Continue chip's thumbnail of the saved position, none of it tappable,
+  focusable or announced on its own (§4.2.7).
 - **No text in the dock, and no on/off look on an action** *(2026-09-28, D-04e)*. Undo, Hint and
   Restart are never drawn On or Off, never carry the on mark and never draw a slashed glyph; only
   Show-moves does. A spent allowance never changes a control's look (§4.4.1).
@@ -4386,7 +4795,7 @@ declared even where an existing token shares its value. All multiples of 4.
 | `home_hero_art_size` | 120dp | The Home hero's decorative board art |
 | `home_stat_pill_min_height` | 64dp | One progress-ribbon pill |
 | `home_stat_pill_glyph_size` | 20dp | One progress-ribbon pill glyph |
-| `home_resume_thumb_size` | 40dp | The Classic Continue chip's board thumbnail |
+| `home_resume_thumb_size` | 40dp | The Classic Continue chip's board thumbnail. *(Changed 2026-11-01 by **D-03p**: **56dp**, now the edge of the miniature slab that holds the saved position, inset `spacing_sm` from the chip's top and bottom edges; see below.)* |
 | `home_tile_art_size` | 56dp | A mode tile's trailing board art |
 | `home_hero_compact_min_height` | 72dp | **(D-03i, added 2026-09-28)** The hero's minimum in the compact band set — one row holding the gradient title and the 48dp Settings gear, no art (§4.2.2) |
 | `home_compact_threshold_height` | 720dp | **(D-03i, added 2026-09-28)** The available height below which Home takes the compact band set. It is the full set's own both-chips requirement (≈716dp) rounded onto the grid, and it is compared against available height only — never against the font scale (§4.2.2) — *and, since D-03k, only at an available width of `home_compact_threshold_width` or more; the narrow class uses the token below* |
@@ -4394,8 +4803,8 @@ declared even where an existing token shares its value. All multiples of 4.
 | `home_compact_threshold_height_narrow` | 880dp | **(D-03k, added 2026-09-28)** The compact threshold **at an available width below 400dp**: the full set's own both-chips height *at 360dp width* (≈872dp, where the bands wrap) rounded onto the grid. Its consequence is deliberate — at 360dp width Home is always compact (§4.2.3) |
 | `home_stat_pill_compact_min_height` | 40dp | **(D-03k, added 2026-09-28)** One progress pill in the compact-narrow ribbon: `spacing_sm` + one `titleMedium` line + `spacing_sm`, with the label beside the value and no decorative glyph. A **floor**, not a height — the label wraps and the band grows before either text truncates (§4.2.3, criteria 14/15m) |
 | `home_hero_row_min_height` | 72dp | **(D-03l, founder-feedback amendment, added 2026-09-28)** The hero row — title and 48dp gear — on **every** window. Same value as the retired `home_hero_compact_min_height`, new owner: the row is no longer a compact-only shape (§4.2.4). *Retired 2026-09-29 by **D-03m**; see below.* |
-| `home_stage_art_min_size` | 48dp | **(D-03l)** The smallest stage-art edge that is drawn; below it the stage is plain slack. It is what bounds the largest blank Home can show at 48 + 2 × band spacing (§4.2.4, criterion 15p) |
-| `home_stage_art_max_size` | 320dp | **(D-03l)** The largest stage-art edge; above it the art is centred in its stage (§4.2.4) |
+| `home_stage_art_min_size` | 48dp | **(D-03l)** The smallest stage-art edge that is drawn; below it the stage is plain slack. It is what bounds the largest blank Home can show at 48 + 2 × band spacing (§4.2.4, criterion 15p). *Retired 2026-11-01 by **D-03p**; see below.* |
+| `home_stage_art_max_size` | 320dp | **(D-03l)** The largest stage-art edge; above it the art is centred in its stage (§4.2.4). *Retired 2026-11-01 by **D-03p**; see below.* |
 | `game_timer_pill_padding` | 12dp | **(D-05d, founder-feedback amendment, added 2026-09-28)** Horizontal padding inside the gameplay timer pill (§4.3.1) |
 | `game_action_mark_size` | 24dp | **(D-04e, founder-feedback amendment, added 2026-09-28)** The on mark's circle on Show-moves On (§4.4.1) |
 | `game_action_mark_glyph_size` | 16dp | **(D-04e)** The check inside the on mark |
@@ -4421,6 +4830,15 @@ no minimum height of its own and is exactly as tall as its tallest child (§4.2.
 Any floor taller than the 48dp gear is an invisible band, and a floor equal to it would only repeat
 `IconButton`'s own guarantee. **No token replaces it.** The gear keeps `IconButton`'s own minimum, as
 it already did.
+
+**Retired by D-03p** *(2026-11-01 — founder-feedback amendment)*: `home_stage_art_min_size` (48dp)
+and `home_stage_art_max_size` (320dp) lose their callers with `HomeStage`; the headroom that
+replaces the stage holds nothing and needs no token. The ratio `HomeStageMetrics.SLAB_PADDING_FRACTION`
+goes with them (§6.4). **Changed value** *(D-03p)*: `home_resume_thumb_size` **40dp → 56dp**, and its
+owner is now the Classic chip's miniature slab, whose board sits `spacing_xs` inside it; the slab
+sits `spacing_sm` inside the chip's top and bottom edges, so the chip's height is unchanged
+(§4.2.7). No token is added: the slab's shape is `shapes.extraSmall` and its insets are existing
+spacing tokens.
 
 **One note on `home_stat_pill_min_height`** *(added 2026-09-28, D-03k — a fact, not a change)*: at
 64dp it is a minimum that **has never bound**. The pill it sizes composes `spacing_sm` + a 20dp
@@ -4553,6 +4971,10 @@ share of the no-chip slack (one fifth), named in the home package's scoped const
 weights were. The chips' room opens with `ClayAnim.ENTRANCE_MS` and `ClayAnim.ENTRANCE_EASING`; no new
 duration or curve.
 
+*(2026-11-01, D-03p.)* The footer's one-fifth ratio stands and the room's duration and curve are
+unchanged. `HomeStageMetrics.SLAB_PADDING_FRACTION` (0.06) is retired with the stage; the Classic
+thumbnail's inset is the `spacing_xs` token, not a ratio. No new constant.
+
 ### 6.5 Cold-start budget for Home (D-03g)
 
 **PLAT-08 C1 is a measured pass/fail at ≤ 950 ms cold start, and Home is the start destination**
@@ -4632,6 +5054,15 @@ which this step used to name, no longer exists: the hero is a title row either w
 *(Pointer 2026-10-23 — D-03n, §4.2.5.)* "≈150–280dp" is the 3 : 1 split's range. Under D-03n, step 3
 would leave a blank of 134.3–326.3dp on QA's 6.7-inch window (the stage with both, one and no chips),
 which makes its price higher, not lower. The rest of the paragraph stands.
+
+*(Amended 2026-11-01 — founder-feedback amendment, **D-03p**, §4.2.7.)* The table's stage row is
+**withdrawn**: the stage is gone, so Home's first frame loses that draw. The "Continue chip
+thumbnail" row stands at one conditional `BoardCanvas` draw, with one addition to its cost that is
+not a draw: the saved position is rebuilt by replaying at most 44 stored moves through the rules
+engine, in the collector after the snapshot read CR-01 already makes — pure CPU, off the first
+frame, since no chip is drawn in it (D-03n). Degradation **step 3 is retired** with the stage; the
+path is now steps 1, 2 and 4, and step 2 reads "the thumbnail reverts to the play arrow and the
+position is not rebuilt". The branch sits its own 15e ("Any later branch", below).
 
 *(2026-09-29.)* If 15e fails on the build that first bundles the faces, the tech-lead rules on their
 share before any step is taken: the steps remove art, and removing art cannot pay for type.
@@ -5079,6 +5510,11 @@ no string.
 `challenge_tile_continue`, `resume_classic_title`, `resume_classic_supporting`,
 `resume_challenge_title`, `resume_challenge_supporting`, `settings_action`, `catalog_stars_earned`.
 
+*(2026-11-01 — D-03p.)* `board_a11y_pegs_left` ("%d peg left" / "%d pegs left", D-TB) is spoken in
+one more place: as the Classic Continue chip's `stateDescription`, "14 pegs left", the count of the
+saved position its thumbnail shows (§4.2.7, §11). The chip's visible copy, `resume_classic_title`
+and `resume_classic_supporting`, is unchanged. No string is added.
+
 ### Deleted
 
 `how_to_play` (`strings.xml:62`) — its only caller is the deleted info button. Removing it is what
@@ -5150,6 +5586,11 @@ third-party and none needing a `THIRD_PARTY.md` row beyond what already ships:
 | **`ShowMovesOffIcon`** — `ShowMovesIcon` with a knocked-out diagonal slash | vector | **new, in-house**, same precedent as the two above; it brings one more `@Suppress("MagicNumber")` on path data, which the code-auditor sees under the existing precedent rather than as a new kind of suppression | project-owned |
 | Home stage art — a mid-game English-33 position on a clay slab | drawn | `BoardCanvas` primitives, no asset file; replaces the withdrawn peg-cluster art | project-owned |
 
+*(2026-11-01 — D-03p.)* The "Home stage art" row above is **withdrawn** with the stage. The
+"Hero / tile / thumbnail board art" row stands with one word changed: the thumbnail draws the
+player's **saved position** by the same `BoardCanvas` primitives — no asset file, no licence row.
+Nothing is added.
+
 *(Added 2026-10-21 — D-04f.)* **No asset is added.** `HintIcon`, the in-house, project-owned
 lightbulb of D-04a, is placed a second time, at the start of the Undecided notice. No sound asset is
 placed, because the notice is silent. No `THIRD_PARTY.md` row and no `docs/audio/CREDITS.md` row.
@@ -5173,6 +5614,9 @@ All new motion reuses the Candy Clay vocabulary; nothing invents a curve.
 | Hero board art | idle — no ambient motion of its own; the two existing `HomeBlobs` remain the only drifting elements |
 | **Hero stage art** *(2026-09-28, D-03l — replaces the row above)* | static on every frame: no selection, no dots, no hint, so nothing on the board pulses or pops; enters with the hero (`clayEntrance(HERO_ENTRANCE_ORDER)`); the blobs remain the only drifting elements |
 | **A Continue chip arriving or leaving after first paint** *(2026-10-21, D-03n)* | the chip's room opens from 0 over `ClayAnim.ENTRANCE_MS` with `ClayAnim.ENTRANCE_EASING`, no overshoot; the stage gives up the same height in the same frames, its art following the stage's size (the pegs on it do not move relative to the board), and the ribbon rides on the stage's edge; the chip enters with its existing `clayEntrance` but with no stagger delay, its fade starting with its room; the hero row holds still in every frame, and so do the mode tiles wherever the stage can give the room (in the shortfall case they move by the shortfall); stage art whose final edge is below `home_stage_art_min_size` fades out over the same duration instead of vanishing in one frame; the entrance cascade above is independent of it and is never restarted by it (§4.2.5) |
+| **Hero stage art** *(2026-11-01, D-03p — withdraws the row above)* | there is no stage: the slack above the hero row is headroom with nothing in it, and nothing on Home idles but the backdrop |
+| **A Continue chip arriving or leaving after first paint** *(2026-11-01, D-03p — amends the D-03n row above)* | the same room, the same `ClayAnim.ENTRANCE_MS` and `ClayAnim.ENTRANCE_EASING`, no overshoot — taken from the **headroom above the hero row**: the hero row and the ribbon ride up together on the headroom's lower edge by exactly the room, in the same frames; the mode tiles hold still wherever the headroom can give the room (in the shortfall case they move by the shortfall); the late chip enters with no stagger delay, its fade starting with its room; nothing fades out, since there is no stage art; the entrance cascade is unchanged and never restarted (§4.2.7) |
+| **The Classic Continue chip's thumbnail** *(2026-11-01, D-03p)* | static: the saved position on its slab, no selection, no dots, no hint; it enters with its chip and has no motion of its own |
 | **Show-moves On ↔ Off** *(2026-09-28, D-04e — replaces "Show-moves toggling ON/OFF")* | fill and ring cross-fade over `ClayAnim.PRESS_IN_MS`; glyph cross-fades to its variant (slashed / plain) over the same; the on mark scales in with `overshootSpring()` and out without overshoot |
 | **Dock action Available ↔ Unavailable** *(D-04e)* | fill, shadow and glyph strength cross-fade over `ClayAnim.PRESS_IN_MS`; Available → Working is instant (it confirms the tap) |
 | **Undecided notice in and out** *(2026-10-21, D-04f)* | in: `clayEntrance(0)`, a fade and a rise of `entrance_slide_distance` over `ClayAnim.ENTRANCE_MS`; held for `GameAnim.HINT_NOTICE_DISPLAY_MS` or the accessibility timeout; out: a fade in place over `GameAnim.HINT_NOTICE_EXIT_MS` (§4.4.2) |
@@ -5193,6 +5637,8 @@ When it returns `false`:
 - *(2026-09-28, D-04e / D-03l.)* The dock's look cross-fades and the on mark's scale-in **do not
   run**: every control simply shows its new look. The stage art has no motion to gate; it appears
   with the hero, settled.
+  *(2026-11-01, D-03p.)* There is no stage art. The Classic thumbnail has no motion to gate either:
+  it appears with its chip, settled.
 - *(2026-10-21, D-04f.)* The Undecided notice appears settled and disappears in one frame. Its
   display time does **not** shrink, because it is reading time, functional like
   `STEP_ADVANCE_DELAY_MS`. Its announcement is not motion and is unaffected.
@@ -5202,6 +5648,9 @@ When it returns `false`:
   nothing glides. Wherever the stage can give the room, the tiles hold still with animations on or off,
   because the room comes out of the stage; in the shortfall case they move by the shortfall, with
   animations on or off.
+  *(2026-11-01, D-03p.)* The same, with the room coming out of the headroom above the hero row: in
+  the frame after the chip arrives the hero row and the ribbon are at their settled place, the room
+  is open, and the tiles are where they were.
 - `TutorialAnim.STEP_ADVANCE_DELAY_MS` still applies. It is a **functional** beat — the player must
   see their jump resolve before the board is replaced — not decoration, and collapsing it would
   make the tutorial swap boards under the player's finger.
@@ -5275,6 +5724,14 @@ chips, the timer.
 the stage itself announces nothing and takes no focus) and Show-moves' **on mark** and **slash**,
 which are drawn parts of one control whose state TalkBack reads from the switch role (D-04e). The
 hero art is gone from the decorative list with the art itself.
+*(2026-11-01, D-03p.)* The stage art leaves the decorative list with the stage; the headroom that
+replaces it is space and has no node. **The Continue thumbnail stays decorative** — no node of its
+own but a test tag, no description, no stop (§11.1, D-TBa item 9) — and what it shows is spoken
+another way: the Classic chip's clickable node carries a `stateDescription`, `board_a11y_pegs_left`
+for the saved position ("14 pegs left"), so the picture is never the only record of the player's
+progress (rules/compose.md, "never colour alone"). A state, not a label: the chip's name is still
+its title and supporting line, and no `contentDescription` is set inside the chip, where a merged
+one would be spoken instead of the title. The arrow fallback carries no state.
 
 **The unmerged tree is not the contract** *(ruled 2026-09-28, from the finding in
 `.planning/reports/phase-15/android-game-dev-s5-s8.md:213-220`; no code change follows from it)*.
@@ -5392,6 +5849,9 @@ Hint → Show-moves → Restart)**:
 seconds", and is never announced on its own (§4.3.2). A Continue chip arriving after first paint is not
 announced either and moves no stop a player is on; it joins the order in its place. Criterion 26b lists
 the stops, in order, with the string each speaks, for the device pass.
+*(2026-11-01 — D-03p.)* Home's order is unchanged by the headroom: title → gear → ribbon pills →
+Continue chips → mode tiles, with no stop in the headroom. The Classic chip is still one stop and now
+speaks a state with its name, "14 pegs left" (§4.2.7); 26b's Home line is unchanged.
 *(Recorded gap, 2026-10-21 — criterion 26b.)* **The two orders above list the board as a TalkBack
 stop, and the build has never met that.** On this branch the board carries no label, text, role or
 action (`BoardCanvas.kt:196-212`; `GameScreen.kt:193-207`, whose three custom keys are test-only;
@@ -5953,6 +6413,15 @@ board region, and is never wider than that region or `board_max_size`.
 the stage on QA's 6.7-inch window is 326.3, 230.3 and 134.3dp with no, one and both chips (the art
 capped at 320dp), and the tiles hold the same place in all three states.
 
+*(Amended 2026-11-01 — founder-feedback amendment, **D-03p**, §4.2.7.)* **Tall phone**: Home's slack
+is **headroom above the hero row** — 339.1, 243.1 and 147.1dp on QA's 6.7-inch window with no, one and
+both chips — holding nothing but the backdrop's sky and lights; title, ribbon, chips and tiles are
+one block beneath it, every gap between them a band gap, and the tiles hold the same place in all
+three states. **Narrow and short**: unchanged, with one band gap fewer in the column, so 360×640dp
+has 8dp more to spare than §4.2.4's figures and 15k holds with more margin. **Tablet / large** and
+**Dark theme**: unchanged; the Classic thumbnail's slab takes its dark token like every other clay
+surface.
+
 ---
 
 ## 13. Test impact (read this before writing code)
@@ -6059,6 +6528,28 @@ trusted: **15s, 15t, 15u** (Home's bounds across the chip emissions, at 1.0 and 
 case of **29**. **15v**, **18g**, **26b** and the device half of **29** are the qa-engineer's, on a device.
 The two §13 idioms still bind every new layout assertion: no `bottom ≤ contentBottom()` containment and
 no zero-inset window.
+
+**D-03p — what it breaks, what it retargets, what it owes** *(2026-11-01 founder-feedback amendment,
+§4.2.7; built on `feature/home-continue-live-boards`)*:
+
+| Test | Effect | Fix |
+|------|--------|-----|
+| `HomeStageTest` — 15p parts 1 and 2 (the ≥ 120dp art, the widest gap, the per-window blank bounds), 15r (semantics, traversal), "renders identically before and after the first progress emission" | The stage, its art and its two tags are gone; the headroom composes nothing | **Retarget, never delete or `@Ignore`:** the gap read becomes 15y part 3 — every distance between consecutive visible elements is the band gap, the stage art gone from the element list; the ≥ 120dp art assertion goes with its subject; the traversal case becomes 15ab part 3; the "identical before and after" case reads the hero row's and the ribbon's bounds across the progress emission (15y part 1). The class is renamed for the headroom. |
+| `HomeStagePositionTest` (15q) | The constant position is gone | **Retarget** to 15aa part 1: the thumbnail's board is the stored moves replayed from the stored initial board — a `HomeViewModel` test over a fake repository, watched failing against the start board first. |
+| `HomeLayoutTest.aWidePhoneKeepsTheFullBandSetWithTheStageArtPresent` (15l's third window) | `HOME_STAGE_ART_TEST_TAG` no longer exists | **Retarget:** keep the band-gap read, drop the art assertion, rename; 15l's third window is "full, by its band spacing". |
+| `HomeLayoutTest`'s 15k part 4 conditional (`if (scrollableOverflow() > 0.dp) … HOME_STAGE_ART_TEST_TAG … assertDoesNotExist()`) | No art to assert | **Retarget** to "when the column overflows, the hero row's top edge is at the column's top padding" — the headroom is 0 there. |
+| `HomeChipArrivalTest` (15s–15u): the hero row's "holds still" assertions, the stage's fall, the ribbon's rise, every `StageArtFade` case | The room comes out of the headroom; the hero row rides up with the ribbon; nothing fades | **Retarget** to 15z. The `StageArtFade` cases are **deleted with their subject**, as `HomeHeroArt`'s tests were under D-03l — recorded here so the deletion is a ruled one and not a quiet one. |
+| `BoardCanvasFirstFrameTest.theFirstFrameOfTheHomeStageDrawsItsPegsOnTheSlab` (15v part 4's JVM half) | No stage | **Retarget** to the Classic thumbnail: the first frame that draws its slab draws its pegs (15aa part 6). |
+| `BackdropPixelTests` cases that read `HOME_STAGE_ART_TEST_TAG` (BD-17 / BD-22's Home read, `docs/ux/candy-backdrop.md`) | No stage art | **Retarget** to the Classic thumbnail or a catalogue preview, as the backdrop spec's 2026-11-01 pointer rules; never delete. |
+| `HomeViewModelTest` / `HomeViewModelCloudTest` cases that expect `classicResumeBoard` to be the catalogue descriptor's `previewBoard` | The field carries the saved position | **Retarget** to 15aa part 1. |
+| `HomeScreenTest` and fixture states built with `classicResumeBoard = Boards.*Initial` | Still valid states — a save with no moves shows the start board | **Pass unedited.** A fixture may add a mid-game board for 15aa part 3. |
+| `HomeHeroRowTest` (15n, 15o) | The hero row is unchanged; nothing is composed above the title | **Pass unedited.** If 15n's "no node above the title" sees a node, the headroom was built as a child with semantics — fix the production code. |
+
+**Owed, new, from D-03p** — every one watched failing once on today's code before it is trusted:
+**15x**, **15y**, **15z**, **15aa** parts 1–4 and 6, and **15ab** parts 1–4, on the JVM; **15aa** part 5,
+**15ab** part 5 and 15v's re-read are the qa-engineer's, on a device; and the branch's **own 15e
+sitting** (§6.5, "Any later branch"). New test tag: `HOME_RESUME_THUMB_TEST_TAG` (`home_resume_thumb`)
+on the thumbnail's slab. The two §13 idioms still bind.
 
 **D-TB — what it retargets and what it owes** *(2026-10-23; built on `feature/talkback-board`)*:
 
@@ -6478,6 +6969,9 @@ prohibitions are unchanged and still bind; **15h is retired and 15k replaces it*
         column's total scrollable overflow is **≤ 120dp** — under one mode tile, one flick.
      4. Nothing is clipped, no band is dropped or collapsed, no readout is truncated, and the hero
         shows no decorative art.
+        *(2026-11-01 — D-03p.)* True of every window now, and §13's retarget of this half — "no
+        stage art on an overflowing column" — reads "the headroom is 0 on an overflowing column:
+        the hero row's top edge is at the column's top padding".
      5. **If the measured overflow exceeds 120dp, or anything in part 1 is not complete in the
         first viewport, that is a failure of this criterion and it comes back to the ux-designer
         with the measured numbers** — it is not closed by trimming a readout, a label or a target,
@@ -6492,6 +6986,9 @@ prohibitions are unchanged and still bind; **15h is retired and 15k replaces it*
      compact, `w360dp-h640dp` compact, `w412dp-h915dp` **full** with the hero's decorative art
      present and 15g's tall-phone behaviour intact. Nothing at or above 400dp of available width
      changes behaviour, and the font scale is still never read. (D-03k, D-03i, criteria 15g, 15i)
+     *(Pointer 2026-11-01 — D-03p.)* "With the hero's decorative art present", read since D-03l as
+     "with the stage art present", now reads "**full, by its band spacing**": the third window is
+     told from the compact set by `spacing_md` between its bands, and by nothing drawn.
 
 15m. **The last yield costs no readout.** On the narrow class each progress pill shows its label
      and its value **on one line with no decorative glyph**; all three values are present and
@@ -6519,6 +7016,9 @@ prohibitions are unchanged and still bind; **15h is retired and 15k replaces it*
 the slice that lands D-03l and retro-certify nothing. Criteria 11, 14, 15, 15a's chips half, 15d,
 15g, 15i, 15j, 15k, 15l and 15m stand unchanged; in 15l's third window, "with the hero's decorative
 art present" now reads **"with the stage art present"**.
+*(2026-11-01 — D-03p, §4.2.7.)* Of these five, **15n and 15o stand unchanged**; 15p's art half, 15q
+and 15r are **superseded** by 15x–15ab, as each one's pointer says. "The slice that lands D-03l" is
+read as that slice; D-03p's branch is judged by 15x–15ab.
 
 15n. **No logo.** Given Home on any window in any state, then no decorative art is composed above
      or beside the title, and `grep -rn 'HomeHeroArt' app/src/main` returns 0 hits. (D-03l)
@@ -6555,12 +7055,21 @@ art present" now reads **"with the stage art present"**.
      document's 72dp row floor, not the implementation, which built what §4.2.4 said. D-03m removes
      the floor. This applies to the slice that lands D-03m, and the device re-walk in the real faces
      owed under Q-013 is the reading that closes it.)*
+     *(Superseded 2026-11-01 — **D-03p**, §4.2.7; criterion **15y**.)* The stage is withdrawn, so
+     part 1's "≥ 120dp" art and part 3 have no subject, and parts 1 and 2 are replaced by a bound with
+     no art to carry it: on every window in every chip state, no distance between two consecutive
+     visible elements exceeds the **band gap**. The headroom above the first element and the footer
+     below the last are not gaps between elements (D-03m's reading, unchanged). The words above stay
+     as the record of the slices they certified.
 
 15q. **The stage shows a real game, and holds still.** A unit test replays a recorded move list
      from `Boards.english33Initial` — every move legal under the shipped rules engine — and arrives
      exactly at the stage art's peg set, which holds 12–16 pegs. The board state the stage draws has
      no selected peg, no legal targets and no hint, so nothing on it animates on any frame.
      (D-03l, D-03g, §10)
+     *(**RETIRED 2026-11-01 — D-03p**, §4.2.7. There is no stage. Its replay idea survives as 15aa
+     part 1: the Classic thumbnail's board is the stored moves replayed from the stored initial board.
+     Kept legible as the criterion the D-03l and D-03n slices were judged against.)*
 
 15r. **The stage is decoration.** The stage and its art are neither clickable nor focusable and
      announce nothing; Home's TalkBack traversal is unchanged — title → gear → ribbon pills →
@@ -6570,12 +7079,19 @@ art present" now reads **"with the stage art present"**.
      always said. A Continue chip's arrival is a different emission and, by D-03n, the one that is
      allowed to change the stage: the stage gives up the chips' room, and its art shrinks with it.
      Criteria 15s–15v check that emission.
+     *(**RETIRED 2026-11-01 — D-03p**, §4.2.7.)* There is no stage. Its traversal half — Home's
+     TalkBack order unchanged, nothing announced in the slack — is **15ab** part 3; its semantics
+     half has no subject, since the headroom has no node. Kept legible as the record.
 
 **Home when the Continue chips arrive (D-03n, §4.2.5) and the pill at a large font scale (D-03o,
 §4.2.6) — added 2026-10-21** — these apply to the branch that lands them, `bugfix/home-chip-arrival`,
 and retro-certify nothing. Every criterion above stands, with the dated pointers this revision adds
 to it: 15g's ruled reading of "unused space", 15k part 2's 2026-10-21 record, 15m's and 15r's
 pointers. *(Header corrected 2026-10-23 after the loop-3 check, F-26; it read "15r gains a pointer".)*
+*(2026-11-01 — D-03p, §4.2.7.)* 15s–15v are read with one substitution, stated under each: the room
+comes out of the **headroom above the hero row**, so the hero row rides up with the ribbon and there
+is no stage to fall and no art to fade. The tiles' and the footer's rules — the point of D-03n — are
+unchanged. Criterion **15z** restates them for the branch that lands D-03p; 15w is untouched.
 
 15s. **Nothing a player can tap moves when a chip arrives.** Given Home at default font scale, with
      NATIVE text metrics in the app theme and a 24dp status bar and a 48dp navigation bar supplied, on
@@ -6594,12 +7110,19 @@ pointers. *(Header corrected 2026-10-23 after the loop-3 check, F-26; it read "1
      Today's code fails it: the tiles move 22–24dp per chip. If on any of these six windows the stage
      cannot give the room at default font scale (R > ⅘ S₀), that comes back to the ux-designer with the
      numbers; it is not closed by letting the tiles move. (D-03n, D-03f, criteria 15g, 15k, 15p)
+     *(Pointer 2026-11-01 — D-03p; read as 15z.)* Part 1 reads "both mode tiles' bounds"; the
+     title's and the gear's bounds move with the ribbon's, up by exactly R. Part 3 reads "the
+     headroom's height is max(0, ⅘ S₀ − R), S₀ with four band gaps, and the hero row's and the
+     ribbon's top edges sit higher than their no-chip tops by exactly R". Parts 2 and 4 stand.
 
 15t. **Where the stage cannot give the room, the tiles move by the shortfall and no more.** Given the
      same emissions at font scale 2.0 on `w360dp-h640dp` and `w412dp-h915dp`, insets supplied, then
      between any two emissions the mode tiles sit exactly max(0, R − ⅘ S₀) (±0.5dp) below their no-chip
      position, never above it; the hero row does not move; nothing is clipped and no band is dropped;
      and where the column overflows, it scrolls (criteria 14, 15i). (D-03n)
+     *(Pointer 2026-11-01 — D-03p; read as 15z.)* "The hero row does not move" reads "the hero row
+     and the ribbon sit higher than their no-chip tops by exactly min(R, ⅘ S₀)"; the tiles' rule
+     stands.
 
 15u. **The room opens; nothing jumps.** With OS animations on and the test clock paused, **Home is
      composed and the clock advanced past its entrance cascade before the emission** — past the last
@@ -6613,6 +7136,10 @@ pointers. *(Header corrected 2026-10-23 after the loop-3 check, F-26; it read "1
      frame after the emission and is fully open after `ClayAnim.ENTRANCE_MS`. With animations off
      (`rememberAnimationsEnabled()` false), the frame after the emission is the settled layout.
      (D-03n, §10, criterion 25)
+     *(Pointer 2026-11-01 — D-03p; read as 15z part 5.)* "The hero row's and both mode tiles' bounds
+     equal their settled bounds" reads "both mode tiles' bounds equal their settled bounds, and the
+     hero row's top edge moves with the ribbon's, monotonically from its old position to its new one
+     and never past it". The rest stands.
 
 15v. **On the device, Home holds still and draws whole.** On `Pixel_9a_bench` at its native window and
      at 360×640dp (`wm size` / `wm density`) — **only after the branch's own 15e sitting, in the same
@@ -6654,6 +7181,10 @@ pointers. *(Header corrected 2026-10-23 after the loop-3 check, F-26; it read "1
         JVM. If QA records it on the device anyway, it is read by 15t's rule — the tiles move by exactly
         the shortfall, never more — and not by part 1.
      (D-03n parts 1, 3 and 4; §10; criteria 15f, 15t, 15u, 25)
+     *(Pointer 2026-11-01 — D-03p.)* Read with 15z: in parts 1 and 2 the hero row's edges move with
+     the ribbon's, by the chips' room and only upward, and the tiles' edges stay put; part 4's stage
+     half has no subject and its tile half stands; part 5's shortfall is 6.4dp, not 12.8dp (§4.2.7).
+     The recording is made once more on the branch that lands D-03p, after its own 15e sitting.
 
 15w. **No word breaks; one shape per ribbon.** Given Home on `w360dp-h640dp`, insets supplied, with
      NATIVE text metrics in the app theme (the real faces), at font scales 1.0, 1.3 and 2.0, with Stars
@@ -6671,6 +7202,106 @@ pointers. *(Header corrected 2026-10-23 after the loop-3 check, F-26; it read "1
      At 2.0 on `w412dp-h915dp`, every full pill's label and value lay out on one line each. On a device at
      360dp and font scale 2.0, in light and dark, "Stars", "Boards" and "Level" read whole. Today's code
      fails part 1 at 2.0. (D-03o, criteria 14, 15f, 15i, 15m)
+
+**Home: the stage withdrawn, and the Classic chip's saved position (D-03p, §4.2.7 — founder-feedback
+amendment, added 2026-11-01)** — these five apply to the branch that lands D-03p,
+`feature/home-continue-live-boards`, and retro-certify nothing. 15n, 15o, 15g, 15i, 15j, 15k, 15l,
+15m and 15w stand with the pointers above; 15p's art half, 15q and 15r are superseded as their
+pointers say; 15s–15v are read with their pointers and restated as 15z. Every JVM reading is taken
+with the device's system-bar insets supplied, on NATIVE metrics in the app theme, and asserts "a
+scroll does not move this node" rather than containment (§13's two idioms).
+
+15x. **No stage, and nothing in the headroom.** Given Home on any window in any chip state, then: no
+     node tagged `home_stage` or `home_stage_art` exists, and `grep -rn 'HomeStage\|HOME_STAGE\|home_stage_art'
+     app/src/main` returns 0 hits; nothing is composed above the title but the column's top padding
+     and the headroom — no node, no text, no drawn surface — so the title is still the first visible
+     element and the gear its row-mate (15n, 15o); `BoardCanvas` is composed on Home **at most once**,
+     as the Classic Continue chip's thumbnail, and only while a Classic save exists; and the busiest
+     Home still has exactly five clickable nodes (15j). (D-03p, criteria 15j, 15n, 15o)
+
+15y. **Where the slack goes.** Given Home at default font scale on each of 15p part 2's six windows,
+     in every chip state (none, Classic only, Challenge only, both), S₀ as §4.2.7 defines it with
+     **four** band gaps and R as §4.2.5 defines it, then:
+     1. the hero row's top edge sits at the column's top padding plus the headroom,
+        max(0, ⅘ S₀ − R) (±0.5dp) — and at the padding exactly wherever the column overflows;
+     2. the distance from the second mode tile's bottom edge to the bottom of the viewport equals
+        min(S₀ ⁄ 5, max(0, S₀ − R)) plus one band gap and the column's bottom padding (±0.5dp): D-03n's
+        footer on the larger S₀;
+     3. no vertical distance between two consecutive visible elements — the hero row, the ribbon,
+        each chip, each tile, read as D-03m defines a visible element — exceeds the band gap, 16dp in
+        the full set and 8dp in the compact set, by more than 0.5dp, in any chip state;
+     4. on `w412dp-h915dp` the first mode tile's top edge is at or below the midpoint in the no-chip
+        and the both-chips states (15g), and the footer is a fifth of S₀ in both (15g's ruled reading).
+     Today's code fails parts 1 and 3: the hero row sits at the padding and ≈230dp of stage lies
+     between it and the ribbon on the founder's one-chip window. (D-03p, D-03m, D-03n, criteria 15g,
+     15p)
+
+15z. **The room comes from the headroom.** Criteria 15s, 15t and 15u, on their own windows, emissions,
+     font scales and clocks, read with these substitutions, which replace every clause that pinned
+     the hero row or measured the stage:
+     1. in every emission both mode tiles' bounds equal their no-chip bounds (±0.5dp) wherever
+        R ≤ ⅘ S₀, and otherwise sit exactly R − ⅘ S₀ below them and never above (15s part 1, 15t);
+     2. the hero row's and the ribbon's top edges sit higher than their no-chip tops by exactly
+        min(R, ⅘ S₀) (±0.5dp), and the ribbon's top is one band gap below the hero row's bottom in
+        every emission;
+     3. the footer is 15s part 2's figure in every emission;
+     4. every chip present is complete inside the first viewport and the column's scrollable overflow
+        is what it is with no chip (15s part 4);
+     5. frame by frame on a paused test clock, with 15u's precondition (Home composed and the clock
+        advanced past the entrance cascade), when a chip arrives (no chip → Classic only) and when
+        chips leave (both → none): both tiles' bounds equal their settled bounds in every frame; the
+        hero row's and the ribbon's top edges move monotonically from their old positions to their new
+        ones, together, and never past them; no frame shows a chip's band gap without its chip; the
+        room starts opening in the frame after the emission and is fully open after
+        `ClayAnim.ENTRANCE_MS`; and with animations off the frame after the emission is the settled
+        layout.
+     On the device, 15v is re-read with the same substitutions (its pointer). Today's code fails
+     part 2: the hero row holds still and the stage shrinks. (D-03p, D-03n, criteria 15s, 15t, 15u,
+     15v)
+
+15aa. **The Classic Continue chip shows the saved position.**
+     1. A `HomeViewModel` test over a fake `ProgressRepository` and the real codec: given a stored
+        Classic snapshot of a catalogue board with *k* legal moves, the state's Classic board equals
+        the stored initial board with those *k* moves replayed (`SnapshotMapper.fromDto(…).currentBoard`),
+        has `initialPegs − k` pegs, and for every *k* ≥ 1 is **not** the catalogue's start board; with
+        *k* = 0 it equals the start board; and after a second snapshot of the same board with more
+        moves is stored, the state's board is the new position. Today's code fails it: the state
+        carries the descriptor's `previewBoard` for every *k*.
+     2. Given a snapshot that decodes and names a catalogue board but whose moves do not replay
+        (`fromDto` is `null`), the chip is present with `resume_classic_title` and
+        `resume_classic_supporting`, resumes into that board, and shows the play arrow and no
+        thumbnail; `observeResumeModes` and `clearSnapshot` see exactly the calls they see today.
+     3. A Compose test on `w360dp-h640dp` and `w412dp-h915dp`, at font scale 1.0 and 2.0: the node
+        tagged `home_resume_thumb` exists only with a Classic resume whose position rebuilt; its edge
+        is `home_resume_thumb_size` (56dp, ±0.5dp); its top and bottom edges are `spacing_sm` inside
+        the chip's; and **the Classic chip's height with the thumbnail equals its height with the
+        arrow** (±0.5dp), so no figure in 15k, 15s, 15y or 15z moves.
+     4. The Challenge chip is unchanged: no `home_resume_thumb` node inside it, the play arrow drawn,
+        its title and supporting line as they are.
+     5. On a device, in light and in dark: a Classic game left with 20 pegs shows a thumbnail whose
+        pegs and dimples are those of that position — not the start board — and the Classic catalogue's
+        card for the same board still shows the start position with its star pips (oracle 2, §4.2.1);
+        tapping the chip resumes at the position shown.
+     6. The first frame in which the thumbnail's slab is drawn draws its pegs (D-03n part 4's rule,
+        retargeted from the stage; `BoardCanvasFirstFrameTest`).
+     (D-03p, D-03n part 4, D-03g, CR-01, criteria 15k, 15s)
+
+15ab. **The thumbnail is decorative, and the chip speaks the count.**
+     1. The thumbnail's subtree carries no semantics but its test tag — no description, no action, no
+        role, no stop (§11.1, D-TBa item 9) — and **no node inside the Classic chip carries a
+        `contentDescription`**.
+     2. The Classic chip's merged node carries a `stateDescription` equal to `board_a11y_pegs_left`
+        for the position's peg count — "14 pegs left", "1 peg left" — while its text is still
+        `resume_classic_title` and `resume_classic_supporting`; with the arrow fallback it carries no
+        state. Today's code fails it: the chip carries no state.
+     3. Home's TalkBack traversal is unchanged — title → gear → the three pills → the Continue chips
+        present → the Classic tile → the Challenge tile — and nothing in the headroom is a stop
+        (15r's traversal half, retargeted; 26b's Home line).
+     4. The busiest Home has exactly five clickable nodes (15j).
+     5. On a device with TalkBack and its speech output displayed: swiping to the Classic chip yields
+        **one** stop that speaks its title, its supporting line and "N pegs left" — the order of name,
+        state and role being TalkBack's own — and double-tapping it resumes the game at that position.
+     (D-03p, §11, §11.1, criteria 15j, 15r, 26, 26a, 26b)
 
 **In-game controls (D-04) and the toolbar (D-05)**
 
@@ -7408,6 +8039,17 @@ the available height, capped. Either way 15n, 15o, 15g and 15k stand. **Blocks: 
 start-aligned beside the gear on one line, and the 24dp the retired row floor held goes back to the
 slack, three quarters of it to the stage, so the board is larger and the title sits 12dp nearer the
 top.)*
+*(Revised 2026-11-01 — **D-03p**, §4.2.7.)* Having seen option 1 built, the founder asked for the
+stage to go ("remove that"), which is **option 2**, and it is now the built default: the stage is
+deleted and the slack is headroom above the hero row, with D-03n's footer and room rules carried
+over. Two of option 2's words are read differently from how they were written here, because they
+predate D-03l: the title keeps its row with the gear (15o), rather than "only the gear" staying
+above the block; and "the title sits directly on the stats" is exact to within one band gap. The
+"top third of a tall phone empty" cost named above was written against the plain `HomeBlobs`
+background; above the backdrop's scene (`docs/ux/candy-backdrop.md`) it is sky, not blank, and the
+founder has chosen it with the alternative in front of them. Option 3 stays rejected. **No new
+founder question is owed on the placement; the report proposes one only if the producer wants the
+title's new height confirmed. Blocks: nothing.**
 
 ---
 
@@ -7539,6 +8181,16 @@ trace: like D-TB, both trace to the studio baseline and to Q-023.
 trace.
 *(Pointer 2026-11-01 — D-TBe.)* "D-TBe" joins the same series for the same reason. It changes no trace
 and no string.
+
+*(Added 2026-11-01 — D-03p, the second founder-feedback amendment.)* **NAV-01** and proposed **UX-02**
+gain §4.2.7 and criteria 15x–15ab: the stage is withdrawn, Home's slack is headroom above the hero
+row, and the Classic Continue chip shows the saved position. **PERS-03** gains 15aa and 15ab: the
+chip's thumbnail is the position the player resumes into, spoken as a state, with the chip's
+presence, copy and target — oracle 3 — unchanged. **PLAT-08 (C1)**'s budget loses one draw (the
+stage's) and gains a replay of at most 44 moves off the first frame; the branch sits its own 15e.
+**QUAL-03** retires two tokens and one scoped ratio and changes one token's value (§6.1, §6.4); it
+adds no token, no string (one existing plural is reused), no colour, no asset and no dependency. "D-03p"
+is the next letter in §3's Home series; it collides with nothing on `develop` at `15d02fe`.
 
 ---
 

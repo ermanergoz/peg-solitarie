@@ -292,7 +292,10 @@ dock already work.
 - **Not consumers.** None of these draws anything the palette changes, so none reads it:
   - **Home**, all of it. The stage art draws pegs and holes only (`HomeStagePositionTest`), the
     ribbon's star glyph is decorative and the pill speaks its value as text, and the Continue
-    chip's arrow is decorative;
+    chip's arrow is decorative; *(2026-11-01 — `docs/ux-spec.md` D-03p, §4.2.7: the stage is
+    withdrawn, and the Classic Continue chip's thumbnail now draws the **saved position** — still
+    pegs and holes only, through the same read-only `BoardCanvas`, so Home still reads no palette and
+    CV-AC06's "same pixels with the option on or off" holds; the Challenge chip keeps its arrow;)*
   - the catalogue's preview boards (`interactive = false`: pegs and holes only);
   - the dock, every dialog and banner, all text, and the backdrop.
 

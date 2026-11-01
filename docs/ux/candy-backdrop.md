@@ -1793,6 +1793,21 @@ near this change is `DockOnMarkAndSlashTest` (21e), on the dock's discs, which B
   the art) is untouched.
 - **No wings** (B-12a). 15n–15r stand as they are.
 - **The hero row** stays transparent, with no surface of its own, and sits in the calm band (B-20).
+
+*(Pointer 2026-11-01 — `docs/ux-spec.md` **D-03p**, §4.2.7, on `feature/home-continue-live-boards`.)*
+**The stage is withdrawn** on the founder's note: Home's slack is now headroom **above** the hero row,
+holding nothing, so the scene — sky, lights and waves — shows there, and title, ribbon, chips and
+tiles are one block beneath it. The bullets above are the record of what this spec built on; what
+follows from the withdrawal for this spec: (1) BD-17's and BD-22's **Home** reads of the stage art's
+interior (`HOME_STAGE_ART_TEST_TAG`, `BackdropPixelTests`) are **retargeted** to the Classic Continue
+chip's thumbnail — a 56dp `surfaceContainerHigh` slab holding the read-only board of the saved
+position, **with no gloss, rim, lip or glow of its own** (§3.5's rule that nothing glossy lies over a
+board), inside the chip's unchanged gold finish — or to a catalogue preview, whichever the
+tech-lead's brief names; never deleted. (2) `FinishRecipeTest`'s "never on the stage art" clause loses
+its subject and gains the thumbnail's slab in its place. (3) B-20's calm band is read against the
+hero row where it now sits, lower on a tall phone; the hero row itself is unchanged. (4) The
+thumbnail's slab is **not** a clay-family surface with a finish: it is a plain `surfaceContainerHigh`
+square, `shapes.extraSmall`, like the board slab's interior.
 - **`HomeBlobs`** is removed from Home's column and deleted (B-05a).
 
 ### 8.2 The gameplay strip and dock (the Q-902 split, D-04e, D-05d)
