@@ -1,9 +1,19 @@
 package com.app.pegsolitaire.ui.home
 
+import android.graphics.Bitmap
 import androidx.annotation.DimenRes
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsNodeInteraction
@@ -20,13 +30,17 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toRect
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.testing.applySystemBarInsets
 import com.app.pegsolitaire.testing.renderedWindow
+import com.app.pegsolitaire.ui.backdrop.BackdropMetrics
 import com.app.pegsolitaire.ui.home.fixture.BOARDS_PILL
 import com.app.pegsolitaire.ui.home.fixture.CONTINUE_LABEL
 import com.app.pegsolitaire.ui.home.fixture.DOUBLE_FONT_SCALE
@@ -54,7 +68,11 @@ import com.app.pegsolitaire.ui.home.fixture.renderedValues
 import com.app.pegsolitaire.ui.home.fixture.ribbonPillCount
 import com.app.pegsolitaire.ui.home.fixture.settingsLabel
 import com.app.pegsolitaire.ui.home.fixture.starsLabel
+import com.app.pegsolitaire.ui.theme.DarkColors
+import com.app.pegsolitaire.ui.theme.FinishedContainer
 import com.app.pegsolitaire.ui.theme.LightColors
+import com.app.pegsolitaire.ui.theme.finishGlow
+import com.app.pegsolitaire.ui.theme.glossFinish
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Rule
@@ -67,6 +85,7 @@ import org.robolectric.annotation.GraphicsMode
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.floor
+import kotlin.math.roundToInt
 
 /**
  * Home's **geometry**: the vertical slack (D-03i, §4.2.2, criteria 15g–15j) and the narrow window
@@ -82,7 +101,8 @@ import kotlin.math.floor
  * ## Measured on NATIVE graphics, in the app's own faces
  *
  * Every band here wraps and measures as the bundled Fredoka and Nunito make it on a device: the
- * class runs under NATIVE graphics and [renderHome] draws Home in the app's light theme.
+ * class runs under NATIVE graphics and [renderHome] draws Home in the app's own theme, light unless
+ * a test states dark.
  * Robolectric's default LEGACY mode fakes text metrics, and it over-wraps: on 15k's own window it
  * measured 44dp of overflow, with the Challenge tile cut by the fold, where NATIVE and the device
  * both measure **0** (the H-1 audit's F-1). A geometry claim read off fake metrics is MB-1's class
@@ -108,6 +128,12 @@ import kotlin.math.floor
 class HomeLayoutTest {
     @get:Rule
     val composeRule = createComposeRule()
+
+    /**
+     * The pill rects that frame 2 of criterion 15m's pixel read lays the finish over
+     * ([ReferenceFinishes]). Empty while frame 1 is taken, so frame 1 is Home alone.
+     */
+    private val referenceFinishes = mutableStateOf(emptyList<IntRect>())
 
     // ---- Home's vertical slack (D-03i, §4.2.2, criteria 15g-15j) -------------
 
@@ -403,12 +429,13 @@ class HomeLayoutTest {
      * the line nor the band's height (the H-1 audit's M3b, under which every Home suite stayed
      * green), and as `contentDescription = null` decoration it leaves no description and no text in
      * either semantics tree. What a glyph cannot avoid is being drawn, so the absence is read off
-     * the pixels ([assertEachPillPaintsOnlyItsSurfaceAndItsTexts]), on all three pills.
+     * the pixels ([assertEachPillPaintsOnlyItsSurfaceAndItsTexts]), on all three pills: here in
+     * light, and in dark in [theNarrowClassPillComposesNoGlyphInTheDarkThemeEither].
      */
     @Test
     @Config(qualifiers = SHORT_PHONE_QUALIFIER)
     fun theNarrowClassPillPutsItsLabelBesideItsValueAndComposesNoGlyph() {
-        composeRule.renderHome(state = bothResumesState())
+        renderHomeUnderItsReferenceFinishes(darkTheme = false)
 
         val label = unmergedBounds(boardsLabel)
         val value = unmergedBounds(boardsValue)
@@ -419,8 +446,23 @@ class HomeLayoutTest {
         // Label first, which is also the order the pill speaks them in.
         assertThat(label.right).isAtMost(value.left)
         assertThat(ribbonHeight()).isAtMost(COMPACT_RIBBON_MAX_HEIGHT_DP.dp)
-        // No glyph: inside its padding, each pill paints its surface and its two texts, nothing else.
-        assertEachPillPaintsOnlyItsSurfaceAndItsTexts()
+        // No glyph: inside its padding, each pill paints its finished surface and its two texts,
+        // nothing else.
+        assertEachPillPaintsOnlyItsSurfaceAndItsTexts(darkTheme = false)
+    }
+
+    /**
+     * Criterion 15m's pixel half in the dark theme (B-19a, property 1). B-19's gloss differs by
+     * theme, 6% white in dark against 70% in light, and the M3b glyph is lighter than the dark
+     * fill: the case a loose tolerance would miss (B-19a's red 3). The one-line shape and the band's
+     * height do not depend on the theme, so they are read in light only.
+     */
+    @Test
+    @Config(qualifiers = SHORT_PHONE_QUALIFIER)
+    fun theNarrowClassPillComposesNoGlyphInTheDarkThemeEither() {
+        renderHomeUnderItsReferenceFinishes(darkTheme = true)
+
+        assertEachPillPaintsOnlyItsSurfaceAndItsTexts(darkTheme = true)
     }
 
     /**
@@ -617,19 +659,51 @@ class HomeLayoutTest {
     }
 
     /**
-     * Criterion 15m's "no decorative glyph", read where a glyph cannot hide: in what the pill paints.
+     * Home's busiest state on the current window, in [darkTheme], with frame 2's reference finishes
+     * composed over it ([ReferenceFinishes]): none until [assertEachPillPaintsOnlyItsSurfaceAndItsTexts]
+     * asks for them, so until then the screen is exactly what [renderHome] draws.
+     */
+    private fun renderHomeUnderItsReferenceFinishes(darkTheme: Boolean) {
+        composeRule.renderHome(
+            state = bothResumesState(),
+            darkTheme = darkTheme,
+            overlay = { ReferenceFinishes(referenceFinishes.value) },
+        )
+    }
+
+    /**
+     * Criterion 15m's "no decorative glyph", read where a glyph cannot hide: in what the pill paints
+     * (B-19a; the tech-lead's 15m oracle, O1).
      *
      * Each pill is read inside its own padding (`spacing_sm`, the box its content is laid out in),
      * skipping its label's and its value's own bounds, each widened by [TEXT_INK_MARGIN_DP] for the
-     * text's anti-aliased edge. Every pixel left must be the pill's `surfaceContainerHigh` in the
-     * light scheme the fixture draws in; any other is something else the pill paints. Read from the
-     * flat render ([renderedWindow]), where a fill is exact and no elevation shadow reaches into a
-     * pill. The texts are found by their text semantics alone, so a glyph that did carry a node
-     * would still be read.
+     * text's anti-aliased edge. The texts are found by their text semantics alone, so a glyph that
+     * did carry a node would still be read.
+     *
+     * Every pixel read must be **the pill's finished surface at that pixel**, in the theme Home is
+     * drawn in ([darkTheme]): its `surfaceContainerHigh` fill with B-19's gloss over it, and the rim
+     * and lip wherever the read meets them (at an 8dp inset it meets neither). That surface is drawn,
+     * not modelled. Frame 1 is Home. Frame 2 is the same composition with [ReferenceFinishes] laid
+     * over each pill on that pill's own pixels: the pill's finish modifiers and nothing inside them.
+     * Same modifiers, same size, same pixels, so Skia's ordered dither and the edge anti-aliasing
+     * fall in the same phase in both frames, and a read pixel is a stray when frame 1 differs from
+     * frame 2 by more than [PAINT_TOLERANCE]. Both frames are the flat render ([renderedWindow]), where
+     * no elevation shadow reaches into a pill. No golden is stored (D4).
+     *
+     * The guards, in this order, each with its own message:
+     * - **G1** the ribbon has [RIBBON_PILLS] pills, and every edge of each lies on a whole pixel, so a
+     *   reference can sit on the same pixels. A fractional edge fails; it is never rounded silently.
+     * - **G2** in frame 2 each reference is placed once, on its pill's rect exactly.
+     * - **G3** frame 2 shows the finish alone: across each pill's whole padded box, texts included,
+     *   every row is flat within [PAINT_TOLERANCE], as a flat fill under a vertical gradient is. A
+     *   frame 2 that did not draw, still shows the texts, or carries a glyph of its own breaks a row;
+     *   without this guard such a frame 2 would equal frame 1, and every glyph would pass.
+     * - **G4** below the gloss band ([BackdropMetrics.FINISH_GLOSS_FADE] of the pill's height) frame 2
+     *   is the theme's `surfaceContainerHigh`, so there the read still checks against the token.
+     * - **G5** the comparison. The strays of all three pills are collected before anything is
+     *   asserted, so a red names every pill it reaches.
      */
-    private fun assertEachPillPaintsOnlyItsSurfaceAndItsTexts() {
-        val window = composeRule.renderedWindow()
-        val surface = LightColors.surfaceContainerHigh.toArgb()
+    private fun assertEachPillPaintsOnlyItsSurfaceAndItsTexts(darkTheme: Boolean) {
         val padding = with(composeRule.density) { dimen(R.dimen.spacing_sm).toPx() }
         val inkMargin = with(composeRule.density) { TEXT_INK_MARGIN_DP.dp.toPx() }
         val pills =
@@ -637,24 +711,131 @@ class HomeLayoutTest {
                 .onNode(hasTestTag(HOME_PROGRESS_RIBBON_TEST_TAG), useUnmergedTree = true)
                 .fetchSemanticsNode()
                 .children
-        assertThat(pills).hasSize(RIBBON_PILLS)
+        assertWithMessage("G1: the ribbon's pills").that(pills).hasSize(RIBBON_PILLS)
+        val reads =
+            pills.mapIndexed { index, pill ->
+                val texts = pill.textsWithin().map { it.boundsInRoot.inflate(inkMargin) }
+                val box = pill.boundsInRoot.deflate(padding)
+                PillRead(
+                    rect = pill.boundsInRoot.onWholePixels("pill $index"),
+                    box = box,
+                    read = box.wholePixels().filter { pixel -> texts.none { it.contains(pixel.centre()) } },
+                ).also { assertWithMessage("pill $index: pixels read outside its texts").that(it.read).isNotEmpty() }
+            }
+        val home = composeRule.renderedWindow()
 
-        pills.forEachIndexed { index, pill ->
-            val texts = pill.textsWithin().map { it.boundsInRoot.inflate(inkMargin) }
-            val read =
-                pill.boundsInRoot
-                    .deflate(padding)
-                    .wholePixels()
-                    .filter { pixel -> texts.none { it.contains(pixel.centre()) } }
-            val strays = read.filterNot { isPaintedIn(window.getPixel(it.x, it.y), surface) }
-
-            assertWithMessage("pill $index: pixels read outside its texts").that(read).isNotEmpty()
-            assertWithMessage(
-                "pill $index paints ${strays.size} px besides its surface and its texts, ${spanOf(strays)}",
-            ).that(strays.size)
-                .isEqualTo(0)
+        referenceFinishes.value = reads.map { it.rect }
+        composeRule.waitForIdle()
+        reads.forEachIndexed { index, pill -> assertTheReferenceLiesOn(index, pill.rect) }
+        val finish = composeRule.renderedWindow()
+        reads.forEachIndexed { index, pill ->
+            assertTheReferenceIsFlatAlongEveryRow(index, pill, finish)
+            assertTheReferenceIsTheTokenBelowTheGloss(index, pill, finish, darkTheme)
         }
+
+        val strays =
+            reads.map { pill ->
+                pill.read.filterNot { isPaintedIn(home.getPixel(it.x, it.y), finish.getPixel(it.x, it.y)) }
+            }
+        assertWithMessage(
+            "G5: pixels each pill paints besides its finished surface and its texts: " +
+                strays.withIndex().joinToString("; ") { (index, pixels) ->
+                    "pill $index ${pixels.size} px, ${spanOf(pixels)}${rowsBelowTheTop(pixels, reads[index].rect)}"
+                },
+        ).that(strays.withIndex().associate { (index, pixels) -> index to pixels.size })
+            .isEqualTo((0 until RIBBON_PILLS).associateWith { 0 })
     }
+
+    /** G2: frame 2 composes reference [index] once, and on exactly [pill]'s pixels. */
+    private fun assertTheReferenceLiesOn(
+        index: Int,
+        pill: IntRect,
+    ) {
+        val placed =
+            composeRule
+                .onAllNodes(hasTestTag(REFERENCE_FINISH_TAG_PREFIX + index), useUnmergedTree = true)
+                .fetchSemanticsNodes()
+        assertWithMessage("G2: frame 2 composes reference $index once").that(placed).hasSize(1)
+        assertWithMessage("G2: reference $index lies on pill $index's pixels (px)")
+            .that(placed.single().boundsInRoot)
+            .isEqualTo(pill.toRect())
+    }
+
+    /**
+     * G3: in frame 2, every row of [pill]'s padded box, texts included, is flat within
+     * [PAINT_TOLERANCE] in every channel: the finish alone, with nothing of the pill showing through.
+     */
+    private fun assertTheReferenceIsFlatAlongEveryRow(
+        index: Int,
+        pill: PillRead,
+        finish: Bitmap,
+    ) {
+        val spreads =
+            pill.box.wholePixels().groupBy { it.y }.mapValues { (_, row) ->
+                COLOUR_CHANNEL_SHIFTS.maxOf { shift ->
+                    row.maxOf { finish.channel(it, shift) } - row.minOf { finish.channel(it, shift) }
+                }
+            }
+        val widest = spreads.entries.maxBy { it.value }
+        assertWithMessage(
+            "G3: frame 2 must show pill $index's finish alone, flat along every row, but row y ${widest.key} " +
+                "(px) spreads ${widest.value} levels in one channel: frame 2 still shows its texts, or its " +
+                "reference was not drawn or carries a glyph",
+        ).that(widest.value)
+            .isAtMost(PAINT_TOLERANCE)
+    }
+
+    /**
+     * G4: below the gloss band, frame 2 paints [pill]'s padded box in the theme's own
+     * `surfaceContainerHigh`: the token the flat-fill read was anchored to, kept where the gloss is gone.
+     */
+    private fun assertTheReferenceIsTheTokenBelowTheGloss(
+        index: Int,
+        pill: PillRead,
+        finish: Bitmap,
+        darkTheme: Boolean,
+    ) {
+        val token = (if (darkTheme) DarkColors else LightColors).surfaceContainerHigh.toArgb()
+        val glossEnd = pill.rect.top + BackdropMetrics.FINISH_GLOSS_FADE * pill.rect.height
+        val belowTheGloss = pill.box.wholePixels().filter { it.centre().y >= glossEnd }
+        val off = belowTheGloss.filterNot { isPaintedIn(finish.getPixel(it.x, it.y), token) }
+
+        assertWithMessage("G4: pill $index: rows read below its gloss band").that(belowTheGloss).isNotEmpty()
+        assertWithMessage(
+            "G4: below its gloss band frame 2 must paint pill $index in the theme's surfaceContainerHigh, " +
+                "but ${off.size} px differ, ${spanOf(off)}",
+        ).that(off.size)
+            .isEqualTo(0)
+    }
+
+    /**
+     * This rect as whole pixels, which G1 requires: within [WHOLE_PIXEL_SLACK] of a whole pixel at
+     * every edge, so a reference sized and placed in px covers exactly the same pixels.
+     */
+    private fun Rect.onWholePixels(what: String): IntRect {
+        assertWithMessage(
+            "G1: every edge of $what lies on a whole pixel, so its reference can sit on the same pixels: $this",
+        ).that(listOf(left, top, right, bottom).all { abs(it - it.roundToInt()) <= WHOLE_PIXEL_SLACK })
+            .isTrue()
+        return IntRect(left.roundToInt(), top.roundToInt(), right.roundToInt(), bottom.roundToInt())
+    }
+
+    /** Where strays lie against their pill's top, for G5's message: ", rows 8..16 below its top". */
+    private fun rowsBelowTheTop(
+        pixels: List<IntOffset>,
+        pill: IntRect,
+    ): String =
+        if (pixels.isEmpty()) {
+            ""
+        } else {
+            ", rows ${pixels.minOf { it.y } - pill.top}..${pixels.maxOf { it.y } - pill.top} below its top"
+        }
+
+    /** One channel of [pixel] in this frame, picked by its bit shift ([COLOUR_CHANNEL_SHIFTS]). */
+    private fun Bitmap.channel(
+        pixel: IntOffset,
+        shift: Int,
+    ): Int = getPixel(pixel.x, pixel.y) shr shift and CHANNEL_MASK
 
     /** Every descendant carrying text: the pill's label and its value. */
     private fun SemanticsNode.textsWithin(): List<SemanticsNode> =
@@ -679,7 +860,7 @@ class HomeLayoutTest {
                 "y ${pixels.minOf { it.y }}..${pixels.maxOf { it.y }} (px)"
         }
 
-    /** Whether [pixel] is [colour] to within [PAINT_TOLERANCE] a channel: a flat fill renders exact. */
+    /** Whether [pixel] is [colour] to within [PAINT_TOLERANCE] in each of its red, green and blue channels. */
     private fun isPaintedIn(
         pixel: Int,
         colour: Int,
@@ -818,8 +999,65 @@ private const val HALF_PIXEL = 0.5f
 private val COLOUR_CHANNEL_SHIFTS = listOf(0, 8, 16)
 private const val CHANNEL_MASK = 0xFF
 
-/** One level a channel: a flat fill renders exact in the software path. */
+/**
+ * One level a channel: the reference is the pill's own finish drawn by the same modifiers on the
+ * same pixels, dither phase included, so it renders exact; the level is the dither's, and every
+ * glyph red fails with it.
+ */
 private const val PAINT_TOLERANCE = 1
+
+/**
+ * How far a pill's edge may lie from a whole pixel, in px, for its reference to sit on the same
+ * pixels (G1): float noise, never a fraction a layout could produce.
+ */
+private const val WHOLE_PIXEL_SLACK = 0.01f
+
+/** The test tag of reference finish *i*, over pill *i* ([ReferenceFinishes]). */
+private const val REFERENCE_FINISH_TAG_PREFIX = "home_layout_test_reference_finish_"
+
+/**
+ * One pill as criterion 15m's pixel read sees it: its [rect] on whole pixels (G1), the [box] inside
+ * its `spacing_sm` padding, and [read], the pixels of that box outside its texts.
+ */
+private data class PillRead(
+    val rect: IntRect,
+    val box: Rect,
+    val read: List<IntOffset>,
+)
+
+/**
+ * Frame 2 of criterion 15m's pixel read (B-19a; the tech-lead's 15m oracle, O1): over each of
+ * [references], the ribbon pill's own finish, drawn by the production modifiers in `StatPill`'s order
+ * and with its arguments, on exactly that rect's pixels, and nothing inside: no content, no text,
+ * no glyph. Empty, it emits nothing.
+ *
+ * It is composed inside the theme `renderHome` provides, so it reads the same finish colours,
+ * shapes, scheme and density as the pills. Its recipe is [FinishedContainer.RibbonPill]'s, so a
+ * recipe change reaches the reference by itself. A change to the pill's fill token or to its
+ * modifier chain does not, and fails the read, which is what criterion 15m is there to catch.
+ *
+ * Placed by `offset` and sized by a `layout` that measures with fixed constraints, both in px, so
+ * no px-to-dp round trip can move an edge (G2 checks both).
+ */
+@Composable
+private fun ReferenceFinishes(references: List<IntRect>) {
+    val glow = dimensionResource(R.dimen.elevation_card)
+    val shape = MaterialTheme.shapes.medium
+    val fill = MaterialTheme.colorScheme.surfaceContainerHigh
+    references.forEachIndexed { index, rect ->
+        Box(
+            modifier =
+                Modifier
+                    .offset { rect.topLeft }
+                    .layout { measurable, _ ->
+                        val placeable = measurable.measure(Constraints.fixed(rect.width, rect.height))
+                        layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+                    }.finishGlow(glow, shape)
+                    .glossFinish(FinishedContainer.RibbonPill, shape, fill = fill)
+                    .testTag(REFERENCE_FINISH_TAG_PREFIX + index),
+        )
+    }
+}
 
 /** Two halves of a screen — the midpoint criterion 15g is asserted against. */
 private const val HALVES = 2f
