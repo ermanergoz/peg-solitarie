@@ -5,6 +5,7 @@ import androidx.compose.ui.platform.ViewRootForTest
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -49,22 +50,70 @@ import androidx.core.view.WindowInsetsCompat
  * screen needed it, rather than copied — two copies of an inset harness are two places for the
  * dispatched type or the listener target to drift.
  *
- * @param top the status-bar inset to report.
- * @param bottom the navigation-bar inset to report.
+ * ## Visible and stable, separately (D-05g; tech design §3.8 (g))
+ *
+ * A bar has two insets: the **stable** one, the height it occupies when shown whether or not it is
+ * shown now (`getInsetsIgnoringVisibility`, Compose's `*IgnoringVisibility`), and the **visible**
+ * one the platform reports for it this instant (`getInsets`), zero while it is hidden. Gameplay and
+ * Results hide both bars, and every screen pads off the stable insets so that nothing moves when a bar
+ * comes or goes (`docs/ux-spec.md` §6.2 "Immersive play"). So [top] and [bottom] are the stable
+ * values, always dispatched; [visible] sets each bar type's visibility; [reportedTop] and
+ * [reportedBottom] are the visible values, which follow [top] and [bottom] while the bars are visible
+ * and are zero while they are hidden, as a device reports them, unless a caller states otherwise.
+ * Every call that names only [top] and [bottom] dispatches what it always did, now with the same
+ * stable values beside it. Criterion 30d's three states are `visible = true`; `visible = false`
+ * with the reported values left at the stable ones; and `visible = false`.
+ *
+ * @param top the status bar's stable inset.
+ * @param bottom the navigation bar's stable inset.
+ * @param visible whether both bars are shown.
+ * @param reportedTop the status bar's visible inset: [top] while shown, zero while hidden, by default.
+ * @param reportedBottom the navigation bar's visible inset: [bottom] while shown, zero while hidden, by
+ *   default.
+ * @param cutout the display cutout, on whichever sides it lies.
  */
 fun ComposeContentTestRule.applySystemBarInsets(
     top: Dp,
     bottom: Dp,
+    visible: Boolean = true,
+    reportedTop: Dp = if (visible) top else 0.dp,
+    reportedBottom: Dp = if (visible) bottom else 0.dp,
+    cutout: DisplayCutoutInsets = DisplayCutoutInsets.NONE,
 ) {
+    val statusBars = WindowInsetsCompat.Type.statusBars()
+    val navigationBars = WindowInsetsCompat.Type.navigationBars()
     val insets =
         WindowInsetsCompat
             .Builder()
-            .setInsets(WindowInsetsCompat.Type.statusBars(), Insets.of(0, insetPx(top), 0, 0))
-            .setInsets(WindowInsetsCompat.Type.navigationBars(), Insets.of(0, 0, 0, insetPx(bottom)))
-            .setVisible(WindowInsetsCompat.Type.systemBars(), true)
-            .build()
+            .setInsets(statusBars, Insets.of(0, insetPx(reportedTop), 0, 0))
+            .setInsets(navigationBars, Insets.of(0, 0, 0, insetPx(reportedBottom)))
+            .setInsetsIgnoringVisibility(statusBars, Insets.of(0, insetPx(top), 0, 0))
+            .setInsetsIgnoringVisibility(navigationBars, Insets.of(0, 0, 0, insetPx(bottom)))
+            .setVisible(WindowInsetsCompat.Type.systemBars(), visible)
+            .setInsets(
+                WindowInsetsCompat.Type.displayCutout(),
+                Insets.of(
+                    insetPx(cutout.left),
+                    insetPx(cutout.top),
+                    insetPx(cutout.right),
+                    insetPx(cutout.bottom),
+                ),
+            ).build()
     ViewCompat.dispatchApplyWindowInsets(composeHost(), insets)
     waitForIdle()
+}
+
+/** A display cutout's insets, side by side, for [applySystemBarInsets]. */
+data class DisplayCutoutInsets(
+    val left: Dp = 0.dp,
+    val top: Dp = 0.dp,
+    val right: Dp = 0.dp,
+    val bottom: Dp = 0.dp,
+) {
+    companion object {
+        /** No cutout: what every caller that names none gets. */
+        val NONE = DisplayCutoutInsets()
+    }
 }
 
 /**

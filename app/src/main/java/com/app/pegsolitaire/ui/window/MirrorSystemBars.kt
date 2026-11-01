@@ -24,8 +24,8 @@ import androidx.compose.ui.window.DialogWindowProvider
 internal fun MirrorSystemBars() {
     val dialogWindow = (LocalView.current.parent as? DialogWindowProvider)?.window
     val state = LocalSystemBarsState.current.value
-    val systemBars = LocalSystemBars.current
+    val seam = LocalSystemBars.current
     SideEffect {
-        if (dialogWindow != null) systemBars.apply(dialogWindow, state)
+        if (dialogWindow != null) seam.apply(dialogWindow, state)
     }
 }

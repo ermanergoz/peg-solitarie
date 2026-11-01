@@ -54,13 +54,13 @@ internal fun NavSystemBars(
     val entry by remember(navController) { navController.currentBackStackEntryFlow }
         .collectAsState(initial = navController.currentBackStackEntry)
     val state = entry?.destination.systemBarsState()
-    val systemBars = LocalSystemBars.current
+    val seam = LocalSystemBars.current
     SideEffect {
         barsState.value = state
-        if (hostWindow != null) systemBars.apply(hostWindow, state)
+        if (hostWindow != null) seam.apply(hostWindow, state)
     }
-    LifecycleResumeEffect(state, hostWindow, systemBars) {
-        if (hostWindow != null) systemBars.apply(hostWindow, state)
+    LifecycleResumeEffect(state, hostWindow, seam) {
+        if (hostWindow != null) seam.apply(hostWindow, state)
         // Nothing to undo on a pause: the bars stay as asked until the next request.
         onPauseOrDispose {}
     }

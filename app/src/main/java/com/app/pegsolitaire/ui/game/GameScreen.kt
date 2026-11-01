@@ -5,6 +5,7 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -63,6 +64,7 @@ import com.app.pegsolitaire.ui.theme.ctaGradientBrush
 import com.app.pegsolitaire.ui.theme.finishGlow
 import com.app.pegsolitaire.ui.theme.glossFinish
 import com.app.pegsolitaire.ui.window.MirrorSystemBars
+import com.app.pegsolitaire.ui.window.stableSystem
 
 /** Test tag of the board-state node carrying the [PegCountKey]/[GameStatusKey]/[LegalTargetCountKey] semantics. */
 const val GAME_STATE_TEST_TAG = "game_state"
@@ -105,7 +107,9 @@ private var SemanticsPropertyReceiver.boardMarkPaletteValue by BoardMarkPaletteK
  * **Each system bar is applied exactly once** (D-05d, ux-spec §4.3.1, criterion 18b): by the
  * `Scaffold`'s content padding, which this column applies. Neither the strip nor the dock applies
  * an inset of its own — both used to, which hung an empty status-bar-tall band above the strip and
- * took 72dp from the board on a 360x640dp phone.
+ * took 72dp from the board on a 360x640dp phone. That padding is the bars' **stable** insets and the
+ * cutout (`WindowInsets.stableSystem`, D-05g): both bars are hidden on this screen, and the strip and
+ * the dock stay exactly where 18b puts them while the bands above and below hold the backdrop.
  *
  * Nothing the player can *use* was removed: all five controls, the context-aware title, the
  * timer label and every handler signature this composable takes are the ones it had. Reaching a
@@ -226,6 +230,7 @@ fun GameScreen(
             containerColor = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.onBackground,
             snackbarHost = { ClaySnackbarHost(snackbarHostState) },
+            contentWindowInsets = WindowInsets.stableSystem,
         ) { contentPadding ->
             Column(
                 modifier =
