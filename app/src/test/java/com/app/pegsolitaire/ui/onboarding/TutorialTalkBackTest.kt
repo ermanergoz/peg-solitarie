@@ -59,7 +59,7 @@ class TutorialTalkBackTest {
         // Loop 3: the channel speaks once armed (defect ruling §1, mechanism 5).
         composeRule.mainClock.advanceTimeBy(ANNOUNCEMENT_ARM_GAP_MS + FRAME_MS)
 
-        assertChannel("Step 1 of 3. Tap a peg, then tap the empty hole two cells away.")
+        assertChannel("Tap a peg, then tap the empty hole two cells away.")
         assertThat(boardStop().fetchSemanticsNode().config[SemanticsProperties.Focused]).isFalse()
     }
 
@@ -372,7 +372,12 @@ class TutorialTalkBackTest {
 
         /** Past the step line's one-second hold, so the channel is empty before the selection. */
         const val PAST_THE_HOLD_MS = 1_200L
-        const val STEP_ONE_LINE = "Step 1 of 3. Tap a peg, then tap the empty hole two cells away."
+
+        /**
+         * The first step's caption alone (brief A2.4; the device-2 ruling §3): the pips' own first
+         * focus already says "Step 1 of 3", so the opening line does not say it again.
+         */
+        const val STEP_ONE_LINE = "Tap a peg, then tap the empty hole two cells away."
         const val STEP_TWO_LINE = "Step 2 of 3. Jumps work up, down, left and right — never diagonally."
         const val NO_PEG_LINE = "No peg here."
         const val T2_COACH_LINE = "Hint: row 1, column 2, jump down to row 3, column 2."

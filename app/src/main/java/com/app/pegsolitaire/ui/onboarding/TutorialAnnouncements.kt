@@ -62,9 +62,11 @@ private fun CoachAnnouncements(
 }
 
 /**
- * A step's line, "Step 2 of 3. …", when the tutorial opens and whenever a step's board is installed.
- * Focus moves to the new board stop only for a step that replaced the one the player was on: the
- * value this composition first sees moves nothing (D-TBa item 6).
+ * A step's line, "Step 2 of 3. …", whenever a step's board replaces the one the player was on, and
+ * the step's caption alone when the tutorial opens: the pips' own first focus already says
+ * "Step 1 of 3" (brief A2.4; the talkback-board device-2 ruling §3). Focus moves to the new board
+ * stop only for a step that replaced the one the player was on: the value this composition first
+ * sees moves nothing (D-TBa item 6).
  */
 @Composable
 private fun StepAnnouncements(
@@ -74,6 +76,7 @@ private fun StepAnnouncements(
     touchExploration: Boolean,
 ) {
     val format = rememberBoardSpeechFormat()
+    val caption = stringResource(state.captionRes)
     val focusManager = LocalFocusManager.current
     val window = LocalWindowInfo.current
     val seen = remember { SeenStep() }
@@ -81,8 +84,12 @@ private fun StepAnnouncements(
         val replacedAStep = seen.index != null
         seen.index = state.stepIndex
         if (state.completed) return@LaunchedEffect
+        if (!replacedAStep) {
+            announcer.announce(caption)
+            return@LaunchedEffect
+        }
         announcer.announce(format.stepLine(state.stepNumber, TutorialUiState.STEP_COUNT, state.captionRes))
-        if (replacedAStep && touchExploration) focusManager.moveInputFocusTo(boardStopFocus, window)
+        if (touchExploration) focusManager.moveInputFocusTo(boardStopFocus, window)
     }
 }
 
