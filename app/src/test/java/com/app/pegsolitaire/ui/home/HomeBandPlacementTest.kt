@@ -94,6 +94,34 @@ class HomeBandPlacementTest {
         )
     }
 
+    // ---- §4.2.7's eight-window table: one rule on every 15ac window ------------------
+
+    /**
+     * §4.2.7's table "The bound on all eight 15ac windows", at ten px per dp and with no chip: on every
+     * row the headroom is H₀ = min(⅘ S₀, C), the footer S₀ − H₀ and at most a third of S₀ (15ac part 1),
+     * and the first tile's top sits where the formula puts it in the window's frame. The bound bites on
+     * five rows, three of them three-button, and not on the other three; the one function decides all
+     * eight. Every expected figure is derived from the formula, the tile tops included, rather than
+     * copied from the printed table. `w412dp-h780dp` is computed with the full set's content, as the
+     * table projects it; on a device that window takes the compact set (708dp usable), which
+     * `HomeHeadroomTest` reads measured.
+     */
+    @Test
+    fun onEveryRowOfTheEightWindowTableTheNoChipHeadroomIsTheSmallerOfFourFifthsOfTheSlackAndC() {
+        EIGHT_WINDOW_TABLE.forEach { row ->
+            assertPlacement(
+                row.window,
+                rooms = emptyList(),
+                headroomDp = row.headroomDp,
+                footerDp = row.footerDp,
+                firstTileTopDp = row.tileTopDp,
+            )
+            assertWithMessage("${row.window.name}: three footers against S₀, in px")
+                .that(placementOn(row.window, rooms = emptyList()).footer * THIRDS)
+                .isAtMost(row.window.inner - row.window.fixedBands)
+        }
+    }
+
     // ---- The chips' room past the headroom, and past the slack ----------------------
 
     /**
@@ -168,6 +196,14 @@ class HomeBandPlacementTest {
             .isEqualTo(px(firstTileTopDp))
         assertWithMessage("$chips: the column's height, in px").that(placement.height).isEqualTo(window.inner)
     }
+
+    /** One row of the eight-window table: its window, and the formula's no-chip figures in dp. */
+    private data class TableRow(
+        val window: Window,
+        val headroomDp: Float,
+        val footerDp: Float,
+        val tileTopDp: Float,
+    )
 
     private fun placementOn(
         window: Window,
@@ -271,5 +307,40 @@ class HomeBandPlacementTest {
         /** The design baseline, 360×640dp with a 24dp status bar and a 48dp three-button bar. */
         val BASELINE_NARROW =
             QA_NARROW.copy(name = "the 360x640dp design baseline", statusInset = 240, navigationInset = 480)
+
+        /** 15g's bound on the footer: a third of S₀. */
+        const val THIRDS = 3
+
+        /** A 412dp-wide window of the full band set, 24dp status bar and 48dp three-button bar. */
+        private fun full(
+            name: String,
+            height: Int,
+        ): Window = PIXEL_9.copy(name = name, height = height, statusInset = 240, navigationInset = 480)
+
+        /** A 360dp-wide window of the compact band set, 24dp status bar and 48dp three-button bar. */
+        private fun compact(
+            name: String,
+            height: Int,
+        ): Window = BASELINE_NARROW.copy(name = name, height = height)
+
+        /** The 6.7-inch window in gesture navigation: a 24dp status bar and a 24dp gesture bar. */
+        val TALL_GESTURE = full("w412dp-h915dp, 24 + 24", 9150).copy(navigationInset = 240)
+
+        /**
+         * §4.2.7's eight 15ac windows, with no chip, each figure the formula's: H₀ = min(⅘ S₀, C), the
+         * footer S₀ − H₀, the first tile's top at the status inset, the padding, H₀, the hero row, a gap,
+         * the ribbon and a gap.
+         */
+        val EIGHT_WINDOW_TABLE =
+            listOf(
+                TableRow(compact("w360dp-h640dp", 6400), headroomDp = 192f, footerDp = 48f, tileTopDp = 328f),
+                TableRow(compact("w360dp-h720dp", 7200), headroomDp = 242.4f, footerDp = 77.6f, tileTopDp = 378.4f),
+                TableRow(compact("w360dp-h800dp", 8000), headroomDp = 280f, footerDp = 120f, tileTopDp = 416f),
+                TableRow(full("w412dp-h780dp", 7800), headroomDp = 229.5f, footerDp = 57.4f, tileTopDp = 434.9f),
+                TableRow(full("w412dp-h850dp", 8500), headroomDp = 285.5f, footerDp = 71.4f, tileTopDp = 490.9f),
+                TableRow(full("w412dp-h915dp", 9150), headroomDp = 326.1f, footerDp = 95.8f, tileTopDp = 531.5f),
+                TableRow(TALL_GESTURE, headroomDp = 326.1f, footerDp = 119.8f, tileTopDp = 531.5f),
+                TableRow(PIXEL_9, headroomDp = 299.8f, footerDp = 124.1f, tileTopDp = 535.2f),
+            )
     }
 }

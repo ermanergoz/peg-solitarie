@@ -79,9 +79,11 @@ import org.robolectric.annotation.GraphicsMode
  * 15p part 2's six, with the design baseline's 24dp status bar and 48dp three-button bar, and 15ac's
  * two gesture-navigation windows: `w412dp-h915dp` with a 24dp status bar and a 24dp gesture bar, and the
  * Pixel_9, `w411dp-h923dp`, with a 54dp status bar and a 24dp gesture bar. Every window is read against
- * H₀ = min(⅘ S₀, C) and the bound alike, with no class of window exempt: measured, the bound bites on
- * `w360dp-h720dp`, `w360dp-h800dp` and `w412dp-h915dp` with the three-button bar as well as on the two
- * gesture-navigation windows (`ux-designer-check-2.md` F-1).
+ * H₀ = min(⅘ S₀, C) and the bound alike, with no class of window exempt: by §4.2.7's eight-window table,
+ * and measured here, the bound bites on `w360dp-h720dp`, `w360dp-h800dp` and `w412dp-h915dp` with the
+ * three-button bar as well as on the two gesture-navigation windows, and on none of them at font scale
+ * 2.0, where the slack is smaller. Every expected figure is derived from the formula, never copied
+ * from a table.
  *
  * ## Between visible elements (D-03m)
  *
@@ -126,9 +128,13 @@ class HomeHeadroomTest {
         assertTheSlackIsHeadroomAboveTheHeroRow(THREE_BUTTON)
 
     /**
-     * The 6.7-inch reference phone (15y part 4): the first mode tile's top edge is at or below the
-     * viewport's midpoint with no chip and with both. The footer's third of S₀ is read on every window
-     * (point 5 of [assertTheSlackIsHeadroomAboveTheHeroRow]).
+     * The 6.7-inch reference phone (15y part 4, 15g): the first mode tile's top edge is at or below the
+     * viewport's midpoint with no chip and with both; and no single gap on the screen is larger than the
+     * space the tiles occupy — 15g's fourth clause as §4.2.7 "15g's fourth clause under the bound" rules
+     * it: that space is both tiles with their band gap, and a gap is a distance between two consecutive
+     * visible elements, so neither the headroom above the first element nor the footer below the last is
+     * one. (15y part 3 holds every such gap to the band gap, which this clause can only follow.) The
+     * footer's third of S₀ is read on every window (point 5 of [assertTheSlackIsHeadroomAboveTheHeroRow]).
      */
     @Test
     @Config(qualifiers = TALL_PHONE)
@@ -140,6 +146,9 @@ class HomeHeadroomTest {
             assertWithMessage("${chipsNamed(state)}: the first tile's top against the viewport's midpoint, in dp")
                 .that(boundsOf(composeRule.onNodeWithText(classicTileTitle)).top.value)
                 .isAtLeast(((viewport.top + viewport.bottom) / 2).value)
+            assertWithMessage("${chipsNamed(state)}: the widest gap between two elements against the tiles' span")
+                .that(widestGap().value)
+                .isAtMost(tilesSpan().value)
         }
     }
 
@@ -330,9 +339,12 @@ class HomeHeadroomTest {
 
     /**
      * Criterion 15ac part 1 at font scale 2.0 on the current window with [bars], in every chip state:
-     * the headroom is still max(0, H₀ − R), and wherever it is above 0 the hero row's visible bottom edge
-     * is at or above the title bound. At 2.0 the column overflows on most windows and the headroom is 0,
-     * the row at the top padding: the wrapped title's case, which B-21 already covers.
+     * the headroom is still max(0, H₀ − R); wherever it is above 0 the hero row's visible bottom edge is
+     * at or above the title bound; the footer is the formula's, min(S₀ − H₀, max(0, S₀ − R)) — S₀ − H₀
+     * wherever the headroom can give the room, and what is left of S₀ once a room larger than H₀ has
+     * taken its share (15z part 3) — and at most a third of S₀. At 2.0 the slack is small, so the room
+     * often outgrows the headroom and the row sits at the top padding, which is where the bound does
+     * not apply: the wrapped title's case, which B-21 already covers.
      */
     private fun assertTheHeroRowNeverPassesTheTitleBound(bars: Bars) {
         val holder = mutableStateOf(EVERY_CHIP_STATE.first())
@@ -342,11 +354,19 @@ class HomeHeadroomTest {
         EVERY_CHIP_STATE.forEach { state ->
             show(state)
             val chips = chipsNamed(state)
+            val room = roomOf(state)
             assertWithMessage("$chips, at 2.0: the headroom against max(0, H₀ − R), in dp")
                 .that(headroom(bars).value)
                 .isWithin(TOLERANCE_DP)
-                .of(slack.headroomWith(roomOf(state)).value)
+                .of(slack.headroomWith(room).value)
             assertTheHeroRowIsAboveTheTitleBound(slack, "$chips, at 2.0")
+            assertWithMessage("$chips, at 2.0: the footer against min(S₀ − H₀, max(0, S₀ − R)), in dp")
+                .that(footer(bars).value)
+                .isWithin(TOLERANCE_DP)
+                .of(slack.footerWith(room).value)
+            assertWithMessage("$chips, at 2.0: the footer against a third of S₀ = ${slack.slack}, in dp")
+                .that(footer(bars).value)
+                .isAtMost(slack.slack.value / THIRDS + TOLERANCE_DP)
         }
     }
 
@@ -392,6 +412,12 @@ class HomeHeadroomTest {
             right = window.right,
             bottom = window.bottom - bars.navigation,
         )
+    }
+
+    /** 15g's "space the tiles occupy" (§4.2.7, F-2's ruling): both mode tiles with their band gap. */
+    private fun tilesSpan(): Dp {
+        val classicTile = boundsOf(composeRule.onNodeWithText(classicTileTitle))
+        return boundsOf(composeRule.onNodeWithText(challengeTileTitle)).bottom - classicTile.top
     }
 
     /** The band gap, read where nothing else can sit: between the two mode tiles. */

@@ -174,19 +174,47 @@ class HomeChipArrivalTest {
      */
     @Test
     @Config(qualifiers = "w412dp-h915dp")
-    fun theRoomOpensOverTheEntranceDurationAndNothingJumps() {
-        val state = renderWithThePausedClock()
-        val slack = composeRule.homeSlack(statusBar = THREE_BUTTON.status, navigationBar = THREE_BUTTON.navigation)
-        val noChip = readFrame()
+    fun theRoomOpensOverTheEntranceDurationAndNothingJumps() = assertTheRoomOpensFrameByFrame(THREE_BUTTON)
 
-        val arriving = framesAfter(state, classic = true, challenge = false)
-        assertTheRoomMovesSmoothly(arriving, from = noChip, slack = slack, what = "the Classic chip arriving")
+    // ---- Criterion 15ac part 2's frames: no frame of the room's motion passes the bound --
 
-        settle(state, classic = true, challenge = true)
-        val bothChips = readFrame()
-        val leaving = framesAfter(state, classic = false, challenge = false)
-        assertTheRoomMovesSmoothly(leaving, from = bothChips, slack = slack, what = "both chips leaving")
-    }
+    /*
+     * 15ac part 2 reads 15z on 15ac part 1's eight windows, and "in no emission and no frame of the
+     * room's motion" may the hero row's bottom edge pass the title bound. The emissions are read above
+     * on all eight; these walk the frames on the seven windows 15u's own does not, with 15z part 5's
+     * whole read, the bound in every frame among it. The headroom gives the whole room on every one of
+     * them at default scale (R ≤ H₀, §4.2.7's eight-window table), so the tiles hold still in every frame
+     * there as on 15u's window.
+     */
+
+    @Test
+    @Config(qualifiers = "w360dp-h640dp")
+    fun frameByFrameTheRoomOpensUnderTheTitleBoundOnA360x640dpPhone() = assertTheRoomOpensFrameByFrame(THREE_BUTTON)
+
+    @Test
+    @Config(qualifiers = "w360dp-h720dp")
+    fun frameByFrameTheRoomOpensUnderTheTitleBoundOnA360x720dpPhone() = assertTheRoomOpensFrameByFrame(THREE_BUTTON)
+
+    @Test
+    @Config(qualifiers = "w360dp-h800dp")
+    fun frameByFrameTheRoomOpensUnderTheTitleBoundOnA360x800dpPhone() = assertTheRoomOpensFrameByFrame(THREE_BUTTON)
+
+    @Test
+    @Config(qualifiers = "w412dp-h780dp")
+    fun frameByFrameTheRoomOpensUnderTheTitleBoundOnA412x780dpPhone() = assertTheRoomOpensFrameByFrame(THREE_BUTTON)
+
+    @Test
+    @Config(qualifiers = "w412dp-h850dp")
+    fun frameByFrameTheRoomOpensUnderTheTitleBoundOnA412x850dpPhone() = assertTheRoomOpensFrameByFrame(THREE_BUTTON)
+
+    @Test
+    @Config(qualifiers = "w412dp-h915dp")
+    fun frameByFrameTheRoomOpensUnderTheTitleBoundOnATallPhoneInGestureNavigation() =
+        assertTheRoomOpensFrameByFrame(GESTURE_TALL)
+
+    @Test
+    @Config(qualifiers = "w411dp-h923dp")
+    fun frameByFrameTheRoomOpensUnderTheTitleBoundOnThePixel9() = assertTheRoomOpensFrameByFrame(PIXEL_9_BARS)
 
     /**
      * Criterion 15z part 5 with OS animations off (`rememberAnimationsEnabled()` false), the setting a
@@ -493,6 +521,24 @@ class HomeChipArrivalTest {
     }
 
     /**
+     * 15z part 5 on the current window with [bars], read as [theRoomOpensOverTheEntranceDurationAndNothingJumps]
+     * says: the Classic chip arriving, then both chips leaving, frame by frame on the paused clock.
+     */
+    private fun assertTheRoomOpensFrameByFrame(bars: Bars) {
+        val state = renderWithThePausedClock(bars)
+        val slack = composeRule.homeSlack(statusBar = bars.status, navigationBar = bars.navigation)
+        val noChip = readFrame()
+
+        val arriving = framesAfter(state, classic = true, challenge = false)
+        assertTheRoomMovesSmoothly(arriving, from = noChip, slack = slack, what = "the Classic chip arriving")
+
+        settle(state, classic = true, challenge = true)
+        val bothChips = readFrame()
+        val leaving = framesAfter(state, classic = false, challenge = false)
+        assertTheRoomMovesSmoothly(leaving, from = bothChips, slack = slack, what = "both chips leaving")
+    }
+
+    /**
      * 15z part 5's motion read over [frames], the first being the frame after the emission and the last
      * settled: see [theRoomOpensOverTheEntranceDurationAndNothingJumps].
      */
@@ -581,13 +627,17 @@ class HomeChipArrivalTest {
     // ---- Harness ---------------------------------------------------------------
 
     /**
-     * Home with no chip, its clock paused, the design baseline's insets supplied and the entrance
-     * cascade run out: from here on, a frame happens only when a test advances one.
+     * Home with no chip, its clock paused, the window's [bars] supplied (the design baseline's unless a
+     * test names others) and the entrance cascade run out: from here on, a frame happens only when a
+     * test advances one.
      */
-    private fun renderWithThePausedClock(underlay: @Composable () -> Unit = {}): MutableState<HomeUiState> {
+    private fun renderWithThePausedClock(
+        bars: Bars = THREE_BUTTON,
+        underlay: @Composable () -> Unit = {},
+    ): MutableState<HomeUiState> {
         composeRule.mainClock.autoAdvance = false
         val state = mutableStateOf(chipsState(classic = false, challenge = false))
-        renderWithInsets(state, DEFAULT_FONT_SCALE, THREE_BUTTON, underlay)
+        renderWithInsets(state, DEFAULT_FONT_SCALE, bars, underlay)
         composeRule.mainClock.advanceTimeBy(CASCADE_SETTLED_MS)
         return state
     }
