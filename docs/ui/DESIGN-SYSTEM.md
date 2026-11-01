@@ -73,6 +73,12 @@ has no `tnum`, so the timer sets its digits in fixed cells (`TimerDigits`).
 > is the platform's per-glyph fallback for characters the faces lack. The clause after the em dash
 > in the tabular-figures sentence is new; the sentence before it is unchanged.
 
+*(Amended 2026-11-01 — ux-designer, D-16 of `docs/ux/localisation-tr.md` §7.3; rule of record in
+`docs/ux-spec.md` §6.3.)* The mapping above is the mapping for a language Fredoka covers. Fredoka
+has no Ğ ğ İ Ş ş in any official build, so on a Turkish device the heading roles draw in Nunito
+(Medium → SemiBold, SemiBold → Bold) at the same sizes; the gradient wordmark, the timer and the
+numeric stat values keep Fredoka in every language. English is unchanged.
+
 ## Shape
 
 M3 Shapes override: extraSmall 12dp, small 16dp, medium 20dp, large 28dp, extraLarge 32dp.
