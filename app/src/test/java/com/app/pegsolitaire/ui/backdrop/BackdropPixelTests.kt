@@ -23,6 +23,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -33,12 +34,15 @@ import com.app.pegsolitaire.testing.BackdropTestHost
 import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.testing.renderedWindow
 import com.app.pegsolitaire.ui.game.GAME_BOARD_SLAB_TEST_TAG
+import com.app.pegsolitaire.ui.game.GAME_STATE_TEST_TAG
 import com.app.pegsolitaire.ui.game.GameScreen
 import com.app.pegsolitaire.ui.game.GameUiState
 import com.app.pegsolitaire.ui.home.HOME_STAGE_ART_TEST_TAG
 import com.app.pegsolitaire.ui.home.HomeScreen
 import com.app.pegsolitaire.ui.home.HomeUiState
 import com.app.pegsolitaire.ui.theme.AppTheme
+import com.app.pegsolitaire.ui.theme.BoardMarkPalette
+import com.app.pegsolitaire.ui.theme.BoardMarkPaletteKey
 import com.app.pegsolitaire.ui.theme.DarkColors
 import com.app.pegsolitaire.ui.theme.LightColors
 import com.google.common.truth.Truth.assertThat
@@ -55,7 +59,8 @@ import kotlin.math.hypot
 /**
  * BD-17 and BD-18 (the tech-lead's D4: two renders compared inside one run, nothing stored): the
  * board slab's interior, inset 2dp from its edge, is pixel-identical with and without the backdrop
- * behind it, mid-game with a selection, a legal target and a hint, in light and dark; so are the
+ * behind it, mid-game with a selection, a legal target and a hint, in light and dark, and once per
+ * board-mark palette (docs/ux/colour-vision.md §3.7: "BD-17 … runs once per palette"); so are the
  * interiors of Home's stage art, gel tiles and Continue chips; and the slab's interior is its opaque
  * `surfaceContainerHigh`, with nothing over it. Animations are off, so the selection pulse is still.
  */
@@ -70,22 +75,32 @@ class BoardInteriorIdentityTest {
     fun theSlabsInteriorIsIdenticalWithAndWithoutTheBackdrop() {
         var withBackdrop by mutableStateOf(true)
         var dark by mutableStateOf(false)
+        var palette by mutableStateOf(BoardMarkPalette.Standard)
         rule.setContent {
-            AppTheme(darkTheme = dark) { Hosted(withBackdrop, BackdropDensity.Quiet) { MidGame() } }
+            AppTheme(darkTheme = dark, boardMarkPalette = palette) {
+                Hosted(withBackdrop, BackdropDensity.Quiet) { MidGame() }
+            }
         }
-        listOf(false, true).forEach { theme ->
-            dark = theme
-            val slabCorner = cornerPx(R.dimen.shape_corner_extra_large)
-            assertInteriorsMatch(rule, listOf(slab() to slabCorner), "board slab, dark = $theme") { withBackdrop = it }
-            val window = rule.renderedWindow()
-            val fill = (if (theme) DarkColors else LightColors).surfaceContainerHigh.toArgb()
-            val slab = slab()
-            val corner =
-                window.getPixel(
-                    (slab.left + slab.width * BLOCKED_CORNER).toInt(),
-                    (slab.top + slab.height * BLOCKED_CORNER).toInt(),
-                )
-            assertWithMessage("the slab's interior is its opaque fill, dark = $theme").that(corner).isEqualTo(fill)
+        BoardMarkPalette.entries.forEach { marks ->
+            palette = marks
+            listOf(false, true).forEach { theme ->
+                dark = theme
+                val case = "palette = $marks, dark = $theme"
+                assertWithMessage("the board draws its marks in the palette under test, $case")
+                    .that(rule.onNodeWithTag(GAME_STATE_TEST_TAG).fetchSemanticsNode().config[BoardMarkPaletteKey])
+                    .isEqualTo(marks)
+                val slabCorner = cornerPx(R.dimen.shape_corner_extra_large)
+                assertInteriorsMatch(rule, listOf(slab() to slabCorner), "board slab, $case") { withBackdrop = it }
+                val window = rule.renderedWindow()
+                val fill = (if (theme) DarkColors else LightColors).surfaceContainerHigh.toArgb()
+                val slab = slab()
+                val corner =
+                    window.getPixel(
+                        (slab.left + slab.width * BLOCKED_CORNER).toInt(),
+                        (slab.top + slab.height * BLOCKED_CORNER).toInt(),
+                    )
+                assertWithMessage("the slab's interior is its opaque fill, $case").that(corner).isEqualTo(fill)
+            }
         }
     }
 
