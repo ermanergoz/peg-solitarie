@@ -19,9 +19,11 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
+import com.app.pegsolitaire.R
 import com.app.pegsolitaire.ui.theme.ClayAnim
 import kotlin.math.max
 import kotlin.math.min
@@ -96,6 +98,7 @@ internal fun HomeBandColumn(
     chips: @Composable () -> Unit,
     tiles: @Composable () -> Unit,
 ) {
+    val titleTopPadding = dimensionResource(R.dimen.home_title_top_padding)
     Layout(
         contents = listOf(hero, ribbon, chips, tiles),
         modifier = modifier,
@@ -126,7 +129,8 @@ internal fun HomeBandColumn(
 
         layout(width, placement.height) {
             // D-03r: the hero row is pinned at the top; the middle lies between it and the ribbon.
-            heroPlaceable.place(0, 0)
+            // D-03s: the space above the title comes out of the middle, so the lower group stays put.
+            heroPlaceable.place(0, min(titleTopPadding.roundToPx(), placement.middle))
             var y = heroPlaceable.height + gap + placement.middle
             ribbonPlaceable.place(0, y)
             y += ribbonPlaceable.height + gap
