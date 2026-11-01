@@ -92,7 +92,7 @@ class BackdropReducedMotionTest {
             .isGreaterThan(0L)
         assertWithMessage("time moved over the next $IDLE_WATCH_MS ms, at most real time (from $resumed ms)")
             .that(after - resumed)
-            .isAtMost(IDLE_WATCH_MS)
+            .isAtMost(IDLE_WATCH_MS + TEST_FRAME_MS)
         assertWithMessage("static").that(clock.isStatic).isFalse()
         val motion = rule.backdropSemantics()[BackdropMotionKey]
         assertWithMessage("motion").that(motion).isEqualTo(BackdropMotionState.Running)
@@ -107,6 +107,9 @@ private const val FRAMES_AT_SCALE_ZERO = 2
 
 /** Frames for the recomposition to restart the loop once animations are back on. */
 private const val FRAMES_TO_RESTART = 2
+
+/** One frame of the Compose test clock: a watch of N ms spans up to N plus one frame of the frame grid. */
+private const val TEST_FRAME_MS = 16L
 
 /** The frames around the toggle may add at most this much time: a few 16 ms frames. */
 private const val RESUME_SLACK_MS = 100L
