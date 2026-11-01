@@ -682,6 +682,18 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > candy-backdrop §8.1's 360×800dp one-save headroom corrected to 192; 15ac part 1's "the headroom
 > equals C, 299.8dp" qualified to font scale 1.0; and §4.2.7's opening table and restated rule gain
 > dated pointers to "The title bound".)*
+> *(Loop 4, the same day — three rulings on the developer's build, head `4de613d`,
+> `.planning/reports/home-continue-live-boards/android-game-dev.md`, "Decisions for the ux-designer".
+> (1) 15aa part 3's equal-height clause is read at **font scale 1.0**; at 2.0 the slab's extra width
+> wraps the supporting line and the chip is as tall as its text (154dp against 116dp with the arrow),
+> which is a band growing to hold its text and not the art setting the height — accepted. (2)
+> "`spacing_sm` inside the chip" means **at least** `spacing_sm`, the slab centred (12dp at default
+> scale): confirmed. (3) 15ac part 1's footer clause is the formula min(S₀ − H₀, max(0, S₀ − R)),
+> which is S₀ − H₀ wherever R ≤ H₀ and pays down to 0 in the 2.0 shortfall case: confirmed. Also
+> recorded: the developer's measured D-03q figures as the JVM's figures of record (`w412dp-h780dp`
+> takes the compact set; at 2.0 the bound bites nowhere); 15k's overflow window is `w360dp-h552dp`;
+> `HomeHeroRowTest`'s position half is retargeted. Text only; no design, string, token, colour or
+> constant changes.)*
 
 ---
 
@@ -3963,7 +3975,11 @@ three-button bar (568dp usable), §4.2.4's D-03m column `hero 8..56 · stage (0)
 loses the stage's gap: **hero 8..56 · ribbon 64..120 · chip 128..236 · chip 244..352 · tile 360..468 ·
 tile 476..592** on the LEGACY arithmetic, 8dp shorter than before, and on real metrics the window
 that overflowed 0dp now has 8dp to spare. 15k holds with more margin; its overflow branch is still
-read on `w360dp-h560dp`.
+read on `w360dp-h560dp`. *(Loop 4 — the developer's Deviation 2.)* With 8dp less column, that window
+now overflows by exactly its 16dp trailing space, which `HomeLayoutTest`'s own precondition ("the
+column must overflow past its trailing space") rejects; the overflow branch is therefore read on
+**`w360dp-h552dp`**, 8dp shorter, its three cases unchanged. 15k's 2026-10-21 record carries the same
+note.
 
 **The Classic Continue chip's thumbnail.**
 
@@ -3991,6 +4007,20 @@ read on `w360dp-h560dp`.
   it. The chip's height is an input to 15k's fit and to D-03n's room, which is why 64dp — equal to the
   text column to the dp — is not taken. At 360dp width the text keeps ≥ 240dp, three times
   "Pick up your saved board" at default scale.
+  *(Ruled 2026-11-01, loop 4 — the developer's Deviations 3 and 4.)* **"`spacing_sm` from the chip's
+  top and bottom edges" means at least `spacing_sm`, the slab vertically centred**: the row's vertical
+  padding is `spacing_sm`, the text column carries `spacing_sm` more of its own, the text sets the
+  chip's height (80dp at default scale), and the 56dp slab therefore sits 12dp inside each edge —
+  exactly 8dp would need a 72dp chip, which the text never allows. The property is the one that
+  matters and it is unchanged: **the art never sets the chip's height.** And "unchanged … at every
+  font scale" is made exact: at **1.0** the chip's height with the thumbnail equals its height with
+  the arrow on every window (80dp), so 15k's fit and D-03n's room are untouched; at **2.0** the slab's
+  28dp of extra width narrows the text column (276dp on `w412dp-h915dp` against 304dp) and the
+  supporting line wraps, so the chip is as tall as its wrapped text — 154dp against 116dp with the
+  arrow — which is a band growing to hold its text (criteria 14, 15i) at a scale where the column
+  scrolls, and not the art setting the height. Accepted as built; 15aa part 3 is revised to say so.
+  (A narrower slab or a hidden thumbnail at 2.0 were not taken: the picture is the founder's ask, and
+  a chip that changes its art with the font size would be two chips.)
 - **Every catalogue board fits.** `BoardGeometry` fits the footprint's bounding box into the square:
   6.9dp cells for English-33 and European-37, 6.0dp for Asymmetric-39, 5.3dp for Diamond-41 and
   Wiegleb-45; a peg's radius is 0.34 of a cell and a hole's 0.16 (`BoardMetrics`), so pegs are
@@ -4130,7 +4160,20 @@ sits on the bound wherever it bites and at ⅘ S₀'s height wherever it does no
 and every tile top is below its window's midpoint. *(Loop 3, the third check's (1): the four full-set
 tile tops are by the Pixel_9 row's own method — status inset + padding + H₀ + the 48dp row + gap +
 the ribbon + gap, the full set's ribbon being 85.4dp as the Pixel_9's 535.2 implies — and the
-developer's placement tests read these cells; the first wording had them ≈ 16dp low.)* By the compact set's arithmetic the bound bites
+developer's placement tests read these cells; the first wording had them ≈ 16dp low.)*
+*(Measured 2026-11-01, loop 4 — the developer's report, Open issue 3, NATIVE metrics with insets
+supplied; these are the figures of record for the JVM, the projections above being what they were.)*
+S₀ / ⅘ S₀ / C / **H₀**, at font scale 1.0: `w360dp-h640dp` 240 / 192 / 204.8 / **192**;
+`w360dp-h720dp` 320 / 256 / 242.4 / **242.4**; `w360dp-h800dp` 400 / 320 / 280 / **280**;
+`w412dp-h780dp` 336 / 268.8 / 270.6 / **268.8**; `w412dp-h850dp` 358 / 286.4 / 295.5 / **286.4**;
+`w412dp-h915dp` 423 / 338.4 / 326.05 / **326.05**; `w412dp-h915dp` gesture 447 / 357.6 / 326.05 /
+**326.05**; the Pixel_9 425 / 340 / 299.81 / **299.81**. Two corrections to the table above: (1)
+`w412dp-h780dp` takes the **compact** set (708dp usable, under the 720dp threshold), so its S₀ is 336,
+not the full-set projection's 286.9 — the bound still does not bite there, by 1.8dp (C 270.6 against
+⅘ S₀ 268.8), and H₀ is ⅘ S₀ either way; (2) at **font scale 2.0 the bound bites on no window**: the hero
+row measures 53dp with its title on one line on all eight, so C is 321.05dp on the two 412×915dp
+windows and 294.81dp on the Pixel_9, above ⅘ S₀ everywhere; only the bound is read at 2.0, as 15ac
+part 1 says. Where the measured and the projected figures differ, the measurement governs. By the compact set's arithmetic the bound bites
 from ≈ 680dp of height at 24 + 48 and from ≈ 605dp at 52 + 24; "every window shorter than ≈ 800dp"
 was wrong and is struck.
 
@@ -6893,7 +6936,7 @@ no zero-inset window.
 | `HomeViewModelTest` / `HomeViewModelCloudTest` cases that expect `classicResumeBoard` to be the catalogue descriptor's `previewBoard` | The field carries the saved position; a snapshot whose moves do not replay is withheld and its row purged (the tech-lead's ruling 1, loop 1) | **Retarget** to 15aa part 1; **add** 15aa part 2's withheld-and-purged case, on `HomeViewModelTest.aClassicSnapshotOnAnUnknownBoardOffersNoContinueAndPurgesTheRow`'s template, and the invariant `(classicResumeLevelId == null) == (classicResumeBoard == null)` over absent, unreadable, unknown-id, forged-history and valid snapshots. The fake's `snapshotOf` builds codec-valid DTOs through `SnapshotMapper.toDto`; a red from the hollow DTO it builds today is the fixture's, not the rule's (the brief's Open issue 4). |
 | `HomeChipArrivalTest`, `HomeStageTest`'s renamed headroom cases and `HomeLayoutTest`'s 15g cases, wherever they read a no-chip headroom of ⅘ S₀ or a footer of S₀ ⁄ 5 *(loop 1, D-03q; loop 2 corrected)* | The no-chip headroom is H₀ = min(⅘ S₀, C) and the footer S₀ − H₀ **on every window**; by §4.2.7's eight-window table the bound bites on `w360dp-h720dp`, `w360dp-h800dp`, `w412dp-h915dp` (either bar) and the Pixel_9, and not on `w360dp-h640dp`, `w412dp-h780dp` or `w412dp-h850dp` | **Retarget** to H₀ (15ac parts 1–2, 15y, 15z). An assertion written for ⅘ S₀ goes red on **every window where the bound bites**, three-button ones included — retarget it to H₀ there and add the two gesture-bar windows, rather than loosening the read. 15g's fourth clause is read as §4.2.7 "15g's fourth clause under the bound" rules: the tiles' span is both tiles with their gap, and the headroom and the footer are not gaps. *(Loop 2: the first wording, "on the six three-button windows the figures are unchanged, so an assertion written for ⅘ S₀ goes red only on the two gesture-bar windows", was false.)* |
 | `HomeScreenTest` and fixture states built with `classicResumeBoard = Boards.*Initial` | Still valid states — a save with no moves shows the start board | **Pass unedited.** A fixture may add a mid-game board for 15aa part 3. |
-| `HomeHeroRowTest` (15n, 15o) | The hero row is unchanged; nothing is composed above the title | **Pass unedited.** If 15n's "no node above the title" sees a node, the headroom was built as a child with semantics — fix the production code. |
+| `HomeHeroRowTest` (15n, 15o) | The hero row is unchanged; nothing is composed above the title | **Pass unedited.** If 15n's "no node above the title" sees a node, the headroom was built as a child with semantics — fix the production code. *(Loop 4 — corrected on the developer's Deviation 1: its **position** half read the row's top as exactly one column inset below the viewport, which D-03p's headroom moves; that half is **retargeted** to the inset plus max(0, H₀ − R), the headroom computed from the window and the bands and never read off the row. The **node** half — no node above the title — passes unedited, as this row meant.)* |
 
 **Owed, new, from D-03p** — every one watched failing once on today's code before it is trusted:
 **15x**, **15y**, **15z**, **15aa** parts 1–4 and 6, and **15ab** parts 1–4, on the JVM; **15aa** part 5,
@@ -7327,6 +7370,10 @@ prohibitions are unchanged and still bind; **15h is retired and 15k replaces it*
         tech-lead's words: "The 16 dp tolerance is exact: M-edge120 passes and M-edge121 is cut"
         (the auditor's mutation probes). The "≈72dp over" and "≈48dp over" parentheticals above
         stay as the record of what was believed when they were written.)*
+        *(2026-11-01, loop 4 — D-03p took the stage's band gap out of the column, so `w360dp-h560dp`
+        now overflows by exactly its trailing space and the overflow branch is read on
+        **`w360dp-h552dp`** (§4.2.7 "The narrow class"; the developer's Deviation 2). Its three cases
+        are unchanged.)*
      3. **One plain scroll completes the screen.** The second mode tile, the Challenge tile's level
         chip included, is fully visible after a vertical scroll of the column involving **no tap,
         no expander and no state change**, revealing nothing that was not already composed; and the
@@ -7663,11 +7710,26 @@ windows. **H₀ = min(⅘ S₀, C) on every window, with no exemption.**
         and the Challenge chip is unaffected. And over every shape — absent, unreadable, unknown id,
         forged history, valid — the state never carries a Classic id without a board or a board
         without an id: `(classicResumeLevelId == null) == (classicResumeBoard == null)`.
-     3. A Compose test on `w360dp-h640dp` and `w412dp-h915dp`, at font scale 1.0 and 2.0: the node
-        tagged `home_resume_thumb` exists only with a Classic resume whose position rebuilt; its edge
-        is `home_resume_thumb_size` (56dp, ±0.5dp); its top and bottom edges are `spacing_sm` inside
-        the chip's; and **the Classic chip's height with the thumbnail equals its height with the
-        arrow** (±0.5dp), so no figure in 15k, 15s, 15y or 15z moves.
+     3. *(Revised 2026-11-01, loop 4 — the developer's Deviations 3 and 4,
+        `.planning/reports/home-continue-live-boards/android-game-dev.md`. First wording: "its top
+        and bottom edges are `spacing_sm` inside the chip's; and the Classic chip's height with the
+        thumbnail equals its height with the arrow (±0.5dp), so no figure in 15k, 15s, 15y or 15z
+        moves" — read at both font scales.)* A Compose test on `w360dp-h640dp` and `w412dp-h915dp`,
+        at font scale 1.0 and 2.0: the node tagged `home_resume_thumb` exists only with a Classic
+        resume whose position rebuilt; its edge is 56dp (±0.5dp) — the value 15aa pins, which
+        `home_resume_thumb_size` carries; it is vertically centred in the chip with **at least
+        `spacing_sm`** between its edges and the chip's (12dp at default scale, since the text sets
+        the chip at 80dp and the slab is 56dp; exactly 8dp would need a 72dp chip, which the text
+        never allows); **the text sets the chip's height and the art never does**, at both scales:
+        the chip is exactly as tall as its text column needs with the slab's width taken; and **at
+        font scale 1.0** the Classic chip's height with the thumbnail equals its height with the
+        arrow (±0.5dp), so no figure in 15k, 15s, 15y or 15z moves. At 2.0 the equality is **not**
+        required: the slab is 28dp wider than the arrow, the text column is 276dp on `w412dp-h915dp`
+        rather than 304dp, and "Pick up your saved board" wraps, so the chip is as tall as its wrapped
+        text (154dp against 116dp measured) — a band growing to hold its text, which criteria 14 and
+        15i require and which only changes the room R at a scale where the column already scrolls.
+        In production the comparison has no subject at 2.0 either way: a Classic chip always has its
+        thumbnail (the tech-lead's ruling 1).
      4. The Challenge chip is unchanged: no `home_resume_thumb` node inside it, the play arrow drawn,
         its title and supporting line as they are.
      5. *(Widened 2026-11-01, loop 1 — the check's F-4. First wording: "a Classic game left with 20
@@ -7718,7 +7780,13 @@ windows. **H₀ = min(⅘ S₀, C) on every window, with no exemption.**
         coordinates, is at or above 0.47 H − `entrance_slide_distance` (±0.5dp); with no chip on the
         Pixel_9's window **at font scale 1.0** it equals the bound (±0.5dp) and the headroom equals
         C, 299.8dp (±0.5dp) — at 2.0 the row is taller and C smaller, so only the bound is read there
-        *(loop 3)*; the footer equals S₀ − H₀ plus one band gap and the bottom padding (±0.5dp),
+        *(loop 3)*; the footer equals **min(S₀ − H₀, max(0, S₀ − R))** plus one band gap and the
+        bottom padding (±0.5dp) — 15y part 2's and 15z part 3's formula, which is S₀ − H₀ wherever
+        R ≤ H₀, and at 1.0 that is every chip state on all eight windows; at 2.0 the chips' room can
+        outgrow the headroom, the headroom is then 0 and the footer pays down to 0 (D-03n's shortfall
+        case; "The title bound" part 2), so the footer is **below** S₀ − H₀ there and the a-third-of-S₀
+        clause holds a fortiori *(loop 4 — the developer's Open issue 1 (a): the first wording,
+        "equals S₀ − H₀", was the unscoped form and is read as the formula)* —
         H₀ = min(⅘ S₀, C)
         **on every window, with no exemption** *(loop 2: the clause "on the six three-button windows
         H₀ = ⅘ S₀" was false and is struck; by §4.2.7's eight-window table H₀ is C on
