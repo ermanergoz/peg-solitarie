@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,7 +31,6 @@ import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
@@ -38,6 +38,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -53,6 +54,7 @@ import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_HEIGHT_DP
 import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_WIDTH_DP
 import com.app.pegsolitaire.ui.backdrop.BackdropDensity
+import com.app.pegsolitaire.ui.backdrop.BackdropMetrics
 import com.app.pegsolitaire.ui.backdrop.BackdropMotion
 import com.app.pegsolitaire.ui.backdrop.BackdropPreviewHost
 import com.app.pegsolitaire.ui.components.ClaySnackbarHost
@@ -66,26 +68,26 @@ import com.app.pegsolitaire.ui.theme.glossFinish
 import com.app.pegsolitaire.ui.theme.goldGradientFill
 import com.app.pegsolitaire.ui.theme.rememberAnimationsEnabled
 import kotlinx.coroutines.flow.first
+import kotlin.math.roundToInt
 
 /**
  * The stateless Home mode-select screen (NAV-01, D-09/D-10/D-14/D-15), in the
  * Candy-Clay skin (DESIGN-SYSTEM.md Home).
  *
  * Renders [state] and forwards events; owns no logic (state hoisting). An M3
- * [Scaffold] with **no top bar at all** (Phase 15, D-03/D-05c) hosts the five scrolling
- * bands of [HomeBands], capped at `content_max_width` and centred. The height left over with no
- * Continue chip is split four fifths to the stage beneath the hero and one fifth to the footer
- * below the tiles, and a chip that arrives takes its room from the stage alone (§4.2.2, §4.2.4,
- * §4.2.5, D-03i, D-03l, D-03n): the hero row (the gradient Fredoka title start-aligned beside the
- * Settings gear that opens the Settings destination, Phase-5 D-14), the stage — a clay board
- * showing a game in progress, as large as the slack allows and not drawn when there is none —
- * the read-only progress ribbon, up to two Continue chips, the two chunky clay mode tiles — a
- * violet Classic tile whose whole surface navigates to the catalog ([onPlayClassic]) and a pink
- * Challenge tile (with its persisted-level chip) whose whole surface enters Challenge
- * ([onPlayChallenge]) at the player's persisted [HomeUiState.challengeCurrentLevel] (CHAL-05) —
- * and an empty footer, one fifth of that slack. The `Scaffold` is transparent, so the app-wide
- * backdrop (`ui/backdrop/SceneBackdrop.kt`, backdrop spec) shows behind the bands; the bands enter
- * with a stagger, and everything tappable squishes. Below the compact threshold of available height
+ * [Scaffold] with **no top bar at all** (Phase 15, D-03/D-05c) hosts the scrolling bands of
+ * [HomeBands], capped at `content_max_width` and centred. The height left over with no Continue chip
+ * is split four fifths to the **headroom above the hero row** and one fifth to the footer below the
+ * tiles, the headroom never reaching past the title bound, and a chip that arrives takes its room
+ * from the headroom alone (§4.2.2, §4.2.5, §4.2.7, D-03i, D-03n, D-03p, D-03q): space with nothing in
+ * it, then the hero row (the gradient Fredoka title start-aligned beside the Settings gear that opens
+ * the Settings destination, Phase-5 D-14), the read-only progress ribbon, up to two Continue chips, the
+ * two chunky clay mode tiles — a violet Classic tile whose whole surface navigates to the catalog
+ * ([onPlayClassic]) and a pink Challenge tile (with its persisted-level chip) whose whole surface enters
+ * Challenge ([onPlayChallenge]) at the player's persisted [HomeUiState.challengeCurrentLevel] (CHAL-05)
+ * — and an empty footer. The `Scaffold` is transparent, so the app-wide backdrop
+ * (`ui/backdrop/SceneBackdrop.kt`, backdrop spec) shows behind the bands, its sky above the title; the
+ * bands enter with a stagger, and everything tappable squishes. Below the compact threshold of available height
  * — which reads the available **width** as well, since D-03k — the band spacing tightens, and on the
  * narrow class each progress pill drops its decorative glyph and puts its label beside its value; no
  * readout, control or band is ever dropped.
@@ -99,7 +101,8 @@ import kotlinx.coroutines.flow.first
  * Above the mode tiles sit up to two gold "Continue" chips (PERS-03, D-01/D-03) — one per
  * mode holding a saved in-progress game. They are independent: a Classic and a Challenge
  * game can both be waiting, and each carries what its resume needs (the stored board id /
- * the persisted level) so the host never has to guess.
+ * the persisted level) so the host never has to guess. The Classic chip draws the player's saved
+ * position and speaks its pegs left (D-03p); the Challenge chip keeps its play arrow.
  *
  * Once the tutorial is behind the player and the Play Games question is still unanswered,
  * [HomeUiState.playGamesPromptVisible] raises the [PlayGamesPromptDialog] (PGS-01, D-15).
@@ -170,6 +173,7 @@ fun HomeScreen(
         ) {
             HomeBands(
                 state = state,
+                contentPadding = contentPadding,
                 onPlayClassic = onPlayClassic,
                 onPlayChallenge = onPlayChallenge,
                 onResumeClassic = onResumeClassic,
@@ -277,11 +281,13 @@ private fun PlayGamesSignInErrorSnackbarEffect(
 }
 
 /**
- * Home's five bands (§4.2): hero, progress ribbon, Continue chips, mode tiles, footer — one
+ * Home's bands (§4.2): the headroom, hero, progress ribbon, Continue chips, mode tiles, footer — one
  * `verticalScroll` column capped at `content_max_width` and centred, inside a
  * `BoxWithConstraints` that reads the height available to it (§4.2.2, D-03i). The column is
  * [HomeBandColumn], whose measure policy gives every band its height and splits the slack
- * (§4.2.5, D-03n).
+ * (§4.2.5, §4.2.7, D-03n, D-03p, D-03q). [contentPadding] is the `Scaffold`'s, the system bars it
+ * took off: with them the column knows the frame the backdrop draws in, which its title bound is
+ * stated in.
  *
  * ## Why it scrolls, and why the scroll is not a place to put things
  *
@@ -294,22 +300,24 @@ private fun PlayGamesSignInErrorSnackbarEffect(
  * 0dp over. A Continue chip reachable only by scrolling is a broken device oracle, not a layout
  * compromise.
  *
- * ## The slack: four fifths to the stage, one fifth to the footer — of the slack with no chip
+ * ## The slack: headroom above the hero row, a fifth below the tiles — of the slack with no chip
  *
  * The slack is the height the bands leave the column, and D-03n splits the slack the window leaves
  * with **no** Continue chip, S₀, which is fixed for the window: one fifth is the empty footer below
- * the tiles, as band 5, and the rest is the [HomeStage] directly beneath the hero row. A Continue
- * chip that arrives after first paint — every chip does, once `HomeViewModel` has decoded the saves
- * — takes its room from the stage alone. So the ribbon rides up on the stage's bottom edge and the
- * mode tiles, which a thumb may already be heading for, hold still; where the stage cannot give the
- * whole room they move by what it could not give, and no more (§4.2.5, criteria 15s and 15t).
+ * the tiles, and the rest is **headroom** above the hero row — space with nothing in it (D-03p), the
+ * stage D-03l put beneath the row being withdrawn. The headroom stops where the hero row's bottom edge
+ * would pass the title bound, `TITLE_REACH` of the window less the entrance slide, the line the
+ * backdrop keeps clear of its waves (D-03q); what it cannot hold goes to the footer. A Continue chip
+ * that arrives after first paint — every chip does, once `HomeViewModel` has decoded the saves — takes
+ * its room from the headroom alone. So the hero row and the ribbon ride up together and the mode
+ * tiles, which a thumb may already be heading for, hold still; where the headroom cannot give the
+ * whole room they move by what it could not give, and no more (criteria 15z, 15ac).
  *
- * So on a tall phone most of the slack still goes *above* the ribbon, the Continue chips and the
- * mode tiles, which stay one contiguous group in the lower thumb half of a 6.7-inch screen (§11
- * "One-handed use") with a visible margin left below them rather than the tiles sitting on the
- * navigation bar — and that share is a clay board showing a game in progress rather than a hole
- * (§4.2.4, D-03l). No slack sits between the ribbon and the chips: that is where the founder's
- * ≈172dp of blank was.
+ * So on a tall phone most of the slack goes *above* the title, and the title, the ribbon, the
+ * Continue chips and the mode tiles are one contiguous block in the lower thumb half of a 6.7-inch
+ * screen (§11 "One-handed use"), with a visible margin below them rather than the tiles sitting on
+ * the navigation bar. No slack sits between two of them: not beneath the title, where D-03l's stage
+ * was, nor between the ribbon and the chips, where the founder's ≈172dp of blank was.
  *
  * **The column reports its own height, so nothing in the chain around it sets one.**
  * `verticalScroll` measures its content with an unbounded maximum height, so [HomeBandColumn] is
@@ -324,10 +332,9 @@ private fun PlayGamesSignInErrorSnackbarEffect(
  *
  * **No content band takes slack** (§4.2.2 clause 4). A band handed a share of the slack is handed
  * **0** the moment the fixed bands exceed the viewport, so a hero that took slack would be clipped
- * to nothing at 200% font scale, which criterion 14 forbids. The stage takes it because its one
- * drawing is decoration for which 0 is the right size on a short screen — the single exception
- * clause 4 makes (§4.2.4) — and the footer is space, not a band: neither has an entrance order of
- * its own, a squish, or anything tappable, focusable or announced.
+ * to nothing at 200% font scale, which criterion 14 forbids. The headroom and the footer are space,
+ * not bands: neither has a node, an entrance order of its own, a squish, or anything tappable,
+ * focusable or announced.
  *
  * ## `fillMaxSize()` belongs on the Box and nowhere else
  *
@@ -344,8 +351,8 @@ private fun PlayGamesSignInErrorSnackbarEffect(
  * effectively is — Home takes the compact band set, all of it or none: the band spacing and the
  * column's padding drop to `spacing_sm`, and on the narrow class each progress pill drops its
  * decorative glyph and puts its label beside its value. (The hero is one row on every window since
- * D-03l, and the stage needs no threshold: it only ever gets the slack, so on a short screen it is
- * simply 0 and draws nothing.) It is read against available height and width
+ * D-03l, and the headroom needs no threshold: it only ever gets the slack, so on a short screen it is
+ * simply 0.) It is read against available height and width
  * **never the font scale**, so a tall phone at 200% keeps the full set and scrolls rather than
  * changing shape (criterion 15i). Nothing else yields: not the gear (the only route to Settings
  * and so to How to play), not a pill, not a label, not a value, not a chip, not a tile, not a
@@ -387,17 +394,19 @@ private fun PlayGamesSignInErrorSnackbarEffect(
  * after — so nothing fades in above something that arrived before it (§10). Conditional chips
  * keep the ordering contiguous by counting only what is shown. A chip that arrives after first
  * paint takes no stagger, so its fade starts with its room ([ContinueChips], §4.2.5), and nothing
- * a chip does restarts the cascade: the stage's entrance is the stage's own, run once with Home.
+ * a chip does restarts the cascade.
  */
 @Composable
 private fun HomeBands(
     state: HomeUiState,
+    contentPadding: PaddingValues,
     onPlayClassic: () -> Unit,
     onPlayChallenge: (level: Int) -> Unit,
     onResumeClassic: (levelId: String) -> Unit,
     onResumeChallenge: (level: Int) -> Unit,
     onOpenSettings: () -> Unit,
 ) {
+    val entranceSlide = dimensionResource(R.dimen.entrance_slide_distance)
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         // `maxWidth` is a second READ of a value this BoxWithConstraints has already measured,
         // not a second measuring pass, so the width term costs nothing (§4.2.3 part 1).
@@ -411,11 +420,19 @@ private fun HomeBands(
         val animationsEnabled = rememberAnimationsEnabled()
         val classicRoom = rememberChipRoom(present = state.classicResumeLevelId != null, animationsEnabled)
         val challengeRoom = rememberChipRoom(present = state.challengeResumeLevel != null, animationsEnabled)
-        val stageArtFade = remember { mutableStateOf(StageArtFade.None) }
+        // D-03q: the line the hero row may not pass, `TITLE_REACH` of the frame the backdrop draws in
+        // (the Scaffold's own height, H, the insets put back) less the entrance slide, in the
+        // viewport's frame (the tech-lead's A1.1). Read here once; the column takes it as one Int.
+        val titleBoundPx =
+            with(LocalDensity.current) {
+                val topInset = contentPadding.calculateTopPadding().roundToPx()
+                val frameHeight = constraints.maxHeight + topInset + contentPadding.calculateBottomPadding().roundToPx()
+                (BackdropMetrics.TITLE_REACH * frameHeight).roundToInt() - entranceSlide.roundToPx() - topInset
+            }
         HomeBandColumn(
             availableHeightPx = constraints.maxHeight,
+            titleBoundPx = titleBoundPx,
             bandSpacing = bandSpacing,
-            onStageArtFade = { fade -> if (stageArtFade.value != fade) stageArtFade.value = fade },
             modifier =
                 Modifier
                     .align(Alignment.TopCenter)
@@ -423,15 +440,6 @@ private fun HomeBands(
                     .widthIn(max = dimensionResource(R.dimen.content_max_width))
                     .padding(bandSpacing),
             hero = { HomeHero(onOpenSettings = onOpenSettings) },
-            // The stage: the larger share of the slack, directly beneath the hero row (§4.2.4
-            // clause 3), so the ribbon, the chips and the tiles form one contiguous lower group in
-            // the thumb zone and the slack reads as the game's own board instead of a hole.
-            stage = {
-                HomeStage(
-                    artFade = stageArtFade.value,
-                    artFadeProgress = { stageMotionProgress(classicRoom, challengeRoom) },
-                )
-            },
             ribbon = {
                 HomeProgressRibbon(
                     shape = ribbonShape,
@@ -875,10 +883,10 @@ private fun HomeScreenBusiestPreview() {
  * The compact-narrow band set (§4.2.2, §4.2.3), which is otherwise only visible on a short
  * narrow device: the same busiest state as the dark preview, on the design baseline's own
  * 360x640dp window. Each progress pill should read "label value" on one line with no glyph, and
- * both Continue chips and both mode tiles should be whole, with the footer's fifth of the slack
- * below them (§4.2.5). A preview draws no system bars, so the column has all 640dp and the stage
- * still holds a small board — 67dp, measured on NATIVE metrics — where the 568dp a phone with its
- * bars offers leaves the stage 10dp with both chips in, and no board at all.
+ * both Continue chips and both mode tiles should be whole, with the footer's share of the slack
+ * below them (§4.2.5, §4.2.7). A preview draws no system bars, so the column has all 640dp and a
+ * little headroom shows above the title, where the 568dp a phone with its bars offers leaves next to
+ * none with both chips in.
  *
  * In **both** themes, per rules/compose.md: the compact band set is the one a 360dp-wide phone
  * always gets (§4.2.3), so it is not a variant that only needs checking in one of them.
