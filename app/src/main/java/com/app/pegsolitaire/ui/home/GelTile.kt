@@ -52,7 +52,9 @@ import kotlin.math.tan
  *
  * Drawn on the `Card`'s modifier, which paints nothing itself, so all of it lies under the content.
  * Built once per size and direction; the draw reads a derived sheen value that stays
- * [SHEEN_HIDDEN] for 7.5 s of every 10, so the tile is not invalidated then. The sheen's clip to the
+ * [SHEEN_HIDDEN] for 7.5 s of every 10, so the tile is not invalidated then. It is hidden too
+ * whenever the clock does not show a sheen: at rest, and on the live clock unless it is Running, so
+ * a settle that begins mid-pass ends the pass at once (B-22a). The sheen's clip to the
  * cached lip path is the one clip in a draw lambda on this branch (the tech-lead's E9).
  */
 @Composable
@@ -65,7 +67,7 @@ internal fun Modifier.gelSurface(
     val clock = LocalBackdropClock.current
     val sheen =
         remember(clock, sheenDelayMs) {
-            derivedStateOf { if (clock.isStatic) SHEEN_HIDDEN else gelSheenProgress(clock.timeMs, sheenDelayMs) }
+            derivedStateOf { if (clock.showsSheen) gelSheenProgress(clock.timeMs, sheenDelayMs) else SHEEN_HIDDEN }
         }
     return drawWithCache {
         val body = Path().apply { addOutline(shape.createOutline(size, layoutDirection, this@drawWithCache)) }

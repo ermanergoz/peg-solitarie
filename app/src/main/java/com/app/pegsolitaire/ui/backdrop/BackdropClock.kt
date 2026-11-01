@@ -55,6 +55,12 @@ interface BackdropClock {
     /** Running, settling or at rest. */
     val motion: BackdropMotionState
 
+    /**
+     * Whether a gel tile draws its sheen at [timeMs] (B-22a): never on the rest pose. A clock fixed
+     * at a pose for a preview or a pixel test draws it there; the live clock only while Running.
+     */
+    val showsSheen: Boolean get() = !isStatic
+
     /** A pointer-down or key-down somewhere in the window: restarts the idle timer, wakes a settled clock. */
     fun onInput() = Unit
 
@@ -140,6 +146,12 @@ internal class LiveBackdropClock : BackdropClock {
 
     var motionState by mutableStateOf(BackdropMotionState.AtRest)
     override val motion: BackdropMotionState get() = motionState
+
+    /**
+     * Only at full rate (B-22a): a pass under way when the settle begins ends at once, none shows
+     * while settled, and it returns once a wake's ease has brought the clock back to Running.
+     */
+    override val showsSheen: Boolean get() = !static && motionState == BackdropMotionState.Running
 
     private var density by mutableStateOf(BackdropDensity.Landscape)
     private val inputs = Channel<Unit>(Channel.CONFLATED)
