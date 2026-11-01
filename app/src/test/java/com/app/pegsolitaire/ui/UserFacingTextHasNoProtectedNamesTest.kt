@@ -32,6 +32,8 @@ class UserFacingTextHasNoProtectedNamesTest {
                 .filter { it.isFile }
 
         assertThat(stringFiles).isNotEmpty()
+        // The Turkish copy is held to the same verdict (docs/ux/localisation-tr.md §7.6).
+        assertThat(stringFiles.map { it.relativeTo(appMain).invariantSeparatorsPath }).contains(TURKISH_STRINGS)
         assertThat(stringFiles.flatMap { offences(it) }).isEmpty()
     }
 
@@ -59,6 +61,15 @@ class UserFacingTextHasNoProtectedNamesTest {
         assertWithMessage("next to punctuation")
             .that(protectedWordsIn("(KING)"))
             .containsExactly("king")
+    }
+
+    /**
+     * Turkish casing hides no word: uppercasing "king" on a Turkish device gives "KİNG", lowercasing
+     * "TIFFI" gives "tıffı", and the case-insensitive match still finds both (spec §7.1).
+     */
+    @Test
+    fun theScanFindsAProtectedWordWrittenInTurkishCasing() {
+        assertThat(protectedWordsIn("KİNG ve tıffı")).hasSize(2)
     }
 
     /** `path:line: word` for each protected word found in [file]. */
@@ -91,6 +102,7 @@ class UserFacingTextHasNoProtectedNamesTest {
         const val ASSETS_DIR = "assets"
         const val VALUES_DIR_PREFIX = "values"
         const val STRINGS_FILE = "strings.xml"
+        const val TURKISH_STRINGS = "$RES_DIR/values-tr/$STRINGS_FILE"
 
         /**
          * The candy-backdrop verdict's twelve (`tech-lead-architecture.md`, Checks, 2026-10-17)

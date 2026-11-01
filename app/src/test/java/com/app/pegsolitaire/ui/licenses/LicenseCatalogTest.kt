@@ -67,11 +67,11 @@ class LicenseCatalogTest {
             LicenseCatalog.sections
                 .flatMap { section -> section.entries }
                 .flatMap { entry -> listOf(entry.title) + entry.lines.mapNotNull { (it as? Plain)?.text } }
-                .map { id -> stringValue(id) }
 
         NEVER_LISTED.forEach { name ->
             val word = Regex("\\b${Regex.escape(name)}\\b", RegexOption.IGNORE_CASE)
-            assertWithMessage("never listed: $name").that(shown.filter { word.containsMatchIn(it) }).isEmpty()
+            val scanned = shown.filterNot { id -> APP_NAMED_AS_MODIFIER == (id to name) }.map { id -> stringValue(id) }
+            assertWithMessage("never listed: $name").that(scanned.filter { word.containsMatchIn(it) }).isEmpty()
         }
     }
 
@@ -207,6 +207,15 @@ class LicenseCatalogTest {
                 "kover",
             )
 
+        /**
+         * The one line, and the one name, the never-listed scan does not hold: D-17's statement that
+         * the bundled Fredoka was modified for the app (spec §3.2's Fredoka row; docs/ux/localisation-tr.md
+         * §5.4). "Peg Solitaire" there names the app as the modifier, which OFL §1 asks to be stated;
+         * the never-listed "Peg Solitaire" is the traditional game of THIRD_PARTY.md §1, which no entry
+         * may credit, and every other line is still scanned for it.
+         */
+        val APP_NAMED_AS_MODIFIER = R.string.licenses_fredoka_modified to "Peg Solitaire"
+
         /** Spec §3.2's table, row for row, in its order. */
         val EXPECTED =
             listOf(
@@ -217,7 +226,11 @@ class LicenseCatalogTest {
                             "fredoka",
                             R.string.licenses_fredoka_title,
                             R.string.licenses_ofl_name,
-                            listOf(plain(R.string.licenses_fredoka_credit), plain(R.string.licenses_ofl_name)),
+                            listOf(
+                                plain(R.string.licenses_fredoka_credit),
+                                plain(R.string.licenses_ofl_name),
+                                plain(R.string.licenses_fredoka_modified),
+                            ),
                             texts(FredokaOfl to R.string.licenses_ofl_name),
                         ),
                         entry(
