@@ -35,7 +35,7 @@ is short enough to put here — **never tap an ad that does not carry the "Test 
 | 1.4 | [ ] `THIRD_PARTY.md` exists and **no shipped row lacks a licence** — the pre-cut half only; the release-graph half is item 3.5 and the bundle half item 4.6a, both after the cut | [S] + [F] for store artwork | Every row in `THIRD_PARTY.md` §§1–5 has a licence; §6 has no row that is both unverified and shipped; §7 has no `PENDING FOUNDER` left; §5b: every family has a row with the research-analyst's verdict (done 2026-10-21); `feature/licences-screen` has merged into `develop` with its code-auditor PASS, qa-engineer PASS (LN-7 green: items 1–3, 5 and 6, item 6 being the branch's own check that it adds no coordinate) and tech-lead sign-off, shown by its merge commit as in 1.1a (`git log --merges --first-parent develop --grep="Merge branch 'feature/licences-screen'" -1` prints one, and its diff lists `app/src/main/` and `build-logic/` files), not by `--is-ancestor` alone; and `docs/tech-design.md` §16 #20, the notice duties, has nothing left open but what its own cell leaves to the cut. **Not part of this item:** §5b's open item and U-6 close at 3.5, and the AAB listing (§13.1 LN-7 item 4) at 4.6a |
 | 1.5 | [ ] Every founder question that blocks the cut is answered | [S] reads, [F] answers | `.planning/questions/FOUNDER.md` — no `## Q-…  (open)` whose `Blocks:` line names the release |
 | 1.6 | [ ] The changelog source range is known | [S] | `git rev-list v<previous>..develop --count` recorded; `git log --no-merges --grep='^feat' --grep='^fix' --grep='^perf' -E` captured as raw material |
-| 1.7 | [ ] *(Blocks Gate 2, not the branch cut; `docs/tech-design.md` §14.1 PU.)* The upload script `scripts/play-upload.sh` is on `develop`, reviewed and merged, **or** the producer has recorded that this release is uploaded by the founder in the Console (operator checklist Step 8 item 1). The script checks no approval itself: the gate is the plugin hook `hooks/publish-gate.sh`, which blocks any command that runs `play-upload.sh` or `fastlane supply` unless `.planning/approvals/publish-$(cat VERSION).approved` exists (plugin `rules/stacks.md` 1.0.0, scaffold contract 9: "it checks no approval itself (`hooks/publish-gate.sh` does)"; `rules/play-store.md`: "the publish hook blocks it") | [S] | `git ls-tree develop scripts/play-upload.sh` prints the file, its code-auditor PASS and tech-lead sign-off exist (`feature/play-upload`, §14.1 PU), and `shellcheck scripts/play-upload.sh` is clean. **Today it does not exist** on `develop` or on any branch (see the note under §4). It is code, so it is never written on the release branch |
+| 1.7 | [ ] *(Blocks Gate 2, not the branch cut; `docs/tech-design.md` §14.1 PU.)* The upload script `scripts/play-upload.sh` is on `develop`, reviewed and merged, **or** the producer has recorded that this release is uploaded by the founder in the Console (operator checklist Step 8 item 1). The script checks no approval itself: the gate is the plugin hook `hooks/publish-gate.sh`, which blocks any command that runs `play-upload.sh` or `fastlane supply` unless `.planning/approvals/publish-$(cat VERSION).approved` exists (plugin `rules/stacks.md` 1.0.0, scaffold contract 9: "it checks no approval itself (`hooks/publish-gate.sh` does)"; `rules/play-store.md`: "the publish hook blocks it") | [S] | `git ls-tree develop scripts/play-upload.sh` prints the file, its code-auditor PASS and tech-lead sign-off exist (`feature/play-upload`, §14.1 PU), and `shellcheck scripts/play-upload.sh` is clean. The script is on `develop` since merge `1dd1080` (`feature/play-upload`, code `9005fe3..6a0b032`): code-auditor PASS `.planning/reports/play-upload/code-auditor.md`, QA PASS `.planning/reports/play-upload/qa-engineer.md`, tech-lead sign-off `.planning/reports/play-upload/tech-lead-signoff.md`. Syntax check: `/bin/bash -n < scripts/play-upload.sh` (`bash -n scripts/play-upload.sh` is blocked by the gate); shellcheck 0.11.0 is a host tool on this Mac since 2026-10-24. Its contract is in the note under §4. **The only allowed invocation is `./scripts/play-upload.sh`**, with optional `VAR=value` or `env …` prefixes; never `/bin/bash …`, `/bin/sh …` or any shell named by its path, which the plugin gate does not see (E-1, `qa-engineer.md`; stopgap T-11 until the plugin fix is installed here). The producer records the route this release uses (script or Console) before this item is ticked. It is code, so it is never written on the release branch |
 
 **If 1.2 cannot be run green at release settings, stop and say so.** `rules/gitflow.md` makes it a
 precondition of the branch, and a release cut over a red or a *weaker-than-required* Check is the
@@ -83,13 +83,13 @@ is re-cut.
 | 4.1 | [ ] Real ad-unit and Play Games identifiers are in place | **[F]** | operator checklist Step 6 — `./gradlew :app:verifyReleaseAdIds :app:verifyReleaseGamesIds` exits 0. **Test identifiers are not a substitute**; an artifact built with them is not a release candidate and must not be uploaded |
 | 4.1a | [ ] The three ad IDs in the built artifact are the **right** ones — read out of the artifact and compared, character by character, against the app's ad units in the AdMob Console | [S] reads them out of the bundle, **[F]** supplies the Console comparand | `docs/ad-testing-safety.md` §6. This is the one ad check that a test-mode pass cannot cover: test mode serves happily for a valid-but-wrong unit. Done by reading, never by clicking. No ID value is written into this file, a report, or any tracked file |
 | 4.2 | [ ] The upload keystore is reachable through the four `PLAY_UPLOAD_*` environment variables, and nowhere else | **[F]** | operator checklist Step 7. No value of any of the four appears in any file, in this checklist, or in any report |
-| 4.3 | [ ] The release bundle builds | [S] | the Build command in `CLAUDE.md`; record the exit code |
+| 4.3 | [ ] The release bundle builds | [S] | `./gradlew :app:bundleRelease` (the Build command in `CLAUDE.md`, item 2.6; `:app:assembleRelease` makes an APK, which neither route uploads); record the exit code. Both routes upload this AAB, `app/build/outputs/bundle/release/app-release.aab` |
 | 4.4 | [ ] The bundle is signed with the **upload** certificate, not the debug key | [S] verifies, **[F]** supplies the comparand | `jarsigner -verify -verbose:summary -certs <aab>`; the SHA-1 must equal the upload key certificate in the Console (read by the founder) |
 | 4.5 | [ ] R8 evidence | [S] | `app/build/outputs/mapping/release/missing_rules.txt` **absent**; the Play Games classes present in `mapping.txt` (kept, not stripped) |
 | 4.6 | [ ] Artifact identity recorded | [S] | `shasum -a 256 <aab>`, and the versionName read back out of the bundle's own manifest |
 | 4.6a | [ ] The bundle keeps the five bundled fonts and their two OFL texts (`.planning/reports/15-founder-feedback/tech-lead-fonts.md` AC-F5, its release half) **and the Licenses screen's notices** (`docs/tech-design.md` §13.1 LN-7 item 4, the bundle half of item 1.4) | [S] | `bundletool dump resources --bundle <aab> \| grep 'font/'` lists `fredoka_medium`, `fredoka_semibold`, `nunito_regular`, `nunito_semibold` and `nunito_bold`; `unzip -l <aab> \| grep 'base/assets/licenses/'` lists `Fredoka-OFL.txt` and `Nunito-OFL.txt`, **and also**: (a) `google/index.tsv`; (b) every stem file the index names — each stem of `unzip -p <aab> base/assets/licenses/google/index.tsv \| cut -f3 \| sort -u` present as `google/<stem>.txt`; (c) LN-5's texts at the paths `BundledLicenseText` names — protobuf's `LICENSE` (rows F and G), Chromium's `LICENSE` (row H), checker-qual's MIT text (row I), OkHttp's public-suffix `NOTICE` (row J), `Jakarta-Inject-NOTICE.md`, `Apache-2.0.txt` and `MPL-2.0.txt` (row J's licence text, `licences-screen.md` LS-11) — each one's `unzip -p <aab> <path> \| shasum -a 256` starting with its recorded hash (`6e5e1173`, `368cca11`, `e90eaa08`, `8a9c58fb`, `992ed62d`, `cfc7749b`, `3f3d9e00`; LN-5, and `THIRD_PARTY.md` §2 for Apache-2.0 and the Jakarta NOTICE, §5b rows F–J for the rest); (d) the index's sources (`cut -f4`, split on commas) equal the AARs on 3.5's `releaseRuntimeClasspath` listing that carry `third_party_licenses.json`. (a)–(d) are never skipped: without `feature/licences-screen` merged there is no cut (1.1, 1.4) |
-| 4.7 | [ ] No release artifact left on disk from a failed or throwaway-signed build | [S] | `ls app/build/outputs/bundle/release/ app/build/outputs/apk/release/` — a signed artifact sitting there after a failed build is exactly what gets uploaded by accident |
-| 4.8 | [ ] The one-screen founder summary is written: version, changelog, checklist state, store-asset state, and the **exact** upload command | [S] | `.planning/reports/release-<X.Y.Z>/release-manager.md` |
+| 4.7 | [ ] No release artifact left on disk from a failed or throwaway-signed build | [S] | `ls app/build/outputs/bundle/release/ app/build/outputs/apk/release/` lists **exactly one** `app-release.aab` and nothing else, and `shasum -a 256 app/build/outputs/bundle/release/app-release.aab` equals 4.6's recorded value. That directory is the one the upload script sends from, so any other artifact there, or a different hash, is exactly what gets uploaded by accident (T-5, tied to T-3 below) |
+| 4.8 | [ ] The one-screen founder summary is written: version, changelog, checklist state, store-asset state, and the **exact** upload command | [S] | `.planning/reports/release-<X.Y.Z>/release-manager.md`. Script route: the command is `PLAY_SERVICE_ACCOUNT_JSON=<absolute key path> ./scripts/play-upload.sh`, in exactly that form (T-11), run from the root of the `feature/publish-<X.Y.Z>-done` checkout after probes P0–P7 (`.planning/reports/play-upload/qa-engineer.md`, "Gate-2 probe list") (T-6). Console route: the AAB of 4.3 and its 4.6 hash |
 
 **The studio stops here.** Upload requires `.planning/approvals/publish-<X.Y.Z>.approved`, which
 the founder creates at Gate 2 and **the studio must never create**. The publish hook enforces it.
@@ -97,17 +97,43 @@ The approval file is merged into `develop`, not into `main` or the tag, so the u
 checkout of `feature/publish-<X.Y.Z>-done`, which the producer cuts from `develop` after the
 approval merge; the hook blocks the command on `main` and on the tag.
 
-**The gated upload script does not exist yet.** `rules/play-store.md` and
-`.planning/phases/14-release-readiness/14-RELEASE-PLAN.md` item 2 name `scripts/play-upload.sh`
-(`fastlane supply` with `PLAY_SERVICE_ACCOUNT_JSON`, track `internal`), but there is no `scripts/`
-directory on `develop` (0582e3f) or on any branch. The script itself checks no approval; the plugin
-hook `hooks/publish-gate.sh` refuses the command without the approval file (plugin `rules/stacks.md`
-1.0.0, scaffold contract 9). It cannot go on the release branch, because it is code and the release
-branch takes no code (§2); the release plan's item 2 says the same since 2026-10-21. It is owed on
-`feature/play-upload` off `develop` (`docs/tech-design.md` §14.1 PU): the tech-lead assigns it
-to the android-game-dev, the code-auditor reviews it and the tech-lead signs it off, routed by the
-producer, before Gate 2 (item 1.7). It blocks Gate 2, not the branch cut. Until it merges, the only upload route is the founder's own
-Console upload, operator checklist Step 8 item 1.
+**The gated upload script.** `scripts/play-upload.sh` is on `develop` since merge `1dd1080`
+(`feature/play-upload`, `docs/tech-design.md` §14.1 PU; reviews and sign-off under
+`.planning/reports/play-upload/`). Its contract, as built: bash only (it refuses another shell); no
+arguments; `PLAY_SERVICE_ACCOUNT_JSON` = the key file's absolute path, and the key must lie outside
+the checkout (a key inside it is refused); it uploads `app/build/outputs/bundle/release/app-release.aab`
+of the checkout it runs from to the `internal` track with `fastlane supply`; it builds nothing and
+uploads no listing; it refuses to run while `fastlane`, `.fastlane`, `Supplyfile` or `Appfile` is at
+the repository root; it prints the bundle's sha256 before fastlane starts; fastlane's analytics and
+update check are off; every refusal exits 78 before anything is sent. The script checks no approval
+itself: the plugin hook `hooks/publish-gate.sh` refuses the command without the approval file (plugin
+`rules/stacks.md`, scaffold contract 9). The producer records which route this release uses (item
+1.7): this script, or the founder's own Console upload (operator checklist Step 8 item 1).
+
+Rules for the script route (QA `play-upload/qa-engineer.md`, tech-lead `play-upload/tech-lead-signoff.md`):
+
+- **T-11, invocation.** Only `./scripts/play-upload.sh`, with optional `VAR=value` or `env …`
+  prefixes. Never `/bin/bash …`, `/bin/sh …` or any interpreter named by its path: the publish gate
+  does not see those (E-1, a plugin defect). This holds until the plugin fix is installed here.
+- **Key ordering (T-1).** The founder places the service-account key on this Mac only after
+  `.planning/approvals/publish-<X.Y.Z>.approved` exists in the checkout the upload runs from, as a
+  regular file (not a link) outside every repository, for example under `~/.config/`.
+- **T-3, the bundle is the release's bundle.** The AAB uploaded is the one 4.3–4.6 built and verified
+  on `release/<X.Y.Z>`. It reaches the `-done` checkout by a branch switch in the same worktree (the
+  ignored `app/build/` stays) or by a copy to the same path. Right before the real run,
+  `shasum -a 256 app/build/outputs/bundle/release/app-release.aab` must equal 4.6's value, and P7's
+  printed hash must equal it too; on any difference, stop. The real run's hash line goes into the
+  upload report as the record of what was sent.
+- **T-6, the command.** `PLAY_SERVICE_ACCOUNT_JSON=<absolute key path> ./scripts/play-upload.sh`,
+  from the `-done` checkout's root, after probes P0–P7, in the foreground with an explicit timeout.
+  If the timeout cuts it off, the result is unknown: check the Console before any re-run.
+- **T-7, the upload report.** `.planning/reports/publish-<X.Y.Z>/release-manager-upload.md` quotes
+  fastlane's summary table **without its `json_key` row** (it prints the key's path), and quotes the
+  command line in T-11's form.
+- **TL-1, a fastlane failure.** If fastlane fails in a way that needs an option the script does not
+  pass, the fix is a script change on a feature branch, through the developer and the code-auditor.
+  Never a hand-typed `fastlane supply` command: it would bypass every isolation the script adds,
+  even with the approval in place.
 
 ## 5. Verified from a real track download — not from this machine
 

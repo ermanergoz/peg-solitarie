@@ -15,7 +15,7 @@ done before the branch exists or the bundle is built).
 ### §1 Before the branch is cut
 | # | State | Evidence / what is left |
 |---|---|---|
-| 1.1 | **owed (one row)** | Merged on `develop` (first-parent merge commits): R1 `b1a6cf9`, check-gates (R-2) `dbd0a6c`, audio `6aa7624`, RM `053e9cc`, F-1 home-chip-arrival `305f741`, colour-vision `1bc442f`, LN licences-screen `bc95b2a`, PU play-upload `1dd1080`, TB talkback-board `d251c3b`. **Not merged: `feature/candy-backdrop`** (row 7, kept in 3.0.0 by Q-028 answer 1) — HOLD. `bugfix/solver-deadline-task` (row DT) not merged; it is "optional pre-cut" in STATUS and must be recorded as deferred with a named owner before the tick. `git status --porcelain` empty in this worktree |
+| 1.1 | **owed (one row)** | Merged on `develop` (first-parent merge commits): R1 `b1a6cf9`, check-gates (R-2) `dbd0a6c`, audio `6aa7624`, RM `053e9cc`, F-1 home-chip-arrival `305f741`, colour-vision `1bc442f`, LN licences-screen `bc95b2a`, PU play-upload `1dd1080`, TB talkback-board `d251c3b`. **Not merged: `feature/candy-backdrop`** (row 7, kept in 3.0.0 by Q-028 answer 1) — HOLD. `bugfix/solver-deadline-task` (row DT) not merged; it is "optional pre-cut" in STATUS and must be recorded as deferred with a named owner before the tick. `git status --porcelain` empty in this worktree **Update 2026-11-01:** row DT recorded by the producer as DEFERRED to 3.0.1, owner tech-lead (unmerged, not in 3.0.0). Only candy remains |
 | 1.1a | **done in substance, tick at the cut** | Merge `d251c3b` exists; `git diff --name-only d251c3b^1 d251c3b -- app/src/main` lists 18 files incl. `ui/components/BoardSpeech.kt`; tech-lead sign-off PASS names code `2fe6568` and `develop` = merge base; QA device3 PASS on `ergoz_studio` (an emulator: the brief allows the `Pixel_9` emulator, directive 4). Re-run condition (3)'s `git diff --quiet` at the cut |
 | 1.2 | **owed** | `FUZZ_SEEDS=100000 ./scripts/check.sh --rerun-tasks` on the final `develop` (after candy). Not run today on purpose: the host must stay quiet for candy's bench visit (STATUS 06:30) and the tree is not final |
 | 1.3 | **owed** | `git diff v1.0..develop -- '*/src/*'` suppression grep, reviewed hit by hit, on the final tree |
@@ -83,16 +83,16 @@ Founder directive 4: emulator only unless a phone is attached; each phone-only i
 None is done yet: all are release-manager texts, and 1.7 still says the script does not exist.
 | Item | Gate-2 weight | Status | Where it lands |
 |---|---|---|---|
-| T-1 provision key (regular file, outside every repo, placed only after the approval file exists) | must (script route) | owed — text; the act is founder's | operator checklist Step 8 + checklist §4 note |
-| T-2 rewrite 1.7 and the §4 note to the as-built contract + merge `1dd1080` | must | owed | `docs/release-checklist.md` |
-| T-3 compare bundle sha256 with 4.6 before the real run | must | owed | checklist 4.6/§4 note |
-| T-4 4.3 names `:app:bundleRelease` (both routes) | must | owed | checklist 4.3, `CLAUDE.md` Build command (2.6) |
-| T-5 4.7: exactly one AAB with 4.6's hash | must | owed | checklist 4.7 |
-| T-6 4.8's exact command `PLAY_SERVICE_ACCOUNT_JSON=<abs key path> ./scripts/play-upload.sh` from the `-done` checkout after P0–P7 | must | owed | checklist 4.8, Q-PUBLISH draft |
-| T-7 upload report without fastlane's `json_key` row | must with T-6 | owed (applies at upload) | upload report template |
+| T-1 provision key (regular file, outside every repo, placed only after the approval file exists) | must (script route) | text done 2026-11-01 (operator Step 8 item 1, checklist §4 note); the act is the founder's | operator checklist Step 8 + checklist §4 note |
+| T-2 rewrite 1.7 and the §4 note to the as-built contract + merge `1dd1080` | must | done 2026-11-01 (docs pass, `release-manager-docs-pass.md`) | `docs/release-checklist.md` |
+| T-3 compare bundle sha256 with 4.6 before the real run | must | done 2026-11-01 (docs pass, `release-manager-docs-pass.md`) | checklist 4.6/§4 note |
+| T-4 4.3 names `:app:bundleRelease` (both routes) | must | done 2026-11-01 (docs pass, `release-manager-docs-pass.md`) | checklist 4.3, `CLAUDE.md` Build command (2.6) |
+| T-5 4.7: exactly one AAB with 4.6's hash | must | done 2026-11-01 (docs pass, `release-manager-docs-pass.md`) | checklist 4.7 |
+| T-6 4.8's exact command `PLAY_SERVICE_ACCOUNT_JSON=<abs key path> ./scripts/play-upload.sh` from the `-done` checkout after P0–P7 | must | done 2026-11-01 (docs pass, `release-manager-docs-pass.md`) | checklist 4.8, Q-PUBLISH draft |
+| T-7 upload report without fastlane's `json_key` row | must with T-6 | done 2026-11-01 (docs pass, `release-manager-docs-pass.md`) | upload report template |
 | T-8 mapping check in 4.5 | recommended | owed | checklist 4.5 |
-| T-9 release plan item 2 | not gating | owed | `14-RELEASE-PLAN.md` |
-| T-10 `docs/store/README.md` "uploaded as they are" → no studio script uploads them | not gating | owed | store README |
-| T-11 only `./scripts/play-upload.sh` (never `/bin/bash …`) — E-1 stopgap | must | owed | 1.7, §4 note, upload report |
-| TL-1 a fastlane failure is fixed by a script branch, never a hand-typed `fastlane supply` | must with T-6 | owed | checklist §4 note |
+| T-9 release plan item 2 | not gating | done 2026-11-01 (docs pass, `release-manager-docs-pass.md`) | `14-RELEASE-PLAN.md` |
+| T-10 `docs/store/README.md` "uploaded as they are" → no studio script uploads them | not gating | done 2026-11-01 (docs pass, `release-manager-docs-pass.md`) | store README |
+| T-11 only `./scripts/play-upload.sh` (never `/bin/bash …`) — E-1 stopgap | must | done 2026-11-01 (docs pass, `release-manager-docs-pass.md`) | 1.7, §4 note, upload report |
+| TL-1 a fastlane failure is fixed by a script branch, never a hand-typed `fastlane supply` | must with T-6 | done 2026-11-01 (docs pass, `release-manager-docs-pass.md`) | checklist §4 note |
 If the producer records the Console route under 1.7 instead, only T-4 gates (T-2 should still land).

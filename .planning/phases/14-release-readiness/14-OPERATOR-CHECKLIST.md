@@ -489,8 +489,18 @@ This step runs **after** the studio has produced the signed artifact and **after
 publish hook refuses to run the upload script without that file, and creating it is your decision
 at Gate 2, not a step on this list.
 
-1. [ ] Create an **Internal testing** release in Play Console and upload the artifact the studio
-       hands you.
+1. [ ] Upload the build to **Internal testing**. The producer records the route under
+       `docs/release-checklist.md` item 1.7:
+       - **Console route:** create an Internal testing release in Play Console and upload the AAB
+         the studio hands you (its sha256 is in checklist item 4.6).
+       - **Script route:** the studio runs the upload; you do two things. (a) In Play Console,
+         create a service account with release rights on `com.erman.pegsolitarie` and download its
+         JSON key. (b) **Only after** `.planning/approvals/publish-3.0.0.approved` exists, place that
+         key on this Mac as a regular file (not a link) **outside every repository**, for example
+         under `~/.config/`, and give the studio its absolute path for `PLAY_SERVICE_ACCOUNT_JSON`.
+         The key is a secret: as in Step 7, its contents appear in no file and no report. The
+         studio's rules for this route are in the note under §4 of `docs/release-checklist.md`
+         (T-1, T-3, T-6, T-7, T-11, TL-1). Then continue at item 2.
 2. [ ] Confirm Play accepts the signature without a "wrong signing key" or "versionCode already
        used" error. The versionCode being uploaded is **30000** (see `14-RELEASE-PLAN.md`); the
        published one is **2**.

@@ -2,12 +2,12 @@
 
 Drafted by the release-manager on 2026-10-18 for Q-016 (founder, 2026-10-17): the studio drafts the
 short and full descriptions and the release notes, and the founder approves them at Gate 2. **Nothing
-here is live.** The founder pastes it into the Play Console. A gated upload script,
-`scripts/play-upload.sh` with `fastlane supply`, is planned to upload it once the publish approval
-exists, but that script does not exist yet on `develop` or on any branch; it is owed on a `feature/*`
-branch before Gate 2 (`docs/release-checklist.md` item 1.7 and the note under its §4).
+here is live.** The founder pastes it into the Play Console. No studio script uploads these
+texts: `scripts/play-upload.sh` (on `develop` since `1dd1080`) uploads the bundle only, never a listing
+(`docs/release-checklist.md` item 1.7 and the note under its §4).
 
-The texts follow `fastlane supply`'s metadata layout, so the files can be uploaded as they are:
+The files keep `fastlane supply`'s metadata layout, but they are pasted by hand. **Do not copy them into
+`./fastlane/metadata/android`:** the upload script refuses to run while a root `fastlane/` folder exists.
 
 | File | Play Console field | Limit | Length |
 |---|---|---|---|
@@ -48,31 +48,29 @@ The App content answers (Data safety, Ads, Target audience, Content rating, Adve
 Only what 3.0.0 ships: `CHANGELOG.md` §3.0.0, ROADMAP phases 6–15, `THIRD_PARTY.md`. Every line of the
 release notes maps to a CHANGELOG bullet. Some lines depend on branches that have not merged yet. **If a
 branch does not reach `release/3.0.0`, delete its lines at the release cut** (checklist item 2.4a).
-`feature/phase-15-ux-refresh` merged into `develop` at c9228a9, so its lines (the "Learn by playing"
-section, the game-controls bullet and the tutorial release-note line, and their tr-TR equivalents) are
-no longer conditional:
+These branches merged into `develop`, so their lines are no longer conditional:
+`feature/phase-15-ux-refresh` (c9228a9: the "Learn by playing" section, the game-controls bullet and the
+tutorial release-note line), `feature/colour-vision` (`1bc442f`: the "colorblind palette" bullet and the
+"a colorblind palette option" half of the release-note line) and `feature/audio-review` (`6aa7624`, which
+owned no line), with their tr-TR equivalents. One branch is still pending (re-checked 2026-11-01):
 
 | Branch | Full description | Release notes |
 |---|---|---|
 | `feature/candy-backdrop` (backdrop direction B) | the "glossy new look" bullet | the "A glossy new look" half of "A glossy new look and a colorblind palette option" |
-| `feature/colour-vision` (the colour-blind palette; it left `feature/candy-backdrop`, `docs/tech-design.md` §14.1) | the "colorblind palette" bullet | the "a colorblind palette option" half of the same line |
-| `feature/audio-review` | nothing (sound itself is on `develop`; this branch only changes the files) | nothing |
 
 The same branches own these tr-TR lines. Delete them together with their en-US lines:
 
 | Branch | tr-TR full description | tr-TR release notes |
 |---|---|---|
 | `feature/candy-backdrop` | the "Parlak yeni bir görünüm…" bullet | the "Parlak yeni bir görünüm" half of "Parlak yeni bir görünüm ve renk körlüğüne uygun palet seçeneği" |
-| `feature/colour-vision` | the "Ayarlar'da renk körlüğüne uygun bir renk paleti seçeneği…" bullet | the "renk körlüğüne uygun palet seçeneği" half of the same line |
-| `feature/audio-review` | nothing | nothing |
 
-**Accessibility claims.** No text claims screen-reader or TalkBack support. The founder chose (Q-023,
-2026-10-21, option 1) to make the board playable with TalkBack in 3.0.0 on `feature/talkback-board`, which
-has not merged. Until it merges into `develop`, no en-US or tr-TR text, and no `CHANGELOG.md` bullet, may
-say that the game works with TalkBack or a screen reader. The only accessibility claims are the
-colour-blind palette (owned by `feature/colour-vision`, above), the themes and the thumb-reach controls,
-which are on `develop`. A TalkBack line is added only after that branch merges, with a CHANGELOG bullet
-behind it (item 2.5), for the founder's approval at Gate 2.
+**Accessibility claims.** The founder chose (Q-023, 2026-10-21, option 1) to make the board playable with
+TalkBack in 3.0.0. `feature/talkback-board` merged into `develop` at `d251c3b`, so a TalkBack claim is now
+allowed, backed by the CHANGELOG bullet that `.planning/release/3.0.0/CHANGELOG-draft.md` applies at the cut
+(item 2.5). The en-US and tr-TR texts do not make that claim yet. Adding one line to each full description
+(and, room permitting, the release notes, 500-character limit) is offered to the founder at Gate 2; it is
+counted and word-checked before it is written here. The other accessibility claims are the colour-blind
+palette, the themes and the thumb-reach controls, all on `develop`.
 
 The backdrop is described only in neutral terms ("glossy", "soft light"), as Q-021's direction B requires.
 
