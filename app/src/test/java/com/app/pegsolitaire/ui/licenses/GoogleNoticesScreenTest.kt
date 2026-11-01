@@ -2,6 +2,7 @@ package com.app.pegsolitaire.ui.licenses
 
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertCountEquals
@@ -14,6 +15,7 @@ import androidx.compose.ui.test.performClick
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -94,6 +96,42 @@ class GoogleNoticesScreenTest {
             .isEqualTo(app.getString(R.string.google_notices_read_action))
     }
 
+    /**
+     * The tech-lead's F-4 ruling, R2: a row speaks its name, its "Found in" line and its ordinal, in
+     * order, as its own description, whichever of its texts is on screen. The fixture has rows with
+     * an ordinal and rows without.
+     */
+    @Test
+    fun everyRowSpeaksItsWholeLabelAsItsOwnDescription() {
+        render(GoogleNoticesUiState.Loaded(ROWS))
+
+        assertThat(ROWS.map { it.ordinal != null }).containsAtLeast(true, false)
+        mergedRowNodes().zip(ROWS).forEach { (node, row) ->
+            assertWithMessage("${row.name} (${row.key}): its description")
+                .that(node.config.getOrNull(SemanticsProperties.ContentDescription).orEmpty())
+                .containsExactly(labelOf(row))
+        }
+    }
+
+    /** R2's other half: every text inside a row is hidden from accessibility; the row is not. */
+    @Test
+    fun everyTextInsideARowIsHiddenFromAccessibility() {
+        render(GoogleNoticesUiState.Loaded(ROWS))
+
+        unmergedRowNodes().zip(ROWS).forEach { (card, row) ->
+            assertWithMessage("${row.key}: whether the row itself is hidden")
+                .that(card.config.contains(SemanticsProperties.HideFromAccessibility))
+                .isFalse()
+            val texts = textNodesUnder(card)
+            assertWithMessage("${row.key}: its texts").that(texts).hasSize(textsOf(row).size)
+            texts.forEach { text ->
+                assertWithMessage("${row.key}: whether \"${text.config[SemanticsProperties.Text]}\" is hidden")
+                    .that(text.config.contains(SemanticsProperties.HideFromAccessibility))
+                    .isTrue()
+            }
+        }
+    }
+
     @Test
     fun aMalformedIndexShowsTheErrorState() {
         render(GoogleNoticesUiState.Failed)
@@ -108,6 +146,40 @@ class GoogleNoticesScreenTest {
         }
         composeRule.waitForIdle()
     }
+
+    /** The row nodes of the merged tree, top to bottom: one per fixture row. */
+    private fun mergedRowNodes(): List<SemanticsNode> =
+        ROWS
+            .map { it.name }
+            .distinct()
+            .flatMap { name -> composeRule.onAllNodesWithText(name).fetchSemanticsNodes() }
+            .sortedBy { it.boundsInRoot.top }
+
+    /** The row nodes of the unmerged tree, top to bottom: each name text's first merging ancestor. */
+    private fun unmergedRowNodes(): List<SemanticsNode> =
+        ROWS
+            .map { it.name }
+            .distinct()
+            .flatMap { name -> composeRule.onAllNodesWithText(name, useUnmergedTree = true).fetchSemanticsNodes() }
+            .map { text -> generateSequence(text) { it.parent }.first { it.config.isMergingSemanticsOfDescendants } }
+            .distinctBy { it.id }
+            .sortedBy { it.boundsInRoot.top }
+
+    /** What [row] shows, resolved here from the resources: its name, "Found in", then any ordinal. */
+    private fun textsOf(row: GoogleNoticeRow): List<String> =
+        listOfNotNull(
+            row.name,
+            app.getString(R.string.google_notices_found_in, row.foundIn),
+            row.ordinal?.let { app.getString(R.string.google_notices_ordinal, it.index, it.count) },
+        )
+
+    private fun labelOf(row: GoogleNoticeRow): String = textsOf(row).joinToString(LicensesUi.CARD_LABEL_SEPARATOR)
+
+    /** Every node below [node] in the unmerged tree that carries a text, at any depth. */
+    private fun textNodesUnder(node: SemanticsNode): List<SemanticsNode> =
+        node.children.flatMap { child ->
+            listOfNotNull(child.takeIf { SemanticsProperties.Text in it.config }) + textNodesUnder(child)
+        }
 }
 
 /** Robolectric has no android-all jar for Android 16 (SDK 36) yet; emulate SDK 34. */

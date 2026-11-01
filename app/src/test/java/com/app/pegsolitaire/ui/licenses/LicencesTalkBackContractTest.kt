@@ -9,6 +9,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isHeading
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -40,15 +41,66 @@ class LicencesTalkBackContractTest {
 
     private val app get() = RuntimeEnvironment.getApplication()
 
+    /**
+     * The contract's order, each card read as its whole label (the tech-lead's F-4 ruling, R2), and
+     * each card's stop opening with its title (LS-06: read title first).
+     */
     @Test
     fun theLicensesScreenReadsInTheContractsOrder() {
         setLicenses()
 
         val expected =
-            listOf(R.string.navigate_back, R.string.licenses_title, R.string.licenses_intro) +
-                LicenseCatalog.sections.flatMap { section -> listOf(section.title) + section.entries.map { it.title } }
+            listOf(R.string.navigate_back, R.string.licenses_title, R.string.licenses_intro).map { app.getString(it) } +
+                LicenseCatalog.sections.flatMap { section ->
+                    listOf(app.getString(section.title)) + section.entries.map { labelOf(it) }
+                }
 
-        assertThat(readingOrder()).containsExactlyElementsIn(expected.map { app.getString(it) }).inOrder()
+        assertThat(readingOrder()).containsExactlyElementsIn(expected).inOrder()
+        allEntries().forEach { entry ->
+            assertWithMessage("${entry.id}: what its stop says")
+                .that(said(entryNode(entry)))
+                .startsWith(app.getString(entry.title))
+        }
+    }
+
+    /**
+     * The tech-lead's F-4 ruling, R2 (device re-check, O-1): a card's speech never depends on which
+     * of its texts is on screen. Each card carries its title and its lines, in order, as its own
+     * description, which Compose exposes whenever any part of the card is.
+     */
+    @Test
+    fun everyLicensesCardSpeaksItsWholeLabelAsItsOwnDescription() {
+        setLicenses()
+
+        assertThat(allEntries()).hasSize(LICENSES_ENTRY_COUNT)
+        allEntries().forEach { entry ->
+            assertWithMessage("${entry.id}: its description")
+                .that(entryNode(entry).config.getOrNull(SemanticsProperties.ContentDescription).orEmpty())
+                .containsExactly(labelOf(entry))
+        }
+    }
+
+    /**
+     * R2's other half: every text inside a card is hidden from accessibility services, so TalkBack
+     * reads the card's label once and never its texts again. The card itself is not hidden.
+     */
+    @Test
+    fun everyTextInsideALicensesCardIsHiddenFromAccessibility() {
+        setLicenses()
+
+        allEntries().forEach { entry ->
+            val card = cardOf(app.getString(entry.title))
+            assertWithMessage("${entry.id}: whether the card itself is hidden")
+                .that(card.config.contains(SemanticsProperties.HideFromAccessibility))
+                .isFalse()
+            val texts = textNodesUnder(card)
+            assertWithMessage("${entry.id}: its texts").that(texts).hasSize(entry.lines.size + 1)
+            texts.forEach { text ->
+                assertWithMessage("${entry.id}: whether \"${text.config[SemanticsProperties.Text]}\" is hidden")
+                    .that(text.config.contains(SemanticsProperties.HideFromAccessibility))
+                    .isTrue()
+            }
+        }
     }
 
     @Test
@@ -189,17 +241,28 @@ class LicencesTalkBackContractTest {
         }
     }
 
+    /**
+     * The chevron is decorative: its own node has no description, and the only descriptions on the
+     * screen are the back button's and the cards' labels (the tech-lead's F-4 ruling, R2).
+     */
     @Test
     fun theChevronCarriesNoDescription() {
         setLicenses()
 
+        val chevrons =
+            composeRule.onAllNodesWithTag(LICENCE_CARD_CHEVRON_TAG, useUnmergedTree = true).fetchSemanticsNodes()
+        assertThat(chevrons).hasSize(tappableEntries().size)
+        chevrons.forEach { chevron ->
+            assertThat(chevron.config.contains(SemanticsProperties.ContentDescription)).isFalse()
+        }
         val described =
             composeRule
                 .onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.ContentDescription))
                 .fetchSemanticsNodes()
                 .flatMap { it.config[SemanticsProperties.ContentDescription] }
 
-        assertThat(described).containsExactly(app.getString(R.string.navigate_back))
+        assertThat(described)
+            .containsExactlyElementsIn(listOf(app.getString(R.string.navigate_back)) + allEntries().map { labelOf(it) })
     }
 
     private fun setLicenses() {
@@ -232,8 +295,33 @@ class LicencesTalkBackContractTest {
         }
     }
 
-    private fun tappableEntries(): List<LicenseEntry> =
-        LicenseCatalog.sections.flatMap { it.entries }.filter { it.opens != null }
+    private fun allEntries(): List<LicenseEntry> = LicenseCatalog.sections.flatMap { it.entries }
+
+    private fun tappableEntries(): List<LicenseEntry> = allEntries().filter { it.opens != null }
+
+    /** What [entry]'s card should say, resolved here from the resources: title, then each line. */
+    private fun labelOf(entry: LicenseEntry): String =
+        (listOf(app.getString(entry.title)) + entry.lines.map { textOf(it) })
+            .joinToString(LicensesUi.CARD_LABEL_SEPARATOR)
+
+    private fun textOf(line: LicenseLine): String =
+        when (line) {
+            is LicenseLine.Plain -> app.getString(line.text)
+            is LicenseLine.SoundCount ->
+                app.resources.getQuantityString(R.plurals.licenses_sound_effects, line.count, line.count)
+            is LicenseLine.Address -> app.getString(line.text)
+        }
+
+    /** The card whose title reads [title], in the unmerged tree: its title's first merging ancestor. */
+    private fun cardOf(title: String): SemanticsNode =
+        generateSequence(composeRule.onNode(hasText(title), useUnmergedTree = true).fetchSemanticsNode()) { it.parent }
+            .first { it.config.isMergingSemanticsOfDescendants }
+
+    /** Every node below [node] in the unmerged tree that carries a text, at any depth. */
+    private fun textNodesUnder(node: SemanticsNode): List<SemanticsNode> =
+        node.children.flatMap { child ->
+            listOfNotNull(child.takeIf { SemanticsProperties.Text in it.config }) + textNodesUnder(child)
+        }
 
     private fun entryNode(entry: LicenseEntry): SemanticsNode =
         composeRule.onNodeWithText(app.getString(entry.title)).fetchSemanticsNode()

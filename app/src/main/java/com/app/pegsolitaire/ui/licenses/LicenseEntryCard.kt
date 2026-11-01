@@ -25,6 +25,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.semantics
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.ui.theme.clayShadow
@@ -44,10 +46,12 @@ internal const val LICENCE_CARD_CHEVRON_TAG = "licence_card_chevron"
  * with `Role.Button` and [clickLabel] ("Read the license"), so the role and the label carry by ear
  * what the chevron and the squish carry by eye (LS-06, LS-13). **Inert** when [onClick] is `null`:
  * neither, and no click action at all. Either way the card merges its own descendants (brief A1.1,
- * spec LS-06 as amended), so it is one TalkBack stop read title first; the merge is the card's,
- * not the click's. An address line is plain text inside that one stop, never a link (LS-05) and not
- * in a `SelectionContainer`: that container is focusable, and on TalkBack 16 it split the address
- * into a stop of its own (device QA loop 2, F-1; spec §5.1, LS-AC06).
+ * spec LS-06 as amended), so it is one TalkBack stop; the merge is the card's, not the click's.
+ * The title and the lines are resolved once, and that one list is both what the card shows and the
+ * label it speaks, title first, whichever of its texts is on screen (the tech-lead's F-4 ruling,
+ * R2). An address line is plain text inside that one stop, never a link (LS-05) and not in a
+ * `SelectionContainer`: that container is focusable, and on TalkBack 16 it split the address into a
+ * stop of its own (device QA loop 2, F-1; spec §5.1, LS-AC06).
  */
 @Composable
 internal fun LicenseEntryCard(
@@ -56,13 +60,14 @@ internal fun LicenseEntryCard(
     clickLabel: String?,
     modifier: Modifier = Modifier,
 ) {
-    LicenceCard(onClick = onClick, clickLabel = clickLabel, modifier = modifier) {
-        Text(
-            text = stringResource(entry.title),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        entry.lines.forEach { line -> LicenseLineText(line) }
+    val texts = listOf(stringResource(entry.title)) + entry.lines.map { licenseLineText(it) }
+    LicenceCard(
+        onClick = onClick,
+        clickLabel = clickLabel,
+        label = texts.joinToString(LicensesUi.CARD_LABEL_SEPARATOR),
+        modifier = modifier,
+    ) {
+        LicenceCardTexts(texts)
     }
 }
 
@@ -72,11 +77,18 @@ internal fun LicenseEntryCard(
  * tappable card ([onClick] set) adds the squish, a `clickable` with `Role.Button` and [clickLabel],
  * and a decorative chevron; an inert one adds none of them. Every card merges its descendants into
  * one node, with any [semantics] of the caller's on that same node (a row's collection position).
+ *
+ * That node speaks [label], the card's whole text, as its own description. Compose hands TalkBack
+ * a merging node's description as the node's first child, with the card's bounds, so the card is
+ * read whole, title first, even when its title is scrolled out of the list's viewport; its texts
+ * are hidden from accessibility ([LicenceCardTexts]), so none is read twice (the tech-lead's F-4
+ * ruling, R2).
  */
 @Composable
 internal fun LicenceCard(
     onClick: (() -> Unit)?,
     clickLabel: String?,
+    label: String,
     modifier: Modifier = Modifier,
     semantics: SemanticsPropertyReceiver.() -> Unit = {},
     lines: @Composable ColumnScope.() -> Unit,
@@ -97,7 +109,10 @@ internal fun LicenceCard(
                     } else {
                         Modifier
                     },
-                ).semantics(mergeDescendants = true, properties = semantics),
+                ).semantics(mergeDescendants = true) {
+                    contentDescription = label
+                    semantics()
+                },
     ) {
         Row(
             modifier =
@@ -127,19 +142,31 @@ internal fun LicenceCard(
     }
 }
 
-/** One line under an entry's title (`bodyMedium`, `onSurfaceVariant`). */
+/**
+ * A licences card's texts, as one resolved list: the first is its title (`titleMedium`,
+ * `onSurface`), the rest its lines (`bodyMedium`, `onSurfaceVariant`). Each is hidden from
+ * accessibility services, because the card speaks the same list as its label ([LicenceCard]):
+ * TalkBack reads the label once and never these texts again (the tech-lead's F-4 ruling, R2).
+ * Shared by the Licenses entries and the Google notices rows.
+ */
 @Composable
-private fun LicenseLineText(line: LicenseLine) {
-    val style = MaterialTheme.typography.bodyMedium
-    val color = MaterialTheme.colorScheme.onSurfaceVariant
-    when (line) {
-        is LicenseLine.Plain -> Text(text = stringResource(line.text), style = style, color = color)
-        is LicenseLine.SoundCount ->
-            Text(
-                text = pluralStringResource(R.plurals.licenses_sound_effects, line.count, line.count),
-                style = style,
-                color = color,
-            )
-        is LicenseLine.Address -> Text(text = stringResource(line.text), style = style, color = color)
+internal fun LicenceCardTexts(texts: List<String>) {
+    texts.forEachIndexed { index, text ->
+        val isTitle = index == 0
+        Text(
+            text = text,
+            style = if (isTitle) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
+            color = if (isTitle) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.semantics { hideFromAccessibility() },
+        )
     }
 }
+
+/** The text of one line under an entry's title, resolved from its resources. */
+@Composable
+private fun licenseLineText(line: LicenseLine): String =
+    when (line) {
+        is LicenseLine.Plain -> stringResource(line.text)
+        is LicenseLine.SoundCount -> pluralStringResource(R.plurals.licenses_sound_effects, line.count, line.count)
+        is LicenseLine.Address -> stringResource(line.text)
+    }

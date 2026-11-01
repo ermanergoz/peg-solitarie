@@ -30,6 +30,12 @@ internal object LicensesUi {
     val TEXT_DIRECTION: TextDirection = TextDirection.ContentOrLtr
 
     /**
+     * What joins a licences card's title and lines into the one label the card speaks as its own
+     * description (the tech-lead's F-4 ruling, R2): the pause TalkBack already made between them.
+     */
+    const val CARD_LABEL_SEPARATOR = ". "
+
+    /**
      * The entrance order of the list item at [position] (0 = the intro), or `null` past the first
      * [STAGGERED_ROWS] items: an item below the fold, or composed only as it scrolls in, must not
      * wait out a long delay.

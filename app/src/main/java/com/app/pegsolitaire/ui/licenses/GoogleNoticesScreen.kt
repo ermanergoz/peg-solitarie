@@ -113,7 +113,11 @@ fun GoogleNoticesScreen(
     }
 }
 
-/** One notice row: the shared clay card, merged into one stop that knows its place in the list. */
+/**
+ * One notice row: the shared clay card, merged into one stop that knows its place in the list. Its
+ * name, "Found in" line and any ordinal are resolved once, and that one list is both what the row
+ * shows and the label it speaks, name first (the tech-lead's F-4 ruling, R2).
+ */
 @Composable
 private fun GoogleNoticeRowCard(
     row: GoogleNoticeRow,
@@ -122,26 +126,23 @@ private fun GoogleNoticeRowCard(
     modifier: Modifier = Modifier,
 ) {
     val open = remember(row.key, onOpenNotice) { { onOpenNotice(row.key) } }
-    val lineStyle = MaterialTheme.typography.bodyMedium
-    val lineColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val texts =
+        listOfNotNull(
+            row.name,
+            stringResource(R.string.google_notices_found_in, row.foundIn),
+            row.ordinal?.let { stringResource(R.string.google_notices_ordinal, it.index, it.count) },
+        )
     LicenceCard(
         onClick = withClickSound(SoundCue.ButtonForward, open),
         clickLabel = stringResource(R.string.google_notices_read_action),
+        label = texts.joinToString(LicensesUi.CARD_LABEL_SEPARATOR),
         modifier = modifier,
         semantics = {
             collectionItemInfo =
                 CollectionItemInfo(rowIndex = index, rowSpan = 1, columnIndex = 0, columnSpan = 1)
         },
     ) {
-        Text(text = row.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-        Text(text = stringResource(R.string.google_notices_found_in, row.foundIn), style = lineStyle, color = lineColor)
-        row.ordinal?.let { ordinal ->
-            Text(
-                text = stringResource(R.string.google_notices_ordinal, ordinal.index, ordinal.count),
-                style = lineStyle,
-                color = lineColor,
-            )
-        }
+        LicenceCardTexts(texts)
     }
 }
 
