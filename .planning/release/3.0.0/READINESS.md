@@ -2,7 +2,7 @@
 
 Date: 2026-11-01. Author: release-manager. **`release/3.0.0` is cut** from `develop` = `da886ed`
 (`feature/candy-backdrop` merged, the last branch-cut row), in the worktree
-`/Users/ermanergoz/Desktop/PegSolitarie-release`. Not merged to `main`, not tagged, nothing uploaded,
+`/Users/ermanergoz/Desktop/PegSolitarie-release`. Merged to `main` and tagged `v3.0.0` on 2026-11-01 (§1 Gitflow finish); nothing uploaded,
 no founder question asked: Gate 2 comes later. The earlier pre-cut revision of this file (read at
 `d251c3b`, candy on HOLD) is in git history.
 
@@ -30,7 +30,7 @@ checklist / F-items), **device** (the release device pass, §3), **post-build** 
 | 2.1 | **done** — `release/3.0.0` from `develop` `da886ed` (worktree add) |
 | 2.2 | **done** — `VERSION` = `3.0.0` |
 | 2.3 | **done [S] / founder [F]** — `versionName "3.0.0"`, `versionCode = 30_000` = 3·10000+0·100+0 > published 2; the Console read of the published max is F-13 |
-| 2.4 | **owed at the merge to main** — `## [3.0.0] — unreleased` stays undated until the tag (the section's own rule); dated on the release branch right before step 5 |
+| 2.4 | **done (ticked)** — `## [3.0.0] — 2026-11-01`, dated on `release/3.0.0` right before the merge to `main` and the tag |
 | 2.4a | **done** — all pending branches merged (`--is-ancestor` exit 0 for audio-review, colour-vision, licences-screen, candy-backdrop, phase-15-ux-refresh); markers removed in `CHANGELOG.md`, `THIRD_PARTY.md` (branch table, candy row, Apache row, LN bullet) and `docs/store/README.md` (both pending tables); `grep -n 'pending:' CHANGELOG.md` silent. Listing lengths unchanged (no store text edited) |
 | 2.5 | **owed with the TalkBack store line** — the CHANGELOG now carries the TalkBack bullet; the store texts make no TalkBack claim yet. If the line is added (Gate 2 offer), it is counted, word-checked and read against the changelog then |
 | 2.5a | **taken in the changelog only** — R1 merged (`b1a6cf9`); the CHANGELOG Changed bullet says "no winning move" appears only when proven. Store copy not raised (founder's choice at Gate 2) |
@@ -54,11 +54,14 @@ checklist / F-items), **device** (the release device pass, §3), **post-build** 
 | # | State |
 |---|---|
 | 4.1, 4.2 | **founder** (F-7, F-8) — no `PLAY_UPLOAD_*` variable is set on this host (names checked, no values read) |
-| 4.3 | **founder-blocked** — `:app:bundleRelease` depends on `verifyReleaseSigning` and the real-ID gates, so it cannot run without 4.1/4.2. Not attempted |
+| 4.3 | **founder-blocked; builds from the `v3.0.0` tag** (checkout of the tag, or the kept `release/3.0.0` worktree at the tagged commit) — `:app:bundleRelease` depends on `verifyReleaseSigning` and the real-ID gates, so it cannot run without 4.1/4.2. Not attempted |
 | 4.1a, 4.4, 4.5, 4.6, 4.6a, 4.7 | **post-build** (T-8 for 4.5 still owed) |
 | 4.8 | **post-build**; draft in `Q-PUBLISH-3.0.0-draft.md` (candy lines now measured) |
 
 ### §5 — **founder** + QA after upload. §6–§8 — post-release.
+
+### Gitflow finish (2026-11-01)
+`release/3.0.0` merged to `main` (`--no-ff`), tagged `v3.0.0` (annotated), `main` merged back into `develop` (`--no-ff`); details and commits in `.planning/reports/release-3.0.0/release-manager-merge.md`. **Branch deletion deferred:** `release/3.0.0` and its worktree `/Users/ermanergoz/Desktop/PegSolitarie-release` are kept until the upload is done, because 4.3+ (signed bundle) waits on the founder's keys (F-7/F-8) and must be built from the `v3.0.0` tag; delete both after the upload (rules/gitflow.md last step).
 
 ## 2. Docs syncs
 Items 1–6 of the pre-cut list landed with `0ac2abd` (tech-design sync), `8a7cb89` (ux folds) and
@@ -114,7 +117,7 @@ Sources: `.planning/reports/release-3.0.0/qa-engineer-device-pass.md` (emulator 
 | D-12 | **founder-blocked** | after upload |
 | D-13 | **FAIL → 3.0.1, Minor (accessibility)** | focus leaves Hint for "Navigate back" (3 of 4); notice spoken once, order and Dismiss PASS. `bugfix/hint-focus` in 3.0.1; Q-PUBLISH line (triage §2.3). Folded into 3.0.0 only if a release-branch code loop opens anyway |
 | D-14 | **PASS** (on the corrected wording above) | banner spoke once at 13:18:56.7; no re-run (triage §3) |
-| D-15 | **probe VOID (host App Nap; `tech-lead-d15-ruling.md`); guarded re-measure pending.** | the §1.4 probe's FAIL is VOID, an instrument fault (macOS App Nap halved the emulator's speed in both conditions); not a defect, not Major; no code loop, D-13 stays 3.0.1. The ruling's §2 guarded re-measure (nap guard, absolute speed gate, cold reboot after every switch) runs once on `Pixel_9a_bench` before the merge to main; its verdict replaces this status (PASS closes D-15; FAIL on a valid attempt → Major, blocking). Frame 1 with animations off ~50 ms longer by design (ruling §1.2). Other clauses PASS |
+| D-15 | **PASS** (guarded re-measure, attempt 2; `qa-engineer-d15-remeasure.md`) | OFF median **465.5 ms** ≤ ON median **440.5 ms** + 100; slowest OFF **508 ms** < 2 s; no Davey in any of 60 launches, so no OFF frame ≥ 700 ms. Attempt 1 VOID (Guard 2 post-block gate, 8 of 12 ON launches); attempt 2 valid, 4 of 12 VOID per condition; nap guard never fired. The §1.4 probe stays VOID (App Nap). Merge to main unblocked (`tech-lead-d15-ruling.md`). Frame 1 with animations off ~50 ms longer by design (ruling §1.2). Other clauses PASS |
 | D-16 | **drafts only** | 9 draft captures; final store screenshots are recaptured from the release candidate (after 4.3) |
 
 ## 4. T-items (play-upload) — status
@@ -133,4 +136,5 @@ Unchanged from the pre-cut revision: every T-item done except **T-8** (mapping c
 ## 6. Studio/plugin follow-ups (not product 3.0.1; producer → 3.0.0 retro or a plugin branch)
 - **Standard emulator-timing guards** (`tech-lead-d15-ruling.md` §4.1): every emulator timing session in the plugin's QA bench procedure, and every tech-lead probe pre-registration, carries Guard 1 (nap guard: no qemu thread at priority 4 from 2 s before `am start` to the log dump) and Guard 2 (absolute guest speed gate: 64 MiB sha256 ≤ 50 ms, three runs before and after each block). A speed control relative to the other condition is never the only guard.
 - **App Nap on the studio Mac** (§4.2–4.3): either disable App Nap for the emulator only (`NSAppSleepDisabled` on its own bundle domain, verified by Guard 1), **with the founder's consent** (non-blocking Q, `Blocks: nothing` unless the re-measure is VOID twice), or a bench rule: timing only with the screen unlocked and the emulator window visible. `caffeinate` is not expected to help.
+- **Speed-gate settle (QA, `qa-engineer-d15-remeasure.md` Open issue 1):** all 5 VOID blocks of the re-measure failed Guard 2's *post*-block gate (51–57 ms, first run right after the last force-stop, qemu at priority 31, i.e. launch residue, not a nap). Before Guard 2 is standardised, add a fixed settle (e.g. 10 s) before the post gate, or judge the median of the three runs.
 - **Retro finding candidate** (§4.4): earlier "post-toggle slow regime" records (`candy-backdrop/qa-engineer-15e.md`, `qa-engineer-j5.md` attempt 1, the original D-15) may share the cause.

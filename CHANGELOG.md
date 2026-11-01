@@ -36,10 +36,9 @@ Milestone **v1.1 ships as product version 3.0.0**, tag `v3.0.0`, versionCode `30
 
 ---
 
-## [3.0.0] — unreleased
+## [3.0.0] — 2026-11-01
 
-*Date is filled in when `release/3.0.0` is merged and tagged; an unreleased section with a date is
-a false claim. Sources: `.planning/ROADMAP.md` phases 6–15 (success criteria, written in outcome
+*Dated 2026-11-01, when `release/3.0.0` was merged to `main` and tagged `v3.0.0`. Sources: `.planning/ROADMAP.md` phases 6–15 (success criteria, written in outcome
 language) and the phase summaries under `.planning/phases/*/`.*
 
 *Every branch this section describes merged into `develop` before `release/3.0.0` was cut
