@@ -114,12 +114,55 @@
     <!-- Shown while a Challenge board is generated off the main thread (CR-01). -->
     <string name="loading_level">Loading level</string>
     <!--
-      The wrong tap's screen-reader sentences (D-06c; docs/ux/invalid-tap-feedback.md §3.6, §6):
-      spoken politely on the gameplay board only, never in the tutorial. W1, W2, W3 in order.
+      The board with TalkBack (D-TB as amended by D-TBa; docs/ux-spec.md §11.1 and §8). Every
+      string here is spoken, never drawn. Rows and columns are spoken from 1 (BoardSpeechFormat).
+      29 strings and two plurals. The three board_a11y_rejected_* lines replace the audio branch's
+      three wrong-tap sentences (D-06c), on both boards (D-TBa items 2 and 3).
     -->
-    <string name="wrong_tap_empty_hole">Empty hole. Pick up a peg first.</string>
-    <string name="wrong_tap_other_peg">Already holding a peg. Tap it again to put it down.</string>
-    <string name="wrong_tap_not_a_destination">Can\'t jump there.</string>
+    <!-- The board stop: "Board, 32 pegs left". -->
+    <string name="board_a11y_label">Board, %1$s</string>
+    <plurals name="board_a11y_pegs_left">
+        <item quantity="one">%d peg left</item>
+        <item quantity="other">%d pegs left</item>
+    </plurals>
+    <!-- A cell's parts, joined by the separator in this order, only the parts that apply. -->
+    <string name="board_a11y_separator">", "</string>
+    <string name="board_a11y_position">Row %1$d, column %2$d</string>
+    <string name="board_a11y_peg">peg</string>
+    <string name="board_a11y_empty">empty</string>
+    <string name="board_a11y_selected">selected</string>
+    <plurals name="board_a11y_jumps">
+        <item quantity="one">%d jump</item>
+        <item quantity="other">%d jumps</item>
+    </plurals>
+    <string name="board_a11y_no_jumps">no jumps</string>
+    <string name="board_a11y_jump_target">jump target</string>
+    <string name="board_a11y_hint_source">hint, move this peg</string>
+    <string name="board_a11y_hint_target">hint, land here</string>
+    <!-- The tap's action label, spoken as "double-tap to …". -->
+    <string name="board_a11y_action_select">select</string>
+    <string name="board_a11y_action_put_down">put down</string>
+    <string name="board_a11y_action_jump_here">jump here</string>
+    <!-- One custom action per legal jump: "Jump up to row 4, column 4". -->
+    <string name="board_a11y_action_jump">Jump %1$s to row %2$d, column %3$d</string>
+    <string name="board_a11y_direction_up">up</string>
+    <string name="board_a11y_direction_down">down</string>
+    <string name="board_a11y_direction_left">left</string>
+    <string name="board_a11y_direction_right">right</string>
+    <!-- The board's one polite channel: each event spoken once. -->
+    <string name="board_a11y_announce_selected">Selected row %1$d, column %2$d, %3$s.</string>
+    <string name="board_a11y_announce_put_down">Peg put down, row %1$d, column %2$d.</string>
+    <string name="board_a11y_announce_jump">Row %1$d, column %2$d to row %3$d, column %4$d. Removed row %5$d, column %6$d. %7$s.</string>
+    <string name="board_a11y_rejected_no_peg">No peg here.</string>
+    <string name="board_a11y_rejected_not_target">Not a jump target.</string>
+    <string name="board_a11y_rejected_put_down_first">Put down the selected peg first.</string>
+    <string name="board_a11y_announce_undo">Undid row %1$d, column %2$d to row %3$d, column %4$d. %5$s.</string>
+    <string name="board_a11y_announce_hint">Hint: row %1$d, column %2$d, jump %3$s to row %4$d, column %5$d.</string>
+    <string name="board_a11y_announce_restart">Board restarted. %1$s.</string>
+    <!-- A tutorial step's board: tutorial_step_progress, then the step's caption. -->
+    <string name="board_a11y_announce_step">%1$s. %2$s</string>
+    <!-- Results' summary on opening: the headline, the stars, the pegs left. -->
+    <string name="results_a11y_summary">%1$s — %2$s, %3$s.</string>
 
     <!--
       Inline no-win / stuck rescue banner (ASST-03, D-06/D-08/D-09). One shared banner
