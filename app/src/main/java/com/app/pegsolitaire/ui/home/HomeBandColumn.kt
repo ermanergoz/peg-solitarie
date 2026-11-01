@@ -176,6 +176,13 @@ internal class ChipRoom(
  * With OS animations off ([animationsEnabled] false) the room is its target at once, read in the
  * composition that carries the change, so the very next frame is the settled layout (§10's
  * reduced-motion bullet) — not a frame later, as a snap from an effect would be.
+ *
+ * **The effect is keyed on the target alone**, never on the gate (tech design §16 #28; §14.3 item 1,
+ * `home-chip-arrival/tech-lead-c11-ruling.md` §3): it runs the tween whenever the room is not where its
+ * chip wants it, and the tween takes the composition's own animator scale, so with animations off it
+ * ends in its first frame. A switch of Remove animations therefore restarts nothing and strands
+ * nothing: switched off mid-opening, the room reads its target in that composition and the tween ends
+ * on its next frame; switched back on, the room is already at its target and nothing moves.
  */
 @Composable
 internal fun rememberChipRoom(
@@ -184,10 +191,8 @@ internal fun rememberChipRoom(
 ): ChipRoom {
     val target = if (present) ROOM_OPEN else ROOM_SHUT
     val openness = remember { Animatable(target) }
-    LaunchedEffect(target, animationsEnabled) {
-        if (!animationsEnabled) {
-            openness.snapTo(target)
-        } else if (openness.value != target) {
+    LaunchedEffect(target) {
+        if (openness.value != target) {
             openness.animateTo(target, tween(ClayAnim.ENTRANCE_MS, easing = ClayAnim.ENTRANCE_EASING))
         }
     }

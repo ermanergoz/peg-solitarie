@@ -209,6 +209,91 @@ class HomeChipArrivalTest {
         assertSettledInTheFirstFrame(leaving, from = bothChips, what = "both chips leaving")
     }
 
+    // ---- The chip room under a live switch of Remove animations (§14.3 item 1) -------
+
+    /**
+     * P3 part 1 and the code-auditor's step 1b (`home-chip-arrival/tech-lead-c11-ruling.md` §2;
+     * `code-auditor-loop3.md` I1): Remove animations switched **on** while the Classic chip's room is
+     * opening, then off again. From the second frame after the first switch every frame is the settled
+     * one-chip layout, and after the switch back every frame still is: a room left part-way, which the
+     * gate's off branch would hide until animations come back, shows there. The tiles hold their no-chip
+     * bounds throughout.
+     */
+    @Test
+    @Config(qualifiers = "w412dp-h915dp")
+    fun switchingAnimationsOffMidOpeningSettlesTheRoomAndSwitchingThemBackLeavesItSettled() {
+        val state = renderWithThePausedClock()
+        val noChip = readFrame()
+        composeRule.runOnUiThread {
+            state.value = chipsState(classic = true, challenge = false)
+            Snapshot.sendApplyNotifications()
+        }
+        val opening = nextFrames(START_FRAMES + 2)
+        assertWithMessage("the room, part-way open when animations go off")
+            .that(opening.last().ribbonTop.value)
+            .isLessThan(noChip.ribbonTop.value - TOLERANCE_DP)
+
+        switchAnimations(on = false)
+        val off = nextFrames(FRAMES_READ)
+        composeRule.mainClock.advanceTimeBy(CASCADE_SETTLED_MS)
+        val settled = readFrame()
+        switchAnimations(on = true)
+        val backOn = nextFrames(FRAMES_READ)
+
+        off.drop(1).forEachIndexed { index, frame ->
+            assertWithMessage("frame ${index + 2} after the switch off, against the settled one-chip frame")
+                .that(frame)
+                .isEqualTo(settled)
+        }
+        backOn.forEachIndexed { index, frame ->
+            assertWithMessage("frame ${index + 1} after the switch back on, against the settled one-chip frame")
+                .that(frame)
+                .isEqualTo(settled)
+        }
+        (opening + off + backOn).forEachIndexed { index, frame ->
+            assertSameBounds("walk frame ${index + 1}: the Classic tile", frame.classicTile, noChip.classicTile)
+            assertSameBounds("walk frame ${index + 1}: the Challenge tile", frame.challengeTile, noChip.challengeTile)
+        }
+    }
+
+    /**
+     * P3 part 2 (`home-chip-arrival/tech-lead-c11-ruling.md` §2): with Remove animations on, the chip
+     * arrives and its room is open in the next frame; switching animations back on then changes nothing
+     * — the frame after the switch is the frame before it — and the chip leaving afterwards closes its
+     * room smoothly over the entrance duration, as 15z part 5 reads it.
+     */
+    @Test
+    @Config(qualifiers = "w412dp-h915dp")
+    fun switchingAnimationsOnAfterAnInstantArrivalMovesNothingAndTheLeavingStillGlides() {
+        motion.turnAnimationsOff()
+        val state = renderWithThePausedClock()
+        val slack = composeRule.homeSlack(statusBar = THREE_BUTTON.status, navigationBar = THREE_BUTTON.navigation)
+        val arrived = framesAfter(state, classic = true, challenge = false)
+        val before = arrived.last()
+        assertWithMessage("the room open in the first frame after the arrival").that(arrived.first()).isEqualTo(before)
+
+        switchAnimations(on = true)
+        composeRule.mainClock.advanceTimeByFrame()
+        assertWithMessage("the frame after the switch on, against the frame before it")
+            .that(readFrame())
+            .isEqualTo(before)
+
+        val leaving = framesAfter(state, classic = false, challenge = false)
+        assertTheRoomMovesSmoothly(leaving, from = before, slack = slack, what = "the chip leaving after the switch on")
+    }
+
+    /**
+     * Turns Remove animations [on] or off while Home stays composed, as a live switch in Settings reaches
+     * a resident app: the scale is written on the UI thread and its apply notification sent at once, as
+     * [framesAfter] writes state, so the next frame reads it.
+     */
+    private fun switchAnimations(on: Boolean) {
+        composeRule.runOnUiThread {
+            if (on) motion.turnAnimationsOn() else motion.turnAnimationsOff()
+            Snapshot.sendApplyNotifications()
+        }
+    }
+
     /**
      * Criteria 15z parts 1–4 and 15ac part 2 on the current window with [bars], at default font scale,
      * over both of 15s's walks. In the no-chip emission the headroom is H₀ = min(⅘ S₀, C); then in every
@@ -524,11 +609,15 @@ class HomeChipArrivalTest {
             holder.value = chipsState(classic = classic, challenge = challenge)
             Snapshot.sendApplyNotifications()
         }
-        return List(FRAMES_READ) {
+        return nextFrames(FRAMES_READ)
+    }
+
+    /** Advances the paused clock [count] frames, reading each one. */
+    private fun nextFrames(count: Int): List<FrameReading> =
+        List(count) {
             composeRule.mainClock.advanceTimeByFrame()
             readFrame()
         }
-    }
 
     /** Emits the chips asked for and lets the clock run until everything has settled. */
     private fun settle(
