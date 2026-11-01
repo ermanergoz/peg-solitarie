@@ -371,6 +371,54 @@ class ProgressRepositoryTest {
         ),
     )
 
+    // ---- Challenge's lower bands make one- and two-star bests real (GDD §6.4, SB-D11) --------
+
+    @Test
+    fun aLaterThreeStarClearUpgradesAOneStarBest() =
+        runTest {
+            val oneStar = scoreResult(stars = POOR_STARS)
+            repository.recordResult(CHALLENGE_MODE, CHALLENGE_LEVEL_ID, oneStar, telemetry(), NOW_MS)
+
+            // Slower and lower-scoring, so only the stars improve — and only they report "new best".
+            val bests =
+                repository.recordResult(
+                    CHALLENGE_MODE,
+                    CHALLENGE_LEVEL_ID,
+                    scoreResult(stars = GOOD_STARS, score = POOR_SCORE, elapsedSeconds = SLOW_SECONDS),
+                    telemetry(),
+                    LATER_MS,
+                )
+
+            assertThat(bests).isEqualTo(NewBests(stars = true, time = false, score = false))
+            val stored = storedResults(CHALLENGE_MODE).single()
+            assertThat(stored.stars).isEqualTo(GOOD_STARS)
+            assertThat(stored.bestScore).isEqualTo(GOOD_SCORE)
+            assertThat(stored.bestTimeMs).isEqualTo(GOOD_SECONDS * MILLIS_IN_SECOND)
+        }
+
+    @Test
+    fun aLaterOneStarClearLeavesAThreeStarBestUntouched() =
+        runTest {
+            repository.recordResult(CHALLENGE_MODE, CHALLENGE_LEVEL_ID, scoreResult(), telemetry(), NOW_MS)
+
+            // A fast one-star clear sets the time best while the three-star play keeps the stars
+            // and the score: the row is a join of bests, not one play (GDD §6.4).
+            val bests =
+                repository.recordResult(
+                    CHALLENGE_MODE,
+                    CHALLENGE_LEVEL_ID,
+                    scoreResult(stars = POOR_STARS, score = POOR_SCORE, elapsedSeconds = FAST_SECONDS),
+                    telemetry(),
+                    LATER_MS,
+                )
+
+            assertThat(bests).isEqualTo(NewBests(stars = false, time = true, score = false))
+            val stored = storedResults(CHALLENGE_MODE).single()
+            assertThat(stored.stars).isEqualTo(GOOD_STARS)
+            assertThat(stored.bestScore).isEqualTo(GOOD_SCORE)
+            assertThat(stored.bestTimeMs).isEqualTo(FAST_SECONDS * MILLIS_IN_SECOND)
+        }
+
     private suspend fun storedResults(mode: String = MODE): List<LevelResult> = repository.observeResults(mode).first()
 
     private fun storedSessions(): List<PlaySessionEntity> {
@@ -453,6 +501,7 @@ class ProgressRepositoryTest {
 
     private companion object {
         const val MODE = ProgressPersistenceKeys.MODE_CLASSIC
+        const val CHALLENGE_MODE = ProgressPersistenceKeys.MODE_CHALLENGE
         const val LEVEL_ID = "cross-33"
         const val SHARED_ID = "33"
         const val MILLIS_IN_SECOND = 1_000L

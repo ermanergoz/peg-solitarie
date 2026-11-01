@@ -173,6 +173,21 @@
     <string name="nowin_message">No winning move — undo or restart</string>
     <string name="stuck_message">No moves left — undo or restart</string>
     <!--
+        The rescue banner's Challenge messages (ux-spec D-SB-3, §4.4.3, §8). Every number is a format
+        argument from the clear rule (ChallengeClearRule.CLEAR_MAX_PEGS and the board's peg count),
+        never typed. stuck_message_challenge: %1$d the pegs on the stuck board (four or more), %2$d
+        the threshold. nowin_message_challenge: %1$d the threshold. The `one` items exist for lint and
+        grammar; the shipped rule never shows them.
+    -->
+    <plurals name="stuck_message_challenge">
+        <item quantity="one">No moves left with %1$d peg — leave %2$d or fewer to clear the level. Undo or restart.</item>
+        <item quantity="other">No moves left with %1$d pegs — leave %2$d or fewer to clear the level. Undo or restart.</item>
+    </plurals>
+    <plurals name="nowin_message_challenge">
+        <item quantity="one">One peg is out of reach from here — you may still clear the level with %1$d peg or fewer, or undo or restart.</item>
+        <item quantity="other">One peg is out of reach from here — you may still clear the level with %1$d pegs or fewer, or undo or restart.</item>
+    </plurals>
+    <!--
       D-04f / ux-spec §4.4.2 and §8. The Undecided notice: a hint search that stopped with no
       move and no proof. Two sentences, never the rescue banner's "problem — what to do" shape,
       and none of the ruling's forbidden words (criterion 23b). Its Turkish, the spec's tr-TR copy
@@ -185,7 +200,18 @@
     <string name="results_title">Results</string>
     <string name="results_headline_perfect">Perfect!</string>
     <string name="results_headline_solved">Solved!</string>
+    <!-- Challenge's one-star clear (ux-spec D-SB-1, §8): a pass that is not a solve. -->
+    <string name="results_headline_cleared">Cleared!</string>
     <string name="results_headline_stuck">Out of moves</string>
+    <!--
+        The Results next-star line (ux-spec D-SB-2, §4.6, §8): the next band up only. Quantity and %1$d
+        are the pegs to leave, %2$d the stars they earn, both from ChallengeClearRule.nextBandUp
+        through ResultsUiState; %2$d is never 1, so "stars" needs no plural of its own.
+    -->
+    <plurals name="results_next_star_hint">
+        <item quantity="one">Leave %1$d peg for %2$d stars.</item>
+        <item quantity="other">Leave %1$d pegs for %2$d stars.</item>
+    </plurals>
     <string name="results_label_score">SCORE</string>
     <string name="results_label_time">TIME</string>
     <string name="results_label_pegs_left">PEGS LEFT</string>

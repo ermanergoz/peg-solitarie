@@ -609,9 +609,13 @@ private const val SAMPLE_SCORE = 1280
  */
 private const val PERSISTED_CHALLENGE_LEVEL = 7
 
-/** A stuck Challenge board floors at one star with 2+ pegs left → Retry, not Next level (D-10). */
+/**
+ * A stuck Challenge route floors at one star with four or more pegs left → Retry, not Next level
+ * (D-10). Four is the fewest a stuck Challenge board holds since 3.0.0: one to three pegs is a
+ * clear (docs/gdd.md R5, R6), so play never sends this route; it is the defensive branch.
+ */
 private const val STUCK_STARS = 1
-private const val STUCK_PEGS_REMAINING = 3
+private const val STUCK_PEGS_REMAINING = 4
 
 /** Visible action labels asserted by the stuck-Results render (verbatim from `strings.xml`). */
 private const val RETRY_LABEL = "Retry"

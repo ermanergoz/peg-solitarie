@@ -55,18 +55,20 @@ import com.app.pegsolitaire.platform.ads.AdReason
  *   D-08, GD-HT-1): the book's authoritative entry, an exhausted search, or a Pagoda reject.
  *   The inline "no winning move — undo or restart" banner (04-04) renders on this. A search
  *   that stopped without a proof sets [hintUndecided] instead, never this. Cleared on any
- *   jump/undo and when a new hint is requested.
+ *   jump/undo, when a new hint is requested, and when the player puts the Challenge proven-dead
+ *   banner away (ux-spec D-SB-4) — which clears this flag and nothing else.
  * @property hintUndecided whether the last hint search stopped with no move and no proof —
  *   its deadline, node ceiling or attempt limit (GD-HT-1, GD-HT-2): the Undecided notice
  *   renders on this, never the rescue banner, and it is never part of [showRescueBanner].
  *   Transient: cleared on a jump, an undo, a restart, a new hint request and a board
  *   install, never persisted, and never `true` together with [noWinningMove]. While it is
  *   `true` the Hint control is idle and available.
- * @property stuck whether the board has reached a dead-end with 2+ pegs (D-06): a Stuck
- *   position no longer auto-navigates to Results — it becomes a rescuable in-board state
- *   showing the "no moves left — undo or restart" banner. Set the moment a jump strands the
- *   board; cleared when an undo returns it to a Playing position (or on restart). A Won game
- *   never sets this (Won still proceeds to Results).
+ * @property stuck whether the board has reached a dead end with more pegs than its mode's finish
+ *   admits (D-06): above the board's floor in Classic, four or more in Challenge (docs/gdd.md R6;
+ *   one to three pegs there is a clear). A Stuck position no longer auto-navigates to Results — it
+ *   becomes a rescuable in-board state showing the "no moves left" banner. Set the moment a jump
+ *   strands the board; cleared when an undo returns it to a Playing position (or on restart). A
+ *   Won game never sets this (Won still proceeds to Results).
  * @property selectionTick a monotonic cue ordinal, incremented once per peg **pick-up** —
  *   every selection, and nothing else. A re-tap deselect advances [deselectionTick] instead
  *   (D-05a as amended 2026-08-28: the two halves of the gesture have distinct cues). It exists

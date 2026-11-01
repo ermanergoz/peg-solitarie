@@ -94,5 +94,6 @@ fun GameRoute(
         onNavigateBack = onNavigateBack,
         modifier = modifier,
         challengeLevel = viewModel.challengeLevel,
+        onDismissProvenDead = viewModel::onDismissProvenDeadBanner,
     )
 }
