@@ -16,12 +16,14 @@ import com.app.pegsolitaire.ui.window.SystemBarsState
 
 /**
  * The bars a destination asks for (docs/ux-spec.md D-05g part 1; docs/tech-design.md §3.8 (a)), in
- * the shape of [backdropDensity] beside it: the game screen — Classic and Challenge alike, one
- * destination — and Results hide both bars, and everything else shows them. "Everything else" is
+ * the shape of [backdropDensity] beside it: Home (D-05h, founder 2026-11-02), the game screen —
+ * Classic and Challenge alike, one destination — and Results hide both bars, and everything else
+ * shows them. "Everything else" is
  * deliberately the `else` branch, so a destination added later shows its bars.
  */
 fun NavDestination?.systemBarsState(): SystemBarsState =
     when {
+        this?.hasRoute<Home>() == true -> SystemBarsState.Hidden
         this?.hasRoute<Gameplay>() == true -> SystemBarsState.Hidden
         this?.hasRoute<Results>() == true -> SystemBarsState.Hidden
         else -> SystemBarsState.Shown

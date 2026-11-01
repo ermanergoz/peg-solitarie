@@ -851,6 +851,21 @@ House style per `.planning/phases/*/[0-9]*-CONTEXT.md`: `- **D-nn:** <ruling> �
 Decisions are never rewritten in place; a later ruling is filed as `D-nna` with its date, and the
 decision it amends gains a one-line pointer to it.
 
+**D-03r / D-05h / Results replay, founder 2026-11-02 (Q-046).**
+- **D-03r:** Home's hero row (title and gear) is pinned at the top of the column, right under the
+  top inset, with no headroom above it. Only the title moves up: the ribbon, the Continue chips and
+  the mode tiles stay exactly where D-03p/D-03q put them, low in the thumb zone, and the empty sky
+  sits between the hero row and the ribbon (Q-033 option 2). The slack arithmetic
+  (`homeBandPlacement`) is unchanged; its no-chip headroom is now the middle between hero and
+  ribbon, and a chip's room still comes out of it, so the tiles do not jump. Supersedes D-03p's
+  "headroom above the hero" and D-03q's limit on the hero row. D-03q's bound now only fixes where
+  the lower group sits. The title-over-backdrop contrast concern no longer applies.
+- **D-05h:** Home hides both system bars (transient by swipe), like Gameplay and Results
+  (amends D-05g part 1). Every other screen keeps its bars. Stable insets keep the content still.
+- **Results replay:** a solved Challenge level's Results adds a quiet "Play again" ("Yeniden oyna")
+  under the gradient Next level. It replays the same level and seed, for example to earn more stars,
+  through the same path as the stuck Retry, which never shows an ad. Classic keeps its existing Replay.
+
 **One warning about ids.** `D-01`…`D-05` and their letters belong to *this* document. Where a
 section cites a decision id that is **not** in the list below — the audio `D-09`, the win
 celebration's `D-14`, the info button's `D-15`, and the ad-allowance `D-05` the code records at

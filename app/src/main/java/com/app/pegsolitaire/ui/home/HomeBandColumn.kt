@@ -28,37 +28,30 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * Home's band column (ux-spec §4.2.2, §4.2.5 D-03n, §4.2.7 D-03p and D-03q): the hero row, the
- * progress ribbon, up to two Continue chips and the two mode tiles, top to bottom, with the slack split
- * between the **headroom** above the hero row and the footer below the tiles — one measure policy that
- * gives every band its own height and then places the slack.
+ * Home's band column (ux-spec §4.2.2, §4.2.5 D-03n, §4.2.7 D-03p and D-03q, §3 D-03r): the hero row,
+ * the progress ribbon, up to two Continue chips and the two mode tiles, top to bottom.
+ *
+ * ## D-03r (founder 2026-11-02, Q-046): only the title moves up
+ *
+ * The hero row (title and gear) is pinned at the top of the column, right under its top padding. The
+ * ribbon, the Continue chips and the mode tiles stay exactly where D-03p/D-03q put them, low in the
+ * thumb zone: the space D-03p put **above** the hero row — its "headroom" — now lies **between** the
+ * hero row and the ribbon, as the [HomeBandPlacement.middle]. The arithmetic is unchanged, so the
+ * lower group's position in every chip state is today's: the no-chip middle is min(⅘ S₀, C), C the
+ * former title bound (D-03q), which now only fixes where the lower group sits (its title-contrast
+ * reason is gone, the title being back in the calm band at the top). Supersedes D-03p's headroom
+ * above the hero and D-03q's limit on the hero row; the founder's Q-033 option 2.
  *
  * ## Why a measure policy, and not weights
  *
- * D-03i split the slack 3 : 1 with two `Column` weights. A weight is a share of the slack the column has
- * **now**, so every chip that arrived after first paint took its room from both shares, and the mode
- * tiles under it moved 22–24dp, beneath a thumb that was already heading for them (QA's loop-3 F-1).
- * D-03n fixed the footer to a share of the slack the column has with **no** chip, S₀, and took the chips'
- * room from the share above alone — which no pair of weights can say, because S₀ is not the slack the
- * column has once a chip is in.
- *
- * ## The headroom (D-03p) and the title bound (D-03q)
- *
- * The share above is **headroom**: space above the hero row with nothing in it — no child, no node, no
- * tag, no semantics, no band gap of its own — where D-03l had a stage beneath the row. So the title, the
- * ribbon, the chips and the tiles are one contiguous block in the lower part of the screen, with the
- * backdrop's sky above it, and every gap between two of them is the band gap. The hero row may not go
- * below [titleBoundPx], the line the backdrop keeps clear of its waves (`TITLE_REACH` of the window,
- * less the entrance slide, so no frame of the cascade crosses it either): the no-chip headroom is the
- * smaller of four fifths of S₀ and the headroom at which the row's bottom edge meets that line, and the
- * excess goes below the tiles. The arithmetic is [homeBandPlacement]'s, a pure function the spec's
- * tables are checked against; this policy measures, calls it, and places.
- *
- * So the column is exactly the viewport tall while the chips' room fits in the slack, and taller by the
- * difference once it does not, and the scroll above takes the rest (criteria 14, 15i, 15k). The tiles
- * hold still whatever the room is, as long as the headroom can give it: the headroom gives up exactly
- * what the chips take, so the hero row and the ribbon ride up together and the tiles stay (criteria 15z,
- * 15ac). Past that the tiles fall by the shortfall and no more, the footer paying the rest, down to 0.
+ * A weight is a share of the slack the column has **now**, so every chip that arrived after first
+ * paint would take its room from both shares and move the mode tiles under a thumb already heading
+ * for them (QA's loop-3 F-1). D-03n fixes the footer to a share of the slack the column has with
+ * **no** chip, S₀, and takes the chips' room from the middle alone — which no pair of weights can say.
+ * The middle gives up exactly what the chips take, so the ribbon rides up toward the hero row and the
+ * tiles hold still; past that the tiles fall by the shortfall and no more, the footer paying the
+ * rest, down to 0. The hero row never moves. The middle is space with nothing in it: no child, no
+ * node, no semantics.
  *
  * ## When a chip arrives, or leaves, while Home is drawn
  *
@@ -66,9 +59,9 @@ import kotlin.math.roundToInt
  * `ClayAnim.ENTRANCE_EASING` and no overshoot, and closes the same way when its save goes
  * (§4.2.5, "The motion"). The room includes the chip's band gap, so no gap shows a frame ahead of
  * its chip, and the chip is drawn clipped to its share of the room, so the room grows from the
- * ribbon's edge and nothing overlaps while it opens. In each frame the headroom gives up exactly what
- * the room takes, so the tiles hold still in every frame, not only at the end, and the hero row only
- * ever rides **up** from the no-chip headroom, so it never crosses the bound. With OS animations off
+ * ribbon's edge and nothing overlaps while it opens. In each frame the middle gives up exactly what
+ * the room takes, so the tiles hold still in every frame, not only at the end, and the ribbon only
+ * ever rides **up** from its no-chip place, and the hero row never moves. With OS animations off
  * the room is open, or shut, in the frame the chip arrives or leaves.
  *
  * ## What it does not change
@@ -132,9 +125,9 @@ internal fun HomeBandColumn(
             )
 
         layout(width, placement.height) {
-            var y = placement.headroom
-            heroPlaceable.place(0, y)
-            y += heroPlaceable.height + gap
+            // D-03r: the hero row is pinned at the top; the middle lies between it and the ribbon.
+            heroPlaceable.place(0, 0)
+            var y = heroPlaceable.height + gap + placement.middle
             ribbonPlaceable.place(0, y)
             y += ribbonPlaceable.height + gap
             chipPlaceables.forEachIndexed { index, chip ->
@@ -280,12 +273,12 @@ private fun Modifier.clipToRoom(room: ChipRoom): Modifier =
     }
 
 /**
- * Where Home's band column puts its slack (ux-spec §4.2.7, D-03p; the title bound, D-03q): [headroom]
- * above the hero row, [footer] below the second tile, and the column's [height], padding excluded, all
- * in px.
+ * Where Home's band column puts its slack (ux-spec §4.2.7, D-03p, D-03q; §3 D-03r): [middle] between
+ * the hero row and the ribbon (D-03p's headroom, moved below the title by D-03r), [footer] below the
+ * second tile, and the column's [height], padding excluded, all in px. Below, "headroom" is [middle].
  */
 internal data class HomeBandPlacement(
-    val headroom: Int,
+    val middle: Int,
     val footer: Int,
     val height: Int,
 )
@@ -335,7 +328,7 @@ internal fun homeBandPlacement(
     val room = chipRooms.sum()
     val headroom = max(0, headroomWithNoChip - room)
     val footer = min(slack - headroomWithNoChip, max(0, slack - room))
-    return HomeBandPlacement(headroom = headroom, footer = footer, height = fixedBands + headroom + room + footer)
+    return HomeBandPlacement(middle = headroom, footer = footer, height = fixedBands + headroom + room + footer)
 }
 
 /** The band gaps of the column with no chip: hero→ribbon, ribbon→tile 1, tile 1→tile 2, and the footer's. */
