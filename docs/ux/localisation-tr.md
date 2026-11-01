@@ -1,7 +1,8 @@
 # Peg Solitaire — Turkish localisation spec (tr)
 
 Status: specified 2026-11-01 for 3.0.0 (founder directive, 2026-11-01: "also add turkish language
-support in 3.0.0"). Branch `feature/turkish-locale`, cut from develop 37d3052.
+support in 3.0.0"). Branch `feature/turkish-locale`, cut from develop 37d3052. Re-voiced to
+**sen** the same day on the founder's answer to Q-031; Q-032 (no "Solo Test") recorded (§9.1).
 Owner: ux-designer. Builder: android-game-dev. Checker: qa-engineer on a device in Turkish.
 
 Inputs: `app/src/main/res/values/strings.xml` on develop 37d3052 (every key below is from that
@@ -16,7 +17,8 @@ resource file `app/src/main/res/values-tr/strings.xml` is the developer's, writt
 
 Sections: 1 Decisions · 2 Register and style · 3 Glossary · 4 Proper names · 5 Translation table ·
 6 Truncation watchlist · 7 Locale rules for the build and QA · 8 Acceptance criteria ·
-9 Open items, founder questions, the parallel branch · 10 Change log
+9 Open items, founder answers, the parallel branch · 10 Store copy re-voiced to sen (Q-031) ·
+11 Change log
 
 ## 1. Decisions
 
@@ -24,7 +26,7 @@ The decisions, each a UX decision unless marked otherwise; the reasons are in th
 
 | # | Decision | Where |
 |---|---|---|
-| D-1 | Running text addresses the player as **siz**; commands (buttons, Settings rows, action labels, content descriptions of controls) are the **bare second-person-singular imperative** ("Geri al", "Oturum aç"). This is the convention of Android's own Turkish UI and of the tr-TR store listing, which already speaks in siz. A founder taste question offers "sen" (§9, Q-A); the build proceeds on siz. | §2 |
+| D-1 | Running text addresses the player as **sen** — the founder's answer to Q-031 (2026-11-01, option 2: sen throughout, the tr-TR listing re-edited to match, §10). Commands (buttons, Settings rows, action labels, content descriptions of controls) are the **bare second-person-singular imperative** ("Geri al", "Oturum aç"), which is the same form under either register. The ux-designer had recommended siz (§2.1 keeps the reasons for the record); the founder, a Turkish speaker, chose the warmer voice. | §2 |
 | D-2 | **Sentence case everywhere.** Turkish has no title-case convention; the English file's Title Case buttons ("Play Again", "Keep Playing", "Continue Classic") become "Tekrar oyna", "Oynamaya devam et", "Klasik oyuna devam et". The three Results stat labels stay **all caps** as a typographic treatment: "PUAN", "SÜRE", "KALAN PİYON" — with the dotted capital İ. | §2 |
 | D-3 | **No case transform on displayed text, ever**: the resource carries its own case. No `uppercase()`, `lowercase()`, `capitalize`, `replaceFirstChar`, `titlecase` or small-caps font feature on a string the player sees. The build has none today (helper grep 2026-11-01, production sources clean); the rule keeps it so. | §7.1 |
 | D-4 | **Board names are proper names and stay as written**: English-33, European-37, Asymmetric 3-3-2-2, Diamond-41, Wiegleb-45. The tr-TR listing already keeps them. They become `translatable="false"` in the base file, with `app_name`, the "Play Games" section header, the em-dash placeholder and the `%1$d/%2$d` value. | §4 |
@@ -37,32 +39,34 @@ The decisions, each a UX decision unless marked otherwise; the reasons are in th
 | D-11 | The Undecided notice's Turkish is the copy of record in `docs/ux-spec.md` §4.4.2, **verbatim**: "İpucu bu konumu süresi içinde çözemedi. Belki hâlâ kazanılabilir." (impersonal passive; no register; none of the ruling's forbidden words). | §5.2 |
 | D-12 | Where the Turkish runs long for its slot, §6 gives a **shorter alternative**; the developer switches to it only when the device check (§8) shows clipping, and records the switch in the report. The spec's first choice is the better sentence. | §6 |
 | D-13 | **Fonts**: the bundled Fredoka files are ~50 KB each, small enough to be Latin-only subsets that lack İ, Ğ, ğ, Ş, ş (Google Fonts' "latin" range has ı but not those five). The developer **proves glyph coverage** of all five TTFs before QA (§7.3); if a glyph is missing, the full OFL file replaces the subset. Not confirmable from this seat: flagged. | §7.3 |
-| D-14 | The tr-TR listing's closing line "Oyunun arayüzü İngilizcedir." becomes false the moment this ships and **must be removed** from `docs/store/tr-TR/full_description.txt`; the tr-TR and en-US 3.0.0 changelogs gain a Turkish-interface line; `docs/store/README.md` lines 25–26 are updated. Release-manager's files, through the producer (§9). | §9 |
+| D-14 | The tr-TR listing's closing line "Oyunun arayüzü İngilizcedir." becomes false the moment this ships and **must be removed** from `docs/store/tr-TR/full_description.txt`; the listing is re-voiced to sen (Q-031) and loses the English glosses "(Classic)", "(Challenge)", "(Settings)", "(Hint)", "(Undo)" that existed only because the UI was English — §10 carries the paste-ready text; the tr-TR and en-US 3.0.0 changelogs gain a Turkish-interface line; `docs/store/README.md` lines 25–26 are updated. Release-manager's files, through the producer (§9). | §9, §10 |
+| D-15 | **No "Solo Test"** anywhere — not in the listing, not in the app. The founder's answer to Q-032 (2026-11-01: No); the research-analyst trademark check is dropped. | §4 |
 
 ## 2. Register and style
 
-### 2.1 Sen or siz
+### 2.1 Sen or siz — decided: sen (founder, Q-031, 2026-11-01)
 
-**Decision: siz in running text; bare imperative on commands.** Three reasons, in order of weight.
+**Decision: sen in running text; bare imperative on commands.** The founder chose option 2 of
+Q-031: sen throughout, with the tr-TR listing re-edited to match (§10). The ux-designer had
+recommended siz — the register of the listing as it stood, of Android's own Turkish UI and of the
+Play Games and consent dialogs that open beside ours — and the reasons stay here for the record;
+the founder, a Turkish speaker, judged the warmer voice right for a casual game, and one voice
+across the app and the listing is kept by re-voicing the listing rather than the app.
 
-1. **The store listing already decided.** `docs/store/tr-TR/full_description.txt` speaks in siz
-   throughout ("atlatın", "bırakın", "isterseniz", "Ayarlar'dan yeniden oynatabilirsiniz"). The
-   dispatch asks for the two to stay consistent; a sen app under a siz listing would read as two
-   products.
-2. **It is the platform's register.** Android's own Turkish UI, Google Play, Play Games and the UMP
-   consent form all put commands in the bare imperative ("Kaydet", "Oturum açın" only in prose,
-   "Devam et" on the button) and address the user as siz in sentences. Our dialogs sit next to
-   theirs (the Play Games sign-in sheet opens from ours), so matching them keeps one voice on screen.
-3. **Siz is Turkish software's neutral, not its formal.** It does not read stiff in a game; "sen"
-   reads as a deliberate chummy brand voice, which this calm, classic game does not have. Choosing
-   sen would also mean re-editing the listing and every future changelog in that voice.
+What sen changes, mechanically: second-person possessives drop the plural marker ("ilerlemen",
+"hakkın", "tahtan"), verbs take the singular ("dokun", "temizle", "devam et", "geç"), questions
+end "ister misin?", and "siz seçtiğinizde" becomes "sen seçtiğinde". What it does not change:
+commands on buttons, rows and action labels, which were already the bare singular imperative;
+impersonal and passive sentences ("Bu tahta yeniden başlatılsın mı?", the Undecided notice, the
+rule sentence of tutorial step 2); supporting lines that describe a setting in the third person;
+headlines; the spoken cell parts. Twenty-two keys changed (listed in §11's change-log row).
 
 What this looks like:
 
 | Surface | Form | Example |
 |---|---|---|
 | Buttons, Settings rows, action labels, chip titles, content descriptions of controls | bare imperative, sentence case | "Tekrar oyna", "Tahtayı gör", "Eğitimi atla", "Geri dön" |
-| Dialog bodies, captions, banners, snackbars, supporting lines that address the player | siz | "Mevcut ilerlemeniz kaybolacak.", "Bir piyona dokunun, sonra …" |
+| Dialog bodies, captions, banners, snackbars, supporting lines that address the player | sen | "Mevcut ilerlemen kaybolacak.", "Bir piyona dokun, sonra …", "Tekrar denemek ister misin?" |
 | Supporting lines that describe a setting | third person, descriptive | "Her atlamada hafifçe titreşir", "Tarayıcınızda açılır" |
 | Headlines | exclamations, no person | "Mükemmel!", "Çözüldü!", "Az kaldı!" |
 | The one first-person label | kept, it is idiomatic | "Anladım" (Got it) |
@@ -111,14 +115,16 @@ What this looks like:
 ## 3. Glossary
 
 One Turkish word per game term, used the same way in every string and matching the tr-TR
-listing where the listing has the term. The "Listing" column quotes the listing's own form.
+listing where the listing has the term. The "Listing" column quotes the listing as it stood on
+2026-11-01, before Q-031 re-voiced it (so some quotes are in siz); the terms themselves are
+unchanged, and §10 carries the sen version of the listing.
 
 | English | Türkçe | Listing | Notes |
 |---|---|---|---|
 | peg | piyon | "piyon" | never "taş" or "pim"; the listing chose piyon |
 | hole (empty) | delik / boş delik | "boş deliğe" | "boş" alone for the spoken cell state |
 | jump (noun) | atlama | "Atlamalar" | "2 atlama", "atlama hedefi" |
-| jump (verb, the player makes a peg jump) | atlatmak | "atlatın" | "Atlatmaya devam edin" |
+| jump (verb, the player makes a peg jump) | atlatmak | "atlatın" | "Atlatmaya devam et" |
 | jump (verb, the peg jumps / TalkBack action) | atlamak | — | "yukarı atla", "buraya atlamak" |
 | board | tahta | "tahta" | |
 | clear the board | tahtayı temizlemek | "tahtayı temizleyin" | |
@@ -174,8 +180,8 @@ A proper name is shown as its owner writes it, in every language.
 
 - **The title**: "Peg Solitaire" everywhere — launcher label, `app_name`, the sentences in
   `licenses_intro` and `play_games_prompt_body`, and the tr-TR store title, which already is
-  "Peg Solitaire". Turkey knows the physical game as "Solo Test"; that is a possible search term
-  for the listing, not a rename (§9, Q-B, after a trademark verdict).
+  "Peg Solitaire". Turkey knows the physical game as "Solo Test"; the founder declined to name it
+  in the listing (Q-032, 2026-11-01), so it appears nowhere (D-15).
 - **Board names**: English-33, European-37, Asymmetric 3-3-2-2, Diamond-41, Wiegleb-45 — as the
   tr-TR listing keeps them (it writes "Asymmetric-39"; the app's "Asymmetric 3-3-2-2" is the app's
   name for the same board in both languages, so this is not a localisation difference). No
@@ -218,11 +224,11 @@ alternative in §6. "same" means the Turkish value equals the English and is sti
 | `play_again` | Play Again | Tekrar oyna | dialog button |
 | `view_board` | View Board | Tahtayı gör | dialog button |
 | `game_over_perfect_headline` | Perfect! | Mükemmel! | |
-| `game_over_perfect_body` | You cleared the board down to a single peg. | Tahtayı tek piyona kadar temizlediniz. | |
+| `game_over_perfect_body` | You cleared the board down to a single peg. | Tahtayı tek piyona kadar temizledin. | sen |
 | `game_over_near_headline` | So close! | Az kaldı! | |
 | `game_over_stuck_headline` | No moves left | Hamle kalmadı | |
 | `restart_confirm_title` | Restart this board? | Bu tahta yeniden başlatılsın mı? | (!) §6 |
-| `restart_confirm_body` | Your current progress will be lost. | Mevcut ilerlemeniz kaybolacak. | |
+| `restart_confirm_body` | Your current progress will be lost. | Mevcut ilerlemen kaybolacak. | sen |
 | `keep_playing` | Keep Playing | Oynamaya devam et | (!) §6 |
 | `board_english33` … `board_wiegleb45` | English-33, European-37, Asymmetric 3-3-2-2, Diamond-41, Wiegleb-45 | — | `translatable="false"` (D-4) |
 | `classic_tile_title` | Classic | Klasik | Home tile |
@@ -278,7 +284,7 @@ custom actions are read as labels in the actions menu, so they are imperatives.
 | `board_a11y_announce_jump` | Row %1$d, column %2$d to row %3$d, column %4$d. Removed row %5$d, column %6$d. %7$s. | Satır %1$d, sütun %2$d konumundan satır %3$d, sütun %4$d konumuna. Satır %5$d, sütun %6$d kaldırıldı. %7$s. | %7$s is the pegs-left plural |
 | `board_a11y_rejected_no_peg` | No peg here. | Burada piyon yok. | |
 | `board_a11y_rejected_not_target` | Not a jump target. | Atlama hedefi değil. | |
-| `board_a11y_rejected_put_down_first` | Put down the selected peg first. | Önce seçili piyonu bırakın. | siz |
+| `board_a11y_rejected_put_down_first` | Put down the selected peg first. | Önce seçili piyonu bırak. | sen |
 | `board_a11y_announce_undo` | Undid row %1$d, column %2$d to row %3$d, column %4$d. %5$s. | Satır %1$d, sütun %2$d konumundan satır %3$d, sütun %4$d konumuna atlama geri alındı. %5$s. | |
 | `board_a11y_announce_hint` | Hint: row %1$d, column %2$d, jump %3$s to row %4$d, column %5$d. | İpucu: satır %1$d, sütun %2$d; satır %4$d, sütun %5$d konumuna %3$s atla. | %3$s is a direction |
 | `board_a11y_announce_restart` | Board restarted. %1$s. | Tahta yeniden başlatıldı. %1$s. | |
@@ -302,7 +308,7 @@ custom actions are read as labels in the actions menu, so they are imperatives.
 | `results_ad_scrim_description` | Preparing | Hazırlanıyor | content description |
 | `action_next_level` | Next level | Sonraki seviye | (!) §6 |
 | `action_retry` | Retry | Yeniden dene | (!) §6 |
-| `challenge_load_error` | Couldn't load this level. Tap Retry. | Bu seviye yüklenemedi. Yeniden dene düğmesine dokunun. | names the button without a suffix on it |
+| `challenge_load_error` | Couldn't load this level. Tap Retry. | Bu seviye yüklenemedi. Yeniden dene düğmesine dokun. | sen; names the button without a suffix on it |
 
 ### 5.3 Settings, the Home ribbon and Continue tiles, the tutorial, ads and privacy
 
@@ -326,39 +332,39 @@ custom actions are read as labels in the actions menu, so they are imperatives.
 | `home_stat_level_label` | Level | Seviye | pill label |
 | `home_stat_boards_value` | %1$d/%2$d | — | `translatable="false"` (D-4) |
 | `resume_classic_title` | Continue Classic | Klasik oyuna devam et | Continue tile; (!) §6 |
-| `resume_classic_supporting` | Pick up your saved board | Kaydettiğiniz tahtadan devam edin | |
+| `resume_classic_supporting` | Pick up your saved board | Kaydettiğin tahtadan devam et | sen |
 | `resume_challenge_title` | Continue Challenge | Meydan okumaya devam et | Continue tile; (!) §6 |
-| `resume_challenge_supporting` | Pick up Level %1$d where you left off | %1$d. seviyeye kaldığınız yerden devam edin | ordinal on the number, suffix on the noun (D-6) |
+| `resume_challenge_supporting` | Pick up Level %1$d where you left off | %1$d. seviyeye kaldığın yerden devam et | sen; ordinal on the number, suffix on the noun (D-6) |
 | `tutorial_step_progress` | Step %1$d of %2$d | Adım %1$d, toplam %2$d | spoken only (the pip row); no slash, which TTS would read |
-| `tutorial_step_1_caption` | Tap a peg, then tap the empty hole two cells away. | Bir piyona dokunun, sonra iki kare ötedeki boş deliğe dokunun. | caption wraps |
+| `tutorial_step_1_caption` | Tap a peg, then tap the empty hole two cells away. | Bir piyona dokun, sonra iki kare ötedeki boş deliğe dokun. | sen; caption wraps |
 | `tutorial_step_2_caption` | Jumps work up, down, left and right — never diagonally. | Atlamalar yukarı, aşağı, sola ve sağa yapılır — asla çapraz yapılmaz. | the listing's rule sentence |
-| `tutorial_step_3_caption` | Keep jumping. Clear the board down to one peg. | Atlatmaya devam edin. Tahtayı tek piyona kadar temizleyin. | |
-| `tutorial_done_caption` | That's the whole game. Go clear a board. | Oyun bundan ibaret. Şimdi bir tahta temizleyin. | |
+| `tutorial_step_3_caption` | Keep jumping. Clear the board down to one peg. | Atlatmaya devam et. Tahtayı tek piyona kadar temizle. | sen |
+| `tutorial_done_caption` | That's the whole game. Go clear a board. | Oyun bundan ibaret. Hadi, bir tahta temizle. | sen; "Hadi" carries the English "Go" |
 | `onboarding_got_it` | Got it | Anladım | |
 | `onboarding_skip` | Skip tutorial | Eğitimi atla | |
 | `ad_offer_watch` | Watch ad | Reklam izle | dialog button |
 | `ad_offer_decline` | No thanks | Hayır, teşekkürler | dialog button; (!) §6 |
-| `ad_offer_hint_title` | Out of free hints | Ücretsiz ipucu hakkınız bitti | |
-| `ad_offer_undo_title` | Out of free undos | Ücretsiz geri alma hakkınız bitti | |
-| `ad_offer_hint_body` | You've used your %1$d free hints for this level. Watch a short ad for %1$d more? | Bu seviyedeki %1$d ücretsiz ipucu hakkınızı kullandınız. %1$d ipucu daha için kısa bir reklam izlemek ister misiniz? | `%1$d` twice, as in English |
-| `ad_offer_undo_body` | You've used your %1$d free undos for this level. Watch a short ad for %1$d more? | Bu seviyedeki %1$d ücretsiz geri alma hakkınızı kullandınız. %1$d geri alma daha için kısa bir reklam izlemek ister misiniz? | `%1$d` twice |
+| `ad_offer_hint_title` | Out of free hints | Ücretsiz ipucu hakkın bitti | sen |
+| `ad_offer_undo_title` | Out of free undos | Ücretsiz geri alma hakkın bitti | sen |
+| `ad_offer_hint_body` | You've used your %1$d free hints for this level. Watch a short ad for %1$d more? | Bu seviyedeki %1$d ücretsiz ipucu hakkını kullandın. %1$d ipucu daha için kısa bir reklam izlemek ister misin? | sen; `%1$d` twice, as in English |
+| `ad_offer_undo_body` | You've used your %1$d free undos for this level. Watch a short ad for %1$d more? | Bu seviyedeki %1$d ücretsiz geri alma hakkını kullandın. %1$d geri alma daha için kısa bir reklam izlemek ister misin? | sen; `%1$d` twice |
 | `ad_offer_loading` | Loading ad | Reklam yükleniyor | content description |
 | `ad_unavailable_hints` | Ad unavailable — hints refilled for free | Reklam gösterilemedi — ipuçları ücretsiz yenilendi | snackbar, two lines allowed |
 | `ad_unavailable_undos` | Ad unavailable — undos refilled for free | Reklam gösterilemedi — geri almalar ücretsiz yenilendi | snackbar |
 | `settings_section_general` | General | Genel | |
 | `settings_section_privacy` | Privacy | Gizlilik | |
 | `settings_privacy_policy_label` | Privacy policy | Gizlilik politikası | |
-| `settings_privacy_policy_supporting` | Opens in your browser | Tarayıcınızda açılır | |
+| `settings_privacy_policy_supporting` | Opens in your browser | Tarayıcında açılır | sen |
 | `settings_privacy_policy_error` | Couldn't open the privacy policy — no browser app found. | Gizlilik politikası açılamadı — tarayıcı uygulaması bulunamadı. | |
 | `settings_privacy_choices_label` | Manage privacy choices | Gizlilik tercihlerini yönet | |
-| `settings_privacy_choices_supporting` | Change your ad consent choices | Reklam izni tercihlerinizi değiştirin | |
+| `settings_privacy_choices_supporting` | Change your ad consent choices | Reklam izni tercihlerini değiştir | sen |
 
 ### 5.4 Play Games, cloud save, licences
 
 | Key | English | Türkçe | Note |
 |---|---|---|---|
 | `play_games_prompt_title` | Sign in to Play Games? | Play Games'te oturum açılsın mı? | |
-| `play_games_prompt_body` | Compete on leaderboards, unlock achievements, and keep your progress backed up to the cloud. Peg Solitaire plays exactly the same either way — you can sign in later from Settings. | Skor tablolarında yarışın, başarımların kilidini açın ve ilerlemenizi bulutta yedekli tutun. Peg Solitaire her iki durumda da aynı şekilde oynanır — daha sonra Ayarlar'dan oturum açabilirsiniz. | names the same three benefits as the Settings row |
+| `play_games_prompt_body` | Compete on leaderboards, unlock achievements, and keep your progress backed up to the cloud. Peg Solitaire plays exactly the same either way — you can sign in later from Settings. | Skor tablolarında yarış, başarımların kilidini aç ve ilerlemeni bulutta yedekli tut. Peg Solitaire her iki durumda da aynı şekilde oynanır — daha sonra Ayarlar'dan oturum açabilirsin. | sen; names the same three benefits as the Settings row |
 | `play_games_prompt_accept` | Sign in | Oturum aç | |
 | `play_games_prompt_decline` | Not now | Şimdi değil | |
 | `play_games_signin_error` | Couldn't sign in to Play Games | Play Games'te oturum açılamadı | |
@@ -368,13 +374,13 @@ custom actions are read as labels in the actions menu, so they are imperatives.
 | `settings_play_games_signed_in_as` | Signed in as %1$s | %1$s olarak oturum açıldı | |
 | `settings_play_games_signed_in_fallback` | Signed in to Play Games | Play Games'te oturum açıldı | |
 | `settings_play_games_leaderboards_label` | Leaderboards | Skor tabloları | |
-| `settings_play_games_leaderboards_supporting` | See how your scores rank | Puanlarınızın sıralamasını görün | |
+| `settings_play_games_leaderboards_supporting` | See how your scores rank | Puanlarının sıralamasını gör | sen |
 | `settings_play_games_achievements_label` | Achievements | Başarımlar | |
-| `settings_play_games_achievements_supporting` | View the achievements you've earned | Kazandığınız başarımları görün | |
+| `settings_play_games_achievements_supporting` | View the achievements you've earned | Kazandığın başarımları gör | sen |
 | `cloud_save_description` | Challenge level %1$d · %2$d stars · %3$d/%4$d Classic boards | Meydan okuma seviyesi %1$d · %2$d yıldız · %3$d/%4$d Klasik tahta | written into the snapshot in the device locale at commit time, by design |
-| `profile_swap_title` | Moving to a different account? | Farklı bir hesaba mı geçiyorsunuz? | |
-| `profile_swap_body` | You're signed in as %1$s. Keeping this device's progress merges it into their cloud save — nothing is lost on either side. Using their cloud progress instead replaces everything on this device: your level results, your play history, your Challenge level and both in-progress games. | %1$s olarak oturum açtınız. Bu cihazın ilerlemesini korumak, onu bu hesabın bulut kaydıyla birleştirir — iki tarafta da hiçbir şey kaybolmaz. Bunun yerine bu hesabın bulut ilerlemesini kullanmak, bu cihazdaki her şeyin yerine geçer: seviye sonuçlarınız, oyun geçmişiniz, Meydan okuma seviyeniz ve devam eden iki oyununuz. | all four wiped categories kept (D-14 of phase 13) |
-| `profile_swap_body_unknown_account` | You're signed in with a different Play Games account. Keeping this device's progress merges it into this account's cloud save — … and both in-progress games. | Farklı bir Play Games hesabıyla oturum açtınız. Bu cihazın ilerlemesini korumak, onu bu hesabın bulut kaydıyla birleştirir — iki tarafta da hiçbir şey kaybolmaz. Bunun yerine bu hesabın bulut ilerlemesini kullanmak, bu cihazdaki her şeyin yerine geçer: seviye sonuçlarınız, oyun geçmişiniz, Meydan okuma seviyeniz ve devam eden iki oyununuz. | same wording, "bu hesabın" |
+| `profile_swap_title` | Moving to a different account? | Farklı bir hesaba mı geçiyorsun? | sen |
+| `profile_swap_body` | You're signed in as %1$s. Keeping this device's progress merges it into their cloud save — nothing is lost on either side. Using their cloud progress instead replaces everything on this device: your level results, your play history, your Challenge level and both in-progress games. | %1$s olarak oturum açtın. Bu cihazın ilerlemesini korumak, onu bu hesabın bulut kaydıyla birleştirir — iki tarafta da hiçbir şey kaybolmaz. Bunun yerine bu hesabın bulut ilerlemesini kullanmak, bu cihazdaki her şeyin yerine geçer: seviye sonuçların, oyun geçmişin, Meydan okuma seviyen ve devam eden iki oyunun. | sen; all four wiped categories kept (D-14 of phase 13) |
+| `profile_swap_body_unknown_account` | You're signed in with a different Play Games account. Keeping this device's progress merges it into this account's cloud save — … and both in-progress games. | Farklı bir Play Games hesabıyla oturum açtın. Bu cihazın ilerlemesini korumak, onu bu hesabın bulut kaydıyla birleştirir — iki tarafta da hiçbir şey kaybolmaz. Bunun yerine bu hesabın bulut ilerlemesini kullanmak, bu cihazdaki her şeyin yerine geçer: seviye sonuçların, oyun geçmişin, Meydan okuma seviyen ve devam eden iki oyunun. | sen; same wording, "bu hesabın" |
 | `profile_swap_keep` | Keep this device's progress | Bu cihazın ilerlemesini koru | gradient CTA; same length as English |
 | `profile_swap_use_cloud` | Use their cloud progress | Bulut ilerlemesini kullan | text button; account-neutral by design |
 | `settings_section_about` | About | Hakkında | |
@@ -434,7 +440,7 @@ number stays singular (D-8). Both items are written out so lint's MissingQuantit
 | Plural | English one / other | Türkçe `one` | Türkçe `other` |
 |---|---|---|---|
 | `pegs_remaining` | %d peg remaining. / %d pegs remaining. | %d piyon kaldı. | %d piyon kaldı. |
-| `pegs_remaining_retry` | %d peg remaining. Try again? / %d pegs remaining. Try again? | %d piyon kaldı. Tekrar denemek ister misiniz? | %d piyon kaldı. Tekrar denemek ister misiniz? |
+| `pegs_remaining_retry` | %d peg remaining. Try again? / %d pegs remaining. Try again? | %d piyon kaldı. Tekrar denemek ister misin? | %d piyon kaldı. Tekrar denemek ister misin? |
 | `holes_count` | %d hole / %d holes | %d delik | %d delik |
 | `duration_minutes` | %d minute / %d minutes | %d dakika | %d dakika |
 | `board_a11y_pegs_left` | %d peg left / %d pegs left | %d piyon kaldı | %d piyon kaldı |
@@ -479,7 +485,7 @@ they wrap and grow rather than clip; the rescue banner has three text buttons (�
 | `ad_offer_decline` | ad-offer dialog button beside "Reklam izle" | No thanks (9) | Hayır, teşekkürler (18) | stacks at 200 % | "Hayır" (5) |
 | `play_games_prompt_decline` | beside "Oturum aç" | Not now (7) | Şimdi değil (11) | low | none needed |
 | `profile_swap_keep` / `profile_swap_use_cloud` | account dialog buttons | 27 / 24 | 27 / 25 | same as English, which already stacks | none |
-| `tutorial_step_*_caption` | caption under the tutorial board | 47–55 | 55–68 | one more line at 200 %; the caption column scrolls per ux-spec §4.1 | none; the sentences teach the rule |
+| `tutorial_step_*_caption` | caption under the tutorial board | 47–55 | 53–66 (sen is shorter than siz here) | one more line at 200 %; the caption column scrolls per ux-spec §4.1 | none; the sentences teach the rule |
 | `settings_privacy_choices_label` | Settings row label | 22 | 27 | rows wrap | none |
 | `ad_offer_*_title` | dialog title | 17 | 29–33 | two lines | none |
 
@@ -661,10 +667,10 @@ ellipsis, no glyph cut by a bound, no text drawn over another, no button pushed 
 ### Tutorial (ONB-01)
 
 - **T-1.** Given a first run in Turkish, when the tutorial opens, then the step 1 caption reads
-  "Bir piyona dokunun, sonra iki kare ötedeki boş deliğe dokunun." in full at 100 % and 200 %,
+  "Bir piyona dokun, sonra iki kare ötedeki boş deliğe dokun." in full at 100 % and 200 %,
   and "Eğitimi atla" is a visible, whole action.
 - **T-2.** When the three steps are completed, then the captions of steps 2 and 3 and the done
-  caption "Oyun bundan ibaret. Şimdi bir tahta temizleyin." are shown whole, and the CTA reads
+  caption "Oyun bundan ibaret. Hadi, bir tahta temizle." are shown whole, and the CTA reads
   "Anladım".
 - **T-3 (TalkBack).** Given TalkBack on, when the step 2 board gains focus, then "Adım 2, toplam 3."
   is spoken before the caption.
@@ -675,8 +681,8 @@ ellipsis, no glyph cut by a bound, no text drawn over another, no button pushed 
   "Devam et — Seviye N"; the ribbon pills read "Yıldız", "Tahta", "Seviye" with their values; the
   gear's description is "Ayarlar". At 200 % the tile titles wrap and the tiles grow; nothing clips.
 - **H-2.** Given a saved Classic and a saved Challenge game, then both Continue tiles show
-  "Klasik oyuna devam et" / "Kaydettiğiniz tahtadan devam edin" and "Meydan okumaya devam et" /
-  "N. seviyeye kaldığınız yerden devam edin", whole, at 100 % and 200 % (a wrap is allowed; a
+  "Klasik oyuna devam et" / "Kaydettiğin tahtadan devam et" and "Meydan okumaya devam et" /
+  "N. seviyeye kaldığın yerden devam et", whole, at 100 % and 200 % (a wrap is allowed; a
   clip is not).
 - **H-3.** Given a pill with no value yet, when TalkBack focuses it, then "Yıldız, henüz yok" is
   spoken, never the dash.
@@ -703,13 +709,13 @@ ellipsis, no glyph cut by a bound, no text drawn over another, no button pushed 
   konumu süresi içinde çözemedi. Belki hâlâ kazanılabilir." with the circumflexes, and TalkBack
   reads it once, politely.
 - **G-5 Restart dialog.** Given a mid-game restart tap, then the dialog reads "Bu tahta yeniden
-  başlatılsın mı?" / "Mevcut ilerlemeniz kaybolacak." with "Oynamaya devam et" and "Yeniden
+  başlatılsın mı?" / "Mevcut ilerlemen kaybolacak." with "Oynamaya devam et" and "Yeniden
   başlat"; at 200 % the buttons may stack but are whole.
 - **G-6 Game-over dialog.** Given a perfect clear, then "Mükemmel!" / "Tahtayı tek piyona kadar
-  temizlediniz." with "Tekrar oyna" and "Tahtayı gör"; given two pegs left, "Az kaldı!" with
-  "2 piyon kaldı. Tekrar denemek ister misiniz?"; given no moves, "Hamle kalmadı".
+  temizledin." with "Tekrar oyna" and "Tahtayı gör"; given two pegs left, "Az kaldı!" with
+  "2 piyon kaldı. Tekrar denemek ister misin?"; given no moves, "Hamle kalmadı".
 - **G-7 Loading.** Given a Challenge level generating, then "Seviye yükleniyor" is shown; given
-  a load failure, "Bu seviye yüklenemedi. Yeniden dene düğmesine dokunun." with "Yeniden dene".
+  a load failure, "Bu seviye yüklenemedi. Yeniden dene düğmesine dokun." with "Yeniden dene".
 
 ### The board with TalkBack
 
@@ -726,7 +732,7 @@ ellipsis, no glyph cut by a bound, no text drawn over another, no button pushed 
   sütun 4 konumuna sağa atla" style, one per direction, with "yukarı", "aşağı", "sola", "sağa".
 - **A-5.** When an empty cell is tapped with no selection, then "Burada piyon yok."; a non-target
   with a selection, "Atlama hedefi değil."; a second peg with a selection, "Önce seçili piyonu
-  bırakın."
+  bırak."
 - **A-6.** When Undo, Hint and Restart are used, then "… atlama geri alındı. 32 piyon kaldı.",
   "İpucu: satır 4, sütun 2; satır 4, sütun 4 konumuna sağa atla." and "Tahta yeniden başlatıldı.
   32 piyon kaldı." are announced once each.
@@ -753,8 +759,8 @@ ellipsis, no glyph cut by a bound, no text drawn over another, no button pushed 
 - **S-2.** Given no browser, when the policy row is tapped, then the snackbar reads "Gizlilik
   politikası açılamadı — tarayıcı uygulaması bulunamadı."
 - **S-3 Ads.** Given the free hints spent, when Hint is tapped, then the dialog reads "Ücretsiz
-  ipucu hakkınız bitti" / "Bu seviyedeki N ücretsiz ipucu hakkınızı kullandınız. N ipucu daha için
-  kısa bir reklam izlemek ister misiniz?" with "Reklam izle" and "Hayır, teşekkürler"; the undo
+  ipucu hakkın bitti" / "Bu seviyedeki N ücretsiz ipucu hakkını kullandın. N ipucu daha için
+  kısa bir reklam izlemek ister misin?" with "Reklam izle" and "Hayır, teşekkürler"; the undo
   twin likewise; given no ad, the snackbar "Reklam gösterilemedi — ipuçları ücretsiz yenilendi"
   and the hint lands first.
 - **S-4 Play Games.** Given the first-run prompt, then "Play Games'te oturum açılsın mı?" with the
@@ -762,7 +768,7 @@ ellipsis, no glyph cut by a bound, no text drawn over another, no button pushed 
   "<name> olarak oturum açıldı", "Skor tabloları", "Başarımlar"; given an SDK error, "Play
   Games'te oturum açılamadı". The Play Games sheets themselves are Google's Turkish (not judged).
 - **S-5 Account change.** Given a second account, then the dialog reads "Farklı bir hesaba mı
-  geçiyorsunuz?" with the body naming all four wiped categories, and the two buttons whole (they
+  geçiyorsun?" with the body naming all four wiped categories, and the two buttons whole (they
   may stack, as in English).
 - **S-6 Cloud save line.** Given a solve on a Turkish device, when the Play Games saved-games
   list is opened, then the entry reads "Meydan okuma seviyesi N · S yıldız · B/5 Klasik tahta".
@@ -778,38 +784,27 @@ ellipsis, no glyph cut by a bound, no text drawn over another, no button pushed 
 
 ## 9. Open items, founder questions, the parallel branch
 
-### 9.1 Proposed founder questions (taste; non-blocking; the producer assigns ids and queues them)
+### 9.1 Founder answers (2026-11-01; ids assigned by the producer)
 
-**Q-A — Register: siz or sen?**
-Context: The Turkish UI addresses the player as "siz" in sentences, with bare-imperative buttons —
-the platform's convention and the voice of the tr-TR store listing. "Sen" would be warmer and is
-common in casual games; it would also mean re-editing the listing in that voice.
-Options: 1) siz in sentences, bare imperative on buttons (specified, being built)
-2) sen throughout, listing re-edited to match 3) sen in the tutorial and game-over copy only,
-siz elsewhere.
-Recommendation: ux-designer — 1. One voice across the app, the listing and Google's own dialogs
-beside ours; a switch to 2 later is a wording pass over §5 with no code change.
-Blocks: nothing.
-
-**Q-B — "Solo Test" in the Turkish listing?**
-Context: Turkey knows the physical game as "Solo Test". The app's title stays "Peg Solitaire"
-everywhere (§4); the question is only whether the tr-TR short or full description names
-"Solo Test" so Turkish players searching that term find the game.
-Options: 1) Add one sentence to the tr-TR full description ("Türkiye'de Solo Test olarak da
-bilinir") after the research-analyst's trademark verdict 2) Leave the listing as it is.
-Recommendation: ux-designer — 1, if the verdict is clean; it is a search term, not a rename.
-Blocks: nothing (the listing edit is the release-manager's and waits for the verdict).
+- **Q-031 — Register: siz or sen?** Asked as the ux-designer's Q-A (recommendation: siz in
+  sentences, bare imperative on buttons; options 2 sen throughout with the listing re-edited,
+  3 sen in the tutorial and game-over copy only). **Answer: 2 — sen throughout, the tr-TR listing
+  re-edited to match** (founder, 2026-11-01). Applied: D-1, §2.1, the 22 keys of §11's change-log
+  row, the §8 quotes, and the listing in §10.
+- **Q-032 — "Solo Test" in the Turkish listing?** Asked as Q-B (recommendation: one sentence
+  after a trademark verdict). **Answer: No** (founder, 2026-11-01). Applied: D-15, §4; the
+  research-analyst check is dropped and the listing does not mention the name.
 
 ### 9.2 Items for other roles, through the producer
 
-- **release-manager**: (a) delete the line "Oyunun arayüzü İngilizcedir." from
-  `docs/store/tr-TR/full_description.txt` (D-14) — it is false the moment 3.0.0 ships with
-  this branch; (b) add a Turkish-interface line to `docs/store/tr-TR/changelogs/30000.txt`
-  ("Türkçe arayüz") and `en-US/changelogs/30000.txt` ("Turkish interface"); (c) update
-  `docs/store/README.md` lines 25–26, which say the app has no Turkish strings; (d) note, not a
-  change: both listings call the third board "Asymmetric-39" while the app calls it
-  "Asymmetric 3-3-2-2" in both languages — pre-existing, outside this task.
-- **research-analyst**: a trademark check on "Solo Test" before Q-B's listing edit.
+- **release-manager**: (a) replace `docs/store/tr-TR/full_description.txt` and
+  `short_description.txt` with the sen text of §10 (Q-031), which already omits "Oyunun arayüzü
+  İngilizcedir." (D-14) and the English glosses; (b) the tr-TR 3.0.0 changelog: §10.3 gives a
+  sen version with the Turkish-interface line, and `en-US/changelogs/30000.txt` gains "Turkish
+  interface"; (c) update `docs/store/README.md` lines 25–26, which say the app has no Turkish
+  strings; (d) note, not a change: both listings call the third board "Asymmetric-39" while the
+  app calls it "Asymmetric 3-3-2-2" in both languages — pre-existing, outside this task.
+- **research-analyst**: nothing — the "Solo Test" check is dropped with Q-032.
 - **tech-lead**: sign-off on `localeConfig` (generated vs hand-written) and `localeFilters`
   (§7.4), and on the font replacement if §7.3 finds a subset.
 - **game-designer**: none; no rule or wording of the game changes.
@@ -833,8 +828,83 @@ keeps its Turkish.
 - The TalkBack hint template for custom click labels is assumed to be "<label> için iki kez
   dokunun" (§7.5); A-7 verifies it, and the fallback is three strings.
 
-## 10. Change log
+## 10. Store copy re-voiced to sen (Q-031)
+
+Paste-ready text for the release-manager; this spec does not edit `docs/store/`. Terms are the
+glossary's; the only changes from the files as they stood on 2026-11-01 are the register (siz →
+sen), the removal of "Oyunun arayüzü İngilizcedir." (D-14), and the removal of the English
+glosses "(Classic)", "(Challenge)", "(Settings)", "(Hint)", "(Undo)", which were there to map a
+Turkish listing onto an English UI and now would map a Turkish word onto itself. Board names,
+the privacy URL and every number are unchanged. Nothing about "Solo Test" (Q-032).
+
+### 10.1 `docs/store/tr-TR/short_description.txt` (67 characters; the limit is 80)
+
+```
+Piyonları atlat, tahtayı temizle: 5 klasik tahta ve 10.000 seviye.
+```
+
+### 10.2 `docs/store/tr-TR/full_description.txt`
+
+```
+Peg Solitaire, tek kişilik klasik bir masa oyunudur. Bir piyonu, yanındaki piyonun üzerinden hemen arkasındaki boş deliğe atlat; üzerinden atlanan piyon tahtadan kalkar. Atlamalar yukarı, aşağı, sağa ve sola yapılır, asla çapraz yapılmaz. Tahtada olabildiğince az piyon bırak, en iyisi tek bir piyon.
+
+İki oyun modu
+
+Klasik: bilinen beş tahta, English-33, European-37, Asymmetric-39, Diamond-41 ve Wiegleb-45. Her tahtanın yıldız hedefleri, o tahtada gerçekten ulaşılabilen sonuca göre belirlenir.
+
+Meydan okuma: yükseldikçe zorlaşan, 10.000 üretilmiş seviyelik bir merdiven. Her seviye çözülmüş bir tahtadan geriye doğru kurulur, bu yüzden her seviyenin bir çözümü vardır.
+
+Oynayarak öğren
+
+Kısa bir eğitim, kuralları gerçek bir tahta üzerinde, her adımda tek bir atlamayla öğretir. Yanlış yere dokunmanın hiçbir bedeli yoktur. Eğitimi istediğin an geçebilir, daha sonra Ayarlar'dan yeniden oynatabilirsin.
+
+İstediğinde yardım
+
+İpucu, kazandıran gerçek bir hamle gösterir. Geri al, son atlamanı geri alır. Her seviyede ikisi için de ücretsiz hakların vardır. Hakların bitince, bir hak daha için reklam izlemeyi seçebilir ya da izlemeden devam edebilirsin.
+
+Yıldızlar ve rekorlar
+
+Her seviyeyi bir ile üç yıldız arasında bitir, kendi en iyi puanını ve süreni geç.
+
+Google Play Games, istersen
+
+Oturum açarak 20 başarımın kilidini aç, 7 skor tablosunda yarış ve ilerlemeni bulutta sakla; böylece ilerlemen yeni cihazına da taşınır. Oturum açmak isteğe bağlıdır: her mod ve her tahta oturum açmadan da çalışır.
+
+Rahat oynaman için
+
+- Her hamle için bir ses, medya ses düzeyinde. Müziğini asla durdurmaz; Ayarlar'dan kapatabilirsin.
+- Sistem ayarına uyan açık ve koyu tema.
+- Ayarlar'da renk körlüğüne uygun bir renk paleti seçeneği; hamleler, ipuçları ve yıldızlar daha net görünür.
+- Parlak yeni bir görünüm; menünün ve tahtanın arkasında yavaşça süzülen yumuşak ışıklar.
+- Geri al, İpucu ve diğer oyun düğmeleri ekranın alt yarısında, başparmağının ulaşabileceği yerde.
+
+Reklamlar hakkında
+
+Peg Solitaire reklam gösterir. Ödüllü reklam yalnızca sen seçtiğinde oynatılır ve ekrandayken oyun saati durur. Tam ekran bir reklam, bir seviyeyi bitirip sonuç ekranından devam ettiğinde çıkabilir; bir tahtayı oynarken asla çıkmaz.
+
+Gizlilik politikası: https://ermanergoz.com/policies/peg-solitarie-privacy-policy.html
+```
+
+### 10.3 `docs/store/tr-TR/changelogs/30000.txt` — optional, same voice
+
+The changelog also speaks siz today ("başparmağınızın", "müziğinizi", "siz seçtiğinizde") and
+D-14 asks it to name the Turkish interface. Offered in sen so the three files agree; the
+release-manager decides and counts the Play limit of 500 characters (this is about 490).
+
+```
+Peg Solitaire sıfırdan yeniden yapıldı:
+- Türkçe arayüz
+- Uygulamalı bir eğitim, daha dolu bir ana ekran ve başparmağının ulaştığı oyun düğmeleri
+- Büyük tahtalarda, yerleşik bir açılış kitabıyla daha hızlı ipuçları
+- Her hamle için ses, müziğini durdurmadan
+- İsteğe bağlı Play Games oturumu: 20 başarım, 7 skor tablosu ve bulut kaydı
+- Parlak yeni bir görünüm ve renk körlüğüne uygun palet seçeneği
+- Reklamlar: ödüllü reklam yalnızca sen seçtiğinde, seviyeler arasında ara sıra reklam
+```
+
+## 11. Change log
 
 | Date | Change | By |
 |---|---|---|
 | 2026-11-01 | First complete version: decisions D-1..D-14, register, glossary, proper names, the full table for develop 37d3052 (§5.1–5.6), truncation watchlist, build and QA rules, acceptance criteria, two proposed founder questions. | ux-designer |
+| 2026-11-01 | Founder answers applied. Q-031 (sen throughout): D-1 and §2.1 rewritten; 22 keys re-voiced — `game_over_perfect_body`, `restart_confirm_body`, `pegs_remaining_retry` (both items), `board_a11y_rejected_put_down_first`, `challenge_load_error`, `resume_classic_supporting`, `resume_challenge_supporting`, `tutorial_step_1_caption`, `tutorial_step_3_caption`, `tutorial_done_caption`, `ad_offer_hint_title`, `ad_offer_undo_title`, `ad_offer_hint_body`, `ad_offer_undo_body`, `settings_privacy_policy_supporting`, `settings_privacy_choices_supporting`, `play_games_prompt_body`, `settings_play_games_leaderboards_supporting`, `settings_play_games_achievements_supporting`, `profile_swap_title`, `profile_swap_body`, `profile_swap_body_unknown_account`; keys, format arguments and §6 flags unchanged (the caption lengths fell to 53–66); §8 quotes updated; §10 added with the sen listing. Q-032 (no "Solo Test"): D-15, §4, §9.2. | ux-designer |
