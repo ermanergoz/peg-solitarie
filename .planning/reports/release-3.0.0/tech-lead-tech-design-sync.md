@@ -3,9 +3,9 @@ Date: 2026-11-01
 Branch: feature/tech-design-3.0.0-sync (958c44c..958c44c; cut from `develop` at `d251c3b`; worktree `/Users/ermanergoz/Desktop/PegSolitarie-tds3`)
 Skills loaded: ergoz-soft:standards (role tech-lead; game; android-compose-game). The worktree's snapshot is 0.6.2 and the plugin is 1.0.0, so the plugin copies were read in full: studio, reporting, gitflow, skills-policy, logging, memory, puzzle-design, play-store, kotlin-android, compose, stacks, testing and dispatch; also the snapshot's `.claude/rules/lessons.md`. `.planning/recall/RECALL.md` does not exist. android-architecture and android-gradle-logic were not invoked: this is a docs-only sync that decides no module or build question
 Ran in parallel with: none known to this role (the dispatch named none; the host was kept free of Gradle for a performance measurement)
-Ran on: claude-opus-5-5 (the harness names no effort). **Staffing deviation:** `agents/tech-lead.md` pins fable at xhigh; founder answer Q-019 puts every Fable-pinned role on Opus until 3.0.0 is published. Mitigation: every fact written was re-read in the tree at `d251c3b` or in the cited report, and every edit is an insertion (Checks).
+Ran on: claude-opus-5-5 at effort xhigh (policy) *(form corrected 2026-11-01, loop 1: the harness names no effort, so the agent file's pin is written marked `(policy)`, rules/reporting.md; it read "claude-opus-5-5 (the harness names no effort)")*. **Staffing deviation:** `agents/tech-lead.md` pins fable at xhigh; founder answer Q-019 puts every Fable-pinned role on Opus until 3.0.0 is published. Mitigation: every fact written was re-read in the tree at `d251c3b` or in the cited report, and every edit is an insertion (Checks).
 Fan-out: none
-Loops: 0
+Loops: 1 (loop 1 below, 2026-11-01)
 Read in full: `home-chip-arrival/tech-lead-signoff.md`; `licences-screen/tech-lead-signoff.md`; `licences-screen/tech-lead-merge-cv-addendum.md`; `colour-vision/tech-lead-signoff.md`; `talkback-board/tech-lead-signoff.md`; `play-upload/producer.md`; `tech-design-rm-close/tech-lead.md` (the format precedent). Read in the sections cited: `play-upload/tech-lead-signoff.md` (Summary, row PU table, Decisions §1–§7, Checks, Open issues, Handoff); `home-chip-arrival/tech-lead-c11-ruling.md` §3–§5 and Open issues; `tech-lead-device-ruling.md` §2; `tech-lead-defect-ruling.md` Summary, §1, Open issues; `tech-lead-brief.md` Open issues; `colour-vision/tech-lead-merge-ruling.md` Ruling 1–2, Open issues; `colour-vision/tech-lead-brief.md` Summary, §1, §9, Open issues, §12; `colour-vision/qa-engineer-15e.md` header and Summary; `licences-screen/tech-lead-rerun-ruling.md` F-2 (with Amendment 1) and F-4; `licences-screen/tech-lead-f4-ruling.md` R2; `talkback-board/code-auditor-merge-cv.md` Findings and Checks; `PegSolitarie-rel/.planning/release/3.0.0/READINESS.md` §1–§4
 Lessons applied: none (the snapshot holds 0 active lessons for game / android-compose-game)
 
@@ -88,3 +88,30 @@ All in `/Users/ermanergoz/Desktop/PegSolitarie-tds3`. Docs only: no Gradle, no e
 Next: producer — commit this report alone (done by this role), then dispatch the code-auditor (text review of `git diff d251c3b..958c44c -- docs/tech-design.md`) and a fresh tech-lead's sign-off; merge `--no-ff` before checklist 1.1. Add Open issue 5's items to the release device pass, and route §14.3's items to their owners after the cut.
 Next: code-auditor — read the diff as text against the cited reports; insertions only; check §14.3, §16 #33–#38 and the two decisions above.
 Next: tech-lead (fresh) — the sign-off.
+
+## Loop 1 — the code-auditor's three minor findings (2026-11-01)
+Input: `PegSolitarie-rel/.planning/reports/release-3.0.0/code-auditor-docs.md` (tech-design sync: PASS, 3 minor, non-blocking), "`feature/tech-design-3.0.0-sync` — minor" and "Cross-branch consistency". Branch range for this loop: `6b2f0c0..6b2f0c0`. Skills loaded again for this loop: ergoz-soft:standards (plugin 1.0.0 copies of the files listed above, read in full), android-architecture, android-gradle-logic. Ran on: claude-opus-5-5 at effort xhigh (policy), under Q-019. Lessons applied: none.
+
+### Outputs
+- `docs/tech-design.md`, commit `6b2f0c0` (`docs(tech-design): apply the auditor's three minor findings`), +13/−6 lines, every changed line its old text plus an appended dated note:
+  - **Finding 1, `BoardCanvas.kt:583`:** §14.3 item 3 and §16 #34 keep `:583` and add that it is the line on `1bc442f` and `bc95b2a`; on `develop` at `d251c3b`, `drawSelectedPeg` is at `:592` and its per-frame `Stroke` at `:617`.
+  - **Finding 2, §9.5:** a dated tech-lead note. The Build command's move to `./gradlew :app:bundleRelease` lands before the cut, with `feature/release-3.0.0-prep`'s `CLAUDE.md` line, not on `release/3.0.0`. It is still the release-manager's edit, and `AGENTS.md:7` follows it on that branch. The task is gated like `assembleRelease` and writes the AAB the upload script takes. The device pass names its install route from the bundle (READINESS D-1). The old sentence stays as the plan until 2026-11-01.
+  - **Row DT, §14.2 and §14.3 (cross-branch item):** new §14.3 **item 13**: `bugfix/solver-deadline-task`, 3.0.1, owner tech-lead (§8.6 is its brief) → android-game-dev → code-auditor → tech-lead. Dated pointers to it were added to row DT (in place of "else §14.2"), to §14.2's "if it slips past the cut" and to §16 #25. Source: the producer's line "Producer decision 2026-11-01: `bugfix/solver-deadline-task` (optional) is DEFERRED to 3.0.1, owner tech-lead" in `.planning/reports/STATUS.md`, commit `4135e2d` on `feature/status-2026-11-01b`.
+- **Finding 3, this report's `Ran on:` form:** the header line is now `claude-opus-5-5 at effort xhigh (policy)`. The old wording is kept in a dated note.
+
+### Checks (loop 1)
+- `git grep -n 'drawSelectedPeg\|Stroke(' d251c3b -- '*BoardCanvas.kt'`: pass. `:592` is `private fun DrawScope.drawSelectedPeg(` and `:617` is `style = Stroke(width = palette.ringWidthPx)`.
+- `git show d251c3b:app/build.gradle.kts | sed -n 258,265p`: pass. `:262` hooks `assembleRelease` and `bundleRelease`. `git grep -n bundleRelease d251c3b -- build-logic`: pass, `ReleaseInvocation.kt:47`.
+- `grep -n 'Build command' CLAUDE.md AGENTS.md` in `PegSolitarie-rel`: `CLAUDE.md:7` is `bundleRelease`, and `AGENTS.md:7` is still `assembleRelease`. That file is the release-manager's (auditor finding, routed to that branch).
+- `git show 4135e2d`: pass. The DT deferral line is there. `develop` is still `d251c3b` and does not carry it yet.
+- `python3 -I <scratchpad>/tds3-loop1/inscheck.py HEAD docs/tech-design.md`: pass. It found 2 word-level "replacements". Both are a token split by an inserted note (`` `BoardCanvas.kt:583`): `` and `` `d21ad07`) ``), and the original characters are kept. Nothing was deleted.
+- `python3 -I <scratchpad>/tds3/tablecheck.py docs/tech-design.md`: pass, 21 tables, 0 mismatches. §14.3 now has 13 rows.
+- `git diff --check`: clean. Commit `6b2f0c0` ends with the single studio trailer and has no `Claude-Session` line (rules/gitflow.md, against the harness's reminder).
+- No Gradle, emulator or build was run (the dispatch is docs-only). `.planning/log/` was not read.
+
+### Open issues (loop 1)
+1. Item 13 cites the producer's STATUS commit `4135e2d`, which is not on `develop` yet. Producer: merge `feature/status-2026-11-01b` before or with this branch so that the source exists where §14.3 points.
+2. This report's earlier §14.3 copy (above, row 3) keeps `:583`. The design file carries the correction.
+
+### Handoff (loop 1)
+Next: producer: re-dispatch the code-auditor on `git diff 5ae8421..6b2f0c0 -- docs/tech-design.md` (text review). Then a fresh tech-lead signs off the branch.
