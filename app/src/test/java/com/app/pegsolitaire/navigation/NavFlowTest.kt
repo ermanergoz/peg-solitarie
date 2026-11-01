@@ -205,7 +205,7 @@ class NavFlowTest {
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
                 gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
                 resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
-                settingsContent = { onBack, _ -> StubDestination(SETTINGS_TAG) { onBack() } },
+                settingsContent = { onBack, _, _ -> StubDestination(SETTINGS_TAG) { onBack() } },
             )
         }
 
@@ -233,7 +233,7 @@ class NavFlowTest {
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
                 gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
                 resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
-                settingsContent = { _, _ -> StubDestination(SETTINGS_TAG) {} },
+                settingsContent = { _, _, _ -> StubDestination(SETTINGS_TAG) {} },
                 tutorialContent = { onExit -> StubDestination(TUTORIAL_TAG) { onExit() } },
             )
         }
@@ -283,7 +283,7 @@ class NavFlowTest {
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
                 gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
                 resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
-                settingsContent = { _, onShowHowToPlay ->
+                settingsContent = { _, onShowHowToPlay, _ ->
                     StubDestination(SETTINGS_TAG) { onShowHowToPlay() }
                 },
                 tutorialContent = { onExit -> StubDestination(TUTORIAL_TAG) { onExit() } },
@@ -321,7 +321,7 @@ class NavFlowTest {
                 catalogContent = { _, _ -> StubDestination(CATALOG_TAG) {} },
                 gameplayContent = { _, _ -> StubDestination(GAMEPLAY_TAG) {} },
                 resultsContent = { _, _, _, _, _, _ -> StubDestination(RESULTS_TAG) {} },
-                settingsContent = { _, _ -> StubDestination(SETTINGS_TAG) {} },
+                settingsContent = { _, _, _ -> StubDestination(SETTINGS_TAG) {} },
                 tutorialContent = { onExit -> StubDestination(TUTORIAL_TAG) { onExit() } },
             )
         }

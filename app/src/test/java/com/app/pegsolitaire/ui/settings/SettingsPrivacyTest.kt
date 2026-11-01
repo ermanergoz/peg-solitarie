@@ -72,6 +72,7 @@ class SettingsPrivacyTest {
                     onToggleHaptics = {},
                     onToggleColorblindPalette = {},
                     onShowHowToPlay = {},
+                    onOpenLicenses = {},
                     onSignInToPlayGames = {},
                     onShowLeaderboards = {},
                     onShowAchievements = {},
