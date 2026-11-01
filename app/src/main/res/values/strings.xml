@@ -8,7 +8,7 @@
   Plan 05; they are declared here so the copy contract lives in one place.
 -->
 <resources>
-    <string name="app_name">Peg Solitaire</string>
+    <string name="app_name" translatable="false">Peg Solitaire</string>
 
     <!-- Top-bar restart control (icon-only; this is its content description). -->
     <string name="restart_board">Restart Board</string>
@@ -46,11 +46,11 @@
     -->
 
     <!-- Classic board display names (catalog cards, ascending hole count). -->
-    <string name="board_english33">English-33</string>
-    <string name="board_european37">European-37</string>
-    <string name="board_asymmetric39">Asymmetric 3-3-2-2</string>
-    <string name="board_diamond41">Diamond-41</string>
-    <string name="board_wiegleb45">Wiegleb-45</string>
+    <string name="board_english33" translatable="false">English-33</string>
+    <string name="board_european37" translatable="false">European-37</string>
+    <string name="board_asymmetric39" translatable="false">Asymmetric 3-3-2-2</string>
+    <string name="board_diamond41" translatable="false">Diamond-41</string>
+    <string name="board_wiegleb45" translatable="false">Wiegleb-45</string>
 
     <!-- Home (mode select). -->
     <string name="classic_tile_title">Classic</string>
@@ -175,8 +175,8 @@
     <!--
       D-04f / ux-spec §4.4.2 and §8. The Undecided notice: a hint search that stopped with no
       move and no proof. Two sentences, never the rescue banner's "problem — what to do" shape,
-      and none of the ruling's forbidden words (criterion 23b). The tr-TR copy of record lives in
-      the spec only: the app has no Turkish locale.
+      and none of the ruling's forbidden words (criterion 23b). Its Turkish, the spec's tr-TR copy
+      of record, is in values-tr (docs/ux/localisation-tr.md D-11).
     -->
     <string name="hint_undecided_message">Hint couldn\'t work this position out in time. It may still be winnable.</string>
     <string name="rescue_restart">Restart</string>
@@ -251,7 +251,7 @@
       the call site from the Classic catalogue's own size, so a stored row cannot change a
       shipped number and a sixth board would move it without a copy edit.
     -->
-    <string name="stat_value_unknown">—</string>
+    <string name="stat_value_unknown" translatable="false">—</string>
     <string name="stat_value_unknown_desc">not yet available</string>
     <!--
       A pill's whole announcement, label then value: "Stars, 7" — or "Stars, not yet
@@ -265,7 +265,7 @@
     <string name="home_stat_stars_label">Stars</string>
     <string name="home_stat_boards_label">Boards</string>
     <string name="home_stat_level_label">Level</string>
-    <string name="home_stat_boards_value">%1$d/%2$d</string>
+    <string name="home_stat_boards_value" translatable="false">%1$d/%2$d</string>
 
     <!--
       Home "Continue" affordances for a saved in-progress game (PERS-03, D-01/D-03). Each
@@ -420,7 +420,7 @@
       looking at what is already there, since neither row submits anything. No id and no
       player-identifying text belongs in either: the seam takes no argument for these.
     -->
-    <string name="settings_section_play_games">Play Games</string>
+    <string name="settings_section_play_games" translatable="false">Play Games</string>
     <string name="settings_play_games_signin_label">Sign in to Play Games</string>
     <string name="settings_play_games_signin_supporting">Leaderboards, achievements and cloud save</string>
     <string name="settings_play_games_signed_in_as">Signed in as %1$s</string>
@@ -499,10 +499,6 @@
       rather than the spec's draft "Eclipse Foundation", which the NOTICE names only as the
       trademark holder (spec §3.2, loop 1 F-16).
 
-      licenses_psl_parts writes its date with U+2011 non-breaking hyphens, so the date never
-      wraps across lines at a large font scale (it is a date, not the range lint's
-      TypographyDashes would read in plain hyphens).
-
       licenses_psl_address is the exact revision of the Public Suffix List compiled into okhttp
       4.11.0 (research-analyst-mpl.md, verdict 2). It is re-derived before the cut if the release
       listing shows another okhttp (spec §9 item 13).
@@ -535,6 +531,9 @@
 
     <string name="licenses_fredoka_title" translatable="false">Fredoka</string>
     <string name="licenses_fredoka_credit" translatable="false">© 2016 The Fredoka Project Authors</string>
+    <!-- D-17 (docs/ux/localisation-tr.md §5.4; docs/tech-design.md §11.1, Q-039 (3)): the bundled Fredoka is a
+         Modified Version under OFL-1.1, built by fonts/fredoka-tr/. A sentence, so translatable. -->
+    <string name="licenses_fredoka_modified">Modified for Peg Solitaire under the SIL Open Font License: Ğ ğ İ Ş ş added from Fredoka\'s own letters and marks; nothing else changed.</string>
     <string name="licenses_nunito_title" translatable="false">Nunito</string>
     <string name="licenses_nunito_credit" translatable="false">© 2014 The Nunito Project Authors</string>
 
@@ -572,7 +571,7 @@
     <string name="licenses_chromium_parts">The Cronet networking classes inside Google Mobile Ads</string>
     <string name="licenses_psl_title" translatable="false">Public Suffix List</string>
     <string name="licenses_psl_credit">Mozilla and the list\'s contributors</string>
-    <string name="licenses_psl_parts">The public-suffix data compiled into OkHttp, as it stood on 2023&#8209;02&#8209;15</string>
+    <string name="licenses_psl_parts">The public-suffix data compiled into OkHttp, as it stood on 15 February 2023</string>
     <string name="licenses_psl_address" translatable="false">github.com/publicsuffix/list/blob/a312abe0e11421aff8fe909a5e02f36b7c5d28de/public_suffix_list.dat</string>
     <string name="licenses_checker_title" translatable="false">Checker Framework qualifiers</string>
     <string name="licenses_checker_credit" translatable="false">The Checker Framework developers</string>
