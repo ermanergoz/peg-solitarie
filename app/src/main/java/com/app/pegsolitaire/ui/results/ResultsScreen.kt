@@ -421,6 +421,7 @@ private fun headlineResFor(tier: ResultsHeadlineTier): Int =
     when (tier) {
         ResultsHeadlineTier.PERFECT -> R.string.results_headline_perfect
         ResultsHeadlineTier.SOLVED -> R.string.results_headline_solved
+        ResultsHeadlineTier.CLEARED -> R.string.results_headline_cleared
         ResultsHeadlineTier.STUCK -> R.string.results_headline_stuck
     }
 

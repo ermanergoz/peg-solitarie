@@ -3,6 +3,7 @@ package com.app.pegsolitaire.ui.results
 import androidx.compose.runtime.Immutable
 import com.app.pegsolitaire.data.NewBests
 import com.app.pegsolitaire.domain.model.BoardConstants
+import com.app.pegsolitaire.domain.scoring.ChallengeClearRule
 
 /**
  * The single immutable UI state for the end-of-game Results destination (SCOR-03).
@@ -27,10 +28,10 @@ import com.app.pegsolitaire.domain.model.BoardConstants
  *   When non-null the screen renders the mode-aware Challenge actions (Next level / Retry,
  *   D-01/D-10) instead of the Classic Replay / Catalog / Home trio.
  * @property minimumPegs the finishing board's own perfect-finish floor, already clamped by
- *   `ResultsViewModel` at the nav boundary — the peg count [isSolved] compares against.
- *   Defaults [BoardConstants.MINIMUM_PEGS_DEFAULT], which is the floor of every shipped
- *   board except Diamond-41, so a state built without it keeps the one-peg meaning this
- *   field replaced.
+ *   `ResultsViewModel` at the nav boundary — the peg count a Classic [isSolved] compares
+ *   against (a Challenge result reads the clear rule instead). Defaults
+ *   [BoardConstants.MINIMUM_PEGS_DEFAULT], which is the floor of every shipped board except
+ *   Diamond-41, so a state built without it keeps the one-peg meaning this field replaced.
  * @property newBests which of the level's stored bests this play improved (D-09), as
  *   reported by `ProgressRepository.recordResult`. All three are `false` until the record
  *   completes — and stay `false` for a play that beat nothing (or was never recorded at
@@ -88,25 +89,36 @@ data class ResultsUiState(
     val pendingNavigation: ResultsNavTarget? = null,
 ) {
     /**
-     * Whether this play actually solved its board — the ONE solved test the whole Results
-     * feature asks, in the same `pegsRemaining <= minimumPegs` form `GameViewModel.statusFor`
-     * used to declare the win (CR-01).
+     * Whether this play actually solved its board — a Classic win or a Challenge clear — the ONE
+     * solved test the whole Results feature asks, in the same form `GameViewModel.statusFor` used
+     * to declare the finish (CR-01; docs/gdd.md GD-SB-14). One of the two places the mode decides
+     * the finish (tech-lead brief §1(b)).
      *
-     * It is per-board on purpose. The `pegsRemaining == 1` constant this replaced was
-     * correct for Challenge (every generated footprint has a one-peg floor) and wrong for
-     * Diamond-41, whose proven floor is two: a flawless Diamond play was shown "Perfect!"
-     * and then treated as unsolved by the record gate, so it never reached `level_result`
-     * and its achievements and leaderboard were unreachable. Deriving [showNextLevel], the
-     * headline tier and the record gate from this single value is what stops those three
-     * answers drifting apart again.
+     * **Challenge** ([challengeLevel] set) asks [ChallengeClearRule.isCleared]: one to three pegs
+     * left is a clear, at any star count (R5), and the count is absolute — it reads no floor. A
+     * route that reaches here with four or more pegs, or with fewer than one, is forged or stale
+     * (play keeps a stuck board on the board, R6) and is not solved.
+     *
+     * **Classic** stays per-board on purpose: `pegsRemaining <= minimumPegs`. The
+     * `pegsRemaining == 1` constant this replaced was wrong for Diamond-41, whose proven floor is
+     * two: a flawless Diamond play was shown "Perfect!" and then treated as unsolved by the record
+     * gate, so it never reached `level_result` and its achievements and leaderboard were
+     * unreachable. Deriving [showNextLevel], the headline tier and the record gate from this
+     * single value is what stops those three answers drifting apart again.
      */
     val isSolved: Boolean
-        get() = pegsRemaining <= minimumPegs
+        get() =
+            if (challengeLevel != null) {
+                ChallengeClearRule.isCleared(pegsRemaining)
+            } else {
+                pegsRemaining <= minimumPegs
+            }
 
     /**
-     * Whether the "Next level" action is offered (D-01): only a solved Challenge level
-     * advances, so a stuck Challenge board yields `false` and gets Retry instead (D-10).
-     * Always `false` for Classic ([challengeLevel] == null), which has no next board.
+     * Whether the "Next level" action is offered (D-01): every cleared Challenge level advances,
+     * at any star count (docs/gdd.md R7), so only an uncleared Challenge route yields `false` and
+     * gets Retry instead (D-10). Always `false` for Classic ([challengeLevel] == null), which has
+     * no next board.
      */
     val showNextLevel: Boolean
         get() = challengeLevel != null && isSolved
@@ -156,6 +168,9 @@ enum class ResultsHeadlineTier {
 
     /** A solid finish (2 stars) → "Solved!". */
     SOLVED,
+
+    /** A Challenge clear at one star — three pegs left (docs/gdd.md R5, GD-SB-07) → "Cleared!". */
+    CLEARED,
 
     /** Out of moves with pegs left (1 star) → "Out of moves". */
     STUCK,

@@ -169,7 +169,7 @@ class ResultsViewModelTest {
             viewModelFor(
                 levelId = "",
                 stars = ONE_STAR,
-                pegsRemaining = SAMPLE_PEGS_REMAINING,
+                pegsRemaining = STUCK_CHALLENGE_PEGS_REMAINING,
                 challengeLevel = SAMPLE_CHALLENGE_LEVEL,
             )
 
@@ -178,14 +178,15 @@ class ResultsViewModelTest {
 
     @Test
     fun stuckTwoStarChallengeShowsStuckHeadlineNotSolved() {
-        // A Challenge board stranded at 2-3 pegs earns 2 stars but is NOT solved: its
-        // headline must read STUCK ("Out of moves"), consistent with the Retry action —
-        // never the contradictory "Solved!" (WR-03).
+        // A Challenge route left with four or more pegs is NOT cleared (R6), whatever star
+        // count it carries: its headline must read STUCK ("Out of moves"), consistent with the
+        // Retry action — never the contradictory "Solved!" (WR-03). Since 3.0.0 only a forged
+        // or stale route can carry it; two or three pegs are clears (R5).
         val viewModel =
             viewModelFor(
                 levelId = "",
                 stars = TWO_STARS,
-                pegsRemaining = SAMPLE_PEGS_REMAINING,
+                pegsRemaining = STUCK_CHALLENGE_PEGS_REMAINING,
                 challengeLevel = SAMPLE_CHALLENGE_LEVEL,
             )
 
@@ -386,7 +387,7 @@ class ResultsViewModelTest {
                 viewModelFor(
                     levelId = "",
                     stars = ONE_STAR,
-                    pegsRemaining = SAMPLE_PEGS_REMAINING,
+                    pegsRemaining = STUCK_CHALLENGE_PEGS_REMAINING,
                     challengeLevel = SAMPLE_CHALLENGE_LEVEL,
                     repository = repository,
                 )
@@ -433,22 +434,60 @@ class ResultsViewModelTest {
             assertThat(viewModel.uiState.value.headlineTier).isEqualTo(ResultsHeadlineTier.PERFECT)
         }
 
+    // ---- The Challenge clear rule on Results (GDD GD-SB-07, GD-SB-14, GD-SB-16; SB-V4, SB-V5) --
+    //
+    // A Challenge result is cleared by ChallengeClearRule's absolute band — one to three pegs —
+    // whatever the route's floor; Classic keeps pegsRemaining <= minimumPegs. One test, read by
+    // the record gate, the headline and Next level alike.
+
     @Test
-    fun aStuckTwoPegFinishOnAOnePegBoardIsStillNotRecorded() =
+    fun aOneStarChallengeClearIsRecordedSubmittedAndOffersNextLevel() =
         runTest(testDispatcher) {
-            // The other half of CR-01: widening the gate to a per-board floor must NOT
-            // widen it for the boards whose floor really is one peg. A Challenge board left
-            // with two pegs is stuck, banks nothing and submits nothing — exactly as before.
+            // SB-V4. Replaces aStuckTwoPegFinishOnAOnePegBoardIsStillNotRecorded, retired because
+            // R5 made its sentence false: a Challenge finish at two or three pegs is a clear.
+            val log = mutableListOf<String>()
+            val repository = FakeProgressRepository(log = log)
+            val submitter = recordingSubmitter(log = log)
+
+            val viewModel =
+                viewModelFor(
+                    levelId = "",
+                    stars = ONE_STAR,
+                    pegsRemaining = ONE_STAR_CLEAR_PEGS_REMAINING,
+                    challengeLevel = SAMPLE_CHALLENGE_LEVEL,
+                    repository = repository,
+                    progressSubmitter = submitter,
+                )
+            advanceUntilIdle()
+
+            val call = repository.recordCalls.single()
+            assertThat(call.mode).isEqualTo(ProgressPersistenceKeys.MODE_CHALLENGE)
+            assertThat(call.levelId).isEqualTo(SAMPLE_CHALLENGE_LEVEL.toString())
+            assertThat(call.result.stars).isEqualTo(ONE_STAR)
+            assertThat(call.result.pegsRemaining).isEqualTo(ONE_STAR_CLEAR_PEGS_REMAINING)
+            assertThat(log).containsExactly(RECORD_EVENT, SUBMIT_EVENT).inOrder()
+            assertThat(submitter.callCount).isEqualTo(1)
+            val state = viewModel.uiState.value
+            assertThat(state.isSolved).isTrue()
+            assertThat(state.headlineTier).isEqualTo(ResultsHeadlineTier.CLEARED)
+            assertThat(state.showNextLevel).isTrue()
+        }
+
+    @Test
+    fun aChallengeRouteWithFourPegsRecordsNothingAndShowsRetry() =
+        runTest(testDispatcher) {
+            // SB-V5. Play never produces it — a stuck board stays on the board (R6) — so only a
+            // forged or stale route can: it banks nothing, submits nothing and reads "Out of
+            // moves" over Retry (the actions offer Retry whenever Next level is not offered).
             val repository = FakeProgressRepository()
             val submitter = recordingSubmitter()
 
             val viewModel =
                 viewModelFor(
                     levelId = "",
-                    stars = TWO_STARS,
-                    pegsRemaining = DIAMOND_41_PERFECT_PEGS_REMAINING,
+                    stars = ONE_STAR,
+                    pegsRemaining = STUCK_CHALLENGE_PEGS_REMAINING,
                     challengeLevel = SAMPLE_CHALLENGE_LEVEL,
-                    minimumPegs = DEFAULT_MINIMUM_PEGS,
                     repository = repository,
                     progressSubmitter = submitter,
                 )
@@ -456,10 +495,84 @@ class ResultsViewModelTest {
 
             assertThat(repository.recordCalls).isEmpty()
             assertThat(submitter.callCount).isEqualTo(0)
-            assertThat(viewModel.uiState.value.isSolved).isFalse()
-            assertThat(viewModel.uiState.value.showNextLevel).isFalse()
-            assertThat(viewModel.uiState.value.headlineTier).isEqualTo(ResultsHeadlineTier.STUCK)
+            val state = viewModel.uiState.value
+            assertThat(state.isSolved).isFalse()
+            assertThat(state.headlineTier).isEqualTo(ResultsHeadlineTier.STUCK)
+            assertThat(state.showNextLevel).isFalse()
         }
+
+    @Test
+    fun aOneStarChallengeClearIsInterstitialEligible() =
+        runTest(testDispatcher) {
+            // GD-SB-16 / INT-03: every Results entry play can reach in Challenge is a clear, so
+            // a one-star clear is a win an interstitial may follow, like any other.
+            val gateway = FakeAdGateway()
+
+            val viewModel =
+                viewModelFor(
+                    levelId = "",
+                    stars = ONE_STAR,
+                    pegsRemaining = ONE_STAR_CLEAR_PEGS_REMAINING,
+                    challengeLevel = SAMPLE_CHALLENGE_LEVEL,
+                    cadenceStore = eligibleCadenceStore(backgroundScope),
+                    adGateway = gateway,
+                )
+            advanceUntilIdle()
+
+            assertThat(viewModel.uiState.value.headlineTier).isEqualTo(ResultsHeadlineTier.CLEARED)
+            assertThat(gateway.preloadCount).isEqualTo(1)
+
+            // The continue tap presents the held ad (the fake holds the show open until released,
+            // so the navigation that follows it is the D-09 tests' subject, not this one's).
+            viewModel.onNextLevelTapped()
+            advanceUntilIdle()
+
+            assertThat(gateway.showCount).isEqualTo(1)
+        }
+
+    @Test
+    fun challengeHeadlinesArePerfectSolvedAndClearedByStarsAndStuckPastTheBand() {
+        // GD-SB-07 / ux-spec D-SB-1: one peg "Perfect!", two "Solved!", three "Cleared!"; the
+        // STUCK tier is the defensive branch for a route with an uncleared count.
+        fun tierOf(
+            stars: Int,
+            pegsRemaining: Int,
+        ): ResultsHeadlineTier =
+            viewModelFor(
+                levelId = "",
+                stars = stars,
+                pegsRemaining = pegsRemaining,
+                challengeLevel = SAMPLE_CHALLENGE_LEVEL,
+            ).uiState.value.headlineTier
+
+        assertThat(tierOf(stars = THREE_STARS, pegsRemaining = SOLVED_PEGS_REMAINING))
+            .isEqualTo(ResultsHeadlineTier.PERFECT)
+        assertThat(tierOf(stars = TWO_STARS, pegsRemaining = TWO_STAR_CLEAR_PEGS_REMAINING))
+            .isEqualTo(ResultsHeadlineTier.SOLVED)
+        assertThat(tierOf(stars = ONE_STAR, pegsRemaining = ONE_STAR_CLEAR_PEGS_REMAINING))
+            .isEqualTo(ResultsHeadlineTier.CLEARED)
+        assertThat(tierOf(stars = ONE_STAR, pegsRemaining = STUCK_CHALLENGE_PEGS_REMAINING))
+            .isEqualTo(ResultsHeadlineTier.STUCK)
+    }
+
+    @Test
+    fun aChallengeTwoPegClearIsSolvedWhateverFloorTheRouteCarries() {
+        // The clear rule reads no floor (R5): a route carrying a floor of two — Diamond-41's —
+        // changes nothing about a Challenge result, which is a two-star clear either way.
+        listOf(DEFAULT_MINIMUM_PEGS, DIAMOND_41_PERFECT_PEGS_REMAINING).forEach { floor ->
+            val state =
+                viewModelFor(
+                    levelId = "",
+                    stars = TWO_STARS,
+                    pegsRemaining = TWO_STAR_CLEAR_PEGS_REMAINING,
+                    challengeLevel = SAMPLE_CHALLENGE_LEVEL,
+                    minimumPegs = floor,
+                ).uiState.value
+
+            assertThat(state.isSolved).isTrue()
+            assertThat(state.headlineTier).isEqualTo(ResultsHeadlineTier.SOLVED)
+        }
+    }
 
     @Test
     fun aForgedHugeMinimumPegsArgCannotDeclareABarelyPlayedBoardSolved() =
@@ -576,7 +689,7 @@ class ResultsViewModelTest {
                 viewModelFor(
                     levelId = "",
                     stars = ONE_STAR,
-                    pegsRemaining = SAMPLE_PEGS_REMAINING,
+                    pegsRemaining = STUCK_CHALLENGE_PEGS_REMAINING,
                     challengeLevel = SAMPLE_CHALLENGE_LEVEL,
                     repository = repository,
                 )
@@ -598,7 +711,7 @@ class ResultsViewModelTest {
                 savedStateHandleFor(
                     levelId = "",
                     stars = ONE_STAR,
-                    pegsRemaining = SAMPLE_PEGS_REMAINING,
+                    pegsRemaining = STUCK_CHALLENGE_PEGS_REMAINING,
                     challengeLevel = SAMPLE_CHALLENGE_LEVEL,
                 )
 
@@ -832,8 +945,9 @@ class ResultsViewModelTest {
     @Test
     fun aStuckChallengeFinishIsNotAdEligibleAtAnyStarCount() =
         runTest(testDispatcher) {
-            // INT-03: three stars but the board did not fold — tierFor calls that STUCK, and
-            // the eligibility gate inherits that branch rather than restating it.
+            // INT-03: three stars but the board did not fold past the clear threshold — four
+            // pegs, a route play never produces (R6) — so tierFor calls it STUCK, and the
+            // eligibility gate inherits that branch rather than restating it.
             val gateway = FakeAdGateway()
             val eligibleStore = eligibleCadenceStore(backgroundScope)
 
@@ -841,7 +955,7 @@ class ResultsViewModelTest {
                 viewModelFor(
                     levelId = "",
                     stars = THREE_STARS,
-                    pegsRemaining = SAMPLE_PEGS_REMAINING,
+                    pegsRemaining = STUCK_CHALLENGE_PEGS_REMAINING,
                     challengeLevel = SAMPLE_CHALLENGE_LEVEL,
                     cadenceStore = eligibleStore,
                     adGateway = gateway,
@@ -863,7 +977,7 @@ class ResultsViewModelTest {
             viewModelFor(
                 levelId = "",
                 stars = THREE_STARS,
-                pegsRemaining = SAMPLE_PEGS_REMAINING,
+                pegsRemaining = STUCK_CHALLENGE_PEGS_REMAINING,
                 challengeLevel = SAMPLE_CHALLENGE_LEVEL,
                 cadenceStore = freshStore,
                 adGateway = FakeAdGateway(),
@@ -1847,6 +1961,14 @@ private const val ONE_STAR = 1
 
 /** Arbitrary pass-through metric values asserted to survive verbatim. */
 private const val SAMPLE_PEGS_REMAINING = 3
+
+/**
+ * Challenge finishes by the clear rule (docs/gdd.md R5, R6): three pegs is a one-star clear, two a
+ * two-star clear, and four is the fewest a stuck board can hold — a route play never sends here.
+ */
+private const val ONE_STAR_CLEAR_PEGS_REMAINING = 3
+private const val TWO_STAR_CLEAR_PEGS_REMAINING = 2
+private const val STUCK_CHALLENGE_PEGS_REMAINING = 4
 private const val SAMPLE_ELAPSED_SECONDS = 75
 private const val SAMPLE_SCORE = 1234
 
