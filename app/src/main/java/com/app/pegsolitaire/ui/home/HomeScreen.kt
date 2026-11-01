@@ -48,7 +48,11 @@ import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.Boards
+import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_HEIGHT_DP
+import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_WIDTH_DP
+import com.app.pegsolitaire.ui.backdrop.BackdropDensity
 import com.app.pegsolitaire.ui.backdrop.BackdropMotion
+import com.app.pegsolitaire.ui.backdrop.BackdropPreviewHost
 import com.app.pegsolitaire.ui.components.ClaySnackbarHost
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.app.pegsolitaire.ui.theme.FinishedContainer
@@ -713,54 +717,77 @@ private const val SLACK_BELOW_TILES_WEIGHT = 1f
 internal const val HERO_ENTRANCE_ORDER = 0
 internal const val RIBBON_ENTRANCE_ORDER = 1
 
-@Preview(name = "Home · light")
+/**
+ * Home's first frame on the design baseline's window, over the backdrop as the host draws it
+ * (BD-25): the ribbon paints its placeholders and nothing waits. In both themes, so the gel tiles'
+ * finish is seen in each.
+ */
+@Preview(name = "Home · light", widthDp = BACKDROP_PREVIEW_WIDTH_DP, heightDp = BACKDROP_PREVIEW_HEIGHT_DP)
+@Preview(
+    name = "Home · dark",
+    widthDp = BACKDROP_PREVIEW_WIDTH_DP,
+    heightDp = BACKDROP_PREVIEW_HEIGHT_DP,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
 @Composable
-private fun HomeScreenLightPreview() {
-    AppTheme(darkTheme = false) {
-        HomeScreen(
-            // The first-frame state: the ribbon paints its placeholders and nothing waits.
-            state = HomeUiState(),
-            onPlayClassic = {},
-            onPlayChallenge = {},
-            onResumeClassic = {},
-            onResumeChallenge = {},
-            onAcceptPlayGamesPrompt = {},
-            onDeclinePlayGamesPrompt = {},
-            onKeepDeviceProgress = {},
-            onUseCloudProgress = {},
-            onPlayGamesSignInErrorShown = {},
-            onOpenSettings = {},
-        )
+private fun HomeScreenFirstFramePreview() {
+    AppTheme {
+        BackdropPreviewHost(BackdropDensity.Landscape) {
+            HomeScreen(
+                state = HomeUiState(),
+                onPlayClassic = {},
+                onPlayChallenge = {},
+                onResumeClassic = {},
+                onResumeChallenge = {},
+                onAcceptPlayGamesPrompt = {},
+                onDeclinePlayGamesPrompt = {},
+                onKeepDeviceProgress = {},
+                onUseCloudProgress = {},
+                onPlayGamesSignInErrorShown = {},
+                onOpenSettings = {},
+            )
+        }
     }
 }
 
-@Preview(name = "Home · dark")
+/**
+ * The busiest legitimate Home — filled ribbon, both Continue chips, both tiles, the layout the
+ * first-paint rule (D-03f) is about — on the design baseline's window over the backdrop (BD-25).
+ * In both themes, so every glossed pill and chip and both gel tiles are seen in each.
+ */
+@Preview(name = "Home · busiest · light", widthDp = BACKDROP_PREVIEW_WIDTH_DP, heightDp = BACKDROP_PREVIEW_HEIGHT_DP)
+@Preview(
+    name = "Home · busiest · dark",
+    widthDp = BACKDROP_PREVIEW_WIDTH_DP,
+    heightDp = BACKDROP_PREVIEW_HEIGHT_DP,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
 @Composable
-private fun HomeScreenDarkPreview() {
-    AppTheme(darkTheme = true) {
-        HomeScreen(
-            // The busiest legitimate Home: filled ribbon, both Continue chips, both tiles —
-            // the layout the first-paint rule (D-03f) is about.
-            state =
-                HomeUiState(
-                    totalStars = PREVIEW_STARS,
-                    classicBoardsCleared = PREVIEW_BOARDS_CLEARED,
-                    challengeCurrentLevel = PREVIEW_LEVEL,
-                    classicResumeLevelId = ClassicLevelIds.EUROPEAN37,
-                    classicResumeBoard = Boards.european37Initial,
-                    challengeResumeLevel = PREVIEW_RESUME_LEVEL,
-                ),
-            onPlayClassic = {},
-            onPlayChallenge = {},
-            onResumeClassic = {},
-            onResumeChallenge = {},
-            onAcceptPlayGamesPrompt = {},
-            onDeclinePlayGamesPrompt = {},
-            onKeepDeviceProgress = {},
-            onUseCloudProgress = {},
-            onPlayGamesSignInErrorShown = {},
-            onOpenSettings = {},
-        )
+private fun HomeScreenBusiestPreview() {
+    AppTheme {
+        BackdropPreviewHost(BackdropDensity.Landscape) {
+            HomeScreen(
+                state =
+                    HomeUiState(
+                        totalStars = PREVIEW_STARS,
+                        classicBoardsCleared = PREVIEW_BOARDS_CLEARED,
+                        challengeCurrentLevel = PREVIEW_LEVEL,
+                        classicResumeLevelId = ClassicLevelIds.EUROPEAN37,
+                        classicResumeBoard = Boards.european37Initial,
+                        challengeResumeLevel = PREVIEW_RESUME_LEVEL,
+                    ),
+                onPlayClassic = {},
+                onPlayChallenge = {},
+                onResumeClassic = {},
+                onResumeChallenge = {},
+                onAcceptPlayGamesPrompt = {},
+                onDeclinePlayGamesPrompt = {},
+                onKeepDeviceProgress = {},
+                onUseCloudProgress = {},
+                onPlayGamesSignInErrorShown = {},
+                onOpenSettings = {},
+            )
+        }
     }
 }
 
@@ -790,29 +817,32 @@ private fun HomeScreenDarkPreview() {
 private fun HomeScreenCompactPreview() {
     // Two annotations on one function rather than two functions: `AppTheme` defaults
     // `darkTheme` to `isSystemInDarkTheme()`, so `uiMode` selects the theme and the two
-    // renders cannot drift in their state or their window.
+    // renders cannot drift in their state or their window. Over the backdrop as the host
+    // draws it (BD-25).
     AppTheme {
-        HomeScreen(
-            state =
-                HomeUiState(
-                    totalStars = PREVIEW_STARS,
-                    classicBoardsCleared = PREVIEW_BOARDS_CLEARED,
-                    challengeCurrentLevel = PREVIEW_LEVEL,
-                    classicResumeLevelId = ClassicLevelIds.EUROPEAN37,
-                    classicResumeBoard = Boards.european37Initial,
-                    challengeResumeLevel = PREVIEW_RESUME_LEVEL,
-                ),
-            onPlayClassic = {},
-            onPlayChallenge = {},
-            onResumeClassic = {},
-            onResumeChallenge = {},
-            onAcceptPlayGamesPrompt = {},
-            onDeclinePlayGamesPrompt = {},
-            onKeepDeviceProgress = {},
-            onUseCloudProgress = {},
-            onPlayGamesSignInErrorShown = {},
-            onOpenSettings = {},
-        )
+        BackdropPreviewHost(BackdropDensity.Landscape) {
+            HomeScreen(
+                state =
+                    HomeUiState(
+                        totalStars = PREVIEW_STARS,
+                        classicBoardsCleared = PREVIEW_BOARDS_CLEARED,
+                        challengeCurrentLevel = PREVIEW_LEVEL,
+                        classicResumeLevelId = ClassicLevelIds.EUROPEAN37,
+                        classicResumeBoard = Boards.european37Initial,
+                        challengeResumeLevel = PREVIEW_RESUME_LEVEL,
+                    ),
+                onPlayClassic = {},
+                onPlayChallenge = {},
+                onResumeClassic = {},
+                onResumeChallenge = {},
+                onAcceptPlayGamesPrompt = {},
+                onDeclinePlayGamesPrompt = {},
+                onKeepDeviceProgress = {},
+                onUseCloudProgress = {},
+                onPlayGamesSignInErrorShown = {},
+                onOpenSettings = {},
+            )
+        }
     }
 }
 

@@ -12,6 +12,10 @@ import androidx.compose.ui.Modifier
  * The host's shape for previews (BD-25): the window-filling `Surface`, [SceneBackdrop] at [density]
  * with its scene ready, and the clock fixed at [timeMs] so a preview shows one exact pose, with the
  * screen's [content] above it.
+ *
+ * The scene fills its parent, so a preview drawn through this host states its window
+ * (`widthDp` and `heightDp`): [BACKDROP_PREVIEW_WIDTH_DP] by [BACKDROP_PREVIEW_HEIGHT_DP] unless
+ * the preview is about a narrower one.
  */
 @Composable
 internal fun BackdropPreviewHost(
@@ -35,3 +39,7 @@ internal fun BackdropPreviewHost(
 
 /** A pose mid-way through the waves' swing, with most lights in view. */
 private const val PREVIEW_TIME_MS = 6_000L
+
+/** The 6.7-inch baseline window a preview through [BackdropPreviewHost] is drawn in. */
+internal const val BACKDROP_PREVIEW_WIDTH_DP = 412
+internal const val BACKDROP_PREVIEW_HEIGHT_DP = 915

@@ -311,11 +311,11 @@ private val SKY_ONLY: Set<BackdropLayer> = setOf(BackdropLayer.Sky)
 private val SCENE_LAYERS: Set<BackdropLayer> = setOf(BackdropLayer.Sky, BackdropLayer.Waves, BackdropLayer.Lights)
 
 /** Each density, light and dark, at a fixed pose (BD-25). */
-@Preview(name = "Backdrop · light", widthDp = PREVIEW_WIDTH_DP, heightDp = PREVIEW_HEIGHT_DP)
+@Preview(name = "Backdrop · light", widthDp = BACKDROP_PREVIEW_WIDTH_DP, heightDp = BACKDROP_PREVIEW_HEIGHT_DP)
 @Preview(
     name = "Backdrop · dark",
-    widthDp = PREVIEW_WIDTH_DP,
-    heightDp = PREVIEW_HEIGHT_DP,
+    widthDp = BACKDROP_PREVIEW_WIDTH_DP,
+    heightDp = BACKDROP_PREVIEW_HEIGHT_DP,
     uiMode = Configuration.UI_MODE_NIGHT_YES,
 )
 @Composable
@@ -323,11 +323,11 @@ private fun SceneBackdropLandscapePreview() {
     AppTheme { BackdropPreviewHost(BackdropDensity.Landscape) {} }
 }
 
-@Preview(name = "Backdrop quiet · light", widthDp = PREVIEW_WIDTH_DP, heightDp = PREVIEW_HEIGHT_DP)
+@Preview(name = "Backdrop quiet · light", widthDp = BACKDROP_PREVIEW_WIDTH_DP, heightDp = BACKDROP_PREVIEW_HEIGHT_DP)
 @Preview(
     name = "Backdrop quiet · dark",
-    widthDp = PREVIEW_WIDTH_DP,
-    heightDp = PREVIEW_HEIGHT_DP,
+    widthDp = BACKDROP_PREVIEW_WIDTH_DP,
+    heightDp = BACKDROP_PREVIEW_HEIGHT_DP,
     uiMode = Configuration.UI_MODE_NIGHT_YES,
 )
 @Composable
@@ -335,18 +335,14 @@ private fun SceneBackdropQuietPreview() {
     AppTheme { BackdropPreviewHost(BackdropDensity.Quiet) {} }
 }
 
-@Preview(name = "Backdrop sparse · light", widthDp = PREVIEW_WIDTH_DP, heightDp = PREVIEW_HEIGHT_DP)
+@Preview(name = "Backdrop sparse · light", widthDp = BACKDROP_PREVIEW_WIDTH_DP, heightDp = BACKDROP_PREVIEW_HEIGHT_DP)
 @Preview(
     name = "Backdrop sparse · dark",
-    widthDp = PREVIEW_WIDTH_DP,
-    heightDp = PREVIEW_HEIGHT_DP,
+    widthDp = BACKDROP_PREVIEW_WIDTH_DP,
+    heightDp = BACKDROP_PREVIEW_HEIGHT_DP,
     uiMode = Configuration.UI_MODE_NIGHT_YES,
 )
 @Composable
 private fun SceneBackdropSparsePreview() {
     AppTheme { BackdropPreviewHost(BackdropDensity.Sparse) {} }
 }
-
-/** The 6.7-inch baseline window. */
-private const val PREVIEW_WIDTH_DP = 412
-private const val PREVIEW_HEIGHT_DP = 915

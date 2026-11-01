@@ -31,6 +31,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.ui.backdrop.BackdropDensity
+import com.app.pegsolitaire.ui.backdrop.BackdropPreviewHost
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.app.pegsolitaire.ui.theme.FinishedContainer
 import com.app.pegsolitaire.ui.theme.claySquish
@@ -235,19 +237,21 @@ private fun TimerPill(elapsedSeconds: Int) {
 }
 
 /**
- * The strip in both of its titles — Classic's app name, then a four-digit Challenge level — on the
- * app background, in both themes.
+ * The strip in both of its titles — Classic's app name, then a four-digit Challenge level — at the
+ * top of the design baseline's window, over the game screen's backdrop as the host draws it
+ * (BD-25): the back chip's and timer pill's finish, in both themes.
  */
-@Preview(name = "Status strip · light", widthDp = PREVIEW_STRIP_WIDTH_DP)
+@Preview(name = "Status strip · light", widthDp = PREVIEW_STRIP_WIDTH_DP, heightDp = PREVIEW_STRIP_HEIGHT_DP)
 @Preview(
     name = "Status strip · dark",
     widthDp = PREVIEW_STRIP_WIDTH_DP,
+    heightDp = PREVIEW_STRIP_HEIGHT_DP,
     uiMode = Configuration.UI_MODE_NIGHT_YES,
 )
 @Composable
 private fun GameStatusStripPreview() {
     AppTheme {
-        Surface(color = MaterialTheme.colorScheme.background) {
+        BackdropPreviewHost(BackdropDensity.Quiet) {
             Column {
                 GameStatusStrip(elapsedSeconds = PREVIEW_ELAPSED_SECONDS, challengeLevel = null, onNavigateBack = {})
                 GameStatusStrip(
@@ -266,7 +270,8 @@ private const val TITLE_WEIGHT = 1f
 /** One line, always: the timer may never be pushed off screen by a long title. */
 private const val TITLE_MAX_LINES = 1
 
-/** The design baseline's width (§4.3.1's width budget), and a representative clock and level. */
+/** The design baseline's window (§4.3.1's width budget), and a representative clock and level. */
 private const val PREVIEW_STRIP_WIDTH_DP = 360
+private const val PREVIEW_STRIP_HEIGHT_DP = 640
 private const val PREVIEW_ELAPSED_SECONDS = 488
 private const val PREVIEW_CHALLENGE_LEVEL = 1234

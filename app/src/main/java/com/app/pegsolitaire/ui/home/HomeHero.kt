@@ -25,6 +25,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.ui.backdrop.BackdropDensity
+import com.app.pegsolitaire.ui.backdrop.BackdropPreviewHost
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.app.pegsolitaire.ui.theme.FinishedContainer
 import com.app.pegsolitaire.ui.theme.clayEntrance
@@ -126,13 +128,22 @@ private fun SettingsGear(onOpenSettings: () -> Unit) {
     }
 }
 
-/** The hero row on the design baseline's width, on the app background, in both themes. */
-@Preview(name = "Home hero · light", widthDp = PREVIEW_HERO_WIDTH_DP)
-@Preview(name = "Home hero · dark", widthDp = PREVIEW_HERO_WIDTH_DP, uiMode = Configuration.UI_MODE_NIGHT_YES)
+/**
+ * The hero row at the top of the narrowest supported window, over Home's backdrop as the host
+ * draws it (BD-25): the title's gradient on the calm band's sky, and the gear chip's finish, in
+ * both themes.
+ */
+@Preview(name = "Home hero · light", widthDp = PREVIEW_HERO_WIDTH_DP, heightDp = PREVIEW_HERO_HEIGHT_DP)
+@Preview(
+    name = "Home hero · dark",
+    widthDp = PREVIEW_HERO_WIDTH_DP,
+    heightDp = PREVIEW_HERO_HEIGHT_DP,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
 @Composable
 private fun HomeHeroPreview() {
     AppTheme {
-        Surface(color = MaterialTheme.colorScheme.background) {
+        BackdropPreviewHost(BackdropDensity.Landscape) {
             HomeHero(onOpenSettings = {})
         }
     }
@@ -140,3 +151,4 @@ private fun HomeHeroPreview() {
 
 /** The narrowest supported window, where the title has the least room beside the gear. */
 private const val PREVIEW_HERO_WIDTH_DP = 360
+private const val PREVIEW_HERO_HEIGHT_DP = 640

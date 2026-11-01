@@ -50,6 +50,10 @@ import com.app.pegsolitaire.audio.JumpSoundEffect
 import com.app.pegsolitaire.audio.SoundCue
 import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.domain.model.Position
+import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_HEIGHT_DP
+import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_WIDTH_DP
+import com.app.pegsolitaire.ui.backdrop.BackdropDensity
+import com.app.pegsolitaire.ui.backdrop.BackdropPreviewHost
 import com.app.pegsolitaire.ui.components.BoardCanvas
 import com.app.pegsolitaire.ui.game.JumpHapticEffect
 import com.app.pegsolitaire.ui.theme.AppTheme
@@ -391,30 +395,36 @@ private const val NO_COACH_YET = 0
 /** Pip outline width. */
 private const val PIP_BORDER_WIDTH = 2
 
-@Preview(name = "Tutorial · light")
+/** The tutorial's first step on the design baseline's window, over the Sparse wash as the host draws it (BD-25). */
+@Preview(name = "Tutorial · light", widthDp = BACKDROP_PREVIEW_WIDTH_DP, heightDp = BACKDROP_PREVIEW_HEIGHT_DP)
 @Composable
 private fun TutorialScreenLightPreview() {
     AppTheme(darkTheme = false) {
-        TutorialScreen(
-            state = TutorialUiState.initial(),
-            onCellTap = {},
-            onAnimationFinished = {},
-            onSkip = {},
-            onDone = {},
-        )
+        BackdropPreviewHost(BackdropDensity.Sparse) {
+            TutorialScreen(
+                state = TutorialUiState.initial(),
+                onCellTap = {},
+                onAnimationFinished = {},
+                onSkip = {},
+                onDone = {},
+            )
+        }
     }
 }
 
-@Preview(name = "Tutorial · dark")
+/** The tutorial completed, in dark, over the Sparse wash as the host draws it (BD-25). */
+@Preview(name = "Tutorial · dark", widthDp = BACKDROP_PREVIEW_WIDTH_DP, heightDp = BACKDROP_PREVIEW_HEIGHT_DP)
 @Composable
 private fun TutorialScreenDarkPreview() {
     AppTheme(darkTheme = true) {
-        TutorialScreen(
-            state = TutorialUiState.initial().completed(),
-            onCellTap = {},
-            onAnimationFinished = {},
-            onSkip = {},
-            onDone = {},
-        )
+        BackdropPreviewHost(BackdropDensity.Sparse) {
+            TutorialScreen(
+                state = TutorialUiState.initial().completed(),
+                onCellTap = {},
+                onAnimationFinished = {},
+                onSkip = {},
+                onDone = {},
+            )
+        }
     }
 }
