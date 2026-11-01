@@ -33,7 +33,7 @@ class UserFacingTextHasNoProtectedNamesTest {
 
         assertThat(stringFiles).isNotEmpty()
         // The Turkish copy is held to the same verdict (docs/ux/localisation-tr.md §7.6).
-        assertThat(stringFiles.map { it.parentFile.name }).contains(TURKISH_VALUES_DIR)
+        assertThat(stringFiles.map { it.relativeTo(appMain).invariantSeparatorsPath }).contains(TURKISH_STRINGS)
         assertThat(stringFiles.flatMap { offences(it) }).isEmpty()
     }
 
@@ -101,8 +101,8 @@ class UserFacingTextHasNoProtectedNamesTest {
         const val RES_DIR = "res"
         const val ASSETS_DIR = "assets"
         const val VALUES_DIR_PREFIX = "values"
-        const val TURKISH_VALUES_DIR = "values-tr"
         const val STRINGS_FILE = "strings.xml"
+        const val TURKISH_STRINGS = "$RES_DIR/values-tr/$STRINGS_FILE"
 
         /**
          * The candy-backdrop verdict's twelve (`tech-lead-architecture.md`, Checks, 2026-10-17)
