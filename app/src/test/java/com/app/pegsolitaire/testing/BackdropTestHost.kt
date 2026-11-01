@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.withFrameNanos
@@ -66,6 +67,16 @@ internal class CountingFrames : BackdropFrames {
     }
 }
 
+/**
+ * Hands the host's clock to [onClock] once composed, so a test reads its time between frames
+ * outside composition: the clock's own snapshot state, never a recomposition per frame.
+ */
+@Composable
+internal fun BackdropClockProbe(onClock: (BackdropClock) -> Unit) {
+    val clock = LocalBackdropClock.current
+    SideEffect { onClock(clock) }
+}
+
 /** The backdrop root's semantics: its tag, density, layers and motion. */
 internal fun SemanticsNodeInteractionsProvider.backdropSemantics(): SemanticsConfiguration =
     onNode(hasTestTag(BACKDROP_TEST_TAG), useUnmergedTree = true).fetchSemanticsNode().config
@@ -87,21 +98,27 @@ internal object StandInTags {
  * The real `AppNavHost` with transparent stand-in destinations, in `NavFlowTest`'s idiom: every
  * stand-in is a tappable, undrawn region that fires one navigation callback, so the host's real
  * lambdas run and nothing a stand-in draws covers the backdrop. [onBoardTap] records the board
- * region's taps.
+ * region's taps. [home], when given, is composed as the Home destination instead of its three
+ * stand-ins, inside the host's providers, so it can read the host's live clock or be the real Home.
  */
 @Composable
 internal fun AppNavHostWithStandIns(
     navController: NavHostController,
     frames: BackdropFrames,
     onBoardTap: () -> Unit = {},
+    home: (@Composable () -> Unit)? = null,
 ) {
     AppNavHost(
         navController = navController,
         homeContent = { onPlayClassic, onPlayChallenge, _, _, onOpenSettings, _ ->
-            Column(Modifier.fillMaxSize()) {
-                StandIn(StandInTags.HOME_CATALOG, Modifier.weight(1f), onPlayClassic)
-                StandIn(StandInTags.HOME_CHALLENGE, Modifier.weight(1f)) { onPlayChallenge(STAND_IN_LEVEL) }
-                StandIn(StandInTags.HOME_SETTINGS, Modifier.weight(1f), onOpenSettings)
+            if (home != null) {
+                home()
+            } else {
+                Column(Modifier.fillMaxSize()) {
+                    StandIn(StandInTags.HOME_CATALOG, Modifier.weight(1f), onPlayClassic)
+                    StandIn(StandInTags.HOME_CHALLENGE, Modifier.weight(1f)) { onPlayChallenge(STAND_IN_LEVEL) }
+                    StandIn(StandInTags.HOME_SETTINGS, Modifier.weight(1f), onOpenSettings)
+                }
             }
         },
         catalogContent = { onSelect, _ -> StandIn(StandInTags.CATALOG) { onSelect(STAND_IN_BOARD) } },
