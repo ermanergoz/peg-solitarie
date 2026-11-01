@@ -68,7 +68,10 @@ Candy-backdrop's rows are not touched: that branch has not merged. Amended 2026-
 `turkish-locale/android-game-dev.md`): §11's glyph-coverage record corrected and the new §11.1 (Fredoka's Turkish gap and the provenance
 of the wrong claim, the mechanism of the ux-designer's D-16 ruled as M-1 to M-5 with its tests, the 15e reading) and §11.2
 (`localeConfig`, `localeFilters` and the regional-English consequence signed off), §8.5 applied to the Turkish spec's
-goldens, §8.1's suite cell, §14.1 row TR, §14.2's golden clause, §14.3 item 14, §16 #39–#40 and §17. Every decision below is a tech-lead decision or a transcription of a recorded ruling; each names where
+goldens, §8.1's suite cell, §14.1 row TR, §14.2's golden clause, §14.3 item 14, §16 #39–#40 and §17. Amended again the
+same day (the addendum of the same report): the founder's Q-039 — **Fredoka + Turkish composites** — supersedes D-16 and
+M-1 to M-5; §11.1's closing block rules the adoption (the reproducible build in `fonts/fredoka-tr/`, the guard tests, the
+licence obligations, no 15e sitting), with §8.1, §13, §14.1 TR, §14.3 item 14, §15, §16 #39 and #41 and §17 brought along. Every decision below is a tech-lead decision or a transcription of a recorded ruling; each names where
 it was decided. Entries are never deleted: a superseded entry gets a "superseded by" line and the
 supersession is listed in §17.
 
@@ -900,7 +903,7 @@ no `fuzz:` line; the lines are in the restored JUnit XML's `system-out`. The rel
 | `:domain:depthSweep` | JVM, own task | `check` | ~11 min (§7.2) |
 | `:domain:fuzz` — `FuzzHarnessTest` | JVM, own task, outside kover | `check` at 10,000 = CI = release (exhaustive, §7.3) | ≈ 6 s (5.955 s at 10,000) |
 | `:domain:koverVerify` | kover 0.9.11 over `:domain:test` only | `check` (§8.4) | seconds |
-| `:app:testDebugUnitTest` — ViewModels (Turbine), repositories against the real in-memory Room DB, Robolectric Compose UI tests (one per screen's main flow), ArchUnit boundary tests, codec and merge tests, and (since `feature/turkish-locale`, 2026-11-01) the locale suites — the Turkish parity test, `AppLanguagesTest`, `BundledFontGlyphCoverageTest` and the three `*ScreenTurkishTest` classes under `tr-rTR` (§11.1, §11.2) | JVM, Robolectric 4.16 SDK 34 (the only `android-all` image cached offline — **do not add `@Config(sdk = ...)` for another level**: it needs a network fetch and breaks `check --offline`) | `check` | minutes |
+| `:app:testDebugUnitTest` — ViewModels (Turbine), repositories against the real in-memory Room DB, Robolectric Compose UI tests (one per screen's main flow), ArchUnit boundary tests, codec and merge tests, and (since `feature/turkish-locale`, 2026-11-01) the locale suites — the Turkish parity test, `AppLanguagesTest`, `BundledFontGlyphCoverageTest`, `BundledFontRecipeTest` (the Fredoka composites' hashes and English-layout identity, §11.1 Q-039) and the three `*ScreenTurkishTest` classes under `tr-rTR` (§11.1, §11.2) | JVM, Robolectric 4.16 SDK 34 (the only `android-all` image cached offline — **do not add `@Config(sdk = ...)` for another level**: it needs a network fetch and breaks `check --offline`) | `check` | minutes |
 | `build-logic` tests (54 at R-1; 54 after check-gates C3, whose brief count of 55 was wrong, addendum A0; 55 after C3a) — the release-gate resolvers | JVM | `check`: the root `build.gradle.kts:18-20` makes it depend on the included build's `:check` (PLAT-06, `7b28007`, 2026-08-27), and the 55 were part of the merge-in's Check on `ffa49aa`, served from the build cache ("build-logic 55 (cache)", `phase-14/android-game-dev-check-gates-merge.md:34`; *until r1-close loop 1, code-auditor F-7: "the 55 ran in the merge-in's Check"*); CI also runs them first, alone, to fail fast (`./gradlew -p build-logic test`, §9.7) *(until check-gates' merge-in re-read, 2026-10-24: "CI's first step (`./gradlew -p build-logic test`); not reachable from the root `check`", stale since `7b28007`)* | seconds |
 | Device sessions | qa-engineer, real device else emulator | every executed plan, every phase, every release | — |
 
@@ -1479,6 +1482,10 @@ of the five letters (`restart_confirm_title`, `settings_haptics_label`, `setting
 draws the player's name in the same role; each such letter draws in Roboto inside a Fredoka word, which spec C-2
 forbids. Every Nunito role is covered.
 
+**Superseded 2026-11-01, the same day, by the founder's Q-039 (§17): the block from here to "If Q-038 is answered 2
+or 3" is the record of D-16's mechanism, M-1 to M-5, none of which was built (`git log` of the branch holds no
+`ui/theme` commit). The live ruling is "Q-039 — Fredoka + Turkish composites" at the end of this section.**
+
 **D-16 (ux-designer, `docs/ux/localisation-tr.md` §7.3; rule of record `docs/ux-spec.md` §6.3): on a Turkish
 device the translatable heading roles draw in Nunito at the nearest heavier weight — Fredoka Medium → Nunito
 SemiBold, Fredoka SemiBold → Nunito Bold — and three closed-glyph surfaces keep Fredoka in every language: the Home
@@ -1592,6 +1599,164 @@ Nunito only); coverage proven by M-5.3 before QA; the T2 and T3 oracles and the 
 discriminators re-derived; a 15e sitting (`res/font/` is start path); and the phase-15 device readings that
 measured Fredoka (18a, 18d, 18e, 15k, 15m, 15o, 15p) re-walked. A Modified Version of Fredoka with the five letters
 drawn (OFL §1; no Reserved Font Name) is §14.3 item 14, 3.1 font work under either answer.
+
+#### Q-039 — Fredoka + Turkish composites: the adoption ruling (tech-lead, 2026-11-01; `turkish-locale/tech-lead-rulings.md`, addendum)
+
+**The decision this rules on.** The founder rejected D-16's Nunito fallback (Q-038: "change the font for all
+languages") and, on the research-analyst's specimen, chose **Fredoka Medium and SemiBold with precomposed
+Ğ ğ İ Ş ş added as composite glyphs built from Fredoka's own base letters and marks** (Q-039, 2026-11-01;
+`turkish-locale/research-analyst-fonts.md`: the placement table, the OFL and RFN findings). One heading face in
+every language, the approved look kept exactly, D-16's split gone: `AppTypography`, `AppFonts`, `Type.kt`,
+`Theme.kt` and every call site stay as they are; the same two `R.font` ids; no `ui/theme` or `ui/home` change.
+What changes is two font files, one new repo directory, two tests, one licences line and the records.
+
+**(1) The modified font is produced reproducibly in the repo — the audio-recipe rule applied to a font.**
+`rules/audio.md`: an in-house asset is rendered from a committed recipe and re-renders byte-identically. The same
+for the two Fredoka files, in a root directory outside every source set, **`fonts/fredoka-tr/`**:
+
+| File | What it is |
+|---|---|
+| `upstream/Fredoka-Medium.ttf`, `upstream/Fredoka-SemiBold.ttf`, `upstream/OFL.txt` | The inputs: Google Fonts' Fredoka v17 static instances and the family's `OFL.txt`, byte-identical to the files the font ruling's D1 fetched (sha256 `8143bd54…2304ae6fa`, `021e30b2…d7688e43a8`; the OFL `782c3137…cf31f7e0`, equal to `assets/licenses/Fredoka-OFL.txt`). Committed, so the build needs no network and the origin is in the tree |
+| `recipe.json` | The recipe of record: the inputs' sha256; the five glyphs — name, code point, base glyph, mark glyph, (x, y) offset per weight (the table below); the `name` strings written; the outputs' sha256 and byte sizes; the Python and fontTools versions that produced them. The build reads the offsets **from** the recipe and refuses to run if an input's hash differs; it never derives an offset at build time |
+| `build.py` | The builder, from the research-analyst's prototype (`build_fredoka_tr.py`) with the three changes below. Pure fontTools; `python3 -I` |
+| `verify.py` | The verifier (the identity contract in (2)); the build runs it on its own output and fails on any line |
+| `requirements.txt` | `fonttools==4.60.1`, `opentype-sanitizer==9.2.0` — the versions the prototype and this ruling's runs used; byte-identical output across fontTools releases is not promised by fontTools, so a bump re-runs the build and re-records the output hashes in `recipe.json` as a reviewed change |
+| `build.sh` | `python3 -m venv .venv` (git-ignored) + `pip install -r requirements.txt`, then both weights into `app/src/main/res/font/fredoka_medium.ttf` and `fredoka_semibold.ttf`, then `verify.py`, then prints and compares the outputs' sha256 with the recipe's. shellcheck-clean |
+| `README.md` | Why (this section), how to re-run, what a Modified Version under OFL-1.1 obliges (3) |
+
+*The three changes to the prototype, each proven on 2026-11-01 (the Checks of the rulings report):*
+- **Determinism:** `TTFont(src, recalcTimestamp=False, recalcBBoxes=False)`. With the defaults the prototype wrote
+  the build time into `head.modified` (the research-analyst's two files and two fresh runs an hour later differ in
+  `head` alone) and recomputed every stored bounding box (`head.yMax` 974 → 975, `head.flags` bit 1 cleared, 13–14
+  composite glyphs re-encoded). With the two flags, two runs minutes apart give identical sha256 in both weights.
+- **Probe and writer:** every measurement (anchors, bounding boxes, the dieresis row, the cedilla neck) is read from
+  a second, throwaway `TTFont(src)`; the font that is written never has an original glyph expanded, so each original
+  glyph's raw `glyf` bytes and `loca` offsets are the upstream's. The new composite's bounds are set from the probe's
+  numbers, not recomputed through the writer.
+- **`maxp` by hand:** the five composites have up to 108 composite points and 4 contours against the upstream
+  `maxp`'s 100 and 3 (OTS warns "adjusting limit" otherwise). `maxCompositePoints`, `maxCompositeContours`,
+  `maxComponentElements` and `maxComponentDepth` are raised to the maximum of the upstream value and the new glyphs',
+  computed from the probe; nothing else in `maxp` moves.
+
+*The placement table, the recipe's content (read by the build; identical to the research-analyst's, and reproduced
+by this ruling's runs):*
+
+| Glyph | Code point | Components | Medium (x, y) | SemiBold (x, y) | Advance (Medium / SemiBold) |
+|---|---|---|---|---|---|
+| `Gbreve` | U+011E | `G` + `uni0306` | (191, 200) | (187, 200) | 712 / 715, the base's |
+| `gbreve` | U+011F | `g` + `uni0306` | (103, 0) | (99, 0) | 559 / 552 |
+| `Idotaccent` | U+0130 | `I` + `uni0307` | (6, 100) | (−6, 100) | 224 / 232 |
+| `Scedilla` | U+015E | `S` + `uni0327` | (137, 8) | (125, 10) | 550 / 546 |
+| `scedilla` | U+015F | `s` + `uni0327` | (106, −4) | (96, −4) | 459 / 458 |
+
+Each composite: component flags as the font's own composites (`0x604` on the base, `0x4` on the mark), advance = the
+base's, lsb = the composite's xMin, GDEF class = the base's, every pair-kerning entry and class of the base copied
+(201 per weight), one cmap entry per Unicode subtable. The İ dot sits on the row of Fredoka's own `Idieresis` dots,
+centred on the stem (the anchor placement, 92 units higher, is rejected — the research-analyst's rendering read).
+`name`: ID 0 (copyright), 1, 4, 16 (the family stays "Fredoka": no Reserved Font Name is declared, OFL-FAQ 5.7/3.8),
+13 and 14 unchanged; **ID 5** = the upstream version string + `; Turkish composites 1 (Peg Solitaire)`; **ID 3** = the
+upstream unique id + `;PegSolitaire-TR1`. The resulting tables: `GSUB`, `OS/2`, `STAT`, `gasp`, `prep` byte-identical;
+`head` identical but for `checkSumAdjustment`; `GDEF`, `GPOS`, `cmap`, `glyf`, `loca`, `hmtx`, `hhea`
+(`numberOfHMetrics` 327 → 332), `maxp`, `name` (IDs 3 and 5 only), `post` (five names) carry additions only. This
+ruling's reference run: Medium 50,420 B, SemiBold 50,384 B (+488 B / +484 B over the upstream's 49,932 / 49,900).
+The committed `recipe.json` records the developer's hashes; a hash that differs from this run is not a defect by
+itself (a different `name` string or GPOS record order moves it) — the identity contract in (2) is what binds.
+
+*Does the Check verify it?* **Yes, without Python**, by `BundledFontRecipeTest` in `:app:testDebugUnitTest` (JVM;
+no network): (a) the sha256 of `app/src/main/res/font/fredoka_medium.ttf` and `fredoka_semibold.ttf` equal
+`recipe.json`'s outputs, and the sha256 of `fonts/fredoka-tr/upstream/*.ttf` equal its inputs — so the shipped
+bytes are the recipe's and the recipe's origin is the upstream's; (b) the identity checks of (2) that `java.awt`
+can make. `app/build.gradle.kts` declares `fonts/fredoka-tr/` as an input of every `Test` task, as it declares
+`audio/recipes/` for `AudioCreditsTest` (P5), so an edit to the recipe or an upstream file re-runs the tests. The
+Python build and `verify.py` are **not** in the Check (they need pip and a network to make the venv, and `check
+--offline` must stay offline); they run at build time by the developer, in review by the code-auditor, and at the
+cut by the release-manager (below). Neither tool is a product dependency; both are recorded in `THIRD_PARTY.md` §8.
+
+**(2) The guard tests — derived, never typed.**
+- **Coverage, every font × every shipped locale × every role:** `BundledFontGlyphCoverageTest` takes the target
+  shape of M-5.3, now **required** (not optional): locales from the folders as `AppLanguagesTest` derives them;
+  per locale, every character of its `strings.xml` values plus the base file's untranslated keys (Android's escapes,
+  format specifiers and whitespace removed), with the thirteen §7.3 code points as a floor for `tr`; per role of
+  `AppTypography`, the `ResourceFont.resId` turned into its file through `resources.getResourceEntryName`
+  (Robolectric SDK 34) — never a typed file list; each code point held to the file's cmap through
+  `java.awt.Font.canDisplay`; `res/font/` the only `font*` resource directory; failures name locale, role, file and
+  code points. **No allowance list.** The one character it flags today is pre-existing and outside Turkish:
+  `licenses_psl_parts` writes its date with U+2011 non-breaking hyphens (`strings.xml:502`, deliberate) and Nunito's
+  cmap lacks U+2011 (the body face already falls back for it; `hb-shape` hides this by mapping U+2011 to U+2010, the
+  same shaper trap as ruling 1). **Tech-lead decision:** the string stops using a character its face lacks; the
+  form that keeps the date whole is the prose date the Turkish spec already uses for the same entry (§2.3,
+  "15 Şubat 2023"): English "15 February 2023", no hyphen at all. The ux-designer owns the copy and may word it
+  otherwise in `docs/ux/licences-screen.md`; the test does not wait for the wording.
+- **English layout identical — proven by a test and by a recorded comparison.** *The test* (`BundledFontRecipeTest`,
+  in the Check): for each weight, upstream against shipped — the set of displayable code points (`canDisplay` over
+  U+0000–U+FFFF) differs by exactly the five; every code point the upstream displays has the same `GlyphVector`
+  advance in both; every value of the base `strings.xml` has the same `TextLayout` advance in both with
+  `TextAttribute.KERNING_ON` and `LIGATURES_ON` (JDK 17's HarfBuzz applies GPOS kerning); and `AppTypographyTest`
+  and `AppTypographyRendersBundledFacesTest` keep their oracles unchanged, which they can only do if no advance moved.
+  *The recorded comparison* (`verify.py`, run by the developer and re-run by the code-auditor, outputs quoted in
+  both reports): every original glyph's raw `glyf` bytes and `loca` offsets equal the upstream's; `hmtx` equal for
+  every original glyph; the five tables above byte-identical and `head` equal but for `checkSumAdjustment`; `name`
+  differs in IDs 3 and 5 only; cmap differs by exactly five additions; exactly five glyphs appended at the end of
+  the glyph order; `ots-sanitize` passes with no warning; and, where `hb-shape` is on PATH, every value of the base
+  `strings.xml` shapes to the same glyph ids and advances in both (237 values, 0 differences in this ruling's run,
+  both weights), plus the five composites as single glyphs with their bases' kerning (`Ğy` = `Gy`, 667). T2's and
+  T3's oracles, the 15e discriminators and every phase-15 reading stay valid because no advance changed.
+
+**(3) `THIRD_PARTY.md` and the licences screen — the Modified Version's obligations (OFL-1.1 §1–§5).**
+- *Status:* a **Modified Version** (OFL §1). No Reserved Font Name is declared (the OFL text, the `name` table), so
+  the name "Fredoka" may stay (OFL-FAQ 5.7, 3.8) and the resource names stay `fredoka_medium` / `fredoka_semibold`.
+  §1 (never sold alone), §2 (notice and licence in every copy), §4 (the authors' names not used to promote) and §5
+  (stays under OFL-1.1) hold as for the unmodified files. The research-analyst's verdict line becomes "CLEAN as a
+  Modified Version" (its report already says so with conditions); it writes the row at adoption, the release-manager
+  owns the file, both through the producer.
+- *The copyright notice and the OFL text:* `assets/licenses/Fredoka-OFL.txt` **stays byte-identical** to the
+  upstream `OFL.txt` (sha256 `782c3137…`, pinned by `BundledLicenseTextHashTest` and listed in checklist 4.6a): the
+  notice condition is met by the unmodified text, and OFL does not ask the licence file to carry a change log. The
+  "modified" statement lives where readers look: (i) the font's own `name` table, IDs 3 and 5 (above); (ii) the
+  licences screen's Fredoka entry gains a third `LicenseLine.Plain`, `licenses_fredoka_modified`
+  (`translatable="false"` like its siblings), reading in substance "Modified for Peg Solitaire: Ğ ğ İ Ş ş added as
+  composite glyphs; otherwise unchanged" — the copy is the ux-designer's (`docs/ux/licences-screen.md` §3.2's
+  table, which `LicenseCatalogTest.EXPECTED` pins row for row, so the spec row and the test change with the
+  catalogue); (iii) `THIRD_PARTY.md` §2's Fredoka row — Item: "Fredoka Medium, Fredoka SemiBold, **a Modified
+  Version**: five composite glyphs (Ğ ğ İ Ş ş) added from the family's own components, nothing else changed";
+  Source: the upstream entries and hashes as today **plus** `fonts/fredoka-tr/` (recipe, build, the outputs'
+  sha256); Licence: "OFL-1.1, Modified Version (§1); no RFN, name kept"; How verified: `BundledFontRecipeTest`,
+  `verify.py`'s recorded run, the research-analyst's Modified-Version verdict; Credit: unchanged notice file plus
+  the licences-screen line; (iv) `THIRD_PARTY.md` §8 (not shipped): the upstream copies under
+  `fonts/fredoka-tr/upstream/` (the same OFL files, repo-only), `fonttools` (MIT) and `opentype-sanitizer`
+  (BSD-3-Clause), build-only; (v) `fonts/fredoka-tr/README.md`.
+- *At the cut (release-manager, checklist 4.6a):* the AAB's `fredoka_medium.ttf` and `fredoka_semibold.ttf`
+  (`unzip -p <aab> base/res/font/<name>.ttf | shasum -a 256`) equal `recipe.json`'s outputs, beside the five-font
+  and two-OFL listing it already makes.
+
+**(4) 15e — no sitting is owed.** §10's first-frame test asks whether code that runs before or on Home's first frame
+changed; the founder's directive (2) of 2026-10-31 narrows sittings to start-path *code*. Here no code changes:
+`AppFonts`, `Type.kt`, `Theme.kt`, `HomeHero.kt` and every call site are untouched, the same two resource ids load
+through the same blocking path, and the files grow by 488 and 484 bytes (+1 %), five composites appended at the end
+of the glyph order that no English string references and that FreeType reads lazily per glyph. The start-path list
+names `res/font/` for §10's *second* rule — a merge-in that changes a start-path file voids a sitting already held —
+and that rule is already engaged for this branch by `AndroidManifest.xml` (§11.2, merge order): candy-backdrop's
+merge-in of this branch re-sits candy if candy sat first, as recorded. The reading on this branch: **not owed**,
+recorded with the byte delta; QA's Turkish and English sessions (C-2 and C-2c) are the checks that matter.
+
+**What falls away.** D-16's `R.bool`, the second scale, `BrandTypography` and `LocalBrandTypography`: not built,
+nothing to remove. Spec C-2a and C-2b (the Nunito discriminators), §7.3's decision table and §6's face-width note,
+`docs/ux-spec.md` §6.3's and `docs/ui/DESIGN-SYSTEM.md`'s D-16 paragraphs: the ux-designer's to re-edit under
+Q-039 (through the producer); C-2's shape check ("every Turkish letter in its surrounding face") is the criterion
+that remains, now true by construction, and the device is still the judge. §14.3 item 14's Modified Version is no
+longer 3.1 work — it is this; its upstream report to `google/fonts` (issue #2411, open since 2020) stays with the
+research-analyst.
+
+**The developer's contract, in one list (test-first; the red runs in the report):** `fonts/fredoka-tr/` as the
+table in (1), the three changes to the prototype, the five offsets from the recipe; `build.sh` run once, the two
+outputs committed in place of the shipped files, `recipe.json` carrying their hashes; `BundledFontRecipeTest`
+(hashes, cmap delta, advances, kerned string advances); `BundledFontGlyphCoverageTest` in its derived shape with
+no allowance (red first on the upstream Fredoka for Ğ ğ İ Ş ş, and on U+2011 until the PSL date changes);
+`licenses_psl_parts` to the prose date; `licenses_fredoka_modified` and the catalogue line, with
+`LicenseCatalogTest.EXPECTED`; the `Test`-task input for `fonts/fredoka-tr/`; `verify.py`'s output quoted in the
+report; `./gradlew check` green; no change to `ui/theme`, `ui/home`, `AppFonts`, `Type.kt`, any oracle, any string
+but the two named, `THIRD_PARTY.md` (the research-analyst's and release-manager's) or `docs/` (the ux-designer's and
+the tech-lead's).
 
 ### 11.2 Locale resources, per-app language and `localeFilters` — signed off (2026-11-01)
 
@@ -1729,6 +1894,11 @@ fires on gameplay only, and only on API 30+ by our own check … The tutorial re
 `HapticsSetting`."*
 
 ## 13. Dependencies and licences
+
+*Added 2026-11-01 (§11.1, Q-039):* two **build-only, repo-only** tools, never on any classpath and never shipped —
+`fonttools` 4.60.1 (MIT) and `opentype-sanitizer` 9.2.0 (BSD-3-Clause), pinned in `fonts/fredoka-tr/requirements.txt`
+and installed into a git-ignored venv by `build.sh`; they regenerate the two Fredoka files from the committed
+upstream copies. Recorded in `THIRD_PARTY.md` §8 beside the other non-shipped tools; the Check does not run them.
 
 `THIRD_PARTY.md` (release-manager) is the licence record of what ships, derived from Gradle
 configuration, one row per idea, asset, snippet and dependency; the release gate blocks on any row
@@ -1962,7 +2132,7 @@ deadline in this file: whether the cut waits for it is the producer's schedule, 
 | R-7 | `FUZZ_SEEDS=100000 ./scripts/check.sh --rerun-tasks` on the release branch (exhaustive, §7.3; `--rerun-tasks` so the fuzz lines are the release's own execution, auditor finding 2), `domain/build/fuzz-failures.txt` absent, coverage figure recorded (99.0 % at the gate's introduction) | release-manager | R-2 (signed off) |
 | DT | **The solver deadline tests' own task**, `bugfix/solver-deadline-task` (§8.6, added 2026-10-24): `SolverDeadlineTest` run by `:domain:solverDeadline` outside kover, always-run, in `check`; `koverVerify` re-measured after the move | android-game-dev → code-auditor → tech-lead | R1 and R-2 merged (it edits the files R1 rewrites). No branch-cut marker: before the cut if green in one loop, else §14.2; the quiet-host rule governs the release Check meanwhile *(2026-11-01: **deferred to 3.0.1** by the producer, owner tech-lead (`.planning/reports/STATUS.md`, "Producer decision 2026-11-01", commit `4135e2d` on `feature/status-2026-11-01b`); listed in §14.3 item 13, not §14.2.)* |
 | PLAT-08 | Cold start on a named physical phone, or the unverified record (§10) | qa-engineer; producer for the device question | — |
-| TR | **Turkish localisation**, `feature/turkish-locale` (added 2026-11-01; founder directive 2026-11-01; `docs/ux/localisation-tr.md`; §11.1, §11.2): `values-tr` (179 strings, 7 plurals), nine base keys `translatable="false"`, `localeConfig` (en, tr), `localeFilters` (en, tr), the locale suites; D-16's heading face by M-1 to M-5 (§11.1); the tr-TR store copy to the release-manager (spec §10) | ux-designer (the spec; D-16) → tech-lead (the mechanism, ruled) → android-game-dev → code-auditor + qa-engineer (a Turkish device, 100 % and 200 %, C-2 to C-2d, TalkBack A-1 to A-7; one 15e sitting on `Pixel_9a_bench` with the final code) → tech-lead; release-manager for `docs/store/tr-TR/` and the AAB's `tr` config | Cut from `develop` at `37d3052`. Built to `f289546` (`turkish-locale/android-game-dev.md`); the ux-designer's D-16 at `91bfa9c`; rulings 1–3 in `turkish-locale/tech-lead-rulings.md`. Owes: M-1 to M-5 and their tests, the §9.3 string deltas of the two parallel branches, the 15e sitting (§11.1). Q-038 is non-blocking. Lands before candy-backdrop's sitting (it edits `AndroidManifest.xml`, `ui/theme/` and `ui/home/`). **Blocks the branch cut** (3.0.0 ships Turkish by the founder's directive) |
+| TR | **Turkish localisation**, `feature/turkish-locale` (added 2026-11-01; founder directive 2026-11-01; `docs/ux/localisation-tr.md`; §11.1, §11.2): `values-tr` (179 strings, 7 plurals), nine base keys `translatable="false"`, `localeConfig` (en, tr), `localeFilters` (en, tr), the locale suites; D-16's heading face by M-1 to M-5 (§11.1); the tr-TR store copy to the release-manager (spec §10) | ux-designer (the spec; D-16) → tech-lead (the mechanism, ruled) → android-game-dev → code-auditor + qa-engineer (a Turkish device, 100 % and 200 %, C-2 to C-2d, TalkBack A-1 to A-7; one 15e sitting on `Pixel_9a_bench` with the final code) → tech-lead; release-manager for `docs/store/tr-TR/` and the AAB's `tr` config | Cut from `develop` at `37d3052`. Built to `f289546` (`turkish-locale/android-game-dev.md`); the ux-designer's D-16 at `91bfa9c`; rulings 1–3 in `turkish-locale/tech-lead-rulings.md`. *Q-039 (2026-11-01) supersedes D-16 and M-1 to M-5:* owes instead the Fredoka composites by §11.1's Q-039 block — `fonts/fredoka-tr/` (recipe, build, verify, upstream copies), the two rebuilt font files, `BundledFontRecipeTest`, the derived `BundledFontGlyphCoverageTest`, the PSL prose date, the licences-screen "modified" line — plus the §9.3 string deltas of the two parallel branches; **no 15e sitting** (§11.1 (4)); `ui/theme` and `ui/home` untouched. Lands before candy-backdrop's sitting (it edits `AndroidManifest.xml` and `res/font/`). **Blocks the branch cut** (3.0.0 ships Turkish by the founder's directive) |
 
 **Merge order into `develop`** (`15-founder-feedback/tech-lead-signoff.md` Decision 4, 2026-10-18).
 It supersedes the R-2 brief's §0 and this table's earlier "R-2 before phase 15" (§17). *Amended 2026-10-21*
@@ -2139,7 +2309,7 @@ already recorded elsewhere are listed by pointer.
 | 11 | Talkback's routed set: B-10 landscape clipping (in the Q-PUBLISH-3.0.0 summary; §14.2's landscape item), the banner re-announced on rotation, UMP consent over step 1, the count-up and `StarPopSounds` replay on rotation, O-1 "Perfect!" heard twice; backlog only: the unbounded window-focus wait, the caption without "Step N of 3" after a mid-tutorial recreation, the completion row's focus-then-speak | 3.0.1 or backlog, as routed | as routed in `talkback-board/tech-lead-defect-ruling.md` §10 (ux-designer rules the spoken ones first) | `talkback-board/tech-lead-signoff.md` §3 |
 | 12 | Already recorded: §16 #31 (`GameViewModelResumeTest` can hang), §16 #32 (the Undecided notice re-spoken on a live switch); the PU script items and the shellcheck gate (§14.2, above); E-1, the pre-commit hook and the script's Fable read (§16 #36–#38) | as each says | as each says | — |
 | 13 | DT, the solver deadline tests' own task, `bugfix/solver-deadline-task` (§8.6, row DT): `SolverDeadlineTest` on `:domain:solverDeadline` outside kover, always-run, in `check`; `koverVerify` re-measured after the move. Test placement only, no device session; the quiet-host rule governs every Check until it lands *(added 2026-11-01, loop 1: the producer's deferral, not one of the four code branches)* | 3.0.1 | tech-lead (owner; §8.6 is the brief) → android-game-dev → code-auditor → tech-lead | `.planning/reports/STATUS.md`, "Producer decision 2026-11-01" (commit `4135e2d`, `feature/status-2026-11-01b`); §14.1 row DT; §16 #25 |
-| 14 | Fredoka headings in Turkish, only on the ux-designer's ask or Q-038's answer: a Modified Version of Fredoka with Ğ ğ İ Ş ş drawn (OFL §1, no Reserved Font Name; its own `THIRD_PARTY.md` row as a Modified Version, its own hashes, visual QA of five glyphs at every size), or an upstream fix to `google/fonts` (whose Fredoka METADATA.pb declares `latin-ext` it lacks — the research-analyst's report, spec §9.2) and a re-pin; and, if the target shape of the coverage test (§11.1 M-5.3) was not built on the branch, that derivation over every shipped locale and every role | 3.1 or later, only if asked; the test shape with the next locale at the latest | ux-designer → research-analyst (the licence row) → android-game-dev → code-auditor + qa-engineer (a 15e sitting: `res/font/` is start path) → tech-lead | §11.1; `turkish-locale/tech-lead-rulings.md` |
+| 14 | Fredoka headings in Turkish, only on the ux-designer's ask or Q-038's answer: a Modified Version of Fredoka with Ğ ğ İ Ş ş drawn (OFL §1, no Reserved Font Name; its own `THIRD_PARTY.md` row as a Modified Version, its own hashes, visual QA of five glyphs at every size), or an upstream fix to `google/fonts` (whose Fredoka METADATA.pb declares `latin-ext` it lacks — the research-analyst's report, spec §9.2) and a re-pin; and, if the target shape of the coverage test (§11.1 M-5.3) was not built on the branch, that derivation over every shipped locale and every role. *Superseded 2026-11-01 (Q-039, §17): the Modified Version and the derived coverage test are 3.0.0's, on `feature/turkish-locale` (§11.1, Q-039). What remains here is the upstream report to `google/fonts` issue #2411, the research-analyst's, no version named* | ~~3.1 or later~~ — the upstream report only | research-analyst (the upstream report) | §11.1; `turkish-locale/tech-lead-rulings.md` |
 
 ## 15. Risks
 
@@ -2148,6 +2318,7 @@ already recorded elsewhere are listed by pointer.
 | **The Core Value is asserted on six sampled levels** until R-2 lands; a generator knob tune could ship an unsolvable level | low / severe. *Closed 2026-10-24* | R-2's exhaustive ladder walk (§7.3) is the gate: green on all 10,000 levels with the determinism pass, in `check`, CI and the release alike; it caught a planted certificate defect that `:domain:test` missed (the auditor's `level % 97` mutation) | android-game-dev, tech-lead |
 | The fuzz harness at 10,000 does not fit in 60 s and the default drops to 1,000 | medium / low. *Closed 2026-10-24* | The decision rule in §7.3 is pre-written; CI and release stay exhaustive either way. Measured: 5.955 s at 10,000, so the default is 10,000 | developer measures, reports |
 | kover cannot apply beside AGP 9.1.0 / Kotlin 2.3.20, or instruments the sweep | low / medium. *Closed 2026-10-24* | kover is applied to `:domain` only (pure JVM); exclusion of `depthSweep`/`fuzz` is an acceptance check; fallback pre-ruled in the brief: Gradle's built-in JaCoCo on `:domain` at the same bound, recorded here as a deviation. kover 0.9.11 applied; `koverVerify`'s graph holds `:domain:test` only | developer stops and reports if neither applies |
+| **A Modified Version of Fredoka ships** (added 2026-11-01; §11.1 Q-039): five composite glyphs built in-house could render wrongly on a device (mark placement, hinting, a validator the build did not run) or drift if rebuilt | low / medium (a wrong Ğ in a heading in Turkish; nothing in English can move, the test proves it) | The build is a committed recipe that regenerates byte-identically and is pinned by hash in the Check (`BundledFontRecipeTest`); every original glyph's bytes, every advance and the English shaping are proven unchanged (`verify.py`, the test); OTS passes clean; QA's C-2 read on a Turkish device judges the five letters at 100 % and 200 %, and C-2c the English screens against the earlier screenshots | android-game-dev builds; code-auditor re-runs `verify.py`; qa-engineer on the device; tech-lead signs off |
 | `check`'s 11 minutes make the concurrent-build race near-certain on a shared host | high / medium | F1 (self-heal) + F2 (lock), both on check-gates since 2026-10-23; residual: the `kill -9` reclaim window (§9.6, a known limit, post-3.0.0) and every hand-run `./gradlew <task>` outside the lock; the Diamond-41 book closes the cost later | android-game-dev; producer's dispatch discipline |
 | `:domain:test`'s four wall-clock solver deadline tests go red on a loaded host, 2.5× sooner under kover's agent, so a Check reads red for a reason unrelated to the diff | medium on a shared host, low on a quiet one / low (a re-run; fail-closed) | §8.6: their own task outside kover (row DT, §14.1); the quiet-host rule for every Check until then, and for the release Check regardless | android-game-dev; producer's scheduling; release-manager for 3.1 |
 | A signed AAB with a placeholder id on disk after a failed build | closed by 9.2.5 | package-task `dependsOn`, proven by execution | — |
@@ -2212,7 +2383,8 @@ Every item the seeded file listed as "decided by nobody" is now either decided o
 | 36 | **E-1 in the plugin: path-named wrappers pass the publish gate and the branch guard** (added 2026-11-01; `play-upload/tech-lead-signoff.md` §5, the fix's five points; §15) | **Open, owned; a plugin defect, not this product's.** A plugin feature branch (for example `feature/gate-path-wrappers`): the wrapper words take `ERGOZ_CMD_PATH`'s optional path prefix in `hooks/lib-cmdpos.sh`, the target resolver learns the same wrappers, red-first tests for every probed form in both hooks. Until its release is installed here, T-11 and the key-after-approval rule bind the Gate-2 upload | producer → the plugin's developer, code-auditor and tech-lead; producer installs the release and records it in STATUS.md |
 | 37 | **This product has no git pre-commit hook behind the branch guard** (added 2026-11-01; same §5): `.git/hooks` holds only samples and `core.hooksPath` is unset (re-read on 2026-11-01), so `/usr/bin/env git commit` on `develop` or `main` passes both guards here | **Open, owned.** Install the plugin's `branch-guard.sh --git-hook` as `pre-commit`; it closes the commit half of E-1 today, independent of the plugin release. Not code of this product; no role here writes the hook | producer |
 | 38 | **No Fable review of `scripts/play-upload.sh`** (added 2026-11-01; same §1): the one file holding the Play credential's path and a store upload was written and reviewed on Opus under Q-019 | **Open, owned. Not a merge or cut condition.** When Fable is available again, a Fable code-auditor read of the script at `6a0b032` before its first script-route upload; checklist 1.7's Console route is always open meanwhile | producer, under Q-019 |
-| 39 | **Fredoka cannot draw Ğ ğ İ Ş ş** (added 2026-11-01; `turkish-locale/android-game-dev.md` open issue 1; §11.1). Five Turkish strings and a Turkish player's name in a heading role draw those letters in Roboto; spec C-2 fails as built at `f289546`; the font ruling's coverage line was wrong (a shaping check that composed base plus mark, where Android itemises by cmap) | **Open, owned; blocks the Turkish branch's QA PASS, so the cut.** The look is D-16 (ux-designer; Q-038 to the founder, non-blocking); the mechanism is M-1 to M-5 (§11.1); the coverage test ships whichever way Q-038 is answered. Closes at the branch's tech-lead sign-off on C-2 to C-2d PASS | android-game-dev → code-auditor + qa-engineer → tech-lead |
+| 39 | **Fredoka cannot draw Ğ ğ İ Ş ş** (added 2026-11-01; `turkish-locale/android-game-dev.md` open issue 1; §11.1). Five Turkish strings and a Turkish player's name in a heading role draw those letters in Roboto; spec C-2 fails as built at `f289546`; the font ruling's coverage line was wrong (a shaping check that composed base plus mark, where Android itemises by cmap) | **Open, owned; blocks the Turkish branch's QA PASS, so the cut.** The look is D-16 (ux-designer; Q-038 to the founder, non-blocking); the mechanism is M-1 to M-5 (§11.1); the coverage test ships whichever way Q-038 is answered. Closes at the branch's tech-lead sign-off on C-2 to C-2d PASS. *2026-11-01, Q-039:* the founder chose Fredoka + Turkish composites; the fix is §11.1's Q-039 block (the five letters drawn into Fredoka itself from its own parts, reproducibly); closes at the branch's sign-off on C-2 PASS in Turkish and C-2c in English, with `BundledFontRecipeTest` and the derived coverage test green | android-game-dev → code-auditor + qa-engineer → tech-lead |
+| 41 | **`licenses_psl_parts` writes its date with U+2011, which Nunito's cmap lacks** (added 2026-11-01; `turkish-locale/research-analyst-fonts.md`, Open issues; §11.1 Q-039 (2)). A pre-existing per-glyph fallback to Roboto in a body string, hidden from `hb-shape` by its U+2011 → U+2010 mapping; the derived coverage test flags it with no allowance | **Open, owned; closes on the branch.** Tech-lead decision: the prose date "15 February 2023" (the form the Turkish spec uses for the same entry); the ux-designer may word it otherwise in `docs/ux/licences-screen.md`; the comment at `strings.xml:502` goes with it | android-game-dev (the string) → ux-designer (the spec line, through the producer) → code-auditor |
 | 40 | **Lint `UnusedAttribute` on `android:localeConfig`** (added 2026-11-01; `turkish-locale/android-game-dev.md` open issue 3; §11.2) — a new warning in a touched file under §9.8's no-growth clause, left unsuppressed by the developer for the reviewer | **Open, owned.** The code-auditor approves one of §11.2's ranked forms, or none, with its line, in the branch's review | code-auditor |
 
 ## 17. Supersessions
@@ -2296,3 +2468,6 @@ Nothing is deleted from this file; a superseded decision stays with a pointer to
 | The font ruling's glyph-coverage line, "both faces carry `—`, `…`, `’`, `·`, `×` and Turkish", and its Checks line "`— … ’ · × ğ ş İ` present in both faces" (`15-founder-feedback/tech-lead-fonts.md`, 2026-09-29); spec D-13's premise that a full Fredoka file covers Latin Extended-A, and its remedy | Fredoka carries ı, Ç, ç and the five marks but no Ğ ğ İ Ş ş in any build. The check that passed was a shaping check (HarfBuzz composed base plus combining mark from Fredoka's own glyphs); Android itemises by cmap, so a cmap read is the only coverage check from now on. The report is not edited; this file is the record (added 2026-11-01) | §11.1; `turkish-locale/tech-lead-rulings.md` ruling 1 |
 | §11's role → family map as the map for every language ("display/headline/title = Fredoka") | D-16: the map for a language Fredoka covers. On a Turkish device the translatable heading roles are Nunito at the next heavier weight, chosen by `R.bool.display_face_covers_language`; the wordmark, the clock and the numeral values keep Fredoka through `LocalBrandTypography` (added 2026-11-01) | §11.1 M-1 to M-3; `docs/ux-spec.md` §6.3 |
 | `docs/ux/localisation-tr.md` §7.6's Roborazzi goldens in `tr` as a deliverable of the branch | §8.5 stands: no stored goldens in 3.0.0; QA's device reads, one screenshot per §6 slot per scale, read in the QA report, are the record for D-12 (added 2026-11-01) | §8.5; `turkish-locale/tech-lead-rulings.md` ruling 2 |
+| D-16 (Nunito headings on a Turkish device) and its mechanism M-1 to M-5 (`R.bool.display_face_covers_language`, a second scale, `BrandTypography`, the two-language typography test, one 15e sitting), ruled 2026-11-01 and never built | The founder's Q-039 (2026-11-01, after Q-038 "change the font for all languages"): Fredoka + Turkish composites — the five letters drawn into both Fredoka files from the family's own components, built reproducibly from `fonts/fredoka-tr/`; one scale, one face in every language, no `ui/theme` change, no sitting (added 2026-11-01, the same day) | §11.1, Q-039; §14.1 TR; §16 #39; `turkish-locale/tech-lead-rulings.md`, addendum; `turkish-locale/research-analyst-fonts.md` |
+| §14.3 item 14, a Modified Version of Fredoka as 3.1 font work "only if asked" | It is 3.0.0's, by Q-039; the item keeps only the upstream report to `google/fonts` (added 2026-11-01) | §14.3 item 14; §11.1 Q-039 |
+| §11.1 M-5.3's target shape of the coverage test as optional on the branch ("built now if it costs no more … otherwise §14.3") | Required on the branch, with no allowance list; its one pre-existing finding (U+2011 in `licenses_psl_parts`) is fixed in the string (added 2026-11-01) | §11.1 Q-039 (2); §16 #41 |
