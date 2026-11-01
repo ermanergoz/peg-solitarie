@@ -62,6 +62,7 @@ import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.ctaGradientBrush
 import com.app.pegsolitaire.ui.theme.finishGlow
 import com.app.pegsolitaire.ui.theme.glossFinish
+import com.app.pegsolitaire.ui.window.MirrorSystemBars
 
 /** Test tag of the board-state node carrying the [PegCountKey]/[GameStatusKey]/[LegalTargetCountKey] semantics. */
 const val GAME_STATE_TEST_TAG = "game_state"
@@ -576,6 +577,9 @@ private fun RestartConfirmDialog(
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         tonalElevation = dimensionResource(R.dimen.elevation_dialog),
         title = {
+            // D-05g: the first thing in the dialog's own window, so it takes the board's hidden bars
+            // while it is open (tech design §3.8 (c)). It lays out nothing.
+            MirrorSystemBars()
             Text(
                 text = stringResource(R.string.restart_confirm_title),
                 style = MaterialTheme.typography.headlineSmall,

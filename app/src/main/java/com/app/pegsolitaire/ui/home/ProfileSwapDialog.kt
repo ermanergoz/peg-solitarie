@@ -28,6 +28,7 @@ import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.ctaGradientBrush
+import com.app.pegsolitaire.ui.window.MirrorSystemBars
 
 /** Test tag of the profile-swap dialog surface so screen-level Compose tests can locate it. */
 const val PROFILE_SWAP_DIALOG_TEST_TAG = "profile_swap_dialog"
@@ -101,6 +102,8 @@ fun ProfileSwapDialog(
         onDismissRequest = onKeepLocal,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
+        // D-05g: this window takes the bar state of the screen it opens over (tech design §3.8 (c)).
+        MirrorSystemBars()
         val surfaceShape = MaterialTheme.shapes.extraLarge
         Surface(
             shape = surfaceShape,
