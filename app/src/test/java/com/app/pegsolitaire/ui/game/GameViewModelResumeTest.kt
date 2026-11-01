@@ -15,7 +15,9 @@ import com.app.pegsolitaire.data.NewBests
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.data.SettingsRepository
+import com.app.pegsolitaire.data.resume.ChallengeStamp
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
+import com.app.pegsolitaire.data.resume.SnapshotMapper
 import com.app.pegsolitaire.domain.achievement.ClassicBoard
 import com.app.pegsolitaire.domain.achievement.ProgressAggregate
 import com.app.pegsolitaire.domain.generator.GeneratorConstants
@@ -23,6 +25,7 @@ import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.GameStatus
+import com.app.pegsolitaire.domain.model.Move
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.progress.CloudProgress
 import com.app.pegsolitaire.domain.rules.RulesEngine
@@ -89,6 +92,8 @@ class GameViewModelResumeTest {
     private val viewModelStore = ViewModelStore()
     private var viewModelKey = 0
     private val progressRepository = RecordingProgressRepository()
+
+    // Built by the first viewModelFor() of a test, from its board, unless the test sets it first.
     private lateinit var levelRepository: CountingLevelRepository
 
     @Before
@@ -468,6 +473,131 @@ class GameViewModelResumeTest {
             }
         }
 
+    // ---- Generator contract 2: old-stamp snapshots (GDD §12.3(3), SB-V7, SB-V8) ------------
+    //
+    // A snapshot written under generator version 1 keeps its board on resume, and only a restart
+    // takes the level's current board (tech-lead brief §1(b)). The stored game is the six-peg strip
+    // one jump in; the "current" level the repository serves is a different board with its own
+    // recorded line, so the board on screen says which path ran. The route names a stale level 1
+    // (WR-03's cold start), so a load of the route's level instead of the stamp's is visible too.
+
+    @Test
+    fun aSnapshotStampedWithGeneratorVersionOneRestoresOnItsStoredBoard() =
+        runTest(testDispatcher) {
+            try {
+                levelRepository = CountingLevelRepository(currentLevelBoard(), challengeSolution = CURRENT_LEVEL_LINE)
+                storeChallengeSnapshot(generatorVersion = OLD_GENERATOR_VERSION)
+                val solutionsAsked = mutableListOf<List<Move>?>()
+                val resumed = resumeTheStoredChallengeGame(recordingHint(solutionsAsked))
+
+                val state = resumed.uiState.value
+                assertThat(state.isLoading).isFalse()
+                assertSameBoard(state.board, stripAfterFirstJump())
+                assertThat(state.canUndo).isTrue()
+                assertThat(state.elapsedSeconds).isEqualTo(PLAYED_SECONDS)
+                assertThat(resumed.challengeLevel).isEqualTo(RESUMED_CHALLENGE_LEVEL)
+                assertThat(levelRepository.challengeLoads).isEqualTo(0)
+                // A resume loads no recorded line, so the hint goes to the solver (GDD §9, F-1).
+                resumed.onHintRequested()
+                runCurrent()
+                assertThat(solutionsAsked).hasSize(1)
+                assertThat(solutionsAsked.single()).isNull()
+            } finally {
+                cancelTickers()
+            }
+        }
+
+    @Test
+    fun restartOfAResumedOldStampLevelServesTheLevelsCurrentBoardAndItsRecordedLine() =
+        runTest(testDispatcher) {
+            try {
+                levelRepository = CountingLevelRepository(currentLevelBoard(), challengeSolution = CURRENT_LEVEL_LINE)
+                storeChallengeSnapshot(generatorVersion = OLD_GENERATOR_VERSION)
+                val solutionsAsked = mutableListOf<List<Move>?>()
+                val resumed = resumeTheStoredChallengeGame(recordingHint(solutionsAsked))
+                val restartsBefore = resumed.uiState.value.restartTick
+
+                resumed.onRestart()
+                resumed.onConfirmRestart()
+                runCurrent() // the off-main-thread level load
+
+                val state = resumed.uiState.value
+                assertThat(state.isLoading).isFalse()
+                assertSameBoard(state.board, currentLevelBoard())
+                assertThat(state.canUndo).isFalse()
+                assertThat(state.restartTick).isEqualTo(restartsBefore + 1)
+                // The stamped level, never the stale route's (WR-03), and the old snapshot is gone.
+                assertThat(levelRepository.requestedChallengeLevels).containsExactly(RESUMED_CHALLENGE_LEVEL)
+                assertThat(resumed.challengeLevel).isEqualTo(RESUMED_CHALLENGE_LEVEL)
+                assertThat(progressRepository.clears).contains(ProgressPersistenceKeys.MODE_CHALLENGE)
+                // The level's recorded line came with it.
+                resumed.onHintRequested()
+                runCurrent()
+                assertThat(solutionsAsked).containsExactly(CURRENT_LEVEL_LINE)
+
+                // Now on the current contract, a second restart is today's in-place one (D-06).
+                jump(resumed, fromCol = 0, toCol = WIN_JUMP_TO_COL)
+                runCurrent()
+                resumed.onRestart()
+                runCurrent()
+                assertSameBoard(resumed.uiState.value.board, currentLevelBoard())
+                assertThat(levelRepository.challengeLoads).isEqualTo(1)
+            } finally {
+                cancelTickers()
+            }
+        }
+
+    @Test
+    fun restartOfAResumedCurrentStampLevelKeepsItsStoredBoardWithoutRegenerating() =
+        runTest(testDispatcher) {
+            try {
+                levelRepository = CountingLevelRepository(currentLevelBoard(), challengeSolution = CURRENT_LEVEL_LINE)
+                storeChallengeSnapshot(generatorVersion = GeneratorConstants.GENERATOR_VERSION)
+                val resumed = resumeTheStoredChallengeGame()
+
+                resumed.onRestart()
+                resumed.onConfirmRestart()
+                runCurrent()
+
+                val state = resumed.uiState.value
+                assertThat(state.isLoading).isFalse()
+                assertSameBoard(state.board, sixPegStrip())
+                assertThat(state.canUndo).isFalse()
+                assertThat(levelRepository.challengeLoads).isEqualTo(0)
+            } finally {
+                cancelTickers()
+            }
+        }
+
+    @Test
+    fun leavingAResumedOldStampGameKeepsItsStampSoALaterRestartStillRegenerates() =
+        runTest(testDispatcher) {
+            try {
+                // The stamp says which contract made the board (tech-design §2.2), so re-saving a
+                // version-1 board must not relabel it version 2 — or one trip to Home would make
+                // the old board permanent, restarts included.
+                levelRepository = CountingLevelRepository(currentLevelBoard(), challengeSolution = CURRENT_LEVEL_LINE)
+                storeChallengeSnapshot(generatorVersion = OLD_GENERATOR_VERSION)
+                val resumed = resumeTheStoredChallengeGame()
+                resumed.onLeaveScreen()
+                runCurrent()
+                val resaved = progressRepository.snapshots[ProgressPersistenceKeys.MODE_CHALLENGE]
+                assertThat(resaved!!.generatorVersion).isEqualTo(OLD_GENERATOR_VERSION)
+                assertThat(resaved.challengeLevel).isEqualTo(RESUMED_CHALLENGE_LEVEL)
+                cancelTickers()
+
+                val resumedAgain = resumeTheStoredChallengeGame()
+                resumedAgain.onRestart()
+                resumedAgain.onConfirmRestart()
+                runCurrent()
+
+                assertSameBoard(resumedAgain.uiState.value.board, currentLevelBoard())
+                assertThat(levelRepository.requestedChallengeLevels).containsExactly(RESUMED_CHALLENGE_LEVEL)
+            } finally {
+                cancelTickers()
+            }
+        }
+
     // ---- Helpers -------------------------------------------------------------
 
     /** The board + history state a game was left in, captured before the snapshot write. */
@@ -520,6 +650,66 @@ class GameViewModelResumeTest {
 
     /** Cancels every live `viewModelScope` so a still-running ticker cannot hang `runTest`. */
     private fun cancelTickers() = viewModelStore.clear()
+
+    /**
+     * Stores a Challenge snapshot of [sixPegStrip] one jump in, at [PLAYED_SECONDS], stamped
+     * [RESUMED_CHALLENGE_LEVEL] and [generatorVersion] — the production encoder writes it.
+     */
+    private fun storeChallengeSnapshot(generatorVersion: Int) {
+        progressRepository.snapshots[ProgressPersistenceKeys.MODE_CHALLENGE] =
+            SnapshotMapper.toDto(
+                mode = ProgressPersistenceKeys.MODE_CHALLENGE,
+                levelId = RESUMED_CHALLENGE_LEVEL.toString(),
+                initialBoard = sixPegStrip(),
+                moveHistory = listOf(STRIP_FIRST_JUMP),
+                elapsedMs = PLAYED_SECONDS * MILLIS_IN_SECOND,
+                challenge = ChallengeStamp(level = RESUMED_CHALLENGE_LEVEL, generatorVersion = generatorVersion),
+            )
+    }
+
+    /** Continue on the stored Challenge game, routed with the stale cold-start level (WR-03). */
+    private fun TestScope.resumeTheStoredChallengeGame(
+        getHintUseCase: GetHintUseCase = GetHintUseCase(),
+    ): GameViewModel {
+        val resumed =
+            viewModelFor(
+                sixPegStrip(),
+                challengeLevel = STALE_ROUTE_LEVEL,
+                resume = true,
+                getHintUseCase = getHintUseCase,
+            )
+        runCurrent()
+        return resumed
+    }
+
+    /** A hint use case that records the recorded line it was handed and always answers Undecided. */
+    private fun recordingHint(solutionsAsked: MutableList<List<Move>?>): GetHintUseCase {
+        val hint = mockk<GetHintUseCase>()
+        every { hint.invoke(any(), captureNullable(solutionsAsked), any(), any(), any()) } returns HintOutcome.Undecided
+        return hint
+    }
+
+    /** [sixPegStrip] after its first jump, 4 over 5 into 6, written out peg by peg. */
+    private fun stripAfterFirstJump(): Board =
+        listOf(0, 1, 2, 3, STRIP_LENGTH - 1).fold(Board(spec = horizontalLine(STRIP_LENGTH), pegs = 0L)) { board, col ->
+            board.withPeg(Position(row = 0, col = col))
+        }
+
+    /**
+     * Content, not identity: a spec rebuilt from a snapshot, or built twice, is a fresh `BoardSpec`
+     * instance (it has no `equals`), so two boards are the same board when their pegs and their
+     * footprints are.
+     */
+    private fun assertSameBoard(
+        actual: Board,
+        expected: Board,
+    ) {
+        assertThat(actual.pegs).isEqualTo(expected.pegs)
+        assertThat(actual.spec.footprint).isEqualTo(expected.spec.footprint)
+    }
+
+    /** The board the level-load path serves for the resumed level: not the stored one. */
+    private fun currentLevelBoard(): Board = wonInOneJumpBoard()
 
     private fun viewModelFor(
         board: Board,
@@ -588,6 +778,20 @@ private const val RESUME_ARG = "resume"
 
 /** The Challenge level the resume fixture plays — deliberately not 1. */
 private const val PLAYED_CHALLENGE_LEVEL = 7
+
+/** The level an old-stamp snapshot was saved at — SB-Q9's half-finished level 12. */
+private const val RESUMED_CHALLENGE_LEVEL = 12
+
+/** The generator contract before 3.0.0: what an old snapshot's stamp says. */
+private const val OLD_GENERATOR_VERSION = 1
+
+/** The stored game's one move: on the strip, 4 over 5 into the hole at 6. */
+private val STRIP_FIRST_JUMP =
+    Move(from = Position(row = 0, col = 4), over = Position(row = 0, col = 5), to = Position(row = 0, col = 6))
+
+/** The recorded line the level-load path serves with the current board: its one winning jump. */
+private val CURRENT_LEVEL_LINE =
+    listOf(Move(from = Position(row = 0, col = 0), over = Position(row = 0, col = 1), to = Position(row = 0, col = 2)))
 
 /** A levelId no catalog board has ever had — the CR-01 stale/tampered resume id. */
 private const val UNKNOWN_LEVEL_ID = "ghost-board"
@@ -714,9 +918,13 @@ private val FORGED_MOVE_TUPLE = intArrayOf(9, 9, 9, 9, 9, 9)
  */
 private class CountingLevelRepository(
     private val board: Board,
+    private val challengeSolution: List<Move>? = null,
 ) : LevelRepository {
     var challengeLoads = 0
         private set
+
+    /** Every Challenge level number the ViewModel asked for, in order. */
+    val requestedChallengeLevels = mutableListOf<Int>()
 
     override fun classicCatalog(): List<ClassicLevelDescriptor> = emptyList()
 
@@ -727,7 +935,8 @@ private class CountingLevelRepository(
 
     override fun loadChallenge(levelNumber: Int): Level {
         challengeLoads++
-        return levelOf("challenge-$levelNumber")
+        requestedChallengeLevels += levelNumber
+        return levelOf("challenge-$levelNumber").copy(solution = challengeSolution)
     }
 
     private fun levelOf(id: String): Level =
