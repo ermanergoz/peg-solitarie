@@ -4,7 +4,7 @@ task: candy-backdrop
 slug: scene-backdrop
 status: draft
 created: 2026-10-17
-revised: 2026-10-18 (third edition: direction B "Deep gloss", the founder's answer to Q-021); 2026-10-31 (B-19a, BD-19 amended); 2026-11-01 (B-22a, the sheen at a settle; BD-01's grep scope); 2026-11-01 (B-09b, BD-09's status-strip rule); 2026-11-01 (B-11b, the scene opens after Home's entrance and fades in); 2026-11-01 (B-11c, BD-23 (d)'s items (2) and (6) restated); 2026-11-01 (B-11d, BD-23 (d)'s item (4) anchored on the cascade's end, and the battery-saver count restated)
+revised: 2026-10-18 (third edition: direction B "Deep gloss", the founder's answer to Q-021); 2026-10-31 (B-19a, BD-19 amended); 2026-11-01 (B-22a, the sheen at a settle; BD-01's grep scope); 2026-11-01 (B-09b, BD-09's status-strip rule); 2026-11-01 (B-11b, the scene opens after Home's entrance and fades in); 2026-11-01 (B-11c, BD-23 (d)'s items (2) and (6) restated); 2026-11-01 (B-11d, BD-23 (d)'s item (4) anchored on the cascade's end, and the battery-saver count restated); 2026-11-01 (B-09c, both bars hidden on gameplay and Results under docs/ux-spec.md D-05g; §3.3, §5.5, §8.3, BD-09 and BD-19 amended)
 stack: android-compose-game
 design-system: docs/ui/DESIGN-SYSTEM.md
 ip-verdict: .planning/reports/candy-backdrop/research-analyst.md (inspiration-only)
@@ -126,7 +126,7 @@ place; a later ruling is `B-nna` with a pointer. §1.1 holds the 2026-10-17 deci
 | B-06 Hero objects untouched and opaque | **superseded in part** by B-06a: opacity and the slab's interior kept, the finish changed, the tile fills replaced | B-06a, §3.5 |
 | B-07 No per-mode tint | **kept** | §2 |
 | B-08 The backdrop announces nothing, takes no focus, adds no string | **kept**; its test keys name the new layers | §11 BD-15 |
-| B-09 Transparent containers; insets as today | **kept**, amended by B-09a (the host `Surface` the app lacked, D1) and B-09b (2026-11-01: the status strip is `background` on every screen) | B-09a, B-09b |
+| B-09 Transparent containers; insets as today | **kept**, amended by B-09a (the host `Surface` the app lacked, D1), B-09b (2026-11-01: the status strip is `background` on every screen) and B-09c (2026-11-01: on gameplay and Results both bars are hidden under `docs/ux-spec.md` D-05g, and every screen reads the bars' stable insets) | B-09a, B-09b, B-09c |
 | B-10 No "candy" or "sweet" in new identifiers | **kept**, extended by B-10a ("jelly") | B-10a |
 | B-11 The scene is off Home's first frame | **kept**, clarified by B-11a (what frame 1 now holds); its timing amended by B-11b (2026-11-01: the scene opens when Home's entrance ends, and fades in); its device pass line restated by B-11c (2026-11-01), and its item (4) and battery-saver count by B-11d (2026-11-01) | B-11a, B-11b, B-11c, B-11d, §7 |
 | B-12 Standing sweets in the stage's wings | **void**, withdrawn by B-12a | B-12a |
@@ -404,6 +404,39 @@ the second edition, whose sections §16 lists.
     another, and from one deep violet to another.
   - **No code change.** The build that is measured is the build that ships, and the final cold-start
     sitting (BD-23 (b), (c)) is not voided.
+
+- **B-09c (2026-11-01): On gameplay and Results both system bars are hidden, and every screen reads
+  the bars' stable insets** (amends B-09, B-09b item 3, §3.3's status-bar sentence, §5.5, §8.3, BD-09
+  and BD-19. This is the backdrop's half of `docs/ux-spec.md` **D-05g**, the founder's 3.0.0 note
+  "during the game, android statusbar is visible but there is a gray tint. I want statusbar to be
+  invisible and fullscreen"; §6.2 "Immersive play" there governs, and this entry says only what
+  changes for the backdrop.)
+  - **Nothing in the scene changes.** No layer, token, pose, density, clock or test hook. The backdrop
+    already fills the window under both bars and the cutout (B-09); on gameplay and Results nothing of
+    the system's is drawn over it any more.
+  - **The status band on gameplay and Results.** B-09b's rule 1 holds with its box exclusion gone:
+    there is no clock and no icon, so **every** pixel from the window's top edge to the bar's
+    **stable** inset (the inset the bar has when shown, `statusBarsIgnoringVisibility`), outside the
+    cutout, equals `background` = `SkyTop` within ±1/255. B-09b's item 3 (the icons' appearance and
+    contrast) is void on these two screens and stands on every other.
+  - **`statusInset` in this document** is the bar's stable inset wherever it is used (BD-09, BD-23 (d)
+    item (6), §5.1's bounds). On Home the two are equal; on gameplay and Results the visible inset is 0.
+  - **The navigation band on gameplay.** §5.5's "the system's contrast scrim stays on" and BD-19's
+    "the scrim is visible over the waves, the handle legible" now describe Home and the Sparse screens
+    only. On gameplay the waves show whole to the window's bottom edge, and the dock keeps its place
+    above the bar's stable inset. Nothing sets `isNavigationBarContrastEnforced`: the bar is hidden,
+    not restyled.
+  - **`MainActivity` is touched.** The tech-lead's R1 ("`MainActivity` is untouched") was this
+    branch's constraint and is released by D-05g for its own branch, `feature/game-immersive`, which
+    sits its own 15e.
+  - **Transient bars** overlay the bands and nothing else. While they show, the layout is identical
+    (D-05g's stable-inset rule), the clock runs on, and B-22's input observer treats the reveal swipe as
+    it treats any pointer event it sees: a wake, if the backdrop had settled.
+
+  — The scene was designed to be continuous under the bars (B-09's reason). Hiding the bars shows the
+  design as drawn: the calm band at the top, the waves to the bottom edge. The one thing the backdrop
+  must not do is move, and the stable-inset rule is what keeps BD-17, BD-19 and every phase-15 number
+  where they are.
 
 - **B-10a: New identifiers, KDoc, test tags and strings also avoid "jelly"** (extends B-10). "Gel",
   "Gloss", "Wave", "Light" and "Sheen" are fine. The lights are `BackdropLight` in code, and
@@ -1056,7 +1089,7 @@ tables against the constants.
 
 `SkyTop` equals the theme's `background` (BD-09). The status-bar area of every screen is therefore
 flat `background`: as today on Home, gameplay and the tutorial, and in place of the old top-bar colour
-on the four top-bar screens (B-09b). The status-bar icon appearance the app uses today stays correct. Landscape and Quiet share their stop values but keep one constant each (one owner per
+on the four top-bar screens (B-09b). The status-bar icon appearance the app uses today stays correct. *(B-09c, 2026-11-01: on gameplay and Results the bar is hidden; the band is the same flat `background` with no icon in it, and `statusInset` is the bar's stable inset.)* Landscape and Quiet share their stop values but keep one constant each (one owner per
 constant).
 
 **Waves (L2).**
@@ -1589,6 +1622,12 @@ where the gel only darkens downward:
 - **The tutorial** keeps `safeDrawingPadding()` on its column, outside `verticalScroll`, as built. Only
   its root `Surface` stops painting `background` (B-09).
 - **Display cutouts** show the sky. Nothing is placed relative to them.
+- **Gameplay and Results, from 2026-11-01 (B-09c; `docs/ux-spec.md` D-05g).** Both bars are hidden
+  there: the status band is flat `background` with no icon, the navigation band is the waves to the
+  window's bottom edge with no scrim or handle, and the content pads off the bars' **stable** insets
+  and the cutout, so nothing moves. The bullets above describe Home and the Sparse screens; the
+  tutorial's `safeDrawingPadding()` becomes the stable-inset read D-05g names, with no change to what
+  it lays out. `MainActivity` is touched on that branch, not on this one.
 
 ### 5.6 Screen readers, touch, text scaling, right to left
 
@@ -1823,6 +1862,8 @@ As §5.5:
 - `SkyTop` makes the status-bar area flat `background` on every screen (B-09b), and the navigation
   bar's contrast scrim stays enforced.
 - No scroll container draws under a transparent top bar (the tech-lead's R1).
+- *(B-09c, 2026-11-01.)* On gameplay and Results both bars are hidden and every screen reads the bars'
+  stable insets; the lines above describe the screens that show their bars.
 
 ### 8.4 Windows
 
@@ -1961,7 +2002,7 @@ edition's, with only their layer and element names updated.
 | **BD-06** | **Density per destination**: Home is Landscape; gameplay is Quiet, for Classic and for Challenge; the tutorial, catalogue, Results, Settings, Licences and Licence text are Sparse. A restore case (R5): a restored back stack whose top is `Gameplay` is Quiet on the first frame | Test, QA | as listed |
 | **BD-07** | **Layers per density** (rewritten). Read from the backdrop's `backdropLayers` property: Landscape {Sky, Waves, Lights}; Quiet {Sky, Waves, Lights}; Sparse {Sky}. The model's light count is 9, 5 and 0 | Test | as listed, on the three reference windows and in Home's three chip states. No stage-wing node or tag exists anywhere in the code |
 | **BD-08** | **Colour constraints**, computed from `Color.kt` in a JVM test (the dark clause rewritten: B-14a replaces "every dark colour ≤ 0.0095 or ≥ 0.165"). Every constraint of §4.1: `SkyTop` equals `background`; zone T's L bounds; the sky order; Sparse's side of the background, sampled at 11 points; every lane light's rim composite at 0.47 H (≥ 0.503 light, ≤ 0.0786 dark); the rim rule's floor for every container in §5.2's table, by the √ formula; the gel text pairs and their channel monotonicity; the dark gloss under `onSurfaceVariant` ≥ 4.5:1; and every opaque or tinted new token's hue within 250°–336° | Test | all hold |
-| **BD-09** | **The status strip is `background`** (amended 2026-11-01: B-09b; the earlier "pixel-identical to `develop`" contradicted BD-14 on the four top-bar screens). On Home, gameplay, the tutorial, the catalogue, Results, Settings, Licences and Licence text, in light and dark, at rest and in motion, on a settled screen at the top of its scroll: every pixel of the band from the window's top edge to `statusInset`, outside the system's clock, icon and cutout boxes, is compared against the theme's `background` (`BackdropSkyTop`), not against `develop`. The status-bar icons are sampled at their glyph cores against the strip | QA, Test | Every compared pixel within ±1/255 per channel of light `#F4F1FA` / dark `#1B1626`. The icon appearance is dark in light and light in dark, as on `develop`. The clock digits read ≥ 4.5:1 and every status icon ≥ 3:1 against the strip, in both themes. It applies on windows whose `statusInset` ≤ 0.12 H, which every QA window meets |
+| **BD-09** | **The status strip is `background`** (amended 2026-11-01: B-09b; the earlier "pixel-identical to `develop`" contradicted BD-14 on the four top-bar screens). On Home, gameplay, the tutorial, the catalogue, Results, Settings, Licences and Licence text, in light and dark, at rest and in motion, on a settled screen at the top of its scroll: every pixel of the band from the window's top edge to `statusInset`, outside the system's clock, icon and cutout boxes, is compared against the theme's `background` (`BackdropSkyTop`), not against `develop`. The status-bar icons are sampled at their glyph cores against the strip | QA, Test | Every compared pixel within ±1/255 per channel of light `#F4F1FA` / dark `#1B1626`. The icon appearance is dark in light and light in dark, as on `develop`. The clock digits read ≥ 4.5:1 and every status icon ≥ 3:1 against the strip, in both themes. It applies on windows whose `statusInset` ≤ 0.12 H, which every QA window meets. *(Amended 2026-11-01, B-09c: on gameplay and Results the bar is hidden, `statusInset` is the bar's stable inset, there is no clock or icon box to exclude, and every pixel of the band is compared; the icon lines apply to the other screens.)* |
 | **BD-10** | **Composition constants** (rewritten) match §3.3, §4.3 and §4.4: every sky stop; each wave's `cx`, crest, `WAVE_RX`, `WAVE_RY`, depth, body stop, alpha, bob tokens and half-cycle; each light's `x`, `y`, size, kind, `φ0`, opacity, set and period; the calm ends, `TITLE_REACH` and the spinner band; the sheen constants; the idle and settle constants; the list lengths 9 and 5; and every loop ≥ `MIN_LOOP_MS` | Test | equal |
 | **BD-11** | **Geometry and pose rules** (rewritten), on the pure model with `BackdropDimens` resolved from real `Resources` at `w360dp-h640dp`, `w412dp-h915dp`, `w800dp-h1280dp` and `w1280dp-h800dp`: (a) each Landscape lane light's, each Quiet upper light's and each Quiet lower light's x-extent is pairwise disjoint within its set; (b) every Landscape low light's highest top edge is ≥ 0.47 H; (c) every Quiet upper light's lowest bottom edge is ≤ 0.33 H, and every lower light's highest top edge ≥ 0.59 H; (d) no wave pixel lies above 0.47 H on Landscape at any pose, so the crest minus its bob is ≥ 0.47 H; (e) at every pose both waves span the full window width and reach below its bottom edge; (f) for every light and phase, the alpha is 0 whenever the top edge is at or above the calm end, and never above `opacity × (topEdge − calmEnd) / calm fade`; (g) the rest poses are as §3.4, the envelope is 0 at the wrap, and every drifting speed is ≤ 8dp/s; (h) `gel_top_band` ≤ `ModeTile`'s top content padding; (i) in RTL the model is the exact mirror | Test | all hold. (a)–(c) are phase-independent, because lights move only vertically, so they are proved exactly, not sampled |
 | **BD-12** | **Text contrast on the device**: every uncontained text in §5.1's table, sampled against the backdrop directly behind it at rest and in motion, at the top of the scroll and scrolled to the end, at 1.0 and 2.0, in light and dark, at 360×640dp and on the Pixel_9 | QA | Body and label text ≥ 4.5:1. The Home title ≥ 4.5:1 at rest at 1.0, and ≥ 3:1 for every sampled glyph pixel when wrapped |
@@ -1971,7 +2012,7 @@ edition's, with only their layer and element names updated.
 | **BD-16** | **Motion** (rewritten: B-05a, B-22). (a) **At rest:** with the scale at 0, every element is at its rest pose and the sheen is not drawn. Over 5 s idle on Home, gameplay and a Sparse screen, the device's `dumpsys gfxinfo` frame count is no higher than `develop`'s for the same screen in the same state. (b) **In motion:** Home moves exactly the 2 waves, the 9 lights and the 2 sheens; gameplay exactly the 2 waves and the 5 lights; Sparse nothing. Only translation and alpha vary. One frame source drives it. Scrolling Home at a fixed clock time leaves the backdrop's pixels unchanged. (c) **Settle**, per the tech-lead's idle-frame ruling (B-22's defaults until it lands): after the idle delay plus 2 s with no input, the frame count over the next 10 s is no higher than `develop`'s for the same screen in the same state (the timer's ticks only, on gameplay). One tap restarts the motion within 2 s, and that tap reaches its target unchanged. In battery saver the backdrop stays at rest. **Sheen at a settle** (added 2026-11-01, B-22a): a settle that begins inside a gel pass ends that pass at once; no sheen is drawn while Settling or AtRest, by B-22a's same-run comparison and its red | Test (pose model, test clock, the board's tap test with the observer present, B-22a's sheen comparison), QA (frame counts, battery saver; on Home, after a settle, no glint on either tile's lip) | as stated |
 | **BD-17** | **The board untouched, pixel for pixel** (D4: an in-run comparison, no file). `GameScreen` rendered with and without the backdrop, in light and dark, mid-game with a selection, legal-target dots and a hint showing: the slab's interior, inset 2dp from its edge, is identical. Likewise the interiors of the Home stage art, the gel tiles (clock fixed, no sheen passing) and the Continue chips | Test | zero differing pixels |
 | **BD-18** | **What sits under the board** is the opaque `surfaceContainerHigh` clay slab at full alpha, with its rim, lip and glow, and nothing else: no grid, no translucency, no blur, no gloss | Test, Auditor | as stated |
-| **BD-19** | **Layouts unchanged** (amended 2026-10-31: B-19a). The phase-15 criteria 15g, 15j, 15k, 15m, 15n–15r, 18a–18e and 21a–21g re-run green on this branch, **with no test edited**, except 15m's pixel oracle, which B-19a amends and the code-auditor approves on its reds. On the device, 18b's inset clause holds. With three-button navigation the system's scrim is visible over the waves, and with gesture navigation the handle is legible | Test, QA | all green; the scrim and the handle present |
+| **BD-19** | **Layouts unchanged** (amended 2026-10-31: B-19a). The phase-15 criteria 15g, 15j, 15k, 15m, 15n–15r, 18a–18e and 21a–21g re-run green on this branch, **with no test edited**, except 15m's pixel oracle, which B-19a amends and the code-auditor approves on its reds. On the device, 18b's inset clause holds. With three-button navigation the system's scrim is visible over the waves, and with gesture navigation the handle is legible. *(Amended 2026-11-01, B-09c: the scrim and handle lines are read on Home; on gameplay both bars are hidden, and 18b's inset clause holds against the stable insets, `docs/ux-spec.md` criterion 30e.)* | Test, QA | all green; the scrim and the handle present on Home, and neither on gameplay (B-09c) |
 | **BD-20** | **Font independence**: the backdrop alone, rendered at font scale 1.0 and 2.0 on the same window at the same clock time, is pixel-identical | Test | identical |
 | **BD-21** | **The sky is continuous across navigation** (amended: D6). On Home → catalogue → gameplay → Results → Home, with the test clock paused at a fixed backdrop time, every frame of every transition is rendered. Pixels are sampled where no stand-in draws and away from every wave and light: the calm band, and the sky between the band and the back crest | Test, QA (a screen recording) | at every frame, each sampled colour lies on the segment between that pixel's outgoing and incoming colours, within ±2/255 per channel: only a convex blend is allowed. The sky never lightens toward `background` |
 | **BD-22** | **RTL** (amended: D4). In `ar-XB` the scene, the waves' offsets and the sheen's travel are the mirror of LTR. An in-run comparison at a fixed clock time, under a stated tolerance constant, must fail on a deliberately unmirrored scene | Test, QA | mirrored |

@@ -4,7 +4,7 @@ phase: 15
 slug: ux-refresh
 status: draft
 created: 2026-09-21
-revised: 2026-10-24; 2026-10-31 (15m pointer, B-19a); 2026-11-01 (pre-release folds: D-05e's fallback and D-05f's v35 mechanism as built; SN-1 in docs/ux/colour-vision.md)
+revised: 2026-10-24; 2026-10-31 (15m pointer, B-19a); 2026-11-01 (pre-release folds: D-05e's fallback and D-05f's v35 mechanism as built; SN-1 in docs/ux/colour-vision.md); 2026-11-01 (founder feedback for 3.0.0: immersive play, D-05g; §6.2 "Immersive play"; criterion 30)
 stack: android-compose-game
 design-system: docs/ui/DESIGN-SYSTEM.md
 ---
@@ -584,6 +584,19 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > Each place gains a dated note beside its first wording. The colour-vision correction SN-1 is
 > folded in `docs/ux/colour-vision.md` (CV-AC11). No string, token, colour or id is added by this
 > entry.
+>
+> **Founder-feedback amendment — 2026-11-01 (for 3.0.0): immersive play.** The founder's words on the
+> built game screen, verbatim: *"during the game, android statusbar is visible but there is a gray
+> tint. I want statusbar to be invisible and fullscreen"*. One decision, **D-05g** (§3, filed beside
+> D-05d and D-05f because that is where this document rules on the system bars), specified in **§6.2
+> "Immersive play"**, with pointers in §4.3.1 and §4.4, a line each in §11, §12 and §13, and criterion
+> **30** (30a–30t) in §14. Built on `feature/game-immersive`. In one sentence: on the gameplay screen
+> and on Results both system bars are hidden, a swipe shows them for a moment as the platform's
+> translucent overlay, nothing in any layout moves when a bar comes or goes, and the bands the bars
+> used to occupy are the backdrop's own sky; on every other screen the bars stay, transparent over the
+> app's `background` on every supported API level — which is also where a grey band comes from on a
+> phone below API 35. Companion amendment: `docs/ux/candy-backdrop.md` B-09c. No string, token,
+> colour or asset is added; one scoped destination policy is.
 
 ---
 
@@ -611,6 +624,13 @@ amendment.** The table above is the record of the original asks and is left as i
 | Home: "I don't really like this screen" — scoped to the empty middle gap, the peg-cross logo and how the title sits | **D-03l** | The logo goes; the title sits start-aligned in one row with the gear; the blank band becomes a stage — a static board showing a game in progress, sized by the slack. Ribbon, cards and palette kept. §4.2.4, Q-005. |
 | "I like the in-game icons, but I can't really say if they are on or off" | **D-04e** | Icons kept. Actions get one look with no on/off; the one toggle gets the only on/off look, marked by shape (check mark / slash), fill and ring, and speaks as a switch. §4.4.1. |
 | "Elapsed time and the title seem too small. They could be reworked." | **D-05d** | Title `titleLarge` 22sp, timer `headlineSmall` 24sp in a 40dp clay pill; the double system-bar inset removed, so the board loses nothing. §4.3.1. |
+
+**The founder's note on the built game screen, 2026-11-01 (for 3.0.0) — the immersive amendment.**
+The two tables above are left as they read.
+
+| Note (verbatim) | Decision | Verdict |
+|-----------------|----------|---------|
+| "during the game, android statusbar is visible but there is a gray tint. I want statusbar to be invisible and fullscreen" | **D-05g** | Gameplay and Results hide both system bars, shown for a moment by a swipe; the bands become the backdrop's sky and no layout moves; every other screen keeps its bars, transparent over `background` on every API level. §6.2 "Immersive play", criterion 30. |
 
 ---
 
@@ -649,6 +669,16 @@ it puts it away.)* Files touched: `ui/game/GameScreen.kt` (hosts the notice), a 
 leaf beside `ui/game/NoWinBanner.kt`, `NoWinBanner.kt` itself (the announcement only),
 `ui/game/GameAnim.kt` (two durations), `res/values/{strings,dimens}.xml` (one string, one token),
 and the state-holder files the tech-lead's brief names (§7 R-7).
+
+*(2026-11-01 — D-05g, the immersive amendment.)* No screen is added or removed. **Gameplay** and
+**Results** gain one window state, immersive (§6.2 "Immersive play"); every other screen keeps its
+bars. Files touched, by the developer's choice of mechanism: `MainActivity.kt` and
+`navigation/AppNavHost.kt` (the window's bar policy — a start-path change, so the branch sits its own
+15e, §6.5); the inset source every screen reads (`ui/game/GameScreen.kt`, or `GameStatusStrip.kt`
+and `GameActionDock.kt`; `ui/home/HomeScreen.kt`; `ui/onboarding/TutorialScreen.kt`; the four
+top-bar screens); the dialogs that can open over the two immersive screens; the test helper
+`testing/SystemBarInsets.kt` (§13); and `res/values*/themes.xml` only if the tech-lead's mechanism
+needs a theme item.
 
 ---
 
@@ -1500,6 +1530,65 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   dark app, and the platform's own convention is the dark one. The buttons already clear 3:1, so the
   change is polish, not an accessibility repair. It changes the window theme, a start-path file, so it
   rides a branch that sits its own 15e: `bugfix/home-chip-arrival`, which sits one under D-03n.
+
+- **D-05g** *(2026-11-01 — **founder-feedback amendment for 3.0.0**. UX ruling on the founder's note
+  on the built game screen: "during the game, android statusbar is visible but there is a gray tint. I
+  want statusbar to be invisible and fullscreen". Filed beside D-05d and D-05f because they are where
+  this document rules on the system bars; it amends neither. Specified in **§6.2 "Immersive play"**;
+  pointers in §4.3.1 and §4.4; lines in §11, §12 and §13; criterion **30** (30a–30t). Built on
+  `feature/game-immersive`; the backdrop's half is B-09c in `docs/ux/candy-backdrop.md`.)*: **the
+  gameplay screen and Results are immersive — both system bars hidden, shown for a moment by a swipe —
+  and no layout anywhere moves when a bar comes or goes.** Five parts:
+  1. **Scope.** The `Gameplay` destination (Classic and Challenge, the one screen) and `Results` hide
+     the status bar **and** the navigation bar. Home, the tutorial, the catalogue, Settings and the
+     Licences screens keep both. The policy is one mapping beside the backdrop's density mapping (the
+     tech-lead's R1): `Gameplay`, `Results` → immersive; everything else → standard, as the `else`
+     branch, so a destination added later shows its bars.
+  2. **Behaviour.** Hidden with `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE`: a swipe from the top or the
+     bottom edge shows the bars as the platform's translucent overlay, which goes away by itself; the
+     app sets no timer and never hides them on a tap. The hidden state is asked for before the
+     destination's first frame, asked for again on every resume of the activity while an immersive
+     destination is current, and mirrored by every dialog window that opens over one.
+  3. **Layout.** Every screen pads its content off the bars' **stable** insets — the inset a bar
+     occupies when shown, read whether or not it is shown now — and off the display cutout, on every
+     side; never off a bar's visible inset. So the strip, the slab, the dock and every control sit
+     where D-05d and criterion 18b put them with the bars hidden, shown or sliding; the bands the bars
+     leave hold only the backdrop; and **no interactive element's touch target lies in a band**.
+  4. **The bands.** With the bars hidden, the band from the window's top edge to the stable status
+     inset is the backdrop's flat `SkyTop` = `background` (B-20, BD-09), and the band above the
+     window's bottom edge is the scene's own continuation (the waves on Quiet), with no scrim, colour,
+     icon or handle of the system's in either. Nothing new is drawn: the backdrop already fills the
+     window under both bars and the cutout (B-09); the window only has to let it show there.
+  5. **Every other screen, every API level.** The status bar is transparent over the app's
+     `background` on every supported API level, not only where the platform forces edge to edge
+     (API 35+). Below API 35 today's window is not edge to edge, and the platform paints its own opaque
+     status bar in the framework theme's colour, a mid grey, on every screen — the leading candidate
+     for the founder's "gray tint" (§6.2 lists the candidates and what tells them apart on the device).
+  — **Why both bars and not the status bar alone.** "Fullscreen" is the founder's word; a game whose
+  status bar is gone while a 48dp three-button scrim still sits under the dock is not fullscreen, and
+  that scrim is the one bar with a colour of its own, so it is the bar most worth losing. The cost is
+  known and accepted: with gesture navigation and the bar hidden, the first edge swipe shows the bars
+  and only the second one is the back gesture. A player leaves a game through the strip's back chip
+  (§4.3) and never needs the gesture, and the same double swipe is what stops a tap near the side of
+  the board from throwing the player out of a game — here a benefit, not a cost. **Why Results too.**
+  Challenge's loop is gameplay → Results → gameplay; a Results screen that showed its bars would toggle
+  both bars twice per level, and the bars' return would be the one visible chrome change in the loop.
+  With Results immersive the bars return once, on leaving to Home, where play ends. **Why the layout
+  keeps the stable insets instead of growing into the bands.** The alternative was to lay gameplay out
+  against the cutout alone and let the board take the 24–54dp of the status band and the 24–48dp of
+  the navigation band. Rejected: a transient bar then overlays the back chip or the dock, and a tap
+  during its few seconds goes to the system's bar — its back button, on three-button navigation —
+  instead of the control under it; every phase-15 layout criterion would be re-measured; and the gain
+  is 4–10% of height on a board that is width-limited on every window but the 360×640dp class. Nothing
+  moves, so 18a–18e, 21a–21g, BD-17 and BD-19 stand unchanged. **Why stable insets everywhere, not only
+  on the two immersive screens.** On the way back the bars are still hidden when Home or the catalogue
+  is first laid out and shown while it is on screen; a screen that read the visible insets would be laid
+  out at zero and jump down by the bar's height as the bar slid in. Reading the stable insets makes
+  every layout the same picture at every instant, so a bar coming or going is pixels, never layout.
+  **Why this is a UX decision and not a founder question.** The founder asked for it; which bars, which
+  screens and how the layout behaves are this role's. The two taste points — Results in or out, and a
+  Settings switch to keep the bars during play — are drafted as non-blocking questions in the report,
+  with the recommendation built.
 
 ### The board with TalkBack (D-TB — both boards: gameplay and the tutorial)
 
@@ -3580,6 +3669,13 @@ exactly once.** Which layer applies it — the `Scaffold`'s padding, or the stri
 the `Scaffold`'s content insets set to none — is the developer's choice; the property is criterion
 18b.
 
+*(Pointer 2026-11-01 — D-05g, §6.2 "Immersive play".)* "Applied once" now reads: applied once, from
+the bar's **stable** inset — the height the bar occupies when shown, whether or not it is shown — plus
+the display cutout, never from the visible inset. On gameplay the bars are hidden, so the strip's top
+edge and the dock's bottom edge stay exactly where 18b puts them while the bands above and below hold
+the backdrop; a transient bar overlays those bands and nothing else. 18b's numbers are unchanged;
+criterion 30e re-reads them with the bars hidden.
+
 **The board budget after D-05d** — 360×640dp, 24dp status bar, 48dp three-button navigation,
 **568dp** usable:
 
@@ -3729,6 +3825,10 @@ targets in a `SpaceEvenly` `Row`, each `game_action_button_size` (56dp) with a m
 > glyphs, sizes, cues, descriptions other than Show-moves' and the
 > no-allowance contract below are unchanged. The table is left as it reads because it is what the
 > audited build was built against.)*
+
+> *(Pointer 2026-11-01 — D-05g, §6.2 "Immersive play".)* The navigation bar is hidden on gameplay.
+> The dock keeps its place above the bar's **stable** inset (§4.3.1's pointer), so no disc ever sits
+> under the translucent bar a swipe shows for a moment, and the band below the dock is the backdrop's.
 
 | Order | Control | Glyph | Resting | State channel | Cue |
 |-------|---------|-------|---------|---------------|-----|
@@ -4513,6 +4613,128 @@ and that follows the theme on every screen:
   own 15e: `bugfix/home-chip-arrival`, which sits one under D-03n, and `feature/candy-backdrop` only if
   that branch does not (`tech-lead-signoff-close.md`, INFO row 9). The device check covers three-button
   and gesture navigation in both themes (criterion 29).
+
+**Immersive play** *(added 2026-11-01 — **D-05g**, the founder-feedback amendment for 3.0.0; criterion
+30; the backdrop's half is B-09c in `docs/ux/candy-backdrop.md`)*. D-05f stands for every screen that
+shows its bars. This block is the window on the two screens that do not.
+
+**Which destinations.**
+
+| Destination | Bars | Why |
+|---|---|---|
+| `Gameplay` — Classic and Challenge; also while a Challenge level generates, and under the rescue banner, the Undecided notice, the snackbar and every dialog it hosts | **hidden**, both | the founder's screen |
+| `Results` | **hidden**, both | the play loop: Results → next level or retry is gameplay again; the bars return once, on leaving to Home |
+| Home, Tutorial, ClassicCatalog, Settings, Licences, Licence text | shown, as D-05f | menus and reading screens; the clock and the signal belong there |
+| Dialogs; snackbars; the rescue banner; the Undecided notice; the Results ad scrim | inherit the screen's state | a dialog is a window of its own: it mirrors the state and never changes it |
+| The ad SDK's full-screen activities, Play Games' UIs, the system splash | theirs | the app does not draw them; on return the app's window is re-asserted |
+
+The policy is one mapping, in one place beside the backdrop's density mapping (the tech-lead's R1):
+`Gameplay`, `Results` → immersive; every other destination → standard, as the `else` branch, so a
+destination added later shows its bars. It is a scoped constant, never a literal at a call site.
+
+**Behaviour of the hidden bars.**
+
+- **Transient by swipe.** `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE`: a swipe down from the top edge or
+  up from the bottom edge shows the bars as the platform's translucent overlay for the platform's own
+  moment, and they go away by themselves. The app sets no timeout, never hides them on a tap, and draws
+  nothing of its own for them. While they show, nothing in the layout changes (next heading).
+- **When they hide.** The hidden state is requested in the frame the immersive destination is first
+  composed, before its first draw, so the bars slide out under the navigation cross-fade
+  (`ClayAnim.NAV_TRANSITION_MS`, 700 ms) and are gone before the incoming screen is more than a third
+  in. The app adds no animation of its own: the slide is the platform's, under the system animator
+  scale like every system animation.
+- **When they return.** Requested in the frame a standard destination is first composed on the way out
+  of gameplay or Results, so Home's bars slide in while Home cross-fades in. Home does not move (stable
+  insets, below).
+- **Re-asserted on every resume.** Whenever the activity resumes while an immersive destination is
+  current — after a rewarded ad (from the ad offer), an interstitial (from Results' continue), a Play
+  Games sign-in or achievement UI, the launcher, the lock screen, a notification shade pulled and
+  released — the hidden state is requested again before the first frame of the app's window. A
+  full-screen SDK activity owns its own window and may show bars of its own; that is theirs. What the
+  player sees on return is the game with no bar, on its first frame.
+- **Dialogs mirror it.** Every dialog that can open over gameplay or Results — the restart confirm, the
+  ad offer, the Play Games opt-in prompt, the profile-swap dialog — is a window of its own, and a window
+  that fits the system bars shows them for as long as it is open. Each such window takes the same
+  hidden state and the same behaviour when it opens and gives nothing back when it closes: the bars
+  never appear for a dialog. In-composition surfaces (the rescue banner, the Undecided notice, the
+  snackbar, the Results ad scrim) are not windows and need nothing.
+- **Recreation.** The manifest declares no `configChanges`, so a rotation, a fold or unfold, a dark-mode
+  switch and a font-scale change recreate the activity. The policy runs on the host's first
+  composition, so the first frame after any of them has the right bars for the restored destination
+  (BD-06's restore case: a back stack whose top is `Gameplay` is immersive on its first frame).
+- **Multi-window and desktop windows.** The platform may ignore a hide request there. The layout is the
+  same either way (stable insets), and nothing more is asserted.
+
+**Layout: the bars come and go as pixels, never as layout.** Every screen, immersive or not, pads its
+content off the bars' **stable** insets — the inset a bar occupies when it is shown, read whether or
+not it is shown now (`systemBarsIgnoringVisibility` in Compose's vocabulary) — unioned with the display
+cutout on every side, and the IME where a screen has one. No screen reads a bar's **visible** inset
+(`systemBars`, `safeDrawing`, `statusBars`, `navigationBars`), because a visible inset is zero while a
+bar is hidden and animates while it slides, and a layout that read it would jump by the bar's height at
+every transition. Screen by screen:
+
+- **Gameplay:** the strip's top edge at the stable status inset and the dock's bottom edge at the
+  window's bottom less the stable navigation inset less `spacing_md` — exactly 18b's numbers, with the
+  bars hidden. §4.3.1's board budget is unchanged. On a device the back chip's top edge is within 8dp of
+  where the status bar's bottom edge would be if it were shown.
+- **Results:** its top bar, stars, headline and buttons where they are today, with the band above the
+  top bar empty of icons.
+- **Home, the tutorial, the catalogue, Settings, the Licences screens:** unchanged to the pixel, because
+  on these the bars are shown and a stable inset equals a visible one.
+- **Transient bars** overlay the bands only. On gameplay the top band holds the sky and the bottom band
+  the waves; no touch target of the strip, the slab or the dock extends into either, so a tap during
+  the overlay reaches what it always reaches, and the overlay's own back button (three-button
+  navigation) is a real back, as the system back is.
+- **Cutouts:** the content pads off the cutout on whichever side it is, in portrait and landscape; the
+  backdrop draws into it (the backdrop spec §3.1, §5.5). With the status bar hidden the window keeps
+  drawing into the cutout: on API 35+ the platform lays every non-floating window out that way; below
+  35 the window must say so (the short-edges cutout mode or its equal), or the platform letterboxes the
+  cutout in black the moment the bar hides. **No black band at a cutout, on any API level.**
+- **The considered alternative, rejected:** laying gameplay out against the cutout alone so the board
+  grows into the bands. D-05g gives the reasons. The strip and the dock stay out of the bands by rule:
+  **no interactive element's touch target lies in the band a hidden bar occupies when shown.**
+
+**The bands, and the grey tint.** What is drawn where a bar was:
+
+| Band | Content with the bars hidden | Pass line |
+|---|---|---|
+| Top: the window's top edge to the stable status inset, outside the cutout | the backdrop's L1 sky, flat `SkyTop` = `background` — light `#F4F1FA`, dark `#1B1626` (B-20, BD-09, B-09c) | every pixel within ±1/255 per channel of `background`; no clock, icon, scrim or tint |
+| Bottom: the stable navigation inset to the window's bottom edge (the side band in landscape) | the scene's own continuation: on Quiet the front wave's body over the back wave and `SkyDeep` (the backdrop spec §3.3); on Results, Sparse's wash | across the stable inset line the colour is continuous: at three columns clear of every light, the pixel just inside the band and the pixel just outside it differ by ≤ 2/255 per channel; no scrim, handle or button |
+
+Nothing new is drawn for either band: the backdrop already fills the window under both bars and the
+cutout (B-09). What changes is that nothing of the system's is drawn over it on these two screens.
+
+The founder's "gray tint" is unexplained on the QA bench: the Pixel_9 image at API 36 reads flat
+`background` under a transparent bar on every screen (BD-09). The developer confirms the cause on the
+founder's device with the pre-D-05g build before fixing, and records it (criteria 30i, 30s). The
+candidates, each with what tells it apart:
+
+1. **A phone below API 35.** Nothing in the app makes the window edge to edge there (`MainActivity`
+   calls no `enableEdgeToEdge()`, and the theme names no `statusBarColor`), so the platform draws its
+   own opaque status bar in the framework theme's colour — `Theme.Material.Light`'s `colorPrimaryDark`,
+   a mid grey — on **every** screen, in both modes, with the content starting below it. Tells: the band
+   is one opaque grey, the same on Home, and `ro.build.version.sdk` ≤ 34. The leading candidate.
+2. **A contrast scrim on an API 35+ device.** An OEM build that enforces status-bar contrast draws a
+   translucent dark scrim over a transparent bar. Tells: the band is the app's `background` darkened,
+   and `Window.isStatusBarContrastEnforced()` reads true.
+3. **The app's own strip.** A build before the backdrop painted the band `background` and the content
+   beneath it a different surface, so the band read as a tint. Tells: the band equals `background` and
+   the strip's row does not. Absent on this branch by BD-09 and BD-14.
+4. **A hole-punch status bar.** On such a phone the bar is taller (54dp on the Pixel_9), so a band that
+   is only `background` can read as a strip. Tells: no colour difference at all.
+
+Whichever it is, the ruling closes it on gameplay and Results by hiding the bar, and on every other
+screen by part 5 of D-05g: **the status bar is transparent over `background` on every supported API
+level.** Below API 35 that means the window goes edge to edge; the mechanism is the tech-lead's, it
+sits beside D-05f's `values-v35/` pair and must leave criterion 29 green. The navigation bar below API
+35 may then become edge to edge too, under the platform's contrast scrim, with its buttons ≥ 3:1;
+criterion 29 (2)'s below-35 read admits either form (its dated note).
+
+**What does not change.** No colour, no token, no string, no asset; the status-bar icon appearance
+(D-05f, H-2) on every screen that shows the bar; the backdrop's clock, densities, poses and tokens;
+every touch target; every spoken order (26b); the board's drawing (BD-17); the four top bars.
+`MainActivity.kt` and `navigation/` are start-path files, so the branch sits its own 15e (§6.5) and
+the sitting must PASS; VOID is not a pass.
 
 ### 6.3 Typography
 
@@ -5365,6 +5587,18 @@ exists: an Unavailable action has no fill.
 *(2026-10-21, D-05f.)* The system bars are checked too: the navigation bar's buttons and the gesture
 handle ≥ 3:1 against what is behind them, and in dark mode a dark three-button scrim rather than a light
 one (§6.2, criterion 29).
+*(2026-11-01, D-05g.)* On gameplay and Results the bars are hidden (§6.2 "Immersive play"), and the
+check becomes four lines. **Targets:** no interactive element's touch target lies in the band a hidden
+bar occupies when shown, so the translucent bar a swipe reveals never covers a control, and a tap made
+while it shows reaches the control it always reached (criteria 30f, 30j). **TalkBack:** the hidden
+bars add no node and remove none; gameplay's and Results' traversal orders are 26b's, unchanged; the
+back chip, the dock and the board stop are reachable; TalkBack's own two-finger edge swipe reveals the
+bars and its global "Notifications" action still opens the shade (criterion 30q). **Escape hatch:**
+the swipe-to-reveal is how a player checks the clock or the battery mid-game; a Settings switch to keep
+the bars during play is drafted for the founder as a non-blocking question, not built in 3.0.0.
+**Reduced motion:** the hide and the show are the platform's own animation under the system animator
+scale; the app adds no motion, and none of its reduced-motion rules change. On every screen that shows
+the bar the icon contrast of D-05f stands (criterion 29).
 
 **Text scaling.** Every size is an M3 type role, so all text scales with the system font size.
 Four layouts must be verified at 200%: the Home column (scrolls — §4.2), the tutorial column
@@ -5921,6 +6155,14 @@ the record.
 | RTL | The back arrow and `UndoIcon` are already auto-mirrored (`UndoIcon.kt:29`); the status strip and dock are `Row`s and mirror by default; nothing uses absolute left/right padding |
 | Dark theme | Every role above has a dark variant in the design system; both themes are in scope for every new composable's `@Preview` pair. *(2026-10-21, D-05f.)* The system bars follow the theme too: light icons and a dark three-button navigation scrim in dark mode (§6.2, criterion 29) |
 
+*(Added 2026-11-01, D-05g.)* Two rows gain a line. **Landscape:** the manifest locks no orientation
+(the row's flag to the tech-lead stands), so a rotation recreates the activity; the immersive policy
+runs again on the host's first composition, the content pads off the cutout on whichever edge it sits,
+and the hidden navigation bar's side band holds the backdrop (criterion 30o). **Dark theme:** on
+gameplay and Results there is no bar to follow the theme; the bands are the backdrop's (§6.2
+"Immersive play", criterion 30h). One case is new, **multi-window:** the platform may keep the bars
+there; the layout is the same either way, because every screen reads the bars' stable insets.
+
 *(Added 2026-09-28, D-03i.)* The rows above stand; §4.2.2 is where the first three are specified
 mechanically for Home — the "Tall phone" row's slack, the "Short phone / 200% font" row's scroll,
 and a **compact band set** the "Narrow phone" row did not anticipate for a *short* narrow phone.
@@ -5980,6 +6222,16 @@ Existing tests this refresh **will** break, with the fix:
 | `HomeScreenTest.kt:148-159` `theProfileSwapDialogIsNeverStackedOnTheOnboardingOverlay` | Locates the overlay by the hardcoded literal `"Got it"` (`:367`) and the overlay stops being hosted by Home (D-01f/D-01g) | **Retarget, never delete:** `theProfileSwapDialogIsNeverRaisedWhileTheTutorialIsStillPending`, finding the dialog by `PROFILE_SWAP_DIALOG_TEST_TAG` as today and the pending state by the state field — never by button copy |
 | `ButtonSoundTest.kt:226-244` | Clicks `navigate_back` and `show_moves_on` on the game screen | **Passes unchanged** — both content descriptions are deliberately preserved (D-05b, §4.4) |
 | `GameFlowTest.kt:129` | Finds the timer by `elapsed_time` | **Passes unchanged** — deliberately preserved (§4.3). *(Superseded 2026-10-21 — D-05e, §4.3.2: the description now starts with `elapsed_time` and goes on to the spoken duration, so this test is retargeted; see the 2026-10-21 table below.)* |
+
+*(Added 2026-11-01 — D-05g, the immersive amendment.)* Tests the change touches, with the fix:
+
+| Test | Why | Fix |
+|------|-----|-----|
+| `testing/SystemBarInsets.kt` `applySystemBarInsets` | Dispatches visible insets only (`setVisible(systemBars, true)`) and no ignoring-visibility values; a layout that reads the stable insets (§6.2 "Immersive play") reads zero from it | **Extend, never fork:** a `visible` parameter (default `true`) that also sets the ignoring-visibility insets of both bar types to the same values and `setVisible(…, visible)`, and a `cutout` parameter for `displayCutout()`. Criterion 30d runs every layout test in the hidden state through it |
+| Every test that asserts a position against supplied insets — 18b, 18c, 15k, 15p, 15s–15v, `TutorialScreenTest`'s Skip | They supply visible insets and read a layout that now pads off the stable ones | **Pass unchanged** once the helper sets both reads to the same values; 30d is the proof they still measure the device's window |
+| `WindowThemeTest`, `WindowThemeApi35FilesTest` | Pin D-05f's theme items | **Pass unchanged.** If the tech-lead's below-35 mechanism is a theme item, each gains one case, red first; if it is an activity call, nothing here changes and 30r is the device read |
+| `BackdropSemanticsTest`, `SkyContinuityTest`, `TransparentContainersTest` | BD-15, BD-21, BD-14 | **Pass unchanged:** the backdrop is not touched, and BD-21's sampled pixels lie outside both bands |
+| New | the policy per destination, the resume re-assert, the dialog mirror, the stable-inset layout | 30a–30f, through a seam the host owns and a fake records (the tech-lead names it); where Robolectric cannot show a bar, the seam is the test and the device is the proof |
 
 **Device checklist that must keep working.** `11-HUMAN-UAT.md` tests 10, 11 and 13 read their
 pass/fail off the three Home readouts in §4.2.1. This refresh is designed so those tests run
@@ -7105,6 +7357,149 @@ what the player sees and hears.
     dark, the bar matches the build before D-05f (opaque and dark, light buttons). Both halves passed in
     `qa-engineer-device2.md` (session D), and (2)'s dark three-button Home read again in
     `qa-engineer-sitting2.md`.
+    *(Note 2026-11-01 — D-05g.)* (2)'s below-35 read admits a second form: on an API 27–34 image the
+    three-button bar is **either** as before D-05f **or** edge to edge under the platform's contrast
+    scrim, in both themes, with its buttons ≥ 3:1 against it; which form it is, the developer records.
+    The status bar's below-35 read is criterion 30r's. Everything else in 29 stands and is re-run on
+    `feature/game-immersive` (30t).
+
+**Immersive play (D-05g, §6.2 "Immersive play" — added 2026-11-01; applies to `feature/game-immersive`)**
+
+30. **Gameplay and Results are immersive, and nothing moves.** On the gameplay screen (Classic and
+    Challenge) and on Results both system bars are hidden, a swipe shows them for a moment as the
+    platform's translucent overlay, no layout on any screen changes when a bar comes or goes, the bands
+    the bars leave are the backdrop's, and every other screen keeps its bars, transparent over
+    `background` on every supported API level. (D-05g) Sub-criteria: 30a–30f are the developer's,
+    deterministic (Robolectric and Compose UI tests; the seam they observe is the tech-lead's); 30g–30t
+    are the qa-engineer's, on a device. Device matrix unless a line narrows it: light and dark; gesture
+    and three-button navigation; the Pixel_9 (hole-punch cutout, 54dp status bar) and a 360×640dp
+    window; animator scale 1, with 30o also at 0; one API ≤ 34 image for 30r.
+
+30a. **One policy, before the first frame.** Given the nav host, when each destination is composed —
+     Home, Tutorial, ClassicCatalog, Gameplay (Classic, and Challenge with a level generating), Results,
+     Settings, Licences and Licence text — then the host's bar seam records `Hidden` with
+     `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE` for Gameplay and Results and `Shown` for every other
+     destination, recorded in the frame the destination is first composed and before its first draw;
+     and a restored back stack whose top is Gameplay records `Hidden` first (BD-06's restore case).
+     Red: with the policy removed the fake records nothing. The mapping is one scoped constant with an
+     `else` branch; a test adds a stub destination and reads `Shown`. (D-05g)
+
+30b. **Re-asserted on resume.** Given Gameplay (and, separately, Results) is current, when the
+     activity's lifecycle goes RESUMED → STARTED → RESUMED, then the seam records `Hidden` again on the
+     resume, before any frame; given Home is current, the same cycle records no `Hidden`. (D-05g)
+
+30c. **Dialogs mirror the state.** Given Gameplay is current, when the restart confirm, the ad offer
+     (idle and loading), the Play Games opt-in prompt and the profile-swap dialog each open, then each
+     dialog's window is registered with the seam and takes `Hidden` with the same behaviour on opening,
+     and closing it records no `Shown`; the same for every dialog Results can host. Red: a dialog with
+     default window properties records `Shown`, or nothing. (D-05g, §6.2)
+
+30d. **Every layout reads the stable insets.** Given each screen composed under `applySystemBarInsets`
+     extended for the state (§13) with status 24dp and navigation 48dp, then with 54dp and 24dp, in three
+     states — bars visible; bars hidden with the same ignoring-visibility values; bars hidden with the
+     visible values at zero — then the bounds of every named node are identical in all three, ±0 px:
+     gameplay's strip, back chip, title, timer pill, board slab and dock; Home's title row, ribbon,
+     Continue chips and tiles; Results' top bar and every button; the tutorial's board, caption and
+     Skip; each top-bar screen's title. Red: today's `Scaffold` padding and `safeDrawingPadding()` move
+     the content by the bar's height between the first state and the third. (D-05g, criteria 18b, 15k,
+     15p)
+
+30e. **18b, with the bars hidden.** Given gameplay on `w360dp-h640dp` with a 24dp status bar and a 48dp
+     navigation bar supplied as hidden (visible 0, stable 24 and 48), then the strip's top edge is at
+     24dp (±1dp), the dock slab's bottom edge at 576dp (±1dp), and the board slab's edge 328dp at font
+     scale 1.0 and 2.0 — 18b and 18c unchanged. Given a 34dp top display cutout as well, the strip's top
+     edge is at max(24, 34) = 34dp; given a 34dp start-side cutout (landscape), the strip's start edge
+     is 34dp in. (D-05g, D-05d)
+
+30f. **No interactive node in a band.** Given gameplay and Results under 30d's insets, then no node
+     with a click, toggle or press action has bounds intersecting the top band `[0, stableStatus)` or
+     the bottom band `[height − stableNavigation, height)`; the board's cells are inside the slab, which
+     is inside the content. (D-05g, §11)
+
+30g. **Entering and leaving play, on the device.** From Home: Classic → a board, and Challenge. Within
+     the 700 ms cross-fade both bars are gone; on the first settled frame the strip, the slab and the
+     dock are where a screenshot of the same build with the bars forced shown puts them (every node's
+     bounds ±1 px, read by `uiautomator dump` or the layout inspector); and a screen recording shows no
+     node of gameplay moving after the cross-fade ends. Back to Home by the back chip: Home's title row
+     is at the same y as on a cold start to Home (±1 px), and no node of Home moves on any frame of the
+     recording while the bars slide in. Gameplay → Results (a win) and Results → next level: the bars
+     never appear between them. Results → Home: the bars return, once. (D-05g)
+
+30h. **The bands are the backdrop.** On gameplay at rest and in motion, and on Results: every pixel of
+     the top band — the window's top edge to the stable status inset, outside the cutout — is within
+     ±1/255 per channel of `background` (light `#F4F1FA`, dark `#1B1626`), with no clock, icon, scrim or
+     tint; and at the bottom band's stable inset line, at three columns clear of every light, the pixel
+     just inside the band and the pixel just outside it differ by ≤ 2/255 per channel, with no scrim,
+     handle or button in the band. In landscape the same read on the navigation bar's side band.
+     (D-05g, BD-09, B-09c)
+
+30i. **Nothing grey.** On the founder's own device, or the model and API level the producer names, with
+     the pre-D-05g build and then this branch, light and dark: the pre-D-05g band's colour and the §6.2
+     candidate it matches are recorded with a screenshot; on this branch no pixel of the gameplay band
+     differs from `background` by more than 1/255, and on Home the band is `background` under a
+     transparent bar with its icons as H-2 left them. (D-05g, §6.2)
+
+30j. **Transient bars.** On gameplay: a swipe down from the top edge shows both bars as translucent
+     overlays; they go away by themselves within the platform's own time with no tap, and a tap on the
+     content hides them at once; during the overlay no node moves (recording), a tap on the back chip
+     leaves the game and a tap on Undo undoes, exactly as without the overlay; in three-button
+     navigation a tap on the overlay's own back button leaves the game. A swipe up from the bottom edge:
+     the same for the navigation bar. (D-05g, §11)
+
+30k. **System back.** Gesture navigation: the first edge swipe shows the bars and does not navigate;
+     the second navigates back as the back chip does — this double swipe is the ruled behaviour and is
+     recorded, not failed. Three-button: the overlay's back button navigates back. In both: the restart
+     confirm's and the ad offer's back handling are as today. (D-05g)
+
+30l. **Dialogs over play.** Over gameplay: open and close the restart confirm, the ad offer (and let a
+     test rewarded ad load), the rescue banner with its actions, the Undecided notice, a snackbar; over
+     Results: the Play Games opt-in prompt and the quiescence scrim. On no frame of the recording does a
+     status icon, the clock, a handle, a button or a scrim of the system's appear. (D-05g, §6.2)
+
+30m. **Full-screen SDKs.** With test ad units: accept the ad offer and watch the rewarded ad to its
+     close; on Results take an ad-eligible continue and let the interstitial show and close. On the
+     first frame in which the app's own screen is visible again the bars are hidden; no frame shows the
+     app's screen and a system bar together, the system's own activity transition excepted. The game, or
+     the next level, is as left or as expected. (D-05g)
+
+30n. **Background and resume.** From gameplay: lock and unlock; go to the launcher (recents, or the
+     home gesture after one reveal) and return through recents; pull the notification shade by the
+     reveal swipe and let it close. On every return the bars are hidden on the app's first frame, the
+     board is as left, and the timer has resumed. (D-05g)
+
+30o. **Recreation.** From gameplay: rotate to landscape and back; toggle dark mode from the quick
+     settings; set font scale 200% and back; at animator scale 0 too. After each, the first frame of
+     gameplay has both bars hidden, the content pads off the cutout on whichever edge it is, no black
+     band shows at the cutout, and the layout is the one 30g read (landscape excepted: its own layout,
+     under the same rule). Results likewise after one rotation. (D-05g, §12)
+
+30p. **Cutouts.** On the Pixel_9, and on the emulator's cutout developer options (tall, double, corner):
+     with the bars hidden the sky shows around the camera and no black letterbox appears at the cutout
+     in either theme; the strip sits at the stable status inset and the back chip's top edge within 8dp
+     of where the status bar's bottom edge would be. (D-05g, §6.2)
+
+30q. **TalkBack.** With TalkBack on, on gameplay and on Results: the traversal is 26b's order with no
+     stop added or missing (the backdrop still none, BD-15); the back chip, the dock, the board stop and
+     the Results buttons are reachable and activate; the two-finger swipe from the top edge reveals the
+     bars; the global "Notifications" action opens the shade; focus and the layout are unchanged when
+     the bars reveal and hide. (D-05g, §11, criterion 26b)
+
+30r. **Below API 35.** On an API 30 and an API 34 image, light and dark, gesture and three-button: on
+     Home, the catalogue and Settings the status bar is transparent and its band is `background`
+     (±1/255), not an opaque system grey, with dark icons in light and light icons in dark, the clock
+     ≥ 4.5:1 and the icons ≥ 3:1 against it; on gameplay and Results both bars hide as 30g–30j; the
+     navigation bar on the standard screens is one of criterion 29's two admitted forms with its
+     buttons ≥ 3:1. (D-05g, criterion 29)
+
+30s. **The founder's device.** 30i's read is done and its cause recorded in the developer's report
+     before the fix is claimed; a cause outside §6.2's four candidates goes to the producer for this
+     role, with the screenshot. (D-05g)
+
+30t. **The gates still green.** On `feature/game-immersive`: 15e sat per §6.5 is PASS (`MainActivity`
+     and `navigation/` are start-path files; VOID is not a pass); criteria 18a–18e, 21a–21g, 26b and 29
+     re-run green with no test edited but §13's helper extension; BD-09 and BD-19 re-run under B-09c's
+     amended lines; BD-21's recording of Home → catalogue → gameplay → Results → Home samples outside
+     both bands and holds. (D-05g, §6.5)
 
 **The board with TalkBack (D-TB, §11.1 — added 2026-10-23)** — these twelve are the game-designer's
 TB-1 to TB-12 (`.planning/reports/ux-spec-folds/game-designer-talkback-board.md`, §4), kept under their
@@ -7554,6 +7949,16 @@ trace: like D-TB, both trace to the studio baseline and to Q-023.
 trace.
 *(Pointer 2026-11-01 — D-TBe.)* "D-TBe" joins the same series for the same reason. It changes no trace
 and no string.
+
+*(Added 2026-11-01 — D-05g.)* Proposed **UX-03** gains §6.2 "Immersive play" and criterion 30 (30a–30t):
+gameplay and Results hide both bars, no layout moves, the bands are the backdrop's, and every other
+screen's status bar is transparent over `background` on every API level. **CLAS-02** and **SCOR-02**
+keep 18a–18e, re-read with the bars hidden (30e). **PLAT-08 (C1)**: `MainActivity` and `navigation/`
+change, so the branch sits its own 15e (30t). **QUAL-03** gains one scoped destination policy and no
+token, string, colour, asset or dependency. No requirement id names the system bars
+(`.planning/REQUIREMENTS.md`), so the decision traces to the founder's 2026-11-01 note and to the
+studio baseline — rules/compose.md's edge-to-edge line, which D-05g amends for this product: the bars'
+stable insets, not `safeDrawingPadding()`'s visible ones.
 
 ---
 
