@@ -3,7 +3,7 @@ Date: 2026-11-01
 Branch: feature/release-3.0.0-prep (report only). Signed off, each off `develop` `d251c3b` (`develop` now `47cb7e0`, STATUS.md only since): `feature/tech-design-3.0.0-sync` `3aa7825`; `feature/release-3.0.0-prep` `d855c51`; `feature/ux-3.0.0-folds` `2c8b31b`
 Skills loaded: ergoz-soft:standards (role tech-lead; game; android-compose-game). The snapshots are 0.5.1/0.6.2 and the plugin is 1.0.0, so the plugin copies were read; studio, reporting, gitflow, skills-policy, logging, memory, kotlin-android, compose, stacks and testing were diffed against the snapshot and the differences read; puzzle-design and play-store are byte-identical; the plugin's dispatch.md; `.claude/rules/lessons.md`
 Ran in parallel with: the code-auditor's loop-1 re-check of the same three branches (its report is not yet committed)
-Ran on: claude-opus-5-5 at effort xhigh (policy). **Staffing deviation:** `agents/tech-lead.md` pins fable; founder answer Q-019 puts Fable-pinned roles on Opus until 3.0.0 is published. I authored none of the three diffs; every fact below was re-read in the trees, the cited reports or the installed hook
+Ran on: claude-opus-5-5 at effort high (policy) *(corrected in the addendum below: it read "xhigh (policy)"; the founder directive of 2026-10-31 (1) in STATUS.md sets tech-lead dispatches to high)*. **Staffing deviation:** `agents/tech-lead.md` pins fable; founder answer Q-019 puts Fable-pinned roles on Opus until 3.0.0 is published. I authored none of the three diffs; every fact below was re-read in the trees, the cited reports or the installed hook
 Fan-out: none
 Loops: 0
 Lessons applied: none (the snapshot holds 0 active lessons for game / android-compose-game)
@@ -164,3 +164,18 @@ Next: producer —
 VERDICT (feature/tech-design-3.0.0-sync): PASS conditional on auditor loop 1
 VERDICT (feature/release-3.0.0-prep): PASS conditional on auditor loop 1
 VERDICT (feature/ux-3.0.0-folds): PASS conditional on auditor loop 1
+
+## Addendum — the code-auditor's loop 1 (2026-11-01, after this report's first commit `84e7988`)
+The loop-1 re-check landed on this branch as `b4e586a` (`.planning/reports/release-3.0.0/code-auditor-docs-loop1.md`) just before this report's commit. It gives **PASS** for all three branches: the prep branch's two must-fixes are fixed, the tech-design sync's three minors are fixed and insertion-only, and the ux report is valid. Its remaining minors are non-blocking: m1–m7, and i1–i3 for information. So Condition 1 is met, and each verdict above becomes an unconditional PASS.
+
+The loop-1 report overlaps my follow-ups:
+- Its m3 (D-1's wording: "to be uploaded", "the same code and resources", the uninstall, the real ad units) agrees with Condition 2 (a) and (c). Condition 2 (b), `--device-id` of `ergoz_studio` and never the bench, is still mine alone.
+- Its m5 is the stray spaces of Condition 6.
+- Its m4 is correct: a bare `exec` in front of the script is blocked by the gate. Only `exec` followed by a path-named shell passes. T-11 forbidding `exec` stays right, as stricter.
+- Its i2 (tech-lead effort `high` under the founder directive) applies to this report's own `Ran on:` line, which is now corrected.
+
+Conditions 2 and 3 remain due before the release device pass. Conditions 4–10 remain non-blocking.
+
+VERDICT (feature/tech-design-3.0.0-sync): PASS
+VERDICT (feature/release-3.0.0-prep): PASS
+VERDICT (feature/ux-3.0.0-folds): PASS
