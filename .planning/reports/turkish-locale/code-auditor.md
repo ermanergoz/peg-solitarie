@@ -5,7 +5,7 @@ Skills loaded: ergoz-soft:standards (role: code-auditor; the snapshot is 0.6.2 a
 Ran in parallel with: none
 Ran on: claude-fable-5-1 at effort xhigh
 Fan-out: none
-Loops: 0
+Loops: 1 (round 1 FAIL at 3d81752; Loop 1 below)
 Lessons applied: none (the snapshot has no active lessons)
 
 ## Summary
@@ -66,4 +66,25 @@ Next: android-game-dev — fix finding 1 in `ui/UserFacingTextHasNoProtectedName
 Next: producer — route items 4 (Fredoka) and 5 (goldens) with the developer's escalations to the tech-lead and ux-designer; item 6 to the tech-lead's sign-off; item 8 (trailers) is yours.
 Next: qa-engineer — the device session per spec §8 can proceed in parallel with the fix round; C-2 is expected to fail for the five Fredoka strings named in the developer's report.
 
-VERDICT: FAIL
+Round-1 verdict: FAIL (superseded by Loop 1 below)
+
+## Loop 1 — findings 1 and 2 re-checked (2026-11-01)
+Reviewed: `9ed227b` (finding 1) and `2fd358d` (finding 2) on head `db8f94f`; the developer's loop-1 section (`db8f94f`) read as a list of claims only. Per the producer: the tech-lead's heading-font items M-1 to M-5 are deliberately not built — the founder rejected the Nunito fallback (Q-038) and a new font contract comes as a separate change, which I review when it arrives. Not part of this check.
+
+- **Finding 1 — fixed.** `app/src/test/java/com/app/pegsolitaire/ui/UserFacingTextHasNoProtectedNamesTest.kt:36` now asserts `stringFiles.map { it.relativeTo(appMain).invariantSeparatorsPath }` contains `res/values-tr/strings.xml` (`TURKISH_STRINGS`, `:105`): no nullable receiver, no `!!`, no safe call, and a stronger assertion than before (the full relative path, not a folder name). A fresh recompile prints zero `Only safe (?.)` lines.
+- **Finding 2 — fixed.** `app/src/test/java/com/app/pegsolitaire/locale/AppLanguagesTest.kt:120-125` now lists every directory holding a `strings.xml` and maps each through `languageOfValuesFolder()` (`:168-183`): skips `mcc`/`mnc`, takes a two- or three-letter language with an optional `rXX` region or a `b+` BCP-47 tag, excludes `car` (the one two-to-three-letter qualifier that is not a language), only under a `values` folder, null otherwise. The self-test `theFolderReaderTakesALanguageOnlyFromALanguageQualifier` (`:79-98`) pins `tr`, `tr-rTR`→`tr-TR`, `b+sr+Latn`→`sr-Latn`, `mcc286-tr`→`tr`, and null for `values`, `values-night`, `values-v35`, `values-night-v35`, `values-car`, `values-sw600dp`, `drawable-tr`. I traced each case through the function by hand; finding 2's scenario (`values-night/strings.xml`) no longer demands a locale. Strings extracted to named constants; no magic values; the file adds no compiler warning.
+- Both commits touch only those two test files: no production change, no suppression, no dependency, no font. Subjects are conventional (`fix(l10n): …`), trailers as in round 1 (item 8 stands, for the producer).
+
+Checks, loop 1 (worktree at `db8f94f`):
+- `./gradlew check` — pass (`BUILD SUCCESSFUL in 11m 39s`, `107 actionable tasks: 11 executed, 96 up-to-date`, exit 0; `:app:lintDebug`, `:domain:depthSweep` and `:domain:koverVerify` executed; the unit-test compile and `:app:testDebugUnitTest` were up-to-date from the developer's run on the same inputs, so both were re-executed below).
+- `./gradlew :app:compileDebugUnitTestKotlin --rerun` — pass; 73 `w:` lines in all (74 in round 1). In the files this branch touches (`git diff --name-only 37d3052..HEAD -- app/src/test`): 3, the v1 `createComposeRule` deprecation in `HomeScreenTurkishTest.kt:44`, `ResultsScreenTurkishTest.kt:33`, `SettingsScreenTurkishTest.kt:35` — tech-design §9.8's recorded exception. `Only safe (?.)` occurrences: 0.
+- `./gradlew :app:testDebugUnitTest --rerun --tests 'com.app.pegsolitaire.locale.AppLanguagesTest' --tests 'com.app.pegsolitaire.UserFacingTextHasNoProtectedNamesTest' --tests 'com.app.pegsolitaire.ui.UserFacingTextHasNoProtectedNamesTest' --tests 'com.app.pegsolitaire.locale.TurkishStringsParityTest'` — pass, executed (not cached): 19 tests, 0 failures, 0 errors, 0 skipped (AppLanguagesTest 5 of 5 including the new self-test; protected names 2 + 4; parity 8).
+- Lint (`app/build/reports/lint-results-debug.txt` from the Check) — `0 errors, 62 warnings`, unchanged; the only warning in the diff's files remains the approved `app/src/main/AndroidManifest.xml:34 [UnusedAttribute]` (finding 3); nothing on `values-tr/strings.xml` or `locales_config.xml`.
+
+Open items unchanged from round 1: 4 (Fredoka — now overtaken by Q-038 and the coming font contract), 5 (goldens), 6 (`localeFilters` and the hand-written list, the tech-lead's sign-off; `373a24b` adds `tech-lead-rulings.md`, which is not an input to this check), 7, 8. No new finding.
+
+Handoff, loop 1:
+Next: tech-lead — sign-off; the branch meets the code-auditor's gate (Check green, no suppression, no disabled test). The qa-engineer's device PASS per spec §8 is still required before the merge (rules/gitflow.md).
+Next: producer — the new font contract after Q-038 returns to the code-auditor as its own review; the §9.3 string deltas of the two parallel branches, when they land.
+
+VERDICT: PASS
