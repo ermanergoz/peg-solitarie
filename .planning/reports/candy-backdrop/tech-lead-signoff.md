@@ -188,3 +188,13 @@ Then:
 File the 3.0.1 items above, and add the +44.5 ms line and Open issue 3 to the Q-PUBLISH-3.0.0 material.
 
 VERDICT: HOLD
+
+## Addendum 2026-11-01 — after J-2's second VOID (`tech-lead-j2-ruling.md`)
+- **15f:** met. J-3 PASS with no deviation (`qa-engineer-jank2.md`).
+- **BD-23 (c), jank:** still **open**, and now on J-4.
+  - J-2 is VOID and is not re-judged.
+  - The saved framestats show a cost that belongs to arm B's APK: a one-off hitch of about +220 ms in the first five frames after Home's first paint, mostly on the RenderThread in frame 1. There is no steady-state jank.
+  - The path is J-4a (the developer's audit), my ruling on the change, then J-5 (the corrected instrument) on the changed build. The stop rule J-4c leads to a founder `Q-<NNN>`.
+- Every other row of item 4 is unchanged.
+
+VERDICT: HOLD
