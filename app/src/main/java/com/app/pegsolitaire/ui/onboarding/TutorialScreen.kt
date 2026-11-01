@@ -53,6 +53,10 @@ import com.app.pegsolitaire.audio.JumpSoundEffect
 import com.app.pegsolitaire.audio.SoundCue
 import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.domain.model.Position
+import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_HEIGHT_DP
+import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_WIDTH_DP
+import com.app.pegsolitaire.ui.backdrop.BackdropDensity
+import com.app.pegsolitaire.ui.backdrop.BackdropPreviewHost
 import com.app.pegsolitaire.ui.components.AnnouncementRegion
 import com.app.pegsolitaire.ui.components.BoardCanvas
 import com.app.pegsolitaire.ui.components.BoardStop
@@ -138,7 +142,10 @@ fun TutorialScreen(
 
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background,
+        // Transparent over the app-wide backdrop (backdrop spec B-09), with the content colour the
+        // background's own so unlabelled text keeps `onBackground` (F-32).
+        color = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onBackground,
     ) {
         // The surface keeps filling the window — the background belongs edge to edge — and
         // this Box is what stops doing so for the content. Two things need it:
@@ -437,30 +444,36 @@ private const val NO_COACH_YET = 0
 /** Pip outline width. */
 private const val PIP_BORDER_WIDTH = 2
 
-@Preview(name = "Tutorial · light")
+/** The tutorial's first step on the design baseline's window, over the Sparse wash as the host draws it (BD-25). */
+@Preview(name = "Tutorial · light", widthDp = BACKDROP_PREVIEW_WIDTH_DP, heightDp = BACKDROP_PREVIEW_HEIGHT_DP)
 @Composable
 private fun TutorialScreenLightPreview() {
     AppTheme(darkTheme = false) {
-        TutorialScreen(
-            state = TutorialUiState.initial(),
-            onCellTap = {},
-            onAnimationFinished = {},
-            onSkip = {},
-            onDone = {},
-        )
+        BackdropPreviewHost(BackdropDensity.Sparse) {
+            TutorialScreen(
+                state = TutorialUiState.initial(),
+                onCellTap = {},
+                onAnimationFinished = {},
+                onSkip = {},
+                onDone = {},
+            )
+        }
     }
 }
 
-@Preview(name = "Tutorial · dark")
+/** The tutorial completed, in dark, over the Sparse wash as the host draws it (BD-25). */
+@Preview(name = "Tutorial · dark", widthDp = BACKDROP_PREVIEW_WIDTH_DP, heightDp = BACKDROP_PREVIEW_HEIGHT_DP)
 @Composable
 private fun TutorialScreenDarkPreview() {
     AppTheme(darkTheme = true) {
-        TutorialScreen(
-            state = TutorialUiState.initial().completed(),
-            onCellTap = {},
-            onAnimationFinished = {},
-            onSkip = {},
-            onDone = {},
-        )
+        BackdropPreviewHost(BackdropDensity.Sparse) {
+            TutorialScreen(
+                state = TutorialUiState.initial().completed(),
+                onCellTap = {},
+                onAnimationFinished = {},
+                onSkip = {},
+                onDone = {},
+            )
+        }
     }
 }

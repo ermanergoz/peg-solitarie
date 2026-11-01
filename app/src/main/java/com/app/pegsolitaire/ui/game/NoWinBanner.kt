@@ -9,8 +9,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
@@ -18,8 +20,10 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.ui.theme.FinishedContainer
 import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
+import com.app.pegsolitaire.ui.theme.glossFinish
 
 /** Test tag of the inline rescue banner so the screen-level Compose test can locate it. */
 const val NOWIN_BANNER_TEST_TAG = "nowin_banner"
@@ -64,12 +68,16 @@ fun NoWinBanner(
     onHome: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val banner = MaterialTheme.colorScheme.errorContainer
     Surface(
-        color = MaterialTheme.colorScheme.errorContainer,
+        // Its clay shadow stays; the finish adds the rim and the lip that give its edge the B-14a floor.
+        color = Color.Transparent,
+        contentColor = contentColorFor(banner),
         shape = MaterialTheme.shapes.medium,
         modifier =
             modifier
                 .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.medium)
+                .glossFinish(FinishedContainer.RescueBanner, MaterialTheme.shapes.medium, fill = banner)
                 .heightIn(min = dimensionResource(R.dimen.nowin_banner_min_height))
                 .testTag(NOWIN_BANNER_TEST_TAG),
     ) {

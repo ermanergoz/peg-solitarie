@@ -4,7 +4,7 @@ phase: 15
 slug: ux-refresh
 status: draft
 created: 2026-09-21
-revised: 2026-10-24; 2026-11-01 (pre-release folds: D-05e's fallback and D-05f's v35 mechanism as built; SN-1 in docs/ux/colour-vision.md)
+revised: 2026-10-24; 2026-10-31 (15m pointer, B-19a); 2026-11-01 (pre-release folds: D-05e's fallback and D-05f's v35 mechanism as built; SN-1 in docs/ux/colour-vision.md)
 stack: android-compose-game
 design-system: docs/ui/DESIGN-SYSTEM.md
 ---
@@ -6504,6 +6504,16 @@ prohibitions are unchanged and still bind; **15h is retired and 15k replaces it*
      *(Pointer 2026-10-21 — D-03o.)* Unchanged at default font scale. Above it, the one-line shape
      gives way to the stacked one for all three pills at once, and no label or value is ever broken
      inside a word; criterion 15w checks it.
+     *(Pointer 2026-10-31 — B-19a, `docs/ux/candy-backdrop.md` §1.2. A UX decision on the conflict
+     raised in `.planning/reports/candy-backdrop/android-game-dev.md`, Open issue 1.)* "No
+     decorative glyph" stands as written, and it means no glyph **node** and no glyph **pixel**.
+     The pill's own gloss finish (B-19: a white gradient over its top 46%, its rim and its lip) is
+     part of the pill's surface, not a glyph: it carries no information, adds no node and changes
+     no semantics. So the pixel half of this criterion reads every non-text pixel inside the pill's
+     `spacing_sm` padding against **the pill's finished surface at that pixel**, in the same theme
+     and the same run, not against flat `surfaceContainerHigh`. The amended read must still fail
+     when a glyph is put back, in light and in dark (B-19a lists the reds). Nothing else in 15m
+     changes, and B-19 stays on the ribbon pills.
 
 **Home hero (D-03l, §4.2.4 — founder-feedback amendment, added 2026-09-28)** — these five apply to
 the slice that lands D-03l and retro-certify nothing. Criteria 11, 14, 15, 15a's chips half, 15d,

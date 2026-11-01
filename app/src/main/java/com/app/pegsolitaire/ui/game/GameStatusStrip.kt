@@ -17,9 +17,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.pluralStringResource
@@ -31,9 +33,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.ui.backdrop.BackdropDensity
+import com.app.pegsolitaire.ui.backdrop.BackdropPreviewHost
 import com.app.pegsolitaire.ui.theme.AppTheme
-import com.app.pegsolitaire.ui.theme.clayShadow
+import com.app.pegsolitaire.ui.theme.FinishedContainer
 import com.app.pegsolitaire.ui.theme.claySquish
+import com.app.pegsolitaire.ui.theme.finishGlow
+import com.app.pegsolitaire.ui.theme.glossFinish
 import com.app.pegsolitaire.ui.theme.withTabularFigures
 
 /** Semantics tag the tests use to locate the status strip — never its copy (ux-spec §13). */
@@ -124,10 +130,15 @@ internal fun GameStatusStrip(
  */
 @Composable
 private fun BackChip(onNavigateBack: () -> Unit) {
+    val chip = MaterialTheme.colorScheme.surfaceContainerHigh
     Surface(
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.clayShadow(dimensionResource(R.dimen.elevation_pressed), CircleShape),
+        color = Color.Transparent,
+        contentColor = contentColorFor(chip),
+        modifier =
+            Modifier
+                .finishGlow(dimensionResource(R.dimen.elevation_pressed), CircleShape)
+                .glossFinish(FinishedContainer.BackChip, CircleShape, fill = chip),
     ) {
         IconButton(
             onClick = onNavigateBack,
@@ -231,13 +242,16 @@ private fun TimerPill(elapsedSeconds: Int) {
             stringResource(R.string.elapsed_time),
             spokenDuration(elapsedSeconds),
         )
+    val pill = MaterialTheme.colorScheme.surfaceContainerHigh
     Surface(
         shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        color = Color.Transparent,
+        contentColor = contentColorFor(pill),
         modifier =
             Modifier
                 .heightIn(min = dimensionResource(R.dimen.game_timer_pill_height))
-                .clayShadow(dimensionResource(R.dimen.elevation_pressed), MaterialTheme.shapes.small)
+                .finishGlow(dimensionResource(R.dimen.elevation_pressed), MaterialTheme.shapes.small)
+                .glossFinish(FinishedContainer.TimerPill, MaterialTheme.shapes.small, fill = pill)
                 .testTag(GAME_TIMER_PILL_TEST_TAG),
     ) {
         Box(
@@ -269,19 +283,21 @@ private fun spokenDuration(totalSeconds: Int): String =
 private fun minutesSaid(minutes: Int): String = pluralStringResource(R.plurals.duration_minutes, minutes, minutes)
 
 /**
- * The strip in both of its titles — Classic's app name, then a four-digit Challenge level — on the
- * app background, in both themes.
+ * The strip in both of its titles — Classic's app name, then a four-digit Challenge level — at the
+ * top of the design baseline's window, over the game screen's backdrop as the host draws it
+ * (BD-25): the back chip's and timer pill's finish, in both themes.
  */
-@Preview(name = "Status strip · light", widthDp = PREVIEW_STRIP_WIDTH_DP)
+@Preview(name = "Status strip · light", widthDp = PREVIEW_STRIP_WIDTH_DP, heightDp = PREVIEW_STRIP_HEIGHT_DP)
 @Preview(
     name = "Status strip · dark",
     widthDp = PREVIEW_STRIP_WIDTH_DP,
+    heightDp = PREVIEW_STRIP_HEIGHT_DP,
     uiMode = Configuration.UI_MODE_NIGHT_YES,
 )
 @Composable
 private fun GameStatusStripPreview() {
     AppTheme {
-        Surface(color = MaterialTheme.colorScheme.background) {
+        BackdropPreviewHost(BackdropDensity.Quiet) {
             Column {
                 GameStatusStrip(elapsedSeconds = PREVIEW_ELAPSED_SECONDS, challengeLevel = null, onNavigateBack = {})
                 GameStatusStrip(
@@ -300,7 +316,8 @@ private const val TITLE_WEIGHT = 1f
 /** One line, always: the timer may never be pushed off screen by a long title. */
 private const val TITLE_MAX_LINES = 1
 
-/** The design baseline's width (§4.3.1's width budget), and a representative clock and level. */
+/** The design baseline's window (§4.3.1's width budget), and a representative clock and level. */
 private const val PREVIEW_STRIP_WIDTH_DP = 360
+private const val PREVIEW_STRIP_HEIGHT_DP = 640
 private const val PREVIEW_ELAPSED_SECONDS = 488
 private const val PREVIEW_CHALLENGE_LEVEL = 1234

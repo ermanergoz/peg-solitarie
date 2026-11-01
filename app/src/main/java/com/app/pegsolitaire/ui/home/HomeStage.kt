@@ -24,8 +24,10 @@ import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.ui.components.BoardCanvas
 import com.app.pegsolitaire.ui.game.GameUiState
 import com.app.pegsolitaire.ui.theme.AppTheme
+import com.app.pegsolitaire.ui.theme.FinishedContainer
 import com.app.pegsolitaire.ui.theme.clayEntrance
-import com.app.pegsolitaire.ui.theme.clayShadow
+import com.app.pegsolitaire.ui.theme.finishGlow
+import com.app.pegsolitaire.ui.theme.glossFinish
 
 /** Semantics tag of the stage — its only semantics, which TalkBack does not read (§4.2.4). */
 const val HOME_STAGE_TEST_TAG = "home_stage"
@@ -131,8 +133,8 @@ private const val MOTION_DONE = 1f
 
 /**
  * The stage art: the gameplay board slab in miniature — `surfaceContainerHigh`,
- * `shapes.extraLarge`, `clayShadow(elevation_card)` — holding a read-only [BoardCanvas] of
- * [HomeStageBoardState], inset by [HomeStageMetrics.SLAB_PADDING_FRACTION] of its edge.
+ * `shapes.extraLarge`, `finishGlow(elevation_card)` with the finish's rim and lip — holding a
+ * read-only [BoardCanvas] of [HomeStageBoardState], inset by [HomeStageMetrics.SLAB_PADDING_FRACTION] of its edge.
  *
  * Not through `BoardPreview`, which forces `catalog_preview_size` whatever size it is asked for.
  * Decorative: no description and no semantics of its own beyond a test tag. It enters with the
@@ -160,8 +162,10 @@ private fun HomeStageArt(
                     } else {
                         Modifier.graphicsLayer { alpha = fade.alphaAt(fadeProgress()) }
                     },
-                ).clayShadow(dimensionResource(R.dimen.elevation_card), shape)
+                ).finishGlow(dimensionResource(R.dimen.elevation_card), shape)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh, shape)
+                // Right after the fill, so the rim and the lip lie under the board art; no gloss over it.
+                .glossFinish(FinishedContainer.StageArt, shape)
                 .testTag(HOME_STAGE_ART_TEST_TAG),
     ) {
         BoardCanvas(
