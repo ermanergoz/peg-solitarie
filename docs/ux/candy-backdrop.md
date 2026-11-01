@@ -4,7 +4,7 @@ task: candy-backdrop
 slug: scene-backdrop
 status: draft
 created: 2026-10-17
-revised: 2026-10-18 (third edition: direction B "Deep gloss", the founder's answer to Q-021); 2026-10-31 (B-19a, BD-19 amended); 2026-11-01 (B-22a, the sheen at a settle; BD-01's grep scope); 2026-11-01 (B-09b, BD-09's status-strip rule)
+revised: 2026-10-18 (third edition: direction B "Deep gloss", the founder's answer to Q-021); 2026-10-31 (B-19a, BD-19 amended); 2026-11-01 (B-22a, the sheen at a settle; BD-01's grep scope); 2026-11-01 (B-09b, BD-09's status-strip rule); 2026-11-01 (B-11b, the scene opens after Home's entrance and fades in)
 stack: android-compose-game
 design-system: docs/ui/DESIGN-SYSTEM.md
 ip-verdict: .planning/reports/candy-backdrop/research-analyst.md (inspiration-only)
@@ -128,7 +128,7 @@ place; a later ruling is `B-nna` with a pointer. §1.1 holds the 2026-10-17 deci
 | B-08 The backdrop announces nothing, takes no focus, adds no string | **kept**; its test keys name the new layers | §11 BD-15 |
 | B-09 Transparent containers; insets as today | **kept**, amended by B-09a (the host `Surface` the app lacked, D1) and B-09b (2026-11-01: the status strip is `background` on every screen) | B-09a, B-09b |
 | B-10 No "candy" or "sweet" in new identifiers | **kept**, extended by B-10a ("jelly") | B-10a |
-| B-11 The scene is off Home's first frame | **kept**, clarified by B-11a (what frame 1 now holds) | B-11a, §7 |
+| B-11 The scene is off Home's first frame | **kept**, clarified by B-11a (what frame 1 now holds); its timing amended by B-11b (2026-11-01: the scene opens when Home's entrance ends, and fades in) | B-11a, B-11b, §7 |
 | B-12 Standing sweets in the stage's wings | **void**, withdrawn by B-12a | B-12a |
 | B-13 The sky is continuous across navigation | **kept**, amended by B-13a (one 700 ms constant, D2) | B-13a |
 | B-14 The dark theme is a night scene in luminance bands | **superseded** by B-14a (the slab-rim rule) | B-14a, §5.2 |
@@ -422,6 +422,131 @@ the second edition, whose sections §16 lists.
   gradient. A gel tile that changed from pale to deep on frame 2 would be a visible pop. The waves
   and the lights are the scene, and they keep B-11's deferral.
 
+  *Amended 2026-11-01 by B-11b: with animations on, "from frame 2 on" becomes "from the end of
+  Home's entrance, with a fade". Frame 1 is unchanged. With animations off this entry stands as
+  written.*
+
+- **B-11b (2026-11-01): The scene opens when Home's entrance ends, and fades in once per host
+  start** (amends B-11a's "from frame 2 on", §3.1's L2 row, §4.4, §6.1, §6.4, §7's deferral, BD-23
+  and §12. This is a UX decision on the J-4a proposal in
+  `.planning/reports/candy-backdrop/android-game-dev-perf-audit.md`, §5. The tech-lead's J-4b
+  ruling governs the mechanism.)
+  - **Why it moves.** On the emulator, the scene's first draw costs about 120–180 ms of
+    RenderThread time. Under B-11a it lands in frames 1–3, beside the first draw of Home's own
+    bands. There it blocks frame 2's sync and delays frame 3 by about 155 ms, so the entrance
+    cascade hitches on every cold start. Opening later moves the cost; it does not remove it.
+  - **Frame 1:** unchanged, exactly B-11a's list. Criterion 15e is not owed again.
+  - **Before the open, the player sees:**
+    - Home's content arriving through its own `clayEntrance` cascade, with every container's
+      finish;
+    - behind it, the Landscape sky (L1) alone: the calm top band, then the gradient deepening to
+      pink and violet;
+    - no wave, no light and no gel glint.
+
+    The sky alone is a whole picture, the same family as the Sparse wash.
+  - **The open, with animations on.** The scene opens once `BACKDROP_SCENE_OPEN_MS` has passed
+    since the host's first frame.
+    - **The value:** `ClayAnim.ENTRANCE_MS + HOME_LAST_ENTRANCE_ORDER × ClayAnim.ENTRANCE_STAGGER_MS` = 240 + 5 × 40 = **440 ms**
+      at animator scale 1. It is the end of Home's longest cascade: hero 0, ribbon 1, the chips 2–3,
+      the tiles 4–5. `BackdropMotion` holds it as a derived value, never the literal 440. The 5 is the
+      named `HOME_LAST_ENTRANCE_ORDER` (§4.4), and BD-23 (e) fails if Home lengthens its cascade.
+    - **Scaled:** it is measured in the same animator-scaled time Home's entrance runs on. That
+      gives 880 ms at scale 2 and 220 ms at scale 0.5, so the open always follows the cascade's
+      end. A delay counted in unscaled frame time would open mid-cascade at scale 2 and put the
+      cost back inside the cascade.
+    - **What starts there:** the clock (B-24), the battery-saver read (§6.3 item 5) and the gel
+      sheen's loop. The waves start at `p = −1` (§3.4), and the first glint passes 7.5 s after the
+      open.
+  - **The fade.** At the open, the scene node (L2 and L3 together) fades from alpha 0 to 1.
+    - **Duration and curve:** `ClayAnim.NAV_TRANSITION_MS` (**700 ms**), **linear**. This is the
+      sky cross-fade's own spec (B-13a: `tween(NAV_TRANSITION_MS, LinearEasing)`), so the scene
+      arrives at a cold start exactly as it arrives on any navigation to Home.
+    - **The token:** `BACKDROP_SCENE_FADE_MS` = `ClayAnim.NAV_TRANSITION_MS`, in `BackdropMotion`.
+      It is defined as that token, never as its own literal, so it cannot drift from the
+      cross-fade (B-13a's reason; the tech-lead's J-4b A2).
+    - **Why 700 ms holds up under the stall:** on the bench, about 120–290 ms of RenderThread time
+      lands on the fade's first visible frame (J-4b, Open issue 2). At 700 ms linear, the worst case
+      steps the fade from about 3% to about 47% in one frame, and the rest is still a visible
+      370 ms ramp. A fade under about 300 ms would read as a pop there. On a phone with a warm
+      shader cache, the stall and the step are expected to be smaller.
+    - **Scaled:** like every Compose animation, it stretches and shrinks with the animator scale.
+    - **Motion during the fade:** the waves and lights already move. The clock is Running from the
+      open (§6.3).
+    - **What does not fade:** the sky (L1) and every container.
+    - **How the alpha applies:** the fade multiplies each scene draw's own alpha (`ModulateAlpha`,
+      no offscreen layer). For those 700 ms, the back wave shows faintly through the front wave
+      where the two overlap; a group fade would hide it. **Accepted.** It is transient and happens
+      once per host start, and the group fade would allocate a full-window layer on the very frame
+      this ruling exists to make cheap.
+  - **Once per host start.** A host start is any new composition of `AppNavHost`. That covers:
+    - a cold start;
+    - a start after process death;
+    - an activity recreated by a configuration change. The manifest declares no `configChanges`,
+      so that is every rotation the system allows, a dark-mode switch, a font-scale or locale
+      change, and a multi-window resize.
+
+    Each of those replays the open and the fade: 0.44 s of sky alone, then 700 ms. **Accepted**
+    (the tech-lead's J-4b A5):
+    - **Home:** the recreation replays Home's own entrance, so the whole screen re-enters, and the
+      scene follows the cascade as on a cold start. The scene is never the only thing that moves.
+    - **The game screen:** after such a change, its waves and lights are gone for 0.44 s and fade
+      back in, behind the opaque slab.
+    - **Why that is acceptable:** the board, the dock and the strip are unaffected. A dark-mode or
+      locale switch repaints every surface anyway. A resize re-lays the screen out. All of these
+      are rare in play.
+    - **A flag that survives recreation (`rememberSaveable`) is rejected.** A restore after process
+      death is a process start, and that flag would put the scene on its frame 1, against §7.
+    - **Later visits to Home in the same host** (back from a game, the catalogue, Results or
+      Settings): the scene arrives through B-13a's 700 ms density cross-fade, as today. There is no
+      open delay and no second fade.
+    - **Leaving the app and returning with the activity alive** keeps the host. There is no delay
+      and no fade, and the clock resumes (§6.3 item 1).
+  - **Whatever screen the host starts on.** The gate belongs to the host, not to Home.
+    - **A host restored onto the game screen** opens its Quiet scene at the same moment, with the
+      same fade, although that screen has no cascade. Accepted: it keeps one rule, the path is
+      rare, and the scene is behind the opaque slab.
+    - **A host started on a Sparse screen** has no scene. Its fade runs unseen, and the first Home
+      or game screen shows its scene through the cross-fade.
+  - **Animations off (animator scale 0, reduced motion):** exactly B-11a. The scene opens on frame
+    2, or frame 3 at the latest, at its rest pose. There is no delay, no fade and no clock. There
+    is no cascade to wait for, and no fade may run.
+    - The scene's first composed frame draws at alpha 1, never held one frame at 0 (the
+      tech-lead's J-4b A3).
+    - Outside the host (previews and component tests, where the gate is always open), the scene
+      is at alpha 1 from its first frame.
+  - **Battery saver, animations on:** the open and the fade happen as above. The scene fades in at
+    its rest pose, and then the backdrop requests no frames (§6.3 item 5). It costs about 42 frames
+    once per host start. Opening on frame 2 would put the cost back into the entrance, which still
+    plays. Opening at 440 ms with no fade would be the one abrupt change on a still screen.
+  - **Input:**
+    - The scene is behind every container and consumes nothing. A tap during the fade reaches its
+      target unchanged.
+    - On a slow device, the first visible scene frame may delay a tap made in that window by up to
+      the first-draw cost, once per host start. The tap is delayed, never lost and never changed.
+  - **A Continue chip that arrives late.** A Continue chip is first composed only when its data
+    arrives. If that is after frame 1, its own entrance may still be running at the open.
+    **Accepted.** The trigger is computed from the cascade's constants. An observed signal from
+    `HomeScreen` would reopen `ui/home/`, `navigation/` and 15e, which a 3.0.0 this week cannot
+    carry.
+
+  — Reasons:
+  - **Content first, atmosphere second.** The eye goes to the title, then to the tiles, and the
+    world comes up behind them once they are placed. That is B-06a's hierarchy, and it is how the
+    scene already arrives on every navigation to Home.
+  - **The cost moves to where it is least seen.** It now falls on a still screen, at the fade's
+    first frame (about 2% alpha). Before, it fell in the middle of the entrance on every cold start,
+    which every player sees.
+  - **Why 700 ms linear, and not the entrance's 240 ms decelerate.** A decelerating 240 ms fade of
+    the whole lower half of the screen reads as a flash. The bench's 120–290 ms stall would also
+    swallow most or all of it, and it would pop. At 700 ms linear, a 150 ms stall moves the fade from
+    about 2% to about 24% in one frame, and the worst 290 ms stall to about 47%. In both cases the
+    rest stays visibly gradual.
+  - **The guidance does not apply here.** The 150–300 ms guidance (ui-ux-pro-max
+    `duration-timing`) is for feedback on an action. This is ambient atmosphere, and
+    `motion-consistency` favours the one fade the backdrop already has.
+  - **Reduced motion keeps B-11a.** With nothing animating, there is nothing to wait for and
+    nothing to fade.
+
 - **B-12a: Withdrawn: nothing stands anywhere.** No motif is drawn on Home's stage or anywhere else.
   The stage is exactly what D-03l built, plus the rim, lip and glow of B-19 on its art. —
   Direction B has no confectionery motif. The tech-lead's R2 and D3 (the wings' fit and their
@@ -690,7 +815,7 @@ token (§4.2), and never a literal.
 | # | Layer | Draws | Densities | Composed | Redraws when |
 |---|---|---|---|---|---|
 | L1 | **Sky**: one rect | a vertical gradient of the density's sky stops (§3.3) | all three | on the first frame | window size, theme or density change only |
-| L2 | **Waves**: the scene node, first | the back wave, then the front wave; each is its fill, then its lip, then its sheen (§3.2) | Landscape, Quiet | from the second frame on (B-11a) | every frame while the clock runs; only their translation changes |
+| L2 | **Waves**: the scene node, first | the back wave, then the front wave; each is its fill, then its lip, then its sheen (§3.2) | Landscape, Quiet | at the open (B-11b): with animations on, `BACKDROP_SCENE_OPEN_MS` after the host's first frame, fading in over `NAV_TRANSITION_MS`; with animations off, from the second frame on (B-11a) | every frame while the clock runs; only their translation changes, and, during the open's fade, the scene's alpha |
 | L3 | **Lights**: the scene node, after the waves | the density's lights, in table order (§3.3) | Landscape, Quiet | with L2 | every frame while the clock runs; only their translation and alpha change |
 
 Whether L2 and L3 share one node or draw in two is the tech-lead's decision. The back-to-front order
@@ -1141,6 +1266,9 @@ with that file.
 | `GEL_SHEEN_PERIOD_MS`, `GEL_SHEEN_CHALLENGE_DELAY_MS` | 10 000, 600 |
 | `BACKDROP_HOME_IDLE_MS`, `BACKDROP_GAME_IDLE_MS`, `BACKDROP_SETTLE_MS` | 60 000, 20 000, 2 000 (B-22: a proposal; the tech-lead's ruling may change the values, and the constants stay) |
 | `MIN_LOOP_MS` | 9 000: the floor B-05a sets. A test asserts that every loop and half-cycle above is at least this |
+| `HOME_LAST_ENTRANCE_ORDER` | 5: Home's last `clayEntrance` order (hero 0, ribbon 1, chips 2–3, tiles 4–5), named here so `ui/backdrop/` imports nothing from `ui/home/` (the tech-lead's J-4b A2). BD-23 (e) fails if Home lengthens its cascade |
+| `BACKDROP_SCENE_OPEN_MS` | `ClayAnim.ENTRANCE_MS + HOME_LAST_ENTRANCE_ORDER × ClayAnim.ENTRANCE_STAGGER_MS` = 440 at animator scale 1, derived and never written as 440 (B-11b). It is measured in animator-scaled time. It is not a loop, so `MIN_LOOP_MS` does not bind it |
+| `BACKDROP_SCENE_FADE_MS` | `ClayAnim.NAV_TRANSITION_MS` (700), defined as that token, never its own literal. Linear easing: the sky cross-fade's spec (B-11b, B-13a) |
 
 ## 5. Legibility and accessibility
 
@@ -1334,9 +1462,9 @@ where the gel only darkens downward:
 | The lights: nine on Home, five on the game screen | rise and fade per §3.4, on 22–44 s loops; ≤ 5.1dp/s | drawn at the rest pose: each at its rest centre, at `opacity × calm` |
 | The gel sheen, on Home | a glint inside each tile's lip, in the last 2.5 s of every 10 s loop; Challenge 0.6 s after Classic | not drawn |
 | The sky, the gel fills, and the rims, lips, glosses and glows | static | static |
-| The waves' and lights' first appearance (B-11a) | on the second frame, with no fade of their own, behind the content's 240 ms `clayEntrance` | the same, at rest |
+| The waves' and lights' first appearance (B-11b, amending B-11a) | once per host start, at the open, `BACKDROP_SCENE_OPEN_MS` (440 ms at scale 1, animator-scaled) after the host's first frame, when Home's entrance cascade has ended. They fade in from alpha 0 to 1 over `NAV_TRANSITION_MS` (700 ms), linear, while already moving. Until the open, the sky alone shows behind the content. Later visits to Home in the same host get the density cross-fade only. In battery saver, the same open and fade, at the rest pose | on the second frame, at rest, with no delay and no fade (B-11a) |
 | A density change on navigation (B-13a) | the new density's sky and scene cross-fade in over the old over `NAV_TRANSITION_MS` (700 ms); the old one stays opaque beneath | instant swap |
-| A light ↔ dark theme change | instant redraw, as the rest of the theme | instant |
+| A light ↔ dark theme change | instant redraw, as the rest of the theme, while the host survives. If the system recreates the activity for it, that is a host start: Home's entrance replays, and the scene opens and fades in after it (B-11b) | instant |
 | Sparse screens | nothing moves | nothing moves |
 
 Scale values other than 0 stretch or shorten every loop through the clock (§3.4). The reduced-motion
@@ -1418,7 +1546,8 @@ With the animator duration scale at 0 (`Settings.Global.ANIMATOR_DURATION_SCALE`
 `rememberAnimationsEnabled()` in `Clay.kt`):
 - every element is drawn at its rest pose, the sheen is not drawn, and no clock exists;
 - nothing in the backdrop or the finish requests a frame;
-- density changes swap instantly.
+- density changes swap instantly;
+- the scene opens on the second frame with no delay and no fade (B-11a, kept by B-11b).
 
 Android's "Remove animations" switch sets that scale, and battery saver takes the same path (§6.3).
 An in-app motion switch is considered in §13 and not added.
@@ -1446,14 +1575,25 @@ named exception, and this change does not touch them.
 - a resource or file read; a read of `HomeUiState`, DataStore or Room;
 - an SDK call, a `Random` or the wall clock.
 
-The battery-saver read (B-22) happens where the clock would start, from frame 2 on, never on frame 1.
+The battery-saver read (B-22) happens where the clock would start, at the open (B-11b), never on
+frame 1.
 Everything the scene draws is built in memory from §4's constants.
 
 **The deferral.** The tech-lead's R3: one flag, set after the host's first frame through
 `withFrameNanos`, provided as a `State` read only by the scene node. The waves and lights are absent
 from the first frame and present within two frames (D7; BD-23 (a)). They build their paths and
 brushes once, on that frame. A build on frame 2 can still jank the entrance, so BD-23 (c) compares
-janky frames against arm A in a separate block with animations on (D8). The `compose-performance-audit`
+janky frames against arm A in a separate block with animations on (D8).
+
+**The deferral, amended (B-11b, 2026-11-01).** The J-4a audit measured the scene's first GPU draw
+at about 120–180 ms of RenderThread time on the emulator. On frame 2 it hitches the entrance. With
+animations on, the flag now opens `BACKDROP_SCENE_OPEN_MS` after the host's first frame, in
+animator-scaled time, when Home's cascade has ended. The scene then fades in over
+`NAV_TRANSITION_MS`, linear, once per host start. With animations off, the paragraph above stands:
+present within two frames, no fade. Frame 1 is unchanged, so 15e is not owed again. The moved cost
+still counts. BD-23 (d) checks what the player sees at the open. The tech-lead's J-4b §5 puts the
+moved draw inside a measurement: J-5's `sleep 2` and its informative RT_late read. That read goes
+into the Q-PUBLISH-3.0.0 material as a number. The `compose-performance-audit`
 covers the backdrop before release (rules/compose.md).
 
 **Measurement.** Home's first frame changes, so **criterion 15e runs on this branch**. It uses §6.5's
@@ -1684,7 +1824,7 @@ edition's, with only their layer and element names updated.
 | **BD-20** | **Font independence**: the backdrop alone, rendered at font scale 1.0 and 2.0 on the same window at the same clock time, is pixel-identical | Test | identical |
 | **BD-21** | **The sky is continuous across navigation** (amended: D6). On Home → catalogue → gameplay → Results → Home, with the test clock paused at a fixed backdrop time, every frame of every transition is rendered. Pixels are sampled where no stand-in draws and away from every wave and light: the calm band, and the sky between the band and the back crest | Test, QA (a screen recording) | at every frame, each sampled colour lies on the segment between that pixel's outgoing and incoming colours, within ±2/255 per channel: only a convex blend is allowed. The sky never lightens toward `background` |
 | **BD-22** | **RTL** (amended: D4). In `ar-XB` the scene, the waves' offsets and the sheen's travel are the mirror of LTR. An in-run comparison at a fixed clock time, under a stated tolerance constant, must fail on a deliberately unmirrored scene | Test, QA | mirrored |
-| **BD-23** | **Cold start** (amended: D7, D8). (a) After Home's first frame, `backdropLayers` = {Sky}, no wave or light is drawn and the clock has not started; Waves and Lights are present within two `advanceTimeByFrame()`. (b) 15e on this branch, by §6.5's protocol under R3, is **PASS**; a VOID sitting is not a pass. (c) A separate block after 15e, animations **on**: ≥ 10 kept samples per arm, interleaved A/B in blocks of five with the first of each block discarded, reading "Janky frames" one second after `am start -W` returns | Test, QA | (a) as stated; (b) PASS; (c) `median_B ≤ median_A + 1` |
+| **BD-23** | **Cold start** (amended: D7, D8; 2026-11-01: B-11b amends (a) and adds (d) and (e)). (a) After Home's first frame, `backdropLayers` = {Sky}, no wave or light is drawn and the clock has not started. **Animations on:** Waves and Lights stay absent, the clock unstarted and the motion AtRest, until `BACKDROP_SCENE_OPEN_MS` of animator-scaled time has passed; they are present within two `advanceTimeByFrame()` after it. The scene's alpha, read from a test-only hook beside the three existing ones, is 0 at the open and rises linearly to 1 over `NAV_TRANSITION_MS`, within one frame's step. It stays 1 from then on, through a navigation away from Home and back, which fades the sky and the scene by B-13a and never the scene alone again. At animator scale 2 the open is at twice the value. **Animations off:** Waves and Lights are present within two `advanceTimeByFrame()` of the first frame, at alpha 1, with no fade. (b) 15e on this branch, by §6.5's protocol under R3, is **PASS**; a VOID sitting is not a pass. (c) A separate block after 15e, animations **on**: ≥ 10 kept samples per arm, interleaved A/B in blocks of five with the first of each block discarded, reading "Janky frames" one second after `am start -W` returns. The open now falls inside this read window (≈ 0.44–1.14 s). The moved draw is measured by J-5 as amended in the tech-lead's J-4b §5 (`sleep 2`, RT_late), and (c) stays open until J-5. (d) **The open and the fade, on the device** (B-11b): see the pass line. (e) **The open covers Home's longest cascade:** the real `HomeScreen`, with both Continue chips composed at its first composition, under the test clock, at animator scale 1 and 2. The last band's pixels are stable from the open on, and the test fails if Home lengthens its cascade | Test, QA | (a) as stated; (b) PASS; (c) `median_B ≤ median_A + 1`; (e) as stated. (d), on the QA device, animations on, cold starts (`am force-stop`, then launch) to Home, ≥ 5 per theme in light and dark, each in a 60 fps screen recording. QA picks one sample pixel on the front wave in Home's footer. It must be clear of every container, of every light's vertical path (lights move only vertically, so a column clear of H6, H7 and H9's extents is clear), and above the navigation bar. QA records it in the report. The scene's fraction on a frame is `(C − C_sky) / (C_full − C_sky)` on that pixel's channel with the largest difference, with `C_sky` read before the open and `C_full` after the fade. **Pass:** (1) before the Challenge tile has reached its final alpha and position, the fraction is 0 within ±2/255, and no wave or light pixel shows anywhere; (2) the fraction never decreases, within ±2/255, and its rise from 0 to 1 spans ≥ 500 ms of recording; (3) no single frame-to-frame step exceeds 0.50. This admits the bench's worst first-draw stall (≈ 290 ms, a step of ≈ 0.44 at 700 ms), and it fails a pop or any fade under ≈ 300 ms; (4) the scene is fully in ≤ 2.0 s after Home's first recorded frame; (5) a tap on the Classic tile made during the fade opens the catalogue; (6) at animator scale 0, the scene is fully present by Home's second recorded frame, with no intermediate fraction; (7) Home → catalogue → Home within the same run shows only the 700 ms cross-fade: once Home is fully in, the fraction never drops back to 0, and no second delayed fade follows. In battery saver, (1)–(4) hold at the rest pose |
 | **BD-24** | **Greyscale.** Device captures of Home, gameplay and Settings, converted to greyscale, keep every BD-12, BD-13 and BD-27 ratio. Pegs remain distinct from holes, and the two gel tiles are told apart by their labels and glyphs | QA | as stated |
 | **BD-25** | **Previews** (amended: D4; the goldens are struck). Every new public composable has light and dark `@Preview`s: each density, the gel tiles, the glossed pills and chips. Screen previews go through `BackdropPreviewHost` with the clock fixed | Auditor | present |
 | **BD-26** | **THIRD_PARTY.md.** On the release branch the §1 idea row is present and its "What was taken" cell describes direction B (§9). No §2 row was added for the backdrop, and the licences screen does not list the row | Auditor, release-manager | as stated |
@@ -1742,7 +1882,8 @@ any node in the stage subtree).
 | `BackdropSemanticsTest`: "the backdrop is not focusable, clickable or announced"; "the gel tiles announce exactly what the clay tiles did"; "TalkBack order is unchanged on Home, gameplay and the tutorial" | Compose | BD-15 |
 | `BackdropReducedMotionTest`: "with animations off every element is at rest and no clock runs" | Compose | BD-16 (a) |
 | `BackdropSettleTest`: "the backdrop settles after the idle delay"; "a tap wakes it and still reaches the board"; "a settle that begins mid-pass ends the gel sheen" (B-22a) | Compose, test clock | BD-16 (c) |
-| `BackdropFirstFrameTest`: "Home's first frame draws only the sky" | Compose, on the real host | BD-23 (a) |
+| `BackdropFirstFrameTest`: "Home's first frame draws only the sky"; amended by B-11b, so that with animations on the scene is present "at the open" and no longer "within two frames" | Compose, on the real host | BD-23 (a) |
+| `BackdropSceneOpenTest` (B-11b; the names are the J-4a report's): "the scene stays off through Home's entrance cascade"; "the scene opens at the cascade's end and fades in over its token"; "with animations off the scene opens on the second frame with no fade"; "a navigation after the open fades the sky but not the scene again"; "the open delay covers Home's longest entrance cascade" (at scale 1 and 2). `BackdropSettleTest.start()` advances past the open instead of three frames. That edit is amended, not weakened | Compose, test clock, on the real host | BD-23 (a), (e) |
 | `BackdropFontScaleTest`: "the backdrop is identical at 1.0 and 2.0 font scale" | Pixel | BD-20 |
 | `BoardInteriorIdentityTest`: "the slab's interior is identical with and without the backdrop", and the same for the stage art, the gel tiles and the chips | Pixel | BD-17, BD-18 |
 | `TransparentContainersTest`: "every scaffold, top bar and the tutorial root paint no colour, and unlabelled text is onBackground in dark mode" | Pixel, Compose | BD-14 |
