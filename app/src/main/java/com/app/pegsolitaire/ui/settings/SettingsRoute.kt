@@ -34,6 +34,7 @@ fun SettingsRoute(
         state = state,
         onToggleSound = viewModel::onToggleSound,
         onToggleHaptics = viewModel::onToggleHaptics,
+        onToggleColorblindPalette = viewModel::onToggleColorblindPalette,
         onShowHowToPlay = onShowHowToPlay,
         onOpenLicenses = onOpenLicenses,
         onSignInToPlayGames = viewModel::onSignInToPlayGames,

@@ -6,6 +6,8 @@ import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.ui.game.BoardMetrics
 import com.app.pegsolitaire.ui.game.MoveTransition
+import com.app.pegsolitaire.ui.game.recipe
+import com.app.pegsolitaire.ui.theme.BoardMarkPalette
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
@@ -83,6 +85,45 @@ class BoardCanvasTest {
             .isEqualTo(BoardMetrics.HINT_SOURCE_RING_RATIO * geometry.cellSize)
         assertThat(geometry.hintTargetRingRadius)
             .isEqualTo(BoardMetrics.HINT_TARGET_RING_RATIO * geometry.cellSize)
+    }
+
+    /**
+     * CV-AC08 on the drawn geometry: under the colour-blind recipe the hint source ring still
+     * reads as larger than the selection ring, and the target ring as larger than the dot.
+     */
+    @Test
+    fun colourBlindHintRingRadiiAreDistinctFromSelectionAndDot() {
+        val colorblind = colourBlindGeometry()
+
+        assertThat(colorblind.hintSourceRingRadius).isGreaterThan(colorblind.selectedRingRadius)
+        assertThat(colorblind.hintTargetRingRadius).isGreaterThan(colorblind.destinationDotRadius)
+    }
+
+    /** docs/ux/colour-vision.md §3.4: the colour-blind rings are 0.42c, 0.44c and 0.30c of the measured cell. */
+    @Test
+    fun colourBlindRingRadiiAreSection34sRatiosOfTheCellSize() {
+        val colorblind = colourBlindGeometry()
+
+        assertThat(colorblind.selectedRingRadius).isEqualTo(0.42f * colorblind.cellSize)
+        assertThat(colorblind.hintSourceRingRadius).isEqualTo(0.44f * colorblind.cellSize)
+        assertThat(colorblind.hintTargetRingRadius).isEqualTo(0.30f * colorblind.cellSize)
+    }
+
+    /**
+     * The palette is a look, never a tap path: every cell centre, every hit test and every radius
+     * the recipe does not own are the same under either recipe.
+     */
+    @Test
+    fun theColourBlindRecipeMovesNoCellCentreHitTestOrPegRadius() {
+        val colorblind = colourBlindGeometry()
+
+        spec.inPlay.forEach { position ->
+            assertThat(colorblind.center(position)).isEqualTo(geometry.center(position))
+            assertThat(colorblind.positionAt(geometry.center(position))).isEqualTo(position)
+        }
+        assertThat(colorblind.pegRadius).isEqualTo(geometry.pegRadius)
+        assertThat(colorblind.holeRadius).isEqualTo(geometry.holeRadius)
+        assertThat(colorblind.destinationDotRadius).isEqualTo(geometry.destinationDotRadius)
     }
 
     /**
@@ -205,6 +246,9 @@ class BoardCanvasTest {
 
         assertThat(center).isEqualTo(resting)
     }
+
+    private fun colourBlindGeometry(): BoardGeometry =
+        BoardGeometry.forCanvas(spec, Size(CANVAS_EDGE_PX, CANVAS_EDGE_PX), BoardMarkPalette.Colorblind.recipe)
 
     private companion object {
         const val CANVAS_EDGE_PX = 700f

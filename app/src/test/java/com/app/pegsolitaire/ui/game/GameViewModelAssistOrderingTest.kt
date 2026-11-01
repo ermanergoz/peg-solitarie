@@ -586,6 +586,10 @@ private class OrderingLevelRepository(
 
 /** Hints/haptics/sound all on; this spec is about the ordering, not the gates. */
 private object OrderingSettings : SettingsRepository {
+    override val colorblindPaletteOn: Flow<Boolean> = flowOf(false)
+
+    override suspend fun setColorblindPaletteOn(on: Boolean) = Unit
+
     override val hintsEnabled: Flow<Boolean> = flowOf(true)
 
     override val soundOn: Flow<Boolean> = flowOf(true)

@@ -70,6 +70,7 @@ class SettingsPrivacyTest {
                     state = SettingsUiState(privacyOptionsRequired = privacyOptionsRequired),
                     onToggleSound = {},
                     onToggleHaptics = {},
+                    onToggleColorblindPalette = {},
                     onShowHowToPlay = {},
                     onOpenLicenses = {},
                     onSignInToPlayGames = {},
@@ -253,6 +254,10 @@ class SettingsPrivacyViewModelTest {
 
 /** A fixed settings store: this file asserts consent behaviour, not persistence. */
 private object StubSettingsRepository : SettingsRepository {
+    override val colorblindPaletteOn: Flow<Boolean> = flowOf(false)
+
+    override suspend fun setColorblindPaletteOn(on: Boolean) = Unit
+
     override val hintsEnabled: Flow<Boolean> = flowOf(true)
 
     override val soundOn: Flow<Boolean> = flowOf(true)

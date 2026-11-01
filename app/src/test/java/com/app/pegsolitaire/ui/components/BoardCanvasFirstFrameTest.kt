@@ -20,6 +20,7 @@ import com.app.pegsolitaire.ui.home.fixture.HOME_ROBOLECTRIC_SDK
 import com.app.pegsolitaire.ui.home.fixture.chipsState
 import com.app.pegsolitaire.ui.home.fixture.renderHome
 import com.app.pegsolitaire.ui.theme.AppTheme
+import com.app.pegsolitaire.ui.theme.BoardMarkPalette
 import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Rule
 import org.junit.Test
@@ -92,6 +93,54 @@ class BoardCanvasFirstFrameTest {
     }
 
     /**
+     * An interactive board in the colour-blind palette, a peg held with its targets showing: the
+     * first frame rings the held peg at the palette's radius (docs/ux/colour-vision.md §3.4), as
+     * every later frame does. The frame-size geometry keeps the composed geometry's recipe.
+     */
+    @Test
+    fun theFirstFrameOfAColourBlindBoardRingsTheHeldPegAsTheSettledFrameDoes() {
+        val scene = PaletteScene.midGame(Boards.english33Initial)
+        motion.turnAnimationsOff()
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            AppTheme(darkTheme = false, boardMarkPalette = BoardMarkPalette.Colorblind) {
+                BoardCanvas(
+                    state = scene.state.copy(hintSource = null, hintTarget = null),
+                    onCellTap = {},
+                    onAnimationFinished = {},
+                    modifier = Modifier.size(INTERACTIVE_CANVAS_DP.dp),
+                )
+            }
+        }
+
+        assertTheFirstFrameIsTheSettledFrame(BOARD_CANVAS_TEST_TAG)
+    }
+
+    /**
+     * The same board with its hint up: the first frame dashes both hint rings for the radii it draws
+     * them at — eight dashes each, starting at the top (docs/ux/colour-vision.md §3.4) — as every
+     * later frame does, and not with strokes built for a geometry the composition had not yet sized.
+     */
+    @Test
+    fun theFirstFrameOfAColourBlindBoardDashesItsHintRingsAsTheSettledFrameDoes() {
+        val scene = PaletteScene.midGame(Boards.english33Initial)
+        motion.turnAnimationsOff()
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            AppTheme(darkTheme = false, boardMarkPalette = BoardMarkPalette.Colorblind) {
+                BoardCanvas(
+                    state = scene.state,
+                    onCellTap = {},
+                    onAnimationFinished = {},
+                    modifier = Modifier.size(INTERACTIVE_CANVAS_DP.dp),
+                )
+            }
+        }
+
+        assertTheFirstFrameIsTheSettledFrame(BOARD_CANVAS_TEST_TAG)
+    }
+
+    /**
      * Reads the tagged node's pixels in the frame the paused clock left, then in the settled frame:
      * the first must carry ink and equal the second.
      */
@@ -127,6 +176,9 @@ class BoardCanvasFirstFrameTest {
 /** The design baseline's system bars: a 24dp status bar and a 48dp navigation bar. */
 private const val STATUS_BAR_DP = 24
 private const val NAVIGATION_BAR_DP = 48
+
+/** An interactive board of 350dp, as the motion test draws one. */
+private const val INTERACTIVE_CANVAS_DP = 350
 
 /**
  * Whether [pixel] is a candy peg's: the `PegGradient` runs from #F9A8D4 through #EC4899 to #BE185D,
