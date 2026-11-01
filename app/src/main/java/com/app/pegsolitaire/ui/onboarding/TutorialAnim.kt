@@ -42,4 +42,15 @@ object TutorialAnim {
      * block.
      */
     const val NON_PROGRESSING_TAPS_BEFORE_COACH = 3
+
+    /**
+     * How long a new step's line waits after its board stop takes focus, while touch exploration is
+     * on (the talkback-board device-2 ruling §2, F-B1; D-TBe). Past Compose's 100 ms batching of
+     * accessibility events (ui 1.11.3, `AndroidComposeViewAccessibilityDelegateCompat.android.kt:275`)
+     * and TalkBack's round trip from the focus event to the spoken focus, which QA measured at about
+     * 170 ms at most on a heavily loaded emulator (device-2 `speech-raw.log`, 04:00:38.224). The line
+     * then goes on after the step swap's whole burst of events, so nothing the app sends later can
+     * drop it from TalkBack's queue.
+     */
+    const val STEP_LINE_AFTER_FOCUS_MS = 500L
 }

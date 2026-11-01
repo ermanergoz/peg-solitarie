@@ -244,6 +244,10 @@ for.
   unless the developer handles it.
 - **No new focus stop.** Gameplay traversal stays back → title → timer → board → dock → banner
   (§11). A later swipe onto the board does not re-read the message.
+  *(Pointer 2026-10-24 — D-TBa's loop-5 lines, `docs/ux-spec.md` §3.)* With D-TB the order is back →
+  title → timer → the board stop → each in-play cell → a raised banner → dock, so "from the timer"
+  reads "from the last cell" once `feature/talkback-board` merges. The board's lack of a focus stop
+  describes the build until then. The slab-before-banner order is pinned by D-TBa item 1 (loop 5).
 - Spoken only while a screen reader runs. Nothing changes for anyone else.
 - `View.announceForAccessibility` is deprecated from API 36. The phase-15 grep found no live
   region anywhere in the app, so this is the first. The mechanism is the developer's; the
