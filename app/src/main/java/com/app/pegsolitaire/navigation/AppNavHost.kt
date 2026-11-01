@@ -1,5 +1,6 @@
 package com.app.pegsolitaire.navigation
 
+import android.view.Window
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -9,6 +10,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -36,6 +39,8 @@ import com.app.pegsolitaire.ui.onboarding.TutorialRoute
 import com.app.pegsolitaire.ui.results.ResultsRoute
 import com.app.pegsolitaire.ui.settings.SettingsRoute
 import com.app.pegsolitaire.ui.theme.ClayAnim
+import com.app.pegsolitaire.ui.window.LocalSystemBarsState
+import com.app.pegsolitaire.ui.window.SystemBarsState
 
 /**
  * The Home actions, hoisted so [AppNavHost]'s content is test-injectable: the two mode
@@ -86,6 +91,9 @@ private typealias ResultsContent =
  * real routes call `hiltViewModel()`, which needs a Hilt host) while still exercising
  * this function's actual navigation lambdas.
  *
+ * @param hostWindow the window whose system bars the destinations govern (D-05g; tech design §3.8
+ *   (a)): `MainActivity` passes its own. `null`, the default for previews and host tests, applies
+ *   nothing to any window and still keeps the bar state the dialogs mirror current.
  * @param navController the host controller (defaults to a remembered one).
  * @param homeContent the Home destination body (defaults to [HomeRoute]).
  * @param catalogContent the ClassicCatalog destination body (defaults to [ClassicCatalogRoute]).
@@ -117,9 +125,19 @@ private typealias ResultsContent =
  * the first frame. The four transitions are the `NavHost`'s own default fade made explicit on
  * `ClayAnim.NAV_TRANSITION_MS`, the one duration the backdrop's cross-fade also uses (D2). The
  * four licence destinations take the density function's `else`, the Sparse wash (E7).
+ *
+ * ## The window's bars (D-05g; tech design §3.8)
+ *
+ * The board and Results hide both system bars; every other destination shows them. The host owns
+ * that state and provides it, as a `State`, above the `NavHost` for the dialog windows that mirror
+ * it ([LocalSystemBarsState]); [NavSystemBars] applies it to [hostWindow]. It is composed after the
+ * `NavHost`, beside the backdrop and for the backdrop's reason: the host's graph and a restored back
+ * stack exist only once the `NavHost` has composed, so a restored board is immersive on its first
+ * frame.
  */
 @Composable
 fun AppNavHost(
+    hostWindow: Window? = null,
     navController: NavHostController = rememberNavController(),
     homeContent: HomeContent =
         { onPlayClassic, onPlayChallenge, onResumeClassic, onResumeChallenge, onOpenSettings, onStartTutorial ->
@@ -169,12 +187,17 @@ fun AppNavHost(
 ) {
     val sceneReady = rememberBackdropSceneReady()
     val clock = rememberBackdropClock()
+    val barsState = remember { mutableStateOf(SystemBarsState.Shown) }
     Surface(
         color = MaterialTheme.colorScheme.background,
         contentColor = MaterialTheme.colorScheme.onBackground,
         modifier = Modifier.fillMaxSize(),
     ) {
-        CompositionLocalProvider(LocalBackdropSceneReady provides sceneReady, LocalBackdropClock provides clock) {
+        CompositionLocalProvider(
+            LocalBackdropSceneReady provides sceneReady,
+            LocalBackdropClock provides clock,
+            LocalSystemBarsState provides barsState,
+        ) {
             BackdropClockDriver(clock = clock, sceneReady = sceneReady, frames = backdropFrames)
             Box(modifier = Modifier.fillMaxSize().backdropInputObserver(clock)) {
                 AppNavGraph(
@@ -194,6 +217,7 @@ fun AppNavHost(
                     navController = navController,
                     modifier = Modifier.matchParentSize().zIndex(BackdropMetrics.BACKDROP_Z_INDEX),
                 )
+                NavSystemBars(navController = navController, hostWindow = hostWindow, barsState = barsState)
             }
         }
     }

@@ -17,6 +17,8 @@ import com.app.pegsolitaire.platform.games.GamesService
 import com.app.pegsolitaire.platform.games.save.DebugSnapshotPickerEntry
 import com.app.pegsolitaire.ui.theme.AppThemeRoot
 import com.app.pegsolitaire.ui.theme.BoardMarkPaletteState
+import com.app.pegsolitaire.ui.window.LocalSystemBars
+import com.app.pegsolitaire.ui.window.WindowInsetsSystemBars
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -31,7 +33,9 @@ import javax.inject.Inject
  * injected [SoundPlayer] into [LocalSoundPlayer] is hosting too: it hands the composition
  * a dependency it cannot inject for itself and does nothing with it. The player's
  * lifecycle stays entirely in `App`/Hilt; in particular the startup preload is **not**
- * here, because SOUND-01 needs the decode to start before an activity exists.
+ * here, because SOUND-01 needs the decode to start before an activity exists. Handing the
+ * host this activity's window and the system-bar seam (D-05g) is hosting in the same sense:
+ * which bars a destination shows is the host's policy, never decided here.
  *
  * It is also where the three platform bootstraps start: the consent flow (CONS-01, D-16) —
  * see [consentGateway] — the opt-in-gated Play Games sign-in (PGS-01, D-01) — see
@@ -167,9 +171,14 @@ class MainActivity : ComponentActivity() {
         progressSubmitter.start()
         debugSnapshotPickerEntry.onIntent(intent, lifecycleScope)
         setContent {
-            CompositionLocalProvider(LocalSoundPlayer provides soundPlayer) {
+            CompositionLocalProvider(
+                LocalSoundPlayer provides soundPlayer,
+                // D-05g (tech design §3.8 (a)): the board and Results hide this window's bars; the
+                // host applies its destinations' bar policy to the window handed to it here.
+                LocalSystemBars provides WindowInsetsSystemBars,
+            ) {
                 AppThemeRoot(palette = boardMarkPalette.palette) {
-                    AppNavHost(navController = rememberNavController())
+                    AppNavHost(hostWindow = window, navController = rememberNavController())
                 }
             }
         }
