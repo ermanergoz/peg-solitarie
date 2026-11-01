@@ -597,6 +597,7 @@ class GameViewModel
                         deselectionTick = it.deselectionTick,
                         undoTick = it.undoTick,
                         rejectedTapTick = it.rejectedTapTick,
+                        restartTick = it.restartTick,
                         // Carried, never reset — a fresh 0 is a *changed* key for an effect
                         // sitting higher, which fires a snackbar nobody triggered. The offer
                         // fields are the opposite case and are deliberately absent here: the
@@ -654,6 +655,7 @@ class GameViewModel
                         deselectionTick = it.deselectionTick,
                         undoTick = it.undoTick,
                         rejectedTapTick = it.rejectedTapTick,
+                        restartTick = it.restartTick,
                         // Carried like the other four ordinals; see loadChallengeBoardIfNeeded.
                         adMessageTick = it.adMessageTick,
                     )
@@ -717,6 +719,7 @@ class GameViewModel
                         deselectionTick = it.deselectionTick,
                         undoTick = it.undoTick,
                         rejectedTapTick = it.rejectedTapTick,
+                        restartTick = it.restartTick,
                         // Carried like the other four ordinals; see loadChallengeBoardIfNeeded.
                         adMessageTick = it.adMessageTick,
                     )
@@ -1248,7 +1251,7 @@ class GameViewModel
             // which is why this sits here rather than in [onUndo] — a declined offer and an
             // empty history change nothing and must leave a live search alone.
             cancelHintSearch()
-            moveHistory.removeAt(moveHistory.lastIndex)
+            val undone = moveHistory.removeAt(moveHistory.lastIndex)
             val base = initialBoard ?: return
             val board = moveHistory.fold(base) { b, m -> rulesEngine.applyMove(b, m) }
             val status = statusFor(board)
@@ -1291,6 +1294,8 @@ class GameViewModel
                     // a raised offer, a declined grant — so this ticks once per undo that
                     // really happened.
                     undoTick = it.undoTick + 1,
+                    // D-TB: the move this undo took back, which the undo's spoken line names.
+                    undoneMove = undone,
                 )
             }
             // Undoing out of a frozen (Stuck) board back to Playing resumes the timer that
@@ -1637,7 +1642,8 @@ class GameViewModel
             // Preserve the player's hint + haptics choices across a restart; the collected
             // settings flows only re-emit on change, so carry them forward explicitly.
             //
-            // The five cue ordinals ride along for a different reason: they are keys for
+            // The five cue ordinals ride along for a different reason (and restartTick, the sixth,
+            // advances here — the restart's own trace; the other three sites carry it): they are keys for
             // one-shot effects in the screen. A fresh 0 is a *changed* key for an effect
             // sitting at a higher value, so resetting them here would fire a cue nobody
             // triggered — a pop on restart, on a Challenge load or on Continue-resume
@@ -1665,6 +1671,8 @@ class GameViewModel
                         undoTick = _uiState.value.undoTick,
                         rejectedTapTick = _uiState.value.rejectedTapTick,
                         adMessageTick = _uiState.value.adMessageTick,
+                        // D-TB: a restart is the one thing a rebuilt state cannot otherwise show.
+                        restartTick = _uiState.value.restartTick + 1,
                     )
         }
 

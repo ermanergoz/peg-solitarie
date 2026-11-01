@@ -20,7 +20,10 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.testing.composeHost
+import com.app.pegsolitaire.ui.components.BOARD_STOP_TEST_TAG
+import com.app.pegsolitaire.ui.components.BoardCellPositionKey
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
@@ -91,7 +94,11 @@ class GameScreenChromeTest {
 
     /**
      * Criterion 26b's gameplay order, the half Compose decides (tech-lead defect ruling §3, B-3):
-     * the timer is a stop of its own in Compose's reading order, after the title and before Undo.
+     * the timer is a stop of its own in Compose's reading order, after the title and before the
+     * board stop. Since talkback-board's board stops joined the order (D-TB, `docs/ux-spec.md`
+     * §11.1, whose retarget table sends every test that orders gameplay's stops to 26b as amended),
+     * 26b reads title → timer → the board stop → each in-play cell → Undo; before them the timer led
+     * straight to Undo. So Undo is pinned where 26b now puts it, after the board's last cell.
      *
      * Compose writes its traversal hints only between the nodes it counts as screen-reader
      * focusable, and a node that does not merge its descendants counts only as a leaf with
@@ -106,7 +113,7 @@ class GameScreenChromeTest {
      */
     @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
-    fun theTimerIsAStopInComposesReadingOrderBetweenTheTitleAndUndo() {
+    fun theTimerIsAStopInComposesReadingOrderBetweenTheTitleAndTheBoardStop() {
         enableAScreenReader()
         renderGame()
 
@@ -117,8 +124,23 @@ class GameScreenChromeTest {
                 .fetchSemanticsNode()
                 .id
         val clock = clockNode().id
+        val boardStop = composeRule.onNodeWithTag(BOARD_STOP_TEST_TAG, useUnmergedTree = true).fetchSemanticsNode().id
+        val lastCell =
+            composeRule
+                .onNode(
+                    SemanticsMatcher.expectValue(BoardCellPositionKey, ENGLISH_33_LAST_CELL),
+                    useUnmergedTree = true,
+                ).fetchSemanticsNode()
+                .id
         val undo = composeRule.onNodeWithContentDescription(description(R.string.undo_action)).fetchSemanticsNode().id
-        val stops = mapOf(title to TITLE_STOP, clock to TIMER_STOP, undo to UNDO_STOP)
+        val stops =
+            mapOf(
+                title to TITLE_STOP,
+                clock to TIMER_STOP,
+                boardStop to BOARD_STOP,
+                lastCell to LAST_CELL_STOP,
+                undo to UNDO_STOP,
+            )
 
         val clockInfo = checkNotNull(provider.createAccessibilityNodeInfo(clock)) { "no node for the clock" }
         assertWithMessage("whether the clock's node is screen-reader focusable")
@@ -129,6 +151,9 @@ class GameScreenChromeTest {
             .isEqualTo(TIMER_STOP)
         assertWithMessage("the stop Compose reads after the timer")
             .that(stopAfter(provider, clock, stops))
+            .isEqualTo(BOARD_STOP)
+        assertWithMessage("the stop Compose reads after the board's last cell")
+            .that(stopAfter(provider, lastCell, stops))
             .isEqualTo(UNDO_STOP)
     }
 
@@ -339,11 +364,19 @@ private const val TRAVERSAL_BEFORE_EXTRA = "android.view.accessibility.extra.EXT
 /** What the extra reads when Compose wrote no hint for the node. */
 private const val NO_NODE_ID = -1
 
-/** The three stops criterion 26b's gameplay line puts in a row, and a node with no hint. */
+/** The stops of criterion 26b's gameplay line this file names, and a node with no hint. */
 private const val TITLE_STOP = "the title"
 private const val TIMER_STOP = "the timer"
+private const val BOARD_STOP = "the board stop"
+private const val LAST_CELL_STOP = "the board's last cell"
 private const val UNDO_STOP = "Undo"
 private const val NO_STOP = "no stop"
+
+/**
+ * The board's last stop in 26b on [GameChrome]'s board, English-33 (`GameUiState.initial()`): its last
+ * in-play cell row by row from the top, left to right, the bottom row's right-hand hole.
+ */
+private val ENGLISH_33_LAST_CELL = Position(row = 6, col = 4)
 
 /**
  * The timer's whole description on a game's first second, word for word under D-05e's whole-minute

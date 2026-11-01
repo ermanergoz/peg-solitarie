@@ -483,6 +483,75 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > bullet, 23j item 5 and 23k's device half; on the audio branch, §3.6's traversal line. **Not
 > reopened:** anything else. No string, token, colour or id is added.
 >
+> **Eleventh revision, build loop — 2026-10-24 — AMENDMENT (D-TBb: a jump action through TalkBack's
+> menu; QA's B-5).** Written on Opus under Q-019, on `feature/talkback-board`. Input: the
+> qa-engineer's device pass, `.planning/reports/talkback-board/qa-engineer.md`, B-5 and device
+> question 1. Through the Actions reading control a jump action ends on the destination; through
+> TalkBack's menu, TalkBack puts focus back on the source as its menu closes. Ruled as **D-TBb** (§3):
+> - the requirement is one on every route: focus rests on the destination, after the jump's line;
+> - on TalkBack's menu route only, the source cell is an accepted floor for 3.0.0, with five
+>   conditions; it is recorded for the Q-PUBLISH-3.0.0 summary;
+> - the tutorial's step and completion moves have the same requirement and the same floor;
+> - F-TB-1's fallback is not triggered and is narrowed to a move TalkBack follows on no route.
+>
+> Edits: §3 (D-TBb; a pointer on D-TBa item 5), §11.1 (three focus-table rows, a pointer on the
+> fallback, "Two routes to a jump action" with its pass and fail list), §13 (a pointer: no new
+> assertion), §14 (the TB lead, TB-5, TB-7, TB-9), §16 (a pointer on ids). One id is added, D-TBb,
+> in D-TBa's series. **Not reopened:** anything else. No string, token or colour is added or changed.
+>
+> *(Same day — **D-TBc**; QA's B-6, with the tech-lead's options in
+> `.planning/reports/talkback-board/tech-lead-defect-ruling.md` §6.)* The winning jump's line was never
+> spoken, because the win reaches Results within a frame or two. Ruled as **D-TBc** (§3), the
+> tech-lead's option (c):
+> - a winning jump speaks Results' summary only, once and in full, and its own line is not owed;
+> - for 3.0.1, nothing: carrying the move into Results (b) and a TalkBack-only delay (a) are declined,
+>   and the ruling reopens only if the board stays on screen to show the winning jump for every player.
+>
+> Also on the same day, D-TBb is read against the tech-lead's §5:
+> - option A is its floor, and option B is not wanted;
+> - option C, the window-focus wait, meets its requirement when the menu route then ends on the
+>   destination;
+> - a source read in full and then left passes only within half a second (§11.1, "The window-focus
+>   note").
+>
+> Edits: §3 (D-TBc; a dated line on D-TBb), §11.1 (one sentence withdrawn and kept as the record;
+> pointers on the announcement and focus tables and on "Results"; one pass-and-fail line bounded; the
+> window-focus note), §13 (a pointer), §14 (TB-6, TB-8), §16 (the ids pointer). One id is added,
+> D-TBc. No string, token or colour changes.
+>
+> *(2026-11-01 — **D-TBd**; QA's B-8, `.planning/reports/talkback-board/qa-engineer-device2.md`, with
+> the fallback the tech-lead pre-ruled in `.planning/reports/talkback-board/tech-lead-defect-ruling.md`
+> §8. Written on Opus under Q-019.)* After the rescue banner's Restart is confirmed in its dialog,
+> TalkBack puts focus on the gameplay screen's first stop, the back button ("Navigate back"), 3 times
+> out of 3, and never on the board stop. The window-focus wait (F4) did not change that. Ruled as
+> **D-TBd** (§3), the pre-ruled fallback:
+> - for a banner Restart confirmed in its dialog only, focus rests where TalkBack places it as the
+>   dialog closes, which is the screen's first stop. The board stop also passes;
+> - the restart line is still owed once and in full, and focus is not moved again after it rests;
+> - the banner's Undo, a banner Restart made without the dialog, a declined dialog and every other
+>   row stay as written.
+>
+> Edits: §3 (D-TBd), §11.1 (the focus table's banner row, and a pointer under "How focus moves"), §13
+> (a pointer: no new assertion), §14 (TB-7, with a new pass line), §16 (the ids pointer). One id is
+> added, D-TBd. No code changes, and no string, token or colour changes.
+>
+> *(Same day — **D-TBe**; QA's B-1 residual and A2.4, `.planning/reports/talkback-board/qa-engineer-device2.md`,
+> with the tech-lead's fix F-B1, `.planning/reports/talkback-board/tech-lead-device2-ruling.md` §2 and
+> §4. Written on Opus under Q-019.)* A tutorial step's line was lost whenever TalkBack was still
+> speaking the clearing jump's line as the board swapped (1 of 6 by double-tap, 2 of 2 through the
+> menu), and "Step 1 of 3" was heard twice on every opening. Ruled as **D-TBe** (§3), accepting the
+> tech-lead's order:
+> - on steps 2 and 3, under touch exploration, the clearing jump speaks no line; the new board stop is
+>   read first and the step's line follows once and in full. The earlier order still passes;
+> - the first step's opening line is the caption alone (F-42's pre-ruled answer, now triggered);
+> - completion, step 3's jumps, gameplay and TalkBack-off are unchanged;
+> - if the tech-lead's §6 fallback runs, a lost step line is a recorded 3.0.0 limit, pre-ruled here.
+>
+> Edits: §3 (D-TBe; a dated line on D-TBb item 3), §11.1 (the jump and step rows of the announcement
+> table, the order sentence, the focus table's step row, "What is spoken", "Pass and fail", "The
+> tutorial"), §13 (a pointer: the tech-lead's tests), §14 (TB-6, TB-9 with the device-3 pass lines),
+> §16 (the ids pointer). One id is added, D-TBe. No string, token or colour changes.
+>
 > **Twelfth revision (the reduced-motion live gate) — 2026-10-24 — AMENDMENT.** Written on Opus under
 > Q-019, not on the role's pinned Fable. It carries three of this role's rulings on
 > `bugfix/reduced-motion-live-gate`, from `.planning/reports/reduced-motion-live-gate/tech-lead-ruling.md`
@@ -1519,6 +1588,11 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
          line names the destination;
        - the other three moves are left to TalkBack's own placement;
        - input focus is removed.
+     - *(Pointer 2026-10-24 — **D-TBb** items 4 and 2, below; QA's B-5.)* The device shows TalkBack
+       following input focus on the double-tap and reading-control routes and after the banner's Undo
+       and Restart, so this fallback is **not triggered and not applied**: input focus and the four
+       moves stay. It now applies to a move only if TalkBack follows that move on no route. TalkBack's
+       menu, which puts focus back where it was opened when it closes, is ruled by D-TBb, not here.
   6. **The first tutorial step moves no focus (F-TB-5).** The first step's line is spoken when the
      tutorial opens, but focus does not move. A screen that has just opened is met in its reading
      order — pips, Skip, then the board — like every other screen this document designs, none of
@@ -1641,6 +1715,239 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
     - "from the timer" reads "from the last cell" once `feature/talkback-board` merges;
     - the board's lack of a focus stop describes the build until then;
     - the slab-before-banner order is pinned by item 1 above.
+
+- **D-TBb** *(2026-10-24 — **amendment, build loop**. UX ruling on QA's **B-5** and device question 1,
+  `.planning/reports/talkback-board/qa-engineer.md`, on `feature/talkback-board`. Written on Opus
+  under Q-019. Amends D-TBa item 5 and §11.1's focus table. Specified in §11.1, "Two routes to a jump
+  action". TB-7 and TB-9 are amended, and TB-5, §14's lead, §13 and §16 gain pointers; their first
+  wording is kept.)*: **focus after a jump action has one requirement on every route TalkBack offers, and
+  TalkBack's menu has a recorded floor for 3.0.0.** TalkBack offers a custom action two ways: the
+  **Actions reading control** and **TalkBack's menu** (its gesture, then Actions). On the device the
+  reading control ends on the destination (33 of 33). Through the menu, the jump is made and its line
+  is spoken. Then, when the menu closes, TalkBack puts focus back on the node the menu was opened from:
+  the source cell, now "empty" (3 of 3). In the tutorial the same return lands on a cell of the new
+  step's board, not on its board stop.
+  1. **The requirement (B-5's first question).** After a jump by action, focus rests on the
+     destination cell, whichever route the action came from. The player hears the jump's line once and
+     in full, then the destination's description once, and focus stays there until the player moves it.
+  2. **The floor (the second question).** Ending on the source is **accepted for 3.0.0, on TalkBack's
+     menu route only**, when all of these hold:
+     - the jump's line is spoken once and in full before the source is read; it names the destination,
+       so it tells the player where the peg went;
+     - the source is read with its current text, "empty";
+     - once focus rests there, nothing moves it again;
+     - the reading control still ends on the destination;
+     - focus never rests off the board.
+
+     No string changes. The requirement stays the target. Whether a build can meet it on the menu
+     route without touching the other routes is the tech-lead's call on mechanism.
+  3. **The tutorial (the third question).** The same requirement and the same floor. A step's
+     clearing jump and the completing jump follow the route that made them.
+     - On the double-tap and reading-control routes, the new board's board stop (steps 2 and 3) and
+       "Got it" (completion) stay required as the focus table gives them.
+     - On the menu route, a stop on the new board, or on the finished board after completion, passes
+       for 3.0.0 when the step's line or the done line has been spoken once and in full before it.
+     - QA's B-1 and B-2 are untouched: every step line and the done line are spoken on every route.
+     - *(2026-11-01 — **D-TBe**, below.)* For steps 2 and 3 under touch exploration, "before it" reads
+       **"after it"** for the step's line: the stop on the new board is read, then the step's line,
+       once and in full. The earlier order also passes. The done line keeps "before it". If the
+       tech-lead's §6 fallback runs, D-TBe item 4 governs a lost step line.
+  4. **F-TB-1 (the fourth question).** Amended. Its fallback was written for "TalkBack does not
+     follow". The device shows TalkBack following on two routes and on the banner, so the fallback is
+     not triggered and not applied: input focus and the four moves stay. From this date it applies to a
+     move only if TalkBack follows that move on **no** route. A route on which TalkBack itself places
+     focus as its own window closes is ruled by this decision, not by the fallback.
+  — Four reasons:
+  - **The menu is not a rare route.** It is one of TalkBack's two standard ways to reach an action. A
+    focus contract that holds on one route only is two contracts, and a listener can learn only one.
+  - **The floor is fair and playable.** The line names where the peg went and the source truthfully
+    says "empty", so nothing the player needs is hidden or false. The cost is the walk to the moved
+    peg: two swipes after a sideways jump, up to about two rows of stops after an up or down one.
+    Every move stays possible, and Q-023 asks for a board that is playable by ear.
+  - **The floor is TalkBack's own placement.** Putting focus back where its menu was opened is
+    TalkBack's behaviour when its menu closes, not this app's, so a player who chose the menu meets it
+    outside this game too. A move that fights it risks the two failures this spec already rules out:
+    focus that moves after it has rested, and a stop read twice.
+  - **Removing the move would break the routes that work.** The fallback takes input focus away from
+    all four moves. The reading control (33 of 33), the double-tap step change (6 of 6) and the
+    banner's Undo and Restart all work, and the fallback would undo them for a case it was not written
+    for.
+
+  **Recorded, not hidden.** The floor is a known limit of 3.0.0, not a waiver. The producer names it
+  in the Q-PUBLISH-3.0.0 summary's TalkBack lines, beside the cells' size deviation (D-TBa item 10).
+  It is withdrawn once a build meets item 1 on the menu route.
+  *(Same day, read against the tech-lead's defect ruling §5.)* The tech-lead's option A is this
+  floor, and option B (no move on either route) is not wanted. Option C, the window-focus wait every
+  move now takes, meets item 1 if the menu route then ends on the destination. A source read in full
+  and then left passes only when the destination's read starts within half a second of the source's
+  end (§11.1, "The window-focus note").
+
+- **D-TBc** *(2026-10-24 — **amendment, build loop**. UX ruling on QA's **B-6**,
+  `.planning/reports/talkback-board/qa-engineer.md`, with the tech-lead's options (a) to (c) in
+  `.planning/reports/talkback-board/tech-lead-defect-ruling.md` §6, on `feature/talkback-board`. Written
+  on Opus under Q-019. Withdraws one sentence of §11.1: "When a jump wins, the jump's line is followed
+  by Results' summary when Results opens." TB-6 and TB-8 are amended. §11.1's announcement and focus
+  tables, its "Results" paragraph, §13 and §16 gain pointers. Their first wording is kept.)*: **a
+  winning jump speaks Results' summary and nothing before it. This is the tech-lead's option (c), for
+  3.0.0 and after.** On the device, the winning jump's line was never spoken (0 of 2): the win
+  navigates to Results within a frame or two, and the line leaves with the screen before it can be
+  sent.
+  1. **The requirement for 3.0.0.** The jump that wins a Classic board or a Challenge level may come
+     from a double-tap or from an action on either route. After it, the player hears Results' summary
+     once and in full, for example "Perfect! — 3 of 3 stars, 1 peg left." It is the first line the
+     app speaks after the winning tap, and focus follows Results' own order (TB-8).
+     - The winning jump's own line is **not owed**.
+     - Any part of it that a device lets through is not judged, if it comes before the summary and
+       does not cut it.
+  2. **The summary is now a win's only spoken record**, so TB-8's "once and in full" is a hard
+     condition here. A win that speaks no summary fails B-6 as well as TB-8. QA's B-4 fix carries it.
+  3. **For 3.0.1: nothing.** Two options are **declined, not deferred**:
+     - option (b), carrying the winning move into Results so it speaks "<jump line> <summary>";
+     - option (a), a delay before Results under touch exploration only.
+
+     This ruling is reopened only if the win itself changes so the board stays on screen long enough
+     to show the winning jump, for every player. The line then returns with the board, through the
+     board's own channel, and the summary follows when Results opens.
+  — Four reasons:
+  - **Every player gets the same moment.** The board leaves within a frame or two of the winning tap
+    (the tech-lead's §6), so a sighted player never sees the last jump either: they see Results. The
+    summary alone gives a TalkBack player that same moment, not a lesser one.
+  - **The summary says what matters at that moment.** The jump's line ends with the pegs left, and
+    the summary says that too, with the outcome and the stars. The last move's coordinates add little,
+    because the player chose that move a moment earlier by its label: the action's "Jump left to row 4,
+    column 2", or the cell's "jump here".
+  - **A line about a board that has gone breaks §11.1's own rule.** Every announcement says only what
+    the cells then say, so it is never the only record. The winning jump's line would describe cells
+    that have already left the screen.
+  - **Both code paths cost more than they give.**
+    - Option (b) would roughly double what Results speaks and say "1 peg left" twice. It also touches
+      `navigation/`, which costs a 15e sitting.
+    - Option (a) would make the game's flow depend on whether a screen reader is running, and the
+      tech-lead does not rule its risk (a finish lost on rotation) into this loop.
+
+- **D-TBd** *(2026-11-01 — **amendment, build loop**. UX ruling on QA's **B-8**,
+  `.planning/reports/talkback-board/qa-engineer-device2.md`. It applies the fallback the tech-lead
+  pre-ruled in `.planning/reports/talkback-board/tech-lead-defect-ruling.md` §8, on
+  `feature/talkback-board`. Written on Opus under Q-019. Amends §11.1's focus-table row "Undo or Restart
+  from the rescue banner" and TB-7. §11.1's "How focus moves", §13 and §16 gain pointers. Their first
+  wording is kept.)*: **a banner Restart confirmed in its dialog leaves focus where TalkBack puts it as
+  the dialog closes: the gameplay screen's first stop.** The restart confirm dialog is a window of its
+  own. When it closes, TalkBack places focus itself in the window it returns to. The banner's Restart,
+  which had focus before the dialog, has gone with the banner, so TalkBack starts at the top of the
+  screen.
+  - In session 2 that was the timer. In session 3, after the board stop joined the order, it was the
+    back button, "Navigate back", 3 times out of 3.
+  - The app's move to the board stop is still made, now after the window regains focus (the
+    tech-lead's §8, F4). TalkBack did not follow it, before or after that wait.
+  1. **Scope.** This applies only to the rescue banner's Restart, when it opens the restart confirm
+     dialog and the player confirms.
+     - The banner's Undo, and a banner Restart that the ViewModel applies without the dialog, keep the
+       board stop as their target, as written.
+     - The dock's Restart keeps focus on itself: that button survives the dialog.
+     - Declining the dialog leaves focus on the banner's Restart, and nothing moves.
+  2. **What is expected after the confirm:**
+     - "Board restarted. *N* pegs left." is spoken once and in full;
+     - focus then rests on the screen's first stop in 26b's order, the back button ("Navigate back"),
+       read once. The board stop also passes, for a TalkBack that follows the app's move;
+     - once focus rests, nothing moves it until the player does. D-TBb's half-second note is the one
+       exception: if the first stop is read in full and the board stop's read starts no later than
+       half a second after it ends, the run passes as the board stop;
+     - TalkBack's own window name as the dialog closes ("Peg Solitaire") is TalkBack's and is not
+       judged.
+  3. **No code.** The app's move stays, and so does its wait for window focus. Where TalkBack does not
+     follow, the move does no harm, and where TalkBack does follow, the move lands on the board stop.
+     No string changes.
+  — Four reasons:
+  - **The cause is TalkBack's window change, not the app's target.** The board stop was chosen because
+    "the banner leaves the screen with the button that had focus", and that is still true. The device
+    shows that TalkBack does not take a focus move into a window it is returning to. F4 was the one
+    mechanism ruled for this, and it did not change the result.
+  - **Nothing is hidden or false.** The restart line says what happened and how many pegs are left
+    before focus lands. The board is the restarted one when the player reaches it.
+  - **The top of the screen is where every screen in this document is met** (D-TBa item 6). The board
+    stop is three swipes on: title, timer, board stop. "Navigate back" is read aloud as a button before
+    any double-tap, so it is never activated unheard.
+  - **A second move that fights TalkBack's placement** risks the failures this spec already rules out:
+    focus moved after it has rested, and a stop read twice (D-TBb's third reason).
+
+  **Recorded, not hidden.** Like D-TBb's floor, this is TalkBack's own placement, and the producer names
+  it beside that floor in the Q-PUBLISH-3.0.0 summary's TalkBack lines. If a later build or TalkBack
+  version lands on the board stop, that passes, and this ruling needs no change.
+
+- **D-TBe** *(2026-11-01 — **amendment, build loop**. UX ruling on QA's **B-1 residual** and on A2.4,
+  `.planning/reports/talkback-board/qa-engineer-device2.md`, with the tech-lead's cause and fix F-B1 in
+  `.planning/reports/talkback-board/tech-lead-device2-ruling.md` §1, §2 and §4, on
+  `feature/talkback-board`. Written on Opus under Q-019. Amends §11.1's sentence "the announcement
+  first, then the newly focused stop", its "What is spoken … in this order", the announcement table's
+  jump and step rows, the focus table's step row, D-TBb item 3 and TB-9. TB-6, "Pass and fail", "The
+  tutorial", §13 and §16 gain pointers. Their first wording is kept.)*: **under TalkBack, a step that
+  replaces another is heard as the new board first and the step's line second, and the jump that
+  cleared the step before it speaks no line of its own.** On the device the step line was lost whenever
+  TalkBack was speaking the clearing jump's line as the board swapped: 1 of 6 by double-tap, 2 of 2
+  through TalkBack's menu. The swap's own events discard a line still waiting in TalkBack's queue, and
+  the jump's line, about 7 s on the emulator, keeps it waiting. The spec's order needs the step line
+  to have started before the swap reaches TalkBack, which the app cannot observe.
+  1. **Steps 2 and 3, while touch exploration is on, on every route.**
+     - The jump that clears step 1 or step 2 speaks **no line of its own**. The next step's line
+       stands for it, as "a line that a newer one replaced before it was spoken is not owed" already
+       allowed.
+     - Focus moves to the new board's board stop first. The step's line follows, **once and in full**.
+       The player hears "Board, 2 pegs left", then "Step 2 of 3. Jumps work up, down, left and right —
+       never diagonally." On step 3: "Board, 5 pegs left", then "Step 3 of 3. Keep jumping. Clear the
+       board down to one peg."
+     - D-TBb's menu-route floor keeps its focus half (a stop on the new board) and now reads "after
+       it" for the step line.
+     - The earlier order, the step line first and then the board stop, each once and in full, still
+       passes. It was this document's first requirement, and this ruling changes the order only to
+       make the line arrive.
+  2. **Unchanged.** Every other tutorial jump keeps its line: step 3's jumps and its completing jump.
+     Completion keeps its order, the done line and then "Got it" (3 of 3 on the device), and D-TBb's
+     floor for it. Gameplay is untouched. With touch exploration off, the jump's line and the step
+     line are both put on the channel as before, and no focus moves (TB-11, W5).
+  3. **The first step (A2.4; the loop-5 check's F-42, now triggered).** On opening, the first step's
+     line is the caption alone: "Tap a peg, then tap the empty hole two cells away." "Step 1 of 3" is
+     heard once, from the pips' stop, which TalkBack meets first. Focus is not moved, as D-TBa item 6
+     says. QA heard "Step 1 of 3" twice on 3 of 3 openings, which is F-42's trigger.
+  4. **Pre-ruled, if the tech-lead's §6 fallback runs** (F-B1 reverted after a miss this round). Item
+     1 is withdrawn with the code: the clearing jump speaks its line again, and the spec's first order
+     stands. Items 2 and 3 stand. For 3.0.0, a step's line **may be lost** when the clearing jump's
+     line is still speaking as the board swaps: always on TalkBack's menu route, and about 1 in 6 by
+     double-tap on the emulator. What remains is the caption, a stop of its own; the pips' stop, "Step
+     *N* of 3"; and focus reaching the new board.
+     - D-TBb item 3 and TB-9 then judge a lost step line as this recorded limit, not as a failure.
+     - A step line that is spoken but repeated or cut still fails, and focus must still reach the new
+       board.
+     - The producer names the limit in the Q-PUBLISH-3.0.0 summary beside D-TBb's floor and B-10. It
+       is a 3.0.1 item.
+     - No further UX dispatch is needed for it.
+  — Four reasons:
+  - **A line that arrives beats an order that loses it.** The step line is the only spoken
+    instruction for the new step. The caption is a stop of its own, but a player must swipe to it. An
+    order the app cannot deliver reliably is not a requirement worth keeping over the line itself.
+  - **"Where you are, then what to do" is D-TB's own principle.** D-TB puts the position first,
+    because a listener needs to know where they are before what is there. The board stop is the new
+    position and its count. The step line is then the last thing heard before the player acts, with
+    no stop read between the instruction and the move it asks for.
+  - **The clearing jump's line describes a board that is leaving.** The board swaps 650 ms after that
+    jump, and its line runs for seconds after the new board is on screen. §11.1's rule is that every
+    announcement says only what the cells then say, which is why D-TBc drops the winning jump's line.
+    A sighted player sees the board replaced, not the jump's record. "Step 2 of 3" and the new count
+    say the step was cleared.
+  - **The cost is small and stays inside the tutorial.** The player no longer hears "Row 1, column 1
+    to row 1, column 3. …" for the two clearing jumps. By double-tap TalkBack's re-read of the
+    destination usually took its place already; through the menu it was always spoken, and the step
+    line was lost behind it. The player chose that jump a moment earlier by its label ("Jump right to
+    row 1, column 3"), and the step line confirms it worked. Gameplay, step 3 and completion keep every
+    line.
+
+  **Recorded, not hidden.**
+  - The line is sent 500 ms after the focus move (`TutorialAnim.STEP_LINE_AFTER_FOCUS_MS`, the
+    tech-lead's mechanism). On a much slower instrument the line could again reach TalkBack before
+    the focus is spoken. QA records the host load.
+  - At a slow speech rate, the coach's first hint (4 s after the swap) could replace the step line
+    before it is spoken. The channel's replacement rule allows it, and the hint names the move, so
+    the player is not stuck. QA judges at TalkBack's default rate. A **3.0.1 candidate** for the
+    tech-lead: the first nudge after a step change never takes the place of an unspoken step line.
 
 ---
 
@@ -3836,6 +4143,13 @@ the notice is visual and spoken.
   criterion 23c asserts. The rescue banner, an M3 `Surface` and so a traversal group, is read in
   the same place: its message, then its Undo, Restart and Home, then the dock. §11's traversal
   line is corrected to match, with a dated note.
+  *(Pointer 2026-10-24 — D-TBa's loop-5 lines, §3, added as `feature/talkback-board` merges.)* Three
+  things change with D-TB. "From the timer" reads "from the last cell" once `feature/talkback-board`
+  merges: the board stop and each in-play cell come between the timer and the notice or the banner.
+  "The board has no focus stop of its own" describes the build until then. The slab-before-banner
+  order is pinned by D-TBa item 1 (loop 5): the board region is one traversal group and the slab's
+  traversal index puts it first, so "no `traversalIndex` and no `isTraversalGroup` added" is
+  superseded there.
 - **Mechanism:** a polite live region on the notice, the idiom M3's own `SnackbarHost` uses. Not
   `View.announceForAccessibility`, which Android deprecates from API 36 in favour of live regions.
 - **Its display time honours the accessibility timeout** (above).
@@ -5241,7 +5555,7 @@ Every announcement says only what the cells then say, so it is never the only re
 |---|---|---|
 | A peg selected | "Selected row 2, column 4, 1 jump." | `board_a11y_announce_selected` "Selected row %1$d, column %2$d, %3$s." (%3$s is the jumps part) |
 | A peg put down | "Peg put down, row 2, column 4." *(loop 4)* | `board_a11y_announce_put_down` "Peg put down, row %1$d, column %2$d." |
-| A jump, by tap or by action | "Row 2, column 4 to row 4, column 4. Removed row 3, column 4. 31 pegs left." | `board_a11y_announce_jump` "Row %1$d, column %2$d to row %3$d, column %4$d. Removed row %5$d, column %6$d. %7$s." (%7$s is `board_a11y_pegs_left`) |
+| A jump, by tap or by action. *(2026-10-24 — D-TBc.)* Not the jump that wins: Results' summary speaks for it. *(2026-11-01 — D-TBe.)* Nor, under touch exploration, the tutorial jump that clears step 1 or step 2: the next step's line speaks for it | "Row 2, column 4 to row 4, column 4. Removed row 3, column 4. 31 pegs left." | `board_a11y_announce_jump` "Row %1$d, column %2$d to row %3$d, column %4$d. Removed row %5$d, column %6$d. %7$s." (%7$s is `board_a11y_pegs_left`) |
 | A rejected tap: nothing selected, on an empty hole | "No peg here." | `board_a11y_rejected_no_peg` |
 | A rejected tap: a peg selected, on an empty hole that is not a jump target | "Not a jump target." | `board_a11y_rejected_not_target` |
 | A rejected tap: a peg selected, on another peg | "Put down the selected peg first." | `board_a11y_rejected_put_down_first` |
@@ -5250,7 +5564,7 @@ Every announcement says only what the cells then say, so it is never the only re
 | A restart completed | "Board restarted. 32 pegs left." | `board_a11y_announce_restart` "Board restarted. %1$s." |
 | The rescue banner rises | Its own message, verbatim: "No moves left — undo or restart", or "No winning move — undo or restart" | `stuck_message`, `nowin_message`, unchanged. *(Loop 4.)* Spoken by the banner's own region (23k), not by the board's channel |
 | The Undecided notice rises (gameplay) *(loop 4)* | Its own text, verbatim: "Hint couldn't work this position out in time. It may still be winnable." | `hint_undecided_message` (`bugfix/hint-undecided`), spoken by the notice's own region (23d), not by the board's channel |
-| A tutorial step's board installed, the first step's included | "Step 2 of 3. Jumps work up, down, left and right — never diagonally." | `board_a11y_announce_step` "%1$s. %2$s" (`tutorial_step_progress`, then the step's caption) |
+| A tutorial step's board installed, the first step's included. *(2026-11-01 — D-TBe.)* On steps 2 and 3 under touch exploration, spoken after the new board stop; on the first step, the caption alone | "Step 2 of 3. Jumps work up, down, left and right — never diagonally." *(D-TBe.)* First step: "Tap a peg, then tap the empty hole two cells away." | `board_a11y_announce_step` "%1$s. %2$s" (`tutorial_step_progress`, then the step's caption). *(D-TBe.)* First step: the caption's own string, unchanged |
 | The tutorial completed | "That's the whole game. Go clear a board." | `tutorial_done_caption`, unchanged |
 
 - *(Loop 4, D-TBa item 4.)* When a jump strands the board, the jump's line and the banner's message
@@ -5258,6 +5572,10 @@ Every announcement says only what the cells then say, so it is never the only re
   one state update raises both, in two regions, and no delay is added to force an order. A repeated
   line, or a line cut off, fails. When a jump wins, the jump's line is followed by Results' summary
   when Results opens.
+  *(2026-10-24 — **D-TBc**, §3; QA's B-6.)* The last sentence is **withdrawn** and kept here as the
+  record. When a jump wins, Results' summary is the only line: the board leaves within a frame or two
+  of the winning tap, so the jump's line is not owed. Any part of it that a device lets through is not
+  judged, if it comes before the summary and does not cut it.
 - *(Loop 4, D-TBa item 4.)* A Hint that ends Undecided speaks only the notice, and one that proves the
   position lost speaks only the banner. Neither reveals a hint, so the hint line does not fire.
 - The rejected-tap lines are the same on gameplay and in the tutorial, and none says "wrong",
@@ -5284,20 +5602,24 @@ Every announcement says only what the cells then say, so it is never the only re
 |---|---|
 | A selection, a put-down or a rejected tap | The cell activated |
 | A jump by tap | The destination cell — the one activated — which now says "peg" |
-| A jump by action | **Moved:** the destination cell. Focus moves there, so both ways of jumping end on the peg that moved |
+| A jump by action | **Moved:** the destination cell. Focus moves there, so both ways of jumping end on the peg that moved. *(2026-10-24 — D-TBb.)* On every route to the action. When it came through TalkBack's menu, the source cell is the 3.0.0 floor ("Two routes to a jump action", below) |
 | Undo, Hint or Restart from the dock (Restart once its confirm dialog closes; *(loop 4)* Undo or Hint once the opt-in dialog is declined) | That dock control. *(Loop 4.)* When the opt-in dialog is accepted and an ad plays, the ad is its own screen, and focus on return is TalkBack's own placement; D-TB moves none |
-| Undo or Restart from the rescue banner | **Moved:** the board stop, because the banner leaves the screen with the button that had focus |
+| Undo or Restart from the rescue banner | **Moved:** the board stop, because the banner leaves the screen with the button that had focus. *(2026-11-01 — D-TBd.)* A Restart confirmed in its dialog: the screen's first stop, the back button, where TalkBack places focus as the dialog closes; the board stop also passes. A declined dialog: the banner's Restart, unmoved |
 | The rescue banner rising | Unchanged. *(Loop 4, D-TBa items 1 and 4.)* The banner's message is announced by its own region. Its message and its buttons are stops after the last cell and before the dock |
 | The Undecided notice rising *(loop 4)* | Unchanged: on the Hint control the player activated. The notice is announced by its own region, and it is one stop after the last cell and before the dock |
 | The Undecided notice put away *(loop 4)* | D-TB moves no focus. The notice is the hint branch's (§4.4.2 there) |
 | A coach escalation that also puts a held peg down *(loop 4)* | Unchanged: the stop TalkBack is on. The cells show the peg put down |
 | A Challenge board finishing loading *(loop 4)* | Not moved, and nothing is announced. The board stop and the cells take their place in the order, as a Continue chip does on Home (§11) |
-| A tutorial step's board installed | **Moved:** the new board's board stop, on steps 2 and 3. *(Loop 4, D-TBa item 6.)* On the first step focus is not moved: the screen is met in its order, pips → Skip → board |
-| The tutorial completed | **Moved:** the completion button (`onboarding_got_it`), after the done caption is announced |
-| A game won | Results, in its own order; its summary is announced (below) |
+| A tutorial step's board installed | **Moved:** the new board's board stop, on steps 2 and 3. *(Loop 4, D-TBa item 6.)* On the first step focus is not moved: the screen is met in its order, pips → Skip → board. *(2026-10-24 — D-TBb.)* When the clearing jump came through TalkBack's menu, a stop on the new board is the 3.0.0 floor (below). *(2026-11-01 — D-TBe.)* The move comes first and the step's line follows it; the clearing jump speaks no line |
+| The tutorial completed | **Moved:** the completion button (`onboarding_got_it`), after the done caption is announced. *(2026-10-24 — D-TBb.)* When the completing jump came through TalkBack's menu, a stop on the finished board is the 3.0.0 floor (below) |
+| A game won | Results, in its own order; its summary is announced (below). *(2026-10-24 — D-TBc.)* The summary is the only line a win speaks; the winning jump's line is not owed |
 
 When focus moves and an announcement is due, both are spoken: the announcement first, then the newly
 focused stop.
+*(2026-11-01 — **D-TBe**, §3; QA's B-1 residual.)* One exception: a tutorial step that replaces another
+(steps 2 and 3), under touch exploration. There the new board stop is spoken first and the step's line
+follows, once and in full, because a line still waiting in TalkBack's queue is discarded by the
+board's swap. The earlier order still passes there. Every other row keeps "the announcement first".
 
 *(Loop 4, D-TBa item 5.)* **How focus moves.** Four rows above say "Moved". Each move gives its target
 input focus, and TalkBack follows input focus.
@@ -5313,6 +5635,94 @@ input focus, and TalkBack follows input focus.
   exploration is enabled** (`AccessibilityManager.isTouchExplorationEnabled`). That is the platform's
   screen-reader signal, which TalkBack always sets, and a test can set it. The four "Moved" rows
   apply only under the same gate: with it closed, no focus is requested.
+- *(2026-10-24 — D-TBb item 4; QA's B-5.)* The device shows TalkBack following input focus on the
+  double-tap and reading-control routes and after the banner's Undo and Restart. The fallback above
+  is therefore **not triggered and not applied**: input focus and the four moves stay. It applies to a
+  move only if TalkBack follows that move on no route.
+- *(2026-11-01 — D-TBd; QA's B-8.)* After a banner Restart confirmed in its dialog, the device shows
+  TalkBack not following the move, before and after the window-focus wait: focus landed on the board
+  stop 0 times out of 3. TalkBack places focus itself as the dialog window closes. That case is ruled
+  by D-TBd (§3): the screen's first stop passes. The move stays. The fallback above is still not
+  triggered, because TalkBack follows the same move after the banner's Undo.
+
+*(2026-10-24 — D-TBb, §3; QA's B-5, `.planning/reports/talkback-board/qa-engineer.md`.)* **Two routes
+to a jump action.** A peg's jump actions are reached two ways:
+- **the Actions reading control**: swipe up or down to the action, then double-tap;
+- **TalkBack's menu**: its gesture (swipe up then right, or the one the player has set), then
+  Actions, then the action.
+
+The menu is a window of TalkBack's own. When it closes, TalkBack puts focus back on the node it was
+opened from, and that comes after the app's move. On the device this left the source cell focused
+after a jump (3 of 3) and a cell of the new board after a step's clearing jump. The reading control
+opens no window, and it ended on the destination 33 times out of 33.
+
+| The jump was made by | Focus rests on, after the jump | After a step's clearing jump (steps 2 and 3) | After the completing jump |
+|---|---|---|---|
+| A double-tap on the destination (the tap) | The destination, the cell activated | The new board's board stop | "Got it" |
+| An action, through the reading control | The destination | The new board's board stop | "Got it" |
+| An action, through TalkBack's menu — **required** | The destination | The new board's board stop | "Got it" |
+| An action, through TalkBack's menu — **the 3.0.0 floor** | The source cell, saying "empty" | Any stop on the new board | "Got it", or any stop on the finished board |
+
+What is spoken, on every route and at the floor, in this order:
+1. the event's line or lines from the announcement table (the jump's, then the step's line or the
+   done line where one is due), as "Every change is spoken once" delivers them: a line that a newer
+   one replaced before it was spoken is not owed, and every line that is spoken is spoken once and in
+   full. The jump's line names the destination, so at the floor it still tells the player where the
+   peg went;
+2. the stop focus rests on, once, with its current text;
+3. nothing more until the player moves. Focus that has rested is never moved again, by the app or by
+   a late return.
+
+*(2026-11-01 — **D-TBe**, §3; QA's B-1 residual.)* After a step's clearing jump (steps 2 and 3), under
+touch exploration, on every route, the order is:
+1. what TalkBack says itself, not judged: its re-read of the destination cell after a double-tap, or
+   its window name ("Peg Solitaire") as its menu closes. The clearing jump's own line is not owed;
+2. the stop focus rests on (the new board stop, or at the menu floor any stop on the new board), once,
+   with its current text. Its read may be cut short by the step's line;
+3. the step's line, once and in full;
+4. nothing more until the player moves, except the coach's hint if the player waits.
+
+The earlier order, the step's line and then the stop, each once and in full, also passes. Completion
+keeps the list above: the done line, then "Got it".
+
+TalkBack's own words as its menu closes ("Out of list" and the like) are TalkBack's and are not
+judged.
+
+**Pass and fail** (TB-7's and TB-9's device half, read from the speech log):
+- **Passes:** the required stop on every route; the floor on TalkBack's menu route only. A cell's
+  description cut off by the next stop's is tolerated.
+- **Fails, on any route:**
+  - a line repeated, or cut off;
+  - a stop read with its text from before the event, such as the source still saying "peg";
+  - a stop spoken in full and then left by a focus move the player did not make. Destination, then
+    source, always fails. Source, then destination, fails unless the destination's read starts no
+    later than half a second after the source's read ends (the window-focus note below);
+  - focus resting on a stop the table above does not name for that route: the timer, the title, the
+    dock, the pips, Skip or the caption;
+  - the double-tap or the reading control no longer reaching the required stop.
+- *(2026-11-01 — D-TBe.)* **After a step's clearing jump** (steps 2 and 3): the board stop's read cut
+  short by the step's line is tolerated, and the clearing jump's line, heard or not, is not judged. It
+  fails when the step's line is missing, repeated or cut off, or when the coach's hint is spoken before
+  it or in its place. TB-9's device-3 pass line is the count.
+
+The requirement stays the target. The floor is 3.0.0's: D-TBb records it, and it is withdrawn once a
+build meets the requirement on the menu route. Whether and how a build can meet it there is the
+tech-lead's call on mechanism.
+
+*(Same day — D-TBb, read against the tech-lead's options,
+`.planning/reports/talkback-board/tech-lead-defect-ruling.md` §5.)* **The window-focus note.**
+- **Option A**, accepting TalkBack's placement on the menu route, is this floor.
+- **Option C** is the wait for window focus that every focus move now takes (that ruling's §8). If on
+  the device the menu route then ends on the destination, the requirement is met and the floor is not
+  used. The likely sequence is TalkBack's return to the source as its menu closes, then the app's move:
+  - when the destination's read cuts the source's, the source is a tolerated fragment;
+  - when the source is read in full and the destination's read starts no later than half a second
+    after it ends, the correction comes before a player can act on the source, and it passes as the
+    requirement;
+  - later than that, the source has been heard as the resting stop and then left, and it fails.
+- **Option B**, dropping the move on both routes, is **not wanted**. It would give up the reading
+  control's destination (33 of 33) only to make the two routes identical. This document lets the
+  routes differ only where TalkBack itself makes them differ.
 
 *(Loop 4, D-TBa item 11.)* **A focused cell whose text changes.** After a selection, the focused cell's
 own text gains "selected" in the same frame as the selection line is announced. TB-6's device half
@@ -5328,6 +5738,9 @@ example: "Solved! — 2 of 3 stars, 2 pegs left."
 *(Loop 4, D-TBa item 7.)* "When Results opens" means the showing that the D-16 latch
 `ResultsUiState.playCelebration` marks: once per result. The summary is not spoken again on a
 rotation, a process-death restore or a back navigation onto the same Results entry.
+*(2026-10-24 — D-TBc; QA's B-6.)* After a winning jump, this summary is the first line the app speaks
+and the win's only spoken record, so it must be spoken once and in full. The winning jump's own line is
+not owed (§3, D-TBc).
 
 **The tutorial.** Its board follows this whole contract. It adds the step and completion lines and the
 coach escalation's hint line, all in the table above. Its captions keep the word "tap": TalkBack users
@@ -5338,6 +5751,9 @@ The first step's line is spoken when the tutorial opens, but focus is not moved 
 own `tutorial_step_progress` can both be heard within a second. TB-9's speech log records whether
 they are. If they are, the first step's opening line drops its `tutorial_step_progress` part and
 speaks the caption alone. Steps 2 and 3 keep both parts.
+*(2026-11-01 — D-TBe item 3; QA's A2.4.)* Triggered: QA heard "Step 1 of 3" twice on 3 of 3 openings.
+The first step's opening line is now the caption alone, and "Step 1 of 3" is heard once, from the
+pips. On steps 2 and 3 the step's line follows the new board stop (D-TBe item 1).
 
 **Cell size: a recorded deviation from the studio's 48dp** *(loop 4, D-TBa item 10; this replaces the
 "Focus rectangles on the board" paragraph, quoted under "First wording").*
@@ -5615,6 +6031,29 @@ of the first step moving no focus. Also owed:
   example `w640dp-h360dp`) with a banner raised: the last cell's node comes before the banner's
   message;
 - **TB-11's "TalkBack off"**, set as touch exploration disabled, where no focus move is requested.
+
+*(2026-10-24 — D-TBb; QA's B-5.)* D-TBb owes no new JVM or Compose assertion. TalkBack's menu, and
+its return of focus when it closes, cannot be driven from `ui-test`, so the route split is judged only
+by TB-7's and TB-9's device half. The gate's assertions owed above (TB-11) stand as written.
+*(2026-10-24 — D-TBc; QA's B-6.)* D-TBc owes no new assertion either. TB-8's owed summary tests stand,
+and a win is judged on the device by its summary (TB-8 as amended).
+*(2026-11-01 — D-TBd; QA's B-8.)* D-TBd owes no new assertion and withdraws none. The tech-lead's
+window-focus test (its §8) asserts the app's request, input focus on the board stop once the window has
+focus again, and it stands. Where TalkBack's focus lands after the dialog closes is judged on the
+device only, by TB-7's new pass line.
+*(2026-11-01 — D-TBe; QA's B-1 residual and A2.4.)* The assertions are the tech-lead's, in
+`.planning/reports/talkback-board/tech-lead-device2-ruling.md` §2 and §3, and this document adds none:
+- after a step swap under touch exploration, the board stop's focus event is sent before the step's
+  line, and both are sent;
+- under touch exploration the jumps that clear steps 1 and 2 send no line, while step 3's jumps and its
+  completing jump still do;
+- with touch exploration off, the step's line is on the channel at the beat, the jump's line is sent,
+  and no focus moves;
+- the first step's opening line is the caption alone.
+
+The tests that expected the first order or the old opening line are **retargeted**, never deleted or
+`@Ignore`d. Whether TalkBack speaks the line after the stop is judged on the device only, by TB-9's
+device-3 pass line.
 
 **Owed, new** — every one watched fail once before it is trusted: criteria **15n–15r** (Home, §4.2.4,
 including the unit test that replays the stage's recorded move list from the English start),
@@ -6421,6 +6860,9 @@ what the player sees and hears.
           no "double-tap to activate". Its actions menu offers **Dismiss**, which puts it away.
           *(Loop 2.)* This bullet is the notice's pass line for criteria 26 and 26a; see the note
           under 26a. A double-tap on the notice is not judged either way.
+          *(Pointer 2026-10-24 — D-TBa's loop-5 lines, §3.)* "From the timer" reads "from the last
+          cell" once `feature/talkback-board` merges. The board's lack of a focus stop describes the
+          build until then. The slab-before-banner order is pinned by D-TBa item 1 (loop 5).
         - With Accessibility › Time to take action set to 1 minute, the notice stays up for about a
           minute.
      6. In light and in dark theme, take a greyscale capture of the notice beside one of the rescue
@@ -6443,6 +6885,9 @@ what the player sees and hears.
      `NoWinBannerTest.theBannersMessageIsAPoliteLiveRegionAndItsActionsAreOutsideIt`. On the device,
      swiping forward from the timer reaches the banner's message, then its Undo, Restart and Home,
      and then the dock.
+     *(Pointer 2026-10-24 — D-TBa's loop-5 lines, §3.)* "From the timer" reads "from the last cell"
+     once `feature/talkback-board` merges. The board's lack of a focus stop describes the build until
+     then. The slab-before-banner order is pinned by D-TBa item 1 (loop 5).
 24. No control anywhere shows a hint or undo allowance count, badge or ad glyph. (§5)
 
 **Cross-cutting**
@@ -6566,6 +7011,9 @@ ids so the ruling, the build brief and QA name the same thing, and given here wi
 means swipes, double-taps and TalkBack's actions menu, with TalkBack's "Display speech output" log as the
 record. "Both boards" means gameplay (Classic and Challenge) and the tutorial. Criteria 26, 26a and 26b
 read the board through these.
+*(Pointer 2026-10-24 — D-TBb.)* "TalkBack's actions menu" covers both routes to a custom action: the
+Actions reading control, and TalkBack's menu (its gesture, then Actions). TB-7 and TB-9 judge focus per
+route (§11.1, "Two routes to a jump action").
 
 TB-1. **The board announces itself.** On both boards, with TalkBack on, swiping forward from the timer
       (gameplay) or from Skip (tutorial) lands on a stop that speaks `board_a11y_label` with the current
@@ -6617,6 +7065,9 @@ TB-5. **One action per legal jump.** While nothing is selected, every peg with l
       haptic, undo history and tutorial progress that selecting the peg and tapping the destination
       leave. *A Compose test through the custom actions, plus a JVM property test over seeded states.*
       (M5, GD-TB-5, D-TB)
+      *(Pointer 2026-10-24 — D-TBb.)* "Taking an action" means through either route: the Actions
+      reading control or TalkBack's menu. The state, cues, haptic, undo history and progress are the
+      same on both, and the device showed both making the move. Where focus rests afterwards is TB-7's.
 
 TB-6. **Every change is spoken once.** With TalkBack on, each of these speaks its §11.1 line once, and
       no event is spoken twice or late over the next: a selection ("Selected row 2, column 4, 1 jump."),
@@ -6637,6 +7088,14 @@ TB-6. **Every change is spoken once.** With TalkBack on, each of these speaks it
         spoken twice.
       - The device half also records whether TalkBack re-reads a focused cell whose text changed. If
         it does, the selection line is withdrawn for a selection made on the focused cell (§11.1).
+      *(Amended 2026-10-24 — D-TBc; QA's B-6.)* "A jump by tap or by action … speaks its line" covers
+      every jump but the one that wins. A winning jump owes no line of its own and is judged by TB-8:
+      Results' summary is spoken once and in full, as the first line after the winning tap. Any part
+      of the winning jump's line that a device lets through is not judged, if it comes before the
+      summary and does not cut it.
+      *(Amended 2026-11-01 — D-TBe; QA's B-1 residual.)* Under touch exploration, the tutorial jumps
+      that clear step 1 and step 2 owe no line either: the next step's line speaks for them, judged by
+      TB-9. Step 3's jumps and its completing jump keep their lines.
 
 TB-7. **Focus stays on the board.** After a selection, a put-down or a rejected tap, focus is on the cell
       activated. After a jump by tap or by action, it is on the destination cell. Undo, Hint and Restart
@@ -6661,6 +7120,44 @@ TB-7. **Focus stays on the board.** After a selection, a put-down or a rejected 
       exploration disabled, which is the state "TalkBack off" names. A screen reader with touch
       exploration off, and Switch Access, are recorded under W5 (§11.1): neither gets the four moves,
       and that is not judged here.
+      *(Amended 2026-10-24 — D-TBb; QA's B-5.)*
+      - **The moves are judged per route.** A jump is made by a double-tap, by an action through the
+        Actions reading control, or by an action through TalkBack's menu. The device pass records
+        each route separately for the jump, for steps 2 and 3, and for completion.
+      - On the double-tap and reading-control routes, the targets above are required as written.
+      - Through TalkBack's menu the same targets are required, and §11.1's floor passes for 3.0.0:
+        the source cell after a jump, a stop on the new board after a step's clearing jump, and a
+        stop on the finished board after the completing jump. Each passes only when its line was
+        spoken once and in full before it, and focus is not moved again after it rests.
+      - §11.1's "Pass and fail" list is this criterion's pass line. "Never on another control and
+        never at the top of the screen" stands on every route.
+      - The fallback above ("If TalkBack does not follow") is not triggered: TalkBack follows on two
+        routes and after the banner's Undo and Restart.
+      *(Amended 2026-11-01 — D-TBd; QA's B-8.)*
+      - **A banner Restart confirmed in its dialog** is judged by the pass line below, not by "puts it
+        on the board stop" and not by "never at the top of the screen". On the device, TalkBack places
+        focus itself as the dialog closes, on the screen's first stop.
+      - The banner's Undo, a banner Restart made without the dialog, and the dock's Restart are judged
+        as written above. The previous bullet's "after the banner's … Restart" does not cover a
+        Restart confirmed in its dialog.
+      - **Pass line (TB-7, a banner Restart confirmed in its dialog).** Raise the rescue banner
+        (`stuck_message` or `nowin_message`), double-tap its Restart, then double-tap the dialog's
+        confirm button. The run passes when, in this order:
+        1. "Board restarted. *N* pegs left." is spoken once and in full, with *N* the new board's
+           count;
+        2. focus then rests on the gameplay screen's first stop, "Navigate back", or on the board
+           stop, "Board, *N* pegs left", read once with its current text;
+        3. no further focus move follows in the 5 s after that read, unless the player makes it.
+
+        TalkBack's window name between them ("Peg Solitaire") is not judged. The run fails if:
+        - the restart line is missing, repeated or cut off;
+        - focus rests on any other stop: the title, the timer, a cell or a dock control;
+        - a stop is read in full and then left by a move the player did not make. "Navigate back"
+          followed by the board stop passes only if the board stop's read starts no later than half
+          a second after "Navigate back" ends.
+
+        Declining the dialog passes when focus returns to the banner's Restart and nothing moves. The
+        device pass is three confirms and one decline, read from the speech log.
 
 TB-8. **The result is spoken.** When Results opens after a finished game, `results_a11y_summary` is
       announced once — the headline, `catalog_stars_earned` with a total of 3, and
@@ -6671,6 +7168,10 @@ TB-8. **The result is spoken.** When Results opens after a finished game, `resul
       the D-16 latch `ResultsUiState.playCelebration` marks. The Compose test asserts the summary with
       the latch true and no summary with it false. On the device, a rotation on Results speaks no
       second summary.
+      *(Amended 2026-10-24 — D-TBc; QA's B-6.)* After a winning jump, by a double-tap or by an action
+      on either route, the summary is the first line the app speaks, once and in full. It is the win's
+      only spoken record, so a win with no summary fails here, and B-6 with it. The device pass reads
+      one Classic win and one Challenge win this way.
 
 TB-9. **The tutorial can be finished by ear.** On a fresh install with TalkBack on, a tester using
       TalkBack gestures only completes T1, T2 and T3 and reaches "Got it". Each step's board, the first
@@ -6687,6 +7188,55 @@ TB-9. **The tutorial can be finished by ear.** On a fresh install with TalkBack 
       - A rejected tap in the tutorial speaks D-TB's line once, with no shake, no mark, no reject
         haptic and no sound.
       - The Compose test covers both.
+      *(Amended 2026-10-24 — D-TBb; QA's B-5.)*
+      - "Focus moves to that board's board stop" (steps 2 and 3) and "moves focus to 'Got it'" are
+        judged per route, as TB-7 now is.
+      - When the clearing jump or the completing jump is an action taken through TalkBack's menu, a
+        stop on the new or finished board passes for 3.0.0, after the step's line or the done line
+        has been spoken once and in full.
+      - On the double-tap and reading-control routes both moves stay required. Every step line and
+        the done line are spoken on every route; D-TBb waives neither.
+      *(Amended 2026-11-01 — D-TBe; QA's B-1 residual and A2.4.)*
+      - **The first step:** "Each step's board, the first included, speaks 'Step *n* of 3.' followed by
+        its caption" now reads, for the first step, "speaks its caption alone; 'Step 1 of 3' is heard
+        from the pips".
+      - **Steps 2 and 3, under touch exploration:** the new board stop is spoken first and the step's
+        line follows it, once and in full. The clearing jump's own line is not owed. The earlier order
+        also passes. In the bullet above, the menu floor's stop on the new board now comes before the
+        step's line, not after it. The done line still comes before "Got it" or the finished board's
+        stop.
+      - If the tech-lead's §6 fallback runs, D-TBe item 4 judges a lost step line as a recorded 3.0.0
+        limit.
+      - **Device-3 pass line (the narrow re-check).** Emulator only, at TalkBack's default speech rate,
+        with the host load recorded. The device pass is 3 openings and 6 step lines, read from the
+        speech log:
+        1. **Opening ×3** (Settings › How to play, TalkBack on). Each opening passes when the caption,
+           "Tap a peg, then tap the empty hole two cells away.", is spoken once and in full as a line
+           that no longer begins "Step 1 of 3"; "Step 1 of 3" is spoken once, from TalkBack's first
+           focus on the pips; and the app moves no focus. The intended order is the caption first, and
+           either order passes. It fails if "Step 1 of 3" is heard twice, or if the caption is missing,
+           repeated or cut off. **Pass: 3 of 3.**
+        2. **Step lines ×6:** the clearing jumps of step 1 and step 2, 3 by double-tap and 3 through
+           TalkBack's menu (run 1: double-tap T1 and T2; run 2: menu T1 and T2; run 3: double-tap T1,
+           menu T2). Each passes when, in this order:
+           1. TalkBack's own words are not judged: its re-read of the destination after a double-tap,
+              or "Peg Solitaire" as its menu closes. The clearing jump's line is not expected and not
+              judged;
+           2. focus rests on the new board's board stop, "Board, 2 pegs left" (step 2) or "Board, 5
+              pegs left" (step 3), read once with its current text. After a menu jump, any stop on the
+              new board passes (D-TBb's floor). A read cut short by the step's line is tolerated;
+           3. the step's line is spoken once and in full: "Step 2 of 3. Jumps work up, down, left and
+              right — never diagonally." or "Step 3 of 3. Keep jumping. Clear the board down to one
+              peg.";
+           4. no focus move follows that the player did not make.
+
+           The earlier order (the step's line, then the stop, each once and in full) also passes. A run
+           fails if the step's line is missing, repeated or cut off; if the coach's hint is spoken
+           before it or in its place; if focus rests off the new board (the pips, Skip, the caption) or,
+           on the double-tap route, anywhere but the board stop; or if a stop is read with its text
+           from before the swap. **Pass: 6 of 6, zero lost.**
+        3. **Completion,** as a by-product of each run reaching step 3: step 3's jump lines, then "That's
+           the whole game. Go clear a board." once and in full, then "Got it". **Pass: 3 of 3.**
 
 TB-10. **A whole game can be finished by ear.** On English-33 and on Challenge level 1, a tester using
        TalkBack gestures only — Hint and Undo allowed — plays from the first move to Results without
@@ -6895,6 +7445,13 @@ those partners is now D-TB's line.
 outside the `D-nn` / `D-nna` style of §3's decision ids. They are kept because the build brief, the ruling
 and the checks cite them. Neither collides with an id on this branch, on `bugfix/hint-undecided` or in
 the audio amendment.
+*(Pointer 2026-10-24 — D-TBb and D-TBc.)* "D-TBb" and "D-TBc" join the same series for the same
+reason, and the D-TB headings on this branch's tree carry no other id of that form. Neither changes a
+trace: like D-TB, both trace to the studio baseline and to Q-023.
+*(Pointer 2026-11-01 — D-TBd.)* "D-TBd" joins the same series for the same reason. It changes no
+trace.
+*(Pointer 2026-11-01 — D-TBe.)* "D-TBe" joins the same series for the same reason. It changes no trace
+and no string.
 
 ---
 

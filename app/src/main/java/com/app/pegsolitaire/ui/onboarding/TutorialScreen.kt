@@ -33,6 +33,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -40,6 +43,8 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -52,8 +57,13 @@ import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_HEIGHT_DP
 import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_WIDTH_DP
 import com.app.pegsolitaire.ui.backdrop.BackdropDensity
 import com.app.pegsolitaire.ui.backdrop.BackdropPreviewHost
+import com.app.pegsolitaire.ui.components.AnnouncementRegion
 import com.app.pegsolitaire.ui.components.BoardCanvas
+import com.app.pegsolitaire.ui.components.BoardStop
 import com.app.pegsolitaire.ui.components.StarGlyph
+import com.app.pegsolitaire.ui.components.boardStopLabel
+import com.app.pegsolitaire.ui.components.rememberBoardAnnouncer
+import com.app.pegsolitaire.ui.components.rememberTouchExplorationEnabled
 import com.app.pegsolitaire.ui.game.JumpHapticEffect
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.app.pegsolitaire.ui.theme.ClayAnim
@@ -98,6 +108,11 @@ const val TUTORIAL_SCREEN_TEST_TAG = "tutorial_screen"
  * felt (D-01j): the game's own `ContextClick`, through the shared [JumpHapticEffect], under the
  * persisted Haptics switch the board state carries — and nothing else on this screen buzzes.
  *
+ * **TalkBack (D-TB as amended by D-TBa).** The board is the same stops as gameplay's — the slab is
+ * the board stop, each cell a stop — and speaks through the board's spoken channel, the shared board
+ * announcer: the selection, put-down, jump and wrong-tap lines, each step's line, the coach's hint and
+ * the done line ([TutorialBoardAnnouncements]). Words, not cues: nothing here plays or buzzes for them.
+ *
  * @param state the immutable tutorial state (single source of truth).
  * @param onCellTap emits the tapped board [Position] up to the ViewModel, which owns every rule.
  * @param onAnimationFinished invoked once a jump slide completes.
@@ -118,6 +133,12 @@ fun TutorialScreen(
     // here would duplicate the removal layering and the pitch ladder and let them drift.
     JumpSoundEffect(transition = state.board.animating)
     JumpHapticEffect(animatingMoveId = state.board.animating?.id, hapticsOn = state.board.hapticsOn)
+    // D-TB: the board's spoken channel — the shared board announcer — and every line it speaks here.
+    val announcer = rememberBoardAnnouncer()
+    val boardStopFocus = remember { FocusRequester() }
+    val gotItFocus = remember { FocusRequester() }
+    val touchExploration = rememberTouchExplorationEnabled()
+    TutorialBoardAnnouncements(state, announcer, boardStopFocus, gotItFocus, touchExploration)
 
     Surface(
         modifier = modifier.fillMaxSize(),
@@ -160,10 +181,19 @@ fun TutorialScreen(
                     state = state,
                     onCellTap = onCellTap,
                     onAnimationFinished = onAnimationFinished,
+                    boardStopFocus = boardStopFocus,
+                    touchExploration = touchExploration,
                 )
                 TutorialCaption(captionRes = state.captionRes)
-                TutorialFooter(completed = state.completed, onDone = onDone)
+                TutorialFooter(
+                    completed = state.completed,
+                    onDone = onDone,
+                    gotItFocus = gotItFocus,
+                    touchExploration = touchExploration,
+                )
             }
+            // D-TB: the screen's spoken channel, drawn last, above everything (defect ruling §1).
+            AnnouncementRegion(announcer)
         }
     }
 }
@@ -249,6 +279,8 @@ private fun TutorialBoardSlab(
     state: TutorialUiState,
     onCellTap: (Position) -> Unit,
     onAnimationFinished: () -> Unit,
+    boardStopFocus: FocusRequester,
+    touchExploration: Boolean,
 ) {
     val animationsEnabled = rememberAnimationsEnabled()
     val pulse = remember { Animatable(SETTLED_SCALE) }
@@ -266,8 +298,16 @@ private fun TutorialBoardSlab(
             Modifier
                 .size(dimensionResource(R.dimen.tutorial_board_size))
                 .scale(pulse.value)
-                .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.extraLarge),
+                .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.extraLarge)
+                // D-TB: the slab is the cells' group, its first child the board stop (ruling §3).
+                .semantics { isTraversalGroup = true },
     ) {
+        BoardStop(
+            label = boardStopLabel(state.board.board.pegCount),
+            focusRequester = boardStopFocus,
+            focusEnabled = touchExploration,
+            modifier = Modifier.fillMaxSize(),
+        )
         BoardCanvas(
             state = state.board,
             onCellTap = onCellTap,
@@ -321,6 +361,8 @@ private fun TutorialCaption(captionRes: Int) {
 private fun TutorialFooter(
     completed: Boolean,
     onDone: () -> Unit,
+    gotItFocus: FocusRequester,
+    touchExploration: Boolean,
 ) {
     if (!completed) {
         Spacer(modifier = Modifier.fillMaxWidth())
@@ -341,6 +383,10 @@ private fun TutorialFooter(
             modifier =
                 Modifier
                     .fillMaxWidth()
+                    .focusRequester(gotItFocus)
+                    // A clickable cannot take focus in touch mode, a phone's; completion moves focus
+                    // here under touch exploration only (defect ruling §2, B-2; TB-11 untouched).
+                    .focusProperties { if (touchExploration) canFocus = true }
                     .claySquish()
                     .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.large)
                     .background(brush = ctaGradientBrush(), shape = MaterialTheme.shapes.large),
