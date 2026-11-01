@@ -49,7 +49,7 @@ pushed. The founder then put four more changes into 3.0.0 (Q-030, Q-031, Q-039, 
 D-03p/q): the Turkish interface, full-screen Gameplay and Results, the Home stage withdrawal with a
 live Classic Continue chip, and the Challenge star bands with a 30-level difficulty shift. They are
 marked "(re-cut)" below. `release/3.0.0` was cut again from `develop` 26b56bf and the tag moved to
-the new merge. A second re-cut the same day added the Challenge star multiplier on the score (Q-042, from `develop` 25f23e0); the full Check and the release-tier fuzz were **skipped for that pass by the founder's decision**. **The founder took over QA and sign-off for these four changes (2026-11-01) and signed
+the new merge. A second re-cut the same day added the Challenge star multiplier on the score (Q-042, from `develop` 25f23e0); the full Check and the release-tier fuzz were **skipped for that pass by the founder's decision**. A third re-cut (develop 0022a7d, 2026-11-02) moved Home's title to the top (Q-046), hid Home's system bars and added Play again on a solved Challenge, again with no tests, Check or QA by the founder's decision; `HomeHeadroomTest` and `HomeChipArrivalTest` still assert the superseded D-03q layout and fail under `./gradlew check`. **The founder took over QA and sign-off for these four changes (2026-11-01) and signed
 off the release themselves;** no qa-engineer, code-auditor or tech-lead step ran on them.*
 
 A complete rewrite of Peg Solitaire, and the first build of this codebase to reach the store. The
@@ -141,6 +141,9 @@ from a built-in opening book.
   are now awarded in bands, so three stars is within reach on every level, and the ladder starts
   thirty levels further along the generator's difficulty curve; level numbers are unchanged. The
   Results screen names the next star and shows a Cleared headline.
+- **Home title at the top, Home full screen, and Play again** (re-cut, third pass). The title sits
+  at the top of Home with the mode buttons kept low; Home hides the system bars like gameplay does;
+  a solved Challenge level offers Play again to chase more stars.
 - **Challenge scores follow the stars** (re-cut, second pass). Every clear still unlocks the next
   level, but the score is multiplied by the stars earned: three stars scores three times one star.
 - **A fuller Home screen**: a title band, a three-pill
