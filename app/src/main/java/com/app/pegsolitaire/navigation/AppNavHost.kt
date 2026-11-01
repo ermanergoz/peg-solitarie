@@ -9,6 +9,10 @@ import androidx.navigation.compose.rememberNavController
 import com.app.pegsolitaire.ui.classic.ClassicCatalogRoute
 import com.app.pegsolitaire.ui.game.GameRoute
 import com.app.pegsolitaire.ui.home.HomeRoute
+import com.app.pegsolitaire.ui.licenses.GoogleNoticeTextRoute
+import com.app.pegsolitaire.ui.licenses.GoogleNoticesRoute
+import com.app.pegsolitaire.ui.licenses.LicenseTextRoute
+import com.app.pegsolitaire.ui.licenses.LicensesRoute
 import com.app.pegsolitaire.ui.onboarding.TutorialRoute
 import com.app.pegsolitaire.ui.results.ResultsRoute
 import com.app.pegsolitaire.ui.settings.SettingsRoute
@@ -44,9 +48,9 @@ private typealias ResultsContent =
     ) -> Unit
 
 /**
- * The type-safe navigation host wiring the full six-screen spine (NAV-02).
+ * The type-safe navigation host wiring the full ten-route spine (NAV-02).
  *
- * `NavHost` over the six `@Serializable` [Routes] with `startDestination = Home`:
+ * `NavHost` over the ten `@Serializable` [Routes] with `startDestination = Home`:
  * Home → ClassicCatalog → Gameplay(levelId) → Results(...), plus Home → Settings
  * (the top-bar gear, D-14). Back arrows pop (Catalog→Home, Gameplay→Catalog,
  * Results→Catalog, Settings→Home); the Results Replay action navigates →
@@ -69,6 +73,15 @@ private typealias ResultsContent =
  * @param resultsContent the Results destination body (defaults to [ResultsRoute]).
  * @param settingsContent the Settings destination body (defaults to [SettingsRoute], D-14).
  * @param tutorialContent the Tutorial destination body (defaults to [TutorialRoute], D-01g).
+ *
+ * The licences spine (spec LS-09; tech design §3.6, §13.1) — Settings → Licenses → License text, and
+ * Licenses → Google notices → Google notice text — lives in [licensesGraph], every edge a plain push
+ * popped by back; its four bodies are the last four slots.
+ *
+ * @param licensesContent the Licenses destination body (defaults to [LicensesRoute]).
+ * @param licenseTextContent the License text destination body (defaults to [LicenseTextRoute]).
+ * @param googleNoticesContent the Google notices destination body (defaults to [GoogleNoticesRoute]).
+ * @param googleNoticeTextContent the Google notice text body (defaults to [GoogleNoticeTextRoute]).
  */
 @Composable
 fun AppNavHost(
@@ -102,13 +115,21 @@ fun AppNavHost(
             onNavigateBack = onNavigateBack,
         )
     },
-    settingsContent: @Composable (onBack: () -> Unit, onShowHowToPlay: () -> Unit) -> Unit =
-        { onBack, onShowHowToPlay ->
-            SettingsRoute(onBack = onBack, onShowHowToPlay = onShowHowToPlay)
+    settingsContent: @Composable (onBack: () -> Unit, onShowHowToPlay: () -> Unit, onOpenLicenses: () -> Unit) -> Unit =
+        { onBack, onShowHowToPlay, onOpenLicenses ->
+            SettingsRoute(onBack = onBack, onShowHowToPlay = onShowHowToPlay, onOpenLicenses = onOpenLicenses)
         },
     tutorialContent: @Composable (onExit: () -> Unit) -> Unit = { onExit ->
         TutorialRoute(onExit = onExit)
     },
+    licensesContent: LicensesContent = { onOpenEntry, onOpenGoogleNotices, onBack ->
+        LicensesRoute(onOpenEntry = onOpenEntry, onOpenGoogleNotices = onOpenGoogleNotices, onBack = onBack)
+    },
+    licenseTextContent: @Composable (onBack: () -> Unit) -> Unit = { onBack -> LicenseTextRoute(onBack = onBack) },
+    googleNoticesContent: @Composable (onOpenNotice: (String) -> Unit, onBack: () -> Unit) -> Unit =
+        { onOpenNotice, onBack -> GoogleNoticesRoute(onOpenNotice = onOpenNotice, onBack = onBack) },
+    googleNoticeTextContent: @Composable (onBack: () -> Unit) -> Unit =
+        { onBack -> GoogleNoticeTextRoute(onBack = onBack) },
 ) {
     NavHost(navController = navController, startDestination = Home) {
         composable<Home> {
@@ -129,8 +150,13 @@ fun AppNavHost(
         }
         composable<Settings> {
             // settingsContent slot: onBack (pops back to Home, D-14), onShowHowToPlay
-            // (the D-02a replay entry point — the tutorial's only permanent affordance).
-            settingsContent({ navController.popBackStack() }, { navController.toTutorial() })
+            // (the D-02a replay entry point — the tutorial's only permanent affordance),
+            // onOpenLicenses (Settings › About › Licenses, spec LS-01).
+            settingsContent(
+                { navController.popBackStack() },
+                { navController.toTutorial() },
+                { navController.toLicenses() },
+            )
         }
         composable<Tutorial> {
             // tutorialContent slot: onExit — and NOTHING else. `popBackStack()` is the
@@ -165,6 +191,13 @@ fun AppNavHost(
                 { navController.popBackStack() },
             )
         }
+        licensesGraph(
+            navController = navController,
+            licensesContent = licensesContent,
+            licenseTextContent = licenseTextContent,
+            googleNoticesContent = googleNoticesContent,
+            googleNoticeTextContent = googleNoticeTextContent,
+        )
     }
 }
 
