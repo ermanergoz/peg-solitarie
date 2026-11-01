@@ -4,7 +4,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Position
+import com.app.pegsolitaire.ui.game.BoardMarkRecipe
 import com.app.pegsolitaire.ui.game.BoardMetrics
+import com.app.pegsolitaire.ui.game.recipe
+import com.app.pegsolitaire.ui.theme.BoardMarkPalette
 import kotlin.math.floor
 import kotlin.math.hypot
 import kotlin.math.min
@@ -33,6 +36,8 @@ class BoardGeometry private constructor(
     val cellSize: Float,
     private val originX: Float,
     private val originY: Float,
+    /** The palette's mark geometry; only the three ring radii below read it (docs/ux/colour-vision.md §3.4). */
+    private val recipe: BoardMarkRecipe,
 ) {
     /** The valid in-grid index range for both row and col (per-board, T-04-01). */
     private val gridRange: IntRange = 0 until gridDimension
@@ -50,13 +55,13 @@ class BoardGeometry private constructor(
     val destinationDotRadius: Float get() = BoardMetrics.DESTINATION_DOT_RATIO * cellSize
 
     /** Outer radius of the selected-peg ring. */
-    val selectedRingRadius: Float get() = BoardMetrics.SELECTED_RING_RATIO * cellSize
+    val selectedRingRadius: Float get() = recipe.selectedRingRatio * cellSize
 
     /** Glow-ring radius around the peg to move (A) in a revealed hint. */
-    val hintSourceRingRadius: Float get() = BoardMetrics.HINT_SOURCE_RING_RATIO * cellSize
+    val hintSourceRingRadius: Float get() = recipe.hintSourceRingRatio * cellSize
 
     /** Ring radius around the destination hole (B) in a revealed hint. */
-    val hintTargetRingRadius: Float get() = BoardMetrics.HINT_TARGET_RING_RATIO * cellSize
+    val hintTargetRingRadius: Float get() = recipe.hintTargetRingRatio * cellSize
 
     /** The pixel center of [position]'s cell. */
     fun center(position: Position): Offset =
@@ -102,11 +107,15 @@ class BoardGeometry private constructor(
         /**
          * Builds geometry for [spec] centered in a [size] canvas. A zero/degenerate
          * size yields a not-[isReady] instance whose [positionAt] always returns
-         * `null` (no taps before the first layout pass).
+         * `null` (no taps before the first layout pass). [recipe] sizes the selection and hint
+         * rings only — the standard palette's by default, so every caller that draws no palette
+         * (the read-only board, hit-testing) reads today's values; cell centres, the hit test and
+         * the peg, hole and dot radii never depend on it.
          */
         fun forCanvas(
             spec: BoardSpec,
             size: Size,
+            recipe: BoardMarkRecipe = BoardMarkPalette.Standard.recipe,
         ): BoardGeometry {
             val gridDimension = gridDimensionOf(spec)
             val cellSize = min(size.width, size.height) / gridDimension
@@ -119,6 +128,7 @@ class BoardGeometry private constructor(
                 cellSize = cellSize,
                 originX = originX,
                 originY = originY,
+                recipe = recipe,
             )
         }
 

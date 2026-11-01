@@ -6,6 +6,9 @@ import java.util.Properties
 plugins {
     id("android-app")
     id("standards")
+    // Generates the Google AARs' open-source notices into every variant's assets
+    // (tech design §13.1 LN-2; build-logic/src/main/kotlin/google-notices.gradle.kts).
+    id("google-notices")
     // DI: applied here (not in the convention plugin) so AGP's android extension
     // is realised before Hilt applies. KSP runs Hilt's processor — no KAPT.
     alias(libs.plugins.ksp)

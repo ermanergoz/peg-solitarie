@@ -836,17 +836,20 @@ private class OneClassicBoard(
     override fun loadChallenge(levelNumber: Int): Level = error("Classic only")
 }
 
-/** Show-moves, Sound and Haptics on. */
+/** Show-moves, Sound and Haptics on; the colour-blind palette off, its default. */
 private object TalkBackSettings : SettingsRepository {
     override val hintsEnabled: Flow<Boolean> = flowOf(true)
     override val soundOn: Flow<Boolean> = flowOf(true)
     override val hapticsOn: Flow<Boolean> = flowOf(true)
+    override val colorblindPaletteOn: Flow<Boolean> = flowOf(false)
 
     override suspend fun setHintsEnabled(enabled: Boolean) = Unit
 
     override suspend fun setSoundOn(on: Boolean) = Unit
 
     override suspend fun setHapticsOn(on: Boolean) = Unit
+
+    override suspend fun setColorblindPaletteOn(on: Boolean) = Unit
 }
 
 /** The real window, with window focus as the test sets it: the confirm dialog holding it, or not (§8). */

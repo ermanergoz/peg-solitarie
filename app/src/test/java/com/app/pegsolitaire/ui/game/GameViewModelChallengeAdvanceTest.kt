@@ -279,6 +279,10 @@ private class FixedBoardLevelRepository(
 
 /** Helpers-on settings; this spec is about the advance, not the hint/haptic gates. */
 private object AlwaysOnSettingsRepository : SettingsRepository {
+    override val colorblindPaletteOn: Flow<Boolean> = flowOf(false)
+
+    override suspend fun setColorblindPaletteOn(on: Boolean) = Unit
+
     override val hintsEnabled: Flow<Boolean> = flowOf(true)
 
     override val soundOn: Flow<Boolean> = flowOf(true)

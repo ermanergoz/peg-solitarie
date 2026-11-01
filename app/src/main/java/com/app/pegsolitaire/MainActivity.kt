@@ -15,7 +15,8 @@ import com.app.pegsolitaire.navigation.AppNavHost
 import com.app.pegsolitaire.platform.ads.consent.ConsentGateway
 import com.app.pegsolitaire.platform.games.GamesService
 import com.app.pegsolitaire.platform.games.save.DebugSnapshotPickerEntry
-import com.app.pegsolitaire.ui.theme.AppTheme
+import com.app.pegsolitaire.ui.theme.AppThemeRoot
+import com.app.pegsolitaire.ui.theme.BoardMarkPaletteState
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -24,7 +25,7 @@ import javax.inject.Inject
  *
  * `@AndroidEntryPoint` registers this activity with Hilt's generated component graph
  * so each route's `@HiltViewModel` can be injected via `hiltViewModel()`. Hosts the
- * type-safe [AppNavHost] inside the Material 3 [AppTheme]: it owns the five-screen back
+ * type-safe [AppNavHost] inside the Material 3 `AppTheme` (through [AppThemeRoot]): it owns the five-screen back
  * stack (Home → ClassicCatalog → Gameplay → Results), replacing the Phase-1 direct
  * `GameRoute()` host (NAV-02). The activity adds no logic beyond hosting — publishing the
  * injected [SoundPlayer] into [LocalSoundPlayer] is hosting too: it hands the composition
@@ -133,6 +134,15 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var debugSnapshotPickerEntry: DebugSnapshotPickerEntry
 
+    /**
+     * The palette setting, collected once for the whole app (docs/ux/colour-vision.md §3.3): the
+     * root hands its value to `AppTheme`, so no screen reads the repository. Like
+     * [progressSubmitter], a `@Singleton` with an `@Inject` constructor and no interface to name.
+     * Injecting it here is what starts its store read, off the main thread; nothing waits for it.
+     */
+    @Inject
+    lateinit var boardMarkPalette: BoardMarkPaletteState
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // V1 (docs/tech/audio-silent-mode.md §2.5): with nothing playing, the volume keys would
@@ -158,7 +168,7 @@ class MainActivity : ComponentActivity() {
         debugSnapshotPickerEntry.onIntent(intent, lifecycleScope)
         setContent {
             CompositionLocalProvider(LocalSoundPlayer provides soundPlayer) {
-                AppTheme {
+                AppThemeRoot(palette = boardMarkPalette.palette) {
                     AppNavHost(navController = rememberNavController())
                 }
             }

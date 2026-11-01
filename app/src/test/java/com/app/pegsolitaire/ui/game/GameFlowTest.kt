@@ -384,6 +384,10 @@ private class FixedSettingsRepository(
     soundOn: Boolean = true,
     hapticsOn: Boolean = true,
 ) : SettingsRepository {
+    override val colorblindPaletteOn: Flow<Boolean> = flowOf(false)
+
+    override suspend fun setColorblindPaletteOn(on: Boolean) = Unit
+
     override val hintsEnabled: Flow<Boolean> = flowOf(hintsEnabled)
 
     override val soundOn: Flow<Boolean> = flowOf(soundOn)

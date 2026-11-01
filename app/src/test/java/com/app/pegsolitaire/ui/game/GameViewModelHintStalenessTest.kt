@@ -892,6 +892,10 @@ private class ChallengeHintLevelRepository(
 
 /** Hints/haptics/sound all on; this spec is about the search, not the gates. */
 private object HintSettings : SettingsRepository {
+    override val colorblindPaletteOn: Flow<Boolean> = flowOf(false)
+
+    override suspend fun setColorblindPaletteOn(on: Boolean) = Unit
+
     override val hintsEnabled: Flow<Boolean> = flowOf(true)
 
     override val soundOn: Flow<Boolean> = flowOf(true)

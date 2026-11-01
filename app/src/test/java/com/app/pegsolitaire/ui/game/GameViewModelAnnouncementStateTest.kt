@@ -290,15 +290,18 @@ private object AnnouncementStateLevels : LevelRepository {
         Level(id = id, displayName = id, spec = board.spec, initialBoard = board, holeCount = board.spec.inPlay.size)
 }
 
-/** Show-moves, Sound and Haptics on. */
+/** Show-moves, Sound and Haptics on; the colour-blind palette off, its default. */
 private object AnnouncementStateSettings : SettingsRepository {
     override val hintsEnabled: Flow<Boolean> = flowOf(true)
     override val soundOn: Flow<Boolean> = flowOf(true)
     override val hapticsOn: Flow<Boolean> = flowOf(true)
+    override val colorblindPaletteOn: Flow<Boolean> = flowOf(false)
 
     override suspend fun setHintsEnabled(enabled: Boolean) = Unit
 
     override suspend fun setSoundOn(on: Boolean) = Unit
 
     override suspend fun setHapticsOn(on: Boolean) = Unit
+
+    override suspend fun setColorblindPaletteOn(on: Boolean) = Unit
 }

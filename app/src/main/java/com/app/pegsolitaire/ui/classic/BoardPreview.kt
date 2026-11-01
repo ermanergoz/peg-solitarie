@@ -5,9 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -20,9 +17,8 @@ import androidx.compose.ui.semantics.contentDescription
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.ui.components.BoardCanvas
+import com.app.pegsolitaire.ui.components.StarGlyph
 import com.app.pegsolitaire.ui.game.GameUiState
-import com.app.pegsolitaire.ui.theme.goldGradientFill
-import androidx.compose.material.icons.outlined.Star as StarBorder
 
 /**
  * The static, read-only board footprint shown on a Classic catalog card (D-11),
@@ -89,10 +85,9 @@ private fun BoardFootprint(
 }
 
 /**
- * The earned-star pips (D-10): the first [earned] of [TOTAL_STARS] filled
- * [Icons.Filled.Star] recolored with the celebration GoldGradient, the rest outline
- * [StarBorder] tinted `outlineVariant` — the same filled/outline language as the
- * Results star row, at pip scale. The individual icons are decorative, so the row
+ * The earned-star pips (D-10): the first [earned] of [TOTAL_STARS] earned [StarGlyph]s, the
+ * rest unearned ones — the same language as the Results star row, at pip scale, in the active
+ * palette (docs/ux/colour-vision.md §3.4). The individual icons are decorative, so the row
  * speaks the count once via [clearAndSetSemantics] instead of announcing three
  * anonymous stars.
  */
@@ -105,20 +100,7 @@ private fun EarnedStarPips(earned: Int) {
     ) {
         repeat(TOTAL_STARS) { index ->
             val isEarned = index < earned
-            Icon(
-                imageVector = if (isEarned) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                contentDescription = null,
-                tint =
-                    if (isEarned) {
-                        MaterialTheme.colorScheme.tertiary
-                    } else {
-                        MaterialTheme.colorScheme.outlineVariant
-                    },
-                modifier =
-                    Modifier
-                        .then(if (isEarned) Modifier.goldGradientFill() else Modifier)
-                        .size(dimensionResource(R.dimen.catalog_star_pip_size)),
-            )
+            StarGlyph(earned = isEarned, size = dimensionResource(R.dimen.catalog_star_pip_size))
         }
     }
 }

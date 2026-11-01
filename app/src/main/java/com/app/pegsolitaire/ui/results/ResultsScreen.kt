@@ -15,7 +15,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,14 +44,13 @@ import androidx.compose.ui.text.style.TextAlign
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.ui.components.AnnouncementRegion
 import com.app.pegsolitaire.ui.components.BoardAnnouncer
+import com.app.pegsolitaire.ui.components.StarGlyph
 import com.app.pegsolitaire.ui.components.rememberBoardAnnouncer
 import com.app.pegsolitaire.ui.components.rememberBoardSpeechFormat
 import com.app.pegsolitaire.ui.game.GameTimerFormat
 import com.app.pegsolitaire.ui.theme.ClayAnim
 import com.app.pegsolitaire.ui.theme.claySquish
-import com.app.pegsolitaire.ui.theme.goldGradientFill
 import com.app.pegsolitaire.ui.theme.withTabularFigures
-import androidx.compose.material.icons.outlined.Star as StarBorder
 
 /** Test tag of the star row; carries the [EarnedStarCountKey] semantics for the screen test. */
 const val RESULTS_STAR_ROW_TEST_TAG = "results_star_row"
@@ -81,8 +79,9 @@ private var SemanticsPropertyReceiver.earnedStarCountValue by EarnedStarCountKey
  * content column capped at `content_max_width`, stacking: the star-tiered headline
  * (D-08, scaling in), the 3-star row (the first [ResultsUiState.stars] filled with the
  * GoldGradient + a soft glow, popping in sequentially with a 120ms stagger; the rest
- * outline `outlineVariant`), the "New best!" pill bouncing in when this play improved a
- * stored best ([ResultsUiState.newBests], D-09), the SCORE / TIME / PEGS LEFT metric
+ * hollow, in `onSurfaceVariant`: colour-vision §3.4, CV-13a), the "New best!" pill
+ * bouncing in when this play improved a stored best ([ResultsUiState.newBests],
+ * D-09), the SCORE / TIME / PEGS LEFT metric
  * block (tabular figures, the score counting up over ~600ms), and the actions — a
  * single CtaGradient primary action (wrapping `replayId`) plus quiet clay chips.
  * Classic has no "next board", so that Challenge-mode action is intentionally absent.
@@ -216,10 +215,10 @@ private fun Headline(tier: ResultsHeadlineTier) {
 }
 
 /**
- * The three-star row (D-01): the first [earned] stars are filled [Icons.Filled.Star]
- * recolored with the GoldGradient over a soft gold glow, popping in sequentially
- * (spring overshoot, [ClayAnim.STAR_STAGGER_MS] apart); the remaining stars are
- * outline [StarBorder] tinted `outlineVariant`. Each icon is decorative; the row
+ * The three-star row (D-01): the first [earned] stars are filled [StarGlyph]s over a soft gold
+ * glow, popping in sequentially (spring overshoot, [ClayAnim.STAR_STAGGER_MS] apart); the
+ * remaining stars are unearned [StarGlyph]s. Both draw in the active palette
+ * (docs/ux/colour-vision.md §3.4). Each icon is decorative; the row
  * exposes [EarnedStarCountKey] so the test can assert the filled count without
  * per-icon semantics.
  *
@@ -256,12 +255,7 @@ private fun StarRow(
             if (isEarned) {
                 EarnedStar(order = index)
             } else {
-                Icon(
-                    imageVector = Icons.Outlined.StarBorder,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.outlineVariant,
-                    modifier = Modifier.size(dimensionResource(R.dimen.results_star_size)),
-                )
+                StarGlyph(earned = false, size = dimensionResource(R.dimen.results_star_size))
             }
         }
     }
@@ -296,15 +290,7 @@ private fun EarnedStar(order: Int) {
                     .alpha(STAR_GLOW_ALPHA)
                     .background(color = MaterialTheme.colorScheme.tertiary, shape = CircleShape),
         )
-        Icon(
-            imageVector = Icons.Filled.Star,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.tertiary,
-            modifier =
-                Modifier
-                    .goldGradientFill()
-                    .size(dimensionResource(R.dimen.results_star_size)),
-        )
+        StarGlyph(earned = true, size = dimensionResource(R.dimen.results_star_size))
     }
 }
 

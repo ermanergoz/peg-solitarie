@@ -514,6 +514,10 @@ private class AdClockLevelRepository(
 
 /** Hints/sound/haptics all on; this spec is about the clock, not the gates. */
 private object AdClockSettings : SettingsRepository {
+    override val colorblindPaletteOn: Flow<Boolean> = flowOf(false)
+
+    override suspend fun setColorblindPaletteOn(on: Boolean) = Unit
+
     override val hintsEnabled: Flow<Boolean> = flowOf(true)
 
     override val soundOn: Flow<Boolean> = flowOf(true)
