@@ -424,6 +424,7 @@ class ProgressAggregateTest {
             classicMode: String,
             english33Id: String,
             speedLimitMs: Long,
+            perfectStars: Int,
         ): PlaySessionFlags = throw SQLiteException(DISK_FAILURE)
     }
 
