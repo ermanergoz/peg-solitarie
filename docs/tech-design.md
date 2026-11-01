@@ -1110,6 +1110,9 @@ every one of them clears and advances, and the opening levels are removed — is
   footprint and no level: the count is absolute (GDD §6.1).
 - `ScoreCalculator.evaluate` gains `stars: Int = stars(pegsRemaining, minimumPegs)` as its last parameter,
   so Classic callers are byte-identical and the Challenge caller passes the rule's stars.
+- `ScoreCalculator.challengeScore` / `evaluateChallenge` (Q-042, GDD §6.3, GD-SB-22): the Challenge score
+  is `score(pegsCleared, elapsedSeconds, levelMultiplier) × stars`; `GameViewModel.scoreFor`'s Challenge
+  arm calls `evaluateChallenge`, Classic keeps `evaluate` unmultiplied.
 - `GameStatus.Won` keeps its name (a rename touches dozens of files for no behaviour); its KDoc says what
   is true: terminal and past the mode's finish test — Classic `pegCount <= minimumPegs`, Challenge
   `ChallengeClearRule`.

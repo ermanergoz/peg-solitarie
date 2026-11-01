@@ -249,12 +249,18 @@ play a Classic result is always three stars; the lower bands remain defensive. T
 directive says "on challenge", so Classic is unchanged in 3.0.0; Q-037 (non-blocking) asks only
 about 3.1.
 
-### 6.3 Score (unchanged)
+### 6.3 Score [3.0.0 change: Challenge star multiplier, GD-SB-22]
 
-`score = (pegsCleared × 100 + max(0, 5000 − elapsedSeconds × 10)) × levelMultiplier`
-(`ScoreCalculator.score`, `ScoreParams`). `levelMultiplier` is `DifficultyTier.scoreMultiplier`
-in Challenge (§7) and 1 in Classic. Stars and score are independent axes (phase-2 D-03): a slow
-perfect clear is three stars and a modest score; a fast one-star clear can out-score it. The
+Classic: `score = (pegsCleared × 100 + max(0, 5000 − elapsedSeconds × 10)) × levelMultiplier`
+(`ScoreCalculator.score`, `ScoreParams`), with `levelMultiplier` 1 — unchanged.
+
+Challenge: `score = (pegsCleared × 100 + max(0, 5000 − elapsedSeconds × 10)) × levelMultiplier × stars`
+(`ScoreCalculator.challengeScore` / `evaluateChallenge`), with `levelMultiplier` =
+`DifficultyTier.scoreMultiplier` (§7) and `stars` the §6.1 grade: 3★ ×3, 2★ ×2, 1★ ×1 (the
+founder's Q-042, 2026-11-01). The same level in the same time always scores 3★ > 2★ > 1★. Every
+clear still advances the ladder and skill achievements still unlock on any clear (Q-043). Stars
+are still graded from pegs alone; the time bonus still decays with the clock, so a fast low-star
+clear can out-score a much slower higher-star one. The
 clock freezes for every ad (ADSF-01) and at the terminal board.
 
 ### 6.4 Bests (unchanged merge, newly exercised)
@@ -707,6 +713,7 @@ Entries are never deleted; a superseded one gets a "superseded by" line.
 | GD-SB-19 | Ux-spec D-SB-4 acknowledged: the Challenge proven-dead banner may be dismissed by a tap outside its buttons. Rule boundary: a dismissal clears only the proof flag, is never charged, counted or undoable and plays no cue; the proof stands and a Hint on the same position raises the banner again, free; the stuck banner (R6) is never dismissable in either mode; Classic's proven-dead banner is unchanged (§9). | — |
 | GD-SB-20 | Ux-spec D-SB-2 acknowledged: the Results next-star line names the next band up only ("Leave 2 pegs for 2 stars." at one star, "Leave 1 peg for 3 stars." at two) and both numbers come from the clear function through `ResultsUiState`. This supersedes §16's earlier two-band proposal at one star; GD-SB-08's information rule (the peg count of the next band up) is met, and the three star slots show the whole scale. | §16 (first edition) |
 | GD-SB-21 | The founder's Q-040 re-scope (2026-11-01: "let the player get 3 stars. remove first like 30 levels"; "i remove i meant shift") is recorded as the founder's decision: a difficulty shift of thirty levels with numbers unchanged, and G6, G7, the pool copies and GD-SB-05 deferred to 3.0.1. **Recorded deviation from rules/puzzle-design.md ("first failure impossible before puzzle 5"), approved by Q-040:** in 3.0.0 Challenge levels 1–4 — five-peg, four-jump English-33 boards (old level 31's difficulty) — can be finished uncleared by a one-jump dead end; mitigations and the exact exposure are in §7.4. The deviation closes with G6 in 3.0.1. | GD-SB-09 (50 → 30), GD-SB-10, GD-SB-11, GD-SB-05 and GD-SB-15 as dated above |
+| GD-SB-22 | The founder's Q-042 and Q-043 (2026-11-01: "achievements should unlock the next level, but with lower points. 3 stars gets the most points while the 1 star gets the least") are recorded as the founder's decision. Q-042: the Challenge score is multiplied by the stars earned, 3★ ×3, 2★ ×2, 1★ ×1 (§6.3). Q-043: skill achievements keep unlocking on any clear, and every clear still unlocks the next level. Challenge only; Classic scoring is unchanged (Q-040, Q-037). Bests, the cumulative leaderboard and the cloud merge compare the new numbers as before; results recorded before the change are not re-scored (GD-SB-13). | §6.3 "Score (unchanged)" |
 
 **Rulings recorded elsewhere and in force.** GD-HT-1…6, the hint outcomes
 (`.planning/reports/phase-14/game-designer-hint-timeout.md`); the tutorial boards T1–T3
