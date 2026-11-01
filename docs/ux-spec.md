@@ -4,7 +4,7 @@ phase: 15
 slug: ux-refresh
 status: draft
 created: 2026-09-21
-revised: 2026-10-24; 2026-10-31 (15m pointer, B-19a); 2026-11-01 (pre-release folds: D-05e's fallback and D-05f's v35 mechanism as built; SN-1 in docs/ux/colour-vision.md)
+revised: 2026-10-24; 2026-10-31 (15m pointer, B-19a); 2026-11-01 (pre-release folds: D-05e's fallback and D-05f's v35 mechanism as built; SN-1 in docs/ux/colour-vision.md); 2026-11-01 (D-SB — the Challenge star bands: §4.6, §4.4.3, criteria 30a–30n)
 stack: android-compose-game
 design-system: docs/ui/DESIGN-SYSTEM.md
 ---
@@ -584,6 +584,33 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > Each place gains a dated note beside its first wording. The colour-vision correction SN-1 is
 > folded in `docs/ux/colour-vision.md` (CV-AC11). No string, token, colour or id is added by this
 > entry.
+>
+> **Thirteenth revision — 2026-11-01 — AMENDMENT (Challenge star bands: the "Cleared!" tier, the
+> next-star line, the Challenge banner messages; D-SB).** On `feature/challenge-star-bands`, from the
+> game-designer's `docs/gdd.md` (R5–R7, GD-SB-07/08/17/18, §15 SB-U1…U4, §16 the copy contract) and
+> `.planning/REQUIREMENTS.md` CSB-01…08 / CLC-01…06. The founder's directive makes a Challenge finish
+> with two or three pegs a clear with two or one stars; the Results screen's lower bands become
+> reachable for the first time and the rescue banner has to name the band. Ruled as **D-SB-1 to
+> D-SB-6** (§3, a letter series like D-TB, specified in **§4.6** (Results) and **§4.4.3** (the banner's
+> Challenge messages); criteria **30a–30n**):
+>
+> - Challenge's three tiers are "Perfect!", "Solved!" and the new **"Cleared!"** (1 star); the
+>   celebration is the same shape at every tier (D-SB-1);
+> - a **next-star line** under the star row, Challenge only, at 1 and 2 stars, naming the next band
+>   up — "Leave 2 pegs for 2 stars." / "Leave 1 peg for 3 stars." — its numbers from the one `:domain`
+>   clear function, its own TalkBack stop (D-SB-2);
+> - the banner's two **Challenge messages**, with the exact peg count and the threshold 3
+>   (D-SB-3), and the Challenge proven-dead banner can be **put away by a tap** so the board it
+>   invites the player back to is reachable (D-SB-4);
+> - nothing else tells the goal: tutorial, Home, catalogue, tile, strip and dock are unchanged
+>   (D-SB-5); the four strings' **Turkish copy of record**, in sen (Q-031), is in §8 (D-SB-6).
+>
+> Edits: §2 (row 6 and the "deliberately unchanged" list), §3 (D-SB), §4.4.3 (new), §4.6 (new), §6.3,
+> §8 (one string, three plurals, the Turkish table, a note for the Deleted list), §11, §11.1, §12,
+> §13, §14 (30a–30n), §16. One string, three plurals and one test tag are added; no token, colour,
+> cue, asset or dependency. Classic is untouched (GDD R8). **Not reopened:** D-04f/D-04g, D-TB and
+> its letters, the banner's look, slot and three actions, the celebration's timing and cues, the
+> Results actions' one-accent rule, every earlier bar.
 
 ---
 
@@ -623,7 +650,7 @@ amendment.** The table above is the record of the original asks and is left as i
 | 3 | **Gameplay** | **Chrome replaced.** `TopAppBar` deleted; a status strip and an action dock take its place. Board, rules, animation, dialogs, banner, snackbar all unchanged. One **mechanical** extraction only, no behaviour change: the private `JumpSound` effect (`GameScreen.kt:320-330`) is lifted to a shared `internal` composable so the tutorial can call the same one (D-01i) — gameplay's own audio is byte-for-byte the same cue, level and pitch ladder it plays today. | `ui/game/GameScreen.kt`, `ui/game/{Hint,HintToggle,Undo,Restart}Control.kt` |
 | 4 | **Settings** | **One row added** (How to play) + one stale supporting line fixed. | `ui/settings/SettingsScreen.kt` |
 | 5 | Classic catalog | **Unchanged.** | — |
-| 6 | Results | **Unchanged.** | — |
+| 6 | Results | **Unchanged.** *(Superseded 2026-11-01 — D-SB, §4.6: Challenge's 1-star tier gains the "Cleared!" headline, a next-star line joins the column under the star row, and the 1- and 2-star star rows are reachable in play for the first time. Layout, actions, celebration and Classic are as they were.)* | `ui/results/ResultsScreen.kt`, `ui/results/ResultsUiState.kt` (one enum value), `res/values/strings.xml` |
 
 **Deliberately unchanged:** every rule, every **shipped** board footprint, the scoring/star model,
 the jump/removal animation, the rescue banner, the ad-offer dialog, the restart confirm dialog,
@@ -649,6 +676,16 @@ it puts it away.)* Files touched: `ui/game/GameScreen.kt` (hosts the notice), a 
 leaf beside `ui/game/NoWinBanner.kt`, `NoWinBanner.kt` itself (the announcement only),
 `ui/game/GameAnim.kt` (two durations), `res/values/{strings,dimens}.xml` (one string, one token),
 and the state-holder files the tech-lead's brief names (§7 R-7).
+
+*(2026-11-01 — D-SB amendment.)* No screen is added or removed. Two items of the "deliberately
+unchanged" list above are amended for **Challenge only**, by the game-designer's `docs/gdd.md`: the
+**scoring/star model** — a Challenge finish is graded by its pegs left (R5), which this document
+takes as given and gives surfaces to in §4.6 — and the **rescue banner**, whose Challenge messages
+name the peg count and the threshold (§4.4.3) and whose proven-dead form in Challenge can be put
+away by a tap (D-SB-4). Its look, slot, three actions and announcement are unchanged. Files touched
+in addition to row 6: `ui/game/GameScreen.kt` (selects the Challenge messages), `ui/game/NoWinBanner.kt`
+(the dismissal), `ui/game/GameViewModel.kt` (clears the proof flag on dismissal) and
+`res/values/strings.xml` (three plurals). Classic's screens, strings and flows are untouched (GDD R8).
 
 ---
 
@@ -1972,6 +2009,67 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
     tech-lead: the first nudge after a step change never takes the place of an unspoken step line.
 
 ---
+
+### Challenge star bands (CSB-01…08 — D-SB, 2026-11-01)
+
+> **Status.** From the game-designer's `docs/gdd.md` (rules R5–R7, decisions GD-SB-07, GD-SB-08,
+> GD-SB-14, GD-SB-17, GD-SB-18; the copy contract §16; the UI criteria SB-U1…U4) and the founder's
+> directive it reads. The rule — one peg is three stars, two pegs two, three pegs one, any of them
+> clears and advances, four or more is a stuck board — is the game-designer's and is not restated as
+> a decision here; what follows is how the screens show it. The series is lettered like D-TB because
+> the GDD's own ids are GD-SB-nn and the build brief will cite both. Classic is untouched (R8).
+
+- **D-SB-1:** Challenge's Results headline tiers are **"Perfect!"** (3 stars), **"Solved!"** (2) and
+  the new **"Cleared!"** (1 star, `ResultsHeadlineTier.CLEARED`, `results_headline_cleared`); the
+  `STUCK` tier ("Out of moves") stays only as the defensive branch for a route reached with an
+  uncleared peg count, which play never produces, and as Classic's unreachable 1-star tier. The
+  celebration is one shape at every tier — the headline scales in, each earned star pops with its
+  own cue, the metrics count up — so a one-star clear pops one star and says one word; nothing is
+  withheld and nothing is added. — The stars grade the finish; the word only names the band, so all
+  three share `displaySmall` and the hierarchy stays stars > headline > metrics > actions
+  (DESIGN-SYSTEM.md, Results). "Cleared!" says a pass that is not a solve, in the siblings' one-word
+  shape (GD-SB-07). *(§4.6.)*
+- **D-SB-2:** A **next-star line** sits directly under the star row — Challenge only, at 1 and 2
+  stars, never at 3 and never in Classic — and names the **next band up only**: "Leave 2 pegs for
+  2 stars." after a one-star clear, "Leave 1 peg for 3 stars." after a two-star one. One plural
+  resource, `results_next_star_hint`, whose two numbers come from the single `:domain` clear
+  function (GD-SB-14) through `ResultsUiState`; the screen never computes a band. `bodyLarge`,
+  `onSurfaceVariant`, centred, wrapping, its own TalkBack stop after the star row and before "New
+  best!", not part of the opening summary and not a live region; it appears with the "New best!"
+  pill's timing as a fade and is on the first frame when animations are off. — GD-SB-08 / CSB-05 ask
+  for the peg count the next star needs; one sentence of one shape at both bands reads in a glance,
+  wraps to two lines at most at 200% on a 360dp phone, and the three star slots already show the
+  whole scale, so the full ladder is learned over two Results screens without a second clause.
+  *(§4.6.)*
+- **D-SB-3:** The rescue banner's **Challenge messages** are `stuck_message_challenge` — "No moves
+  left with 5 pegs — leave 3 or fewer to clear the level. Undo or restart." — and
+  `nowin_message_challenge` — "One peg is out of reach from here — you may still clear the level
+  with 3 pegs or fewer, or undo or restart." — both plurals, both taking their numbers as format
+  arguments from the clear rule's constants, selected in `GameScreen` by mode and, for the stuck
+  one, the board's peg count. Classic keeps `stuck_message` and `nowin_message` verbatim. The
+  banner's look, slot, three actions and polite announcement are unchanged. — R6 and GD-SB-18 fix
+  what the two messages must say (the exact count, the threshold, no "lost"); the banner's
+  "problem — what to do" shape is kept so the two modes read as one surface. *(§4.4.3.)*
+- **D-SB-4:** The **Challenge proven-dead banner can be put away**: a tap on the banner anywhere but
+  its three buttons dismisses it, clearing the proof flag and nothing else, with a `dismiss`
+  semantics action for TalkBack in the Undecided notice's idiom (D-04g); the stuck banner in both
+  modes and Classic's proven-dead banner have no dismissal; a Hint on the same position raises it
+  again. — Its message invites the player to keep playing, and the banner covers the board's lower
+  rows (≈ 120dp of a 328dp slab at default scale, ≈ 300dp at 200% on a 360dp phone) and takes the
+  taps those rows need; the flag already clears on a jump, but the jump may be under the banner.
+  Without a way to put it away the sentence would promise what the surface prevents. Classic's is
+  outside this change (the brief: Classic unchanged) and is recorded for 3.1 alignment in §15.
+  *(§4.4.3.)*
+- **D-SB-5:** **Nothing else tells the goal.** The tutorial's captions (GD-SB-17), Home, the Classic
+  catalogue, the Challenge tile and its level chip, the status strip and the dock gain no star text,
+  and no forecast ("3 pegs = 1 star") is drawn during play. — Levels 1–4 cannot be failed (GDD §7.4),
+  so the first graded Results screen is the band's whole onboarding, read after a real finish; a
+  forecast in the strip is the GDD's named 3.1 candidate and the chrome was just rebuilt (D-05d).
+- **D-SB-6:** The four new strings' **Turkish copy of record** is §8's table, in the sen register the
+  founder chose (Q-031) and the glossary of `docs/ux/localisation-tr.md` on `feature/turkish-locale`;
+  that branch adds the rows to its §5 and the strings to `values-tr` when the two branches meet. —
+  One voice across the app; the strings are born with their translation so the parity test on that
+  branch never meets an untranslated key.
 
 ## 4. Interaction contract — new surfaces (Phase 15)
 
@@ -4244,6 +4342,112 @@ qa-engineer's, on a device. They sit beside the game-designer's AC-1 to AC-21, w
 outcomes this section draws. *(Loop 1.)* 23k's first half lands in commit H4b; 23c and 23j are
 revised for D-04g.
 
+#### 4.4.3 The rescue banner's Challenge messages, and putting the proven-dead one away (D-SB-3, D-SB-4 — amendment, 2026-11-01)
+
+> **Status.** From the game-designer's `docs/gdd.md` R6 (a Challenge board with four or more pegs
+> and no move is stuck, and the banner names the count that remained and that three or fewer clears
+> the level) and GD-SB-18 (a proven-dead Hint in Challenge says one peg is out of reach and that
+> the level may still be cleared with two or three pegs; it never says the level is lost; it keeps
+> Undo, Restart and Home). The information rules are the game-designer's; the words, the shape,
+> the dismissal and the layout are this section's. Unchanged: the banner's look (`errorContainer`,
+> `shapes.medium`, the gloss finish, `nowin_banner_min_height`), its slot (the board region's
+> `BottomCenter`, shared with the Undecided notice), its three actions and their focus rules
+> (§11.1), and its polite announcement (23k). Classic's two messages and Classic's banner are
+> untouched.
+
+**The two messages.** Both are plurals so the noun agrees with its number whatever the clear rule's
+constants become; both take every number as a format argument, never a typed digit, so the copy
+cannot drift from the rule that grants it (the same contract as `ad_offer_*_body`).
+
+| Resource | Raised by | Arguments | en-US (quantity `other`; shown with 5 pegs and the threshold 3) |
+|---|---|---|---|
+| `stuck_message_challenge` (plurals, quantity = `%1$d`) | a Challenge board with no legal move and 4+ pegs (`GameUiState.stuck`) | `%1$d` the pegs on the board; `%2$d` the clear threshold (`CLEAR_MAX_PEGS`) | **No moves left with 5 pegs — leave 3 or fewer to clear the level. Undo or restart.** |
+| `nowin_message_challenge` (plurals, quantity = `%1$d`) | a Challenge Hint that proved one peg unreachable (`GameUiState.noWinningMove`) | `%1$d` the clear threshold | **One peg is out of reach from here — you may still clear the level with 3 pegs or fewer, or undo or restart.** |
+
+The `one` items exist for lint and grammar ("1 peg") and are never shown under the shipped rule: a
+stuck Challenge board has at least four pegs and the threshold is three. A unit test pins both facts
+(criterion 30h).
+
+**Which message, where.** `GameScreen` already picks `nowin_message` or `stuck_message` by
+`noWinningMove` (`GameScreen.kt:316`); it now picks by **mode first**: a Challenge level (the state's
+Challenge level is set) takes the two Challenge plurals, resolved with `pluralStringResource` and the
+board's peg count; Classic takes the two strings it has today. One banner, four messages, one
+selection site. The ViewModel passes no text (state hoisting; the copy stays in `strings.xml`).
+
+**Why these words.**
+
+1. **The count first, because the count is the news.** "No moves left with 5 pegs" tells the
+   player in four words how far they were from the band; the Classic line, "No moves left", has
+   nothing to compare against and stays as it is.
+2. **The threshold as an instruction — "leave 3 or fewer to clear the level"** — in the same
+   voice as the tutorial's "Clear the board down to one peg" and the next-star line's "Leave 2 pegs
+   for 2 stars." (§4.6), so the three surfaces teach one sentence shape.
+3. **"Undo or restart." as its own sentence** on the stuck banner: it is the only way on from a
+   dead board, and the two buttons under it carry the same words.
+4. **"One peg is out of reach from here"** puts the proof on the position, not on the level — every
+   generated level reaches one peg from its start (GDD I1), and "from here" is what keeps the
+   sentence true. "You may still clear the level with 3 pegs or fewer" is the hedge GD-SB-18
+   requires: it claims neither that a clear is reachable nor that it is not (the hint does not
+   search for one in 3.0.0, GDD §9). "Or undo or restart" keeps the banner's escape in the banner's
+   own words.
+5. **The dash shape is kept** — "problem — what to do" — because this is the banner, and §4.4.2's
+   reason for denying the shape to the Undecided notice (it must not look like a verdict) is the
+   reason for keeping it here: a proof is one.
+
+**Words declined.** "Lost", "failed", "game over", "stuck" as a verdict, "try again" (the Results
+retry vocabulary; a stuck board is undone, not retried), "no winning move" (true of Classic, false of
+Challenge now that a two-peg finish wins something), "almost" and "so close" (the retired game-over
+dialog's register; they grade the player, the stars already do), any time or score advice, and any
+number typed into the copy.
+
+**Putting the proven-dead banner away (D-SB-4).** In Challenge only, and only for the banner raised
+by a proof:
+
+| Property | Value |
+|---|---|
+| Gesture | a tap on the banner anywhere **but** its three buttons — the message, the padding, the gap. The buttons keep their own taps and their own focus rules |
+| What it does | clears `GameUiState.noWinningMove` and nothing else; `stuck`, the hint allowances, the counters, the clock, the board and the selection are untouched. The banner leaves with no exit animation of its own (it is a `Surface` that stops being composed, as today after Undo) and the Undecided notice's slot is free again |
+| What it is not | not a hint, not a move, not an undo: it is never charged, never counted, never undoable, and it plays no cue (D-09: toggles and dismissals stay quiet) |
+| After it | the board plays as before; the proof still holds, so a Hint tapped on the same position returns `ProvenDead` and raises the banner again, spoken again (an identical repeat is spoken, §11) |
+| TalkBack | the message node carries a `SemanticsActions.Dismiss` action, in the Undecided notice's idiom (D-04g), and no `OnClick` and no role; focus does not move when the banner leaves (TB-7's "when the banner rises, focus does not move", read in reverse) |
+| Not dismissable | the stuck banner in both modes (there is nothing to play beneath it; Undo is the way on), and Classic's proven-dead banner (outside this change; §15 records the 3.1 alignment). `NoWinBanner` takes the dismissal as an optional callback, absent in those three cases, so the leaf stays stateless and one test can assert which banners carry the action |
+
+Why a tap and not a fourth button: "Keep playing · Undo · Restart · Home" at `labelLarge` is ≈
+330dp of buttons on the 296dp the banner has at 360dp, and ≈ 600dp at 200%, so the row would wrap
+into two rows and the banner would cover the very rows it is being dismissed to free. A tap on the
+thing that is in the way is the gesture a player already makes (the Undecided notice, D-04g).
+
+**Layout and fit** *(360dp phone; the banner is `fillMaxWidth` in the 328dp board region with
+`spacing_md` padding, so its text runs 296dp wide; `bodyMedium` Nunito ≈ 42 characters a line at
+default scale, ≈ 21 at 200%; line height 20dp and 40dp)*. The banner is a column and grows upward
+over the board; it never ellipsises and never pushes a button off-screen.
+
+| Message | Characters | Lines at 1.0 / 2.0 | Banner height at 1.0 / 2.0 (padding 32 + text + 48dp actions, 56dp at 2.0) | Of the 328dp slab covered |
+|---|---|---|---|---|
+| `stuck_message` (Classic, today) | 31 | 1 / 2 | 100 / 168 | ≈ 80dp (24%) / ≈ 148dp (45%) |
+| `stuck_message_challenge` at 5 pegs | 81 | 2 / 4 | 120 / 248 | ≈ 100dp (30%) / ≈ 228dp (70%) |
+| `nowin_message_challenge` | 107 | 3 / 6 | 140 / 328 | ≈ 120dp (37%) / ≈ 308dp (94%) |
+
+The stuck banner's coverage is accepted as the Classic banner's is: no move exists under it, and Undo
+or Restart is the way on. The proven-dead banner's is accepted **only because of D-SB-4**: at 200%
+it hides nearly the whole board, and one tap gives it back. At a peg count of 10 or more the stuck
+message gains a character and no line; at 412dp both messages lose a line at 2.0. The action row is
+unchanged by this amendment and its 200% width is the Turkish spec's open item, not this one's.
+
+**TalkBack.** The live region of 23k speaks whichever message is raised, once, verbatim; a repeat of
+the same proof after a dismissal is spoken again. Undo and Restart from the banner put focus on the
+board stop as today (TB-7); dismissal moves no focus. The three buttons stay outside the region.
+
+**Turkish.** §8's D-SB table carries the sen copy of record for both messages, with the glossary's
+"Hamle kalmadı — geri al ya da yeniden başlat" shape kept so a Turkish player sees one banner idiom.
+
+**What this owes in tests:** criteria **30h–30l** (§14); on the JVM, the GDD's
+`aStuckChallengeBoardShowsTheChallengeStuckMessageWithItsPegCount` and
+`aProvenDeadChallengeBoardSaysOnePegIsOutOfReachNotThatTheLevelIsLost` (placed in the game screen's
+existing test files or a new `GameScreenRescueBannerTest` — the GDD's `GameScreenTest` does not
+exist), a `NoWinBannerTest` on the dismiss action, and a ViewModel test on the flag; on a device, SB-Q4,
+SB-Q6 and SB-Q7 of the GDD.
+
 ### 4.5 Settings — one row added (D-02a)
 
 A `SettingsLinkRow` in `GeneralSection` (`SettingsScreen.kt:193-218`), **above** the Sound toggle:
@@ -4258,6 +4462,116 @@ inserting a row means renumbering the cascade; and `settings_sound_supporting` i
 refresh should fix it to describe what the toggle now does.
 
 ---
+
+### 4.6 Results — the Challenge star bands (D-SB-1, D-SB-2 — amendment, 2026-11-01)
+
+> **Status.** From the game-designer's `docs/gdd.md` §6.1 (the band), GD-SB-07 (the tiers), GD-SB-08
+> (the next-star line's information rule), GD-SB-14 (one cleared function) and §16 (the copy
+> contract). `ResultsScreen.kt` keeps its column — headline, star row, "New best!", metrics, actions —
+> its one-accent action rule, its celebration and its opening summary; this section adds one tier's
+> word and one line, and says what the screen looks like at the two star counts play has never shown.
+> Classic's Results is untouched: its tiers, its star bands and its actions are as shipped (R8).
+
+**The three Challenge tiers, as the player sees them.**
+
+| Pegs left | Stars | `ResultsHeadlineTier` | Headline | Star row | Next-star line | Primary action | "New best!" |
+|---|---|---|---|---|---|---|---|
+| 1 | 3 | `PERFECT` | "Perfect!" | three filled | none | Next level | if any best improved (D-09) |
+| 2 | 2 | `SOLVED` | "Solved!" | two filled, one hollow | "Leave 1 peg for 3 stars." | Next level | same |
+| 3 | 1 | **`CLEARED`** (new) | **"Cleared!"** (new) | one filled, two hollow | "Leave 2 pegs for 2 stars." | Next level | same |
+| 4+ | — | `STUCK` | "Out of moves" | — | none | Retry | — |
+
+The last row is the defensive branch for a forged or stale route argument (GDD §12.4) and is never
+reached from play: a stuck board stays on the board under the banner (§4.4.3). "Cleared!" is the
+word for a pass that is not a solve — one word and the house exclamation mark, like its two siblings
+(GD-SB-07) — and it is the first of the three a new player is likely to read, since levels 1–4
+cannot be failed (GDD §7.4) but can be cleared at any star count.
+
+**The celebration is one shape.** The headline scales in, each earned star pops in on the
+`STAR_STAGGER_MS` cadence with its own `StarPop` cue, the score counts up, and "New best!" bounces
+in when a best improved — exactly as today, with the star count now sometimes one or two. A one-star
+clear therefore pops one star and sounds one pop; the win cue and the headline's entrance are the
+same at every tier. Nothing is muted for a lower band and nothing extra is played for it: the stars
+are the grade, and the sound-designer's cue list is not changed by this amendment.
+
+**The next-star line.**
+
+| Property | Value |
+|---|---|
+| Place | in the content column, directly under the star row and above "New best!" (when shown) — the order is headline, stars, line, pill, metrics, actions |
+| Shown | Challenge only, when the result is cleared and not perfect: stars 1 or 2. Never at 3 stars, never on the defensive `STUCK` branch, never in Classic |
+| Text | `results_next_star_hint` (plurals, quantity = the pegs): `one` **"Leave %1$d peg for %2$d stars."**, `other` **"Leave %1$d pegs for %2$d stars."** — at 1 star "Leave 2 pegs for 2 stars.", at 2 stars "Leave 1 peg for 3 stars." |
+| Numbers | the next band up, both from the one `:domain` clear function (GD-SB-14), carried on `ResultsUiState` as two ints or `null` (the tech-lead names the field). The screen reads them; it never subtracts, compares or knows the threshold. `%2$d` is 2 or 3 under the shipped rule, never 1, so "stars" needs no plural of its own; a test pins it |
+| Style | `bodyLarge`, `onSurfaceVariant`, `TextAlign.Center`, `fillMaxWidth` inside the column's `content_max_width` cap, no `maxLines`, wraps |
+| Entrance | a fade (alpha 0 → 1) on the "New best!" pill's timing — a delay of `TOTAL_STARS × ClayAnim.STAR_STAGGER_MS`, then `ClayAnim.ENTRANCE_MS` — so it reads after the stars have landed; it is prose, so it fades rather than pops. With animations off it is present on the first frame (functional text is never withheld). No new duration |
+| Semantics | its own node, after the star row's stop; `Text` semantics only — no live region, no role, no merge into the star row, not part of `results_a11y_summary` |
+| Test hook | `RESULTS_NEXT_STAR_HINT_TEST_TAG = "results_next_star_hint"`, beside `RESULTS_NEW_BEST_TEST_TAG` |
+| Token, colour, cue | none added — `spacing_lg` already spaces the column; the colour role exists; it plays nothing |
+
+Why the next band only, and why these words: GD-SB-08 asks for "how many pegs the next star needs",
+singular, and one sentence of one shape fits one line at default scale and two at 200% on 360dp
+(below). The imperative "Leave … for …" is the tutorial's own register ("Clear the board down to one
+peg") and the stuck banner's ("leave 3 or fewer"). Declined: "almost", "so close", "try again" (the
+level is cleared; nothing is being retried), "next time" (which level?), any time or score advice
+(stars and score are independent axes, GDD §6.3), and a second clause naming the band after next —
+the three star slots already show the scale, and a two-star player has nothing above three.
+
+**Headline hierarchy, checked.** All three headlines are `displaySmall` (36sp Fredoka); "Cleared!"
+is eight glyphs like "Perfect!", so at 200% (72sp, ≈ 320dp) it fits the 328dp column on a 360dp
+phone exactly as "Perfect!" does today. The star row stays the largest element (56dp glow discs); the
+line is the smallest text on the screen above the labels. Stars > headline > line > metrics > actions.
+
+**Fit at 360×640dp** *(usable 568dp; `TopAppBar` 64; `spacing_md` padding top and bottom; 472dp
+for the column, spaced by `spacing_lg` 24)*:
+
+| Element | 1.0 | 2.0 |
+|---|---|---|
+| Headline (`displaySmall`, 44sp line) | 44 | 88 |
+| Star row (glow 56dp, dp not sp) | 56 | 56 |
+| Next-star line (`bodyLarge`; 1 line / 2 lines) | 24 | 80 |
+| "New best!" pill (`labelLarge` + 2 × `spacing_xs`) | 28 | 48 |
+| Metrics (`titleLarge` + `spacing_xs` + `labelLarge`) | 52 | 100 |
+| Actions (gradient button, `spacing_sm`, text button) | 88 | 120 |
+| Five gaps | 120 | 120 |
+| **Column** | **≈ 412 of 472 — fits, centred** | **≈ 612 — scrolls by ≈ 140dp** |
+
+Today's column (no line) is ≈ 364dp and ≈ 508dp, so at 200% Results already scrolls by ≈ 36dp; the
+line adds ≈ 104dp of scroll there and nothing at default scale. The column is a `verticalScroll`
+and nothing clips, truncates or ellipsises; the actions are one plain scroll away, which the
+existing screen test already performs (`performScrollTo`). At 412dp width the line is one line at
+200% and the scroll shrinks to ≈ 100dp. On a tablet the column is capped at `content_max_width` as
+today. Criterion 30g pins these with goldens.
+
+**Never colour alone.** The one- and two-star rows read through three channels that are not hue:
+the hollow stars (shape and fill; colour-vision CV-13a), the headline's word, and the line's
+sentence. The "New best!" pill is unchanged. The colour-blind palette draws the stars as
+`docs/ux/colour-vision.md` §3.4 says, in both palettes.
+
+**"New best!" on a star upgrade.** Unchanged (D-09): the pill shows when this play improved any of
+the level's stored bests, so a one-star level later cleared with three stars shows it on stars; a
+later one-star clear of a three-star level shows it only if its time or score improved, which the
+GDD's §6.4 makes possible for the first time (a fast one-star clear can set the time best). The pill
+says nothing about which field; the metrics are the record. No surface is added for "fewest pegs".
+
+**TalkBack.** The opening summary keeps its shape and its one-announcement latch (D-TBa item 7):
+`results_a11y_summary` with the tier's headline, `catalog_stars_earned` and `board_a11y_pegs_left`
+— **"Cleared! — 1 of 3 stars, 3 pegs left."** at one star, "Solved! — 2 of 3 stars, 2 pegs left." at
+two. The line is not in the summary: the summary is the result; the line is advice, read when the
+player reaches it. Traversal order (26b): back, "Results", the headline, the star row's stop ("1 of
+3 stars"), **the next-star line**, "New best!" when shown, SCORE, TIME, PEGS LEFT, Next level, Home.
+The star row stays one stop with decorative stars (TB-8). Nothing is assertive and nothing moves
+focus.
+
+**Classic.** No line, no "Cleared!" in play: a Classic Results screen is always a won board (R4,
+R11), its tiers map as today, and `STUCK` remains its unreachable 1-star tier. If the founder's
+Q-031 answer (Classic alignment) ever lands, this section is the template and the line's text needs
+no change — its numbers would come from Classic's own band function.
+
+**What this owes in tests:** criteria **30a–30g** (§14); on the JVM, the GDD's
+`ResultsScreenTest.aOneStarChallengeResultShowsTheClearedHeadlineAndTheNextStarLine`,
+`aTwoStarChallengeResultShowsTheNextStarLine`, `aPerfectChallengeResultShowsNoNextStarLine`, the
+existing `solvedChallengeShowsExactlyOneNextLevelAndNoReplayOrRetry` extended to one star, and the
+ViewModel tests of GDD §14 (GD-SB-14 row); on a device, SB-Q1, SB-Q2, SB-Q3 and SB-Q7 of the GDD.
 
 ## 5. Deliberate non-UI (negative contract)
 
@@ -4533,6 +4847,12 @@ design (600 each). Fredoka stat-pill values are proportional; they do not tick, 
 
 *(Added 2026-10-21 — D-04f.)* The Undecided notice's text is `bodyMedium`, the same role as the
 rescue banner's message (§4.4.2).
+
+*(Added 2026-11-01 — D-SB.)* The Results next-star line is **`bodyLarge`** (16sp, Nunito) in
+`onSurfaceVariant` — one step above the banner's `bodyMedium` because it is read at arm's length
+on a celebration screen, and below the metrics' `titleLarge` so it never competes with the numbers.
+The "Cleared!" headline is `displaySmall` like its two siblings. The banner's Challenge messages
+keep `bodyMedium`. No new role, no new size.
 
 ### 6.4 Motion
 
@@ -5070,6 +5390,48 @@ differs.
 sentence, and sharing it with a gameplay duration would give one string two owners. D-03n and D-03o add
 no string.
 
+**Added 2026-11-01 — D-SB, the Challenge star bands (§4.6, §4.4.3).** One string and three plurals.
+Every number is a format argument supplied from the clear rule's constants (`CLEAR_MAX_PEGS` and the
+band it derives), never a typed digit — the `ad_offer_*_body` contract. The apostrophe-free wording
+is deliberate: none of the four needs escaping.
+
+| Name | Value | Where |
+|------|-------|-------|
+| `results_headline_cleared` | `Cleared!` | The Results headline at 1 star in Challenge (`ResultsHeadlineTier.CLEARED`); also the first part of `results_a11y_summary` on that screen |
+| `results_next_star_hint` (plurals, quantity = `%1$d` pegs) | one: `Leave %1$d peg for %2$d stars.` · other: `Leave %1$d pegs for %2$d stars.` | The next-star line under the star row, Challenge only, at 1 star (2, 2 → "Leave 2 pegs for 2 stars.") and 2 stars (1, 3 → "Leave 1 peg for 3 stars."). `%2$d` is never 1 under the shipped rule |
+| `stuck_message_challenge` (plurals, quantity = `%1$d` pegs) | one: `No moves left with %1$d peg — leave %2$d or fewer to clear the level. Undo or restart.` · other: `No moves left with %1$d pegs — leave %2$d or fewer to clear the level. Undo or restart.` | The rescue banner on a stuck Challenge board; `%1$d` the pegs on the board (always ≥ 4), `%2$d` the threshold (3) |
+| `nowin_message_challenge` (plurals, quantity = `%1$d`) | one: `One peg is out of reach from here — you may still clear the level with %1$d peg or fewer, or undo or restart.` · other: `One peg is out of reach from here — you may still clear the level with %1$d pegs or fewer, or undo or restart.` | The rescue banner after a Challenge Hint proves one peg unreachable; `%1$d` the threshold (3) |
+
+Unchanged in value, newly reachable in play: `results_headline_solved` ("Solved!", now Challenge's
+2-star tier as well as Classic's defensive one), `catalog_stars_earned` on the Results star row at
+"1 of 3 stars" and "2 of 3 stars", `results_a11y_summary` ("Cleared! — 1 of 3 stars, 3 pegs left."),
+`results_new_best` on a star upgrade, `action_next_level` on every clear. Unchanged in value and in
+use: `results_headline_perfect`, `results_headline_stuck` (the defensive branch only), `action_retry`
+(the defensive branch only), `stuck_message` and `nowin_message` (**Classic only** from this change),
+`tutorial_step_3_caption` and `tutorial_done_caption` ("one peg" is still the ideal, GD-SB-17), the
+Home ribbon's labels and `challenge_tile_continue`. No string is deleted by this amendment.
+
+**Turkish copy of record for the four — D-SB-6.** In the sen register the founder chose (Q-031,
+2026-11-01) and the glossary, casing and suffix rules of `docs/ux/localisation-tr.md` on
+`feature/turkish-locale` (§2–§3 there: piyon, yıldız, seviye, "Hamle kalmadı — geri al ya da yeniden
+başlat", suffixes on nouns never on arguments, sentence case, headlines without a person). That
+branch adds these rows to its §5 and the values to `values-tr/strings.xml` when the branches meet;
+the `one` and `other` items are identical, as its D-8 requires. Each row names the character count
+for its §6 watchlist and a shorter alternative where the slot may clip.
+
+| Name | Türkçe (verbatim) | Note |
+|------|-------------------|------|
+| `results_headline_cleared` | `Geçildi!` | "Passed!" — the level is passed, not the board emptied, so not "Temizlendi"; passive like "Çözüldü!", no person; 8 characters, same as English |
+| `results_next_star_hint` (one and other) | `%2$d yıldız için %1$d piyon bırak.` | "3 yıldız için 1 piyon bırak." / "2 yıldız için 2 piyon bırak."; arguments reordered by index; bare imperative "bırak" (sen); 28 characters at both bands |
+| `stuck_message_challenge` (one and other) | `%1$d piyonla hamle kalmadı — seviyeyi geçmek için en fazla %2$d piyon bırak. Geri al ya da yeniden başlat.` | "-la" sits on "piyon", not on the number; "Hamle kalmadı … geri al ya da yeniden başlat" is the Classic banner's own line; ≈ 100 characters at 5 pegs against 81 — 3 lines at 1.0, 5 at 2.0 on 360dp. Shorter alternative if the device check shows a sixth line: `%1$d piyonla hamle kalmadı — en fazla %2$d piyon bırak. Geri al ya da yeniden başlat.` (79) |
+| `nowin_message_challenge` (one and other) | `Buradan tek piyona inmenin yolu yok — en fazla %1$d piyonla seviyeyi yine de geçebilirsin, istersen geri al ya da yeniden başlat.` | "from here" kept as "Buradan"; "yine de geçebilirsin" is the hedge (may still); "istersen" (if you like) carries the English "or" before the escape; ≈ 126 characters against 107 — 3 lines at 1.0, 6 at 2.0, which D-SB-4's tap-away makes acceptable. Shorter alternative: `Tek piyona inilemiyor — en fazla %1$d piyonla yine de geçebilirsin, istersen geri al ya da yeniden başlat.` (103) |
+
+The Turkish branch's R-1 criterion lists the Results headlines as "Mükemmel!", "Çözüldü!" or "Hamle
+kalmadı"; with this amendment the third headline a Turkish player can meet in play is "Geçildi!",
+and "Hamle kalmadı" stays the defensive one. Its §7.6 golden list ("Results in the Perfect, Solved
+and Out-of-moves states") should read Perfect, Solved and Cleared. Both are that branch's edits,
+routed through the producer.
+
 ### Reused unchanged
 
 `onboarding_got_it` (the completion CTA), `onboarding_skip` (the Skip action), `app_name`,
@@ -5106,6 +5468,16 @@ string has no caller; it also named the opposite of what a tap on the off contro
 `show_moves_on` stays, value unchanged, and moves from "Reused unchanged" into service as the
 toggle's constant name. **The amendment adds no string**: the stage has no text, the on mark and the
 slash are drawn, and the strip's larger type reuses its existing strings.
+
+*(Noted 2026-11-01 — D-SB; not deleted by it.)* The game-designer's copy contract (`docs/gdd.md`
+§16) reports `game_over_perfect_headline`, `game_over_perfect_body`, `game_over_near_headline` and
+`game_over_stuck_headline` (`strings.xml:19-22`), with `play_again` and `view_board`, as orphaned —
+the game-over dialog they served no longer exists in the build. They are **not** this amendment's to
+delete: the star-bands change reads none of them and deletes nothing. They are listed here so the
+next copy pass rules on them the way `how_to_play` was ruled on: the developer verifies by grep that
+no layout, screen, test or resource references them, and only then deletes them in one commit with
+that verification in its message. Until that pass they stay, and the Turkish branch's G-6 criterion,
+which expects them on a device, should be read against this note.
 
 ### Fixed
 
@@ -5482,6 +5854,38 @@ correction note under the screen-reader traversal line, D-04g.)*
   line. The notice also carries a `dismiss` action.
 - **Sound is never the only feedback.** Not engaged: the notice plays no sound.
 
+**The Challenge star bands** *(added 2026-11-01 — D-SB, §4.6 and §4.4.3)*. Each line extends the
+subsection it names; nothing above is changed.
+
+- **Touch targets.** The next-star line is text and takes no target. The Challenge proven-dead
+  banner's dismissal (D-SB-4) is the banner's own surface outside its three buttons — at least
+  `nowin_banner_min_height` (48dp) tall and 296dp wide at 360dp, and never nearer than `spacing_sm`
+  to a button, which keep their 48dp targets. The stuck banner adds no target.
+- **Labels.** The hollow stars stay decorative (`contentDescription = null`); the star row's one
+  stop now says "1 of 3 stars" or "2 of 3 stars" in play. The next-star line is its own text node.
+- **Announcements.** The banner's live region (23k) speaks `stuck_message_challenge` or
+  `nowin_message_challenge` as it speaks the Classic lines — politely, once per raise, an identical
+  repeat after a dismissal included. The next-star line is not a live region: it is on screen when
+  the summary is spoken and is read when it is reached. Results' summary keeps its shape and its
+  once-per-result latch; at one star it is "Cleared! — 1 of 3 stars, 3 pegs left.".
+- **State, not just colour.** One star against three: the two hollow stars (shape and fill,
+  CV-13a), the word "Cleared!" against "Perfect!", and the line's presence. Stuck against
+  proven-dead in Challenge: the sentence ("No moves left" against "One peg is out of reach") and,
+  for the proven-dead banner only, the dismiss action. Neither pair is told apart by hue.
+- **Contrast.** The line is `onSurfaceVariant` on the window's background — the catalogue's
+  caption pair, ≥ 4.5:1 in both themes (criterion 27's existing pairs). The banner's text and the
+  headline use their existing roles.
+- **Text scaling.** The line wraps (two lines at 200% on 360dp) and the Results column scrolls by
+  ≈ 140dp there (§4.6's table); nothing is clipped or ellipsised. The banner's Challenge messages
+  wrap to four and six lines at 200% and the banner grows upward (§4.4.3's table); the proven-dead
+  one can be put away.
+- **Screen-reader traversal.** Results: back, title, headline, star row, **next-star line**, "New
+  best!", the three metrics, the actions. Gameplay is unchanged: the banner's stop sits where §11.1
+  puts it, and its new `dismiss` action is offered on the Challenge proven-dead banner only.
+- **Sound is never the only feedback.** One star pops one `StarPop`; the star is drawn as it sounds.
+  The dismissal plays no cue and the banner's leaving is its feedback.
+- **One-handed use.** Unchanged: the banner's buttons and Results' actions are where they were.
+
 ### 11.1 The board with TalkBack (D-TB — 2026-10-23)
 
 > **Status.** This specifies D-TB. Its inputs are the game-designer's scope ruling
@@ -5806,6 +6210,11 @@ rotation, a process-death restore or a back navigation onto the same Results ent
 *(2026-10-24 — D-TBc; QA's B-6.)* After a winning jump, this summary is the first line the app speaks
 and the win's only spoken record, so it must be spoken once and in full. The winning jump's own line is
 not owed (§3, D-TBc).
+*(2026-11-01 — D-SB, §4.6.)* In Challenge the summary's first part is now one of three headlines:
+"Perfect! — 3 of 3 stars, 1 peg left.", "Solved! — 2 of 3 stars, 2 pegs left." or **"Cleared! — 1 of
+3 stars, 3 pegs left."** — the same three resources, joined by the same format. The star row's stop
+says "1 of 3 stars" and "2 of 3 stars" in play for the first time. The next-star line is one more
+stop after the star row, read on its own and never in the summary (criterion 30d).
 
 **The tutorial.** Its board follows this whole contract. It adds the step and completion lines and the
 coach escalation's hint line, all in the table above. Its captions keep the word "tap": TalkBack users
@@ -5952,6 +6361,18 @@ board region, and is never wider than that region or `board_max_size`.
 *(Pointer 2026-10-21 — D-03n, §4.2.5.)* The ≈150–280dp range above is the 3 : 1 split's. Under D-03n
 the stage on QA's 6.7-inch window is 326.3, 230.3 and 134.3dp with no, one and both chips (the art
 capped at 320dp), and the tiles hold the same place in all three states.
+
+*(Added 2026-11-01 — D-SB, §4.6 and §4.4.3.)* Two surfaces, one table each.
+
+| Case | The next-star line (Results, Challenge, 1–2 stars) | The banner's Challenge messages |
+|------|------|------|
+| 360dp phone, default scale | one line (≈ 200dp of 328); the column is ≈ 412dp of 472 and does not scroll | stuck: two lines, banner ≈ 120dp; proven-dead: three lines, ≈ 140dp (§4.4.3's table) |
+| 412dp phone, default scale | one line; no scroll | stuck two lines, proven-dead three; one line fewer at 200% than on 360dp |
+| 200% font scale, 360dp | two lines; the column scrolls by ≈ 140dp (≈ 36dp today), nothing clipped | stuck four lines (banner ≈ 248dp), proven-dead six (≈ 328dp, nearly the whole slab) — the proven-dead banner is put away by a tap (D-SB-4) |
+| Tablet | capped with the column at `content_max_width`; one line | capped with the board region at `board_max_size`; one line fewer |
+| Landscape | not a supported orientation change (row above); existing behaviour preserved | same |
+| RTL | centred text mirrors by default; the stars' order is decorative | the banner's text is start-aligned and mirrors with the layout; the dash keeps its place in the sentence |
+| Dark theme | `onSurfaceVariant` on the dark background has its own variant; the hollow stars draw in both palettes (`docs/ux/colour-vision.md` §3.4) | `onErrorContainer` on `errorContainer`, unchanged |
 
 ---
 
@@ -6174,6 +6595,29 @@ contract — and recording them *after* the refresh captures the design the stud
 What Phase 15 owes instead is the list above, which is binding rather than advisory.
 
 ---
+
+**Added 2026-11-01 — D-SB (§4.6, §4.4.3).** The GDD's §14 names every test the rule itself owes;
+these are the ones that touch this document's surfaces.
+
+| Test | Why it breaks or changes | Fix |
+|------|---------------|-----|
+| `ResultsViewModelTest.aStuckTwoPegFinishOnAOnePegBoardIsStillNotRecorded` | Its sentence is false under R5: a two-peg Challenge finish is recorded with two stars | **Retired and replaced** by the GDD's `aOneStarChallengeClearIsRecordedSubmittedAndOffersNextLevel` and `aChallengeRouteWithFourPegsRecordsNothingAndShowsRetry` (GDD §14, GD-SB-14 row). Never `@Ignore`d |
+| `ResultsScreenTest.solvedChallengeShowsExactlyOneNextLevelAndNoReplayOrRetry` | Passes unchanged at two stars | **Extended**, not moved: the same assertion at one star (`CLEARED`) — criterion 30e |
+| `ResultsScreenTest` sample states and `headlineResFor` | A new enum value, `CLEARED`, with its string | A `CLEARED` sample; the headline is found by resource id, never by the literal "Cleared!" |
+| The summary's format test (`BoardSpeechFormat` / `ResultsScreenTest`'s announcement half, TB-8) | Three tiers in Challenge | One more case: "Cleared! — 1 of 3 stars, 3 pegs left." (criterion 30d) |
+| `GameScreenHintNoticeTest` (criterion 23a: "no node shows the text of `nowin_message` or `stuck_message`") | Two more banner texts exist | The exclusion names the two Challenge plurals too, resolved at the test's peg count |
+| `NoWinBannerTest.theBannersMessageIsAPoliteLiveRegionAndItsActionsAreOutsideIt` | The message is passed in; the region is unchanged | **Passes unchanged**; a sibling asserts the `Dismiss` action is present with a dismissal callback and absent without (criterion 30j) |
+| Roborazzi goldens for Results | Two star counts play has never shown | Goldens at 360×640dp, 1.0 and 2.0, for Perfect, Solved and **Cleared** (criterion 30g). The Turkish branch's §7.6 list reads "Perfect, Solved and Out-of-moves"; it should read Perfect, Solved and Cleared (routed) |
+
+What this owes beyond the retargets: the GDD's named tests for SB-U1…U4
+(`aOneStarChallengeResultShowsTheClearedHeadlineAndTheNextStarLine`,
+`aTwoStarChallengeResultShowsTheNextStarLine`, `aPerfectChallengeResultShowsNoNextStarLine`,
+`aStuckChallengeBoardShowsTheChallengeStuckMessageWithItsPegCount`,
+`aProvenDeadChallengeBoardSaysOnePegIsOutOfReachNotThatTheLevelIsLost`); the GDD files the last two
+under a `GameScreenTest` that does not exist — the developer places them in the game screen's existing
+test files or a new `GameScreenRescueBannerTest`, keeping the sentences. One test tag constant,
+`RESULTS_NEXT_STAR_HINT_TEST_TAG`, in the file's existing idiom; no test finds the line, the headline
+or a banner message by its English literal.
 
 ## 14. Candidate acceptance criteria
 
@@ -7350,6 +7794,110 @@ TB-12. **Nothing spoken leaks a winning move.** In every state, every cell text,
        or a tutorial coach escalation. *A JVM test on the model's inputs; the code-auditor reads the
        dependency.* (GD-TB-2, D-TB)
 
+**The Challenge star bands (D-SB, §4.6 and §4.4.3 — amendment, added 2026-11-01).** These sit
+beside the game-designer's SB-D, SB-V, SB-P and SB-Q criteria (`docs/gdd.md` §15), which test the
+rule; these test what the player sees and hears. SB-U1 is 30a–30c, SB-U2 is 30h, SB-U3 is 30i and
+SB-U4 is 30d. Every string is found by resource id or test tag, never by its English literal.
+
+30a. **One star says "Cleared!" and shows one star.** Given `ResultsScreen` with a Challenge state
+     (`challengeLevel` set) of 1 star, `pegsRemaining` 3 and `headlineTier` `CLEARED`, then the
+     headline node's text equals `results_headline_cleared`, the node tagged
+     `RESULTS_STAR_ROW_TEST_TAG` carries `EarnedStarCountKey` 1 and the description
+     `catalog_stars_earned` (1, 3), and the node tagged `RESULTS_NEXT_STAR_HINT_TEST_TAG` is displayed
+     with the text of `results_next_star_hint` resolved at (2, 2). Given 2 stars and `SOLVED`, the
+     headline is `results_headline_solved` and the line is resolved at (1, 3). Given 3 stars and
+     `PERFECT`, no node carries the tag. (D-SB-1, D-SB-2; GD-SB-07/08; SB-U1)
+
+30b. **Classic and the defensive branch show no line.** Given a Classic state (`challengeLevel`
+     null) at 1, 2 or 3 stars, and given a Challenge state on the `STUCK` tier, then no node carries
+     `RESULTS_NEXT_STAR_HINT_TEST_TAG`; the Classic headlines map as today. (D-SB-2; R8)
+
+30c. **The line's words and its numbers.** A unit test resolves `results_next_star_hint` at (2, 2)
+     and (1, 3) and asserts "Leave 2 pegs for 2 stars." and "Leave 1 peg for 3 stars.", and that
+     neither contains, case-insensitively, "almost", "so close", "try again", "next time", "time"
+     as a word, or "score". A JVM test asserts the two numbers come from the `:domain` clear
+     function through `ResultsUiState` — 1 star → (2, 2), 2 → (1, 3), 3 → none, Classic → none —
+     and that the second number is never 1. (D-SB-2; GD-SB-14)
+
+30d. **Spoken once, then one more stop.** With TalkBack, when a 1-star Challenge Results opens, the
+     summary is announced once as "Cleared! — 1 of 3 stars, 3 pegs left." (the `results_a11y_summary`
+     shape with the three resources), not again on rotation or a return onto the same entry; and the
+     traversal is back, "Results", the headline, the star row's stop, the next-star line, "New best!"
+     when shown, the three metrics, Next level, Home. The line is one node with `Text` semantics, no
+     live region and no role, and is not merged into the star row. *A Compose test on the summary
+     and the semantics order; a device pass from the speech log (SB-Q7).* (D-SB-2; TB-8; SB-U4)
+
+30e. **Next level on every clear.** Given a Challenge state at 1 or 2 stars, then exactly one node
+     shows `action_next_level`, none shows `action_retry`, `action_replay` or `action_catalog`, and
+     the one gradient action is Next level. Given the `STUCK` tier, Retry is the one action and Next
+     level is absent — as today. (CSB-03; R7)
+
+30f. **"New best!" on a star upgrade.** Given a level whose stored best is 1 star and a 3-star play,
+     then the node tagged `RESULTS_NEW_BEST_TEST_TAG` exists; given a stored 3-star best and a 1-star
+     play with no faster time and no higher score, it does not; given the same 1-star play with a
+     faster time, it does. *The ViewModel test of GDD SB-D11 plus the screen test at
+     `newBests.stars`.* (D-09; CSB-04)
+
+30g. **Fit at 360×640dp.** Goldens at 360×640dp (status and navigation insets applied), font scale
+     1.0 and 2.0, light and dark, for the Perfect, Solved and Cleared tiers: at 1.0 the column fits
+     without scrolling and the line is one line; at 2.0 the column scrolls, the line is at most two
+     lines, no text is clipped or ellipsised, and the actions are reachable by one plain scroll.
+     The measured column heights are recorded beside §4.6's ≈ 412dp and ≈ 612dp. *Roborazzi; a
+     device screenshot at 200% in QA's pass.* (D-SB-2; §12)
+
+30h. **The Challenge stuck message names the count.** Given `GameScreen` on a Challenge level with
+     `stuck` true and 5 pegs on the board, then the node tagged `NOWIN_BANNER_TEST_TAG` is displayed,
+     its message text equals `stuck_message_challenge` resolved with (5, 3) — "No moves left with
+     5 pegs — leave 3 or fewer to clear the level. Undo or restart." — Undo, Restart and Home are
+     present, and no node shows the text of `stuck_message`. Given Classic with `stuck` true, the
+     message is `stuck_message` and no node shows the Challenge text. A unit test pins that the
+     plural is resolved at `CLEAR_MAX_PEGS` = 3 and that a stuck Challenge count is ≥ 4, so the
+     `one` item is unreachable. (D-SB-3; R6; CSB-02/05; SB-U2)
+
+30i. **The Challenge proven-dead message names the threshold and never a loss.** Given a Challenge
+     level with `noWinningMove` true, then the banner's message equals `nowin_message_challenge`
+     resolved with 3 — "One peg is out of reach from here — you may still clear the level with
+     3 pegs or fewer, or undo or restart." — and contains, case-insensitively, none of "lost",
+     "failed", "game over", "no winning move" or "try again". Given Classic, the message is
+     `nowin_message`. (D-SB-3; GD-SB-18; SB-U3)
+
+30j. **The Challenge proven-dead banner can be put away, and only it.** Given a Challenge level with
+     `noWinningMove` true: a tap on the banner outside its three buttons removes the node tagged
+     `NOWIN_BANNER_TEST_TAG`, `noWinningMove` is false, `stuck` is unchanged, no hint or undo is
+     charged or counted, no cue plays, and a tap on the board beneath then reaches `onCellTap`; the
+     message node carries a `SemanticsActions.Dismiss` action and no `OnClick`; taking the action
+     does the same. Given `stuck` true in either mode, or `noWinningMove` true in Classic, the
+     banner carries no `Dismiss` action and a tap outside its buttons changes nothing. After a
+     dismissal, a Hint on the same position raises the banner again. *Compose tests on
+     `NoWinBanner` and `GameScreen`; a ViewModel test on the flag.* (D-SB-4)
+
+30k. **The Challenge messages are announced.** With TalkBack, when the stuck banner or the
+     proven-dead banner rises on a Challenge level, its Challenge message is spoken once, verbatim,
+     in 23k's region; a repeat after a dismissal is spoken again; focus does not move on a raise or
+     a dismissal. *The 23k Compose assertion with the Challenge texts; a device pass (SB-Q4, SB-Q6,
+     SB-Q7).* (D-SB-3, D-SB-4; §11)
+
+30l. **The banner's fit.** On a 360dp window at 1.0 the stuck message at 5 pegs runs two lines and
+     the proven-dead message three; at 2.0, four and six; the three buttons are whole, ≥ 48dp and
+     never pushed off the banner or the screen, and the banner never ellipsises. QA records the
+     measured line counts and banner heights beside §4.4.3's table with a screenshot at each scale;
+     a sixth line on the proven-dead banner at 2.0 is expected, not a defect, because 30j puts it
+     away. *A device pass (SB-Q4, SB-Q6); goldens optional.* (D-SB-3, D-SB-4; §12)
+
+30m. **Nothing else tells the goal.** The tutorial's three captions and its done caption are
+     byte-identical to the Reused list; no node on Home, the Classic catalogue, the Challenge tile,
+     the status strip or the dock shows a star count, a peg target or any of the four new strings;
+     the four new resources are referenced only from `ResultsScreen.kt`, `GameScreen.kt` and their
+     tests. *A grep over `app/src/main` recorded in the developer's report; the existing screen
+     tests.* (D-SB-5; GD-SB-17)
+
+30n. **Never colour alone, both palettes.** At 1 and 2 stars the unearned stars are hollow outlines
+     and the earned ones filled, in the standard and the colour-blind palette; in greyscale the
+     filled and hollow stars, "Cleared!" against "Perfect!", and the line's presence still tell the
+     bands apart; the two Challenge banner messages differ by their words. *The colour-vision
+     goldens' star cases extended to 1 and 2 earned stars; a greyscale read in QA's pass.* (D-SB-1,
+     D-SB-2; CV-13a; rules/compose.md)
+
 ---
 
 ## 15. Open questions for the founder (non-blocking)
@@ -7410,6 +7958,15 @@ slack, three quarters of it to the stage, so the board is larger and the title s
 top.)*
 
 ---
+
+*(Added 2026-11-01 — D-SB.)* This amendment opens **no founder question**: "Cleared!", the next-star
+line's words and the banner's two messages are copy within the game-designer's rules, not art
+direction between equals; the dismissal (D-SB-4) is an interaction fix, not taste. Two items are
+recorded for the producer rather than the founder: **(1)** the game-designer's drafted Q-031 (Classic
+bands) is the founder's open question on Classic; if it lands as "align", §4.6 is the template and
+D-SB-4's dismissal extends to Classic's proven-dead banner in the same change — until then Classic's
+banner has no dismissal and the two modes differ there, deliberately. **(2)** The game-over dialog's
+orphaned strings (§8's note) want a copy pass, not a founder answer.
 
 ## 16. Traceability
 
@@ -7539,6 +8096,28 @@ trace: like D-TB, both trace to the studio baseline and to Q-023.
 trace.
 *(Pointer 2026-11-01 — D-TBe.)* "D-TBe" joins the same series for the same reason. It changes no trace
 and no string.
+
+*(Added 2026-11-01 — D-SB, the Challenge star bands.)* The fourteen ids the game-designer added to
+`.planning/REQUIREMENTS.md` on 2026-11-01 trace as follows; the rule's own tests are the GDD's (§14
+there), and only the ids with a surface appear in this document.
+
+| Requirement | Surface in this contract |
+|-------------|--------------------------|
+| CSB-01 | §4.6 — the three Challenge tiers and their headlines, "Cleared!" new (D-SB-1); criteria 30a, 30n. The band itself is GDD R5 |
+| CSB-02 | §4.4.3 — the Challenge stuck banner with its count and threshold, Undo · Restart · Home unchanged (D-SB-3); criteria 30h, 30k, 30l |
+| CSB-03 | §4.6 — Next level on every clear, the celebration at every tier (D-SB-1); criterion 30e |
+| CSB-04 | §4.6 — "New best!" on a star upgrade and on a time or score best at a lower band (D-09 unchanged); criterion 30f |
+| CSB-05 | §4.6 the next-star line (D-SB-2) and §4.4.3 the two Challenge messages (D-SB-3); criteria 30a–30d, 30h, 30i |
+| CSB-07 | §4.6 "Classic", §4.4.3's selection rule, D-SB-4's scope — no Classic string, tier, line or behaviour changes; criteria 30b, 30h, 30i, 30j |
+| CSB-06, CSB-08, CLC-01…06 | no surface in this document: achievements, the generator, the cut and the migration are `:domain` and `:data` (GDD §7, §8, §11, §12); CLC-02's fail-proof opening is what D-SB-5 leans on |
+| ASST-03 | §4.4.3 — the banner's two Challenge messages and the proven-dead banner's dismissal (D-SB-3, D-SB-4); the Classic messages and the banner's look, slot, actions and announcement unchanged |
+| QUAL-03 | one string, three plurals and one test tag (§8); no token, no colour, no duration, no asset, no dependency |
+| Studio baseline (rules/compose.md: never colour alone; TalkBack) | §4.6 "Never colour alone", §11's D-SB lines, criteria 30d, 30k, 30n |
+
+**Ids.** "D-SB-1" to "D-SB-6" join the lettered series beside D-TB for the reason given in §3: the
+GDD's ids are GD-SB-nn and the build brief cites both. No id collides with one on this branch, on
+`feature/turkish-locale` or on `feature/home-continue-live-boards`. Criteria 30a–30n follow the last
+numbered criterion, 29.
 
 ---
 
