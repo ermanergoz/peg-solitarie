@@ -27,6 +27,16 @@ sealed interface ChallengeFinish {
 }
 
 /**
+ * One band of the Challenge clear rule: a finish leaving [pegsRemaining] pegs earns [stars]. What the
+ * Results next-star line names (ux-spec D-SB-2, docs/gdd.md GD-SB-08/20), so its two numbers come
+ * from the rule rather than from the screen.
+ */
+data class ChallengeBand(
+    val pegsRemaining: Int,
+    val stars: Int,
+)
+
+/**
  * The Challenge clear rule: the **one** function that decides whether a Challenge finish counts, and
  * for how many stars (docs/gdd.md R5–R7, §6.1, GD-SB-02, GD-SB-14; tech-design §7.4).
  *
@@ -84,6 +94,18 @@ object ChallengeClearRule {
 
     /** Whether a terminal board with [pegsRemaining] pegs clears its level — [finish] is a clear. */
     fun isCleared(pegsRemaining: Int): Boolean = finish(pegsRemaining) is ChallengeFinish.Cleared
+
+    /**
+     * The band one star above a clear that left [pegsRemaining] pegs — one peg fewer, graded by this
+     * same rule — or `null` when there is none: a perfect, one-peg clear has nothing above it, and a
+     * count that did not clear has no band to step up from. At one star (three pegs) it is two pegs
+     * for two stars; at two stars (two pegs), one peg for three.
+     */
+    fun nextBandUp(pegsRemaining: Int): ChallengeBand? {
+        if (!isCleared(pegsRemaining)) return null
+        val onePegFewer = pegsRemaining - 1
+        return (finish(onePegFewer) as? ChallengeFinish.Cleared)?.let { ChallengeBand(onePegFewer, it.stars) }
+    }
 
     /**
      * The status of a Challenge [board]: [GameStatus.Playing] while a legal move remains (R3: a finish

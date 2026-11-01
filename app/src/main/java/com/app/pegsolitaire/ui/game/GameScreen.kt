@@ -154,7 +154,10 @@ private var SemanticsPropertyReceiver.boardMarkPaletteValue by BoardMarkPaletteK
  * @param modifier layout modifier for the screen.
  * @param challengeLevel the Challenge level number when this is a Challenge game (drives
  *   the "Level N" strip title, S2/D-03), or `null` for Classic (app-name title). This
- *   is a pure presentation flag — it reaches only the title slot, never the board logic.
+ *   is a pure presentation flag — it reaches the title slot and the rescue banner's choice of
+ *   words (ux-spec D-SB-3), never the board logic.
+ * @param onDismissProvenDead puts the Challenge proven-dead banner away (ux-spec D-SB-4, GD-SB-19):
+ *   the ViewModel clears the proof flag and nothing else. Never offered for a stuck board or in Classic.
  *
  * The `LongMethod` suppression below rests on the list of every surface this composable hosts,
  * the last paragraph of this KDoc, and that list is the point of it: the screen must not silently
@@ -168,7 +171,7 @@ private var SemanticsPropertyReceiver.boardMarkPaletteValue by BoardMarkPaletteK
  * - the snackbar host, [ClaySnackbarHost];
  * - the spoken channel, [AnnouncementRegion], last and above everything (D-TB);
  * - the board panel, [BoardCanvas], with the wrong-tap answer and its stops (D-06, D-TB);
- * - the rescue banner, [NoWinBanner];
+ * - the rescue banner, [NoWinBanner], through [RescueBanner];
  * - the Undecided notice, [UndecidedNoticeSlot];
  * - the action dock, [GameActionDock];
  * - the restart confirmation, `RestartConfirmDialog`;
@@ -193,6 +196,7 @@ fun GameScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
     challengeLevel: Int? = null,
+    onDismissProvenDead: () -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val boardStopFocus = remember { FocusRequester() }
@@ -310,11 +314,10 @@ fun GameScreen(
                     // a proof outranks an Undecided, so the notice's slot is composed only while no
                     // banner is up (criterion 23h). What the notice does once raised is its own.
                     if (state.showRescueBanner) {
-                        NoWinBanner(
-                            message =
-                                stringResource(
-                                    if (state.noWinningMove) R.string.nowin_message else R.string.stuck_message,
-                                ),
+                        // Its words and its put-away are chosen by mode first (ux-spec D-SB-3/D-SB-4).
+                        RescueBanner(
+                            state = state,
+                            isChallenge = challengeLevel != null,
                             // §11.1: once the action has happened, focus moves to the board stop.
                             onUndo = {
                                 onUndo()
@@ -325,6 +328,7 @@ fun GameScreen(
                                 bannerFocusMove(BannerAction.Restart)
                             },
                             onHome = onHome,
+                            onDismissProvenDead = onDismissProvenDead,
                             modifier =
                                 Modifier
                                     .align(Alignment.BottomCenter)

@@ -55,7 +55,8 @@ import com.app.pegsolitaire.platform.ads.AdReason
  *   D-08, GD-HT-1): the book's authoritative entry, an exhausted search, or a Pagoda reject.
  *   The inline "no winning move — undo or restart" banner (04-04) renders on this. A search
  *   that stopped without a proof sets [hintUndecided] instead, never this. Cleared on any
- *   jump/undo and when a new hint is requested.
+ *   jump/undo, when a new hint is requested, and when the player puts the Challenge proven-dead
+ *   banner away (ux-spec D-SB-4) — which clears this flag and nothing else.
  * @property hintUndecided whether the last hint search stopped with no move and no proof —
  *   its deadline, node ceiling or attempt limit (GD-HT-1, GD-HT-2): the Undecided notice
  *   renders on this, never the rescue banner, and it is never part of [showRescueBanner].

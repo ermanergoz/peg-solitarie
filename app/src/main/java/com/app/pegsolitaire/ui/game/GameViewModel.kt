@@ -1486,6 +1486,20 @@ class GameViewModel
         }
 
         /**
+         * Puts the Challenge proven-dead banner away (ux-spec D-SB-4; docs/gdd.md GD-SB-19): a tap on
+         * the banner outside its buttons, or TalkBack's Dismiss. It clears the proof flag,
+         * [GameUiState.noWinningMove], and **nothing else** — it is not a hint, not a move and not an
+         * undo, so no allowance unit is spent, no assist is counted, no cue plays, and the clock, the
+         * board, the selection and focus are left as they are (D-09: dismissals stay quiet). The proof
+         * still holds: a Hint asked on the same position answers Proven dead again, free (GD-HT-5), and
+         * raises the banner again. [GameUiState.stuck] is not touched, because a stuck banner is never
+         * put away; the screen offers this only for the proven-dead banner of a Challenge board.
+         */
+        fun onDismissProvenDeadBanner() {
+            _uiState.update { it.copy(noWinningMove = false) }
+        }
+
+        /**
          * The player agreed to watch an ad for more of the offered assist (ADS-01).
          *
          * The only place in this file that requests a rewarded ad, and it is reachable only

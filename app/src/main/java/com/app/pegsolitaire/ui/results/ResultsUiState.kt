@@ -3,6 +3,7 @@ package com.app.pegsolitaire.ui.results
 import androidx.compose.runtime.Immutable
 import com.app.pegsolitaire.data.NewBests
 import com.app.pegsolitaire.domain.model.BoardConstants
+import com.app.pegsolitaire.domain.scoring.ChallengeBand
 import com.app.pegsolitaire.domain.scoring.ChallengeClearRule
 
 /**
@@ -122,6 +123,16 @@ data class ResultsUiState(
      */
     val showNextLevel: Boolean
         get() = challengeLevel != null && isSolved
+
+    /**
+     * The band one star above this Challenge clear — the pegs to leave and the stars they earn —
+     * which the next-star line names (ux-spec D-SB-2, docs/gdd.md GD-SB-08/20), or `null` when no
+     * line shows: a perfect clear, an uncleared (defensive STUCK) route, and every Classic result
+     * (R8). Both numbers come from [ChallengeClearRule.nextBandUp], the one clear function
+     * (GD-SB-14), so the screen reads them and never subtracts, compares or knows the threshold.
+     */
+    val nextStarBand: ChallengeBand?
+        get() = if (challengeLevel != null) ChallengeClearRule.nextBandUp(pegsRemaining) else null
 }
 
 /**

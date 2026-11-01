@@ -127,6 +127,31 @@ class ChallengeClearRuleTest {
         assertThat(ChallengeClearRule.CLEAR_MAX_PEGS).isEqualTo(3)
     }
 
+    // ---- The next band up, which the Results next-star line names (ux-spec D-SB-2, GD-SB-20) ----
+
+    @Test
+    fun theNextBandUpFromAOneStarClearIsTwoPegsForTwoStars() {
+        assertThat(ChallengeClearRule.nextBandUp(pegsRemaining = 3))
+            .isEqualTo(ChallengeBand(pegsRemaining = 2, stars = 2))
+    }
+
+    @Test
+    fun theNextBandUpFromATwoStarClearIsOnePegForThreeStars() {
+        assertThat(ChallengeClearRule.nextBandUp(pegsRemaining = 2))
+            .isEqualTo(ChallengeBand(pegsRemaining = 1, stars = 3))
+    }
+
+    @Test
+    fun aPerfectClearAndAFinishThatDidNotClearHaveNoNextBandUp() {
+        // Nothing is above three stars, and an uncleared count (four or more, or a forged one
+        // below one) has no band to step up from.
+        (listOf(1, 0, -1) + (4..64)).forEach { pegsRemaining ->
+            assertWithMessage("nextBandUp(%s)", pegsRemaining)
+                .that(ChallengeClearRule.nextBandUp(pegsRemaining))
+                .isNull()
+        }
+    }
+
     private fun english33With(pegs: List<Position>): Board =
         pegs.fold(Board(spec = Boards.English33, pegs = 0L)) { board, position -> board.withPeg(position) }
 

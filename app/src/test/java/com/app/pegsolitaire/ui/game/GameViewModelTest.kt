@@ -505,6 +505,53 @@ class GameViewModelTest {
             assertThat(board.spec.minimumPegs).isEqualTo(1)
         }
 
+    // ---- Putting the Challenge proven-dead banner away (ux-spec D-SB-4; GDD GD-SB-19, SB-V9) ----
+
+    @Test
+    fun dismissingTheProvenDeadBannerClearsOnlyTheProofFlagAndChargesNothing() =
+        runTest(testDispatcher) {
+            val gateway = FakeAdGateway()
+            val board = twoMoveStuckLine()
+            val viewModel =
+                viewModelFor(
+                    board,
+                    challengeLevel = CLEARED_CHALLENGE_LEVEL,
+                    adGateway = gateway,
+                    levelRepository = RecordingChallengeLevelRepository(board),
+                )
+            runCurrent()
+            viewModel.finished.test {
+                // One jump in, the strip's only line ends at two pegs: one peg is out of reach.
+                jump(viewModel, from = Position(row = 0, col = 2), to = Position(row = 0, col = 4))
+                runCurrent()
+                viewModel.onHintRequested()
+                runCurrent()
+                val proven = viewModel.uiState.value
+                check(proven.noWinningMove) { "the fixture's Hint must prove one peg out of reach" }
+
+                viewModel.onDismissProvenDeadBanner()
+                runCurrent()
+
+                // The flag and nothing else: board, selection, stuck, clock and every cue ordinal.
+                assertThat(viewModel.uiState.value).isEqualTo(proven.copy(noWinningMove = false))
+                // The proof stands: a Hint on the same position raises it again, for free.
+                viewModel.onHintRequested()
+                runCurrent()
+                assertThat(viewModel.uiState.value.noWinningMove).isTrue()
+                assertThat(viewModel.uiState.value.pendingAdOffer).isNull()
+                assertThat(gateway.preloadedReasons).isEmpty()
+                assertThat(gateway.lastReason).isNull()
+                // Nothing was counted either: the two-peg clear that follows is hint- and undo-free.
+                jump(viewModel, from = Position(row = 0, col = 0), to = Position(row = 0, col = 2))
+                runCurrent()
+                val finish = awaitItem()
+                assertThat(finish.result.stars).isEqualTo(2)
+                assertThat(finish.telemetry.hintsUsed).isEqualTo(0)
+                assertThat(finish.telemetry.undosUsed).isEqualTo(0)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
     // ---- Persisted hint toggle ----------------------------------------------
 
     @Test

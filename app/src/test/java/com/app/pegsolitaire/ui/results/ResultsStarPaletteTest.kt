@@ -72,12 +72,30 @@ class ResultsStarPaletteTest {
     }
 
     @Test
-    fun theStarRowDrawsTheActivePaletteInTheLightTheme() = assertTheRowDrawsBothPalettes(dark = false)
+    fun theStarRowDrawsTheActivePaletteInTheLightTheme() =
+        assertTheRowDrawsBothPalettes(dark = false, result = TWO_OF_THREE_STARS)
 
     @Test
-    fun theStarRowDrawsTheActivePaletteInTheDarkTheme() = assertTheRowDrawsBothPalettes(dark = true)
+    fun theStarRowDrawsTheActivePaletteInTheDarkTheme() =
+        assertTheRowDrawsBothPalettes(dark = true, result = TWO_OF_THREE_STARS)
 
-    private fun assertTheRowDrawsBothPalettes(dark: Boolean) {
+    /**
+     * Criterion 30n (ux-spec D-SB-1/D-SB-2): a one-star Challenge clear, a row play never showed before
+     * 3.0.0, reads by fill and outline in both palettes and both themes, as the two-star row does.
+     */
+    @Test
+    fun theOneStarRowDrawsTheActivePaletteInTheLightTheme() =
+        assertTheRowDrawsBothPalettes(dark = false, result = ONE_OF_THREE_STARS)
+
+    @Test
+    fun theOneStarRowDrawsTheActivePaletteInTheDarkTheme() =
+        assertTheRowDrawsBothPalettes(dark = true, result = ONE_OF_THREE_STARS)
+
+    private fun assertTheRowDrawsBothPalettes(
+        dark: Boolean,
+        result: ResultsUiState,
+    ) {
+        val earned = result.stars
         var layout = RowLayout(starPx = 0f, glowPx = 0f, gapPx = 0f)
         composeRule.setContent {
             with(LocalDensity.current) {
@@ -92,7 +110,7 @@ class ResultsStarPaletteTest {
                 BackdropTestHost(BackdropDensity.Sparse) {
                     if (screenShown.value) {
                         ResultsScreen(
-                            state = TWO_OF_THREE_STARS,
+                            state = result,
                             onReplay = {},
                             onCatalog = {},
                             onHome = {},
@@ -108,19 +126,19 @@ class ResultsStarPaletteTest {
         val countUnderStandard = starRow().config[EarnedStarCountKey]
         val colorblind = frameIn(BoardMarkPalette.Colorblind)
         val countUnderColorblind = starRow().config[EarnedStarCountKey]
-        val stars = layout.starBoxes(starRow().boundsInRoot)
+        val stars = layout.starBoxes(starRow().boundsInRoot, earned)
         val beneath = frameWithoutTheScreen()
-        stars.take(EARNED).forEachIndexed { index, box ->
+        stars.take(earned).forEachIndexed { index, box ->
             val centre = beneath.starPixel(box, STAR_CENTRE_UNITS, STAR_CENTRE_UNITS)
             assertWithMessage("the frame without the screen: no earned star $index's fill at its centre")
                 .that(BoardMarkPalette.entries.any { isBetweenStops(centre, boardMarksFor(it, dark).earnedStarFill) })
                 .isFalse()
         }
 
-        assertWithMessage("EarnedStarCountKey under the standard palette").that(countUnderStandard).isEqualTo(EARNED)
+        assertWithMessage("EarnedStarCountKey under the standard palette").that(countUnderStandard).isEqualTo(earned)
         assertWithMessage("EarnedStarCountKey across the flip").that(countUnderColorblind).isEqualTo(countUnderStandard)
-        assertTheStars(colorblind, beneath, BoardMarkPalette.Colorblind, dark, stars)
-        assertTheStars(standard, beneath, BoardMarkPalette.Standard, dark, stars)
+        assertTheStars(colorblind, beneath, BoardMarkPalette.Colorblind, dark, stars, earned)
+        assertTheStars(standard, beneath, BoardMarkPalette.Standard, dark, stars, earned)
     }
 
     /** The frame drawn with [shown] in effect. */
@@ -147,13 +165,14 @@ class ResultsStarPaletteTest {
         shown: BoardMarkPalette,
         dark: Boolean,
         stars: List<Rect>,
+        earned: Int,
     ) {
         val marks = boardMarksFor(shown, dark)
         val colourBlindOutline = checkNotNull(boardMarksFor(BoardMarkPalette.Colorblind, dark).earnedStarOutline)
         stars.forEachIndexed { index, box ->
             val centre = frame.starPixel(box, STAR_CENTRE_UNITS, STAR_CENTRE_UNITS)
             val band = frame.starPixel(box, STAR_CENTRE_UNITS, STAR_BAND_UNITS)
-            if (index < EARNED) {
+            if (index < earned) {
                 assertWithMessage("$shown: earned star $index's centre shows its fill")
                     .that(isBetweenStops(centre, marks.earnedStarFill))
                     .isTrue()
@@ -181,8 +200,11 @@ class ResultsStarPaletteTest {
         val glowPx: Float,
         val gapPx: Float,
     ) {
-        fun starBoxes(row: Rect): List<Rect> {
-            val cells = List(TOTAL_STARS) { index -> if (index < EARNED) glowPx else starPx }
+        fun starBoxes(
+            row: Rect,
+            earned: Int,
+        ): List<Rect> {
+            val cells = List(TOTAL_STARS) { index -> if (index < earned) glowPx else starPx }
             assertWithMessage("the star row's width, as its cells and gaps add up")
                 .that(cells.sum() + gapPx * (TOTAL_STARS - 1))
                 .isWithin(ONE_PIXEL)
@@ -200,7 +222,7 @@ class ResultsStarPaletteTest {
 /** A 2-star Classic result: two earned stars, then one unearned. */
 private val TWO_OF_THREE_STARS =
     ResultsUiState(
-        stars = EARNED,
+        stars = 2,
         pegsRemaining = 5,
         elapsedSeconds = 75,
         score = 1280,
@@ -208,7 +230,18 @@ private val TWO_OF_THREE_STARS =
         replayId = ClassicLevelIds.ENGLISH33,
     )
 
-private const val EARNED = 2
+/** A 1-star Challenge clear: one earned star, then two unearned (ux-spec D-SB-1). */
+private val ONE_OF_THREE_STARS =
+    ResultsUiState(
+        stars = 1,
+        pegsRemaining = 3,
+        elapsedSeconds = 52,
+        score = 2_940,
+        headlineTier = ResultsHeadlineTier.CLEARED,
+        replayId = "",
+        challengeLevel = 3,
+    )
+
 private const val TOTAL_STARS = 3
 
 /** Layout positions are whole pixels at xxhdpi; the row's measured width may round by one. */
