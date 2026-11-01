@@ -19,6 +19,8 @@
 | Retry | **Stays free — `AdReason.RETRY` dropped** | Retry was free in v1.0; ad-gating the most frustrating moment is the top-cited churn driver. Resolves the contradiction between the seam doc-comment and PROJECT.md. Interstitial cadence (suppressed after losses) covers monetization instead. |
 | Cloud save scope | **Bests + ladder only; resume snapshot stays local** | The in-progress snapshot is replay-validated local state; syncing a half-finished board creates genuine conflicts on the app's most fragile path. |
 | Conflict resolution | **Deterministic monotonic merge, no dialog** | Progress is a join-semilattice (`highestLevel`/`stars`/`score` = max, `bestTime` = min) so two devices always merge losslessly. `RESOLUTION_POLICY_MANUAL` + merge in `:domain`. A dialog is reserved for the one genuinely unmergeable case (different PGS profile). |
+| Challenge clear rule (added 2026-11-01) | **Absolute peg bands: 1 peg = 3 stars, 2 = 2, 3 = 1; 4 or more = not cleared.** Every clear advances the ladder; a stuck board at 4+ pegs records nothing and stays on the board under the rescue banner. Classic unchanged. | Founder directive 2026-11-01 for 3.0.0. Before it, only a one-peg finish reached Results and advanced (phase-3 D-02/D-10), so the 2- and 1-star bands were unreachable in play (`.planning/todos/pending/2026-08-30-decide-whether-stuck-finishes-reach-results-1-2-stars.md`). Rules, knock-ons and migration: `docs/gdd.md` §3, §6, §11–§13 (GD-SB-01…GD-SB-17). |
+| Challenge ladder cut (added 2026-11-01) | **Level 1 deals the difficulty the previous curve dealt at level 51** (offset 50): a 6-peg, 5-jump puzzle on the English or European cross; levels 1–4 fail-proof; freeform shapes from level 10, mixed with the canonical pool. Generator contract bumped to version 2; stored level numbers are kept, never renumbered. | Founder: "you can remove the first levels." The old levels 1–50 were 4- and 5-peg puzzles where, under the new rule, any single legal jump already clears the level. `docs/gdd.md` §7, §8, §12. |
 
 ## v1.1 Requirements
 
@@ -116,6 +118,26 @@
 - [ ] **REL-04**: A privacy policy is published at a stable HTTPS URL, disclosing advertising-ID collection and every third-party SDK that receives player data, and is linked from the Play Console store listing
 - [ ] **REL-05**: Player can open the privacy policy from inside the app, from a Settings entry that is always present (independent of CONS-03's consent-region-gated entry)
 
+### Challenge star bands (founder directive 2026-11-01; ships in 3.0.0; spec `docs/gdd.md` §3, §6, §11)
+
+- [ ] **CSB-01**: A Challenge board that ends with no legal move earns 3 stars with 1 peg left, 2 stars with 2 pegs, 1 star with 3 pegs — absolute peg counts, the same on every footprint
+- [ ] **CSB-02**: A Challenge board that ends with no legal move and 4 or more pegs is not cleared: it earns no stars, records no result, does not advance the ladder, and stays on the board under the rescue banner with Undo, Restart and Home
+- [ ] **CSB-03**: Every cleared Challenge level (1–3 stars) goes to Results, records its result, advances the ladder past it and offers Next level
+- [ ] **CSB-04**: A level's stored best keeps the best of each field across plays — stars never decrease, time never rises, score never falls — so a 1-star clear improved later to 3 stars reads 3, and a later 1-star clear leaves a 3-star best untouched
+- [ ] **CSB-05**: Player is told what the next star needs: Results names the peg count of the next band after a 1- or 2-star clear, and the Challenge stuck banner names the pegs that remained and that 3 or fewer clears the level
+- [ ] **CSB-06**: Skill achievements (hint-free, undo-free, speed, centre finish) require a 3-star clear; first-clear, Challenge-level-5, ladder-tier and star-tier achievements and the ladder and score leaderboards count any clear
+- [ ] **CSB-07**: Classic is unchanged — its win test, stars, Results, records and achievements behave exactly as before this change
+- [ ] **CSB-08**: Every generated Challenge board carries a one-peg perfect target whatever footprint it uses, so no footprint's Classic floor can leak into Challenge
+
+### Challenge ladder cut (founder directive 2026-11-01; ships in 3.0.0; spec `docs/gdd.md` §7, §8, §12)
+
+- [ ] **CLC-01**: Challenge level 1 deals the difficulty the previous curve dealt at level 51 (a 5-jump, 6-peg puzzle drawn from two canonical footprints), and every level N deals what the previous curve dealt at N + 50, with the solution-length cap unchanged
+- [ ] **CLC-02**: Levels 1–4 are fail-proof: every legal line from the start ends with 3 or fewer pegs, so a first-time player cannot finish uncleared before level 5
+- [ ] **CLC-03**: Freeform footprints become eligible at level 10 and from then on share the draw with the canonical pool, so the five canonical shapes keep appearing as the pool widens
+- [ ] **CLC-04**: The generator contract version is bumped, the golden fixtures are regenerated under it, and the fuzz harness is green over the whole level space at the release seed count
+- [ ] **CLC-05**: Stored progress is kept as it is — the ladder, per-level results, the cloud payload, achievements and leaderboards are never renumbered, lowered or deleted by the cut
+- [ ] **CLC-06**: An in-progress Challenge snapshot stamped with the previous generator version resumes on its stored board with undo and elapsed time intact, is graded by the new clear rule, and Restart serves the level's new board
+
 ## v1.2 Requirements
 
 Deferred to a future release. Tracked but not in this roadmap.
@@ -150,7 +172,7 @@ Deferred to a future release. Tracked but not in this roadmap.
 
 Which phases cover which requirements. Updated during roadmap creation.
 
-**Coverage:** 56/56 v1.1 requirements mapped to exactly one phase — no orphans, no duplicates.
+**Coverage:** 56/56 original v1.1 requirements mapped to exactly one phase — no orphans, no duplicates. The 14 added on 2026-11-01 (CSB-01…08, CLC-01…06) are mapped to a proposed Phase 16 that the producer adds to `ROADMAP.md` (gsd owns the phase; the game-designer owns the rule).
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
@@ -212,3 +234,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REL-03 | Phase 14 | Pending |
 | REL-04 | Phase 14 | Pending |
 | REL-05 | Phase 9 | Pending |
+| CSB-01 | Phase 16 (proposed) | Pending |
+| CSB-02 | Phase 16 (proposed) | Pending |
+| CSB-03 | Phase 16 (proposed) | Pending |
+| CSB-04 | Phase 16 (proposed) | Pending |
+| CSB-05 | Phase 16 (proposed) | Pending |
+| CSB-06 | Phase 16 (proposed) | Pending |
+| CSB-07 | Phase 16 (proposed) | Pending |
+| CSB-08 | Phase 16 (proposed) | Pending |
+| CLC-01 | Phase 16 (proposed) | Pending |
+| CLC-02 | Phase 16 (proposed) | Pending |
+| CLC-03 | Phase 16 (proposed) | Pending |
+| CLC-04 | Phase 16 (proposed) | Pending |
+| CLC-05 | Phase 16 (proposed) | Pending |
+| CLC-06 | Phase 16 (proposed) | Pending |
