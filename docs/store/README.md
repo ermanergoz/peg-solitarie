@@ -46,23 +46,13 @@ The App content answers (Data safety, Ads, Target audience, Content rating, Adve
 ## What the texts describe
 
 Only what 3.0.0 ships: `CHANGELOG.md` §3.0.0, ROADMAP phases 6–15, `THIRD_PARTY.md`. Every line of the
-release notes maps to a CHANGELOG bullet. Some lines depend on branches that have not merged yet. **If a
-branch does not reach `release/3.0.0`, delete its lines at the release cut** (checklist item 2.4a).
-These branches merged into `develop`, so their lines are no longer conditional:
+release notes maps to a CHANGELOG bullet. Every branch the texts depend on merged into `develop` before
+`release/3.0.0` was cut (checklist item 2.4a, 2026-11-01), so no line is conditional any longer:
 `feature/phase-15-ux-refresh` (c9228a9: the "Learn by playing" section, the game-controls bullet and the
 tutorial release-note line), `feature/colour-vision` (`1bc442f`: the "colorblind palette" bullet and the
-"a colorblind palette option" half of the release-note line) and `feature/audio-review` (`6aa7624`, which
-owned no line), with their tr-TR equivalents. One branch is still pending (re-checked 2026-11-01):
-
-| Branch | Full description | Release notes |
-|---|---|---|
-| `feature/candy-backdrop` (backdrop direction B) | the "glossy new look" bullet | the "A glossy new look" half of "A glossy new look and a colorblind palette option" |
-
-The same branches own these tr-TR lines. Delete them together with their en-US lines:
-
-| Branch | tr-TR full description | tr-TR release notes |
-|---|---|---|
-| `feature/candy-backdrop` | the "Parlak yeni bir görünüm…" bullet | the "Parlak yeni bir görünüm" half of "Parlak yeni bir görünüm ve renk körlüğüne uygun palet seçeneği" |
+"a colorblind palette option" half of the release-note line), `feature/audio-review` (`6aa7624`, which
+owned no line) and `feature/candy-backdrop` (`da886ed`: the "glossy new look" bullet and the "A glossy new
+look" half of the release-note line), with their tr-TR equivalents.
 
 **Accessibility claims.** The founder chose (Q-023, 2026-10-21, option 1) to make the board playable with
 TalkBack in 3.0.0. `feature/talkback-board` merged into `develop` at `d251c3b`, so a TalkBack claim is now
