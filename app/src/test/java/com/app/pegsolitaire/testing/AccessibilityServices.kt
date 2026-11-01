@@ -49,6 +49,23 @@ internal fun descriptionChangesSent(): List<String> =
         .filter { it.contentChangeTypes and AccessibilityEvent.CONTENT_CHANGE_TYPE_CONTENT_DESCRIPTION != 0 }
         .mapNotNull { it.contentDescription?.toString()?.replace(ZERO_WIDTH_SPACE, "") }
 
+/** Every event Compose has sent the running service so far, in the order it sent them. */
+internal fun eventsSent(): List<AccessibilityEvent> = shadowOf(accessibilityManager()).sentAccessibilityEvents
+
+/**
+ * Whether this event tells the service that [node] took input focus: the event TalkBack follows with
+ * its own focus. Matched on the virtual node the event names, so the host view's own focus event is
+ * never mistaken for a stop's.
+ */
+internal fun AccessibilityEvent.isFocusOf(node: SemanticsNode): Boolean =
+    eventType == AccessibilityEvent.TYPE_VIEW_FOCUSED && shadowOf(this).virtualDescendantId == node.id
+
+/** Whether this event is a content-description change to [line], a zero-width repeat mark dropped. */
+internal fun AccessibilityEvent.isDescriptionChangeTo(line: String): Boolean =
+    eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED &&
+        contentChangeTypes and AccessibilityEvent.CONTENT_CHANGE_TYPE_CONTENT_DESCRIPTION != 0 &&
+        contentDescription?.toString()?.replace(ZERO_WIDTH_SPACE, "") == line
+
 /**
  * The virtual id of the node a service reads next after [node], from the traversal hint Compose
  * writes while a service runs, or `null` when [node] has none: a node outside Compose's order.

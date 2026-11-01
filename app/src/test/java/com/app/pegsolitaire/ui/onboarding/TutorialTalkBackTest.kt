@@ -19,6 +19,9 @@ import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.testing.assertInTouchMode
 import com.app.pegsolitaire.testing.descriptionChangesSent
+import com.app.pegsolitaire.testing.eventsSent
+import com.app.pegsolitaire.testing.isDescriptionChangeTo
+import com.app.pegsolitaire.testing.isFocusOf
 import com.app.pegsolitaire.testing.nodeInfoHandedOut
 import com.app.pegsolitaire.testing.traversalBeforeOf
 import com.app.pegsolitaire.testing.turnOnATouchExplorationService
@@ -28,6 +31,7 @@ import com.app.pegsolitaire.ui.components.BoardCellPositionKey
 import com.app.pegsolitaire.ui.components.FOCUS_MOVE_GAP_MS
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -43,7 +47,8 @@ import java.time.Duration
  * the step line on opening and on each step change, the coach's hint line, the done line, the focus
  * moves to step 2's and step 3's board stop and to "Got it" — none on the first step, and none while
  * touch exploration is off — and a step cleared by a jump **action** advancing exactly as the taps do
- * (GD-TB-5).
+ * (GD-TB-5). Under touch exploration a step's clearing jump puts no line of its own, and the next
+ * step's line follows its board stop's focus (the device-2 ruling §2, F-B1; D-TBe).
  */
 @RunWith(RobolectricTestRunner::class)
 // A phone's state: Robolectric starts a window in touch mode only with native graphics (TouchMode.kt).
@@ -63,6 +68,7 @@ class TutorialTalkBackTest {
         assertThat(boardStop().fetchSemanticsNode().config[SemanticsProperties.Focused]).isFalse()
     }
 
+    /** Device-2 ruling §2 (F-B1): the board stop takes focus first; the step line follows it. */
     @Test
     fun clearingAStepSpeaksTheNextStepsLineAndMovesFocusToItsBoardStop() {
         val tutorial = open(touchExploration = true)
@@ -70,10 +76,67 @@ class TutorialTalkBackTest {
         playTheOnlyMove(tutorial)
         idlePastTheStepBeat()
         composeRule.waitForIdle()
-
-        assertChannel("Step 2 of 3. Jumps work up, down, left and right — never diagonally.")
         settleFocusMove()
+
         boardStop().assertIsFocused()
+        assertThat(channelText()).isNotEqualTo(STEP_TWO_LINE)
+        composeRule.mainClock.advanceTimeBy(TutorialAnim.STEP_LINE_AFTER_FOCUS_MS + FRAME_MS)
+        assertChannel("Step 2 of 3. Jumps work up, down, left and right — never diagonally.")
+    }
+
+    /**
+     * Device-2 ruling §1–§2 (F-B1, test a): TalkBack drops a step line still waiting in its queue
+     * when the step swap's burst arrives, so the line is sent only after the board stop's focus.
+     */
+    @Test
+    fun afterAStepSwapTheBoardStopsFocusIsSentBeforeTheStepLine() {
+        turnOnATouchExplorationService()
+        val tutorial = open(touchExploration = true)
+        playTheOnlyMove(tutorial)
+        val mark = eventsSent().size
+
+        composeRule.mainClock.autoAdvance = false
+        idlePastTheStepBeat()
+        repeat(FRAMES_PAST_THE_STEP_LINE) { advanceAFrameAndTheLooper() }
+
+        val sent = eventsSent().drop(mark)
+        val stop = boardStop().fetchSemanticsNode()
+        val focus = sent.indexOfFirst { it.isFocusOf(stop) }
+        val line = sent.indexOfFirst { it.isDescriptionChangeTo(STEP_TWO_LINE) }
+        assertWithMessage("the board stop's focus event").that(focus).isAtLeast(0)
+        assertWithMessage("the step line's event").that(line).isAtLeast(0)
+        assertWithMessage("the board stop's focus, before the step line").that(focus).isLessThan(line)
+    }
+
+    /**
+     * Device-2 ruling §2 (F-B1, test b): under touch exploration the jump that clears step 1 or step 2
+     * puts no line — the next step's line stands for it — while step 3's jumps, its completing jump
+     * included, keep theirs.
+     */
+    @Test
+    fun underTouchExplorationAStepsClearingJumpPutsNoLineOfItsOwn() {
+        turnOnATouchExplorationService()
+        val tutorial = open(touchExploration = true)
+        composeRule.mainClock.advanceTimeBy(ANNOUNCEMENT_ARM_GAP_MS + PAST_THE_HOLD_MS)
+
+        playTheOnlyMove(tutorial)
+        letTheServiceHear()
+        advanceToTheNextStepAndItsLine()
+        assertThat(descriptionChangesSent()).doesNotContain(T1_JUMP_LINE)
+
+        playTheOnlyMove(tutorial)
+        letTheServiceHear()
+        advanceToTheNextStepAndItsLine()
+        assertThat(descriptionChangesSent()).doesNotContain(T2_JUMP_LINE)
+
+        playTheOnlyMove(tutorial)
+        letTheServiceHear()
+        assertThat(descriptionChangesSent()).contains(T3_FIRST_JUMP_LINE)
+        while (tutorial.uiState.value.board.board.pegCount > 1) {
+            playTheOnlyMove(tutorial)
+            letTheServiceHear()
+        }
+        assertThat(descriptionChangesSent()).contains(T3_COMPLETING_JUMP_LINE)
     }
 
     /**
@@ -109,6 +172,7 @@ class TutorialTalkBackTest {
         val tutorial = open(touchExploration = false)
 
         playTheOnlyMove(tutorial)
+        assertChannel(T1_JUMP_LINE)
         idlePastTheStepBeat()
         composeRule.waitForIdle()
 
@@ -124,8 +188,7 @@ class TutorialTalkBackTest {
         val action =
             cell(move.from).fetchSemanticsNode().config[SemanticsActions.CustomActions].single()
         composeRule.runOnIdle { action.action() }
-        idlePastTheStepBeat()
-        composeRule.waitForIdle()
+        advanceToTheNextStepAndItsLine()
 
         assertThat(tutorial.uiState.value.stepIndex).isEqualTo(1)
         assertChannel("Step 2 of 3. Jumps work up, down, left and right — never diagonally.")
@@ -179,8 +242,7 @@ class TutorialTalkBackTest {
         turnOnATouchExplorationService()
         val tutorial = open(touchExploration = true)
         playTheOnlyMove(tutorial)
-        idlePastTheStepBeat()
-        composeRule.waitForIdle()
+        advanceToTheNextStepAndItsLine()
 
         val channel = checkNotNull(composeRule.nodeInfoHandedOut(channelNode())) { "the channel is pruned on T2" }
         assertThat(channel.liveRegion).isEqualTo(View.ACCESSIBILITY_LIVE_REGION_POLITE)
@@ -205,6 +267,8 @@ class TutorialTalkBackTest {
         letTheServiceHear()
         idlePastTheStepBeat()
         composeRule.waitForIdle()
+        playTheOnlyMove(tutorial)
+        letTheServiceHear()
         while (tutorial.uiState.value.board.board.pegCount > 1) playTheOnlyMove(tutorial)
         idlePastTheStepBeat()
         composeRule.waitForIdle()
@@ -212,7 +276,7 @@ class TutorialTalkBackTest {
 
         assertThat(tutorial.uiState.value.completed).isTrue()
         assertThat(descriptionChangesSent())
-            .containsAtLeast(STEP_TWO_LINE, NO_PEG_LINE, T2_COACH_LINE, T2_JUMP_LINE, DONE_LINE)
+            .containsAtLeast(STEP_TWO_LINE, NO_PEG_LINE, T2_COACH_LINE, T3_FIRST_JUMP_LINE, DONE_LINE)
             .inOrder()
     }
 
@@ -342,6 +406,27 @@ class TutorialTalkBackTest {
     private fun boardStop(): SemanticsNodeInteraction =
         composeRule.onNodeWithContentDescription(BOARD_STOP_PREFIX, substring = true)
 
+    /**
+     * Lets the step beat elapse, the new board stop's focus move finish and the step line follow it,
+     * then lets the service hear the line.
+     */
+    private fun advanceToTheNextStepAndItsLine() {
+        idlePastTheStepBeat()
+        composeRule.waitForIdle()
+        settleFocusMove()
+        composeRule.mainClock.advanceTimeBy(TutorialAnim.STEP_LINE_AFTER_FOCUS_MS)
+        letTheServiceHear()
+    }
+
+    /**
+     * One frame on the paused clock, with the main looper idled for as long, so Compose's
+     * accessibility delegate sends each batch in the frame it falls in (device-2 ruling, Checks).
+     */
+    private fun advanceAFrameAndTheLooper() {
+        composeRule.mainClock.advanceTimeByFrame()
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(FRAME_MS))
+    }
+
     /** Lets a focus move finish: its gap, then a frame. */
     private fun settleFocusMove() {
         composeRule.mainClock.advanceTimeBy(FOCUS_MOVE_GAP_MS + FRAME_MS)
@@ -370,6 +455,10 @@ class TutorialTalkBackTest {
         /** Two of the accessibility delegate's 100 ms batches and a frame. */
         const val SERVICE_BATCHES_MS = 216L
 
+        /** Frames past a step swap's focus gap, the step line's wait and two service batches. */
+        val FRAMES_PAST_THE_STEP_LINE =
+            ((FOCUS_MOVE_GAP_MS + TutorialAnim.STEP_LINE_AFTER_FOCUS_MS + SERVICE_BATCHES_MS) / FRAME_MS).toInt() + 1
+
         /** Past the step line's one-second hold, so the channel is empty before the selection. */
         const val PAST_THE_HOLD_MS = 1_200L
 
@@ -381,7 +470,14 @@ class TutorialTalkBackTest {
         const val STEP_TWO_LINE = "Step 2 of 3. Jumps work up, down, left and right — never diagonally."
         const val NO_PEG_LINE = "No peg here."
         const val T2_COACH_LINE = "Hint: row 1, column 2, jump down to row 3, column 2."
+        const val T1_JUMP_LINE = "Row 1, column 1 to row 1, column 3. Removed row 1, column 2. 1 peg left."
         const val T2_JUMP_LINE = "Row 1, column 2 to row 3, column 2. Removed row 2, column 2. 1 peg left."
+
+        /** T3's first legal move, (1,1) over (1,2) to (1,3): it leaves four pegs, so it clears nothing. */
+        const val T3_FIRST_JUMP_LINE = "Row 1, column 1 to row 1, column 3. Removed row 1, column 2. 4 pegs left."
+
+        /** T3's last move, (3,3) over (2,3) to (1,3): it completes the tutorial. */
+        const val T3_COMPLETING_JUMP_LINE = "Row 3, column 3 to row 1, column 3. Removed row 2, column 3. 1 peg left."
         const val DONE_LINE = "That's the whole game. Go clear a board."
         const val ZERO_WIDTH_SPACE = "​"
     }
