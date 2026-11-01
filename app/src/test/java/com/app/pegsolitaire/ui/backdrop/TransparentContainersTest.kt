@@ -158,6 +158,7 @@ class TransparentContainersTest {
                         onToggleHaptics = {},
                         onToggleColorblindPalette = {},
                         onShowHowToPlay = {},
+                        onOpenLicenses = {},
                         onSignInToPlayGames = {},
                         onShowLeaderboards = {},
                         onShowAchievements = {},

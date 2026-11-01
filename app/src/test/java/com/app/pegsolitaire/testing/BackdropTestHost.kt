@@ -133,7 +133,7 @@ internal fun AppNavHostWithStandIns(
         resultsContent = { _, _, onHome, _, _, _ ->
             StandIn(StandInTags.RESULTS_HOME, Modifier.fillMaxSize(), onClick = onHome)
         },
-        settingsContent = { _, onShowHowToPlay ->
+        settingsContent = { _, onShowHowToPlay, _ ->
             StandIn(StandInTags.SETTINGS_TUTORIAL, Modifier.fillMaxSize(), onClick = onShowHowToPlay)
         },
         tutorialContent = { onExit -> StandIn(StandInTags.TUTORIAL_EXIT, Modifier.fillMaxSize(), onClick = onExit) },
