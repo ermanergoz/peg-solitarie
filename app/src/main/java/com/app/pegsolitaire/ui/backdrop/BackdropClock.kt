@@ -199,15 +199,24 @@ internal class LiveBackdropClock : BackdropClock {
             idleMs += dtMs
             if (ease.target == RATE_FULL && idleMs >= idleDelayMs(shown)) ease.towards(rate, RATE_NONE)
             rate = ease.step(dtMs)
-            val scale = coroutineContext[MotionDurationScale]?.scaleFactor ?: DEFAULT_SCALE
-            // "Remove animations" can land between two frames: the next frame's callbacks run
-            // before the recomposition that stops this loop, so a frame may read scale 0. Such a
-            // frame is the rest path and leaves the time where it is; dividing by it would make
-            // the time infinite (or NaN) for good (the code-auditor's F1).
-            if (scale > NO_SCALE && scale.isFinite()) {
-                timeExact += dtMs * rate / scale
-                time.longValue = timeExact.toLong()
-            }
+            advanceTime(dtMs, coroutineContext[MotionDurationScale]?.scaleFactor ?: DEFAULT_SCALE)
+        }
+    }
+
+    /**
+     * Moves the backdrop time by one frame's [dtMs] at the current rate, slowed by the animator
+     * [scale]. "Remove animations" can land between two frames: the next frame's callbacks run
+     * before the recomposition that stops the loop, so a frame may read scale 0. Such a frame is
+     * the rest path and leaves the time where it is; dividing by it would make the time infinite
+     * (or NaN) for good (the code-auditor's F1).
+     */
+    private fun advanceTime(
+        dtMs: Double,
+        scale: Float,
+    ) {
+        if (scale > NO_SCALE && scale.isFinite()) {
+            timeExact += dtMs * rate / scale
+            time.longValue = timeExact.toLong()
         }
     }
 
