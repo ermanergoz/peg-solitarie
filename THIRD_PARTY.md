@@ -95,8 +95,10 @@ verdicts `docs/audio/licence-verdicts.md` 3a1fce7, research-analyst verdict 2026
 `.planning/reports/15-founder-feedback/tech-lead-fonts.md` D1–D2). Re-checked against that ruling's
 replacement text on 2026-10-18: same items, sources, hashes, upstreams, copyright lines and licence,
 with more evidence in How verified and Credit.
-**OFL-1.1 verdict (research-analyst, 2026-10-18): CLEAN. Fredoka v17 and Nunito v32 may ship bundled,
-unmodified, in a store product. This is not a copyleft escalation.** OFL-1.1 has no row in
+**OFL-1.1 verdict (research-analyst, 2026-10-18): CLEAN. Fredoka v17 and Nunito v32 may ship bundled
+in a store product. This is not a copyleft escalation.** (Since `feature/turkish-locale`, Fredoka ships as
+a Modified Version under OFL-1.1 — §2's row and the Modified-Version verdict in
+`.planning/reports/turkish-locale/research-analyst-fonts.md`; Nunito ships unmodified.) OFL-1.1 has no row in
 `rules/ip-policy.md`'s matrix. In the matrix's terms it sits beside the MPL-2.0 row ("yes (file-level
 copyleft)"), with the copyleft at the level of the font files. Its share-alike clause (§5) binds only
 the Font Software and never the program it ships in. OFL-FAQ 1.3: "Only the portions based on the Font
@@ -112,9 +114,10 @@ normalised). OFL-FAQ 1.20 (mobile apps) asks for "the copyright statement, the l
 license text". It calls an About-box mention "good practice", not a duty; the planned Licenses screen
 provides it.
 (3) **§3, Reserved Font Names:** neither copyright line declares an RFN, and none is reserved by
-default (OFL-FAQ 5.7). All five files match `tech-lead-fonts.md` D1's sha256 and are renamed only. A file
-left intact inside a wrapper needs no name change (OFL-FAQ 5.9). Any later subsetting, instancing or
-table edit would make a Modified Version, which stays under OFL-1.1.
+default (OFL-FAQ 5.7). The three Nunito files match `tech-lead-fonts.md` D1's sha256 and are renamed
+only; a file left intact inside a wrapper needs no name change (OFL-FAQ 5.9). The two Fredoka files are a
+Modified Version (five composite glyphs added, `fonts/fredoka-tr/recipe.json`), which stays under OFL-1.1;
+with no RFN declared the name may be kept (OFL-FAQ 5.7, 3.8).
 (4) **§4:** the authors' names are not used to promote the app. Acknowledging them on the Licenses
 screen is the use §4 allows.
 (5) **§5:** the fonts stay under OFL-1.1, never under the app's terms. Images rendered with the fonts
@@ -157,7 +160,7 @@ inside the app). §2 — each copy bundled with software must contain the copyri
 licence, "either as stand-alone text files, human-readable headers or in the appropriate
 machine-readable metadata fields"; met by the two stand-alone `*-OFL.txt` files packaged in the
 artifact. §3 — Reserved Font Names may not be used by a modified version; neither family declares
-one, and the files are unmodified. §4 — the authors' names may not be used to promote the app;
+one, so the modified Fredoka files keep their name and the Nunito files are unmodified. §4 — the authors' names may not be used to promote the app;
 they appear only in the notices. §5 — the font stays under OFL; recorded in the rows above. Nothing
 in OFL requires the notice to be displayed in the UI.
 

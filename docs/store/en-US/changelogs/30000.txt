@@ -1,7 +1,10 @@
 Peg Solitaire, rebuilt from the ground up:
-- A hands-on tutorial, a fuller Home screen and game controls within thumb reach
-- Faster hints on the big boards, answered from a built-in opening book
+- Turkish interface
+- Challenge: new star bands and a reworked difficulty curve
+- Full-screen play, edge to edge
+- A hands-on tutorial; Continue on Home shows your saved board
+- Faster hints on the big boards
 - Sound for every move, without pausing your music
-- Optional Play Games sign-in: 20 achievements, 7 leaderboards and cloud save
-- A glossy new look and a colorblind palette option
-- Ads: rewarded ads only when you choose one, and occasional ads between levels
+- Play Games: 20 achievements, 7 leaderboards, cloud save
+- A glossy new look and a colorblind palette
+- Rewarded ads only when you choose; occasional ads between levels
