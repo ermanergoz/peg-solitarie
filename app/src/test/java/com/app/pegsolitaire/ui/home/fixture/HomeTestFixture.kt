@@ -1,5 +1,6 @@
 package com.app.pegsolitaire.ui.home.fixture
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
@@ -112,6 +113,18 @@ internal val EVERY_CHIP_STATE: List<HomeUiState>
             chipsState(classic = true, challenge = true),
         )
 
+/**
+ * Home in [state], in the app's own theme.
+ *
+ * @param darkTheme the scheme Home is drawn in: light unless a test states dark, and never read
+ *   from the configuration.
+ * @param overlay drawn over Home in the same composition and the same theme, after it, so it lies
+ *   on top. Empty by default, so every caller that passes none composes exactly the tree it always
+ *   did. `HomeLayoutTest` draws criterion 15m's reference finishes here (B-19a).
+ * @param underlay drawn under Home in the same composition and theme, before it. Empty by default,
+ *   so every caller that passes none composes exactly the tree it always did. `HomeChipArrivalTest`
+ *   draws the flat background Home's opaque `Scaffold` drew before BD-14 here.
+ */
 internal fun ComposeContentTestRule.renderHome(
     state: HomeUiState,
     onPlayChallenge: (Int) -> Unit = {},
@@ -120,6 +133,9 @@ internal fun ComposeContentTestRule.renderHome(
     onKeepDeviceProgress: () -> Unit = {},
     onUseCloudProgress: () -> Unit = {},
     fontScale: Float = DEFAULT_FONT_SCALE,
+    darkTheme: Boolean = false,
+    overlay: @Composable () -> Unit = {},
+    underlay: @Composable () -> Unit = {},
 ) = renderHome(
     state = mutableStateOf(state),
     onPlayChallenge = onPlayChallenge,
@@ -128,12 +144,16 @@ internal fun ComposeContentTestRule.renderHome(
     onKeepDeviceProgress = onKeepDeviceProgress,
     onUseCloudProgress = onUseCloudProgress,
     fontScale = fontScale,
+    darkTheme = darkTheme,
+    overlay = overlay,
+    underlay = underlay,
 )
 
 /**
  * The settable overload, for the tests that need a live recomposition — Home fills the ribbon
  * *after* first paint, so "shows the placeholder, then the value" is only honest when it is
- * asserted across one state change rather than across two compositions.
+ * asserted across one state change rather than across two compositions. [darkTheme], [overlay]
+ * and [underlay] are the other overload's.
  */
 internal fun ComposeContentTestRule.renderHome(
     state: MutableState<HomeUiState>,
@@ -143,6 +163,9 @@ internal fun ComposeContentTestRule.renderHome(
     onKeepDeviceProgress: () -> Unit = {},
     onUseCloudProgress: () -> Unit = {},
     fontScale: Float = DEFAULT_FONT_SCALE,
+    darkTheme: Boolean = false,
+    overlay: @Composable () -> Unit = {},
+    underlay: @Composable () -> Unit = {},
 ) {
     setContent {
         // The font scale is provided rather than set through a resource qualifier because there
@@ -153,9 +176,10 @@ internal fun ComposeContentTestRule.renderHome(
         ) {
             // In the app's own theme, as `MainActivity` draws it: without it every role falls back
             // to Material 3's baseline faces, weights, shapes and colours, so a suite under NATIVE
-            // graphics would measure text a player never sees. Light, stated rather than read from
-            // the configuration, so no test depends on the host's night mode.
-            AppTheme(darkTheme = false) {
+            // graphics would measure text a player never sees. Light unless a test states dark;
+            // never read from the configuration, so no test depends on the host's night mode.
+            AppTheme(darkTheme = darkTheme) {
+                underlay()
                 HomeScreen(
                     state = state.value,
                     onPlayClassic = {},
@@ -169,6 +193,7 @@ internal fun ComposeContentTestRule.renderHome(
                     onPlayGamesSignInErrorShown = {},
                     onOpenSettings = {},
                 )
+                overlay()
             }
         }
     }

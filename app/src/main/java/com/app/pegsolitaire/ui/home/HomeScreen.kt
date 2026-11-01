@@ -26,6 +26,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -47,11 +48,19 @@ import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.Boards
+import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_HEIGHT_DP
+import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_WIDTH_DP
+import com.app.pegsolitaire.ui.backdrop.BackdropDensity
+import com.app.pegsolitaire.ui.backdrop.BackdropMotion
+import com.app.pegsolitaire.ui.backdrop.BackdropPreviewHost
 import com.app.pegsolitaire.ui.components.ClaySnackbarHost
 import com.app.pegsolitaire.ui.theme.AppTheme
+import com.app.pegsolitaire.ui.theme.FinishedContainer
+import com.app.pegsolitaire.ui.theme.GelColors
 import com.app.pegsolitaire.ui.theme.clayEntrance
-import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
+import com.app.pegsolitaire.ui.theme.finishGlow
+import com.app.pegsolitaire.ui.theme.glossFinish
 import com.app.pegsolitaire.ui.theme.goldGradientFill
 import com.app.pegsolitaire.ui.theme.rememberAnimationsEnabled
 import kotlinx.coroutines.flow.first
@@ -72,12 +81,12 @@ import kotlinx.coroutines.flow.first
  * violet Classic tile whose whole surface navigates to the catalog ([onPlayClassic]) and a pink
  * Challenge tile (with its persisted-level chip) whose whole surface enters Challenge
  * ([onPlayChallenge]) at the player's persisted [HomeUiState.challengeCurrentLevel] (CHAL-05) —
- * and an empty footer, one fifth of that slack. Two slow-drifting low-alpha
- * blobs float behind the content (skipped when OS animations are off), the bands enter with a
- * stagger, and everything tappable squishes. Below the compact threshold of available height —
- * which reads the available **width** as well, since D-03k — the band spacing tightens, and on
- * the narrow class each progress pill drops its decorative glyph and puts its label beside its
- * value; no readout, control or band is ever dropped.
+ * and an empty footer, one fifth of that slack. The `Scaffold` is transparent, so the app-wide
+ * backdrop (`ui/backdrop/SceneBackdrop.kt`, backdrop spec) shows behind the bands; the bands enter
+ * with a stagger, and everything tappable squishes. Below the compact threshold of available height
+ * — which reads the available **width** as well, since D-03k — the band spacing tightens, and on the
+ * narrow class each progress pill drops its decorative glyph and puts its label beside its value; no
+ * readout, control or band is ever dropped.
  *
  * **Home carries no tutorial chrome at all** (Phase 15, D-02). There is no information or
  * help icon anywhere on this screen, and no overlay: the tutorial is the `Tutorial` nav
@@ -146,6 +155,8 @@ fun HomeScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onBackground,
         snackbarHost = { ClaySnackbarHost(snackbarHostState) },
     ) { contentPadding ->
         Box(
@@ -155,7 +166,6 @@ fun HomeScreen(
                     .padding(contentPadding),
             contentAlignment = Alignment.TopCenter,
         ) {
-            HomeBlobs()
             HomeBands(
                 state = state,
                 onPlayClassic = onPlayClassic,
@@ -543,15 +553,17 @@ private fun ResumeTile(
     // top-bar How-to-play and Settings icons, which D-09 requires to stay silent (the full
     // exclusion list is in the withClickSound KDoc). Resume does not route through ModeTile,
     // so it carries its own wrap.
+    val chip = MaterialTheme.colorScheme.tertiaryContainer
     Card(
         onClick = withClickSound(SoundCue.ButtonForward, onResume),
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent, contentColor = contentColorFor(chip)),
         modifier =
             Modifier
                 .clayEntrance(entranceOrder)
                 .claySquish()
-                .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.large)
+                .finishGlow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.large)
+                .glossFinish(FinishedContainer.ContinueChip, MaterialTheme.shapes.large, fill = chip)
                 .fillMaxWidth()
                 .heightIn(min = dimensionResource(R.dimen.resume_tile_min_height)),
     ) {
@@ -614,16 +626,14 @@ private fun ClassicTile(
     onPlayClassic: () -> Unit,
 ) {
     ModeTile(
-        container = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        badgeColor = MaterialTheme.colorScheme.primary,
-        badgeContentColor = MaterialTheme.colorScheme.onPrimary,
+        gel = GelColors.Violet,
+        sheenDelayMs = BackdropMotion.GEL_SHEEN_CLASSIC_DELAY_MS,
         glyph = rememberClassicGlyph(),
         title = stringResource(R.string.classic_tile_title),
         entranceOrder = entranceOrder,
         onClick = onPlayClassic,
         art = {
-            StaticBoardArt(
+            GelFootprintArt(
                 board = ClassicTileArtBoard,
                 modifier = Modifier.size(dimensionResource(R.dimen.home_tile_art_size)),
             )
@@ -632,7 +642,7 @@ private fun ClassicTile(
         Text(
             text = stringResource(R.string.classic_tile_supporting),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            color = GelColors.onGel,
         )
     }
 }
@@ -656,10 +666,8 @@ private fun ChallengeTile(
     onPlayChallenge: (level: Int) -> Unit,
 ) {
     ModeTile(
-        container = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-        badgeColor = MaterialTheme.colorScheme.secondary,
-        badgeContentColor = MaterialTheme.colorScheme.onSecondary,
+        gel = GelColors.Pink,
+        sheenDelayMs = BackdropMotion.GEL_SHEEN_CHALLENGE_DELAY_MS,
         glyph = rememberChallengeGlyph(),
         title = stringResource(R.string.challenge_tile_title),
         entranceOrder = entranceOrder,
@@ -668,19 +676,19 @@ private fun ChallengeTile(
             Icon(
                 imageVector = rememberChallengeGlyph(),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.secondary,
+                tint = GelColors.artPeg,
                 modifier = Modifier.size(dimensionResource(R.dimen.home_tile_art_size)),
             )
         },
     ) {
         Surface(
             shape = MaterialTheme.shapes.small,
-            color = MaterialTheme.colorScheme.surface,
+            color = GelColors.chip,
         ) {
             Text(
                 text = stringResource(R.string.challenge_tile_continue, currentLevel),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                color = GelColors.chipText,
                 modifier =
                     Modifier.padding(
                         horizontal = dimensionResource(R.dimen.spacing_sm),
@@ -703,10 +711,8 @@ private fun ChallengeTile(
  */
 @Composable
 private fun ModeTile(
-    container: Color,
-    contentColor: Color,
-    badgeColor: Color,
-    badgeContentColor: Color,
+    gel: GelColors,
+    sheenDelayMs: Long,
     glyph: ImageVector,
     title: String,
     entranceOrder: Int,
@@ -715,52 +721,23 @@ private fun ModeTile(
     supporting: @Composable () -> Unit,
 ) {
     // Wrapped at the shared leaf, so Classic and Challenge each inherit the forward click once.
-    Card(
-        onClick = withClickSound(SoundCue.ButtonForward, onClick),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = container),
-        modifier =
-            Modifier
-                .clayEntrance(entranceOrder)
-                .claySquish()
-                .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.large)
-                .fillMaxWidth()
-                .heightIn(min = dimensionResource(R.dimen.mode_tile_min_height)),
-    ) {
-        Row(
+    // The Card paints nothing: the gel is drawn by `gelSurface` beneath the content, and its ripple
+    // is the gel's own deep colour, so pressing darkens it (backdrop spec §3.5.2, A4).
+    GelRipple(gel) {
+        Card(
+            onClick = withClickSound(SoundCue.ButtonForward, onClick),
+            shape = MaterialTheme.shapes.large,
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent, contentColor = GelColors.onGel),
             modifier =
                 Modifier
+                    .clayEntrance(entranceOrder)
+                    .claySquish()
+                    .finishGlow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.large, gel.glow)
+                    .gelSurface(gel, MaterialTheme.shapes.large, sheenDelayMs)
                     .fillMaxWidth()
-                    .padding(dimensionResource(R.dimen.spacing_md)),
-            horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_md)),
-            verticalAlignment = Alignment.CenterVertically,
+                    .heightIn(min = dimensionResource(R.dimen.mode_tile_min_height)),
         ) {
-            Surface(
-                shape = MaterialTheme.shapes.medium,
-                color = badgeColor,
-            ) {
-                Icon(
-                    imageVector = glyph,
-                    contentDescription = null,
-                    tint = badgeContentColor,
-                    modifier =
-                        Modifier
-                            .padding(dimensionResource(R.dimen.spacing_sm))
-                            .size(dimensionResource(R.dimen.mode_glyph_size)),
-                )
-            }
-            Column(
-                modifier = Modifier.weight(CONTENT_WEIGHT),
-                verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_xs)),
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = contentColor,
-                )
-                supporting()
-            }
-            art()
+            GelTileContent(glyph = glyph, title = title, art = art, supporting = supporting)
         }
     }
 }
@@ -794,54 +771,77 @@ private const val FIRST_CHIP_ENTRANCE_ORDER = RIBBON_ENTRANCE_ORDER + 1
  */
 private const val LATE_CHIP_ENTRANCE_ORDER = 0
 
-@Preview(name = "Home · light")
+/**
+ * Home's first frame on the design baseline's window, over the backdrop as the host draws it
+ * (BD-25): the ribbon paints its placeholders and nothing waits. In both themes, so the gel tiles'
+ * finish is seen in each.
+ */
+@Preview(name = "Home · light", widthDp = BACKDROP_PREVIEW_WIDTH_DP, heightDp = BACKDROP_PREVIEW_HEIGHT_DP)
+@Preview(
+    name = "Home · dark",
+    widthDp = BACKDROP_PREVIEW_WIDTH_DP,
+    heightDp = BACKDROP_PREVIEW_HEIGHT_DP,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
 @Composable
-private fun HomeScreenLightPreview() {
-    AppTheme(darkTheme = false) {
-        HomeScreen(
-            // The first-frame state: the ribbon paints its placeholders and nothing waits.
-            state = HomeUiState(),
-            onPlayClassic = {},
-            onPlayChallenge = {},
-            onResumeClassic = {},
-            onResumeChallenge = {},
-            onAcceptPlayGamesPrompt = {},
-            onDeclinePlayGamesPrompt = {},
-            onKeepDeviceProgress = {},
-            onUseCloudProgress = {},
-            onPlayGamesSignInErrorShown = {},
-            onOpenSettings = {},
-        )
+private fun HomeScreenFirstFramePreview() {
+    AppTheme {
+        BackdropPreviewHost(BackdropDensity.Landscape) {
+            HomeScreen(
+                state = HomeUiState(),
+                onPlayClassic = {},
+                onPlayChallenge = {},
+                onResumeClassic = {},
+                onResumeChallenge = {},
+                onAcceptPlayGamesPrompt = {},
+                onDeclinePlayGamesPrompt = {},
+                onKeepDeviceProgress = {},
+                onUseCloudProgress = {},
+                onPlayGamesSignInErrorShown = {},
+                onOpenSettings = {},
+            )
+        }
     }
 }
 
-@Preview(name = "Home · dark")
+/**
+ * The busiest legitimate Home — filled ribbon, both Continue chips, both tiles, the layout the
+ * first-paint rule (D-03f) is about — on the design baseline's window over the backdrop (BD-25).
+ * In both themes, so every glossed pill and chip and both gel tiles are seen in each.
+ */
+@Preview(name = "Home · busiest · light", widthDp = BACKDROP_PREVIEW_WIDTH_DP, heightDp = BACKDROP_PREVIEW_HEIGHT_DP)
+@Preview(
+    name = "Home · busiest · dark",
+    widthDp = BACKDROP_PREVIEW_WIDTH_DP,
+    heightDp = BACKDROP_PREVIEW_HEIGHT_DP,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
 @Composable
-private fun HomeScreenDarkPreview() {
-    AppTheme(darkTheme = true) {
-        HomeScreen(
-            // The busiest legitimate Home: filled ribbon, both Continue chips, both tiles —
-            // the layout the first-paint rule (D-03f) is about.
-            state =
-                HomeUiState(
-                    totalStars = PREVIEW_STARS,
-                    classicBoardsCleared = PREVIEW_BOARDS_CLEARED,
-                    challengeCurrentLevel = PREVIEW_LEVEL,
-                    classicResumeLevelId = ClassicLevelIds.EUROPEAN37,
-                    classicResumeBoard = Boards.european37Initial,
-                    challengeResumeLevel = PREVIEW_RESUME_LEVEL,
-                ),
-            onPlayClassic = {},
-            onPlayChallenge = {},
-            onResumeClassic = {},
-            onResumeChallenge = {},
-            onAcceptPlayGamesPrompt = {},
-            onDeclinePlayGamesPrompt = {},
-            onKeepDeviceProgress = {},
-            onUseCloudProgress = {},
-            onPlayGamesSignInErrorShown = {},
-            onOpenSettings = {},
-        )
+private fun HomeScreenBusiestPreview() {
+    AppTheme {
+        BackdropPreviewHost(BackdropDensity.Landscape) {
+            HomeScreen(
+                state =
+                    HomeUiState(
+                        totalStars = PREVIEW_STARS,
+                        classicBoardsCleared = PREVIEW_BOARDS_CLEARED,
+                        challengeCurrentLevel = PREVIEW_LEVEL,
+                        classicResumeLevelId = ClassicLevelIds.EUROPEAN37,
+                        classicResumeBoard = Boards.european37Initial,
+                        challengeResumeLevel = PREVIEW_RESUME_LEVEL,
+                    ),
+                onPlayClassic = {},
+                onPlayChallenge = {},
+                onResumeClassic = {},
+                onResumeChallenge = {},
+                onAcceptPlayGamesPrompt = {},
+                onDeclinePlayGamesPrompt = {},
+                onKeepDeviceProgress = {},
+                onUseCloudProgress = {},
+                onPlayGamesSignInErrorShown = {},
+                onOpenSettings = {},
+            )
+        }
     }
 }
 
@@ -872,29 +872,32 @@ private fun HomeScreenDarkPreview() {
 private fun HomeScreenCompactPreview() {
     // Two annotations on one function rather than two functions: `AppTheme` defaults
     // `darkTheme` to `isSystemInDarkTheme()`, so `uiMode` selects the theme and the two
-    // renders cannot drift in their state or their window.
+    // renders cannot drift in their state or their window. Over the backdrop as the host
+    // draws it (BD-25).
     AppTheme {
-        HomeScreen(
-            state =
-                HomeUiState(
-                    totalStars = PREVIEW_STARS,
-                    classicBoardsCleared = PREVIEW_BOARDS_CLEARED,
-                    challengeCurrentLevel = PREVIEW_LEVEL,
-                    classicResumeLevelId = ClassicLevelIds.EUROPEAN37,
-                    classicResumeBoard = Boards.european37Initial,
-                    challengeResumeLevel = PREVIEW_RESUME_LEVEL,
-                ),
-            onPlayClassic = {},
-            onPlayChallenge = {},
-            onResumeClassic = {},
-            onResumeChallenge = {},
-            onAcceptPlayGamesPrompt = {},
-            onDeclinePlayGamesPrompt = {},
-            onKeepDeviceProgress = {},
-            onUseCloudProgress = {},
-            onPlayGamesSignInErrorShown = {},
-            onOpenSettings = {},
-        )
+        BackdropPreviewHost(BackdropDensity.Landscape) {
+            HomeScreen(
+                state =
+                    HomeUiState(
+                        totalStars = PREVIEW_STARS,
+                        classicBoardsCleared = PREVIEW_BOARDS_CLEARED,
+                        challengeCurrentLevel = PREVIEW_LEVEL,
+                        classicResumeLevelId = ClassicLevelIds.EUROPEAN37,
+                        classicResumeBoard = Boards.european37Initial,
+                        challengeResumeLevel = PREVIEW_RESUME_LEVEL,
+                    ),
+                onPlayClassic = {},
+                onPlayChallenge = {},
+                onResumeClassic = {},
+                onResumeChallenge = {},
+                onAcceptPlayGamesPrompt = {},
+                onDeclinePlayGamesPrompt = {},
+                onKeepDeviceProgress = {},
+                onUseCloudProgress = {},
+                onPlayGamesSignInErrorShown = {},
+                onOpenSettings = {},
+            )
+        }
     }
 }
 

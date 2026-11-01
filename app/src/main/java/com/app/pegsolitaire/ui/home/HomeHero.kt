@@ -12,9 +12,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
@@ -23,11 +25,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.ui.backdrop.BackdropDensity
+import com.app.pegsolitaire.ui.backdrop.BackdropPreviewHost
 import com.app.pegsolitaire.ui.theme.AppTheme
+import com.app.pegsolitaire.ui.theme.FinishedContainer
 import com.app.pegsolitaire.ui.theme.clayEntrance
-import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
-import com.app.pegsolitaire.ui.theme.ctaGradientBrush
+import com.app.pegsolitaire.ui.theme.finishGlow
+import com.app.pegsolitaire.ui.theme.glossFinish
+import com.app.pegsolitaire.ui.theme.titleGradientBrush
 
 /** Semantics tag of the hero row — a tag the layout tests measure, never announced (§13). */
 const val HOME_HERO_TEST_TAG = "home_hero"
@@ -50,9 +56,9 @@ const val HOME_HERO_TEST_TAG = "home_hero"
  * with the content, and D-03a's deletion of Home's bar and §5's "no M3 `TopAppBar`" are untouched —
  * what the row shares with the deleted bar is one row's geometry, which is not a component. It is
  * the first thing in the column: nothing is drawn above the title but the column's top padding and
- * the ambient blobs behind everything.
+ * the backdrop's calm band behind everything (backdrop spec B-20).
  *
- * The title keeps the shared `ctaGradientBrush()` at `displaySmall`, takes the width the gear
+ * The title takes `titleGradientBrush()` at `displaySmall`, takes the width the gear
  * leaves, and has **no `maxLines`**: it is never truncated and never scaled down, so at a large
  * font scale it grows, the row grows with it and the column scrolls (criteria 14, 15i, 15o).
  *
@@ -82,12 +88,15 @@ internal fun HomeHero(onOpenSettings: () -> Unit) {
     }
 }
 
-/** The gradient wordmark, at `displaySmall` and announced as the screen's heading. */
+/**
+ * The gradient wordmark, at `displaySmall` and announced as the screen's heading, in its own
+ * `TitleGradient` (colour-vision.md TG-01), which reads ≥ 4.5:1 on the background in both themes.
+ */
 @Composable
 private fun HeroTitle(modifier: Modifier = Modifier) {
     Text(
         text = stringResource(R.string.app_name),
-        style = MaterialTheme.typography.displaySmall.merge(TextStyle(brush = ctaGradientBrush())),
+        style = MaterialTheme.typography.displaySmall.merge(TextStyle(brush = titleGradientBrush())),
         modifier = modifier.semantics { heading() },
     )
 }
@@ -99,10 +108,15 @@ private fun HeroTitle(modifier: Modifier = Modifier) {
  */
 @Composable
 private fun SettingsGear(onOpenSettings: () -> Unit) {
+    val chip = MaterialTheme.colorScheme.surfaceContainerHigh
     Surface(
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.clayShadow(dimensionResource(R.dimen.elevation_pressed), CircleShape),
+        color = Color.Transparent,
+        contentColor = contentColorFor(chip),
+        modifier =
+            Modifier
+                .finishGlow(dimensionResource(R.dimen.elevation_pressed), CircleShape)
+                .glossFinish(FinishedContainer.GearChip, CircleShape, fill = chip),
     ) {
         IconButton(onClick = onOpenSettings, modifier = Modifier.claySquish()) {
             Icon(
@@ -114,13 +128,22 @@ private fun SettingsGear(onOpenSettings: () -> Unit) {
     }
 }
 
-/** The hero row on the design baseline's width, on the app background, in both themes. */
-@Preview(name = "Home hero · light", widthDp = PREVIEW_HERO_WIDTH_DP)
-@Preview(name = "Home hero · dark", widthDp = PREVIEW_HERO_WIDTH_DP, uiMode = Configuration.UI_MODE_NIGHT_YES)
+/**
+ * The hero row at the top of the narrowest supported window, over Home's backdrop as the host
+ * draws it (BD-25): the title's gradient on the calm band's sky, and the gear chip's finish, in
+ * both themes.
+ */
+@Preview(name = "Home hero · light", widthDp = PREVIEW_HERO_WIDTH_DP, heightDp = PREVIEW_HERO_HEIGHT_DP)
+@Preview(
+    name = "Home hero · dark",
+    widthDp = PREVIEW_HERO_WIDTH_DP,
+    heightDp = PREVIEW_HERO_HEIGHT_DP,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
 @Composable
 private fun HomeHeroPreview() {
     AppTheme {
-        Surface(color = MaterialTheme.colorScheme.background) {
+        BackdropPreviewHost(BackdropDensity.Landscape) {
             HomeHero(onOpenSettings = {})
         }
     }
@@ -128,3 +151,4 @@ private fun HomeHeroPreview() {
 
 /** The narrowest supported window, where the title has the least room beside the gear. */
 private const val PREVIEW_HERO_WIDTH_DP = 360
+private const val PREVIEW_HERO_HEIGHT_DP = 640

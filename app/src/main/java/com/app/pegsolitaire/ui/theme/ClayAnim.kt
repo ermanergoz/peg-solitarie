@@ -13,7 +13,7 @@ import androidx.compose.animation.core.spring
  * dp/sp), so they live in this scoped object rather than `dimens.xml`
  * (QUAL-03). Board-specific ratios/durations stay in `BoardMetrics`/`GameAnim`;
  * this object owns the cross-screen clay juice: squish presses, staggered
- * entrances, celebration pops and ambient blob drift.
+ * entrances, celebration pops and the navigation fade.
  */
 object ClayAnim {
     /** Every tappable clay surface scales to this while pressed. */
@@ -28,14 +28,15 @@ object ClayAnim {
     /** Fade+slide-up entrance duration for cards/tiles (micro-range 150–300ms). */
     const val ENTRANCE_MS = 240
 
+    /**
+     * The navigation cross-fade: the `NavHost`'s own default of navigation-compose 2.9.8 made
+     * explicit on its four transitions, and the backdrop's sky cross-fade (backdrop spec B-13a,
+     * the tech-lead's D2). One constant, so the two cannot drift apart.
+     */
+    const val NAV_TRANSITION_MS = 700
+
     /** Per-item stagger for catalog cards + home tiles. */
     const val ENTRANCE_STAGGER_MS = 40
-
-    /** One full ambient background-blob drift cycle (~8s, DESIGN-SYSTEM.md Home). */
-    const val BLOB_DRIFT_MS = 8000
-
-    /** Low alpha of the two ambient home background blobs. */
-    const val BLOB_ALPHA = 0.10f
 
     /**
      * How long one Results star takes to resolve: the duration `EarnedStar` hands to
