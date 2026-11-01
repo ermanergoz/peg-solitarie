@@ -9,8 +9,10 @@ import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
@@ -20,9 +22,14 @@ import com.app.pegsolitaire.testing.applySystemBarInsets
 import com.app.pegsolitaire.ui.home.fixture.DEFAULT_FONT_SCALE
 import com.app.pegsolitaire.ui.home.fixture.DOUBLE_FONT_SCALE
 import com.app.pegsolitaire.ui.home.fixture.HOME_ROBOLECTRIC_SDK
+import com.app.pegsolitaire.ui.home.fixture.RESUME_CHALLENGE_LABEL
+import com.app.pegsolitaire.ui.home.fixture.RESUME_CLASSIC_LABEL
 import com.app.pegsolitaire.ui.home.fixture.appName
+import com.app.pegsolitaire.ui.home.fixture.challengeTileTitle
 import com.app.pegsolitaire.ui.home.fixture.chipsState
+import com.app.pegsolitaire.ui.home.fixture.classicTileTitle
 import com.app.pegsolitaire.ui.home.fixture.columnBoundsOf
+import com.app.pegsolitaire.ui.home.fixture.homeSlack
 import com.app.pegsolitaire.ui.home.fixture.renderHome
 import com.app.pegsolitaire.ui.home.fixture.settingsLabel
 import com.google.common.truth.Truth.assertThat
@@ -62,8 +69,7 @@ class HomeHeroRowTest {
      * On a phone with room for decoration — where the withdrawn peg cluster used to stand over the
      * title — nothing is composed above or beside the title but the gear: the hero row holds
      * exactly two things, the title and the gear chip, and no node outside the row reaches up into
-     * it or above it (the stage included). Both chip extremes, since the chips decide how much room
-     * the stage gets.
+     * it or above it. Both chip extremes, since the chips decide how much headroom lies above the row.
      */
     @Test
     @Config(qualifiers = TALL_PHONE_QUALIFIER)
@@ -181,10 +187,16 @@ class HomeHeroRowTest {
      *
      * Beside: the title and the gear chip tile the row — the title starts at the row's start, ends
      * where the chip starts, and the chip ends at the row's end — so nothing is laid out before,
-     * between or after them. Above: the row is the first thing in Home's column — its top is the
-     * column's content top, one column inset below the viewport's top edge (the inset read off the
-     * ribbon, which fills the content width, since the column pads all four sides alike) — so
-     * nothing is laid out above it.
+     * between or after them. Above: the row is the first thing in Home's column — its top is one
+     * column inset below the viewport's top edge (the inset read off the ribbon, which fills the
+     * content width, since the column pads all four sides alike) plus the headroom, and nothing more —
+     * so nothing is laid out above it but space.
+     *
+     * The headroom is D-03p's: the slack above the hero row, max(0, H₀ − R) with H₀ the title bound's
+     * no-chip headroom (§4.2.7, D-03q), computed by the fixture from the window and the bands' own
+     * heights ([homeSlack]) rather than read off the row, so an icon, emblem or board laid out above the
+     * title still adds its height and fails here. Before D-03p this read "one column inset below", the
+     * row being the column's first child; the headroom moved its top and nothing else.
      */
     private fun assertNothingElseTakesRoomBesideOrAboveTheTitle() {
         val row = boundsOf(composeRule.onNodeWithTag(HOME_HERO_TEST_TAG, useUnmergedTree = true).fetchSemanticsNode())
@@ -205,10 +217,21 @@ class HomeHeroRowTest {
 
         val viewport = boundsOf(composeRule.onNode(hasScrollAction(), useUnmergedTree = true).fetchSemanticsNode())
         val columnInset = bounds(composeRule.onNodeWithTag(HOME_PROGRESS_RIBBON_TEST_TAG)).left - viewport.left
-        assertWithMessage("how far below the column's top edge the row starts, in dp")
+        val slack = composeRule.homeSlack(statusBar = STATUS_BAR_DP.dp, navigationBar = NAVIGATION_BAR_DP.dp)
+        val headroom = slack.headroomWith(roomOnScreen())
+        assertWithMessage("how far below the column's top edge the row starts: its inset and the headroom, in dp")
             .that((row.top - viewport.top).value)
             .isWithin(EDGE_TOLERANCE_DP)
-            .of(columnInset.value)
+            .of((columnInset + headroom).value)
+    }
+
+    /** R: each Continue chip on screen, its own height plus one band gap (read between the two mode tiles). */
+    private fun roomOnScreen(): Dp {
+        val classicTile = bounds(composeRule.onNodeWithText(classicTileTitle))
+        val gap = bounds(composeRule.onNodeWithText(challengeTileTitle)).top - classicTile.bottom
+        return listOf(RESUME_CLASSIC_LABEL, RESUME_CHALLENGE_LABEL)
+            .filter { composeRule.onAllNodesWithText(it).fetchSemanticsNodes().isNotEmpty() }
+            .fold(0.dp) { room, chip -> room + heightOf(bounds(composeRule.onNodeWithText(chip))) + gap }
     }
 
     /** What a node is, in a word a failure message can use. */

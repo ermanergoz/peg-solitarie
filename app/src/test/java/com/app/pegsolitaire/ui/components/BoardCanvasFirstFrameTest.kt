@@ -14,10 +14,11 @@ import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.testing.applySystemBarInsets
 import com.app.pegsolitaire.testing.renderedWindow
-import com.app.pegsolitaire.ui.home.HOME_STAGE_ART_TEST_TAG
+import com.app.pegsolitaire.ui.home.HOME_RESUME_THUMB_TEST_TAG
 import com.app.pegsolitaire.ui.home.StaticBoardArt
 import com.app.pegsolitaire.ui.home.fixture.HOME_ROBOLECTRIC_SDK
-import com.app.pegsolitaire.ui.home.fixture.chipsState
+import com.app.pegsolitaire.ui.home.fixture.MID_GAME_ENGLISH_BOARD
+import com.app.pegsolitaire.ui.home.fixture.classicSaveState
 import com.app.pegsolitaire.ui.home.fixture.renderHome
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.app.pegsolitaire.ui.theme.BoardMarkPalette
@@ -36,7 +37,9 @@ import kotlin.math.floor
  * criterion 15v part 4's JVM half).
  *
  * QA's cold start showed the Home stage's slab ≈0.26s before its pegs, and the Classic tile before
- * its art. Each is one `BoardCanvas` draw of a constant, so nothing justifies two pieces. The
+ * its art. Each was one `BoardCanvas` draw of a constant, so nothing justified two pieces; since
+ * D-03p the stage is withdrawn and the one board Home draws in a slab is the Classic Continue chip's
+ * thumbnail, which this class now reads in the stage's place (criterion 15aa part 6). The
  * cause: the canvas built its geometry from a size held in state, filled by `onSizeChanged` during
  * the **first layout** — after the first composition — so the first draw read a geometry that was
  * not ready and drew nothing, and the pegs waited for the recomposition that state write scheduled.
@@ -77,19 +80,21 @@ class BoardCanvasFirstFrameTest {
     }
 
     /**
-     * The Home stage on the 6.7-inch window, as QA's cold start drew it: animations off, so the
-     * slab is drawn at full alpha in the first frame it is drawn at all (with them on, the hero's
-     * entrance fades slab and pegs in together, at one alpha, and the first frame is blank).
+     * The Classic Continue chip's thumbnail on the 6.7-inch window, its slab holding a saved position
+     * (criterion 15aa part 6: D-03n part 4's rule, retargeted from the withdrawn Home stage, ux-spec
+     * §13's D-03p table). The save is in the state at Home's first composition and animations are
+     * off, so the chip and its slab are drawn at full alpha in the first frame they are drawn at all
+     * (with them on, the chip's entrance fades slab and pegs in together, at one alpha).
      */
     @Test
     @Config(qualifiers = "w411dp-h915dp")
-    fun theFirstFrameOfTheHomeStageDrawsItsPegsOnTheSlab() {
+    fun theFirstFrameOfTheClassicThumbnailDrawsItsPegsOnTheSlab() {
         motion.turnAnimationsOff()
         composeRule.mainClock.autoAdvance = false
-        composeRule.renderHome(state = chipsState(classic = false, challenge = false))
+        composeRule.renderHome(state = classicSaveState(MID_GAME_ENGLISH_BOARD))
         composeRule.applySystemBarInsets(top = STATUS_BAR_DP.dp, bottom = NAVIGATION_BAR_DP.dp)
 
-        assertTheFirstFrameIsTheSettledFrame(HOME_STAGE_ART_TEST_TAG)
+        assertTheFirstFrameIsTheSettledFrame(HOME_RESUME_THUMB_TEST_TAG)
     }
 
     /**

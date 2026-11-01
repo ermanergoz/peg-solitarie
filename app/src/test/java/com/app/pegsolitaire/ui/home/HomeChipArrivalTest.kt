@@ -36,6 +36,7 @@ import com.app.pegsolitaire.testing.renderedWindow
 import com.app.pegsolitaire.ui.home.fixture.DEFAULT_FONT_SCALE
 import com.app.pegsolitaire.ui.home.fixture.DOUBLE_FONT_SCALE
 import com.app.pegsolitaire.ui.home.fixture.HOME_ROBOLECTRIC_SDK
+import com.app.pegsolitaire.ui.home.fixture.HomeSlack
 import com.app.pegsolitaire.ui.home.fixture.RESUME_CHALLENGE_LABEL
 import com.app.pegsolitaire.ui.home.fixture.RESUME_CLASSIC_LABEL
 import com.app.pegsolitaire.ui.home.fixture.appName
@@ -43,6 +44,7 @@ import com.app.pegsolitaire.ui.home.fixture.challengeTileTitle
 import com.app.pegsolitaire.ui.home.fixture.chipsState
 import com.app.pegsolitaire.ui.home.fixture.classicTileTitle
 import com.app.pegsolitaire.ui.home.fixture.columnBoundsOf
+import com.app.pegsolitaire.ui.home.fixture.homeSlack
 import com.app.pegsolitaire.ui.home.fixture.renderHome
 import com.app.pegsolitaire.ui.home.fixture.settingsLabel
 import com.app.pegsolitaire.ui.theme.LightColors
@@ -54,39 +56,45 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import kotlin.math.ceil
-import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 
 /**
- * When the Continue chips arrive (ux-spec §4.2.5, D-03n): criteria 15s, 15t and 15u.
+ * When the Continue chips arrive (ux-spec §4.2.5, D-03n; read since D-03p as criterion 15z, and since
+ * D-03q with the title bound's no-chip headroom H₀ — criterion 15ac part 2).
  *
  * The chips are known only once `HomeViewModel` has decoded both resume snapshots, so they land
  * after first paint, ≈0.6s on QA's AVD. Under D-03i's 3 : 1 split of the *current* slack every
  * chip's arrival moved the mode tiles 22–24dp, under a thumb that was already heading for them
- * (QA's loop-3 F-1). D-03n moves the room out of the stage above the ribbon instead: the footer is
- * one fifth of the slack Home has with **no** chip, S₀, fixed for the window, so the tiles hold
- * still wherever the stage can give the chips' room, and move by exactly what it cannot give.
+ * (QA's loop-3 F-1). D-03n fixed the footer to a share of the slack Home has with **no** chip, S₀, so
+ * the tiles hold still wherever the room above them can give the chips' room, and move by exactly what
+ * it cannot give. Since D-03p that room above is the **headroom above the hero row** (the stage is
+ * withdrawn): the hero row and the ribbon ride up on it together while the tiles hold still. Since
+ * D-03q the no-chip headroom is H₀ = min(⅘ S₀, C), C the headroom at which the hero row's bottom edge
+ * meets the title bound, the footer S₀ − H₀, and the hero row never passes the bound in any emission or
+ * any frame of the room's motion — it only ever rides up from H₀.
  *
  * ## How it is read
  *
  * Every emission goes through the fixture's settable overload, so it is one composition across
  * the walk, as on a device: no chip, the Classic chip, both, none again; then the Challenge chip
  * and both. Bounds are read **along the column**, from each node's unclipped position
- * ([columnBoundsOf]), under NATIVE graphics in the app theme, with the design baseline's 24dp
- * status bar and 48dp navigation bar supplied (§13's two idioms). Every quantity the assertions
- * compare against is read from the no-chip emission on the same window, never retyped from the
- * spec's projected table, so the ±0.5dp tolerance is rounding and nothing else.
+ * ([columnBoundsOf]), under NATIVE graphics in the app theme, with the window's system bars supplied
+ * (§13's two idioms): the design baseline's 24dp status bar and 48dp three-button bar on 15s's six
+ * windows, and 15ac's two gesture-navigation windows. Every expected quantity is [HomeSlack]'s,
+ * computed from the window and the bands' own heights — never from where the column put the hero row
+ * — so the ±0.5dp tolerance is rounding and nothing else.
  *
- * - **S₀** is the no-chip stage slot plus the no-chip footer (§4.2.5, "How 15g's unused space is
- *   read"): the two things the slack becomes.
+ * - **The headroom** is the hero row's top edge less the viewport's top and the column's padding.
  * - **The footer** runs from the second tile's bottom edge to the bottom of the column's content,
  *   less one band gap and the column's bottom padding. The content's bottom is the viewport's plus
  *   the column's scrollable overflow, so the same reading holds where the column scrolls (15t).
  * - **R** is, for each chip present, its own height plus one band gap.
  * - **The band gap** is read where nothing else can sit, between the two mode tiles; the column's
  *   padding is the same token (§4.2.2).
+ *
+ * The stage art's fade at its floor (D-03n's "the stage art at the end of its range") was deleted with
+ * its subject: there is no stage art to fade (ux-spec §13's D-03p table, a ruled deletion).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [HOME_ROBOLECTRIC_SDK])
@@ -97,78 +105,121 @@ class HomeChipArrivalTest {
     @get:Rule
     val composeRule = createComposeRule(effectContext = motion)
 
-    // ---- Criterion 15s: nothing a player can tap moves -------------------------
+    // ---- Criterion 15z parts 1–4 (15s): the room comes from the headroom ---------
 
     @Test
     @Config(qualifiers = "w360dp-h640dp")
-    fun nothingAPlayerCanTapMovesWhenAChipArrivesOnA360x640dpPhone() = assertNothingAPlayerCanTapMoves()
+    fun theRoomComesFromTheHeadroomAndTheTilesHoldStillOnA360x640dpPhone() = assertTheRoomComesFromTheHeadroom()
 
     @Test
     @Config(qualifiers = "w360dp-h720dp")
-    fun nothingAPlayerCanTapMovesWhenAChipArrivesOnA360x720dpPhone() = assertNothingAPlayerCanTapMoves()
+    fun theRoomComesFromTheHeadroomAndTheTilesHoldStillOnA360x720dpPhone() = assertTheRoomComesFromTheHeadroom()
 
     @Test
     @Config(qualifiers = "w360dp-h800dp")
-    fun nothingAPlayerCanTapMovesWhenAChipArrivesOnA360x800dpPhone() = assertNothingAPlayerCanTapMoves()
+    fun theRoomComesFromTheHeadroomAndTheTilesHoldStillOnA360x800dpPhone() = assertTheRoomComesFromTheHeadroom()
 
     @Test
     @Config(qualifiers = "w412dp-h780dp")
-    fun nothingAPlayerCanTapMovesWhenAChipArrivesOnA412x780dpPhone() = assertNothingAPlayerCanTapMoves()
+    fun theRoomComesFromTheHeadroomAndTheTilesHoldStillOnA412x780dpPhone() = assertTheRoomComesFromTheHeadroom()
 
     @Test
     @Config(qualifiers = "w412dp-h850dp")
-    fun nothingAPlayerCanTapMovesWhenAChipArrivesOnA412x850dpPhone() = assertNothingAPlayerCanTapMoves()
+    fun theRoomComesFromTheHeadroomAndTheTilesHoldStillOnA412x850dpPhone() = assertTheRoomComesFromTheHeadroom()
 
     @Test
     @Config(qualifiers = "w412dp-h915dp")
-    fun nothingAPlayerCanTapMovesWhenAChipArrivesOnA412x915dpPhone() = assertNothingAPlayerCanTapMoves()
+    fun theRoomComesFromTheHeadroomAndTheTilesHoldStillOnA412x915dpPhone() = assertTheRoomComesFromTheHeadroom()
 
-    // ---- Criterion 15t: the shortfall, and no more -----------------------------
+    // ---- Criterion 15ac part 2: the chips' room under the title bound -------------
+
+    /** On the tall phone in gesture navigation, where the bound holds the no-chip headroom at C. */
+    @Test
+    @Config(qualifiers = "w412dp-h915dp")
+    fun underTheTitleBoundTheRoomStillComesFromTheHeadroomOnATallPhoneInGestureNavigation() =
+        assertTheRoomComesFromTheHeadroom(GESTURE_TALL)
+
+    /** On the Pixel_9, QA's device, where the bound bites by 39.3dp (§4.2.7's D-03q table). */
+    @Test
+    @Config(qualifiers = "w411dp-h923dp")
+    fun underTheTitleBoundTheRoomStillComesFromTheHeadroomOnThePixel9() =
+        assertTheRoomComesFromTheHeadroom(PIXEL_9_BARS)
+
+    // ---- Criterion 15z part 1 at font scale 2.0 (15t): the shortfall, and no more -----
 
     @Test
     @Config(qualifiers = "w360dp-h640dp")
-    fun whereTheStageCannotGiveTheRoomTheTilesMoveByTheShortfallAndNoMoreOnA360x640dpPhone() =
-        assertTheTilesMoveByTheShortfallAndNoMore()
+    fun whereTheHeadroomCannotGiveTheRoomTheTilesFallByTheShortfallAndNoMoreOnA360x640dpPhone() =
+        assertTheTilesFallByTheShortfallAndNoMore()
 
     @Test
     @Config(qualifiers = "w412dp-h915dp")
-    fun whereTheStageCannotGiveTheRoomTheTilesMoveByTheShortfallAndNoMoreOnA412x915dpPhone() =
-        assertTheTilesMoveByTheShortfallAndNoMore()
+    fun whereTheHeadroomCannotGiveTheRoomTheTilesFallByTheShortfallAndNoMoreOnA412x915dpPhone() =
+        assertTheTilesFallByTheShortfallAndNoMore()
 
-    // ---- Criterion 15u: the room opens, and nothing jumps -----------------------
+    // ---- Criterion 15z part 5 (15u): the room opens, and nothing jumps ---------------
 
     /**
-     * Criterion 15u with OS animations on, on the 6.7-inch window, where the stage can give the
-     * whole room: the Classic chip arriving, then both chips leaving, read frame by frame on a
+     * Criterion 15z part 5 with OS animations on, on the 6.7-inch window, where the headroom can give
+     * the whole room: the Classic chip arriving, then both chips leaving, read frame by frame on a
      * paused clock once Home's entrance cascade has settled (a band's test bounds include its
      * entrance's drawn offset, §4.2.5).
      *
-     * In every frame from the emission until the layout settles the hero row and both tiles are
-     * where they were, the ribbon's top edge moves monotonically from its old place to its new one
-     * and never past it, and no frame shows a chip's room — its gap included — without the chip.
-     * The room opens over `ClayAnim.ENTRANCE_MS`: it has started moving by [START_FRAMES] frames
-     * after the emission and settles no sooner than the entrance's own duration and no later than
-     * [START_FRAMES] frames past it.
+     * In every frame from the emission until the layout settles both tiles are where they were; the
+     * hero row's and the ribbon's top edges move monotonically from their old places to their new ones,
+     * together, and never past them; the hero row never passes the title bound; and no frame shows a
+     * chip's room — its gap included — without the chip. The room opens over `ClayAnim.ENTRANCE_MS`: it
+     * has started moving by [START_FRAMES] frames after the emission and settles no sooner than the
+     * entrance's own duration and no later than [START_FRAMES] frames past it.
      */
     @Test
     @Config(qualifiers = "w412dp-h915dp")
-    fun theRoomOpensOverTheEntranceDurationAndNothingJumps() {
-        val state = renderWithThePausedClock()
-        val noChip = readFrame()
+    fun theRoomOpensOverTheEntranceDurationAndNothingJumps() = assertTheRoomOpensFrameByFrame(THREE_BUTTON)
 
-        val arriving = framesAfter(state, classic = true, challenge = false)
-        assertTheRoomMovesSmoothly(arriving, from = noChip, what = "the Classic chip arriving")
+    // ---- Criterion 15ac part 2's frames: no frame of the room's motion passes the bound --
 
-        settle(state, classic = true, challenge = true)
-        val bothChips = readFrame()
-        val leaving = framesAfter(state, classic = false, challenge = false)
-        assertTheRoomMovesSmoothly(leaving, from = bothChips, what = "both chips leaving")
-    }
+    /*
+     * 15ac part 2 reads 15z on 15ac part 1's eight windows, and "in no emission and no frame of the
+     * room's motion" may the hero row's bottom edge pass the title bound. The emissions are read above
+     * on all eight; these walk the frames on the seven windows 15u's own does not, with 15z part 5's
+     * whole read, the bound in every frame among it. The headroom gives the whole room on every one of
+     * them at default scale (R ≤ H₀, §4.2.7's eight-window table), so the tiles hold still in every frame
+     * there as on 15u's window.
+     */
+
+    @Test
+    @Config(qualifiers = "w360dp-h640dp")
+    fun frameByFrameTheRoomOpensUnderTheTitleBoundOnA360x640dpPhone() = assertTheRoomOpensFrameByFrame(THREE_BUTTON)
+
+    @Test
+    @Config(qualifiers = "w360dp-h720dp")
+    fun frameByFrameTheRoomOpensUnderTheTitleBoundOnA360x720dpPhone() = assertTheRoomOpensFrameByFrame(THREE_BUTTON)
+
+    @Test
+    @Config(qualifiers = "w360dp-h800dp")
+    fun frameByFrameTheRoomOpensUnderTheTitleBoundOnA360x800dpPhone() = assertTheRoomOpensFrameByFrame(THREE_BUTTON)
+
+    @Test
+    @Config(qualifiers = "w412dp-h780dp")
+    fun frameByFrameTheRoomOpensUnderTheTitleBoundOnA412x780dpPhone() = assertTheRoomOpensFrameByFrame(THREE_BUTTON)
+
+    @Test
+    @Config(qualifiers = "w412dp-h850dp")
+    fun frameByFrameTheRoomOpensUnderTheTitleBoundOnA412x850dpPhone() = assertTheRoomOpensFrameByFrame(THREE_BUTTON)
+
+    @Test
+    @Config(qualifiers = "w412dp-h915dp")
+    fun frameByFrameTheRoomOpensUnderTheTitleBoundOnATallPhoneInGestureNavigation() =
+        assertTheRoomOpensFrameByFrame(GESTURE_TALL)
+
+    @Test
+    @Config(qualifiers = "w411dp-h923dp")
+    fun frameByFrameTheRoomOpensUnderTheTitleBoundOnThePixel9() = assertTheRoomOpensFrameByFrame(PIXEL_9_BARS)
 
     /**
-     * Criterion 15u with OS animations off (`rememberAnimationsEnabled()` false), the setting a
-     * reduced-motion player has: the frame after the emission is the settled layout, on arrival and
-     * on leaving, and nothing a player can tap moves in it either.
+     * Criterion 15z part 5 with OS animations off (`rememberAnimationsEnabled()` false), the setting a
+     * reduced-motion player has: the frame after the emission is the settled layout, on arrival and on
+     * leaving, the tiles where they were and the hero row and the ribbon at their new place together.
      */
     @Test
     @Config(qualifiers = "w412dp-h915dp")
@@ -186,54 +237,120 @@ class HomeChipArrivalTest {
         assertSettledInTheFirstFrame(leaving, from = bothChips, what = "both chips leaving")
     }
 
+    // ---- The chip room under a live switch of Remove animations (§14.3 item 1) -------
+
     /**
-     * Criterion 15s on the current window, at default font scale, over both of its walks.
-     *
-     * 1. The title's, the gear's and both mode tiles' bounds equal their no-chip bounds.
-     * 2. The footer is the same in every emission, and one fifth of S₀.
-     * 3. The stage is max(0, ⅘S₀ − R), and wherever it is above 0 the ribbon rides up by exactly R.
-     * 4. Every chip present is complete in the first viewport, and the column's scrollable overflow
-     *    is what it is with no chip.
-     *
-     * If the stage cannot give the room on one of these windows (R > ⅘S₀), part 1 fails, and that
-     * is a finding for the ux-designer with the numbers, never something to close by letting the
-     * tiles move (§4.2.5).
+     * P3 part 1 and the code-auditor's step 1b (`home-chip-arrival/tech-lead-c11-ruling.md` §2;
+     * `code-auditor-loop3.md` I1): animations switched **off** (Remove animations turned on) while the
+     * Classic chip's room is opening, then back on. From the second frame after the switch off every
+     * frame is the settled one-chip layout, and after the switch back on every frame still is: a room
+     * left part-way, which the off state's fraction would hide until animations come back, shows there.
+     * The tiles hold their no-chip bounds throughout.
      */
-    private fun assertNothingAPlayerCanTapMoves() {
+    @Test
+    @Config(qualifiers = "w412dp-h915dp")
+    fun switchingAnimationsOffMidOpeningSettlesTheRoomAndSwitchingThemBackLeavesItSettled() {
+        val state = renderWithThePausedClock()
+        val noChip = readFrame()
+        composeRule.runOnUiThread {
+            state.value = chipsState(classic = true, challenge = false)
+            Snapshot.sendApplyNotifications()
+        }
+        val opening = nextFrames(START_FRAMES + 2)
+        assertWithMessage("the room, part-way open when animations go off")
+            .that(opening.last().ribbonTop.value)
+            .isLessThan(noChip.ribbonTop.value - TOLERANCE_DP)
+
+        switchAnimations(on = false)
+        val off = nextFrames(FRAMES_READ)
+        composeRule.mainClock.advanceTimeBy(CASCADE_SETTLED_MS)
+        val settled = readFrame()
+        switchAnimations(on = true)
+        val backOn = nextFrames(FRAMES_READ)
+
+        off.drop(1).forEachIndexed { index, frame ->
+            assertWithMessage("frame ${index + 2} after the switch off, against the settled one-chip frame")
+                .that(frame)
+                .isEqualTo(settled)
+        }
+        backOn.forEachIndexed { index, frame ->
+            assertWithMessage("frame ${index + 1} after the switch back on, against the settled one-chip frame")
+                .that(frame)
+                .isEqualTo(settled)
+        }
+        (opening + off + backOn).forEachIndexed { index, frame ->
+            assertSameBounds("walk frame ${index + 1}: the Classic tile", frame.classicTile, noChip.classicTile)
+            assertSameBounds("walk frame ${index + 1}: the Challenge tile", frame.challengeTile, noChip.challengeTile)
+        }
+    }
+
+    /**
+     * P3 part 2 (`home-chip-arrival/tech-lead-c11-ruling.md` §2): with animations off (Remove animations
+     * on), the chip arrives and its room is open in the next frame; switching animations on then changes
+     * nothing — the frame after the switch is the frame before it — and the chip leaving afterwards
+     * closes its room smoothly over the entrance duration, as 15z part 5 reads it.
+     */
+    @Test
+    @Config(qualifiers = "w412dp-h915dp")
+    fun switchingAnimationsOnAfterAnInstantArrivalMovesNothingAndTheLeavingStillGlides() {
+        motion.turnAnimationsOff()
+        val state = renderWithThePausedClock()
+        val slack = composeRule.homeSlack(statusBar = THREE_BUTTON.status, navigationBar = THREE_BUTTON.navigation)
+        val arrived = framesAfter(state, classic = true, challenge = false)
+        val before = arrived.last()
+        assertWithMessage("the room open in the first frame after the arrival").that(arrived.first()).isEqualTo(before)
+
+        switchAnimations(on = true)
+        composeRule.mainClock.advanceTimeByFrame()
+        assertWithMessage("the frame after the switch on, against the frame before it")
+            .that(readFrame())
+            .isEqualTo(before)
+
+        val leaving = framesAfter(state, classic = false, challenge = false)
+        assertTheRoomMovesSmoothly(leaving, from = before, slack = slack, what = "the chip leaving after the switch on")
+    }
+
+    /**
+     * Turns Remove animations [on] or off while Home stays composed, as a live switch in Settings reaches
+     * a resident app: the scale is written on the UI thread and its apply notification sent at once, as
+     * [framesAfter] writes state, so the next frame reads it.
+     */
+    private fun switchAnimations(on: Boolean) {
+        composeRule.runOnUiThread {
+            if (on) motion.turnAnimationsOn() else motion.turnAnimationsOff()
+            Snapshot.sendApplyNotifications()
+        }
+    }
+
+    /**
+     * Criteria 15z parts 1–4 and 15ac part 2 on the current window with [bars], at default font scale,
+     * over both of 15s's walks. In the no-chip emission the headroom is H₀ = min(⅘ S₀, C); then in every
+     * emission:
+     * 1. both mode tiles' bounds equal their no-chip bounds wherever R ≤ H₀, and otherwise sit exactly
+     *    R − H₀ lower;
+     * 2. the hero row's and the ribbon's top edges sit higher than their no-chip tops by exactly
+     *    min(R, H₀), the ribbon one band gap below the hero row's bottom;
+     * 3. the footer is min(S₀ − H₀, max(0, S₀ − R));
+     * 4. every chip present is complete in the first viewport, and the column's scrollable overflow is
+     *    what it is with no chip;
+     * 5. the hero row's visible bottom edge is at or above the title bound.
+     */
+    private fun assertTheRoomComesFromTheHeadroom(bars: Bars = THREE_BUTTON) {
         val state = mutableStateOf(chipsState(classic = false, challenge = false))
-        renderWithInsets(state, DEFAULT_FONT_SCALE)
-        val noChip = readHome()
-        val slack = noChip.stage + noChip.footer
+        renderWithInsets(state, DEFAULT_FONT_SCALE, bars)
+        val slack = composeRule.homeSlack(statusBar = bars.status, navigationBar = bars.navigation)
+        val noChip = readHome(bars)
+        assertWithMessage("no chip: the headroom against H₀ = min(⅘ S₀, C), S₀ = ${slack.slack}, in dp")
+            .that(noChip.headroom.value)
+            .isWithin(TOLERANCE_DP)
+            .of(slack.noChipHeadroom.value)
 
         WALK.forEach { (classic, challenge) ->
             show(state, classic, challenge)
             val chips = chipsNamed(classic, challenge)
-            val reading = readHome()
+            val reading = readHome(bars)
             val room = roomOf(reading, classic, challenge)
-
-            assertSameBounds("$chips: the title", reading.title, noChip.title)
-            assertSameBounds("$chips: the gear", reading.gear, noChip.gear)
-            assertSameBounds("$chips: the Classic tile", reading.classicTile, noChip.classicTile)
-            assertSameBounds("$chips: the Challenge tile", reading.challengeTile, noChip.challengeTile)
-            assertWithMessage("$chips: the footer against a fifth of the no-chip slack S₀ = $slack, in dp")
-                .that(reading.footer.value)
-                .isWithin(TOLERANCE_DP)
-                .of(slack.value / FOOTER_SHARE_DIVISOR)
-            assertWithMessage("$chips: the footer against the no-chip footer, in dp")
-                .that(reading.footer.value)
-                .isWithin(TOLERANCE_DP)
-                .of(noChip.footer.value)
-            val stage = max(0f, slack.value * STAGE_SHARE_OF_SLACK - room.value)
-            assertWithMessage("$chips: the stage against max(0, ⅘S₀ − R), R = $room, in dp")
-                .that(reading.stage.value)
-                .isWithin(TOLERANCE_DP)
-                .of(stage)
-            if (reading.stage > 0.dp) {
-                assertWithMessage("$chips: the ribbon's top edge, risen by R = $room, in dp")
-                    .that(reading.ribbonTop.value)
-                    .isWithin(TOLERANCE_DP)
-                    .of((noChip.ribbonTop - room).value)
-            }
+            assertTheRoomCameFromTheHeadroom(chips, reading, noChip, slack, room, boundInEveryEmission = true)
             chipNodes(classic, challenge).forEach(::assertAScrollDoesNotMove)
             assertWithMessage("$chips: the column's scrollable overflow, in dp")
                 .that(reading.overflow.value)
@@ -243,41 +360,67 @@ class HomeChipArrivalTest {
     }
 
     /**
-     * Criterion 15t on the current window, at font scale 2.0: between any two emissions the mode
-     * tiles sit exactly max(0, R − ⅘S₀) below their no-chip position — never above it — the hero
-     * row does not move, no band is dropped, and where the column overflows it scrolls.
+     * Criterion 15z part 1 at font scale 2.0 (15t) on the current window: between any two emissions the
+     * mode tiles sit exactly max(0, R − H₀) below their no-chip position — never above it — the hero row
+     * and the ribbon sit higher by exactly min(R, H₀), the footer pays what the headroom cannot, down to
+     * 0, no band is dropped, and where the column overflows it scrolls.
      */
-    private fun assertTheTilesMoveByTheShortfallAndNoMore() {
+    private fun assertTheTilesFallByTheShortfallAndNoMore() {
         val state = mutableStateOf(chipsState(classic = false, challenge = false))
-        renderWithInsets(state, DOUBLE_FONT_SCALE)
-        val noChip = readHome()
-        val slack = noChip.stage + noChip.footer
+        renderWithInsets(state, DOUBLE_FONT_SCALE, THREE_BUTTON)
+        val slack = composeRule.homeSlack(statusBar = THREE_BUTTON.status, navigationBar = THREE_BUTTON.navigation)
+        val noChip = readHome(THREE_BUTTON)
 
         WALK.forEach { (classic, challenge) ->
             show(state, classic, challenge)
             val chips = chipsNamed(classic, challenge)
-            val reading = readHome()
+            val reading = readHome(THREE_BUTTON)
             val room = roomOf(reading, classic, challenge)
-            val shortfall = max(0f, room.value - slack.value * STAGE_SHARE_OF_SLACK)
-            // The footer pays what the stage cannot, down to 0 (code-auditor loop 1, P5).
-            assertWithMessage("$chips: the footer against min(S₀/5, max(0, S₀ − R)), R = $room, S₀ = $slack")
-                .that(reading.footer.value)
-                .isWithin(TOLERANCE_DP)
-                .of(min(slack.value / FOOTER_SHARE_DIVISOR, max(0f, slack.value - room.value)))
-
-            assertSameBounds("$chips: the title", reading.title, noChip.title)
-            assertSameBounds("$chips: the gear", reading.gear, noChip.gear)
-            listOf(
-                "the Classic tile" to (reading.classicTile.top - noChip.classicTile.top),
-                "the Challenge tile" to (reading.challengeTile.top - noChip.challengeTile.top),
-            ).forEach { (tile, moved) ->
-                assertWithMessage("$chips: how far $tile moved down, R = $room, S₀ = $slack, in dp")
-                    .that(moved.value)
-                    .isWithin(TOLERANCE_DP)
-                    .of(shortfall)
-            }
+            assertTheRoomCameFromTheHeadroom(chips, reading, noChip, slack, room, boundInEveryEmission = false)
         }
         assertEveryBandIsReachable()
+    }
+
+    /**
+     * One emission against the no-chip one: the tiles, the hero row, the ribbon, the footer and the
+     * bound. With [boundInEveryEmission] the hero row's bottom edge is held to the bound in every
+     * emission (15ac part 2, at default font scale); without it, only where the headroom is above 0 (15ac
+     * part 1's reading at 2.0, where a row taller than the bound allows sits at the top padding: the
+     * wrapped title's case, which B-21 covers).
+     */
+    private fun assertTheRoomCameFromTheHeadroom(
+        chips: String,
+        reading: HomeReading,
+        noChip: HomeReading,
+        slack: HomeSlack,
+        room: Dp,
+        boundInEveryEmission: Boolean,
+    ) {
+        val fall = slack.tilesFallWith(room)
+        val rise = slack.riseWith(room)
+        assertMovedDown("$chips: the Classic tile", reading.classicTile, noChip.classicTile, by = fall)
+        assertMovedDown("$chips: the Challenge tile", reading.challengeTile, noChip.challengeTile, by = fall)
+        assertWithMessage("$chips: the hero row's top edge, risen by min(R, H₀), R = $room, in dp")
+            .that(reading.heroTop.value)
+            .isWithin(TOLERANCE_DP)
+            .of((noChip.heroTop - rise).value)
+        assertWithMessage("$chips: the ribbon's top edge, risen by min(R, H₀), R = $room, in dp")
+            .that(reading.ribbonTop.value)
+            .isWithin(TOLERANCE_DP)
+            .of((noChip.ribbonTop - rise).value)
+        assertWithMessage("$chips: the ribbon's top edge, one band gap below the hero row's bottom, in dp")
+            .that(reading.ribbonTop.value)
+            .isWithin(TOLERANCE_DP)
+            .of((reading.heroBottom + reading.gap).value)
+        assertWithMessage("$chips: the footer against min(S₀ − H₀, max(0, S₀ − R)), S₀ = ${slack.slack}, in dp")
+            .that(reading.footer.value)
+            .isWithin(TOLERANCE_DP)
+            .of(slack.footerWith(room).value)
+        if (boundInEveryEmission || reading.headroom > TOLERANCE_DP.dp) {
+            assertWithMessage("$chips: the hero row's visible bottom edge against the title bound, in dp")
+                .that(reading.heroVisibleBottom.value)
+                .isAtMost(slack.titleBound.value + TOLERANCE_DP)
+        }
     }
 
     /**
@@ -332,7 +475,7 @@ class HomeChipArrivalTest {
         composeRule.mainClock.autoAdvance = false
         val state = mutableStateOf(chipsState(classic = false, challenge = true))
         composeRule.renderHome(state, onResumeChallenge = { level -> resumed = level })
-        composeRule.applySystemBarInsets(top = STATUS_BAR_DP.dp, bottom = NAVIGATION_BAR_DP.dp)
+        composeRule.applySystemBarInsets(top = THREE_BUTTON.status, bottom = THREE_BUTTON.navigation)
         composeRule.mainClock.advanceTimeBy(CASCADE_SETTLED_MS)
         composeRule.runOnUiThread {
             state.value = chipsState(classic = false, challenge = false)
@@ -350,7 +493,7 @@ class HomeChipArrivalTest {
         assertWithMessage("controls on Home with no save: the gear and the two tiles")
             .that(composeRule.onAllNodes(hasClickAction()).fetchSemanticsNodes())
             .hasSize(CONTROLS_WITH_NO_CHIP)
-        // Where the closing chip is drawn now: it rides down with the ribbon as the stage grows back.
+        // Where the closing chip is drawn now: it rides down with the ribbon as the headroom grows back.
         val chip = bounds(composeRule.onNodeWithTag(CONTINUE_CHIP_ROOM_TEST_TAG, useUnmergedTree = true))
         val tap =
             with(composeRule.density) {
@@ -378,54 +521,31 @@ class HomeChipArrivalTest {
     }
 
     /**
-     * The stage art at the end of its range (§4.2.5, "The stage art at the end of its range"; §10):
-     * on the 360x640dp baseline both chips take the stage from 186dp to 10dp, under the 48dp the
-     * art needs. The art must not shrink to 48dp and vanish in one frame: it stays drawn while the
-     * room opens, shrinking and fading, and is gone once the room has opened. Both chips leaving run
-     * it in reverse: the art is back from the room's first frame, faded in, never popped in whole.
-     *
-     * The fade is read in the flat render: an opaque slab paints pixels of exactly its
-     * `surfaceContainerHigh`, and a slab drawn at any alpha under 1 paints none, since the
-     * background behind it is another colour.
+     * 15z part 5 on the current window with [bars], read as [theRoomOpensOverTheEntranceDurationAndNothingJumps]
+     * says: the Classic chip arriving, then both chips leaving, frame by frame on the paused clock.
      */
-    @Test
-    @Config(qualifiers = "w360dp-h640dp")
-    fun theStageArtFadesAtItsFloorRatherThanVanishingOrPoppingWhenBothChipsCome() {
-        val state = renderWithThePausedClock()
-        assertWithMessage("no chip: the stage art drawn opaque").that(readArt().opaquePixels).isGreaterThan(0)
+    private fun assertTheRoomOpensFrameByFrame(bars: Bars) {
+        val state = renderWithThePausedClock(bars)
+        val slack = composeRule.homeSlack(statusBar = bars.status, navigationBar = bars.navigation)
+        val noChip = readFrame()
 
-        val arriving = artFramesAfter(state, classic = true, challenge = true)
-        val opened = arriving.indexOfFirst { it.ribbonTop == arriving.last().ribbonTop }
-        arriving.take(opened).forEachIndexed { index, frame ->
-            assertWithMessage("both chips arriving, frame ${index + 1}: the stage art, the room still opening")
-                .that(frame.present)
-                .isTrue()
-        }
-        val midway = arriving[opened / 2]
-        assertWithMessage("both chips arriving, frame ${opened / 2 + 1}: opaque slab px, the art half faded")
-            .that(midway.opaquePixels)
-            .isEqualTo(0)
-        assertWithMessage("both chips arriving, settled: the stage art").that(arriving.last().present).isFalse()
+        val arriving = framesAfter(state, classic = true, challenge = false)
+        assertTheRoomMovesSmoothly(arriving, from = noChip, slack = slack, what = "the Classic chip arriving")
 
         settle(state, classic = true, challenge = true)
-        val leaving = artFramesAfter(state, classic = false, challenge = false)
-        val back = leaving.indexOfFirst { it.present }
-        assertWithMessage("both chips leaving: the frame the art is back in").that(back + 1).isIn(1..START_FRAMES)
-        assertWithMessage("both chips leaving, frame ${back + 1}: opaque slab px as the art comes back")
-            .that(leaving[back].opaquePixels)
-            .isEqualTo(0)
-        assertWithMessage("both chips leaving, settled: opaque slab px")
-            .that(leaving.last().opaquePixels)
-            .isGreaterThan(0)
+        val bothChips = readFrame()
+        val leaving = framesAfter(state, classic = false, challenge = false)
+        assertTheRoomMovesSmoothly(leaving, from = bothChips, slack = slack, what = "both chips leaving")
     }
 
     /**
-     * 15u's motion read over [frames], the first being the frame after the emission and the last
+     * 15z part 5's motion read over [frames], the first being the frame after the emission and the last
      * settled: see [theRoomOpensOverTheEntranceDurationAndNothingJumps].
      */
     private fun assertTheRoomMovesSmoothly(
         frames: List<FrameReading>,
         from: FrameReading,
+        slack: HomeSlack,
         what: String,
     ) {
         val settled = frames.last()
@@ -433,23 +553,24 @@ class HomeChipArrivalTest {
         val rising = settled.ribbonTop < from.ribbonTop
         frames.forEachIndexed { index, frame ->
             val label = "$what, frame ${index + 1} after the emission"
-            assertSameBounds("$label: the title", frame.title, from.title)
-            assertSameBounds("$label: the gear", frame.gear, from.gear)
             assertSameBounds("$label: the Classic tile", frame.classicTile, from.classicTile)
             assertSameBounds("$label: the Challenge tile", frame.challengeTile, from.challengeTile)
-            val previous = if (index == 0) from.ribbonTop else frames[index - 1].ribbonTop
-            val monotonic =
-                if (rising) {
-                    frame.ribbonTop.value <= previous.value + TOLERANCE_DP
-                } else {
-                    frame.ribbonTop.value >= previous.value - TOLERANCE_DP
-                }
-            assertWithMessage("$label: the ribbon's top edge, ${frame.ribbonTop}, against the frame before, $previous")
-                .that(monotonic)
-                .isTrue()
+            val previous = if (index == 0) from else frames[index - 1]
+            assertMonotonic("$label: the ribbon's top edge", frame.ribbonTop, previous.ribbonTop, rising)
+            assertMonotonic("$label: the hero row's top edge", frame.heroTop, previous.heroTop, rising)
             assertWithMessage("$label: the ribbon's top edge between its old place and its new one, in dp")
                 .that(frame.ribbonTop.value)
                 .isIn(rangeOf(from.ribbonTop.value, settled.ribbonTop.value))
+            assertWithMessage("$label: the hero row's top edge between its old place and its new one, in dp")
+                .that(frame.heroTop.value)
+                .isIn(rangeOf(from.heroTop.value, settled.heroTop.value))
+            assertWithMessage("$label: the ribbon riding with the hero row — the distance between their tops, in dp")
+                .that((frame.ribbonTop - frame.heroTop).value)
+                .isWithin(TOLERANCE_DP)
+                .of((from.ribbonTop - from.heroTop).value)
+            assertWithMessage("$label: the hero row's visible bottom edge against the title bound, in dp")
+                .that(frame.heroVisibleBottom.value)
+                .isAtMost(slack.titleBound.value + TOLERANCE_DP)
             if (frame.room > TOLERANCE_DP.dp) {
                 assertWithMessage("$label: the chips composed while the room is ${frame.room} open")
                     .that(frame.chips)
@@ -464,13 +585,25 @@ class HomeChipArrivalTest {
             .isIn(ENTRANCE_FRAMES..ENTRANCE_FRAMES + START_FRAMES)
     }
 
+    /** One edge's step: monotonic toward where it is going, never back by more than the tolerance. */
+    private fun assertMonotonic(
+        what: String,
+        edge: Dp,
+        previous: Dp,
+        rising: Boolean,
+    ) {
+        val monotonic =
+            if (rising) edge.value <= previous.value + TOLERANCE_DP else edge.value >= previous.value - TOLERANCE_DP
+        assertWithMessage("$what, $edge, against the frame before, $previous").that(monotonic).isTrue()
+    }
+
     /** The closed range between two values, whichever is the larger, widened by the tolerance. */
     private fun rangeOf(
         one: Float,
         other: Float,
     ): Range<Float> = Range.closed(min(one, other) - TOLERANCE_DP, max(one, other) + TOLERANCE_DP)
 
-    /** 15u with animations off: the first frame after the emission is already the settled one. */
+    /** 15z part 5 with animations off: the first frame after the emission is already the settled one. */
     private fun assertSettledInTheFirstFrame(
         frames: List<FrameReading>,
         from: FrameReading,
@@ -480,25 +613,31 @@ class HomeChipArrivalTest {
             .that(frames.distinct())
             .hasSize(1)
         val settled = frames.first()
-        assertSameBounds("$what: the title", settled.title, from.title)
-        assertSameBounds("$what: the gear", settled.gear, from.gear)
         assertSameBounds("$what: the Classic tile", settled.classicTile, from.classicTile)
         assertSameBounds("$what: the Challenge tile", settled.challengeTile, from.challengeTile)
         assertWithMessage("$what: the ribbon moved in the first frame")
             .that(settled.ribbonTop)
             .isNotEqualTo(from.ribbonTop)
+        assertWithMessage("$what: the hero row moved with the ribbon in the first frame, in dp")
+            .that((settled.ribbonTop - settled.heroTop).value)
+            .isWithin(TOLERANCE_DP)
+            .of((from.ribbonTop - from.heroTop).value)
     }
 
     // ---- Harness ---------------------------------------------------------------
 
     /**
-     * Home with no chip, its clock paused, the insets supplied and the entrance cascade run out:
-     * from here on, a frame happens only when a test advances one.
+     * Home with no chip, its clock paused, the window's [bars] supplied (the design baseline's unless a
+     * test names others) and the entrance cascade run out: from here on, a frame happens only when a
+     * test advances one.
      */
-    private fun renderWithThePausedClock(underlay: @Composable () -> Unit = {}): MutableState<HomeUiState> {
+    private fun renderWithThePausedClock(
+        bars: Bars = THREE_BUTTON,
+        underlay: @Composable () -> Unit = {},
+    ): MutableState<HomeUiState> {
         composeRule.mainClock.autoAdvance = false
         val state = mutableStateOf(chipsState(classic = false, challenge = false))
-        renderWithInsets(state, DEFAULT_FONT_SCALE, underlay)
+        renderWithInsets(state, DEFAULT_FONT_SCALE, bars, underlay)
         composeRule.mainClock.advanceTimeBy(CASCADE_SETTLED_MS)
         return state
     }
@@ -520,44 +659,15 @@ class HomeChipArrivalTest {
             holder.value = chipsState(classic = classic, challenge = challenge)
             Snapshot.sendApplyNotifications()
         }
-        return List(FRAMES_READ) {
+        return nextFrames(FRAMES_READ)
+    }
+
+    /** Advances the paused clock [count] frames, reading each one. */
+    private fun nextFrames(count: Int): List<FrameReading> =
+        List(count) {
             composeRule.mainClock.advanceTimeByFrame()
             readFrame()
         }
-    }
-
-    /** [framesAfter] for the stage art: whether it is drawn, and how opaque, frame by frame. */
-    private fun artFramesAfter(
-        holder: MutableState<HomeUiState>,
-        classic: Boolean,
-        challenge: Boolean,
-    ): List<ArtFrame> {
-        composeRule.runOnUiThread {
-            holder.value = chipsState(classic = classic, challenge = challenge)
-            Snapshot.sendApplyNotifications()
-        }
-        return List(FRAMES_READ) {
-            composeRule.mainClock.advanceTimeByFrame()
-            readArt()
-        }
-    }
-
-    /** The stage art in the current frame: drawn or not, its opaque slab pixels, and the ribbon's top. */
-    private fun readArt(): ArtFrame {
-        val ribbonTop = bounds(composeRule.onNodeWithTag(HOME_PROGRESS_RIBBON_TEST_TAG)).top
-        val art = composeRule.onAllNodesWithTag(HOME_STAGE_ART_TEST_TAG, useUnmergedTree = true).fetchSemanticsNodes()
-        if (art.isEmpty()) return ArtFrame(present = false, opaquePixels = 0, ribbonTop = ribbonTop)
-        val window = composeRule.renderedWindow()
-        val slab = LightColors.surfaceContainerHigh.toArgb()
-        val bounds = art.single().boundsInRoot
-        val opaque =
-            (ceil(bounds.top).toInt() until floor(bounds.bottom).toInt()).sumOf { y ->
-                (ceil(bounds.left).toInt() until floor(bounds.right).toInt()).count { x ->
-                    window.getPixel(x, y) == slab
-                }
-            }
-        return ArtFrame(present = true, opaquePixels = opaque, ribbonTop = ribbonTop)
-    }
 
     /** Emits the chips asked for and lets the clock run until everything has settled. */
     private fun settle(
@@ -569,16 +679,16 @@ class HomeChipArrivalTest {
         composeRule.mainClock.advanceTimeBy(CASCADE_SETTLED_MS)
     }
 
-    /** What 15u reads in one frame, read along the column with the clock paused. */
+    /** What 15z part 5 reads in one frame, read along the column with the clock paused. */
     private fun readFrame(): FrameReading {
         val classicTile = bounds(composeRule.onNodeWithText(classicTileTitle))
         val ribbon = bounds(composeRule.onNodeWithTag(HOME_PROGRESS_RIBBON_TEST_TAG))
         val gap = bounds(composeRule.onNodeWithText(challengeTileTitle)).top - classicTile.bottom
         return FrameReading(
-            title = bounds(composeRule.onNode(hasText(appName), useUnmergedTree = true)),
-            gear = gearChip(),
             classicTile = classicTile,
             challengeTile = bounds(composeRule.onNodeWithText(challengeTileTitle)),
+            heroTop = bounds(composeRule.onNodeWithTag(HOME_HERO_TEST_TAG, useUnmergedTree = true)).top,
+            heroVisibleBottom = heroVisibleBottom(),
             ribbonTop = ribbon.top,
             room = classicTile.top - ribbon.bottom - gap,
             // Counted by their rooms: a chip whose save has gone is drawn but carries no text (loop 1).
@@ -593,10 +703,11 @@ class HomeChipArrivalTest {
     private fun renderWithInsets(
         state: MutableState<HomeUiState>,
         fontScale: Float,
+        bars: Bars,
         underlay: @Composable () -> Unit = {},
     ) {
         composeRule.renderHome(state, fontScale = fontScale, underlay = underlay)
-        composeRule.applySystemBarInsets(top = STATUS_BAR_DP.dp, bottom = NAVIGATION_BAR_DP.dp)
+        composeRule.applySystemBarInsets(top = bars.status, bottom = bars.navigation)
     }
 
     private fun show(
@@ -609,22 +720,23 @@ class HomeChipArrivalTest {
     }
 
     /** Everything one emission is judged on, read along the column with the column unscrolled. */
-    private fun readHome(): HomeReading {
+    private fun readHome(bars: Bars): HomeReading {
         val classicTile = bounds(composeRule.onNodeWithText(classicTileTitle))
         val challengeTile = bounds(composeRule.onNodeWithText(challengeTileTitle))
         val gap = challengeTile.top - classicTile.bottom
-        val viewportBottom = composeRule.onRoot().getBoundsInRoot().bottom - NAVIGATION_BAR_DP.dp
+        val viewportBottom = composeRule.onRoot().getBoundsInRoot().bottom - bars.navigation
         val overflow = scrollableOverflow()
         val contentBottom = viewportBottom + overflow
-        val stage = bounds(composeRule.onNodeWithTag(HOME_STAGE_TEST_TAG, useUnmergedTree = true))
+        val hero = bounds(composeRule.onNodeWithTag(HOME_HERO_TEST_TAG, useUnmergedTree = true))
         return HomeReading(
-            title = bounds(composeRule.onNode(hasText(appName), useUnmergedTree = true)),
-            gear = gearChip(),
             classicTile = classicTile,
             challengeTile = challengeTile,
+            heroTop = hero.top,
+            heroBottom = hero.bottom,
+            heroVisibleBottom = heroVisibleBottom(),
             ribbonTop = bounds(composeRule.onNodeWithTag(HOME_PROGRESS_RIBBON_TEST_TAG)).top,
-            stage = stage.bottom - stage.top,
-            // The column's padding is the band spacing (§4.2.2), so one gap and the padding both.
+            // The column's padding is the band spacing (§4.2.2), so the padding and one gap both.
+            headroom = hero.top - bars.status - gap,
             footer = contentBottom - challengeTile.bottom - gap - gap,
             gap = gap,
             overflow = overflow,
@@ -658,9 +770,13 @@ class HomeChipArrivalTest {
             .joinToString(" and ")
             .ifEmpty { "no" } + " chip"
 
+    /** The hero row's visible bottom edge (D-03m): the lower of its title's and its gear chip's. */
+    private fun heroVisibleBottom(): Dp =
+        maxOf(bounds(composeRule.onNode(hasText(appName), useUnmergedTree = true)).bottom, gearChip().bottom)
+
     /**
      * The gear **chip**, the 48dp clay circle the row draws: the parent of the button node that
-     * carries the gear's description (as `HomeStageTest` reads it).
+     * carries the gear's description (as `HomeHeadroomTest` reads it).
      */
     private fun gearChip(): DpRect =
         composeRule.columnBoundsOf(
@@ -675,14 +791,22 @@ class HomeChipArrivalTest {
         what: String,
         actual: DpRect,
         expected: DpRect,
+    ) = assertMovedDown(what, actual, expected, by = 0.dp)
+
+    /** [actual] is [expected] moved down by exactly [by], edge for edge (a move of 0 is "the same bounds"). */
+    private fun assertMovedDown(
+        what: String,
+        actual: DpRect,
+        expected: DpRect,
+        by: Dp,
     ) {
         listOf(
             "left" to (actual.left to expected.left),
-            "top" to (actual.top to expected.top),
+            "top" to (actual.top to expected.top + by),
             "right" to (actual.right to expected.right),
-            "bottom" to (actual.bottom to expected.bottom),
+            "bottom" to (actual.bottom to expected.bottom + by),
         ).forEach { (edge, pair) ->
-            assertWithMessage("$what's $edge edge against its no-chip edge, in dp")
+            assertWithMessage("$what's $edge edge against its no-chip edge moved down by $by, in dp")
                 .that(pair.first.value)
                 .isWithin(TOLERANCE_DP)
                 .of(pair.second.value)
@@ -726,38 +850,49 @@ class HomeChipArrivalTest {
     }
 
     /**
-     * One frame's geometry for 15u: [room] is the space between the ribbon's band gap and the first
-     * tile — the chips' room, gaps included — and [chips] how many Continue chips are composed.
+     * One frame's geometry for 15z part 5: [room] is the space between the ribbon's band gap and the
+     * first tile — the chips' room, gaps included — and [chips] how many Continue chips are composed.
      */
     private data class FrameReading(
-        val title: DpRect,
-        val gear: DpRect,
         val classicTile: DpRect,
         val challengeTile: DpRect,
+        val heroTop: Dp,
+        val heroVisibleBottom: Dp,
         val ribbonTop: Dp,
         val room: Dp,
         val chips: Int,
     )
 
-    /** The stage art in one frame. */
-    private data class ArtFrame(
-        val present: Boolean,
-        val opaquePixels: Int,
-        val ribbonTop: Dp,
-    )
-
     /** One emission's geometry, in dp, the column unscrolled. */
     private data class HomeReading(
-        val title: DpRect,
-        val gear: DpRect,
         val classicTile: DpRect,
         val challengeTile: DpRect,
+        val heroTop: Dp,
+        val heroBottom: Dp,
+        val heroVisibleBottom: Dp,
         val ribbonTop: Dp,
-        val stage: Dp,
+        val headroom: Dp,
         val footer: Dp,
         val gap: Dp,
         val overflow: Dp,
     )
+
+    /** A window's system bars. */
+    private data class Bars(
+        val status: Dp,
+        val navigation: Dp,
+    )
+
+    private companion object {
+        /** The design baseline's system bars: a 24dp status bar and a 48dp three-button navigation bar. */
+        val THREE_BUTTON = Bars(status = 24.dp, navigation = 48.dp)
+
+        /** A tall phone in gesture navigation: a 24dp status bar and a 24dp gesture bar (15ac). */
+        val GESTURE_TALL = Bars(status = 24.dp, navigation = 24.dp)
+
+        /** The Pixel_9 in gesture navigation, QA's device: a 54dp status bar and a 24dp gesture bar (15ac). */
+        val PIXEL_9_BARS = Bars(status = 54.dp, navigation = 24.dp)
+    }
 }
 
 /** The flat field Home's opaque `Scaffold` drew before BD-14: the background, filling the window. */
@@ -778,11 +913,7 @@ private val WALK =
         true to true,
     )
 
-/** The design baseline's system bars: a 24dp status bar and a 48dp three-button navigation bar. */
-private const val STATUS_BAR_DP = 24
-private const val NAVIGATION_BAR_DP = 48
-
-/** Criteria 15s and 15t's ±0.5dp. */
+/** Criteria 15s, 15t and 15z's ±0.5dp. */
 private const val TOLERANCE_DP = 0.5f
 
 /**
@@ -819,7 +950,3 @@ private const val CONTROLS_WITH_NO_CHIP = 3
 
 /** How far below a closing chip's top edge the tap lands: inside the part still drawn. */
 private const val TAP_DEPTH_DP = 8
-
-/** D-03n's split of S₀: the footer is a fifth, so the stage is four fifths less the chips' room. */
-private const val FOOTER_SHARE_DIVISOR = 5f
-private const val STAGE_SHARE_OF_SLACK = 0.8f

@@ -3,7 +3,6 @@ package com.app.pegsolitaire.ui.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.app.pegsolitaire.data.ChallengeProgress
-import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.HomeProgress
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.OnboardingRepository
@@ -11,9 +10,13 @@ import com.app.pegsolitaire.data.PlayGamesOptInRepository
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.data.ProgressSubmitter
+import com.app.pegsolitaire.data.resume.SnapshotMapper
+import com.app.pegsolitaire.domain.model.Board
+import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.platform.games.GamesService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,6 +24,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /**
@@ -46,14 +50,18 @@ import javax.inject.Inject
  * It also mirrors which modes hold a saved in-progress game (PERS-03, D-01/D-03) into
  * [HomeUiState.classicResumeLevelId] / [HomeUiState.challengeResumeLevel], so Home can
  * offer up to two independent "Continue" affordances. Both snapshots are opened before a
- * tile is offered — the Classic one to learn which board to resume into, the Challenge
- * one to read its stamped level (WR-03) and prove the blob actually decodes (WR-02; the
- * load also lets the repository purge a corrupt row) — and an unreadable blob degrades
- * to "no resume" (T-05-03). A Classic
- * blob whose `levelId` is no longer a catalog board (DB tampering, or an app update that
- * removed a board while an old snapshot survived) is equally unusable: the affordance is
- * withheld and the stale row purged, so a bogus id can never reach the Gameplay route's
- * fail-fast catalog lookup (CR-01).
+ * tile is offered — the Classic one to learn which board to resume into and the position the
+ * player left on it ([HomeUiState.classicResumeBoard], rebuilt by the resume path's own codec,
+ * D-03p), the Challenge one to read its stamped level (WR-03) and prove the blob actually
+ * decodes (WR-02; the load also lets the repository purge a corrupt row) — and an unreadable
+ * blob degrades to "no resume" (T-05-03). A Classic blob that decodes is unusable in two more
+ * ways, and each is withheld and its stale row purged: a `levelId` that is no longer a catalog
+ * board (DB tampering, or an app update that removed a board while an old snapshot survived),
+ * so a bogus id can never reach the Gameplay route's fail-fast catalog lookup (CR-01); and a
+ * move history that does not replay legally from the stored board (a forged or corrupt blob),
+ * which the resume path would itself purge on the tap and replace with a fresh board — so a
+ * Continue for it would promise a saved game it cannot deliver (WR-02; D-03p, the tech-lead's
+ * ruling 1).
  *
  * It also owns the one-time Play Games opt-in prompt (PGS-01, D-15 to D-18). The
  * prompt is sequenced strictly after the onboarding overlay and retired permanently once
@@ -73,6 +81,11 @@ import javax.inject.Inject
  *   which Continue affordances exist).
  * @param levelRepository the Classic catalog authority a stored snapshot's `levelId` is
  *   validated against before it may become a Continue affordance (CR-01).
+ * @param rulesEngine the rules authority the Classic snapshot's stored moves are replayed
+ *   through, the one the resume path rebuilds with, so Home shows exactly the position a
+ *   Continue resumes into (D-03p).
+ * @param defaultDispatcher the CPU-bound dispatcher that replay runs on, off the main thread
+ *   of the start destination; tests inject their own for virtual-time control.
  * @param optInRepository the persisted Play Games opt-in answer (D-17) — the single source
  *   of truth for whether the prompt has been answered, and the store both handlers write.
  * @param gamesService the Play Games seam. Reached only from [onAcceptPlayGamesPrompt]:
@@ -91,6 +104,8 @@ class HomeViewModel
         challengeProgress: ChallengeProgress,
         progressRepository: ProgressRepository,
         levelRepository: LevelRepository,
+        private val rulesEngine: RulesEngine,
+        private val defaultDispatcher: CoroutineDispatcher,
         private val optInRepository: PlayGamesOptInRepository,
         private val gamesService: GamesService,
         private val progressSubmitter: ProgressSubmitter,
@@ -202,15 +217,17 @@ class HomeViewModel
             // Which modes can be continued (PERS-03, D-01/D-03). Collecting the mode list —
             // rather than polling on every Home render — means a snapshot saved while
             // backgrounding, or cleared by a solve, is reflected the next time Home is shown.
-            // The Classic blob is opened only to learn WHICH board to resume; a null (absent
-            // or corrupt) simply hides the affordance rather than surfacing an error. The id
-            // it carries is untrusted stored state, so it must still exist in the catalog
-            // before it may be offered (CR-01) — a stale id is purged, never navigated.
+            // The Classic blob is opened to learn WHICH board to resume and WHERE the player
+            // left it; a null (absent or corrupt) simply hides the affordance rather than
+            // surfacing an error. The id it carries is untrusted stored state, so it must still
+            // exist in the catalog before it may be offered (CR-01), and its moves must replay
+            // before the position may be shown (D-03p, ruling 1) — a stale id or a forged history
+            // is purged, never navigated.
             viewModelScope.launch {
                 progressRepository.observeResumeModes().collect { modes ->
                     val classicResume =
                         if (ProgressPersistenceKeys.MODE_CLASSIC in modes) {
-                            resumableClassicBoard(progressRepository, levelRepository)
+                            resumableClassicGame(progressRepository, levelRepository)
                         } else {
                             null
                         }
@@ -228,10 +245,12 @@ class HomeViewModel
                         } else {
                             null
                         }
+                    // Both Classic fields or neither: the chip never carries an id without the
+                    // position it resumes into, nor a position without its id.
                     _uiState.update {
                         it.copy(
-                            classicResumeLevelId = classicResume?.id,
-                            classicResumeBoard = classicResume?.previewBoard,
+                            classicResumeLevelId = classicResume?.levelId,
+                            classicResumeBoard = classicResume?.board,
                             challengeResumeLevel = challengeResumeLevel,
                         )
                     }
@@ -240,29 +259,47 @@ class HomeViewModel
         }
 
         /**
-         * The Classic catalogue **descriptor** a Continue may safely resume into, or `null`
-         * when the stored snapshot is absent, unreadable, or points at a board the catalog no
-         * longer knows (CR-01). A decodable blob with an unknown id is affirmatively stale —
-         * the row is purged so the phantom Continue cannot come back on the next emission.
+         * The saved Classic game a Continue may safely resume into — its catalogue board id and
+         * the position the player left on it — or `null` when the stored snapshot is absent,
+         * unreadable, points at a board the catalog no longer knows (CR-01), or carries a move
+         * history that does not replay (D-03p, the tech-lead's ruling 1). A blob that decodes
+         * but is unusable in either of the last two ways is affirmatively stale: the row is
+         * purged so the phantom Continue cannot come back on the next emission, exactly as the
+         * resume path itself purges a history that does not replay on the tap (WR-02).
          *
-         * It returns the descriptor rather than the bare id because the catalogue lookup that
-         * validates the id already has the board in hand, and Phase 15's Continue chip renders
-         * that board as its thumbnail (§4.2 band 3). Reaching for the id alone and mapping it
-         * back to a board in the UI would be a **second** id-to-board translation, in the
-         * layer QUAL-01 keeps id strings out of — and would read the static catalogue twice on
-         * the start destination for a value this call already knows (D-03g).
+         * **The position comes from the codec, not the catalogue.** It is the stored initial
+         * board with the stored moves replayed through the rules engine
+         * ([SnapshotMapper.fromDto], the resume path's own rebuild), so the chip's thumbnail is
+         * the board the player will resume into, and never the catalogue's start board (§4.2.7).
+         * The catalogue is still read exactly once, for the id (QUAL-01: the screen never maps an
+         * id to a board, and nothing here maps one twice).
+         *
+         * The replay is CPU work bounded by the board only for a legal history, while the codec
+         * maps every stored tuple first, so it runs on [defaultDispatcher], off the main thread,
+         * after the snapshot read and the catalogue check. It never runs on Home's first frame:
+         * this collector resumes only after the Room read, and Home's first frame draws no chip
+         * (D-03n, §6.5).
          */
-        private suspend fun resumableClassicBoard(
+        private suspend fun resumableClassicGame(
             progressRepository: ProgressRepository,
             levelRepository: LevelRepository,
-        ): ClassicLevelDescriptor? {
-            val storedLevelId =
-                progressRepository.loadSnapshot(ProgressPersistenceKeys.MODE_CLASSIC)?.levelId
-                    ?: return null
-            val descriptor = levelRepository.classicCatalog().firstOrNull { it.id == storedLevelId }
-            if (descriptor == null) progressRepository.clearSnapshot(ProgressPersistenceKeys.MODE_CLASSIC)
-            return descriptor
+        ): ClassicResumable? {
+            val stored = progressRepository.loadSnapshot(ProgressPersistenceKeys.MODE_CLASSIC) ?: return null
+            val descriptor = levelRepository.classicCatalog().firstOrNull { it.id == stored.levelId }
+            val resumable =
+                descriptor?.let { known ->
+                    withContext(defaultDispatcher) { SnapshotMapper.fromDto(stored, rulesEngine) }
+                        ?.let { restored -> ClassicResumable(levelId = known.id, board = restored.currentBoard) }
+                }
+            if (resumable == null) progressRepository.clearSnapshot(ProgressPersistenceKeys.MODE_CLASSIC)
+            return resumable
         }
+
+        /** A Classic game Home may offer to continue: the board's catalogue id, and where the player left it. */
+        private data class ClassicResumable(
+            val levelId: String,
+            val board: Board,
+        )
 
         /**
          * The prompt's "Sign in" action (D-18): persist the opt-in, then sign in.
