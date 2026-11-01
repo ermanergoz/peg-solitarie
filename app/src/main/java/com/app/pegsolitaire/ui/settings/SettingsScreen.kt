@@ -4,8 +4,11 @@ import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -47,6 +50,7 @@ import com.app.pegsolitaire.platform.games.GamesSignInState
 import com.app.pegsolitaire.ui.components.ClaySnackbarHost
 import com.app.pegsolitaire.ui.theme.clayEntrance
 import com.app.pegsolitaire.ui.theme.claySquish
+import com.app.pegsolitaire.ui.window.stableSystem
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -149,6 +153,7 @@ fun SettingsScreen(
         contentColor = MaterialTheme.colorScheme.onBackground,
         snackbarHost = { ClaySnackbarHost(snackbarHostState) },
         topBar = { SettingsTopBar(onBack = onBack) },
+        contentWindowInsets = WindowInsets.stableSystem,
     ) { contentPadding ->
         Box(
             modifier =
@@ -542,6 +547,7 @@ private fun privacyPolicyIntent(): Intent =
 @Composable
 private fun SettingsTopBar(onBack: () -> Unit) {
     TopAppBar(
+        windowInsets = WindowInsets.stableSystem.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
         colors =
             TopAppBarDefaults.topAppBarColors(
                 containerColor = Color.Transparent,

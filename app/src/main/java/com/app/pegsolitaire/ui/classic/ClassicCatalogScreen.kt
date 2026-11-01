@@ -4,10 +4,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -41,6 +44,7 @@ import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.ui.theme.clayEntrance
 import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
+import com.app.pegsolitaire.ui.window.stableSystem
 
 /**
  * The stateless Classic catalog screen (CLAS-01, D-11/D-18).
@@ -71,6 +75,7 @@ fun ClassicCatalogScreen(
         containerColor = Color.Transparent,
         contentColor = MaterialTheme.colorScheme.onBackground,
         topBar = { CatalogTopBar(onNavigateBack = onNavigateBack) },
+        contentWindowInsets = WindowInsets.stableSystem,
     ) { contentPadding ->
         Box(
             modifier =
@@ -102,6 +107,7 @@ fun ClassicCatalogScreen(
 @Composable
 private fun CatalogTopBar(onNavigateBack: () -> Unit) {
     TopAppBar(
+        windowInsets = WindowInsets.stableSystem.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
         colors =
             TopAppBarDefaults.topAppBarColors(
                 containerColor = Color.Transparent,
