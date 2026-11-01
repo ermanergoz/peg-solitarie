@@ -3,15 +3,20 @@ package com.app.pegsolitaire.ui.results
 import android.graphics.Bitmap
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.testing.BackdropTestHost
 import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.testing.renderedWindow
+import com.app.pegsolitaire.ui.backdrop.BackdropDensity
 import com.app.pegsolitaire.ui.components.STAR_BAND_UNITS
 import com.app.pegsolitaire.ui.components.STAR_CENTRE_UNITS
 import com.app.pegsolitaire.ui.components.isBetweenStops
@@ -19,8 +24,6 @@ import com.app.pegsolitaire.ui.components.isColour
 import com.app.pegsolitaire.ui.components.starPixel
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.app.pegsolitaire.ui.theme.BoardMarkPalette
-import com.app.pegsolitaire.ui.theme.DarkColors
-import com.app.pegsolitaire.ui.theme.LightColors
 import com.app.pegsolitaire.ui.theme.boardMarksFor
 import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Before
@@ -38,7 +41,10 @@ import org.robolectric.annotation.GraphicsMode
  * One `ResultsScreen` with two of three stars, rendered under the standard palette and then under
  * the colour-blind one **in the same run**, no stored golden (tech design §8.5). In both palettes
  * and both themes:
- * - an unearned star is the hollow star, so its centre shows the screen's background (CV-13a);
+ * - an unearned star is the hollow star, so its centre shows what lies beneath it: on the production
+ *   host, the Results sky (CV-13a; CV-AC05 as amended, §12.5). The screen is rendered in
+ *   `BackdropTestHost` at Results' density, Sparse (candy-backdrop §12), and 'beneath' is read from
+ *   the same host with the screen taken out;
  * - an earned star's centre shows its fill: gold in the standard palette and in dark, amber in the
  *   light colour-blind palette;
  * - only the colour-blind palette outlines the earned star (§12.2: the standard earned star gets
@@ -58,6 +64,7 @@ class ResultsStarPaletteTest {
     val composeRule = createComposeRule(effectContext = motion)
 
     private val palette = mutableStateOf(BoardMarkPalette.Standard)
+    private val screenShown = mutableStateOf(true)
 
     @Before
     fun animationsOff() {
@@ -82,15 +89,19 @@ class ResultsStarPaletteTest {
                     )
             }
             AppTheme(darkTheme = dark, boardMarkPalette = palette.value) {
-                ResultsScreen(
-                    state = TWO_OF_THREE_STARS,
-                    onReplay = {},
-                    onCatalog = {},
-                    onHome = {},
-                    onNextLevel = {},
-                    onRetry = {},
-                    onNavigateBack = {},
-                )
+                BackdropTestHost(BackdropDensity.Sparse) {
+                    if (screenShown.value) {
+                        ResultsScreen(
+                            state = TWO_OF_THREE_STARS,
+                            onReplay = {},
+                            onCatalog = {},
+                            onHome = {},
+                            onNextLevel = {},
+                            onRetry = {},
+                            onNavigateBack = {},
+                        )
+                    }
+                }
             }
         }
         val standard = frameIn(BoardMarkPalette.Standard)
@@ -98,11 +109,21 @@ class ResultsStarPaletteTest {
         val colorblind = frameIn(BoardMarkPalette.Colorblind)
         val countUnderColorblind = starRow().config[EarnedStarCountKey]
         val stars = layout.starBoxes(starRow().boundsInRoot)
+        val beneath = frameWithoutTheScreen()
+        stars.take(EARNED).forEachIndexed { index, box ->
+            assertWithMessage("the frame without the screen: no earned star $index's fill at its centre")
+                .that(
+                    isBetweenStops(
+                        beneath.starPixel(box, STAR_CENTRE_UNITS, STAR_CENTRE_UNITS),
+                        boardMarksFor(BoardMarkPalette.Standard, dark).earnedStarFill,
+                    ),
+                ).isFalse()
+        }
 
         assertWithMessage("EarnedStarCountKey under the standard palette").that(countUnderStandard).isEqualTo(EARNED)
         assertWithMessage("EarnedStarCountKey across the flip").that(countUnderColorblind).isEqualTo(countUnderStandard)
-        assertTheStars(colorblind, BoardMarkPalette.Colorblind, dark, stars)
-        assertTheStars(standard, BoardMarkPalette.Standard, dark, stars)
+        assertTheStars(colorblind, beneath, BoardMarkPalette.Colorblind, dark, stars)
+        assertTheStars(standard, beneath, BoardMarkPalette.Standard, dark, stars)
     }
 
     /** The frame drawn with [shown] in effect. */
@@ -112,17 +133,25 @@ class ResultsStarPaletteTest {
         return composeRule.renderedWindow()
     }
 
+    /** The host alone, the screen taken out: what lies beneath every star, at the same pose. */
+    private fun frameWithoutTheScreen(): Bitmap {
+        composeRule.runOnUiThread { screenShown.value = false }
+        composeRule.waitForIdle()
+        composeRule.onAllNodesWithTag(RESULTS_STAR_ROW_TEST_TAG, useUnmergedTree = true).assertCountEquals(0)
+        return composeRule.renderedWindow()
+    }
+
     private fun starRow(): SemanticsNode =
         composeRule.onNodeWithTag(RESULTS_STAR_ROW_TEST_TAG, useUnmergedTree = true).fetchSemanticsNode()
 
     private fun assertTheStars(
         frame: Bitmap,
+        beneath: Bitmap,
         shown: BoardMarkPalette,
         dark: Boolean,
         stars: List<Rect>,
     ) {
         val marks = boardMarksFor(shown, dark)
-        val background = (if (dark) DarkColors else LightColors).background
         val colourBlindOutline = checkNotNull(boardMarksFor(BoardMarkPalette.Colorblind, dark).earnedStarOutline)
         stars.forEachIndexed { index, box ->
             val centre = frame.starPixel(box, STAR_CENTRE_UNITS, STAR_CENTRE_UNITS)
@@ -135,8 +164,9 @@ class ResultsStarPaletteTest {
                     .that(isColour(band, colourBlindOutline))
                     .isEqualTo(shown == BoardMarkPalette.Colorblind)
             } else {
-                assertWithMessage("$shown: the unearned star's centre shows the background beneath it")
-                    .that(isColour(centre, background))
+                val under = beneath.starPixel(box, STAR_CENTRE_UNITS, STAR_CENTRE_UNITS)
+                assertWithMessage("$shown: the unearned star's centre shows what lies beneath it")
+                    .that(isColour(centre, Color(under)))
                     .isTrue()
                 assertWithMessage("$shown: the unearned star's band below its top tip")
                     .that(isColour(band, marks.unearnedStarOutline))
