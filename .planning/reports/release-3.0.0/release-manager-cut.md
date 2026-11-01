@@ -1,6 +1,6 @@
 # release-manager report — release-3.0.0: cut and pre-device-pass checks
 Date: 2026-11-01
-Branch: release/3.0.0 (da886ed..<this commit>; off develop `da886ed`), worktree `/Users/ermanergoz/Desktop/PegSolitarie-release`
+Branch: release/3.0.0 (da886ed..a58eaba; off develop `da886ed`), worktree `/Users/ermanergoz/Desktop/PegSolitarie-release`
 Skills loaded: ergoz-soft:standards (role release-manager; game; android-compose-game: studio, reporting, gitflow, skills-policy, logging, memory, puzzle-design, play-store, kotlin-android, compose, ip-policy, testing, lessons from the product snapshot imported by CLAUDE.md), gitflow (studio overrides win: conventional commits, `.planning/` committed). Not loaded: gsd-complete-milestone, because nothing is merged to main and no milestone is completed in this step
 Ran in parallel with: none
 Ran on: claude-opus-5-5 at effort low (the harness's setting for this dispatch; not the agent file's pin)
