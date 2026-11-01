@@ -198,3 +198,11 @@ VERDICT: HOLD
 - Every other row of item 4 is unchanged.
 
 VERDICT: HOLD
+
+## Addendum 2026-11-01 — after J-5 and BD-23 (d) (`tech-lead-signoff-final.md`)
+- **BD-23 (c):** met. J-5 PASS, C − A = +57.7 ms ≤ 100 ms (floor 30.2 ms), `qa-engineer-j5.md`.
+- **Every other row of item 4 is met.** `code-auditor-j4b-loop1.md` PASS under Q-019's 2026-10-24 addendum. 15e is not owed. Develop `452f187` = the merge-base, so no merge-in is owed.
+- **Outstanding:** BD-23 (d)'s battery-saver clause. Item (4) is 2.045 s against 2.0 s in 1 of 4 runs, and the ux-designer is ruling on it.
+- The full table, the HOLD paths, the Q-PUBLISH-3.0.0 lines and the 3.0.1 list are in `tech-lead-signoff-final.md`.
+
+VERDICT: PASS — conditional on `ux-designer-bd23d-bs.md` closing the battery-saver clause on the existing data; otherwise HOLD per `tech-lead-signoff-final.md` §3.
