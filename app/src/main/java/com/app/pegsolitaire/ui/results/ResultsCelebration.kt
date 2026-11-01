@@ -49,6 +49,34 @@ internal fun rememberPopIn(
 }
 
 /**
+ * A one-shot fade-in alpha, delayed by [delayMillis] for sequencing and running for
+ * [durationMillis] (default [ClayAnim.ENTRANCE_MS]). Returns the value as a lambda so only the
+ * layer that reads it re-runs. When OS animations are off the text is fully present from the first
+ * frame: functional text is never withheld. Prose fades where a badge pops — the next-star line
+ * (ux-spec D-SB-2, §4.6) uses it on the "New best!" pill's timing.
+ */
+@Composable
+internal fun rememberFadeIn(
+    delayMillis: Int,
+    durationMillis: Int = ClayAnim.ENTRANCE_MS,
+): () -> Float {
+    val animationsEnabled = rememberAnimationsEnabled()
+    val alpha = remember { Animatable(if (animationsEnabled) FADE_START_ALPHA else SETTLED_ALPHA) }
+    LaunchedEffect(Unit) {
+        alpha.animateTo(
+            targetValue = SETTLED_ALPHA,
+            animationSpec =
+                tween(
+                    durationMillis = durationMillis,
+                    delayMillis = delayMillis,
+                    easing = ClayAnim.ENTRANCE_EASING,
+                ),
+        )
+    }
+    return { alpha.value }
+}
+
+/**
  * Counts a value up from zero to [target] over [ClayAnim.SCORE_COUNT_UP_MS], or lands on
  * [target] immediately when OS animations are off.
  */
@@ -117,6 +145,10 @@ internal fun StarPopSounds(
 /** Pop-in animation endpoints. */
 private const val POP_START_SCALE = 0f
 private const val SETTLED_SCALE = 1f
+
+/** Fade-in animation endpoints: invisible, then fully opaque. */
+private const val FADE_START_ALPHA = 0f
+private const val SETTLED_ALPHA = 1f
 
 /** Score count-up starting value. */
 private const val COUNT_UP_START = 0f

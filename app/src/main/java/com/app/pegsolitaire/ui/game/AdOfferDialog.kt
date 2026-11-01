@@ -38,6 +38,7 @@ import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.ctaGradientBrush
 import com.app.pegsolitaire.ui.theme.goldGradientFill
+import com.app.pegsolitaire.ui.window.MirrorSystemBars
 
 /** Test tag of the opt-in dialog surface so screen-level Compose tests can locate it. */
 const val AD_OFFER_DIALOG_TEST_TAG = "ad_offer_dialog"
@@ -112,6 +113,8 @@ fun AdOfferDialog(
                 DialogProperties(usePlatformDefaultWidth = false)
             },
     ) {
+        // D-05g: this window takes the board's hidden bars while it is open (tech design §3.8 (c)).
+        MirrorSystemBars()
         val surfaceShape = MaterialTheme.shapes.extraLarge
         Surface(
             shape = surfaceShape,

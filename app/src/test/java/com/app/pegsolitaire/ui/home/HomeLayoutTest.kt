@@ -89,8 +89,9 @@ import kotlin.math.roundToInt
 
 /**
  * Home's **geometry**: the vertical slack (D-03i, §4.2.2, criteria 15g–15j) and the narrow window
- * class (D-03k, §4.2.3, criteria 15k–15m). The hero row and the stage that D-03l put in the slack
- * (§4.2.4, criteria 15n–15r) are measured in `HomeHeroRowTest` and `HomeStageTest`.
+ * class (D-03k, §4.2.3, criteria 15k–15m). The hero row (§4.2.4, criteria 15n and 15o) is measured in
+ * `HomeHeroRowTest`, and the headroom D-03p put above it in place of the withdrawn stage, with its title
+ * bound (§4.2.7, criteria 15x, 15y and 15ac), in `HomeHeadroomTest`.
  *
  * Split out of [HomeScreenTest], which proves that what the state carries reaches the screen. This
  * class proves *where* it lands, which is a different question measured with different tools —
@@ -172,19 +173,19 @@ class HomeLayoutTest {
     /**
      * Criterion 15l's third window, and the other side of the compact band set: at or above
      * `home_compact_threshold_width` nothing D-03k added changes behaviour, so a 6.7-inch phone
-     * keeps the full band set — and its slack holds the stage's board.
+     * keeps the full band set.
      *
-     * **"Full" is read from the band spacing.** Since D-03l the two sets differ at this width in
-     * one thing only: `spacing_md` between the bands and around the column, where the compact set
-     * has `spacing_sm`. Neither the pill shape nor the stage art can tell them apart here: the
-     * compact pill needs the narrow class as well as the compact set, and the compact set draws a
-     * stage board too wherever it has slack. So the gap between the two mode tiles, one band gap
-     * with no weighted child inside it, must be the full set's. A set forced compact at or above
-     * 400dp halves it (the H-1 audit's M5, under which the stage-art assertion alone stayed green).
+     * **"Full" is read from the band spacing**, and from nothing drawn (15l's D-03p pointer: "full, by
+     * its band spacing"). The two sets differ at this width in one thing only: `spacing_md` between the
+     * bands and around the column, where the compact set has `spacing_sm`. The pill shape cannot tell
+     * them apart here, since the compact pill needs the narrow class as well as the compact set, and
+     * since D-03p nothing is drawn in the slack to tell them apart either. So the gap between the two
+     * mode tiles, one band gap with nothing inside it, must be the full set's. A set forced compact at
+     * or above 400dp halves it (the H-1 audit's M5).
      *
-     * Retargeted, not deleted (ux-spec §13's founder-feedback table): this asserted the hero's
-     * decorative art, which D-03l withdrew on every window. 15l's "with the hero's decorative art
-     * present" now reads "with the stage art present" (§14).
+     * Retargeted twice, never deleted (ux-spec §13): this asserted the hero's decorative art, which
+     * D-03l withdrew on every window, then the stage art D-03l put in the slack, which D-03p withdrew
+     * in its turn; the band-gap read is the half that stands.
      *
      * The qualifier is 15l's own `w412dp-h915dp` rather than [TALL_PHONE_QUALIFIER]'s 411dp — the
      * same side of the 400dp boundary, named as the criterion names it so the width term's
@@ -192,14 +193,13 @@ class HomeLayoutTest {
      */
     @Test
     @Config(qualifiers = WIDE_PHONE_QUALIFIER)
-    fun aWidePhoneKeepsTheFullBandSetWithTheStageArtPresent() {
+    fun aWidePhoneKeepsTheFullBandSetByItsBandSpacing() {
         composeRule.renderHome(state = bothResumesState())
 
         assertWithMessage("the band gap between the two mode tiles, in dp")
             .that(gapBetweenTheModeTiles().value)
             .isWithin(BAND_GAP_TOLERANCE_DP)
             .of(dimen(R.dimen.spacing_md).value)
-        composeRule.onNodeWithTag(HOME_STAGE_ART_TEST_TAG).assertExists()
     }
 
     /**
@@ -399,9 +399,7 @@ class HomeLayoutTest {
      * recognisable by its missing hero art, and D-03l withdrew that art on every window, so the
      * full/compact distinction is now spacing and pill shape alone. The pill shape is the one read
      * here — label **beside** value on one line, which the full set's stacked pill cannot do and
-     * which only the compact set on the narrow class draws. (This window's slack now draws a small
-     * stage board, which is §4.2.4's intent for a taller narrow phone and not a sign of the full
-     * set.)
+     * which only the compact set on the narrow class draws.
      */
     @Test
     @Config(qualifiers = NARROW_TALL_PHONE_QUALIFIER)
@@ -499,8 +497,9 @@ class HomeLayoutTest {
      * value, on all three pills.
      *
      * Until this test, the full pill was guarded only by accident: with the compact pill forced onto
-     * every window (M5c) every `HomeLayoutTest` case stayed green, and one `HomeStageTest` gap caught
-     * it by a single dp. This is [assertEachPillPaintsOnlyItsSurfaceAndItsTexts]'s pixel read turned
+     * every window (M5c) every `HomeLayoutTest` case stayed green, and one `HomeStageTest` (now
+     * `HomeHeadroomTest`) gap caught it by a single dp. This is
+     * [assertEachPillPaintsOnlyItsSurfaceAndItsTexts]'s pixel read turned
      * round: inside each pill's padding and outside its two texts, the pill must paint something
      * besides its finished surface — the glyph. "Besides" is read against frame 2's reference finish
      * on the same pixels ([inkBesideTheTextsOfEachPill]), never against the flat fill: B-19's gloss
@@ -579,12 +578,12 @@ class HomeLayoutTest {
      * test reporting on its art assertion and never reaching its layout one at all).
      *
      * **Part 4:** all three ribbon readouts are rendered rather than dropped or truncated to fit,
-     * and an overflowing column shows no decorative art — the stage measures 0 there and draws
-     * nothing (§13 retargets "the hero shows no decorative art", which D-03l made true of every
-     * window, to "no stage art on an overflowing column"). That half is conditional on the column
-     * overflowing at all, trailing space included: the stage holds weight, so any overflow leaves
-     * it nothing, while a column that fits may hand it slack, and a board drawn there is §4.2.4's
-     * intent rather than a defect.
+     * and an overflowing column has no headroom: its hero row's top edge is at the column's top padding
+     * (§13's D-03p row retargets "no stage art on an overflowing column", itself D-03l's retarget of
+     * "the hero shows no decorative art", to this). That half is conditional on the column overflowing
+     * at all, trailing space included: the headroom is the slack's, so any overflow leaves it nothing,
+     * while a column that fits may hand it slack above the hero row, which is D-03p's intent rather than
+     * a defect.
      */
     private fun assertTheFirstViewportHoldsEverythingAboveTheSecondTile() {
         assertAScrollDoesNotMove(composeRule.onNodeWithText(appName))
@@ -595,7 +594,14 @@ class HomeLayoutTest {
 
         assertThat(composeRule.renderedValues())
             .containsAtLeast(EARNED_STARS.toString(), boardsValue, PERSISTED_LEVEL.toString())
-        if (scrollableOverflow() > 0.dp) composeRule.onNodeWithTag(HOME_STAGE_ART_TEST_TAG).assertDoesNotExist()
+        if (scrollableOverflow() > 0.dp) {
+            val hero = composeRule.onNodeWithTag(HOME_HERO_TEST_TAG, useUnmergedTree = true)
+            val heroTop = composeRule.columnBoundsOf(hero).top
+            assertWithMessage("an overflowing column has no headroom: the hero row's top against its padding, in dp")
+                .that((heroTop - statusBarInset).value)
+                .isWithin(BAND_GAP_TOLERANCE_DP)
+                .of(gapBetweenTheModeTiles().value)
+        }
     }
 
     /**
@@ -1039,14 +1045,18 @@ private const val TALL_PHONE_QUALIFIER = "w411dp-h915dp"
 private const val SHORT_PHONE_QUALIFIER = "w360dp-h640dp"
 
 /**
- * The window that keeps criterion 15k's overflow halves live: a 360dp phone 80dp shorter than
- * [SHORT_PHONE_QUALIFIER], with the same system bars, so 488dp of usable height. On real text
- * metrics its compact column overflows by 24dp, with the Challenge tile cut by the fold (424..520
- * against 512) — which the criterion's own window, fitting with 30dp to spare, never shows. It is
- * no device the criterion names; it is the window on which those halves can fail
+ * The window that keeps criterion 15k's overflow halves live: a 360dp phone 88dp shorter than
+ * [SHORT_PHONE_QUALIFIER], with the same system bars, so 480dp of usable height. On real text
+ * metrics its compact column overflows past its trailing space into the Challenge tile, which the
+ * fold cuts — what the criterion's own window, fitting with room to spare, never shows. It is no
+ * device the criterion names; it is the window on which those halves can fail
  * ([renderTheOverflowingNarrowWindow] holds it to that).
+ *
+ * It was `w360dp-h560dp` until D-03p took the stage's band gap out of the column (§4.2.7): 8dp less
+ * column there left an overflow of exactly the 16dp trailing space, no band past the fold, and the
+ * precondition below failed as written — so the window moved 8dp shorter, as that precondition asks.
  */
-private const val OVERFLOWING_PHONE_QUALIFIER = "w360dp-h560dp"
+private const val OVERFLOWING_PHONE_QUALIFIER = "w360dp-h552dp"
 
 /**
  * Criterion 15l's own three windows. `w412dp-h915dp` is the wide class the criterion names, and

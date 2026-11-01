@@ -84,6 +84,11 @@ object ScoreCalculator {
      * [minimumPegs]: stars and score remain two independent axes, so re-anchoring
      * Diamond-41's bands changes the star count a player sees without moving their
      * numeric score by a point.
+     *
+     * [stars] defaults to the per-board bands above, so every Classic caller is byte-identical.
+     * The Challenge caller passes the stars `ChallengeClearRule.finish` graded instead (docs/gdd.md
+     * R5): Challenge bands are absolute, one star per peg from three pegs down, and do not read
+     * [minimumPegs]. An override changes the star count only; the score never reads it.
      */
     fun evaluate(
         pegsRemaining: Int,
@@ -91,9 +96,10 @@ object ScoreCalculator {
         elapsedSeconds: Int,
         levelMultiplier: Int = ScoreParams.DEFAULT_LEVEL_MULTIPLIER,
         minimumPegs: Int = ScoreParams.THREE_STAR_MAX_PEGS,
+        stars: Int = stars(pegsRemaining = pegsRemaining, minimumPegs = minimumPegs),
     ): ScoreResult =
         ScoreResult(
-            stars = stars(pegsRemaining = pegsRemaining, minimumPegs = minimumPegs),
+            stars = stars,
             score =
                 score(
                     pegsCleared = pegsCleared,

@@ -5,8 +5,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -37,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
@@ -44,6 +48,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.domain.scoring.ChallengeBand
 import com.app.pegsolitaire.ui.components.AnnouncementRegion
 import com.app.pegsolitaire.ui.components.BoardAnnouncer
 import com.app.pegsolitaire.ui.components.StarGlyph
@@ -53,12 +58,16 @@ import com.app.pegsolitaire.ui.game.GameTimerFormat
 import com.app.pegsolitaire.ui.theme.ClayAnim
 import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.withTabularFigures
+import com.app.pegsolitaire.ui.window.stableSystem
 
 /** Test tag of the star row; carries the [EarnedStarCountKey] semantics for the screen test. */
 const val RESULTS_STAR_ROW_TEST_TAG = "results_star_row"
 
 /** Test tag of the "New best!" cue, present only when this play improved a stored best (D-09). */
 const val RESULTS_NEW_BEST_TEST_TAG = "results_new_best"
+
+/** Test tag of the next-star line, present only on a Challenge clear below three stars (D-SB-2). */
+const val RESULTS_NEXT_STAR_HINT_TEST_TAG = "results_next_star_hint"
 
 /** Test tag of the INT-04 quiescence dim, present only while an interstitial is coming. */
 const val RESULTS_AD_SCRIM_TEST_TAG = "results_ad_scrim"
@@ -81,7 +90,8 @@ private var SemanticsPropertyReceiver.earnedStarCountValue by EarnedStarCountKey
  * content column capped at `content_max_width`, stacking: the star-tiered headline
  * (D-08, scaling in), the 3-star row (the first [ResultsUiState.stars] filled with the
  * GoldGradient + a soft glow, popping in sequentially with a 120ms stagger; the rest
- * hollow, in `onSurfaceVariant`: colour-vision §3.4, CV-13a), the "New best!" pill
+ * hollow, in `onSurfaceVariant`: colour-vision §3.4, CV-13a), on a Challenge clear below three
+ * stars the next-star line naming the next band up (D-SB-2), the "New best!" pill
  * bouncing in when this play improved a stored best ([ResultsUiState.newBests],
  * D-09), the SCORE / TIME / PEGS LEFT metric
  * block (tabular figures, the score counting up over ~600ms), and the actions — a
@@ -129,6 +139,7 @@ fun ResultsScreen(
             containerColor = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.onBackground,
             topBar = { ResultsTopBar(onNavigateBack = onNavigateBack) },
+            contentWindowInsets = WindowInsets.stableSystem,
         ) { contentPadding ->
             Column(
                 modifier =
@@ -151,6 +162,7 @@ fun ResultsScreen(
                 ) {
                     Headline(tier = state.headlineTier)
                     StarRow(earned = state.stars, playCelebration = state.playCelebration)
+                    state.nextStarBand?.let { band -> NextStarLine(band = band) }
                     if (state.newBests.any) {
                         NewBestBadge()
                     }
@@ -183,6 +195,7 @@ fun ResultsScreen(
 @Composable
 private fun ResultsTopBar(onNavigateBack: () -> Unit) {
     TopAppBar(
+        windowInsets = WindowInsets.stableSystem.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
         colors =
             TopAppBarDefaults.topAppBarColors(
                 containerColor = Color.Transparent,
@@ -304,6 +317,39 @@ private fun EarnedStar(order: Int) {
 }
 
 /**
+ * The next-star line (ux-spec D-SB-2, §4.6; docs/gdd.md GD-SB-08/20): under the star row of a
+ * Challenge clear below three stars, the peg count the next star needs — "Leave 2 pegs for 2
+ * stars." at one star, "Leave 1 peg for 3 stars." at two. Both numbers are [band]'s, which
+ * [ResultsUiState.nextStarBand] takes from the clear rule; this leaf only words them.
+ *
+ * `bodyLarge` in `onSurfaceVariant`, centred and wrapping with no line cap. It fades in on the
+ * "New best!" pill's timing, after the stars have landed (prose fades, it does not pop), and is
+ * present from the first frame with animations off. Its own `Text` node — no live region, no role,
+ * not merged into the star row — so TalkBack reaches it as the stop after the stars.
+ */
+@Composable
+private fun NextStarLine(band: ChallengeBand) {
+    val alpha = rememberFadeIn(delayMillis = TOTAL_STARS * ClayAnim.STAR_STAGGER_MS)
+    Text(
+        text =
+            pluralStringResource(
+                R.plurals.results_next_star_hint,
+                band.pegsRemaining,
+                band.pegsRemaining,
+                band.stars,
+            ),
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .testTag(RESULTS_NEXT_STAR_HINT_TEST_TAG)
+                .graphicsLayer { this.alpha = alpha() },
+    )
+}
+
+/**
  * The "New best!" cue (D-09): a gold `tertiaryContainer` clay pill that bounces in,
  * shown only when [ResultsUiState.newBests] reports that this play improved at least
  * one of the level's stored bests. It is deliberately NOT the CtaGradient accent —
@@ -421,6 +467,7 @@ private fun headlineResFor(tier: ResultsHeadlineTier): Int =
     when (tier) {
         ResultsHeadlineTier.PERFECT -> R.string.results_headline_perfect
         ResultsHeadlineTier.SOLVED -> R.string.results_headline_solved
+        ResultsHeadlineTier.CLEARED -> R.string.results_headline_cleared
         ResultsHeadlineTier.STUCK -> R.string.results_headline_stuck
     }
 

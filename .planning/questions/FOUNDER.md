@@ -1,5 +1,89 @@
 # Founder questions (newest first)
 
+## Q-041 — How to spend the last ~10% of the weekly usage before the founder's reserve?   (answered)
+Date: 2026-11-01    Asked by: producer
+Context: /usage showed 80% (all models) / 72% (Fable), reset 2026-11-06 08:00 Europe/Istanbul; founder keeps ≥ 10% in reserve.
+Options: 1) Finish in-flight, then pause until the reset 2) Continue on Sonnet only 3) Stop everything now
+Answer: 1 — finish in-flight agents, then pause; resume after 2026-11-06 with Sonnet for developer/QA work, Opus for code-auditor and sign-off (founder, 2026-11-01, AskUserQuestion).
+
+## Q-040 — How much of the Challenge change goes in 3.0.0?   (answered)
+Date: 2026-11-01    Asked by: producer
+Options: 1) Minimal (bands + shift) 2) Minimal + pool fixes 3) Everything
+Answer: "let the player get 3 stars. remove first like 30 levels", clarified "i remove i meant shift" — star bands + a 30-level difficulty SHIFT (LEVEL_OFFSET = 30, numbering unchanged); fail-proof levels, freeform at 10, pool changes and 3-star skill achievements deferred to 3.0.1 (docs/gdd.md GD-SB-21; recorded onboarding deviation).
+
+## Q-039 — Which heading font in every language?   (answered)
+Date: 2026-11-01    Asked by: producer (research-analyst specimen, .planning/reports/turkish-locale/research-analyst-fonts.md on feature/turkish-locale)
+Options: 1) Fredoka + composed Turkish letters 2) Sour Gummy 3) Baloo 2 4) Quicksand
+Recommendation: research-analyst — 1 (approved look kept, +0.9 kB, OFL with no reserved name).
+Blocks: turkish-locale
+Answer: 1 — Fredoka + Turkish composites (founder, 2026-11-01, AskUserQuestion).
+
+## Q-038 — Fredoka lacks Ğ ğ İ Ş ş: Nunito headings in Turkish only?   (answered)
+Date: 2026-11-01    Asked by: ux-designer (via the producer)
+Options: 1) Nunito headings on Turkish devices (D-16) 2) Change the font for all languages
+Recommendation: ux-designer — 1.
+Blocks: turkish-locale
+Answer: 2 — change the font for all languages (founder, 2026-11-01); resolved by Q-039.
+
+## Q-037 — Should Classic adopt the Challenge star bands (relative to each board's floor)?   (open)
+Date: 2026-11-01    Asked by: game-designer
+Context: Founder's 2026-11-01 directive changed Challenge only ("on challenge"); Classic is unchanged in 3.0.0 (docs/gdd.md GD-SB-06).
+Options: 1) Keep Classic as is 2) Align Classic in 3.1
+Recommendation: game-designer — 2 in 3.1; unchanged in 3.0.0.
+Blocks: nothing
+Answer:
+
+## Q-036 — Android version of the phone that showed the grey status-bar tint   (answered)
+Date: 2026-11-01    Asked by: producer
+Answer: Android 14 or older (API ≤ 34) (founder, 2026-11-01, AskUserQuestion).
+
+## Q-035 — A Settings switch to keep the status bar during play?   (answered)
+Date: 2026-11-01    Asked by: ux-designer (via the producer)
+Answer: No switch in 3.0.0 (founder, 2026-11-01, AskUserQuestion).
+
+## Q-034 — Results immersive too?   (answered)
+Date: 2026-11-01    Asked by: ux-designer (via the producer)
+Answer: Yes — Gameplay and Results hide both bars (founder, 2026-11-01, AskUserQuestion).
+
+## Q-033 — With the Home stage withdrawn, where does the slack go?   (answered)
+Date: 2026-11-01    Asked by: ux-designer (via the producer)
+Options: 1) Space above the title 2) Title pinned at the top, empty band beneath
+Answer: 1 — space above the title (founder, 2026-11-01, AskUserQuestion); bounded by D-03q.
+
+## Q-032 — Mention "Solo Test" in the tr-TR listing?   (answered)
+Date: 2026-11-01    Asked by: ux-designer (via the producer)
+Answer: No (founder, 2026-11-01, AskUserQuestion).
+
+## Q-031 — Turkish register: siz or sen?   (answered)
+Date: 2026-11-01    Asked by: ux-designer (via the producer)
+Answer: sen throughout; the tr-TR listing re-voiced to match (founder, 2026-11-01, AskUserQuestion).
+
+## Q-030 — Does the Home stage removal + live Classic Continue thumbnail ship in 3.0.0?   (answered)
+Date: 2026-11-01    Asked by: producer
+Context: Founder feedback 2026-11-01: remove Home's stage art (constant mid-game board); the Classic Continue chip
+must show the saved position with the player's moves, not the start position. Challenge chip unchanged (founder:
+"continue challenge is fine, my mistake. Keep it as it is"). release/3.0.0 was already cut and near Gate 2.
+Options: 1) Ship in 3.0.0 (merge into release/3.0.0, re-run release Check + device QA) 2) Next release (3.0.1)
+Recommendation: producer — 2 (keeps the cut release untouched); founder chose otherwise.
+Blocks: release-3.0.0 Gate 2 (Q-PUBLISH-3.0.0) until feature/home-continue-live-boards is merged and re-verified
+Answer: 1 — put it in 3.0.0 (founder, 2026-11-01, in chat).
+
+## Q-029 — How should the 3.0.0 bundle reach Play: the upload script or the Console?   (answered)
+Date: 2026-11-01    Asked by: release-manager (via the producer)
+Context: Checklist item 1.7 needs the upload route recorded before Gate 2. The studio's upload script is merged
+and reviewed (only a `VAR=value` or bare `env` prefix may precede it — rule T-11); it needs a Play service-account
+key placed on this Mac after the approval file exists. The Console route needs no key on the Mac.
+Options: 1) The studio's upload script (gated by the approval file) 2) Manual upload in the Play Console
+Recommendation: release-manager — 2 for 3.0.0: no service-account key on the Mac, and the publish gate still has
+the known `/usr/bin/env` gap (E-1) until the plugin fix lands; the script route can follow from 3.0.1.
+Blocks: release-3.0.0 checklist 1.7 (Gate 2) | nothing else
+Answer: 2 — manual upload in the Play Console (founder, 2026-11-01, in chat).
+
+## Q-028 — Does the candy backdrop ship in 3.0.0?   (answered)
+Date: 2026-10-31    Asked by: producer
+Context: Recorded after the fact; the founder answered in chat with the 2026-10-31 22:00 directives (STATUS.md).
+Answer: candy-backdrop STAYS in 3.0.0; goal: finish 3.0.0 this week (2026-10-31).
+
 ## Q-027 — Should the standard colours get the stronger marks and stars too?   (answered)
 Date: 2026-10-24    Asked by: ux-designer
 Context: The colour-blind palette (a Settings switch, off by default) draws the board's marks and the stars so that any colour vision can read them. In your standard colours they are faint by the studio's contrast rule, though normal colour vision tells them apart. Empty stars are now hollow in both palettes, a rule fix, so in your colours an empty star is a thin pale outline that is easy to miss at the catalogue's small size. This is taste: it changes the look.
@@ -18,7 +102,7 @@ Recommendation: producer picks 1 — meets the studio's accessibility rule; boar
 Blocks: nothing
 Answer: 1 — keep it in 3.0.0 (2026-10-24, AskUserQuestion).
 
-## Q-025 — Headphones off, and a wired headset, for the audio release QA   (open)
+## Q-025 — Headphones off, and a wired headset, for the audio release QA   (answered)
 Date: 2026-10-24    Asked by: tech-lead (via the producer)
 Context: QA's GM6 session proved the headphone branch of the Silent/Vibrate gate (Q-010). The "phone itself
 mutes" branch (D2, D3, D6, D7 on the speaker; D5's second half) and the wired branch (D4) were out of reach
@@ -29,7 +113,7 @@ recorded as JVM + emulator evidence in the Q-PUBLISH-3.0.0 summary
 Recommendation: tech-lead picks 1 — two minutes of hardware setup and no testing by you closes the one branch of
 Q-010 that is your own requirement, muting on the phone speaker.
 Blocks: nothing
-Answer:
+Answer: 2 — by the founder's 2026-10-31 directive "physical device is unavailable. Use emulator" (recorded by the producer 2026-11-01): those halves go into the Q-PUBLISH-3.0.0 summary as JVM + emulator evidence.
 
 ## Q-024 — A physical phone for the silent-mode and headphone checks   (answered)
 Date: 2026-10-23    Asked by: producer (for qa-engineer)

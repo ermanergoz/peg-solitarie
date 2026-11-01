@@ -4,6 +4,7 @@ import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -36,6 +37,7 @@ import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_WIDTH_DP
 import com.app.pegsolitaire.ui.backdrop.BackdropDensity
 import com.app.pegsolitaire.ui.backdrop.BackdropPreviewHost
 import com.app.pegsolitaire.ui.theme.AppTheme
+import com.app.pegsolitaire.ui.window.stableSystem
 
 /** The Google notices list's test tag: the node that carries the scroll actions (brief A1.6). */
 internal const val GOOGLE_NOTICES_LIST_TAG = "google_notices_list"
@@ -69,6 +71,7 @@ fun GoogleNoticesScreen(
             containerColor = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.onBackground,
             topBar = { LicensesTopBar(title = stringResource(R.string.google_notices_title), onBack = onBack) },
+            contentWindowInsets = WindowInsets.stableSystem,
         ) { contentPadding ->
             Box(
                 modifier =

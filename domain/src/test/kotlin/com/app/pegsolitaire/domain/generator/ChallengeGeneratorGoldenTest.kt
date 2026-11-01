@@ -18,9 +18,10 @@ import org.junit.Test
  * `UPDATE_GOLDEN=true` (Pitfall 2).
  *
  * The sampled levels span the curve — a level-1 on-ramp board, an adjacent level 2,
- * a low canonical level 10, a mid-curve level 100, and a deep freeform level 1000 —
- * so the lock covers canonical footprints, freeform footprints, and the bounded
- * deterministic fallback alike.
+ * a low canonical level 10, and freeform levels 100 and 1000 (freeform from visible level
+ * 40) — so the lock covers canonical and freeform footprints alike. Regenerated with the
+ * generator contract 2 bump (docs/gdd.md I7). The bounded deterministic fallback is pinned
+ * over the whole space by the fuzz harness's second-ladder equality, not by a chosen fixture.
  */
 class ChallengeGeneratorGoldenTest {
     @Test
@@ -45,7 +46,7 @@ class ChallengeGeneratorGoldenTest {
     }
 
     private companion object {
-        /** The frozen determinism-lock sample (canonical + freeform + fallback coverage). */
+        /** The frozen determinism-lock sample: three canonical levels and two freeform (contract 2). */
         val SAMPLE_LEVELS = listOf(1, 2, 10, 100, 1000)
     }
 }

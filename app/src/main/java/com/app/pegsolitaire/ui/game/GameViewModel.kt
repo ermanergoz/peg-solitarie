@@ -26,6 +26,8 @@ import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Move
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
+import com.app.pegsolitaire.domain.scoring.ChallengeClearRule
+import com.app.pegsolitaire.domain.scoring.ChallengeFinish
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.scoring.ScoreParams
 import com.app.pegsolitaire.domain.scoring.ScoreResult
@@ -182,6 +184,20 @@ class GameViewModel
          * advance on solve, and the level stamped into a re-saved snapshot.
          */
         private val activeChallengeLevel: Int? get() = stampedChallengeLevel ?: clampedChallengeLevel
+
+        /**
+         * The generator contract that made the Challenge board being played: this build's
+         * [GeneratorConstants.GENERATOR_VERSION] for a board this ViewModel generated, else the
+         * restored snapshot's own stamp (docs/gdd.md §12.3(3); tech-lead brief §1(b)).
+         *
+         * It travels with the board, like [stampedChallengeLevel] travels with the level: a re-save
+         * writes it back unchanged ([onLeaveScreen]) — relabelling a version-1 board as the current
+         * version would make it permanent — and a restart whose stamp is not the current contract
+         * takes the level-load path instead of rebuilding the old board ([resetToInitial]). Stored
+         * state, so untrusted, but harmless either way: a forged value can only choose between the
+         * level's current board and the player's own stored one. Meaningless for Classic.
+         */
+        private var boardGeneratorVersion: Int = GeneratorConstants.GENERATOR_VERSION
 
         /**
          * Whether this entry is the Home "Continue" affordance (PERS-03, D-01) rather than a
@@ -573,12 +589,16 @@ class GameViewModel
          * branches here, never the board/selection/jump logic.
          */
         private suspend fun loadChallengeBoardIfNeeded() {
-            val challengeLevelToLoad = clampedChallengeLevel ?: return
+            // The active level, not the route's: on a fresh entry the two are the same, and on a
+            // restart of a restored game the stamp is the level being played (WR-03).
+            val challengeLevelToLoad = activeChallengeLevel ?: return
             val level =
                 withContext(defaultDispatcher) {
                     levelRepository.loadChallenge(challengeLevelToLoad)
                 }
             initialBoard = level.initialBoard
+            // This build's generator made it, whatever the board it replaces was stamped.
+            boardGeneratorVersion = GeneratorConstants.GENERATOR_VERSION
             // Capture the recorded winning line so the hint can serve it instantly
             // while the player stays on it (D-03); Classic leaves solution null.
             solution = level.solution
@@ -681,6 +701,8 @@ class GameViewModel
                 ?.level
                 ?.let(ChallengeLevelBounds::clamp)
                 ?.let { stampedChallengeLevel = it }
+            // The contract that made the stored board, kept with it (docs/gdd.md §12.3(3)).
+            restored.challenge?.let { boardGeneratorVersion = it.generatorVersion }
             initialBoard = restored.initialBoard
             moveHistory.clear()
             moveHistory.addAll(restored.moveHistory)
@@ -754,7 +776,9 @@ class GameViewModel
                         activeChallengeLevel?.let {
                             ChallengeStamp(
                                 level = it,
-                                generatorVersion = GeneratorConstants.GENERATOR_VERSION,
+                                // The board's own contract, not this build's: a resumed old board
+                                // stays labelled old, so its restart still regenerates.
+                                generatorVersion = boardGeneratorVersion,
                             )
                         },
                     // D-04/D-17: the counters ride the snapshot so process death is not a
@@ -955,7 +979,8 @@ class GameViewModel
          *
          * A terminal status FREEZES the timer for BOTH Won and Stuck (D-04). Only Won emits
          * the one-shot finish (Pitfall 4) → Results; Stuck is rescuable via Undo (D-06) and
-         * deliberately emits nothing / never sets [finishedEmitted].
+         * deliberately emits nothing / never sets [finishedEmitted]. Won is the mode's finish
+         * test ([statusFor]): in Challenge, any clear — one to three pegs (docs/gdd.md R5, R7).
          */
         private fun freezeAndFinishIfTerminal(
             status: GameStatus,
@@ -970,44 +995,71 @@ class GameViewModel
             // Continue affordance can never point at a board that is already over
             // (D-05). Both modes clear — the latch keeps it to once per solve.
             clearSnapshot()
-            // Only a SOLVE unlocks the next Challenge level (D-02: no skipping) —
-            // Classic (activeChallengeLevel == null) and Stuck never advance. The
-            // advance is keyed to the SOLVED level — the restored stamp when there
-            // is one (WR-03) — and idempotent at the store (max(current, N+1)), so
-            // a re-solve of the same board — back from Results, undo (which resets
-            // finishedEmitted), re-jump — can never skip a level (CR-02); the
-            // write is transactional inside ChallengeProgress.
-            val solvedChallengeLevel = activeChallengeLevel
-            if (solvedChallengeLevel != null) {
-                challengeProgress.advancePast(solvedChallengeLevel)
+            // Only a CLEAR unlocks the next Challenge level (D-02: no skipping) — any star
+            // count, one to three pegs, since 3.0.0 (docs/gdd.md R7) — and Classic
+            // (activeChallengeLevel == null) and Stuck never advance. The advance is keyed to
+            // the CLEARED level — the restored stamp when there is one (WR-03) — and
+            // idempotent at the store (max(current, N+1)), so a re-clear of the same board —
+            // back from Results, undo (which resets finishedEmitted), re-jump — can never skip
+            // a level (CR-02); the write is transactional inside ChallengeProgress.
+            val clearedChallengeLevel = activeChallengeLevel
+            if (clearedChallengeLevel != null) {
+                challengeProgress.advancePast(clearedChallengeLevel)
             }
-            val pegsRemaining = nextBoard.pegCount
-            // A jump can only fire once the board is loaded, so initialBoard is
-            // non-null here; fall back to the current count defensively.
-            val startingPegCount = initialBoard?.pegCount ?: pegsRemaining
             _finished.trySend(
                 GameFinish(
-                    result =
-                        scoreCalculator.evaluate(
-                            pegsRemaining = pegsRemaining,
-                            pegsCleared = startingPegCount - pegsRemaining,
-                            elapsedSeconds = _uiState.value.elapsedSeconds,
-                            levelMultiplier = levelMultiplier,
-                            // D-03/D-04: stars are banded on the FINISHING BOARD's own
-                            // perfect finish, taken from the spec that produced this
-                            // result — not from the level id. A level-id lookup would be
-                            // silently wrong for a resumed game, whose spec is rebuilt
-                            // structurally from a persisted blob rather than fetched from
-                            // the catalog. Diamond-41's target is a proven 2.
-                            minimumPegs = nextBoard.spec.minimumPegs,
-                        ),
+                    result = scoreFor(nextBoard),
                     telemetry = telemetryFor(nextBoard),
-                    // The same per-board floor the stars were banded against, carried on
-                    // so Results can apply the SAME solved test this ViewModel just did
-                    // (`pegCount <= spec.minimumPegs`) rather than a hardcoded one peg.
+                    // The finishing board's own floor, carried on so Results can apply the SAME
+                    // test Classic's win just passed (`pegCount <= spec.minimumPegs`) rather than
+                    // a hardcoded one peg. A Challenge Results screen reads ChallengeClearRule
+                    // instead; every generated footprint carries one here (docs/gdd.md I5).
                     minimumPegs = nextBoard.spec.minimumPegs,
                 ),
             )
+        }
+
+        /**
+         * The [ScoreResult] of a WON [finishingBoard], graded the mode's way.
+         *
+         * Challenge stars come from [ChallengeClearRule] — the absolute band, one peg three stars,
+         * two pegs two, three pegs one (docs/gdd.md R5) — and are passed to the calculator as
+         * explicit stars. Classic passes none, so the calculator bands on the FINISHING BOARD's
+         * own perfect finish (D-03/D-04), taken from the spec that produced this result — not
+         * from the level id. A level-id lookup would be silently wrong for a resumed game, whose
+         * spec is rebuilt structurally from a persisted blob rather than fetched from the
+         * catalog. Diamond-41's target is a proven 2.
+         *
+         * Only a Won board gets here, and a Won Challenge board is cleared by construction
+         * ([statusFor] reads the same rule), so [ChallengeFinish.NotCleared] shares the Classic
+         * arm only to keep the `when` exhaustive; no play reaches it there.
+         */
+        private fun scoreFor(finishingBoard: Board): ScoreResult {
+            val pegsRemaining = finishingBoard.pegCount
+            // A jump can only fire once the board is loaded, so initialBoard is
+            // non-null here; fall back to the current count defensively.
+            val pegsCleared = (initialBoard?.pegCount ?: pegsRemaining) - pegsRemaining
+            val elapsedSeconds = _uiState.value.elapsedSeconds
+            val minimumPegs = finishingBoard.spec.minimumPegs
+            return when (val challengeFinish = activeChallengeLevel?.let { ChallengeClearRule.finish(pegsRemaining) }) {
+                is ChallengeFinish.Cleared ->
+                    scoreCalculator.evaluate(
+                        pegsRemaining = pegsRemaining,
+                        pegsCleared = pegsCleared,
+                        elapsedSeconds = elapsedSeconds,
+                        levelMultiplier = levelMultiplier,
+                        minimumPegs = minimumPegs,
+                        stars = challengeFinish.stars,
+                    )
+                ChallengeFinish.NotCleared, null ->
+                    scoreCalculator.evaluate(
+                        pegsRemaining = pegsRemaining,
+                        pegsCleared = pegsCleared,
+                        elapsedSeconds = elapsedSeconds,
+                        levelMultiplier = levelMultiplier,
+                        minimumPegs = minimumPegs,
+                    )
+            }
         }
 
         /**
@@ -1434,6 +1486,20 @@ class GameViewModel
         }
 
         /**
+         * Puts the Challenge proven-dead banner away (ux-spec D-SB-4; docs/gdd.md GD-SB-19): a tap on
+         * the banner outside its buttons, or TalkBack's Dismiss. It clears the proof flag,
+         * [GameUiState.noWinningMove], and **nothing else** — it is not a hint, not a move and not an
+         * undo, so no allowance unit is spent, no assist is counted, no cue plays, and the clock, the
+         * board, the selection and focus are left as they are (D-09: dismissals stay quiet). The proof
+         * still holds: a Hint asked on the same position answers Proven dead again, free (GD-HT-5), and
+         * raises the banner again. [GameUiState.stuck] is not touched, because a stuck banner is never
+         * put away; the screen offers this only for the proven-dead banner of a Challenge board.
+         */
+        fun onDismissProvenDeadBanner() {
+            _uiState.update { it.copy(noWinningMove = false) }
+        }
+
+        /**
          * The player agreed to watch an ad for more of the offered assist (ADS-01).
          *
          * The only place in this file that requests a rewarded ad, and it is reachable only
@@ -1660,9 +1726,49 @@ class GameViewModel
             // exactly the charge-for-nothing this plan exists to prevent. rejectedTapCell is
             // not carried either, at any of the four sites: it names a cell of the board being
             // replaced, while the rejectedTapTick ordinal beside it rides along (D-06, §3.7).
+            if (activeChallengeLevel != null && boardGeneratorVersion != GeneratorConstants.GENERATOR_VERSION) {
+                restartOnTheCurrentContract()
+            } else {
+                _uiState.value =
+                    GameUiState
+                        .initial(board)
+                        .copy(
+                            showHints = _uiState.value.showHints,
+                            hapticsOn = _uiState.value.hapticsOn,
+                            selectionTick = _uiState.value.selectionTick,
+                            deselectionTick = _uiState.value.deselectionTick,
+                            undoTick = _uiState.value.undoTick,
+                            rejectedTapTick = _uiState.value.rejectedTapTick,
+                            adMessageTick = _uiState.value.adMessageTick,
+                            // D-TB: a restart is the one thing a rebuilt state cannot otherwise show.
+                            restartTick = _uiState.value.restartTick + 1,
+                        )
+            }
+        }
+
+        /**
+         * The restart of a restored Challenge game whose board an older generator contract made
+         * (docs/gdd.md §12.3(3), SB-V8; tech-lead brief §1(b)): the player chose to start the
+         * level over, so they get the level as this build deals it — its current board and its
+         * recorded line — through the same off-main-thread load a fresh entry takes, instead of
+         * the stored board for ever. [resetToInitial] has already done the bookkeeping and cleared
+         * the snapshot; a current-stamp or fresh game never comes here and keeps the
+         * regeneration-free restart (D-06).
+         *
+         * The old board goes with [initialBoard], so the load window has nothing to save or reset
+         * to (WR-01), and the screen shows the loading state, with the cue ordinals carried as at
+         * every board install. The restart's own ordinal advances only once the level's board is
+         * on screen, so its spoken line counts that board's pegs rather than the placeholder's. The
+         * one cost, for this once-per-tester path: a Restart taken from the rescue banner under
+         * TalkBack does not move focus to the board stop, because the banner leaves with the
+         * loading state before the ordinal advances.
+         */
+        private fun restartOnTheCurrentContract() {
+            initialBoard = null
+            solution = null
             _uiState.value =
                 GameUiState
-                    .initial(board)
+                    .loading()
                     .copy(
                         showHints = _uiState.value.showHints,
                         hapticsOn = _uiState.value.hapticsOn,
@@ -1671,35 +1777,44 @@ class GameViewModel
                         undoTick = _uiState.value.undoTick,
                         rejectedTapTick = _uiState.value.rejectedTapTick,
                         adMessageTick = _uiState.value.adMessageTick,
-                        // D-TB: a restart is the one thing a rebuilt state cannot otherwise show.
-                        restartTick = _uiState.value.restartTick + 1,
+                        restartTick = _uiState.value.restartTick,
                     )
+            viewModelScope.launch {
+                loadChallengeBoardIfNeeded()
+                _uiState.update { it.copy(restartTick = it.restartTick + 1) }
+            }
         }
 
         /**
          * The lifecycle status of [board]: [GameStatus.Playing] while a legal move
-         * remains, else [GameStatus.Won] when the board has reached its own perfect
-         * finish, otherwise [GameStatus.Stuck] (GAME-02).
+         * remains, else [GameStatus.Won] when the board passes its mode's finish test,
+         * otherwise [GameStatus.Stuck] (GAME-02). One of the two places the mode decides the
+         * finish (with `ResultsUiState.isSolved`; tech-lead brief §1(b)).
          *
-         * The win test is the board's `BoardSpec.minimumPegs`, not a hardcoded one peg
-         * (D-03/D-04, DEBT-02). For the four Classic cross boards and every generated
-         * Challenge footprint that target IS one, so this is byte-identical to the
-         * previous behaviour. Diamond-41 is the board it exists for: one peg is proven
-         * UNREACHABLE there (the GF(4) colour invariant excludes all 41 single-peg
-         * positions), and two is proven reachable, so a two-peg dead end is the best
-         * result the board admits — a win, not a failure. Scoring it as Stuck would
-         * hide the perfect finish behind the rescue banner and never award the 3 stars
-         * the re-anchored bands compute.
+         * **Challenge** ([activeChallengeLevel] set) asks [ChallengeClearRule.status]: a terminal
+         * board with one to three pegs is cleared (Won, with three to one stars) and four or
+         * more is stuck (docs/gdd.md R5, R6). The count is absolute and reads no `minimumPegs`.
          *
+         * **Classic** keeps its own floor (R4, R8): the win test is the board's
+         * `BoardSpec.minimumPegs`, not a hardcoded one peg (D-03/D-04, DEBT-02). For the four
+         * cross boards that target IS one. Diamond-41 is the board it exists for: one peg is
+         * proven UNREACHABLE there (the GF(4) colour invariant excludes all 41 single-peg
+         * positions), and two is proven reachable, so a two-peg dead end is the best result the
+         * board admits — a win, not a failure. Scoring it as Stuck would hide the perfect finish
+         * behind the rescue banner and never award the 3 stars the re-anchored bands compute.
          * The comparison is `<=` rather than `==` so the status can never disagree with
-         * [com.app.pegsolitaire.domain.scoring.ScoreCalculator.stars], whose 3-star band
-         * is also `<= minimumPegs`.
+         * [com.app.pegsolitaire.domain.scoring.ScoreCalculator.stars], whose 3-star band is also
+         * `<= minimumPegs`.
          */
         private fun statusFor(board: Board): GameStatus =
-            when {
-                !rulesEngine.isGameOver(board) -> GameStatus.Playing
-                board.pegCount <= board.spec.minimumPegs -> GameStatus.Won
-                else -> GameStatus.Stuck
+            if (activeChallengeLevel != null) {
+                ChallengeClearRule.status(board)
+            } else {
+                when {
+                    !rulesEngine.isGameOver(board) -> GameStatus.Playing
+                    board.pegCount <= board.spec.minimumPegs -> GameStatus.Won
+                    else -> GameStatus.Stuck
+                }
             }
 
         private companion object {

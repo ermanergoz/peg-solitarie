@@ -10,14 +10,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -73,6 +74,7 @@ import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.ctaGradientBrush
 import com.app.pegsolitaire.ui.theme.gradientFill
 import com.app.pegsolitaire.ui.theme.rememberAnimationsEnabled
+import com.app.pegsolitaire.ui.window.stableSystem
 
 /** Semantics tag the tests use to locate the tutorial screen — never its button copy. */
 const val TUTORIAL_SCREEN_TEST_TAG = "tutorial_screen"
@@ -94,8 +96,9 @@ const val TUTORIAL_SCREEN_TEST_TAG = "tutorial_screen"
  * below the fold, which costs nothing.
  *
  * **Window insets are this screen's own job.** It is a full-window destination with no
- * `Scaffold`, so nothing subtracts the system bars for it; the column carries
- * `safeDrawingPadding()` itself. See the comment at the root for why it sits where it does in
+ * `Scaffold`, so nothing subtracts the system bars for it; the column pads itself off the bars'
+ * stable insets and the cutout, `WindowInsets.stableSystem`, the one source every screen reads
+ * (D-05g; tech design §3.8 (d)). See the comment at the root for why it sits where it does in
  * the chain, and `TutorialScreenTest.skipsWholeTouchTargetClearsTheSystemBarsOnEveryStep`
  * for the geometry it buys.
  *
@@ -150,14 +153,17 @@ fun TutorialScreen(
         // The surface keeps filling the window — the background belongs edge to edge — and
         // this Box is what stops doing so for the content. Two things need it:
         //
-        //  * `safeDrawingPadding()` sits on the COLUMN and outside `verticalScroll`, so the
+        //  * The inset padding sits on the COLUMN and outside `verticalScroll`, so the
         //    scrolling viewport itself is inset and no band can be scrolled under a system
-        //    bar. The app targets SDK 36, where the platform draws every window edge to edge
-        //    whether it asks to or not, and this screen has no `Scaffold` to subtract the
-        //    insets for it the way Home does. Without it the header lands under the status
-        //    bar and the visible "Skip" becomes untappable — the tutorial's one promise
-        //    (D-01d: "a tutorial the player cannot leave is worse than no tutorial") resting
-        //    on a control that does not answer a press.
+        //    bar. The window is edge to edge on every API level (D-05g), and this screen has
+        //    no `Scaffold` to subtract the insets for it the way Home does. Without it the
+        //    header lands under the status bar and the visible "Skip" becomes untappable — the
+        //    tutorial's one promise (D-01d: "a tutorial the player cannot leave is worse than
+        //    no tutorial") resting on a control that does not answer a press. It reads the
+        //    bars' STABLE insets and the cutout (`WindowInsets.stableSystem`), as every screen
+        //    does, never a visible inset such as `safeDrawing`: on the way back from gameplay
+        //    the bars are still hidden for a moment, and a visible read would lay the column
+        //    out at zero and drop it by the bar's height as the bar slid in (D-05g part 3).
         //  * `Surface` is a `Box(propagateMinConstraints = true)`, so it hands the column a
         //    minimum width equal to the window's; `widthIn(max = content_max_width)` under
         //    that minimum is a no-op, which is how the 480dp cap came to do nothing here.
@@ -168,7 +174,7 @@ fun TutorialScreen(
                 modifier =
                     Modifier
                         .align(Alignment.TopCenter)
-                        .safeDrawingPadding()
+                        .windowInsetsPadding(WindowInsets.stableSystem)
                         .verticalScroll(rememberScrollState())
                         .widthIn(max = dimensionResource(R.dimen.content_max_width))
                         .padding(dimensionResource(R.dimen.spacing_md))

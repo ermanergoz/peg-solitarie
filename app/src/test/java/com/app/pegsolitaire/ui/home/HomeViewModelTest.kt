@@ -20,19 +20,26 @@ import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.data.ProgressSubmitter
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
+import com.app.pegsolitaire.data.resume.SnapshotMapper
 import com.app.pegsolitaire.domain.achievement.ClassicBoard
 import com.app.pegsolitaire.domain.achievement.ProgressAggregate
+import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.Boards
+import com.app.pegsolitaire.domain.model.Move
+import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.progress.CloudProgress
+import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import com.app.pegsolitaire.platform.games.FakeGamesService
 import com.app.pegsolitaire.platform.games.GamesService
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -64,7 +71,10 @@ import org.junit.Test
  * A [FakeResumeProgressRepository] drives the per-mode resume snapshots (PERS-03), proving
  * Home offers a Continue affordance exactly when one exists — for either mode, for both at
  * once (D-03), dropped again when a solve clears it (T-05-12), and silently absent when the
- * stored blob is unreadable (T-05-03).
+ * stored blob is unreadable (T-05-03). Its Classic snapshots are written by the real codec
+ * ([SnapshotMapper.toDto]) and read back by the real one, so the Classic chip's board is the
+ * position the stored moves leave (D-03p, criterion 15aa), and a history that does not replay
+ * is withheld and purged (the tech-lead's ruling 1).
  *
  * `Dispatchers.setMain(StandardTestDispatcher())` makes the `viewModelScope`
  * collector deterministic under `runTest` virtual time.
@@ -365,6 +375,140 @@ class HomeViewModelTest {
             assertThat(progress.clears).isEmpty()
         }
 
+    // ---- The Classic chip shows the saved position (D-03p, criterion 15aa) ------
+
+    /**
+     * Criterion 15aa part 1: the Classic Continue chip's board is the position the player left — the
+     * stored initial board with the stored moves replayed — and never the catalogue's start board,
+     * which is what the chip drew until D-03p.
+     *
+     * Each count of moves is a fresh save of the European-37 board through the real codec, with the
+     * first legal jump taken each time. The board the state carries is the one the resume path itself
+     * rebuilds from that save ([SnapshotMapper.fromDto], the codec `GameViewModel` resumes with), it
+     * has one peg fewer per jump, and from the first jump on it is not the start board. With no move
+     * played the saved position *is* the start board, which is the one case the old chip drew right.
+     */
+    @Test
+    fun aClassicContinueCarriesThePositionTheStoredMovesLeaveAndNotTheStartBoard() =
+        runTest(testDispatcher) {
+            PEGS_LEFT_AFTER_MOVES.forEach { (played, pegsLeft) ->
+                val progress = FakeResumeProgressRepository()
+                progress.put(ProgressPersistenceKeys.MODE_CLASSIC, RESUMABLE_LEVEL_ID, firstLegalMoves(played))
+                val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), progress = progress)
+                runCurrent()
+
+                val shown = viewModel.uiState.value.classicResumeBoard
+                val resumed =
+                    SnapshotMapper.fromDto(progress.stored(ProgressPersistenceKeys.MODE_CLASSIC), RulesEngine)
+                assertWithMessage("$played moves played: the position the chip carries, against the resume path's")
+                    .that(shown?.position())
+                    .isEqualTo(checkNotNull(resumed).currentBoard.position())
+                assertWithMessage("$played moves played: pegs left on it").that(shown?.pegCount).isEqualTo(pegsLeft)
+                if (played == 0) {
+                    assertWithMessage("no move played: the start board")
+                        .that(shown?.position())
+                        .isEqualTo(Boards.european37Initial.position())
+                } else {
+                    assertWithMessage("$played moves played: not the start board")
+                        .that(shown?.position())
+                        .isNotEqualTo(Boards.european37Initial.position())
+                }
+            }
+        }
+
+    /**
+     * Criterion 15aa part 1, against a hand-checked position: a recorded line of 18 legal jumps from
+     * the English-33 start — the line `HomeStagePositionTest` proved for the withdrawn stage (criterion
+     * 15q, whose replay idea 15aa part 1 keeps) — saved and read back, is shown as exactly the 14 pegs
+     * it leaves, written out here peg by peg rather than computed.
+     */
+    @Test
+    fun aRecordedLineOfLegalJumpsIsShownAsExactlyThePositionItLeaves() =
+        runTest(testDispatcher) {
+            val progress = FakeResumeProgressRepository()
+            progress.put(ProgressPersistenceKeys.MODE_CLASSIC, ClassicLevelIds.ENGLISH33, recordedEnglishLine())
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), progress = progress)
+            runCurrent()
+
+            val state = viewModel.uiState.value
+            assertThat(state.classicResumeLevelId).isEqualTo(ClassicLevelIds.ENGLISH33)
+            assertThat(state.classicResumeBoard?.position()).isEqualTo(RECORDED_LINE_POSITION.position())
+            assertThat(state.classicResumeBoard?.pegCount).isEqualTo(RECORDED_LINE_PEGS_LEFT)
+        }
+
+    /**
+     * Criterion 15aa part 1's last clause: the thumbnail follows the save. A later save of the same
+     * board — the player went back in, played on and left again — re-emits the resume modes as Room's
+     * query does on every write, and the chip's board becomes the new position.
+     */
+    @Test
+    fun aLaterSaveOfTheSameBoardIsShownAtItsNewPosition() =
+        runTest(testDispatcher) {
+            val progress = FakeResumeProgressRepository()
+            progress.put(ProgressPersistenceKeys.MODE_CLASSIC, RESUMABLE_LEVEL_ID, firstLegalMoves(FIRST_SAVE_MOVES))
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), progress = progress)
+            runCurrent()
+            val firstSave = viewModel.uiState.value.classicResumeBoard
+            assertThat(firstSave?.pegCount).isEqualTo(PEGS_LEFT_AFTER_FIRST_SAVE)
+
+            progress.put(ProgressPersistenceKeys.MODE_CLASSIC, RESUMABLE_LEVEL_ID, firstLegalMoves(LATER_SAVE_MOVES))
+            runCurrent()
+
+            val state = viewModel.uiState.value
+            val resumed = SnapshotMapper.fromDto(progress.stored(ProgressPersistenceKeys.MODE_CLASSIC), RulesEngine)
+            assertThat(state.classicResumeLevelId).isEqualTo(RESUMABLE_LEVEL_ID)
+            assertThat(state.classicResumeBoard?.pegCount).isEqualTo(PEGS_LEFT_AFTER_LATER_SAVE)
+            assertThat(state.classicResumeBoard?.position()).isEqualTo(checkNotNull(resumed).currentBoard.position())
+            assertThat(state.classicResumeBoard?.position()).isNotEqualTo(firstSave?.position())
+        }
+
+    /**
+     * Criterion 15aa part 2, as the tech-lead's ruling 1 amends it: a Classic snapshot that decodes
+     * and names a catalogue board but whose moves do not replay — one forged tuple, as
+     * `GameViewModelResumeTest` forges it — offers **no** Continue, and its row is purged, exactly once,
+     * as CR-01 purges an unknown id and as the resume path itself purges it on the tap (WR-02). A chip
+     * for it would promise a saved game and start a fresh board. The Challenge chip beside it is
+     * untouched.
+     */
+    @Test
+    fun aClassicSnapshotWhoseMovesDoNotReplayOffersNoContinueAndPurgesTheRow() =
+        runTest(testDispatcher) {
+            val progress = FakeResumeProgressRepository()
+            progress.put(ProgressPersistenceKeys.MODE_CLASSIC, RESUMABLE_LEVEL_ID, firstLegalMoves(FIRST_SAVE_MOVES))
+            progress.put(ProgressPersistenceKeys.MODE_CHALLENGE, PERSISTED_LEVEL.toString())
+            progress.tamperWithMoves(ProgressPersistenceKeys.MODE_CLASSIC)
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), progress = progress)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.classicResumeAvailable).isFalse()
+            assertThat(viewModel.uiState.value.classicResumeLevelId).isNull()
+            assertThat(viewModel.uiState.value.classicResumeBoard).isNull()
+            assertThat(progress.clears).containsExactly(ProgressPersistenceKeys.MODE_CLASSIC)
+            assertThat(viewModel.uiState.value.challengeResumeLevel).isEqualTo(PERSISTED_LEVEL)
+        }
+
+    /**
+     * The invariant ruling 1 rests on (the tech-lead's brief, C1 (c)): the state never carries a
+     * Classic board id without its board, nor a board without its id — so the Classic chip never shows
+     * the play arrow in place of a position it could not rebuild. Read over every shape a stored
+     * Classic snapshot can take: absent, unreadable, on an unknown board, with a forged history, and
+     * whole.
+     */
+    @Test
+    fun theStateCarriesAClassicBoardIdExactlyWhenItCarriesItsBoard() =
+        runTest(testDispatcher) {
+            CLASSIC_SNAPSHOT_SHAPES.forEach { (shape, store) ->
+                val progress = FakeResumeProgressRepository().apply(store)
+                val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), progress = progress)
+                runCurrent()
+
+                val state = viewModel.uiState.value
+                assertWithMessage("$shape: an id with no board, or a board with no id")
+                    .that(state.classicResumeLevelId == null)
+                    .isEqualTo(state.classicResumeBoard == null)
+            }
+        }
+
     // ---- Play Games opt-in prompt (PGS-01, D-15/D-17/D-18) --------------------
 
     @Test
@@ -599,6 +743,9 @@ class HomeViewModelTest {
      * every one of them. The submitter defaults to one with **no** pending account-switch
      * question, for the same reason: Phase 13's dialog must not appear under assertions
      * about anything else. Its own coverage is `HomeViewModelCloudTest`.
+     *
+     * The rules engine is the shipped one, and the replay's dispatcher is this class's test
+     * dispatcher, so [runCurrent] drives the rebuild's hop exactly as it drives the collectors.
      */
     private fun viewModelFor(
         repository: OnboardingRepository,
@@ -616,6 +763,8 @@ class HomeViewModelTest {
             challengeProgress,
             progress,
             CatalogOnlyLevelRepository,
+            RulesEngine,
+            testDispatcher,
             optIn,
             games,
             submitter,
@@ -630,23 +779,30 @@ private val RESUMABLE_LEVEL_ID = ClassicLevelIds.EUROPEAN37
 private const val UNKNOWN_LEVEL_ID = "ghost-board"
 
 /**
+ * Every Classic id over its own start board, as the shipped catalogue serves them
+ * (`DefaultClassicLevelSource`): the board a save of that id starts from.
+ */
+private val CATALOGUE_BOARDS: Map<String, Board> =
+    mapOf(
+        ClassicLevelIds.ENGLISH33 to Boards.english33Initial,
+        ClassicLevelIds.EUROPEAN37 to Boards.european37Initial,
+        ClassicLevelIds.ASYMMETRIC39 to Boards.asymmetric39Initial,
+        ClassicLevelIds.DIAMOND41 to Boards.diamond41Initial,
+        ClassicLevelIds.WIEGLEB45 to Boards.wiegleb45Initial,
+    )
+
+/**
  * A [LevelRepository] that answers only the catalog question Home asks (CR-01): the real
- * Classic ids over a placeholder board. The load paths are never taken from Home.
+ * Classic ids, each over its own start board. The load paths are never taken from Home.
  */
 private object CatalogOnlyLevelRepository : LevelRepository {
     override fun classicCatalog(): List<ClassicLevelDescriptor> =
-        listOf(
-            ClassicLevelIds.ENGLISH33,
-            ClassicLevelIds.EUROPEAN37,
-            ClassicLevelIds.ASYMMETRIC39,
-            ClassicLevelIds.DIAMOND41,
-            ClassicLevelIds.WIEGLEB45,
-        ).map { id ->
+        CATALOGUE_BOARDS.map { (id, board) ->
             ClassicLevelDescriptor(
                 id = id,
                 displayName = id,
-                holeCount = Boards.english33Initial.spec.inPlay.size,
-                previewBoard = Boards.english33Initial,
+                holeCount = board.spec.inPlay.size,
+                previewBoard = board,
             )
         }
 
@@ -656,14 +812,139 @@ private object CatalogOnlyLevelRepository : LevelRepository {
 }
 
 /**
+ * A board as the position it shows: its footprint and its pegs. `BoardSpec` declares no `equals`
+ * and the codec builds a fresh spec for every board it rebuilds, so two boards are the same
+ * position when these are equal — "always compare footprints" (`BoardSpec.footprint`).
+ */
+private fun Board.position(): Pair<List<Position>, Long> = spec.footprint to pegs
+
+/**
+ * The first legal jump, [count] times over, from the European-37 start: a line any player could
+ * have played, written by nobody's hand.
+ */
+private fun firstLegalMoves(count: Int): List<Move> {
+    var board = Boards.european37Initial
+    return List(count) {
+        RulesEngine.legalMoves(board).first().also { move -> board = RulesEngine.applyMove(board, move) }
+    }
+}
+
+/**
+ * The recorded English-33 line, each jump found among the legal moves where it is played, so the
+ * line is proved legal as it is built (the way `HomeStagePositionTest` proved it).
+ */
+private fun recordedEnglishLine(): List<Move> {
+    var board = Boards.english33Initial
+    return RECORDED_ENGLISH_LINE.map { (from, to) ->
+        checkNotNull(RulesEngine.legalMoves(board).firstOrNull { it.from == from && it.to == to }) {
+            "the recorded jump $from to $to is not legal where it is played"
+        }.also { move -> board = RulesEngine.applyMove(board, move) }
+    }
+}
+
+/**
+ * The first 18 jumps of a winning English-33 line from the standard start (centre empty), as
+ * `from to` pairs; the jumped peg is implied by the rules.
+ */
+private val RECORDED_ENGLISH_LINE: List<Pair<Position, Position>> =
+    listOf(
+        Position(5, 3) to Position(3, 3),
+        Position(2, 3) to Position(4, 3),
+        Position(2, 1) to Position(2, 3),
+        Position(3, 5) to Position(3, 3),
+        Position(4, 2) to Position(2, 2),
+        Position(2, 3) to Position(2, 1),
+        Position(1, 4) to Position(3, 4),
+        Position(4, 4) to Position(2, 4),
+        Position(0, 3) to Position(2, 3),
+        Position(3, 0) to Position(3, 2),
+        Position(3, 3) to Position(1, 3),
+        Position(4, 0) to Position(4, 2),
+        Position(0, 2) to Position(2, 2),
+        Position(4, 3) to Position(4, 1),
+        Position(6, 2) to Position(4, 2),
+        Position(6, 4) to Position(6, 2),
+        Position(4, 6) to Position(4, 4),
+        Position(3, 2) to Position(1, 2),
+    )
+
+/** Where [RECORDED_ENGLISH_LINE] leaves the English board: its 14 pegs, row by row, by hand. */
+private val RECORDED_LINE_POSITION: Board =
+    listOf(
+        Position(0, 4),
+        Position(1, 2),
+        Position(1, 3),
+        Position(2, 0),
+        Position(2, 1),
+        Position(2, 4),
+        Position(2, 5),
+        Position(2, 6),
+        Position(3, 6),
+        Position(4, 1),
+        Position(4, 2),
+        Position(4, 4),
+        Position(5, 4),
+        Position(6, 2),
+    ).fold(Board(spec = Boards.English33, pegs = 0L)) { board, peg -> board.withPeg(peg) }
+
+/** The recorded line's position counted: 32 pegs at the start, one fewer per jump, 18 jumps. */
+private const val RECORDED_LINE_PEGS_LEFT = 14
+
+/**
+ * Moves played on a European-37 save against the pegs left: 36 at the start (37 holes, the
+ * centre empty), one fewer per jump.
+ */
+private val PEGS_LEFT_AFTER_MOVES: List<Pair<Int, Int>> =
+    listOf(
+        0 to 36,
+        1 to 35,
+        4 to 32,
+        9 to 27,
+    )
+
+/** The two saves of one European-37 game, and the pegs each leaves. */
+private const val FIRST_SAVE_MOVES = 2
+private const val PEGS_LEFT_AFTER_FIRST_SAVE = 34
+private const val LATER_SAVE_MOVES = 7
+private const val PEGS_LEFT_AFTER_LATER_SAVE = 29
+
+/**
+ * A move tuple no board can play, nine cells off the edge: the forged history
+ * `GameViewModelResumeTest` writes (T-05-04), seen from Home.
+ */
+private val FORGED_MOVE_TUPLE = intArrayOf(9, 9, 9, 9, 9, 9)
+
+/** Every shape a stored Classic snapshot can take, each staged on a fresh store. */
+private val CLASSIC_SNAPSHOT_SHAPES: List<Pair<String, FakeResumeProgressRepository.() -> Unit>> =
+    listOf(
+        "absent" to {},
+        "unreadable" to { putUnreadable(ProgressPersistenceKeys.MODE_CLASSIC) },
+        "on an unknown board" to { put(ProgressPersistenceKeys.MODE_CLASSIC, UNKNOWN_LEVEL_ID) },
+        "with a forged history" to {
+            put(ProgressPersistenceKeys.MODE_CLASSIC, RESUMABLE_LEVEL_ID, firstLegalMoves(FIRST_SAVE_MOVES))
+            tamperWithMoves(ProgressPersistenceKeys.MODE_CLASSIC)
+        },
+        "whole" to { put(ProgressPersistenceKeys.MODE_CLASSIC, RESUMABLE_LEVEL_ID, firstLegalMoves(FIRST_SAVE_MOVES)) },
+    )
+
+/**
  * A [ProgressRepository] holding just enough of the resume surface for Home: which modes
- * have a snapshot, and (for Classic) which board it is on. [putUnreadable] models a stored
- * blob that fails to decode — the repository's own fail-safe, seen from up here as a mode
- * that lists but cannot be loaded.
+ * have a snapshot, and what each holds. A Classic snapshot is written by the real codec from its
+ * board's start and the moves played since, exactly as `GameViewModel` writes one, so Home reads
+ * back a blob the codec accepts. [putUnreadable] models a stored blob that fails to decode — the
+ * repository's own fail-safe, seen from up here as a mode that lists but cannot be loaded — and
+ * [tamperWithMoves] one that decodes but whose history does not replay.
+ *
+ * The mode list re-emits on every write, as Room's observing query does on every write to the
+ * table, even when the list itself is unchanged: that is how a later save of the same board reaches
+ * Home (criterion 15aa part 1).
  */
 private class FakeResumeProgressRepository : ProgressRepository {
     private val snapshots = mutableMapOf<String, ResumeSnapshotDto?>()
-    private val modes = MutableStateFlow<List<String>>(emptyList())
+    private val modes =
+        MutableSharedFlow<List<String>>(replay = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST).apply {
+            tryEmit(emptyList())
+        }
 
     /** The modes Home purged as unusable (CR-01) — observable by the tests. */
     val clears = mutableListOf<String>()
@@ -671,20 +952,36 @@ private class FakeResumeProgressRepository : ProgressRepository {
     fun put(
         mode: String,
         levelId: String,
+        moves: List<Move> = emptyList(),
     ) {
-        snapshots[mode] = snapshotOf(mode = mode, levelId = levelId)
-        modes.value = snapshots.keys.toList()
+        snapshots[mode] = snapshotOf(mode = mode, levelId = levelId, moves = moves)
+        publishModes()
     }
 
     /** A mode whose row exists but whose payload is unusable (`loadSnapshot` → null). */
     fun putUnreadable(mode: String) {
         snapshots[mode] = null
-        modes.value = snapshots.keys.toList()
+        publishModes()
     }
+
+    /** Rewrites [mode]'s stored history to one move no board can play: it decodes, and does not replay. */
+    fun tamperWithMoves(mode: String) {
+        val stored = stored(mode)
+        snapshots[mode] = stored.copy(moves = listOf(FORGED_MOVE_TUPLE.copyOf()))
+        publishModes()
+    }
+
+    /** The snapshot stored for [mode], as Home loads it. */
+    fun stored(mode: String): ResumeSnapshotDto =
+        requireNotNull(snapshots[mode]) { "nothing readable stored for $mode" }
 
     fun clear(mode: String) {
         snapshots -= mode
-        modes.value = snapshots.keys.toList()
+        publishModes()
+    }
+
+    private fun publishModes() {
+        modes.tryEmit(snapshots.keys.toList())
     }
 
     override suspend fun recordResult(
@@ -725,7 +1022,7 @@ private class FakeResumeProgressRepository : ProgressRepository {
     override suspend fun clearSnapshot(mode: String) {
         clears += mode
         snapshots -= mode
-        modes.value = snapshots.keys.toList()
+        publishModes()
     }
 
     override fun observeResumeModes(): Flow<List<String>> = modes
@@ -740,22 +1037,37 @@ private class FakeResumeProgressRepository : ProgressRepository {
 
     override suspend fun resetAllProgress() = error("Home never calls cloud save")
 
+    /**
+     * A Classic snapshot is the codec's own, from the board's start and [moves]; a board id the
+     * catalogue does not know (CR-01) still stores a whole English board, so only its id is wrong.
+     * Home reads nothing of a Challenge snapshot but its stamp, so that one stays a bare stamp.
+     */
     private fun snapshotOf(
         mode: String,
         levelId: String,
+        moves: List<Move>,
     ): ResumeSnapshotDto =
-        ResumeSnapshotDto(
-            mode = mode,
-            levelId = levelId,
-            // A Challenge snapshot always carries its provenance stamp (WR-03) — the
-            // level the tile must label and resume into.
-            challengeLevel =
-                levelId.toIntOrNull().takeIf { mode == ProgressPersistenceKeys.MODE_CHALLENGE },
-            inPlay = emptyList(),
-            initialPegs = 0L,
-            moves = emptyList(),
-            elapsedMs = 0L,
-        )
+        if (mode == ProgressPersistenceKeys.MODE_CLASSIC) {
+            SnapshotMapper.toDto(
+                mode = mode,
+                levelId = levelId,
+                initialBoard = CATALOGUE_BOARDS[levelId] ?: Boards.english33Initial,
+                moveHistory = moves,
+                elapsedMs = 0L,
+            )
+        } else {
+            ResumeSnapshotDto(
+                mode = mode,
+                levelId = levelId,
+                // A Challenge snapshot always carries its provenance stamp (WR-03) — the
+                // level the tile must label and resume into.
+                challengeLevel = levelId.toIntOrNull(),
+                inPlay = emptyList(),
+                initialPegs = 0L,
+                moves = emptyList(),
+                elapsedMs = 0L,
+            )
+        }
 }
 
 /** The ribbon's star total once the aggregate answers — distinct from every other fixture number. */

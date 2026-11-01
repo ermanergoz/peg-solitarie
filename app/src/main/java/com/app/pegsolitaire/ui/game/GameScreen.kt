@@ -5,6 +5,7 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -62,6 +63,8 @@ import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.ctaGradientBrush
 import com.app.pegsolitaire.ui.theme.finishGlow
 import com.app.pegsolitaire.ui.theme.glossFinish
+import com.app.pegsolitaire.ui.window.MirrorSystemBars
+import com.app.pegsolitaire.ui.window.stableSystem
 
 /** Test tag of the board-state node carrying the [PegCountKey]/[GameStatusKey]/[LegalTargetCountKey] semantics. */
 const val GAME_STATE_TEST_TAG = "game_state"
@@ -104,7 +107,9 @@ private var SemanticsPropertyReceiver.boardMarkPaletteValue by BoardMarkPaletteK
  * **Each system bar is applied exactly once** (D-05d, ux-spec §4.3.1, criterion 18b): by the
  * `Scaffold`'s content padding, which this column applies. Neither the strip nor the dock applies
  * an inset of its own — both used to, which hung an empty status-bar-tall band above the strip and
- * took 72dp from the board on a 360x640dp phone.
+ * took 72dp from the board on a 360x640dp phone. That padding is the bars' **stable** insets and the
+ * cutout (`WindowInsets.stableSystem`, D-05g): both bars are hidden on this screen, and the strip and
+ * the dock stay exactly where 18b puts them while the bands above and below hold the backdrop.
  *
  * Nothing the player can *use* was removed: all five controls, the context-aware title, the
  * timer label and every handler signature this composable takes are the ones it had. Reaching a
@@ -154,7 +159,10 @@ private var SemanticsPropertyReceiver.boardMarkPaletteValue by BoardMarkPaletteK
  * @param modifier layout modifier for the screen.
  * @param challengeLevel the Challenge level number when this is a Challenge game (drives
  *   the "Level N" strip title, S2/D-03), or `null` for Classic (app-name title). This
- *   is a pure presentation flag — it reaches only the title slot, never the board logic.
+ *   is a pure presentation flag — it reaches the title slot and the rescue banner's choice of
+ *   words (ux-spec D-SB-3), never the board logic.
+ * @param onDismissProvenDead puts the Challenge proven-dead banner away (ux-spec D-SB-4, GD-SB-19):
+ *   the ViewModel clears the proof flag and nothing else. Never offered for a stuck board or in Classic.
  *
  * The `LongMethod` suppression below rests on the list of every surface this composable hosts,
  * the last paragraph of this KDoc, and that list is the point of it: the screen must not silently
@@ -168,7 +176,7 @@ private var SemanticsPropertyReceiver.boardMarkPaletteValue by BoardMarkPaletteK
  * - the snackbar host, [ClaySnackbarHost];
  * - the spoken channel, [AnnouncementRegion], last and above everything (D-TB);
  * - the board panel, [BoardCanvas], with the wrong-tap answer and its stops (D-06, D-TB);
- * - the rescue banner, [NoWinBanner];
+ * - the rescue banner, [NoWinBanner], through [RescueBanner];
  * - the Undecided notice, [UndecidedNoticeSlot];
  * - the action dock, [GameActionDock];
  * - the restart confirmation, `RestartConfirmDialog`;
@@ -193,6 +201,7 @@ fun GameScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
     challengeLevel: Int? = null,
+    onDismissProvenDead: () -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val boardStopFocus = remember { FocusRequester() }
@@ -225,6 +234,7 @@ fun GameScreen(
             containerColor = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.onBackground,
             snackbarHost = { ClaySnackbarHost(snackbarHostState) },
+            contentWindowInsets = WindowInsets.stableSystem,
         ) { contentPadding ->
             Column(
                 modifier =
@@ -310,11 +320,10 @@ fun GameScreen(
                     // a proof outranks an Undecided, so the notice's slot is composed only while no
                     // banner is up (criterion 23h). What the notice does once raised is its own.
                     if (state.showRescueBanner) {
-                        NoWinBanner(
-                            message =
-                                stringResource(
-                                    if (state.noWinningMove) R.string.nowin_message else R.string.stuck_message,
-                                ),
+                        // Its words and its put-away are chosen by mode first (ux-spec D-SB-3/D-SB-4).
+                        RescueBanner(
+                            state = state,
+                            isChallenge = challengeLevel != null,
                             // §11.1: once the action has happened, focus moves to the board stop.
                             onUndo = {
                                 onUndo()
@@ -325,6 +334,7 @@ fun GameScreen(
                                 bannerFocusMove(BannerAction.Restart)
                             },
                             onHome = onHome,
+                            onDismissProvenDead = onDismissProvenDead,
                             modifier =
                                 Modifier
                                     .align(Alignment.BottomCenter)
@@ -576,6 +586,9 @@ private fun RestartConfirmDialog(
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
         tonalElevation = dimensionResource(R.dimen.elevation_dialog),
         title = {
+            // D-05g: the first thing in the dialog's own window, so it takes the board's hidden bars
+            // while it is open (tech design §3.8 (c)). It lays out nothing.
+            MirrorSystemBars()
             Text(
                 text = stringResource(R.string.restart_confirm_title),
                 style = MaterialTheme.typography.headlineSmall,

@@ -49,14 +49,16 @@ const val HOME_HERO_TEST_TAG = "home_hero"
  * — and a title centred under art and above a ribbon belongs to neither. Start-aligned in the
  * gear's row it reads as the screen's heading, grounded by the only other element that shares its
  * job; and it is the geometry the 360dp-wide class has shown since D-03i, so the two width classes
- * stop looking like two different apps. The logo is withdrawn outright rather than redrawn: the
- * slack it stood in is now the [HomeStage], which shows the game itself.
+ * stop looking like two different apps. The logo is withdrawn outright rather than redrawn, and so,
+ * since D-03p, is the stage that took its slack: the slack is headroom above this row, with nothing in
+ * it but the backdrop's sky, so the row heads one contiguous block of bands.
  *
  * **This is not a top bar.** No surface, no elevation, no window insets of its own; it scrolls
  * with the content, and D-03a's deletion of Home's bar and §5's "no M3 `TopAppBar`" are untouched —
  * what the row shares with the deleted bar is one row's geometry, which is not a component. It is
- * the first thing in the column: nothing is drawn above the title but the column's top padding and
- * the backdrop's calm band behind everything (backdrop spec B-20).
+ * the first thing in the column: nothing is drawn above the title but the column's top padding, the
+ * headroom (D-03p) and the backdrop behind everything. The headroom never takes the row's bottom edge
+ * past the title bound, the line the backdrop keeps clear of its waves (D-03q).
  *
  * The title takes `titleGradientBrush()` at `displaySmall`, takes the width the gear
  * leaves, and has **no `maxLines`**: it is never truncated and never scaled down, so at a large
@@ -66,7 +68,7 @@ const val HOME_HERO_TEST_TAG = "home_hero"
  * child: the 48dp gear chip at the default font scale, the title once it is taller. A floor above
  * that would be an invisible band inside the row, and criterion 15p reads Home's gaps between
  * what is drawn: the retired 72dp floor put 12dp of nothing under the gear, so on the 6.7-inch
- * phone the gap a player saw above the stage was 28dp, not the 16dp band gap.
+ * phone the gap a player saw beneath the row was 28dp, not the 16dp band gap.
  *
  * The gear keeps `Icons.Rounded.Settings` and — deliberately — the **unchanged** `settings_action`
  * content description (D-05b's rule applied to Home): `ButtonSoundTest` locates it by that string,

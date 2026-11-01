@@ -15,10 +15,18 @@ package com.app.pegsolitaire.domain.generator
 object GeneratorConstants {
     /**
      * The generator-contract version stamped onto every `GeneratedLevel` (Pitfall
-     * 2). Bumped only when the generation algorithm changes; a bump ships as a
-     * parallel generator, never an in-place mutation of v1.
+     * 2). Bumped only when the generation algorithm changes. From the first store build of
+     * this codebase onward a bump ships as a parallel generator, never an in-place mutation,
+     * because every level a player has seen is a pure function of its number.
+     *
+     * **Version 2 (3.0.0; docs/gdd.md I7, GD-SB-12; tech-design §2.2):** the ladder's shift along
+     * the difficulty curve (`DifficultyTiers`' level offset) changes the board every level deals.
+     * It re-rolled in place, with the golden fixtures regenerated and the whole level space
+     * re-fuzzed, because no store build of this codebase existed before it, so no player held a
+     * level version 1 had to keep serving. The stamp on a stored resume snapshot is what says
+     * which contract made its board.
      */
-    const val GENERATOR_VERSION = 1
+    const val GENERATOR_VERSION = 2
 
     /**
      * Bounded rejection-loop ceiling. `generate` retries a dead-ended reverse walk

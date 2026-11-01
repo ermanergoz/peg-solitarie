@@ -44,12 +44,24 @@ language) and the phase summaries under `.planning/phases/*/`.*
 *Every branch this section describes merged into `develop` before `release/3.0.0` was cut
 (checklist item 2.4a, 2026-11-01), so no entry carries a pending marker.*
 
+*Re-cut 2026-11-01. The first `v3.0.0` (main a3f2221) was tagged locally and never uploaded or
+pushed. The founder then put four more changes into 3.0.0 (Q-030, Q-031, Q-039, Q-040, D-05g,
+D-03p/q): the Turkish interface, full-screen Gameplay and Results, the Home stage withdrawal with a
+live Classic Continue chip, and the Challenge star bands with a 30-level difficulty shift. They are
+marked "(re-cut)" below. `release/3.0.0` was cut again from `develop` 26b56bf and the tag moved to
+the new merge. **The founder took over QA and sign-off for these four changes (2026-11-01) and signed
+off the release themselves;** no qa-engineer, code-auditor or tech-lead step ran on them.*
+
 A complete rewrite of Peg Solitaire, and the first build of this codebase to reach the store. The
 game now has a voice, remembers you across devices, competes, and answers hints on the big boards
 from a built-in opening book.
 
 ### Added
 
+- **A Turkish interface** (re-cut). On a phone set to Turkish, or with Turkish picked as the app's
+  own language in the system settings, every screen, dialog, TalkBack label and the Licenses screen
+  is in Turkish, in the familiar "sen" voice. The heading typeface, Fredoka, gains the letters
+  Ğ ğ İ Ş ş so Turkish headings keep the same face as English ones.
 - **A tutorial you play, not read**. A first-time player
   learns on a live board: every step needs a real jump, and it covers both jump directions before
   it ends. A wrong tap costs nothing, with no error and no red. Three taps without progress bring
@@ -119,6 +131,16 @@ from a built-in opening book.
 
 ### Changed
 
+- **Full-screen Gameplay and Results** (re-cut). The status and navigation bars hide while you play
+  and on the Results screen, and every screen draws edge to edge on every Android version the game
+  supports; a swipe from the edge brings the bars back for a moment.
+- **A calmer Home, and Continue shows where you left off** (re-cut). The decorative stage behind
+  the mode cards is gone and its space becomes headroom above the title. The Classic Continue chip
+  shows a small picture of your saved board position.
+- **Challenge star bands and a later start on the difficulty curve** (re-cut). Stars in Challenge
+  are now awarded in bands, so three stars is within reach on every level, and the ladder starts
+  thirty levels further along the generator's difficulty curve; level numbers are unchanged. The
+  Results screen names the next star and shows a Cleared headline.
 - **A fuller Home screen**: a title band, a three-pill
   progress ribbon, and board art on the Classic and Challenge cards, both cards in the lower half of
   the screen. The Challenge level, the Continue chips and the Classic stars are still on the first
@@ -176,6 +198,13 @@ from a built-in opening book.
 
 ### Under the hood
 
+- (re-cut) Challenge generator contract v2 (ladder cut, fail-proof opening, mix) with the clear rule
+  as one scoring function and `LEVEL_OFFSET = 30` (Q-040; `docs/gdd.md` GD-SB-21). Saved Challenge
+  stamps from the earlier generator regenerate.
+- (re-cut) Fredoka Medium/SemiBold are now an OFL-1.1 Modified Version built from
+  `fonts/fredoka-tr/recipe.json`; `BundledFontRecipeTest` pins the outputs' sha256.
+- (re-cut) A window system-bar seam for immersive mode, mirrored into dialog windows; below API 30
+  the stable insets are read from the root view.
 *Nothing in this section is visible while playing; it is here for the next person to read the
 code.*
 

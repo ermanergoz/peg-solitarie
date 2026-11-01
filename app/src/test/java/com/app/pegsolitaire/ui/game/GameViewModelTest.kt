@@ -6,10 +6,13 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import app.cash.turbine.test
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.data.ChallengeProgress
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
+import com.app.pegsolitaire.data.ProgressPersistenceKeys
+import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.data.SettingsRepository
 import com.app.pegsolitaire.domain.assist.AssistAllowanceLimits
 import com.app.pegsolitaire.domain.generator.ChallengeLevelBounds
@@ -29,8 +32,10 @@ import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
 import com.app.pegsolitaire.platform.ads.RewardOutcome
 import com.google.common.truth.Truth.assertThat
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -371,6 +376,180 @@ class GameViewModelTest {
                     minimumPegs = board.spec.minimumPegs,
                 ),
             ).isEqualTo(1)
+        }
+
+    // ---- The Challenge clear rule at play time (GDD R5-R7, SB-V1..V3) --------------
+    //
+    // One board, one jump, a dead end with a chosen number of pegs: the only variable is how many
+    // pegs the finish leaves, and the mode. A Challenge finish is graded by ChallengeClearRule
+    // (one peg 3 stars, two 2, three 1, four or more stuck); Classic keeps its own floor (R4, R8).
+
+    @Test
+    fun aChallengeBoardEndingWithTwoPegsEmitsAFinishWithTwoStarsAndAdvancesTheLadder() =
+        runTest(testDispatcher) {
+            val progress = mockk<ChallengeProgress>(relaxed = true)
+            val snapshots = mockk<ProgressRepository>(relaxed = true)
+            val viewModel = challengeViewModelEndingWith(pegsLeft = 2, progress = progress, snapshots = snapshots)
+            viewModel.finished.test {
+                jump(viewModel, from = Position(row = 0, col = 0), to = Position(row = 0, col = 2))
+                runCurrent()
+
+                val finish = awaitItem()
+                assertThat(finish.result.pegsRemaining).isEqualTo(2)
+                assertThat(finish.result.stars).isEqualTo(2)
+                expectNoEvents()
+                cancelAndIgnoreRemainingEvents()
+            }
+            val state = viewModel.uiState.value
+            assertThat(state.status).isEqualTo(GameStatus.Won)
+            assertThat(state.stuck).isFalse()
+            assertThat(state.showRescueBanner).isFalse()
+            verify(exactly = 1) { progress.advancePast(CLEARED_CHALLENGE_LEVEL) }
+            coVerify(exactly = 1) { snapshots.clearSnapshot(ProgressPersistenceKeys.MODE_CHALLENGE) }
+        }
+
+    @Test
+    fun aChallengeBoardEndingWithThreePegsEmitsAFinishWithOneStarAndAdvancesTheLadder() =
+        runTest(testDispatcher) {
+            val progress = mockk<ChallengeProgress>(relaxed = true)
+            val snapshots = mockk<ProgressRepository>(relaxed = true)
+            val viewModel = challengeViewModelEndingWith(pegsLeft = 3, progress = progress, snapshots = snapshots)
+            viewModel.finished.test {
+                jump(viewModel, from = Position(row = 0, col = 0), to = Position(row = 0, col = 2))
+                runCurrent()
+
+                val finish = awaitItem()
+                assertThat(finish.result.pegsRemaining).isEqualTo(3)
+                assertThat(finish.result.stars).isEqualTo(1)
+                // The clear rule's stars, not the Classic bands, which would say two for three pegs.
+                assertThat(ScoreCalculator.stars(pegsRemaining = 3, minimumPegs = 1)).isEqualTo(2)
+                expectNoEvents()
+                cancelAndIgnoreRemainingEvents()
+            }
+            assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Won)
+            assertThat(viewModel.uiState.value.stuck).isFalse()
+            verify(exactly = 1) { progress.advancePast(CLEARED_CHALLENGE_LEVEL) }
+            coVerify(exactly = 1) { snapshots.clearSnapshot(ProgressPersistenceKeys.MODE_CHALLENGE) }
+        }
+
+    @Test
+    fun aChallengeBoardEndingWithFourPegsIsStuckEmitsNoFinishAndDoesNotAdvance() =
+        runTest(testDispatcher) {
+            val timeSource = TestTimeSource()
+            val progress = mockk<ChallengeProgress>(relaxed = true)
+            val snapshots = mockk<ProgressRepository>(relaxed = true)
+            val viewModel =
+                challengeViewModelEndingWith(
+                    pegsLeft = 4,
+                    progress = progress,
+                    snapshots = snapshots,
+                    timeSource = timeSource,
+                )
+            viewModel.finished.test {
+                jump(viewModel, from = Position(row = 0, col = 0), to = Position(row = 0, col = 2))
+                runCurrent()
+
+                val state = viewModel.uiState.value
+                assertThat(state.board.pegCount).isEqualTo(4)
+                assertThat(state.status).isEqualTo(GameStatus.Stuck)
+                assertThat(state.stuck).isTrue()
+                assertThat(state.showRescueBanner).isTrue()
+                expectNoEvents()
+                cancelAndIgnoreRemainingEvents()
+            }
+            // The clock is frozen at the dead end (D-04): time passing moves nothing.
+            val frozen = viewModel.uiState.value.elapsedSeconds
+            timeSource += 10.seconds
+            advanceTimeBy(FIVE_SECONDS_MILLIS)
+            runCurrent()
+            assertThat(viewModel.uiState.value.elapsedSeconds).isEqualTo(frozen)
+            verify(exactly = 0) { progress.advancePast(any()) }
+            coVerify(exactly = 0) { snapshots.clearSnapshot(any()) }
+        }
+
+    @Test
+    fun undoFromAStuckChallengeBoardReturnsItToPlayingAndClearsTheBanner() =
+        runTest(testDispatcher) {
+            val viewModel = challengeViewModelEndingWith(pegsLeft = 4)
+            jump(viewModel, from = Position(row = 0, col = 0), to = Position(row = 0, col = 2))
+            runCurrent()
+            check(viewModel.uiState.value.stuck) { "the fixture must be stuck before the undo" }
+
+            viewModel.onUndo()
+            runCurrent()
+
+            val state = viewModel.uiState.value
+            assertThat(state.status).isEqualTo(GameStatus.Playing)
+            assertThat(state.stuck).isFalse()
+            assertThat(state.showRescueBanner).isFalse()
+            assertThat(state.board.pegCount).isEqualTo(5)
+            cancelTickers()
+        }
+
+    @Test
+    fun aClassicBoardEndingAboveItsFloorIsStillStuckUnderTheChallengeRule() =
+        runTest(testDispatcher) {
+            // The same two-peg dead end the Challenge test above clears for two stars: in Classic it
+            // is above the board's own one-peg floor, so it stays the rescuable stuck board (R4, R8).
+            val board = oneJumpToADeadEndWith(pegsLeft = 2)
+            val viewModel = viewModelFor(board)
+            viewModel.finished.test {
+                jump(viewModel, from = Position(row = 0, col = 0), to = Position(row = 0, col = 2))
+                runCurrent()
+
+                assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Stuck)
+                assertThat(viewModel.uiState.value.stuck).isTrue()
+                expectNoEvents()
+                cancelAndIgnoreRemainingEvents()
+            }
+            assertThat(board.spec.minimumPegs).isEqualTo(1)
+        }
+
+    // ---- Putting the Challenge proven-dead banner away (ux-spec D-SB-4; GDD GD-SB-19, SB-V9) ----
+
+    @Test
+    fun dismissingTheProvenDeadBannerClearsOnlyTheProofFlagAndChargesNothing() =
+        runTest(testDispatcher) {
+            val gateway = FakeAdGateway()
+            val board = twoMoveStuckLine()
+            val viewModel =
+                viewModelFor(
+                    board,
+                    challengeLevel = CLEARED_CHALLENGE_LEVEL,
+                    adGateway = gateway,
+                    levelRepository = RecordingChallengeLevelRepository(board),
+                )
+            runCurrent()
+            viewModel.finished.test {
+                // One jump in, the strip's only line ends at two pegs: one peg is out of reach.
+                jump(viewModel, from = Position(row = 0, col = 2), to = Position(row = 0, col = 4))
+                runCurrent()
+                viewModel.onHintRequested()
+                runCurrent()
+                val proven = viewModel.uiState.value
+                check(proven.noWinningMove) { "the fixture's Hint must prove one peg out of reach" }
+
+                viewModel.onDismissProvenDeadBanner()
+                runCurrent()
+
+                // The flag and nothing else: board, selection, stuck, clock and every cue ordinal.
+                assertThat(viewModel.uiState.value).isEqualTo(proven.copy(noWinningMove = false))
+                // The proof stands: a Hint on the same position raises it again, for free.
+                viewModel.onHintRequested()
+                runCurrent()
+                assertThat(viewModel.uiState.value.noWinningMove).isTrue()
+                assertThat(viewModel.uiState.value.pendingAdOffer).isNull()
+                assertThat(gateway.preloadedReasons).isEmpty()
+                assertThat(gateway.lastReason).isNull()
+                // Nothing was counted either: the two-peg clear that follows is hint- and undo-free.
+                jump(viewModel, from = Position(row = 0, col = 0), to = Position(row = 0, col = 2))
+                runCurrent()
+                val finish = awaitItem()
+                assertThat(finish.result.stars).isEqualTo(2)
+                assertThat(finish.telemetry.hintsUsed).isEqualTo(0)
+                assertThat(finish.telemetry.undosUsed).isEqualTo(0)
+                cancelAndIgnoreRemainingEvents()
+            }
         }
 
     // ---- Persisted hint toggle ----------------------------------------------
@@ -1431,6 +1610,8 @@ class GameViewModelTest {
         levelRepository: LevelRepository = FakeLevelRepository(boardsById = mapOf(levelId to board)),
         defaultDispatcher: CoroutineDispatcher = testDispatcher,
         getHintUseCase: GetHintUseCase = GetHintUseCase(),
+        challengeProgress: ChallengeProgress = mockk(relaxed = true),
+        progressRepository: ProgressRepository = mockk(relaxed = true),
     ): GameViewModel {
         val args =
             buildMap<String, Any?> {
@@ -1448,12 +1629,12 @@ class GameViewModelTest {
                         settingsRepository = settings,
                         // This spec is about gameplay, not the Challenge ladder; a relaxed
                         // stand-in absorbs the advance-on-solve call (its own spec is
-                        // GameViewModelChallengeAdvanceTest).
-                        challengeProgress = mockk(relaxed = true),
+                        // GameViewModelChallengeAdvanceTest) unless a test passes one to verify.
+                        challengeProgress = challengeProgress,
                         // Nor is it about the resume snapshot (its spec is
                         // GameViewModelResumeTest); a relaxed stand-in absorbs the
-                        // save-on-leave / clear-on-solve calls.
-                        progressRepository = mockk(relaxed = true),
+                        // save-on-leave / clear-on-solve calls unless a test passes one to verify.
+                        progressRepository = progressRepository,
                         timeSource = timeSource,
                         defaultDispatcher = defaultDispatcher,
                         adGateway = adGateway,
@@ -1497,6 +1678,43 @@ class GameViewModelTest {
             .withPeg(Position(row = 8, col = 4))
             .withPeg(Position(row = 2, col = 2))
             .withPeg(Position(row = 2, col = 6))
+
+    /** A Challenge game at [CLEARED_CHALLENGE_LEVEL] on [oneJumpToADeadEndWith] ([pegsLeft]). */
+    private fun challengeViewModelEndingWith(
+        pegsLeft: Int,
+        progress: ChallengeProgress = mockk(relaxed = true),
+        snapshots: ProgressRepository = mockk(relaxed = true),
+        timeSource: TimeSource = TestTimeSource(),
+    ): GameViewModel {
+        val board = oneJumpToADeadEndWith(pegsLeft)
+        val viewModel =
+            viewModelFor(
+                board,
+                challengeLevel = CLEARED_CHALLENGE_LEVEL,
+                timeSource = timeSource,
+                levelRepository = RecordingChallengeLevelRepository(board),
+                challengeProgress = progress,
+                progressRepository = snapshots,
+            )
+        testDispatcher.scheduler.runCurrent() // the async Challenge load
+        check(viewModel.uiState.value.board == board) { "the Challenge load must serve the fixture" }
+        return viewModel
+    }
+
+    /**
+     * A 1x3 strip with one jump, (0,0) over (0,1) into (0,2), plus `pegsLeft - 1` lone pegs two rows
+     * below it on every other column, so no two pegs touch: that jump is the only legal move, and it
+     * leaves exactly [pegsLeft] isolated pegs and no move — a dead end with a chosen peg count.
+     */
+    private fun oneJumpToADeadEndWith(pegsLeft: Int): Board {
+        val strip = (0 until DEAD_END_STRIP_LENGTH).map { Position(row = 0, col = it) }
+        val lonePegs = (0 until pegsLeft - 1).map { Position(row = DEAD_END_LONE_PEG_ROW, col = it * 2) }
+        return lonePegs.fold(
+            Board(spec = BoardSpec(inPlay = strip + lonePegs, target = null), pegs = 0L)
+                .withPeg(Position(row = 0, col = 0))
+                .withPeg(Position(row = 0, col = 1)),
+        ) { board, position -> board.withPeg(position) }
+    }
 
     /** A 1x3 strip (pegs at cols 0,1; hole at col 2): one jump leaves a lone peg → Won. */
     private fun wonInOneJumpBoard(): Board =
@@ -1571,6 +1789,13 @@ private const val FIRST_CHALLENGE_LEVEL = 1
  * on-ramp can be too small to deviate from).
  */
 private const val CHALLENGE_LEVEL_WITH_CHOICES = 10
+
+/** The Challenge level the clear-rule specs play — deliberately not 1, so the advance is unambiguous. */
+private const val CLEARED_CHALLENGE_LEVEL = 7
+
+/** The dead-end fixture's strip length and the row its lone pegs sit on, clear of the strip. */
+private const val DEAD_END_STRIP_LENGTH = 3
+private const val DEAD_END_LONE_PEG_ROW = 2
 
 /** A forged sub-1 Challenge nav arg that must clamp to level 1 (T-03-09). */
 private const val BELOW_MIN_CHALLENGE_LEVEL = 0

@@ -41,11 +41,13 @@ import javax.inject.Inject
  * "New best!" cue on the screen (D-09).
  *
  * Three guards keep that write honest:
- *  - **Only a solved play is recorded (D-08).** A board that did not fold to its own
- *    `BoardSpec.minimumPegs` floor reaches Results in its stuck/Retry state (D-10) and
- *    must not leave a stored best behind for a level that was never solved. That floor is
- *    per-board and rides on the route — Diamond-41's is a proven TWO pegs — so the gate is
- *    `pegsRemaining <= minimumPegs` and never a hardcoded one peg (CR-01).
+ *  - **Only a solved play is recorded (D-08).** A Classic board that did not fold to its own
+ *    `BoardSpec.minimumPegs` floor, or a Challenge route past the clear threshold, reaches
+ *    Results in its stuck/Retry state (D-10) and must not leave a stored best behind for a
+ *    level that was never solved. The gate is the state's one solved test
+ *    ([ResultsUiState.isSolved]): Classic's floor is per-board and rides on the route —
+ *    Diamond-41's is a proven TWO pegs — so it is `pegsRemaining <= minimumPegs` and never a
+ *    hardcoded one peg (CR-01); Challenge's is `ChallengeClearRule` (GD-SB-14).
  *  - **It is recorded at most once (T-05-09).** The guard flag lives in the
  *    [SavedStateHandle], so neither a configuration change (same instance) nor a
  *    process-death restore (new instance, same handle) can double-count the play.
@@ -167,21 +169,6 @@ class ResultsViewModel
             )
 
         /**
-         * Whether this play solved its board — the single solved test this ViewModel owns
-         * (CR-01), in the same `pegsRemaining <= minimumPegs` form `GameViewModel.statusFor`
-         * used to declare the win.
-         *
-         * Three answers read it and none re-derives it: the record gate
-         * ([recordSolvedPlayOnce], which also decides whether the play is submitted to Play
-         * Games), the headline bucket ([tierFor]'s Challenge-stuck branch), and
-         * [ResultsUiState.showNextLevel] via the state's own [ResultsUiState.isSolved]. They
-         * were three separate `pegsRemaining == 1` comparisons across two files, which is
-         * how the Diamond-41 gap survived: the copy the player read said "Perfect!" while
-         * the gate a few lines away called the same play unsolved.
-         */
-        private val isSolved: Boolean = args.pegsRemaining <= minimumPegs
-
-        /**
          * This play's per-solve telemetry, resolved ONCE from the route args at the same
          * boundary — and by the same idiom — as [challengeLevel] above (D-08/D-09).
          *
@@ -218,21 +205,15 @@ class ResultsViewModel
             )
 
         /**
-         * This result's outcome bucket, computed ONCE and shared by the state the screen
-         * renders and the ad-eligibility gate below. Sharing one value is what makes the
-         * headline and the gate structurally incapable of disagreeing (see
-         * [isInterstitialEligible]); calling [tierFor] twice would allow exactly that.
+         * The state the screen renders, built once from the clamped route args — and the one place
+         * this ViewModel's solved test comes from. The state's own [ResultsUiState.isSolved] is the
+         * single solved test of the Results feature (CR-01, docs/gdd.md GD-SB-14), so the result is
+         * built first and ranked second: the headline is chosen from that very state's answer, and
+         * [isSolved] and [headlineTier] below are reads of it. Holding a second copy of the
+         * expression here, as this class did until 3.0.0, is how three `pegsRemaining == 1`
+         * comparisons across two files let the Diamond-41 gap survive: the copy the player read said
+         * "Perfect!" while the gate a few lines away called the same play unsolved.
          */
-        private val headlineTier: ResultsHeadlineTier =
-            tierFor(
-                stars = args.stars,
-                isSolved = isSolved,
-                challengeLevel = challengeLevel,
-            )
-
-        /** Whether this finish is the kind of win D-14 lets an interstitial follow (INT-03). */
-        private val interstitialEligible: Boolean = isInterstitialEligible(headlineTier)
-
         private val _uiState =
             MutableStateFlow(
                 ResultsUiState(
@@ -240,15 +221,43 @@ class ResultsViewModel
                     pegsRemaining = args.pegsRemaining,
                     elapsedSeconds = args.elapsedSeconds,
                     score = args.score,
-                    headlineTier = headlineTier,
+                    // Replaced on the next line by the rank of this same state's solved test.
+                    headlineTier = ResultsHeadlineTier.STUCK,
                     replayId = args.levelId,
                     challengeLevel = challengeLevel,
                     minimumPegs = minimumPegs,
-                ),
+                ).let { result ->
+                    result.copy(
+                        headlineTier =
+                            tierFor(
+                                stars = result.stars,
+                                isSolved = result.isSolved,
+                                challengeLevel = result.challengeLevel,
+                            ),
+                    )
+                },
             )
 
         /** Read-only state stream for the UI; the mutable flow never leaks (state hoisting). */
         val uiState: StateFlow<ResultsUiState> = _uiState.asStateFlow()
+
+        /**
+         * Whether this play solved its board — read from the state, never re-derived. Two more
+         * answers read it: the record gate ([recordSolvedPlayOnce], which also decides whether the
+         * play is submitted to Play Games) and, through the state, [ResultsUiState.showNextLevel].
+         */
+        private val isSolved: Boolean = _uiState.value.isSolved
+
+        /**
+         * This result's outcome bucket, read ONCE from the state and shared by the state the screen
+         * renders and the ad-eligibility gate below. Sharing one value is what makes the headline and
+         * the gate structurally incapable of disagreeing (see [isInterstitialEligible]); calling
+         * [tierFor] twice would allow exactly that.
+         */
+        private val headlineTier: ResultsHeadlineTier = _uiState.value.headlineTier
+
+        /** Whether this finish is the kind of win D-14 lets an interstitial follow (INT-03). */
+        private val interstitialEligible: Boolean = isInterstitialEligible(headlineTier)
 
         /**
          * The cadence this Results entry decides from — the persisted state with THIS win
@@ -559,14 +568,15 @@ class ResultsViewModel
             const val PEGS_CLEARED_NOT_CARRIED = 0
 
             /**
-             * Maps the terminal outcome to its headline bucket (D-08). For a Challenge
-             * result the headline must agree with the offered action (WR-03): a board
-             * that did NOT reach its own floor is stuck regardless of star count, so a
-             * 2-star Challenge board left with 2-3 pegs reads "Out of moves" (STUCK) over
-             * its Retry action instead of a contradictory "Solved!". Otherwise (and for
-             * Classic, [challengeLevel] `null`, star-only headline D-08): the top band
-             * (>= [ScoreParams.THREE_STARS]) is PERFECT, the middle band
-             * ([ScoreParams.TWO_STARS]) is SOLVED, everything else (the 1-star floor) STUCK.
+             * Maps the terminal outcome to its headline bucket (D-08; docs/gdd.md GD-SB-07). For
+             * a Challenge result the headline must agree with the offered action (WR-03): a route
+             * that did NOT clear is stuck regardless of star count, so it reads "Out of moves"
+             * (STUCK) over its Retry action instead of a contradictory "Solved!" — the defensive
+             * branch, since play keeps a stuck board on the board (R6). Otherwise the top band
+             * (>= [ScoreParams.THREE_STARS]) is PERFECT and the middle band
+             * ([ScoreParams.TWO_STARS]) is SOLVED; below them a Challenge clear is CLEARED
+             * ("Cleared!", one star, a pass that is not a solve) and Classic's 1-star floor stays
+             * STUCK (star-only headline D-08; unreachable in play, R4).
              *
              * [isSolved] is passed in rather than recomputed from a peg count so this
              * branch, the record gate and [ResultsUiState.showNextLevel] are the same
@@ -581,6 +591,7 @@ class ResultsViewModel
                     challengeLevel != null && !isSolved -> ResultsHeadlineTier.STUCK
                     stars >= ScoreParams.THREE_STARS -> ResultsHeadlineTier.PERFECT
                     stars == ScoreParams.TWO_STARS -> ResultsHeadlineTier.SOLVED
+                    challengeLevel != null -> ResultsHeadlineTier.CLEARED
                     else -> ResultsHeadlineTier.STUCK
                 }
 
@@ -589,7 +600,8 @@ class ResultsViewModel
              * (D-14, INT-03).
              *
              * D-14 defines an interstitial-eligible win as **any solved finish — two or
-             * three stars** — not only the strict `GameStatus.Won` / three-star condition.
+             * three stars, and in Challenge a one-star clear too (GD-SB-16)** — not only the
+             * strict `GameStatus.Won` / three-star condition.
              * Deriving it from the already-computed [headlineTier] rather than from the raw
              * args means the gate and the copy the player reads can never disagree: a screen
              * that says "Solved!" is ad-eligible and a screen that says "Out of moves" is
@@ -603,8 +615,9 @@ class ResultsViewModel
              *    test, and using it here would deny an interstitial after every two-star
              *    Classic solve — a finish D-14 explicitly includes.
              *  - It must **never** be written as a `pegsRemaining == 1` comparison. That
-             *    test is only correct for Challenge (every generated footprint has
-             *    `minimumPegs == 1`); used anywhere Classic can reach it, it misclassifies a
+             *    test is wrong for Challenge since 3.0.0 (one to three pegs clear, R5, while
+             *    every generated footprint's own floor is one, I5); used anywhere Classic can
+             *    reach it, it misclassifies a
              *    **perfect Diamond-41 finish as a loss**, because Diamond-41's proven floor
              *    is two pegs (Phase 8, GF(4) colour invariant) — the player who played it
              *    flawlessly would be the one permanently denied. That is not hypothetical:
