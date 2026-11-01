@@ -49,7 +49,7 @@ pushed. The founder then put four more changes into 3.0.0 (Q-030, Q-031, Q-039, 
 D-03p/q): the Turkish interface, full-screen Gameplay and Results, the Home stage withdrawal with a
 live Classic Continue chip, and the Challenge star bands with a 30-level difficulty shift. They are
 marked "(re-cut)" below. `release/3.0.0` was cut again from `develop` 26b56bf and the tag moved to
-the new merge. **The founder took over QA and sign-off for these four changes (2026-11-01) and signed
+the new merge. A second re-cut the same day added the Challenge star multiplier on the score (Q-042, from `develop` 25f23e0); the full Check and the release-tier fuzz were **skipped for that pass by the founder's decision**. **The founder took over QA and sign-off for these four changes (2026-11-01) and signed
 off the release themselves;** no qa-engineer, code-auditor or tech-lead step ran on them.*
 
 A complete rewrite of Peg Solitaire, and the first build of this codebase to reach the store. The
@@ -141,6 +141,8 @@ from a built-in opening book.
   are now awarded in bands, so three stars is within reach on every level, and the ladder starts
   thirty levels further along the generator's difficulty curve; level numbers are unchanged. The
   Results screen names the next star and shows a Cleared headline.
+- **Challenge scores follow the stars** (re-cut, second pass). Every clear still unlocks the next
+  level, but the score is multiplied by the stars earned: three stars scores three times one star.
 - **A fuller Home screen**: a title band, a three-pill
   progress ribbon, and board art on the Classic and Challenge cards, both cards in the lower half of
   the screen. The Challenge level, the Continue chips and the Classic stars are still on the first
@@ -198,7 +200,7 @@ from a built-in opening book.
 
 ### Under the hood
 
-- (re-cut) Challenge generator contract v2 (ladder cut, fail-proof opening, mix) with the clear rule
+- (re-cut) Challenge generator contract v2 (the 30-level shift; the fail-proof opening and mix deferred to 3.0.1) with the clear rule
   as one scoring function and `LEVEL_OFFSET = 30` (Q-040; `docs/gdd.md` GD-SB-21). Saved Challenge
   stamps from the earlier generator regenerate.
 - (re-cut) Fredoka Medium/SemiBold are now an OFL-1.1 Modified Version built from
