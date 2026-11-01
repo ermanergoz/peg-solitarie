@@ -1,13 +1,13 @@
 package com.app.pegsolitaire.ui.game
 
 import android.graphics.Bitmap
-import android.provider.Settings
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import com.app.pegsolitaire.domain.model.Boards
+import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.testing.renderedWindow
 import com.app.pegsolitaire.ui.components.PaletteScene
 import com.app.pegsolitaire.ui.theme.AppTheme
@@ -20,7 +20,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -34,18 +33,16 @@ import org.robolectric.annotation.GraphicsMode
 @Config(sdk = [LIVE_SWITCH_ROBOLECTRIC_SDK], qualifiers = "w400dp-h800dp-xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class ColorblindPaletteLiveSwitchTest {
+    private val motion = SystemMotionScale()
+
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createComposeRule(effectContext = motion)
 
     private val palette = mutableStateOf(BoardMarkPalette.Standard)
 
     @Before
     fun animationsOff() {
-        Settings.Global.putFloat(
-            RuntimeEnvironment.getApplication().contentResolver,
-            Settings.Global.ANIMATOR_DURATION_SCALE,
-            0f,
-        )
+        motion.turnAnimationsOff()
     }
 
     @Test

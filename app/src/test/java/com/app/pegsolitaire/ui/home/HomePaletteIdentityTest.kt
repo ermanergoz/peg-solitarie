@@ -1,9 +1,9 @@
 package com.app.pegsolitaire.ui.home
 
 import android.graphics.Bitmap
-import android.provider.Settings
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.createComposeRule
+import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.testing.renderedWindow
 import com.app.pegsolitaire.ui.home.fixture.EVERY_CHIP_STATE
 import com.app.pegsolitaire.ui.home.fixture.HOME_ROBOLECTRIC_SDK
@@ -15,7 +15,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -30,19 +29,17 @@ import org.robolectric.annotation.GraphicsMode
 @Config(sdk = [HOME_ROBOLECTRIC_SDK], qualifiers = "w400dp-h800dp-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class HomePaletteIdentityTest {
+    private val motion = SystemMotionScale()
+
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createComposeRule(effectContext = motion)
 
     private val palette = mutableStateOf(BoardMarkPalette.Standard)
     private val chips = mutableStateOf(EVERY_CHIP_STATE.first())
 
     @Before
     fun animationsOff() {
-        Settings.Global.putFloat(
-            RuntimeEnvironment.getApplication().contentResolver,
-            Settings.Global.ANIMATOR_DURATION_SCALE,
-            0f,
-        )
+        motion.turnAnimationsOff()
     }
 
     @Test

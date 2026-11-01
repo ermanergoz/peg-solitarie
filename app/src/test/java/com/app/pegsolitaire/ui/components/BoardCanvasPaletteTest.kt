@@ -1,7 +1,6 @@
 package com.app.pegsolitaire.ui.components
 
 import android.graphics.Bitmap
-import android.provider.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.geometry.Offset
@@ -14,6 +13,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.domain.model.Boards
+import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.testing.renderedWindow
 import com.app.pegsolitaire.ui.game.GAME_BOARD_SLAB_TEST_TAG
 import com.app.pegsolitaire.ui.game.GAME_STATE_TEST_TAG
@@ -32,7 +32,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -54,18 +53,16 @@ import org.robolectric.annotation.GraphicsMode
 @Config(sdk = [PALETTE_ROBOLECTRIC_SDK], qualifiers = "w400dp-h800dp-xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class BoardCanvasPaletteTest {
+    private val motion = SystemMotionScale()
+
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createComposeRule(effectContext = motion)
 
     private val palette = mutableStateOf(BoardMarkPalette.Standard)
 
     @Before
     fun animationsOff() {
-        Settings.Global.putFloat(
-            RuntimeEnvironment.getApplication().contentResolver,
-            Settings.Global.ANIMATOR_DURATION_SCALE,
-            ANIMATIONS_OFF,
-        )
+        motion.turnAnimationsOff()
     }
 
     @Test
@@ -236,8 +233,6 @@ class BoardCanvasPaletteTest {
 
 /** The down-right side of a peg, where its gradient is darkest and today's ring merged into it (§2). */
 private const val SHADED_SIDE_DEGREES = 45f
-
-private const val ANIMATIONS_OFF = 0f
 
 /** Robolectric has no android-all jar for Android 16 (SDK 36) yet; emulate SDK 34. */
 private const val PALETTE_ROBOLECTRIC_SDK = 34

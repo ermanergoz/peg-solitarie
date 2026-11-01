@@ -1,7 +1,6 @@
 package com.app.pegsolitaire.ui.onboarding
 
 import android.graphics.Bitmap
-import android.provider.Settings
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalDensity
@@ -12,6 +11,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.testing.renderedWindow
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
 import com.app.pegsolitaire.ui.components.isBetweenStops
@@ -49,18 +49,16 @@ import kotlin.math.roundToInt
 @Config(sdk = [TUTORIAL_PALETTE_ROBOLECTRIC_SDK], qualifiers = "w400dp-h800dp-xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class TutorialPipPaletteTest {
+    private val motion = SystemMotionScale()
+
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createComposeRule(effectContext = motion)
 
     private val palette = mutableStateOf(BoardMarkPalette.Standard)
 
     @Before
     fun animationsOff() {
-        Settings.Global.putFloat(
-            RuntimeEnvironment.getApplication().contentResolver,
-            Settings.Global.ANIMATOR_DURATION_SCALE,
-            ANIMATIONS_OFF,
-        )
+        motion.turnAnimationsOff()
     }
 
     @Test
@@ -218,8 +216,6 @@ private const val NO_WRONG_TAP = 0
 
 /** Layout positions are whole pixels at xxhdpi; the row's measured width may round by one. */
 private const val ONE_PIXEL = 1f
-
-private const val ANIMATIONS_OFF = 0f
 
 /** Robolectric has no android-all jar for Android 16 (SDK 36) yet; emulate SDK 34. */
 private const val TUTORIAL_PALETTE_ROBOLECTRIC_SDK = 34

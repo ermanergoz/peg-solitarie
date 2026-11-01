@@ -1,7 +1,6 @@
 package com.app.pegsolitaire.ui.components
 
 import android.graphics.Bitmap
-import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -14,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.Position
+import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.testing.renderedWindow
 import com.app.pegsolitaire.ui.game.recipe
 import com.app.pegsolitaire.ui.theme.AppTheme
@@ -23,7 +23,6 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import kotlin.math.roundToInt
@@ -37,14 +36,16 @@ import kotlin.math.roundToInt
 @Config(sdk = [MOTION_ROBOLECTRIC_SDK], qualifiers = "w400dp-h800dp-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class BoardMarkMotionTest {
+    private val motion = SystemMotionScale()
+
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createComposeRule(effectContext = motion)
 
     private val scene = PaletteScene.midGame(Boards.english33Initial)
 
     @Test
     fun withAnimationsOffAColourBlindBoardIsStillFromOneFrameToTheNext() {
-        show(animatorScale = 0f)
+        show(animationsOn = false)
         val first = frameAfter(SETTLE_FRAMES)
         val second = frameAfter(1)
 
@@ -55,7 +56,7 @@ class BoardMarkMotionTest {
 
     @Test
     fun withAnimationsOnOnlyTheSelectionBreathesAndTheHintRingsStayStill() {
-        show(animatorScale = 1f)
+        show(animationsOn = true)
         val first = frameAfter(SETTLE_FRAMES)
         val second = frameAfter(PULSE_STEP_FRAMES)
 
@@ -70,12 +71,8 @@ class BoardMarkMotionTest {
             .isEqualTo(0)
     }
 
-    private fun show(animatorScale: Float) {
-        Settings.Global.putFloat(
-            RuntimeEnvironment.getApplication().contentResolver,
-            Settings.Global.ANIMATOR_DURATION_SCALE,
-            animatorScale,
-        )
+    private fun show(animationsOn: Boolean) {
+        if (!animationsOn) motion.turnAnimationsOff()
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             AppTheme(darkTheme = false, boardMarkPalette = BoardMarkPalette.Colorblind) {
