@@ -110,6 +110,7 @@ fun BoardCanvas(
     val look = rememberBoardLook(spec, canvasSize, interactive)
     val geometry = look.geometry
     val palette = look.palette
+    val recipe = look.recipe
     // The size `geometry` was built from, read here, in composition. The draw below cannot read it
     // from `canvasSize` itself: `onSizeChanged` writes each frame's size during that frame's layout,
     // before the draw, so a draw-time read already holds the new size while `geometry` is still the
@@ -222,8 +223,10 @@ fun BoardCanvas(
         // A canvas's first frame, and each frame of a resize, is drawn before the recomposition
         // that rebuilds `geometry` for its size, so it draws with a geometry of the frame's own
         // size: the pegs arrive in the frame their slab does, and stay on it while it resizes
-        // (ux-spec §4.2.5 part 4, §10). In steady state the sizes match and nothing is allocated.
-        val frameGeometry = if (geometrySize == size) geometry else BoardGeometry.forCanvas(spec, size)
+        // (ux-spec §4.2.5 part 4, §10). It keeps the composed geometry's recipe, so the marks keep
+        // the palette's radii (colour-vision §3.4). In steady state the sizes match and nothing is
+        // allocated.
+        val frameGeometry = if (geometrySize == size) geometry else BoardGeometry.forCanvas(spec, size, recipe)
         drawBoard(
             state = state,
             geometry = frameGeometry,

@@ -12,6 +12,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.dimensionResource
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.domain.model.BoardSpec
+import com.app.pegsolitaire.ui.game.BoardMarkRecipe
 import com.app.pegsolitaire.ui.game.BoardMetrics
 import com.app.pegsolitaire.ui.game.SOLID_RING
 import com.app.pegsolitaire.ui.game.recipe
@@ -19,10 +20,15 @@ import com.app.pegsolitaire.ui.theme.BoardMarkPalette
 import com.app.pegsolitaire.ui.theme.LocalBoardMarks
 import com.app.pegsolitaire.ui.theme.LocalClayColors
 
-/** What [BoardCanvas]'s draw phase reads: where everything is, and how it is coloured and stroked. */
+/**
+ * What [BoardCanvas]'s draw phase reads: where everything is, and how it is coloured and stroked.
+ * [recipe] is the one [geometry] was built with, so a frame drawn at a size the composition has not
+ * seen yet builds its own geometry with the same mark radii.
+ */
 internal class BoardLook(
     val geometry: BoardGeometry,
     val palette: BoardPalette,
+    val recipe: BoardMarkRecipe,
 )
 
 /**
@@ -86,7 +92,7 @@ internal fun rememberBoardLook(
             hintSourceStroke = hintSourceStroke,
             hintTargetStroke = hintTargetStroke,
         )
-    return BoardLook(geometry, palette)
+    return BoardLook(geometry, palette, recipe)
 }
 
 /**
