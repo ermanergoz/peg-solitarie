@@ -46,7 +46,7 @@ checklist / F-items), **device** (the release device pass, §3), **post-build** 
 | 3.4 | **done** — 8 of 8 literal-gate tasks executed (`:app` and `:domain` × ad-ID, Games-ID, audio-focus, dp/sp) |
 | 3.5 | **done (ticked)** — research-analyst PASS (`research-analyst-licences.md`): 191 coordinates, the 192 of 2026-09-15 less `ui-text-google-fonts`, none new or changed; 191 POMs re-fetched, each maps to a row; okhttp 4.11.0; no `cronet-embedded`. U-6 and §5b closed in `THIRD_PARTY.md` `2cef970`, diff reviewed by the release-manager: PASS (`release-manager-gate2-prep.md`, 2026-11-01 addendum) |
 | 3.5a | **pre-bundle half done; post-bundle half post-build** — 191 scanned, 2 NOTICE hits (Jakarta, PSL), both bundled byte-equal in `assets/licenses/`; checker-qual credited on the Licenses screen, so no `mapping.txt` grep. After 4.3: `unzip -l <aab> \| grep -i notice` shows both |
-| 3.5b | **done** — versions printed are 22.0.0 (games-v2), 1.4.0 (ads-mobile-sdk), 4.0.0 (UMP), 2.0.1 (hsdp), unchanged |
+| 3.5b | **done, ticked** — versions printed are 22.0.0 (games-v2), 1.4.0 (ads-mobile-sdk), 4.0.0 (UMP), 2.0.1 (hsdp), unchanged; no re-read owed (`research-analyst-licences.md`) |
 | 3.6 | **done (ticked)** — `git diff v1.0..HEAD` grep: 488 hits; the 36 outside `.planning/` (10 files) are signing-code comments, docs prose, test fixtures (`fixture-store-password`, `/fixture/keys/upload.jks`), the template placeholder, and the checklist row's own pattern — no key, value or `/Users/` path. **Producer's scope ruling (2026-11-01):** 3.6 guards shipped and published material — app/domain/build-logic sources, resources, `docs/store/`, `THIRD_PARTY.md`, `CHANGELOG.md`, scripts; the 405 `/Users/…` paths in `.planning/` reports are internal studio records, the repo has no remote, they carry no secret or credential, and they are accepted |
 | 3.7 | **done** — `git status --porcelain` clean after the commit; `find` for `*.jks`/`*.keystore`/`keystore.properties` empty |
 
@@ -114,7 +114,7 @@ Sources: `.planning/reports/release-3.0.0/qa-engineer-device-pass.md` (emulator 
 | D-12 | **founder-blocked** | after upload |
 | D-13 | **FAIL → 3.0.1, Minor (accessibility)** | focus leaves Hint for "Navigate back" (3 of 4); notice spoken once, order and Dismiss PASS. `bugfix/hint-focus` in 3.0.1; Q-PUBLISH line (triage §2.3). Folded into 3.0.0 only if a release-branch code loop opens anyway |
 | D-14 | **PASS** (on the corrected wording above) | banner spoke once at 13:18:56.7; no re-run (triage §3) |
-| D-15 | **pending the bench probe** | animations-off stall ruled a guest slow regime, not a product result; the §1.4 probe on `Pixel_9a_bench` runs before the merge to main. Probe FAIL → Major, blocking, code loop on `release/3.0.0`. Other clauses PASS |
+| D-15 | **probe VOID (host App Nap; `tech-lead-d15-ruling.md`); guarded re-measure pending.** | the §1.4 probe's FAIL is VOID, an instrument fault (macOS App Nap halved the emulator's speed in both conditions); not a defect, not Major; no code loop, D-13 stays 3.0.1. The ruling's §2 guarded re-measure (nap guard, absolute speed gate, cold reboot after every switch) runs once on `Pixel_9a_bench` before the merge to main; its verdict replaces this status (PASS closes D-15; FAIL on a valid attempt → Major, blocking). Frame 1 with animations off ~50 ms longer by design (ruling §1.2). Other clauses PASS |
 | D-16 | **drafts only** | 9 draft captures; final store screenshots are recaptured from the release candidate (after 4.3) |
 
 ## 4. T-items (play-upload) — status
@@ -129,3 +129,8 @@ Unchanged from the pre-cut revision: every T-item done except **T-8** (mapping c
 - **A5 (Medium)** — checklist 1.3 grep widened on `release/3.0.0` (this release); carried so `develop` gets it at the back-merge and the plugin's checklist template is updated (producer).
 - **A6 (Info)** — one shared test helper for the nine `UNCHECKED_CAST` ViewModel factories (T7–T15).
 - **B-10** — the board is clipped in landscape (D-7's 3.0.0 half shows it).
+
+## 6. Studio/plugin follow-ups (not product 3.0.1; producer → 3.0.0 retro or a plugin branch)
+- **Standard emulator-timing guards** (`tech-lead-d15-ruling.md` §4.1): every emulator timing session in the plugin's QA bench procedure, and every tech-lead probe pre-registration, carries Guard 1 (nap guard: no qemu thread at priority 4 from 2 s before `am start` to the log dump) and Guard 2 (absolute guest speed gate: 64 MiB sha256 ≤ 50 ms, three runs before and after each block). A speed control relative to the other condition is never the only guard.
+- **App Nap on the studio Mac** (§4.2–4.3): either disable App Nap for the emulator only (`NSAppSleepDisabled` on its own bundle domain, verified by Guard 1), **with the founder's consent** (non-blocking Q, `Blocks: nothing` unless the re-measure is VOID twice), or a bench rule: timing only with the screen unlocked and the emulator window visible. `caffeinate` is not expected to help.
+- **Retro finding candidate** (§4.4): earlier "post-toggle slow regime" records (`candy-backdrop/qa-engineer-15e.md`, `qa-engineer-j5.md` attempt 1, the original D-15) may share the cause.

@@ -43,3 +43,19 @@ Skills loaded: ergoz-soft:standards (role release-manager; rules via the CLAUDE.
 
 ### Handoff
 Next: producer — D-15 bench probe result into READINESS §3a and the Q-PUBLISH placeholder; tech-lead tech-design sync (§16 #30 correction, new hint-focus row); founder F-7/F-8 for 4.3.
+
+## Addendum 2026-11-01 (2) — D-15 ruling records; 3.5b tick; plugin follow-up
+Skills loaded: ergoz-soft:standards (role release-manager; rules via the CLAUDE.md snapshot incl. ip-policy). Lessons applied: none. Docs only; no Gradle, no emulator (guarded re-measure running), no upload, no founder question.
+
+- **READINESS:** D-15 row → "probe VOID (host App Nap; `tech-lead-d15-ruling.md`); guarded re-measure pending." (§3a); 3.5b row marked ticked; new §6 studio/plugin follow-ups (standard emulator-timing guards; App Nap off for the emulator with founder consent, or bench only with screen unlocked) — not in the 3.0.1 product list.
+- **Q-PUBLISH draft:** D-15 placeholder replaced by ruling §3's D-15 line (`<OFF median>`, `<ON median>`, `<OFF max>` to fill from `qa-engineer-d15-remeasure.md` on PASS) and the animations-off first-frame line added; D-10 line unchanged.
+- **Checklist 3.5b `[x]`** on `research-analyst-licences.md` (22.0.0, 1.4.0, 4.0.0, 2.0.1 unchanged). Closes the previous addendum's open issue.
+
+### Checks
+- `git -C /Users/ermanergoz/Desktop/PegSolitarie-release diff --stat` — pass (docs/.planning only)
+
+### Open issues / risks
+- Merge to main waits on the re-measure PASS; numbers then go into the Q-PUBLISH D-15 line and READINESS D-15.
+
+### Handoff
+Next: producer — on re-measure PASS, dispatch release-manager to fill the D-15 numbers and proceed to the merge; take §6 to the retro/plugin branch.

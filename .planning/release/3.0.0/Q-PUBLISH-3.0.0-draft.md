@@ -45,7 +45,8 @@ after the bundle exists. Lines below are collected from the sign-offs; each name
 - **Unverified, no phone attached:** tutorial step lines on a phone (D-2; emulator device3 evidence stands), hardware keyboard with TalkBack (D-3, L1-2), audio speaker-mute and wired-headset branches (D-9, Q-025), cold start ≤ 2 s on a mid-range phone (D-10; emulator figures only).
 - **Not compared:** English-33 landscape against published 2.0 (D-7) — no 2.0 build on this host; the 3.0.0 half shows the known landscape clipping (B-10, 3.0.1).
 - **Founder-blocked:** D-1 (palette + TalkBack on the release AAB) waits for 4.3/4.6; D-12 (store copy) after upload.
-- **D-15:** animations-off cold-start stall ruled a guest slowdown, not a product result; a bench probe runs before the merge to main (`<probe result>`).
+- **Cold start with Remove animations on (D-15), emulator only:** on `Pixel_9a_bench` (debug build), the median cold start was `<OFF median>` ms with animations off against `<ON median>` ms with them on, the slowest `<OFF max>` ms, and no frame ≥ 700 ms. A first probe was voided: the studio Mac's App Nap halved the emulator's speed behind a locked screen, in both conditions. No phone was measured (D-10).
+- **First frame with Remove animations on (by design):** Home appears settled on its first frame, so that frame draws all of Home at once. On the emulator it was about 50 ms longer than with animations on (about 300 against 250 ms, debug build, empty shader cache). The whole start is not longer: with animations on, the same drawing work happens just after Home appears. A phone's shader cache and GPU driver should make it smaller. This was not measured on a phone.
 - **Store screenshots:** the 9 captures are drafts; the final set is recaptured from the release candidate.
 
 ## Checklist and store state (filled at 4.8)
