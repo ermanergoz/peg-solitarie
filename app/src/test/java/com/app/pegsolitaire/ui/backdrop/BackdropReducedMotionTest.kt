@@ -112,8 +112,9 @@ class BackdropReducedMotionTest {
      * The tech-lead's J-4b rider R-1 (tech design §16 #28): "Remove animations" turned on in the
      * middle of a density cross-fade, Home to the catalogue, settles it within two frames. Two frames
      * after the switch the window is pixel-identical, in the same run, to the catalogue a whole
-     * cross-fade later; then the landscape slot beneath, the only one with a scene, is gone, so the
-     * catalogue's wash was promoted and nothing is stranded under it.
+     * cross-fade later; by the third frame the landscape slot beneath, the only one with a scene, is
+     * gone (the tech-lead's J-4b D5: one frame past the visible settle), so the catalogue's wash was
+     * promoted and nothing is stranded under it, and it is still gone a cross-fade later.
      */
     @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -132,6 +133,8 @@ class BackdropReducedMotionTest {
         motionScale.turnAnimationsOff()
         repeat(FRAMES_TO_SETTLE) { rule.mainClock.advanceTimeByFrame() }
         val twoFramesAfter = rule.renderedWindow()
+        rule.mainClock.advanceTimeByFrame()
+        val scenesOnTheThirdFrame = rule.sceneAlphas()
         rule.mainClock.advanceTimeBy(ClayAnim.NAV_TRANSITION_MS.toLong())
         val settled = rule.renderedWindow()
 
@@ -141,6 +144,9 @@ class BackdropReducedMotionTest {
         assertWithMessage("pixels two frames after the switch that differ from the settled catalogue")
             .that(twoFramesAfter.differingPixels(settled))
             .isEqualTo(0)
+        assertWithMessage("scenes still composed on frame ${FRAMES_TO_SETTLE + 1} after the switch")
+            .that(scenesOnTheThirdFrame)
+            .isEmpty()
         assertWithMessage("scenes still composed a cross-fade's length later").that(rule.sceneAlphas()).isEmpty()
         assertWithMessage("layers on the catalogue")
             .that(rule.backdropSemantics()[BackdropLayersKey])
