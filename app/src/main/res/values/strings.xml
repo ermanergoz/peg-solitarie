@@ -233,6 +233,7 @@
     <!-- Challenge-aware Results actions (S3, D-01/D-10). -->
     <string name="action_next_level">Next level</string>
     <string name="action_retry">Retry</string>
+    <string name="action_play_again">Play again</string>
     <string name="challenge_load_error">Couldn\'t load this level. Tap Retry.</string>
 
     <!--

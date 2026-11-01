@@ -146,7 +146,7 @@ class HomeBandPlacementTest {
         val rooms = listOf(OVERFLOWING_CHIP_ROOM, OVERFLOWING_CHIP_ROOM)
         val placement = placementOn(PIXEL_9, rooms)
 
-        assertWithMessage("the headroom, in px").that(placement.headroom).isEqualTo(0)
+        assertWithMessage("the headroom, in px").that(placement.middle).isEqualTo(0)
         assertWithMessage("the footer, in px").that(placement.footer).isEqualTo(0)
         assertWithMessage("the column's height over the inner viewport, in px")
             .that(placement.height - PIXEL_9.inner)
@@ -165,7 +165,7 @@ class HomeBandPlacementTest {
         val wrapped = QA_NARROW.copy(hero = WRAPPED_HERO_PX)
         val placement = placementOn(wrapped, rooms = emptyList())
 
-        assertWithMessage("the headroom, in px").that(placement.headroom).isEqualTo(0)
+        assertWithMessage("the headroom, in px").that(placement.middle).isEqualTo(0)
         assertWithMessage("the footer, in px: the whole slack")
             .that(placement.footer)
             .isEqualTo(wrapped.inner - wrapped.fixedBands)
@@ -189,10 +189,10 @@ class HomeBandPlacementTest {
         val placement = placementOn(window, rooms)
         val chips = "${rooms.size} chip(s) on ${window.name}"
 
-        assertWithMessage("$chips: the headroom, in px").that(placement.headroom).isEqualTo(px(headroomDp))
+        assertWithMessage("$chips: the headroom, in px").that(placement.middle).isEqualTo(px(headroomDp))
         assertWithMessage("$chips: the footer, in px").that(placement.footer).isEqualTo(px(footerDp))
         assertWithMessage("$chips: the first tile's top in the window's frame, in px")
-            .that(window.firstTileTop(placement.headroom, rooms))
+            .that(window.firstTileTop(placement.middle, rooms))
             .isEqualTo(px(firstTileTopDp))
         assertWithMessage("$chips: the column's height, in px").that(placement.height).isEqualTo(window.inner)
     }
