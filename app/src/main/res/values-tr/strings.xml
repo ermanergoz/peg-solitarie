@@ -197,6 +197,7 @@
     <!-- Challenge-aware Results actions (S3, D-01/D-10). -->
     <string name="action_next_level">Sonraki seviye</string>
     <string name="action_retry">Yeniden dene</string>
+    <string name="action_play_again">Yeniden oyna</string>
     <string name="challenge_load_error">Bu seviye yüklenemedi. Yeniden dene düğmesine dokun.</string>
 
     <!--
