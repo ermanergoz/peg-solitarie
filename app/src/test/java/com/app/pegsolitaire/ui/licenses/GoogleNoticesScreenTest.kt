@@ -106,7 +106,9 @@ class GoogleNoticesScreenTest {
         render(GoogleNoticesUiState.Loaded(ROWS))
 
         assertThat(ROWS.map { it.ordinal != null }).containsAtLeast(true, false)
-        mergedRowNodes().zip(ROWS).forEach { (node, row) ->
+        val rowNodes = mergedRowNodes()
+        assertWithMessage("the rows on screen").that(rowNodes).hasSize(ROWS.size)
+        rowNodes.zip(ROWS).forEach { (node, row) ->
             assertWithMessage("${row.name} (${row.key}): its description")
                 .that(node.config.getOrNull(SemanticsProperties.ContentDescription).orEmpty())
                 .containsExactly(labelOf(row))
@@ -118,7 +120,9 @@ class GoogleNoticesScreenTest {
     fun everyTextInsideARowIsHiddenFromAccessibility() {
         render(GoogleNoticesUiState.Loaded(ROWS))
 
-        unmergedRowNodes().zip(ROWS).forEach { (card, row) ->
+        val rowNodes = unmergedRowNodes()
+        assertWithMessage("the rows on screen").that(rowNodes).hasSize(ROWS.size)
+        rowNodes.zip(ROWS).forEach { (card, row) ->
             assertWithMessage("${row.key}: whether the row itself is hidden")
                 .that(card.config.contains(SemanticsProperties.HideFromAccessibility))
                 .isFalse()

@@ -10,6 +10,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performSemanticsAction
+import com.app.pegsolitaire.R
 import com.app.pegsolitaire.testing.composeHost
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertWithMessage
@@ -31,7 +32,8 @@ import org.robolectric.annotation.GraphicsMode
  * straddles the top of the list's viewport is a child not visible to the user, and TalkBack, which
  * builds a merging card's speech from its visible children, read such a card from its second line
  * (device re-check, O-1). A card that carries its label as its own description gets that label as
- * its first child, with the card's own bounds, so it is spoken title first wherever it is clipped.
+ * its first child, with the card's own bounds, and its texts are hidden, so it is spoken as exactly
+ * its label wherever it is clipped: whole, once and title first.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [EXPOSURE_ROBOLECTRIC_SDK], qualifiers = EXPOSURE_PHONE_WINDOW)
@@ -52,10 +54,16 @@ class LicencesAccessibilityExposureTest {
         }
     }
 
+    /**
+     * What the card's visible children say is exactly its label, resolved here from the resources:
+     * the title first, every line, and nothing a second time, as a visible text that is not hidden
+     * would be (the code-auditor's R3 review, Minor 1).
+     */
     @Test
     fun aCardHalfAboveTheViewportIsExposedWithItsTitleFirst() {
         setLicenses()
-        val title = app.getString(requireNotNull(LicenseCatalog.entry(EXPOSED_ENTRY_ID)).title)
+        val entry = requireNotNull(LicenseCatalog.entry(EXPOSED_ENTRY_ID))
+        val title = app.getString(entry.title)
         val viewport = composeRule.onNodeWithTag(LICENSES_LIST_TAG).fetchSemanticsNode().boundsInRoot
         val before = textsOfCard(title)
 
@@ -84,9 +92,9 @@ class LicencesAccessibilityExposureTest {
         val children = (0 until card.childCount).map { index -> checkNotNull(card.getChild(index)) { "child $index" } }
         val spoken = children.filter { it.isVisibleToUser }.mapNotNull { spokenBy(it) }
 
-        assertWithMessage("what the card's visible children say, in order")
+        assertWithMessage("what the card's visible children say, in order: its whole label, once")
             .that(spoken.joinToString(LicensesUi.CARD_LABEL_SEPARATOR))
-            .startsWith(title)
+            .isEqualTo(labelOf(entry))
     }
 
     private fun setLicenses() {
@@ -102,6 +110,19 @@ class LicencesAccessibilityExposureTest {
         }
         composeRule.waitForIdle()
     }
+
+    /** What [entry]'s card should say, resolved here from the resources: title, then each line. */
+    private fun labelOf(entry: LicenseEntry): String =
+        (listOf(app.getString(entry.title)) + entry.lines.map { textOf(it) })
+            .joinToString(LicensesUi.CARD_LABEL_SEPARATOR)
+
+    private fun textOf(line: LicenseLine): String =
+        when (line) {
+            is LicenseLine.Plain -> app.getString(line.text)
+            is LicenseLine.SoundCount ->
+                app.resources.getQuantityString(R.plurals.licenses_sound_effects, line.count, line.count)
+            is LicenseLine.Address -> app.getString(line.text)
+        }
 
     /** The card whose title reads [title], in the unmerged tree: its title's first merging ancestor. */
     private fun cardOf(title: String): SemanticsNode =

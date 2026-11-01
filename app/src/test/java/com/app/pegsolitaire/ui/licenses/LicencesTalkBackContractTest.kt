@@ -27,9 +27,12 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
- * The TalkBack contract of spec §5.1 (LS-13, LS-AC06), asserted on the merged semantics tree — the
- * tree TalkBack reads: what is a stop, what each stop says and does, which nodes are headings.
- * QA's seven-point pass line on the device is the other half.
+ * The TalkBack contract of spec §5.1 (LS-13, LS-AC06), asserted on Compose's merged semantics
+ * tree: what is a stop, what each stop says and does, which nodes are headings. That is not the
+ * tree TalkBack reads: Compose hands accessibility services only the nodes on screen (the
+ * tech-lead's F-4 ruling, Layer 1), so these tests are necessary, not sufficient.
+ * [LicencesAccessibilityExposureTest] reads the tree the node provider exposes, and QA's
+ * seven-point pass line on the device is the other half.
  *
  * A tall window composes every lazy item, so the reading order is read whole.
  */
