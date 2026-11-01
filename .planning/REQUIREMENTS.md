@@ -20,7 +20,7 @@
 | Cloud save scope | **Bests + ladder only; resume snapshot stays local** | The in-progress snapshot is replay-validated local state; syncing a half-finished board creates genuine conflicts on the app's most fragile path. |
 | Conflict resolution | **Deterministic monotonic merge, no dialog** | Progress is a join-semilattice (`highestLevel`/`stars`/`score` = max, `bestTime` = min) so two devices always merge losslessly. `RESOLUTION_POLICY_MANUAL` + merge in `:domain`. A dialog is reserved for the one genuinely unmergeable case (different PGS profile). |
 | Challenge clear rule (added 2026-11-01) | **Absolute peg bands: 1 peg = 3 stars, 2 = 2, 3 = 1; 4 or more = not cleared.** Every clear advances the ladder; a stuck board at 4+ pegs records nothing and stays on the board under the rescue banner. Classic unchanged. | Founder directive 2026-11-01 for 3.0.0. Before it, only a one-peg finish reached Results and advanced (phase-3 D-02/D-10), so the 2- and 1-star bands were unreachable in play (`.planning/todos/pending/2026-08-30-decide-whether-stuck-finishes-reach-results-1-2-stars.md`). Rules, knock-ons and migration: `docs/gdd.md` §3, §6, §11–§13 (GD-SB-01…GD-SB-17). |
-| Challenge ladder cut (added 2026-11-01) | **Level 1 deals the difficulty the previous curve dealt at level 51** (offset 50): a 6-peg, 5-jump puzzle on the English or European cross; levels 1–4 fail-proof; freeform shapes from level 10, mixed with the canonical pool. Generator contract bumped to version 2; stored level numbers are kept, never renumbered. | Founder: "you can remove the first levels." The old levels 1–50 were 4- and 5-peg puzzles where, under the new rule, any single legal jump already clears the level. `docs/gdd.md` §7, §8, §12. |
+| Challenge ladder shift (added 2026-11-01; re-scoped by Q-040 the same day) | **A difficulty shift of 30 levels: level 1 plays like the old level 31** (`LEVEL_OFFSET = 30`) — a 5-peg, 4-jump puzzle on the English cross; level numbers unchanged, nothing deleted or renumbered. Generator contract bumped to version 2; stored level numbers and results kept. **Deferred to 3.0.1 (Q-040):** the levels 1–4 fail-proof gate, the freeform intro at 10 with the even draw, the pool changes (one-peg copies, Diamond-41, widening) and the 3-star requirement on the skill achievements. | Founder: "remove first like 30 levels" — "i remove i meant shift" (Q-040, 2026-11-01). The old levels 1–25 were puzzles where, under the new rule, any single legal jump cleared the level. Recorded deviation from rules/puzzle-design.md ("first failure impossible before puzzle 5") for 3.0.0, approved by Q-040: `docs/gdd.md` §7.4, GD-SB-21. `docs/gdd.md` §7, §8, §12. |
 
 ## v1.1 Requirements
 
@@ -125,15 +125,15 @@
 - [ ] **CSB-03**: Every cleared Challenge level (1–3 stars) goes to Results, records its result, advances the ladder past it and offers Next level
 - [ ] **CSB-04**: A level's stored best keeps the best of each field across plays — stars never decrease, time never rises, score never falls — so a 1-star clear improved later to 3 stars reads 3, and a later 1-star clear leaves a 3-star best untouched
 - [ ] **CSB-05**: Player is told what the next star needs: Results names the peg count of the next band after a 1- or 2-star clear, and the Challenge stuck banner names the pegs that remained and that 3 or fewer clears the level
-- [ ] **CSB-06**: Skill achievements (hint-free, undo-free, speed, centre finish) require a 3-star clear; first-clear, Challenge-level-5, ladder-tier and star-tier achievements and the ladder and score leaderboards count any clear
+- [ ] **CSB-06** *[3.0.1 — deferred by Q-040]*: Skill achievements (hint-free, undo-free, speed) require a 3-star clear; first-clear, Challenge-level-5, ladder-tier and star-tier achievements and the ladder and score leaderboards count any clear. In 3.0.0 the predicates are as shipped (a 1-star clear counts), recorded in `docs/gdd.md` §11.2
 - [ ] **CSB-07**: Classic is unchanged — its win test, stars, Results, records and achievements behave exactly as before this change
-- [ ] **CSB-08**: Every generated Challenge board carries a one-peg perfect target whatever footprint it uses, so no footprint's Classic floor can leak into Challenge
+- [ ] **CSB-08**: Every generated Challenge board carries a one-peg perfect target whatever footprint it uses — in 3.0.0 this holds because the canonical pool is drawn only below the freeform intro, where it never reaches the Diamond-41 footprint, and the fuzz harness asserts it on every level; the by-construction pool copies are 3.0.1 (Q-040)
 
-### Challenge ladder cut (founder directive 2026-11-01; ships in 3.0.0; spec `docs/gdd.md` §7, §8, §12)
+### Challenge ladder shift (founder directive 2026-11-01, re-scoped by Q-040; ships in 3.0.0; spec `docs/gdd.md` §7, §8, §12)
 
-- [ ] **CLC-01**: Challenge level 1 deals the difficulty the previous curve dealt at level 51 (a 5-jump, 6-peg puzzle drawn from two canonical footprints), and every level N deals what the previous curve dealt at N + 50, with the solution-length cap unchanged
-- [ ] **CLC-02**: Levels 1–4 are fail-proof: every legal line from the start ends with 3 or fewer pegs, so a first-time player cannot finish uncleared before level 5
-- [ ] **CLC-03**: Freeform footprints become eligible at level 10 and from then on share the draw with the canonical pool, so the five canonical shapes keep appearing as the pool widens
+- [ ] **CLC-01**: The Challenge difficulty curve is shifted by 30 levels: level 1 deals what the previous curve dealt at level 31 (a 4-jump, 5-peg puzzle on the English cross) and every level N deals what the previous curve dealt at N + 30; level numbers, the ceiling and the solution-length cap are unchanged; nothing is deleted or renumbered
+- [ ] **CLC-02** *[3.0.1 — deferred by Q-040]*: Levels 1–4 are fail-proof: every legal line from the start ends with 3 or fewer pegs, so a first-time player cannot finish uncleared before level 5. In 3.0.0 this is a recorded deviation from rules/puzzle-design.md approved by Q-040 (`docs/gdd.md` §7.4)
+- [ ] **CLC-03** *[3.0.1 — deferred by Q-040]*: Freeform footprints become eligible at level 10 and from then on share the draw with the canonical pool, so the five canonical shapes keep appearing as the pool widens. In 3.0.0 the shipped intro (40) and the freeform takeover stand
 - [ ] **CLC-04**: The generator contract version is bumped, the golden fixtures are regenerated under it, and the fuzz harness is green over the whole level space at the release seed count
 - [ ] **CLC-05**: Stored progress is kept as it is — the ladder, per-level results, the cloud payload, achievements and leaderboards are never renumbered, lowered or deleted by the cut
 - [ ] **CLC-06**: An in-progress Challenge snapshot stamped with the previous generator version resumes on its stored board with undo and elapsed time intact, is graded by the new clear rule, and Restart serves the level's new board
@@ -172,7 +172,7 @@ Deferred to a future release. Tracked but not in this roadmap.
 
 Which phases cover which requirements. Updated during roadmap creation.
 
-**Coverage:** 56/56 original v1.1 requirements mapped to exactly one phase — no orphans, no duplicates. The 14 added on 2026-11-01 (CSB-01…08, CLC-01…06) are mapped to a proposed Phase 16 that the producer adds to `ROADMAP.md` (gsd owns the phase; the game-designer owns the rule).
+**Coverage:** 56/56 original v1.1 requirements mapped to exactly one phase — no orphans, no duplicates. The 14 added on 2026-11-01 (CSB-01…08, CLC-01…06) are mapped to a proposed Phase 16 (3.0.0) that the producer adds to `ROADMAP.md`, except CSB-06, CLC-02 and CLC-03, deferred to 3.0.1 by the founder's Q-040 and mapped to a proposed Phase 17 (gsd owns the phases; the game-designer owns the rule).
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
@@ -239,12 +239,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CSB-03 | Phase 16 (proposed) | Pending |
 | CSB-04 | Phase 16 (proposed) | Pending |
 | CSB-05 | Phase 16 (proposed) | Pending |
-| CSB-06 | Phase 16 (proposed) | Pending |
+| CSB-06 | Phase 17 (proposed, 3.0.1 — Q-040) | Deferred |
 | CSB-07 | Phase 16 (proposed) | Pending |
 | CSB-08 | Phase 16 (proposed) | Pending |
 | CLC-01 | Phase 16 (proposed) | Pending |
-| CLC-02 | Phase 16 (proposed) | Pending |
-| CLC-03 | Phase 16 (proposed) | Pending |
+| CLC-02 | Phase 17 (proposed, 3.0.1 — Q-040) | Deferred |
+| CLC-03 | Phase 17 (proposed, 3.0.1 — Q-040) | Deferred |
 | CLC-04 | Phase 16 (proposed) | Pending |
 | CLC-05 | Phase 16 (proposed) | Pending |
 | CLC-06 | Phase 16 (proposed) | Pending |
