@@ -676,6 +676,12 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > the window's height and reaches a third at H ≈ 1060dp, outside 15g's scope (F-7). **Not
 > reopened:** the bound, the floor, Q-033, the footer as the excess's home, and everything loop 1
 > left standing. No string, token, colour, asset, dependency or backdrop constant changes.
+> *(Loop 3, the same day — the third check PASSED,
+> `.planning/reports/home-continue-live-boards/ux-designer-check-3.md`; its four Low text fixes are
+> made: the eight-window table's four full-set tile tops corrected to 434.9 / 490.9 / 531.5 / 531.5;
+> candy-backdrop §8.1's 360×800dp one-save headroom corrected to 192; 15ac part 1's "the headroom
+> equals C, 299.8dp" qualified to font scale 1.0; and §4.2.7's opening table and restated rule gain
+> dated pointers to "The title bound".)*
 
 ---
 
@@ -3868,8 +3874,14 @@ column, band spacing and padding `spacing_md` in the full set and `spacing_sm` i
 | 4 | Mode tiles | unchanged | |
 | 5 | Footer — space below the second tile | min(S₀ ⁄ 5, max(0, S₀ − R)) — D-03n | Unchanged. |
 
+*(Pointer 2026-11-01, loop 1 — **D-03q**, "The title bound" at the end of this subsection.)* Row 0's
+⅘ S₀ is the no-chip headroom only where the title bound does not bite: the no-chip headroom is
+**H₀ = min(⅘ S₀, C)** on every window, the headroom with chips max(0, H₀ − R), and row 5's footer
+S₀ − H₀, fixed for the window. The eight-window table there says where it bites.
+
 **The rule, restated with the headroom.** Every quantity is measured inside §4.2.2's
-`BoxWithConstraints`, at the column's width.
+`BoxWithConstraints`, at the column's width. *(Pointer 2026-11-01, loop 1 — **D-03q**: read ⅘ S₀ as
+H₀ = min(⅘ S₀, C) throughout; "The title bound" restates every bullet with it.)*
 
 - **S₀, the no-chip slack:** the available height, less the hero row, the ribbon, the two tiles, the
   column's padding and the **four** band gaps the column has with no chip — hero→ribbon,
@@ -4107,15 +4119,18 @@ and the largest bite of all is `w360dp-h800dp`, where D-03p alone would put the 
 | `w360dp-h640dp` | compact | 240 | 192 | 224 … 272 | 284.8 | — | **192** | 48 (20%) | 328 vs 308 ✓ |
 | `w360dp-h720dp` | compact | 320 | 256 | 288 … 336 | 322.4 | **13.6** | **242.4** | 77.6 (24%) | 378.4 vs 348 ✓ |
 | `w360dp-h800dp` | compact | 400 | 320 | 352 … **400 = 0.50 H** | 360 | **40.0** | **280** | 120 (30%) | 416 vs 388 ✓ |
-| `w412dp-h780dp` | full | ≈ 286.9 | 229.5 | 269.5 … 317.5 | 350.6 | — | **229.5** | 57.4 (20%) | ≈ 419 vs 378 ✓ |
-| `w412dp-h850dp` | full | ≈ 356.9 | 285.5 | 325.5 … 373.5 | 383.5 | — (10dp clear) | **285.5** | 71.4 (20%) | ≈ 475 vs 413 ✓ |
-| `w412dp-h915dp` | full | ≈ 421.9 | 337.5 | 377.5 … 425.5 | 414.05 | **≈ 11.5** | **326.1** | 95.8 (23%) | ≈ 516 vs 445.5 ✓ |
-| `w412dp-h915dp`, 24 + 24 gesture | full | ≈ 445.9 | 356.7 | 396.7 … 444.7 | 414.05 | **≈ 30.7** | **326.1** | 119.8 (27%) | ≈ 516 vs 457.5 ✓ |
+| `w412dp-h780dp` | full | ≈ 286.9 | 229.5 | 269.5 … 317.5 | 350.6 | — | **229.5** | 57.4 (20%) | ≈ 434.9 vs 378 ✓ |
+| `w412dp-h850dp` | full | ≈ 356.9 | 285.5 | 325.5 … 373.5 | 383.5 | — (10dp clear) | **285.5** | 71.4 (20%) | ≈ 490.9 vs 413 ✓ |
+| `w412dp-h915dp` | full | ≈ 421.9 | 337.5 | 377.5 … 425.5 | 414.05 | **≈ 11.5** | **326.1** | 95.8 (23%) | ≈ 531.5 vs 445.5 ✓ |
+| `w412dp-h915dp`, 24 + 24 gesture | full | ≈ 445.9 | 356.7 | 396.7 … 444.7 | 414.05 | **≈ 30.7** | **326.1** | 119.8 (27%) | ≈ 531.5 vs 457.5 ✓ |
 | Pixel_9 `w411dp-h923dp`, 54 + 24 | full | 423.9 | 339.1 | 409.1 … 457.1 | 417.8 | **39.3** | **299.8** | 124.1 (29%) | 535.2 vs 476.8 ✓ |
 
 Read it as the rule says: H₀ is the smaller of ⅘ S₀ and C on every row, the row's bottom with no chip
 sits on the bound wherever it bites and at ⅘ S₀'s height wherever it does not, the footer is S₀ − H₀,
-and every tile top is below its window's midpoint. By the compact set's arithmetic the bound bites
+and every tile top is below its window's midpoint. *(Loop 3, the third check's (1): the four full-set
+tile tops are by the Pixel_9 row's own method — status inset + padding + H₀ + the 48dp row + gap +
+the ribbon + gap, the full set's ribbon being 85.4dp as the Pixel_9's 535.2 implies — and the
+developer's placement tests read these cells; the first wording had them ≈ 16dp low.)* By the compact set's arithmetic the bound bites
 from ≈ 680dp of height at 24 + 48 and from ≈ 605dp at 52 + 24; "every window shorter than ≈ 800dp"
 was wrong and is struck.
 
@@ -7701,8 +7716,10 @@ windows. **H₀ = min(⅘ S₀, C) on every window, with no exemption.**
         24dp gesture bar (the Pixel_9), then: wherever the headroom is above 0, the hero row's
         visible bottom edge (the lower of the title's and the gear's, D-03m), in **window**
         coordinates, is at or above 0.47 H − `entrance_slide_distance` (±0.5dp); with no chip on the
-        Pixel_9's window it equals the bound (±0.5dp) and the headroom equals C, 299.8dp (±0.5dp);
-        the footer equals S₀ − H₀ plus one band gap and the bottom padding (±0.5dp), H₀ = min(⅘ S₀, C)
+        Pixel_9's window **at font scale 1.0** it equals the bound (±0.5dp) and the headroom equals
+        C, 299.8dp (±0.5dp) — at 2.0 the row is taller and C smaller, so only the bound is read there
+        *(loop 3)*; the footer equals S₀ − H₀ plus one band gap and the bottom padding (±0.5dp),
+        H₀ = min(⅘ S₀, C)
         **on every window, with no exemption** *(loop 2: the clause "on the six three-button windows
         H₀ = ⅘ S₀" was false and is struck; by §4.2.7's eight-window table H₀ is C on
         `w360dp-h720dp`, `w360dp-h800dp`, `w412dp-h915dp` with either bar and the Pixel_9, and ⅘ S₀ on

@@ -1879,8 +1879,9 @@ table).
   headroom ≈ 90dp" and "412×915dp — ≈ 240–330dp with no save" were wrong; ux-spec §4.2.7's
   eight-window table governs)*: 360×640dp three-button — the headroom (192dp with no save) holds the
   lane lights above the hero row, the row's bottom at 272dp, 0.425 H, clear of the bound (284.8dp),
-  and the crests lie behind the lower group; 360×800dp — the headroom is **280dp** with no save, 184
-  with one and 104 with both (the bound bites by 40dp there, the largest bite of any window), the
+  and the crests lie behind the lower group; 360×800dp — the headroom is **280dp** with no save, 192
+  with one and 104 with both (the compact chip room is 88dp; the bound bites by 40dp there, the
+  largest bite of any window), the
   row's bottom exactly on the bound at 360dp, the lights in the headroom; 412×915dp — the headroom
   is **≈ 326dp** with no save on either bar (≈ 230 with one save, ≈ 134 with both), the hero row's
   bottom at or above 414dp, the crests behind the ribbon and the chips; the Pixel_9 — the row's
