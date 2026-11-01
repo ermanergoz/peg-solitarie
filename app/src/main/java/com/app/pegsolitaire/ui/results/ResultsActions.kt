@@ -30,7 +30,8 @@ import com.app.pegsolitaire.ui.theme.ctaGradientBrush
  * - Classic ([ResultsUiState.challengeLevel] == null): a gradient Replay (carrying
  *   `replayId`) over quiet Catalog / Home chips — Classic has no "next board".
  * - Challenge solved ([ResultsUiState.showNextLevel], D-01): a gradient "Next level"
- *   over a quiet Home. No Replay/Catalog.
+ *   over a quiet "Play again" (founder 2026-11-02: replays the same level and seed, e.g. for
+ *   more stars, through [onRetry]) and a quiet Home. No Catalog.
  * - Challenge stuck (D-10): a gradient "Retry" reloading the same deterministic board (N)
  *   over a quiet Home. "Next level" is absent.
  *
@@ -60,6 +61,10 @@ internal fun ResultsActions(
             PrimaryAction(
                 textRes = R.string.action_next_level,
                 onClick = onNextLevel,
+            )
+            QuietOutlinedAction(
+                textRes = R.string.action_play_again,
+                onClick = { onRetry(challengeLevel) },
             )
         } else {
             PrimaryAction(
@@ -92,8 +97,17 @@ private fun ClassicActions(
     // (it references neither the View-level click-sound constants nor performClick), so our cue
     // cannot double with the OS touch sound and there is no platform toggle to switch off.
     // Nothing to suppress — the perceptual check stays a manual UAT item in plan 07-06.
+    QuietOutlinedAction(textRes = R.string.action_catalog, onClick = onCatalog)
+}
+
+/** A quiet clay `OutlinedButton` secondary action: Classic's Catalog, Challenge's Play again. */
+@Composable
+private fun QuietOutlinedAction(
+    textRes: Int,
+    onClick: () -> Unit,
+) {
     OutlinedButton(
-        onClick = withClickSound(SoundCue.ButtonForward, onCatalog),
+        onClick = withClickSound(SoundCue.ButtonForward, onClick),
         shape = MaterialTheme.shapes.medium,
         modifier =
             Modifier
@@ -101,7 +115,7 @@ private fun ClassicActions(
                 .fillMaxWidth(),
     ) {
         Text(
-            text = stringResource(R.string.action_catalog),
+            text = stringResource(textRes),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )
