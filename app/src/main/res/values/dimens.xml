@@ -85,6 +85,9 @@
       chip's height is unchanged: the art never sets it.
     -->
     <dimen name="home_resume_thumb_size">56dp</dimen>
+    <!-- D-03s (founder 2026-11-02): space above Home's title, taken from the middle slack so the
+         lower group never moves; less on a window whose middle is smaller. -->
+    <dimen name="home_title_top_padding">32dp</dimen>
     <!-- A mode tile's trailing art: the Classic footprint / the Challenge bolt. -->
     <dimen name="home_tile_art_size">56dp</dimen>
     <!--
