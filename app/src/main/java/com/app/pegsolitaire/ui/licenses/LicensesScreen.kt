@@ -18,6 +18,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
@@ -68,6 +69,8 @@ fun LicensesScreen(
     ProvideLicencesText(LicencesTextEdge.LayoutStart) {
         Scaffold(
             modifier = modifier.fillMaxSize(),
+            containerColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onBackground,
             topBar = { LicensesTopBar(title = stringResource(R.string.licenses_title), onBack = onBack) },
         ) { contentPadding ->
             Box(
