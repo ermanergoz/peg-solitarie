@@ -77,8 +77,11 @@ import org.robolectric.annotation.GraphicsMode
  * ## The windows
  *
  * 15p part 2's six, with the design baseline's 24dp status bar and 48dp three-button bar, and 15ac's
- * two gesture-navigation windows where the bound bites: `w412dp-h915dp` with a 24dp status bar and a
- * 24dp gesture bar, and the Pixel_9, `w411dp-h923dp`, with a 54dp status bar and a 24dp gesture bar.
+ * two gesture-navigation windows: `w412dp-h915dp` with a 24dp status bar and a 24dp gesture bar, and the
+ * Pixel_9, `w411dp-h923dp`, with a 54dp status bar and a 24dp gesture bar. Every window is read against
+ * H₀ = min(⅘ S₀, C) and the bound alike, with no class of window exempt: measured, the bound bites on
+ * `w360dp-h720dp`, `w360dp-h800dp` and `w412dp-h915dp` with the three-button bar as well as on the two
+ * gesture-navigation windows (`ux-designer-check-2.md` F-1).
  *
  * ## Between visible elements (D-03m)
  *
@@ -124,27 +127,23 @@ class HomeHeadroomTest {
 
     /**
      * The 6.7-inch reference phone (15y part 4): the first mode tile's top edge is at or below the
-     * viewport's midpoint with no chip and with both, and the footer is at most a third of S₀ (15g's
-     * ruled reading, the footer being S₀ − H₀ under D-03q).
+     * viewport's midpoint with no chip and with both. The footer's third of S₀ is read on every window
+     * (point 5 of [assertTheSlackIsHeadroomAboveTheHeroRow]).
      */
     @Test
     @Config(qualifiers = TALL_PHONE)
     fun onA412x915dpPhoneTheSlackIsHeadroomAboveTheHeroRowAndTheTilesStayLow() {
         assertTheSlackIsHeadroomAboveTheHeroRow(THREE_BUTTON)
-        val slack = composeRule.homeSlack(statusBar = THREE_BUTTON.status, navigationBar = THREE_BUTTON.navigation)
         listOf(chipsOf(classic = false, challenge = false), bothResumesState()).forEach { state ->
             show(state)
             val viewport = viewportOf(THREE_BUTTON)
             assertWithMessage("${chipsNamed(state)}: the first tile's top against the viewport's midpoint, in dp")
                 .that(boundsOf(composeRule.onNodeWithText(classicTileTitle)).top.value)
                 .isAtLeast(((viewport.top + viewport.bottom) / 2).value)
-            assertWithMessage("${chipsNamed(state)}: the footer against a third of S₀ = ${slack.slack}, in dp")
-                .that(footer(THREE_BUTTON).value)
-                .isAtMost(slack.slack.value / THIRDS + TOLERANCE_DP)
         }
     }
 
-    /** 15ac part 1 on the tall phone in gesture navigation, where the bound bites by ≈29dp (§4.2.7). */
+    /** 15ac part 1 on the tall phone in gesture navigation, where the bound holds the no-chip headroom at C. */
     @Test
     @Config(qualifiers = TALL_PHONE)
     fun onA412x915dpPhoneInGestureNavigationTheTitleBoundHoldsTheHeroRowAboveTheWaves() =
@@ -299,7 +298,8 @@ class HomeHeadroomTest {
      *    the bottom padding, is min(S₀ − H₀, max(0, S₀ − R));
      * 3. no distance between two consecutive visible elements exceeds the band gap;
      * 4. the hero row's visible bottom edge is at or above the title bound, wherever there is headroom;
-     * 5. in gesture navigation, where the bound bites, the footer is at most a third of S₀ (15g).
+     * 5. the footer is at most a third of S₀ (15g's ruled reading, the footer being S₀ − H₀ under
+     *    D-03q) — on every window, the bound biting or not.
      */
     private fun assertTheSlackIsHeadroomAboveTheHeroRow(bars: Bars) {
         val holder = mutableStateOf(EVERY_CHIP_STATE.first())
@@ -322,11 +322,9 @@ class HomeHeadroomTest {
                 .that(widestGap().value)
                 .isAtMost((bandGap() + TOLERANCE_DP.dp).value)
             assertTheHeroRowIsAboveTheTitleBound(slack, chips)
-            if (bars.gesture) {
-                assertWithMessage("$chips: the footer against a third of S₀ = ${slack.slack}, in dp")
-                    .that(footer(bars).value)
-                    .isAtMost(slack.slack.value / THIRDS + TOLERANCE_DP)
-            }
+            assertWithMessage("$chips: the footer against a third of S₀ = ${slack.slack}, in dp")
+                .that(footer(bars).value)
+                .isAtMost(slack.slack.value / THIRDS + TOLERANCE_DP)
         }
     }
 
@@ -536,22 +534,21 @@ class HomeHeadroomTest {
 
     private fun SemanticsNode.descendants(): List<SemanticsNode> = children.flatMap { listOf(it) + it.descendants() }
 
-    /** A window's system bars, and whether the navigation bar is a gesture bar. */
+    /** A window's system bars. */
     private data class Bars(
         val status: Dp,
         val navigation: Dp,
-        val gesture: Boolean,
     )
 
     private companion object {
         /** The design baseline's system bars: a 24dp status bar and a 48dp three-button navigation bar. */
-        val THREE_BUTTON = Bars(status = 24.dp, navigation = 48.dp, gesture = false)
+        val THREE_BUTTON = Bars(status = 24.dp, navigation = 48.dp)
 
         /** A tall phone in gesture navigation: a 24dp status bar and a 24dp gesture bar (15ac). */
-        val GESTURE_TALL = Bars(status = 24.dp, navigation = 24.dp, gesture = true)
+        val GESTURE_TALL = Bars(status = 24.dp, navigation = 24.dp)
 
         /** The Pixel_9 in gesture navigation, QA's device: a 54dp status bar and a 24dp gesture bar (15ac). */
-        val PIXEL_9_BARS = Bars(status = 54.dp, navigation = 24.dp, gesture = true)
+        val PIXEL_9_BARS = Bars(status = 54.dp, navigation = 24.dp)
     }
 }
 
