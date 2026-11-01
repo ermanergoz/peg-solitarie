@@ -508,6 +508,10 @@
         <item quantity="other">%d ses efekti</item>
     </plurals>
 
+    <!-- D-17 (docs/ux/localisation-tr.md §5.4; docs/tech-design.md §11.1, Q-039 (3)): the bundled Fredoka is a
+         Modified Version under OFL-1.1, built by fonts/fredoka-tr/. A sentence, so translatable. -->
+    <string name="licenses_fredoka_modified">Peg Solitaire için SIL Open Font License kapsamında değiştirildi: Ğ ğ İ Ş ş harfleri Fredoka\'nın kendi harf ve işaretlerinden eklendi; başka hiçbir şey değiştirilmedi.</string>
+
     <string name="licenses_kenney_title">Interface Sounds — Kenney</string>
     <string name="licenses_lilmati_title">“Pop 01” — LilMati</string>
     <string name="licenses_cogfire_title">“Positive Blip Effect” — CogFireStudios</string>

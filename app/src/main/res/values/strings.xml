@@ -531,6 +531,9 @@
 
     <string name="licenses_fredoka_title" translatable="false">Fredoka</string>
     <string name="licenses_fredoka_credit" translatable="false">© 2016 The Fredoka Project Authors</string>
+    <!-- D-17 (docs/ux/localisation-tr.md §5.4; docs/tech-design.md §11.1, Q-039 (3)): the bundled Fredoka is a
+         Modified Version under OFL-1.1, built by fonts/fredoka-tr/. A sentence, so translatable. -->
+    <string name="licenses_fredoka_modified">Modified for Peg Solitaire under the SIL Open Font License: Ğ ğ İ Ş ş added from Fredoka\'s own letters and marks; nothing else changed.</string>
     <string name="licenses_nunito_title" translatable="false">Nunito</string>
     <string name="licenses_nunito_credit" translatable="false">© 2014 The Nunito Project Authors</string>
 
