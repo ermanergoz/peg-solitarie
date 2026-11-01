@@ -308,8 +308,10 @@ listing ends up promising something that is not there.
    `verifyReleaseAdIds` / `verifyReleaseGamesIds` dependency (`app/build.gradle.kts` wires both
    task names), so nothing else changes. Whether this listing — published before the 2021 bundle
    requirement — would still accept an APK is **unverified and irrelevant**: the AAB is the right
-   artifact either way. `CLAUDE.md`'s Build command line is updated on the release branch to name
-   `:app:bundleRelease` for the release artifact.
+   artifact either way.    `CLAUDE.md`'s Build command line is updated on the release branch to name
+   `:app:bundleRelease` for the release artifact. *(Note 2026-11-01: for 3.0.0 the change landed
+   before the cut, on `develop` with `feature/release-3.0.0-prep`, together with `AGENTS.md`; the
+   release branch only reads it, checklist 2.6.)*
 
 ### 4b. The procedure
 

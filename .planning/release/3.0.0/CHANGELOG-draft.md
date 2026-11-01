@@ -27,8 +27,9 @@ Not applied to `CHANGELOG.md` yet: the section is final only on `release/3.0.0`.
 
 ## Add — Fixed
 - **Home no longer jumps when your Continue chips appear** a moment after launch. *(home-chip-arrival)*
-- **The game timer is read once, in whole minutes,** by TalkBack, instead of being re-spoken every
-  few seconds. *(home-chip-arrival, B-2/B-3)*
+- **TalkBack now reads the game timer's value,** in whole minutes; before, it said only "Elapsed
+  time". *(home-chip-arrival, 18f/B-3. The every-few-seconds re-speaking, B-2, existed only on that
+  branch's own build and never shipped, so it is not a fix to announce.)*
 - **Navigation buttons stay readable in dark mode** with three-button navigation. *(home-chip-arrival, B-1)*
 
 ## Fix — Under the hood (stale)

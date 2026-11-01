@@ -3,6 +3,7 @@ Date: 2026-11-01
 Branch: feature/release-3.0.0-prep (7d43d7f..this commit)
 Skills loaded: ergoz-soft:standards (role release-manager; game; android-compose-game — the product snapshot `.claude/rules/`: studio, reporting, gitflow, skills-policy, logging, memory, puzzle-design, play-store, kotlin-android, compose, ip-policy, testing; lessons.md). gitflow and gsd-complete-milestone not loaded: this pass cuts no branch and completes no milestone.
 Ran in parallel with: candy-backdrop performance measurement (host kept quiet: no Gradle run)
+Ran on: claude-opus-5-5 at effort (not named by the harness). Deviation: agents/release-manager.md pins another model; founder answer Q-019 puts Fable-pinned roles on Opus until 3.0.0 is published
 Loops: 0
 Lessons applied: none (lessons.md has 0 active lessons)
 
