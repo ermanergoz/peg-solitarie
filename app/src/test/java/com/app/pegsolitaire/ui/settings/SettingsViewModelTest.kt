@@ -64,6 +64,36 @@ class SettingsViewModelTest {
             assertThat(viewModel.uiState.value.hapticsOn).isTrue()
         }
 
+    /** CV-04: the switch is off before the store emits, which is also the store's own default — no flicker. */
+    @Test
+    fun theColorblindSwitchDefaultsOffBeforeTheStoreEmits() =
+        runTest(testDispatcher) {
+            val viewModel = viewModelFor(NeverEmittingSettingsRepository)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.colorblindPaletteOn).isFalse()
+        }
+
+    /** CV-AC02: the flip goes through the repository, and the state follows the store, not a local copy. */
+    @Test
+    fun onToggleColorblindPalettePersistsAndTheStateFollows() =
+        runTest(testDispatcher) {
+            val repository = FakeSettingsRepository()
+            val viewModel = viewModelFor(repository)
+            runCurrent()
+
+            viewModel.onToggleColorblindPalette(true)
+            runCurrent()
+
+            assertThat(repository.lastColorblindPaletteWritten).isTrue()
+            assertThat(viewModel.uiState.value.colorblindPaletteOn).isTrue()
+
+            repository.emitColorblindPalette(false)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.colorblindPaletteOn).isFalse()
+        }
+
     @Test
     fun persistedFlagsAreMirroredIntoTheUiState() =
         runTest(testDispatcher) {
@@ -404,6 +434,7 @@ private class FakeSettingsRepository(
 ) : SettingsRepository {
     private val soundState = MutableStateFlow(soundOn)
     private val hapticsState = MutableStateFlow(hapticsOn)
+    private val colorblindPaletteState = MutableStateFlow(false)
 
     override val hintsEnabled: Flow<Boolean> = flowOf(true)
 
@@ -411,10 +442,15 @@ private class FakeSettingsRepository(
 
     override val hapticsOn: Flow<Boolean> = hapticsState.asStateFlow()
 
+    override val colorblindPaletteOn: Flow<Boolean> = colorblindPaletteState.asStateFlow()
+
     var lastSoundWritten: Boolean? = null
         private set
 
     var lastHapticsWritten: Boolean? = null
+        private set
+
+    var lastColorblindPaletteWritten: Boolean? = null
         private set
 
     override suspend fun setHintsEnabled(enabled: Boolean) = Unit
@@ -429,6 +465,11 @@ private class FakeSettingsRepository(
         hapticsState.value = on
     }
 
+    override suspend fun setColorblindPaletteOn(on: Boolean) {
+        lastColorblindPaletteWritten = on
+        colorblindPaletteState.value = on
+    }
+
     /** Simulates the persisted sound flag changing underneath the ViewModel. */
     fun emitSound(on: Boolean) {
         soundState.value = on
@@ -437,6 +478,11 @@ private class FakeSettingsRepository(
     /** Simulates the persisted haptics flag changing underneath the ViewModel. */
     fun emitHaptics(on: Boolean) {
         hapticsState.value = on
+    }
+
+    /** Simulates the persisted colour-blind palette flag changing underneath the ViewModel. */
+    fun emitColorblindPalette(on: Boolean) {
+        colorblindPaletteState.value = on
     }
 }
 
@@ -448,11 +494,15 @@ private object NeverEmittingSettingsRepository : SettingsRepository {
 
     override val hapticsOn: Flow<Boolean> = emptyFlow()
 
+    override val colorblindPaletteOn: Flow<Boolean> = emptyFlow()
+
     override suspend fun setHintsEnabled(enabled: Boolean) = Unit
 
     override suspend fun setSoundOn(on: Boolean) = Unit
 
     override suspend fun setHapticsOn(on: Boolean) = Unit
+
+    override suspend fun setColorblindPaletteOn(on: Boolean) = Unit
 }
 
 /** A [GamesService] whose session never emits — proves the D-11 fail-hidden Unknown default. */

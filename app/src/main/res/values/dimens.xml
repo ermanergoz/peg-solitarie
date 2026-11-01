@@ -210,6 +210,13 @@
       exception, but a token of its own (one token per owner).
     -->
     <dimen name="wrong_tap_mark_width">3dp</dimen>
+    <!--
+      docs/ux/colour-vision.md §3.4 (CV-07). The halo: the band of `surfaceContainerLowest` inside
+      the colour-blind palette's selection ring, its outer edge on the ring's inner edge. The same
+      documented sub-4dp stroke exception as peg_selected_ring_width, and a token of its own (one
+      token per owner).
+    -->
+    <dimen name="peg_selection_halo_width">1.5dp</dimen>
 
     <!--
       Candy-Clay M3 Shapes override (DESIGN-SYSTEM.md §Shape): the five corner

@@ -2,7 +2,6 @@ package com.app.pegsolitaire.ui.components
 
 import android.graphics.Bitmap
 import android.graphics.Color
-import android.provider.Settings
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
@@ -12,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.domain.model.Boards
+import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.testing.applySystemBarInsets
 import com.app.pegsolitaire.testing.renderedWindow
 import com.app.pegsolitaire.ui.home.HOME_STAGE_ART_TEST_TAG
@@ -20,12 +20,12 @@ import com.app.pegsolitaire.ui.home.fixture.HOME_ROBOLECTRIC_SDK
 import com.app.pegsolitaire.ui.home.fixture.chipsState
 import com.app.pegsolitaire.ui.home.fixture.renderHome
 import com.app.pegsolitaire.ui.theme.AppTheme
+import com.app.pegsolitaire.ui.theme.BoardMarkPalette
 import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import kotlin.math.ceil
@@ -55,8 +55,10 @@ import kotlin.math.floor
 @Config(sdk = [HOME_ROBOLECTRIC_SDK])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class BoardCanvasFirstFrameTest {
+    private val motion = SystemMotionScale()
+
     @get:Rule
-    val composeRule = createComposeRule()
+    val composeRule = createComposeRule(effectContext = motion)
 
     /** A read-only board, as the Classic tile and the Continue thumbnail draw one. */
     @Test
@@ -82,16 +84,60 @@ class BoardCanvasFirstFrameTest {
     @Test
     @Config(qualifiers = "w411dp-h915dp")
     fun theFirstFrameOfTheHomeStageDrawsItsPegsOnTheSlab() {
-        Settings.Global.putFloat(
-            RuntimeEnvironment.getApplication().contentResolver,
-            Settings.Global.ANIMATOR_DURATION_SCALE,
-            ANIMATIONS_OFF,
-        )
+        motion.turnAnimationsOff()
         composeRule.mainClock.autoAdvance = false
         composeRule.renderHome(state = chipsState(classic = false, challenge = false))
         composeRule.applySystemBarInsets(top = STATUS_BAR_DP.dp, bottom = NAVIGATION_BAR_DP.dp)
 
         assertTheFirstFrameIsTheSettledFrame(HOME_STAGE_ART_TEST_TAG)
+    }
+
+    /**
+     * An interactive board in the colour-blind palette, a peg held with its targets showing: the
+     * first frame rings the held peg at the palette's radius (docs/ux/colour-vision.md §3.4), as
+     * every later frame does. The frame-size geometry keeps the composed geometry's recipe.
+     */
+    @Test
+    fun theFirstFrameOfAColourBlindBoardRingsTheHeldPegAsTheSettledFrameDoes() {
+        val scene = PaletteScene.midGame(Boards.english33Initial)
+        motion.turnAnimationsOff()
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            AppTheme(darkTheme = false, boardMarkPalette = BoardMarkPalette.Colorblind) {
+                BoardCanvas(
+                    state = scene.state.copy(hintSource = null, hintTarget = null),
+                    onCellTap = {},
+                    onAnimationFinished = {},
+                    modifier = Modifier.size(INTERACTIVE_CANVAS_DP.dp),
+                )
+            }
+        }
+
+        assertTheFirstFrameIsTheSettledFrame(BOARD_CANVAS_TEST_TAG)
+    }
+
+    /**
+     * The same board with its hint up: the first frame dashes both hint rings for the radii it draws
+     * them at — eight dashes each, starting at the top (docs/ux/colour-vision.md §3.4) — as every
+     * later frame does, and not with strokes built for a geometry the composition had not yet sized.
+     */
+    @Test
+    fun theFirstFrameOfAColourBlindBoardDashesItsHintRingsAsTheSettledFrameDoes() {
+        val scene = PaletteScene.midGame(Boards.english33Initial)
+        motion.turnAnimationsOff()
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            AppTheme(darkTheme = false, boardMarkPalette = BoardMarkPalette.Colorblind) {
+                BoardCanvas(
+                    state = scene.state,
+                    onCellTap = {},
+                    onAnimationFinished = {},
+                    modifier = Modifier.size(INTERACTIVE_CANVAS_DP.dp),
+                )
+            }
+        }
+
+        assertTheFirstFrameIsTheSettledFrame(BOARD_CANVAS_TEST_TAG)
     }
 
     /**
@@ -127,12 +173,12 @@ class BoardCanvasFirstFrameTest {
         }
 }
 
-/** Robolectric's off value for the OS animator scale — the reduced-motion setting. */
-private const val ANIMATIONS_OFF = 0f
-
 /** The design baseline's system bars: a 24dp status bar and a 48dp navigation bar. */
 private const val STATUS_BAR_DP = 24
 private const val NAVIGATION_BAR_DP = 48
+
+/** An interactive board of 350dp, as the motion test draws one. */
+private const val INTERACTIVE_CANVAS_DP = 350
 
 /**
  * Whether [pixel] is a candy peg's: the `PegGradient` runs from #F9A8D4 through #EC4899 to #BE185D,

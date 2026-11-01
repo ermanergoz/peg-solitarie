@@ -44,6 +44,8 @@ import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.ui.components.BoardCanvas
 import com.app.pegsolitaire.ui.components.ClaySnackbarHost
+import com.app.pegsolitaire.ui.theme.BoardMarkPaletteKey
+import com.app.pegsolitaire.ui.theme.LocalBoardMarks
 import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.ctaGradientBrush
@@ -70,6 +72,7 @@ val LegalTargetCountKey = SemanticsPropertyKey<Int>("LegalTargetCount")
 private var SemanticsPropertyReceiver.pegCountValue by PegCountKey
 private var SemanticsPropertyReceiver.gameStatusValue by GameStatusKey
 private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountKey
+private var SemanticsPropertyReceiver.boardMarkPaletteValue by BoardMarkPaletteKey
 
 /**
  * The stateless playable-board screen (Route/Screen/Leaf middle layer).
@@ -114,7 +117,7 @@ private var SemanticsPropertyReceiver.legalTargetCountValue by LegalTargetCountK
  * carries **no** ad affordance: its Undo routes into the same [onUndo] funnel that raises the
  * dialog at zero, which is UI-SPEC §4's "one allowance, one dialog, no second offer surface".
  *
- * Minimal test semantics ([PegCountKey]/[GameStatusKey]/[LegalTargetCountKey]) are
+ * Minimal test semantics ([PegCountKey]/[GameStatusKey]/[LegalTargetCountKey]/[BoardMarkPaletteKey]) are
  * attached to the [GAME_STATE_TEST_TAG] node so the end-to-end flow test asserts on
  * state deterministically rather than on pixels.
  *
@@ -178,6 +181,8 @@ fun GameScreen(
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     val wrongTapAnnouncement = rememberWrongTapAnnouncement(state)
+    // The board-state node reports the palette the board draws in (colour-vision CV-AC03).
+    val boardMarkPalette = LocalBoardMarks.current.palette
 
     JumpHapticEffect(animatingMoveId = state.animating?.id, hapticsOn = state.hapticsOn)
     JumpSoundEffect(transition = state.animating)
@@ -223,6 +228,7 @@ fun GameScreen(
                             pegCountValue = state.board.pegCount
                             gameStatusValue = state.status.name
                             legalTargetCountValue = state.legalTargets.size
+                            boardMarkPaletteValue = boardMarkPalette
                         },
                 contentAlignment = Alignment.Center,
             ) {

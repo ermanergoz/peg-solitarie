@@ -21,12 +21,13 @@ import javax.inject.Inject
  * Drives the Settings screen (SET-01 sound, SET-02 haptics; D-14) over an immutable
  * [StateFlow]<[SettingsUiState]>.
  *
- * The repository is the single authority: both flags are collected into the state, and
+ * The repository is the single authority: every flag is collected into the state, and
  * a toggle writes the new value through [SettingsRepository] rather than flipping a
  * local copy — the state changes when the persisted write lands (unidirectional data
  * flow, mirroring `GameViewModel.onToggleHints`). Until the store's first emission the
- * state holds the fail-open ON defaults (D-17), so a corrupt store degrades to
- * "everything on" and can never leave the screen blank or crashing (T-05-02).
+ * state holds the fail-open ON defaults (D-17) for the assists and the store's own `false`
+ * for the colour-blind palette (CV-04), so a corrupt store can never leave the screen blank
+ * or crashing (T-05-02).
  *
  * [soundPlayer] does not weaken that: it is a feedback sink, never a state source. Nothing read
  * from it reaches [SettingsUiState], and the switches still render exclusively from the collected
@@ -98,11 +99,16 @@ class SettingsViewModel
                 }
             }
             viewModelScope.launch {
+                settingsRepository.colorblindPaletteOn.collect { on ->
+                    _uiState.update { it.copy(colorblindPaletteOn = on) }
+                }
+            }
+            viewModelScope.launch {
                 consentGateway.privacyOptionsRequired.collect { required ->
                     _uiState.update { it.copy(privacyOptionsRequired = required) }
                 }
             }
-            // The Play Games session (D-11), a peer of the three collectors above rather
+            // The Play Games session (D-11), a peer of the four collectors above rather
             // than a one-shot read on screen entry: an opted-in player's silent launch
             // check can still be pending when Settings opens, and the section must appear
             // the moment it resolves instead of staying hidden until the next visit.
@@ -141,6 +147,16 @@ class SettingsViewModel
         /** Persists the player's haptics choice (SET-02); the collected flow re-renders the switch. */
         fun onToggleHaptics(on: Boolean) {
             viewModelScope.launch { settingsRepository.setHapticsOn(on) }
+        }
+
+        /**
+         * Persists the player's colour-blind palette choice (CV-03); the collected flow re-renders
+         * the switch, and the root's palette holder takes the new value to every board, star and
+         * pip without a restart. A toggle takes no press cue (D-09): unlike [onToggleSound] this
+         * touches the sound player in no way.
+         */
+        fun onToggleColorblindPalette(on: Boolean) {
+            viewModelScope.launch { settingsRepository.setColorblindPaletteOn(on) }
         }
 
         /**
