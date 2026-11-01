@@ -73,11 +73,14 @@ has no `tnum`, so the timer sets its digits in fixed cells (`TimerDigits`).
 > is the platform's per-glyph fallback for characters the faces lack. The clause after the em dash
 > in the tabular-figures sentence is new; the sentence before it is unchanged.
 
-*(Amended 2026-11-01 — ux-designer, D-16 of `docs/ux/localisation-tr.md` §7.3; rule of record in
-`docs/ux-spec.md` §6.3.)* The mapping above is the mapping for a language Fredoka covers. Fredoka
-has no Ğ ğ İ Ş ş in any official build, so on a Turkish device the heading roles draw in Nunito
-(Medium → SemiBold, SemiBold → Bold) at the same sizes; the gradient wordmark, the timer and the
-numeric stat values keep Fredoka in every language. English is unchanged.
+*(Amended 2026-11-01 — ux-designer, D-17 of `docs/ux/localisation-tr.md` §7.3, founder's Q-039;
+rule of record in `docs/ux-spec.md` §6.3. It replaces the same day's D-16 note, Nunito headings
+in Turkish, which the founder rejected.)* The mapping above holds in every language. No official
+Fredoka build has Ğ ğ İ Ş ş, so the bundled Fredoka Medium and SemiBold are a Modified Version
+under OFL-1.1 (name kept, no Reserved Font Name): the five letters are composed from the family's
+own letters and marks with their bases' advances and kerning, nothing else changes, and the files
+are rebuilt from a committed recipe (`fonts/fredoka-tr/`, `docs/tech-design.md` §11.1). English
+is unchanged to the pixel.
 
 ## Shape
 

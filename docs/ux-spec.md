@@ -4534,20 +4534,20 @@ design (600 each). Fredoka stat-pill values are proportional; they do not tick, 
 *(Added 2026-10-21 — D-04f.)* The Undecided notice's text is `bodyMedium`, the same role as the
 rescue banner's message (§4.4.2).
 
-*(Added 2026-11-01 — D-16 of `docs/ux/localisation-tr.md` §7.3; a UX decision, with the
-founder's taste question Q-038 queued non-blocking.)* **The heading face follows the language;
-the brand face does not.** No official Fredoka build maps Ğ ğ İ Ş ş (v2.001, read by cmap), so
-the mapping above is the mapping for a language Fredoka covers. On a Turkish device the
-translatable heading roles — `display*`, `headline*`, `title*` — draw in **Nunito at the nearest
-heavier weight** (Fredoka Medium → Nunito SemiBold, Fredoka SemiBold → Nunito Bold); sizes,
-line heights and tracking are unchanged. Three surfaces keep Fredoka in every language because
-their glyph set is closed: the Home wordmark `app_name` (`displaySmall`, gradient, §4.2.4), the
-gameplay clock (`TimerDigits`, `headlineSmall`) and the numeral values (the ribbon pills and the
-Results stats, `titleMedium` with tabular figures) — so every width above holds in Turkish.
-English is untouched. The face is chosen by the same locale resolution as the strings (per-app
-language included), and the three fixed surfaces draw Fredoka by a style the theme names, not by
-a copy of the role. Any later locale is proven by cmap before it is specified: Fredoka where it
-covers the alphabet, Nunito where it does not, a font decision where neither does.
+*(Added 2026-11-01 — D-17 of `docs/ux/localisation-tr.md` §7.3; founder's Q-038 and Q-039. It
+replaces the same day's D-16 paragraph, which put the Turkish headings in Nunito and was rejected
+by the founder before anything was built.)* **One heading face in every language: Fredoka with
+Turkish letters.** No official Fredoka build maps Ğ ğ İ Ş ş (v2.001, read by cmap — a shaper's
+read says otherwise and is wrong for a device), so the bundled Fredoka Medium and SemiBold are
+now a **Modified Version under OFL-1.1** (§1; no Reserved Font Name, the name "Fredoka" kept):
+the five letters are added as composite glyphs from the family's own G g I S s, breve, dot above
+and cedilla, each with its base's advance and kerning, and nothing else in the files changes —
+so the mapping above holds in every language, English is unchanged to the pixel, and every
+width in this document stands. The files are rebuilt byte-identically from a committed recipe
+(`fonts/fredoka-tr/`; `docs/tech-design.md` §11.1 "Q-039"). The modification is stated on the
+licences screen in one line (`licenses_fredoka_modified`, `docs/ux/licences-screen.md` §3.2). Any
+later locale is still proven by cmap before it is specified; a letter Fredoka cannot be given by
+composition is a font decision, never a fallback found on a device.
 
 ### 6.4 Motion
 
@@ -5150,7 +5150,7 @@ rows (text in `tech-lead-fonts.md`).
 | `SoundCue.ButtonForward`, `SoundCue.ButtonDismiss` (`SoundCue.kt:70-74`) | audio | already in `res/raw`, credited — newly placed on the Settings "How to play" row (§4.5, `ButtonForward`), the tutorial's completion CTA (`ButtonForward`) and `Skip` (`ButtonDismiss`), all by the existing `withClickSound` idiom (D-01i, D-11) | CC0 1.0 (as recorded) |
 | `SoundCue.Select`, `Deselect`, `Undo`, `InvalidTap`, `Hint`, `Win`, `StarPop` | audio | already in `res/raw`, credited — **unchanged, and explicitly never played on the tutorial screen** (D-01h as amended by D-01i, §5) | CC0 1.0 (as recorded) |
 | Fredoka, Nunito *(superseded 2026-09-29 by the next row; kept as the record)* | font | downloadable Google Fonts, already wired | OFL (already shipped) |
-| Fredoka Medium/SemiBold, Nunito Regular/SemiBold/Bold | font | **bundled** static instances in `app/src/main/res/font/` (Google Fonts, unmodified; tech-lead font ruling 2026-09-29) — replaces the downloadable-font path | OFL-1.1, no Reserved Font Name; notice and licence ship in the APK (`assets/licenses/`); **one `THIRD_PARTY.md` row per family**. *(2026-11-01, D-16 of `docs/ux/localisation-tr.md`.)* No new file for Turkish: the Turkish heading face is the bundled Nunito, so no licence row changes |
+| Fredoka Medium/SemiBold, Nunito Regular/SemiBold/Bold | font | **bundled** static instances in `app/src/main/res/font/` (Google Fonts, unmodified; tech-lead font ruling 2026-09-29) — replaces the downloadable-font path | OFL-1.1, no Reserved Font Name; notice and licence ship in the APK (`assets/licenses/`); **one `THIRD_PARTY.md` row per family**. *(2026-11-01, D-17 of `docs/ux/localisation-tr.md`, Q-039.)* The two Fredoka files are now a **Modified Version** (OFL-1.1 §1; no RFN, name kept): Ğ ğ İ Ş ş added as composites from the family's own parts, nothing else changed, rebuilt from the committed recipe `fonts/fredoka-tr/` (`docs/tech-design.md` §11.1); the Fredoka `THIRD_PARTY.md` row says so (research-analyst, release-manager), `Fredoka-OFL.txt` ships unchanged, and the licences screen carries the statement in `licenses_fredoka_modified` |
 
 Both new vectors follow the `UndoIcon.kt` / `ModeGlyphs.kt` precedent: a 24-unit viewport, filled
 opaque black, recoloured by the host `Icon`'s tint, `@Suppress("MagicNumber")` on the path data

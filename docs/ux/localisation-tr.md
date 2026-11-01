@@ -38,10 +38,11 @@ The decisions, each a UX decision unless marked otherwise; the reasons are in th
 | D-10 | **TalkBack strings are translated in full**, the whole `board_a11y_*` block included; the three tap-action labels are infinitives so TalkBack's Turkish template ("… için iki kez dokunun") reads as a sentence. | §5.2, §7.5 |
 | D-11 | The Undecided notice's Turkish is the copy of record in `docs/ux-spec.md` §4.4.2, **verbatim**: "İpucu bu konumu süresi içinde çözemedi. Belki hâlâ kazanılabilir." (impersonal passive; no register; none of the ruling's forbidden words). | §5.2 |
 | D-12 | Where the Turkish runs long for its slot, §6 gives a **shorter alternative**; the developer switches to it only when the device check (§8) shows clipping, and records the switch in the report. The spec's first choice is the better sentence. | §6 |
-| D-13 | **Fonts — glyph coverage is proven, not assumed.** The developer proves by cmap that every face draws every Turkish letter it is asked to draw (§7.3). *Amended 2026-11-01:* the proof ran (android-game-dev report, open issue 1), and the remedy this row named — swap in the full file — has nothing to swap in: the shipped Fredoka files are not subsets, they are byte-identical to every official Fredoka v2.001 build, and **none maps Ğ ğ İ Ş ş**. Nunito maps all 13 code points. The fix is D-16. | §7.3 |
+| D-13 | **Fonts — glyph coverage is proven, not assumed.** The developer proves by cmap that every face draws every Turkish letter it is asked to draw (§7.3). *Amended 2026-11-01:* the proof ran (android-game-dev report, open issue 1), and the remedy this row named — swap in the full file — has nothing to swap in: the shipped Fredoka files are not subsets, they are byte-identical to every official Fredoka v2.001 build, and **none maps Ğ ğ İ Ş ş**. Nunito maps all 13 code points. The fix is D-17 (D-16, the first fix, was rejected by the founder the same day). | §7.3 |
 | D-14 | The tr-TR listing's closing line "Oyunun arayüzü İngilizcedir." becomes false the moment this ships and **must be removed** from `docs/store/tr-TR/full_description.txt`; the listing is re-voiced to sen (Q-031) and loses the English glosses "(Classic)", "(Challenge)", "(Settings)", "(Hint)", "(Undo)" that existed only because the UI was English — §10 carries the paste-ready text; the tr-TR and en-US 3.0.0 changelogs gain a Turkish-interface line; `docs/store/README.md` lines 25–26 are updated. Release-manager's files, through the producer (§9). | §9, §10 |
 | D-15 | **No "Solo Test"** anywhere — not in the listing, not in the app. The founder's answer to Q-032 (2026-11-01: No); the research-analyst trademark check is dropped. | §4 |
-| D-16 | **The heading face follows the language; the brand face does not** (2026-11-01). Fredoka stays the face of every text whose glyph set is closed — the Home wordmark "Peg Solitaire" and the numeral surfaces (the gameplay clock, the ribbon pill values, the Results stat values) — in every language. The translatable heading roles (`display*`, `headline*`, `title*`) draw in **Nunito on a Turkish device**, at the nearest heavier weight: Fredoka Medium → Nunito SemiBold, Fredoka SemiBold → Nunito Bold. English is untouched. Rewording the five strings, a per-glyph fallback chain and shipping the fallback letters are rejected (§7.3). A UX decision; the plainer Turkish headings are a taste question for the founder (**Q-038**, §9.1, non-blocking: the build proceeds on this row); the mechanism is the tech-lead's (§7.3, §9.2). | §7.3, §8 C-2 |
+| D-16 | *(Superseded the same day by D-17: the founder rejected it, Q-038 — "change the font for all languages".)* The heading face follows the language: Nunito headings on a Turkish device, Fredoka kept for the wordmark and the numerals. Nothing of it was built; §7.3 keeps the options it weighed as the record. | §7.3, §9.1 |
+| D-17 | **Fredoka with Turkish letters, in every language** (founder, Q-039, 2026-11-01, on the research-analyst's specimen). Fredoka Medium and SemiBold gain precomposed Ğ ğ İ Ş ş as composite glyphs built from Fredoka's own G g I S s, breve, dot above and cedilla; every original glyph, advance and kerning pair is untouched, so English is unchanged to the pixel. The files are a **Modified Version under OFL-1.1** (no Reserved Font Name, so the name "Fredoka" stays), rebuilt byte-identically from a committed recipe; the contract is `docs/tech-design.md` §11.1 "Q-039". One heading face in both languages; the look the founder approved, kept. The licences screen says so in one new line, `licenses_fredoka_modified` (§5.4; `docs/ux/licences-screen.md` §3.2), and `licenses_psl_parts` takes the prose date in English too (§5.4). | §7.3, §7.6, §8 C-2 |
 
 ## 2. Register and style
 
@@ -396,6 +397,7 @@ custom actions are read as labels in the actions menu, so they are imperatives.
 | `licenses_read_action` | Read the license | Lisansı oku | |
 | `licenses_loading` | Loading license | Lisans yükleniyor | |
 | `licenses_text_error` | This license text could not be shown. | Bu lisans metni gösterilemedi. | |
+| `licenses_fredoka_modified` | Modified for Peg Solitaire under the SIL Open Font License: Ğ ğ İ Ş ş added from Fredoka\'s own letters and marks; nothing else changed. | Peg Solitaire için SIL Open Font License kapsamında değiştirildi: Ğ ğ İ Ş ş harfleri Fredoka\'nın kendi harf ve işaretlerinden eklendi; başka hiçbir şey değiştirilmedi. | **new 2026-11-01 (D-17)**: the Fredoka entry's third line, after the credit and the licence name. A sentence, not a name, so it is **translatable** with this row (the credit lines beside it stay `translatable="false"`); descriptive, no person (§2.1). The licence name stays as its owner writes it and takes no suffix ("kapsamında" is a postposition); the apostrophes are `\'` in XML. Multi-line by design, like the other parts lines |
 | `licenses_kenney_title` | Interface Sounds by Kenney | Interface Sounds — Kenney | "title — author" (§4) |
 | `licenses_lilmati_title` | “Pop 01” by LilMati | “Pop 01” — LilMati | |
 | `licenses_cogfire_title` | “Positive Blip Effect” by CogFireStudios | “Positive Blip Effect” — CogFireStudios | |
@@ -410,7 +412,7 @@ custom actions are read as labels in the actions menu, so they are imperatives.
 | `licenses_protobuf_parts` | The Java Lite runtime, and the copy inside AndroidX DataStore | Java Lite çalışma zamanı ve AndroidX DataStore içindeki kopyası | |
 | `licenses_chromium_parts` | The Cronet networking classes inside Google Mobile Ads | Google Mobile Ads içindeki Cronet ağ sınıfları | |
 | `licenses_psl_credit` | Mozilla and the list's contributors | Mozilla ve listeye katkıda bulunanlar | |
-| `licenses_psl_parts` | The public-suffix data compiled into OkHttp, as it stood on 2023‑02‑15 | OkHttp'ye derlenmiş genel sonek verileri, 15 Şubat 2023 tarihindeki hâliyle | the date in words needs no non-breaking hyphens |
+| `licenses_psl_parts` | The public-suffix data compiled into OkHttp, as it stood on 15 February 2023 | OkHttp'ye derlenmiş genel sonek verileri, 15 Şubat 2023 tarihindeki hâliyle | the date in words needs no non-breaking hyphens. **English changed 2026-11-01** (tech-lead, tech-design §16 #41; confirmed by the ux-designer): it was "2023‑02‑15" with U+2011 non-breaking hyphens, which Nunito's cmap lacks — the body face was already falling back for them; the prose date is whole without any hyphen, matches the Turkish and §2.3, and is the wording of record |
 | `licenses_google_sdk_title` | Google Play services and SDKs | Google Play hizmetleri ve SDK'ları | |
 | `licenses_google_notices_title` | Open-source notices in Google libraries | Google kitaplıklarındaki açık kaynak bildirimleri | |
 | `licenses_google_notices_supporting` | The notices Google supplies for the open-source software inside its libraries | Google'ın kitaplıklarındaki açık kaynaklı yazılım için sağladığı bildirimler | |
@@ -452,7 +454,8 @@ number stays singular (D-8). Both items are written out so lint's MissingQuantit
 
 Base file on develop 37d3052, counted by hand: 223 `<string>` entries and 7 `<plurals>`. Of the
 strings, 35 are already `translatable="false"` and 9 more become so (§4), which leaves about
-**179 strings and 7 plurals** in `values-tr/strings.xml`: 174 translated, 5 copied verbatim
+**179 strings and 7 plurals** in `values-tr/strings.xml` (180 strings from 2026-11-01, with
+`licenses_fredoka_modified`, D-17): 174 translated (175 with it), 5 copied verbatim
 (`elapsed_time_spoken`, `board_a11y_separator`, `board_a11y_announce_step`,
 `results_a11y_summary`, `home_stat_pill_desc`). The developer's parity test (§7.6) is the
 authority on the count, not this paragraph: every translatable key in the base file has a row in
@@ -471,7 +474,7 @@ they wrap and grow rather than clip; the rescue banner has three text buttons (�
 
 | Key | Slot | EN | TR | Risk | Shorter alternative |
 |---|---|---|---|---|---|
-| `challenge_tile_title` | Home mode tile, ≥ 96dp wide, heading face (Nunito SemiBold in Turkish, D-16) | Challenge (9) | Meydan okuma (12) | wraps to two lines at 200 % in a 108dp tile; tile height grows | none that keeps the listing's term; accept the wrap |
+| `challenge_tile_title` | Home mode tile, ≥ 96dp wide, Fredoka title | Challenge (9) | Meydan okuma (12) | wraps to two lines at 200 % in a 108dp tile; tile height grows | none that keeps the listing's term; accept the wrap |
 | `resume_classic_title` | Continue tile/chip title, ≥ 72dp | Continue Classic (16) | Klasik oyuna devam et (21) | two lines likely at 200 % | "Klasik'e devam" (14) |
 | `resume_challenge_title` | Continue tile/chip title | Continue Challenge (18) | Meydan okumaya devam et (23) | two to three lines at 200 % | "Meydan okumaya devam" (20) |
 | `results_label_pegs_left` | Results stat row, one of three columns at 360dp | PEGS LEFT (9) | KALAN PİYON (11) | wraps under 120dp at 200 %; the other two labels are shorter than English | "KALAN" (5) — only if the row breaks; the value beneath it is a peg count, so "KALAN" still reads |
@@ -495,14 +498,10 @@ glyph longer than English and the pill wraps by rule; the status-strip title "Se
 glyph wider than "Level 1234" with ≥ 25dp spare; "Klasik" and "Ayarlar" are shorter than English;
 dialog bodies, snackbars, supporting lines and the licences screen are multi-line by design.
 
-Face widths (D-16, 2026-11-01). On a Turkish device the heading roles are Nunito, and Nunito
-SemiBold is ≈ 2 % and Nunito Bold ≈ 4 % wider than Fredoka Medium and SemiBold at the same size
-(`tech-lead-fonts.md` T2 oracle, "Peg Solitaire": 5797 and 5937 against 5686 and 5715 per
-1000 em). So every heading-role slot above — the tile and Continue titles, the dialog titles,
-"Seviye N" — is that much wider than its character count suggests; the ≥ 25dp spare of
-"Seviye 1234" absorbs ≈ 2.5dp, and no new alternative is needed. Nunito's ink is also taller
-(1.364 em against Fredoka's 1.210 em): a heading inside a clipping bound can lose a descender,
-which C-7 checks.
+Face widths. *(The D-16 note of 2026-11-01 — Nunito headings ≈ 2–4 % wider than Fredoka, and
+taller — is withdrawn with D-17: the headings are Fredoka in both languages, and the five
+composites take their bases' advances and kerning, so every count above is read in the same face
+as English and no slot moves.)*
 
 ## 7. Locale rules for the build and QA
 
@@ -569,69 +568,78 @@ API'leri" (entry title and text-screen heading). `settings_play_games_signed_in_
 player's name in the same role, so "Ayşe" hits the gap too. The other 37 avoid the five letters by
 chance; the next string, or the next player, would not.
 
-**Decision D-16: the heading face follows the language; the brand face does not.** Two faces,
-three jobs:
+**Decision D-17 (founder, Q-038 and Q-039, 2026-11-01): Fredoka with Turkish letters, in every
+language.** The first ruling, D-16 — the heading roles in Nunito on a Turkish device, Fredoka kept
+for the wordmark and the numerals — went to the founder as Q-038 and was rejected: "change the
+font for all languages". The research-analyst then built a specimen, Fredoka Medium and SemiBold
+with Ğ ğ İ Ş ş composed from the family's own G g I S s, breve, dot above and cedilla, and the
+founder chose it (Q-039). The design:
 
-| Job | Text | English | Turkish | Why |
-|---|---|---|---|---|
-| Brand | The Home wordmark `app_name` "Peg Solitaire" — `displaySmall`, gradient fill (ux-spec §4.2.4, `HomeHero`) | Fredoka SemiBold | **Fredoka SemiBold, unchanged** | untranslatable ASCII: a closed glyph set the gap can never reach; it is the brand moment the founder approved, and it survives in every language |
-| Numerals | The gameplay clock (`TimerDigits`, `headlineSmall`); the ribbon pill values (`titleMedium`: "401", "0/5", "12", "—"); the Results stat values (`MetricBlock`) | Fredoka Medium | **Fredoka Medium, unchanged** | digits, ":", "/" and "—" only — a closed set, all in Fredoka; the display moments of Home, gameplay and Results keep their face, and every width QA measured for them (18d, 15m, the Results row) holds in Turkish without re-derivation |
-| Headings | Every other `display*`, `headline*`, `title*` text: the mode-tile, Continue-tile and chip titles; screen titles ("Klasik", "Sonuç", "Ayarlar", "Lisanslar"); the gameplay title "Seviye N"; dialog titles and game-over headlines; the Results headline; Settings row labels; catalog card titles (the board names); licence and notice titles; the signed-in line | Fredoka — Medium 500 for `headlineSmall` and `title*`, SemiBold 600 for `display*`, `headlineLarge`, `headlineMedium` | **Nunito at the nearest heavier weight: Fredoka Medium → Nunito SemiBold 600; Fredoka SemiBold → Nunito Bold 700** | Nunito has the letters; both weights are already bundled, so no file, no licence row and no `THIRD_PARTY.md` change; 600/700 keeps the two-step weight hierarchy inside the heading roles and stays above body Regular 400 |
-| Text | `body*`, `label*` | Nunito | Nunito, unchanged | — |
+- **One heading face in both languages; the look the founder approved, unchanged.**
+  `AppTypography`, `AppFonts`, every role and every call site stay as they are. The gradient
+  wordmark, the clock and the numerals were never at risk and stay Fredoka.
+- **The five letters are Fredoka's own parts.** Ğ ğ are G g with the family's breve; İ is I with
+  its dot above, on the row of Fredoka's own Ï dots and centred on the stem; Ş ş are S s with the
+  cedilla Ç ç carry. Each takes its base's advance, left side bearing and every kerning pair, so
+  "Başarımlar" is set as "Basarimlar" would be, and no English string moves by a unit — proven by
+  a test (tech-design §11.1 (2)).
+- **A Modified Version under OFL-1.1** (§1). No Reserved Font Name is declared, so the family
+  keeps its name; the licence file ships unchanged; the modification is stated in the font's own
+  name table and on the licences screen, in one line (`licenses_fredoka_modified`, §5.4;
+  `docs/ux/licences-screen.md` §3.2). The `THIRD_PARTY.md` row is the research-analyst's and the
+  release-manager's (§9.2).
+- **Rebuilt byte-identically from a committed recipe** (`fonts/fredoka-tr/`), the audio-recipe
+  rule applied to a font. The mechanism, the tests and the developer's contract are tech-design
+  §11.1 "Q-039" and are not repeated here.
 
-Sizes, line heights and letter spacing stay the stock M3 scale in both languages; only the family
-and the weight differ. Nothing changes in English.
+What the ux-designer holds the five glyphs to — the specimen the founder saw is the reference;
+QA reads it as C-2b on the device and screenshots each letter at both scales for this role's
+read:
 
-What was weighed, and why it lost:
+1. **Each mark reads as Fredoka's.** The cedilla of Ş ş has the stroke, the depth and the join of
+   Ç ç beside it ("Çözüldü!", "Geçen süre"); the dot of İ is the dot of ö and ü ("körlüğü"), at
+   their height; the breve of Ğ ğ is the family's monoline stroke, clear of the base by the gap
+   Fredoka leaves between Ç and its cedilla, and never touches the G's bar or the g's bowl.
+2. **One face inside a word.** In "Bu tahta yeniden başlatılsın mı?", "Titreşim", "Renk körlüğü
+   paleti", "Başarımlar" and "Ek açıklama ve bağımlılık ekleme API'leri" every letter shares one
+   stroke weight and one baseline at 100 % and 200 %, light and dark; no mark is clipped by a
+   line box at 200 %.
+3. **Spacing as the base's.** The gap on either side of each composite equals its base letter's:
+   "Ba-ş-a" is spaced as "Ba-s-a".
+4. **English screens are pixel-identical** to the pre-branch screenshots (C-2c).
+
+What was weighed before the founder answered (kept as the record; Q-038 and Q-039 settle it):
 
 - **Rewording the five strings around the font.** "Başarımlar" is Google's own term and
   "Titreşim" the plain word; Turkish without ş, ğ and İ is not Turkish, and the next string or a
   player's name hits the gap again. The copy is not constrained by a font. Rejected.
+- **Nunito headings on a Turkish device, Fredoka kept for the wordmark and the numerals (D-16).**
+  No file, no licence row; one consistent app per language, but plainer Turkish headings than
+  the approved English ones. Put to the founder as Q-038 and **rejected**: one font for all
+  languages.
 - **A different rounded display face for every language.** Baloo 2, Quicksand, Comfortaa,
   Varela Round and Mitr are OFL faces on Google Fonts in Fredoka's register; each would need its
-  coverage proven by cmap (Fredoka's own metadata claims `latin-ext`), a research-analyst licence
-  verdict, new files and licence rows, new T2 oracles and a full visual re-walk — and it changes
-  the look the founder approved, in a release week. Offered as Q-038 option 2 for 3.1; not
-  chosen for 3.0.0.
+  coverage proven by cmap (Fredoka's own metadata claims `latin-ext`), a licence verdict, new
+  files, new T2 oracles and a full visual re-walk, and it changes the approved look. Not chosen:
+  the specimen of Q-039 keeps Fredoka itself.
 - **A per-glyph fallback chain Fredoka → Nunito** (`Typeface.CustomFallbackBuilder`). It puts a
   Nunito ş inside a Fredoka word, which is the defect C-2 exists to catch, and it is API 29+
   against minSdk 24. Rejected.
-- **A Modified Version of Fredoka with the five letters drawn in-house.** OFL-1.1 permits it
-  (no Reserved Font Name), and it is the only path that keeps Fredoka headings in Turkish; it is
-  font design work (a breve to draw, composites to build) with its own licence row and visual
-  QA. A 3.1 candidate under either answer to Q-038, beside an upstream report to `google/fonts`
-  that Fredoka declares `latin-ext` and lacks it. Not for 3.0.0.
+- **A Modified Version of Fredoka with the five letters built from its own parts.** OFL-1.1
+  permits it (no Reserved Font Name); the only path that keeps Fredoka headings in Turkish.
+  **Chosen (Q-039)** — the research-analyst's specimen showed it is composition, not drawing:
+  Fredoka already carries the breve, the dot above and the cedilla as marks. An upstream report
+  to `google/fonts` (issue #2411, open since 2020) stays with the research-analyst.
 - **Shipping the fallback letters.** A visible defect in Settings on every Turkish phone, in the
   founder's own language, on the row whose supporting line explains the feature. Rejected.
 
-Visual cost, judged plainly. Fredoka's chunky rounded headings are part of the Candy Clay
-identity, and on a Turkish phone they survive only in the wordmark and the numbers. Nunito
-SemiBold and Bold are rounded too — rounded terminals on a humanist skeleton — so the soft feel is
-kept; the toy-like weight is not. The colours, the clay tiles, the gradient wordmark, the big
-numbers and the blobs carry most of the look and are unchanged. A Turkish player sees one
-consistent app; a locale-dependent heading face is ordinary localisation practice, and what the
-player needs is consistency within the language, which this keeps. The founder, comparing side
-by side with English, will see plainer headings. That is why it is Q-038, and why the build does
-not wait for it.
-
-What the build must honour (the mechanism — a locale-qualified resource, a typography keyed on the
-configuration, something else — is the tech-lead's, §9.2):
-
-1. The heading face is chosen by **the same locale resolution as the strings** — the app's
-   resolved resource configuration, never the system locale on its own — so under per-app
-   language (C-5) a Turkish app on an English system has Turkish words and the Turkish face, and
-   under a mid-game switch (C-4) both change together. A `values-tr` resource is the natural
-   shape.
-2. The brand and numeral surfaces draw Fredoka in every language **by a style the theme names**,
-   not by a copy of the role at each call site, so a later locale cannot move them.
-3. English is untouched: `AppTypography` resolves as today on an English device, and the font
-   ruling's T1 and T2 tests keep passing unchanged.
-4. The tests of §7.6: the glyph-coverage test covers the Fredoka faces against the closed set
-   they are now limited to, and a typography test pins the role → face map in both languages.
-5. A later locale: before it is specified, the developer proves by cmap that the heading face
-   covers its alphabet. A locale Fredoka does not cover takes Nunito headings by this rule; a
-   locale Nunito does not cover (another script) is a font decision made before the locale is
-   specified, never a fallback discovered on a device.
+What the build must honour is tech-design §11.1 "Q-039", the developer's contract. From this
+spec, in addition: (1) no change to any role, call site or theme — the look is the proof;
+(2) the two strings of §5.4: `licenses_fredoka_modified` in both languages, and
+`licenses_psl_parts` with the prose date in English; (3) the coverage test's derived shape with
+no allowance list (§7.6), so the next locale and the next "deliberate" special character are red
+tests, never device findings; (4) a later locale is still proven by cmap before it is specified —
+a locale Fredoka cannot be given by composition is a font decision, not a fallback.
 
 What QA checks on the device: §8 C-2 (every Turkish letter in its surrounding face), C-2a (the
 heading face is Nunito), C-2b (the wordmark and the numbers kept Fredoka), C-2c (English
@@ -696,14 +704,17 @@ letter in a word shares the word's stroke weight and baseline.
 - **Compose UI tests in Turkish**: the per-screen main-flow tests run once more under a `tr`
   configuration (`@Config(qualifiers = "tr")` on Robolectric) for Home, the Results screen and
   Settings — asserting by resource id, not by English text.
-- **The glyph-coverage test** (D-13, D-16): the three Nunito faces against the 13 code points
-  of §7.3 and every character of the Turkish copy (built, `BundledFontGlyphCoverageTest`); the
-  two Fredoka faces against the closed set of the brand and numeral surfaces they are now limited
-  to — the letters of "Peg Solitaire", the digits 0–9, ":", "/" and "—".
-- **A typography test** (D-16): under a Turkish configuration (`tr-rTR`), every `display*`,
-  `headline*` and `title*` role resolves Nunito at the D-16 weight, and the wordmark, the clock
-  and the numeral values resolve Fredoka; under `en-rUS` the heading roles resolve Fredoka as
-  today, so the English look is guarded by a test, not by habit.
+- **The glyph-coverage test** (D-13, D-17): `BundledFontGlyphCoverageTest` in its derived
+  shape — every shipped locale × every role's resolved font file, every character of that
+  locale's strings plus the base file's untranslated keys, the 13 code points of §7.3 as a floor
+  for `tr`, **no allowance list** (tech-design §11.1 (2)). Red on the upstream Fredoka for
+  Ğ ğ İ Ş ş and on U+2011 until `licenses_psl_parts` takes the prose date; green on the rebuilt
+  files. The next locale and the next special character are red tests, not device findings.
+- **The recipe test** (D-17): `BundledFontRecipeTest` — the shipped Fredoka files' sha256 equal
+  the recipe's outputs and the committed upstream files' equal its inputs; the displayable set
+  differs by exactly the five; every upstream code point's advance and every English string's
+  kerned advance are equal in both — the test that keeps C-2c true by construction (tech-design
+  §11.1 (2)).
 - **Roborazzi goldens** in `tr` at 360×640dp, font scale 1.0 and 2.0, for the eight slots of §6:
   Home (tiles, chips, ribbon), Results in the Perfect, Solved and Out-of-moves states, the
   restart-confirm dialog, the ad-offer dialog, the rescue banner, the Undecided notice. QA reviews
@@ -738,30 +749,40 @@ ellipsis, no glyph cut by a bound, no text drawn over another, no button pushed 
   and in the five D-16 words — "Bu tahta yeniden başlatılsın mı?", "Titreşim", "Renk körlüğü
   paleti", "Başarımlar", "Ek açıklama ve bağımlılık ekleme API'leri" — renders in the surrounding
   face (same stroke weight, same baseline): no fallback glyph, no tofu, at 100 % and 200 %.
-- **C-2a The heading face is Nunito (D-16).** Given a Turkish device, then the heading-role text
-  is Nunito: in Settings the letterforms of a row label ("Titreşim") match those of the
-  supporting line beneath it ("Her atlamada hafifçe titreşir") — the same "a", "e", "ş" and "r"
-  skeleton, one weight heavier — and differ from the English build's Fredoka label; the same for
-  the restart-dialog title against its body and the Results headline against its stat labels.
-  Numeric discriminator, from the T2 advances of `tech-lead-fonts.md` (device governs): with the
-  Challenge ladder seeded to level 111, the "111" of the gameplay title "Seviye 111" (titleLarge
-  22sp) is ≈ 39.6dp wide in Nunito SemiBold (3 × 0.600 em) against ≈ 25.6dp if Fredoka Medium
-  still drew it (3 × 0.388 em) — PASS when it is clearly the wide one, ≥ 34dp of ink.
-- **C-2b The wordmark and the numbers kept Fredoka (D-16).** Given a Turkish device, then the
-  Home title "Peg Solitaire" is the English build's gradient Fredoka SemiBold, identical to the
-  English screenshot of the same window (≈ 205.7dp at 36sp; Nunito Bold would be ≈ 213.7dp);
-  the Home Level pill value "111" measures ≈ 17.5dp of ink (Fredoka Medium; `tech-lead-fonts.md`
-  discriminator — ≈ 28dp would mean Nunito took it); the gameplay clock and the Results stat
-  values show the same digit shapes as the English build (Fredoka's "1" is a plain stem with a
-  short flag, ≈ 0.39 em; Nunito's is a tabular 0.6 em).
-- **C-2c English unchanged (D-16).** Given an English device on the same build, then the
-  `tech-lead-fonts.md` discriminators hold: the gameplay title "Level 111" ≈ 82.1dp of ink and
-  the Level pill "111" ≈ 17.5dp, both Fredoka; the Settings row labels are Fredoka, as before.
-- **C-2d A player name (D-16).** Given a Play Games account whose display name carries ş, ğ or İ
-  (an "Ayşe"), when Settings is opened on a Turkish device, then "<name> olarak oturum açıldı"
-  renders whole in one face. If no such account is available, QA records the criterion as not
-  exercised, not as a fail; on an English device such a name still falls back glyph by glyph in
-  Fredoka, which is pre-existing and not judged here.
+- **C-2a The heading face is Fredoka in Turkish (D-17).** Given a Turkish device, then the
+  heading-role text is Fredoka, by the font ruling's own discriminator: with the Challenge
+  ladder seeded to level 111, the "111" of the gameplay title "Seviye 111" (titleLarge 22sp)
+  measures ≈ 25.6dp of advance (3 × 0.388 em, Fredoka Medium; a Nunito fallback would read
+  ≈ 39.6dp), the Home Level pill "111" ≈ 17.5dp of ink, and the Settings row labels show the
+  same letterforms as the English build's.
+- **C-2b The five letters are Fredoka's (D-17).** Given a Turkish device at 100 % and 200 %,
+  light and dark, then in "Bu tahta yeniden başlatılsın mı?" (restart dialog), "Titreşim",
+  "Renk körlüğü paleti", "Başarımlar" (Settings) and "Ek açıklama ve bağımlılık ekleme
+  API'leri" (Licences) each Ğ ğ İ Ş ş is one Fredoka glyph: the cedilla of ş has the stroke,
+  depth and join of ç in "Çözüldü!" and "Geçen süre"; the dot of İ is the dot of ö and ü in
+  "körlüğü", at their height; the breve of ğ is clear of the g and touches nothing; no mark is
+  clipped by a line box at 200 %; the spacing on either side of each letter is its base's
+  ("Ba-ş-a" as "Ba-s-a"). QA screenshots each of the five words at both scales for the
+  ux-designer's read against the Q-039 specimen (§7.3).
+- **C-2c English unchanged (D-17).** Given an English device on the same build, then Home,
+  gameplay at level 111, Results, Settings and the Licences list are pixel-identical to the
+  screenshots taken before this branch at the same window, scale and theme — the
+  `tech-lead-fonts.md` readings hold exactly: "Level 111" ≈ 82.1dp, the Level pill "111"
+  ≈ 17.5dp, "Peg Solitaire" ≈ 205.7dp. The recipe promises no advance moved; one that did is a
+  FAIL.
+- **C-2d A player name (D-17).** Given a Play Games account whose display name carries ş, ğ or İ
+  (an "Ayşe"), when Settings is opened on a Turkish *or* an English device, then "<name> olarak
+  oturum açıldı" / "Signed in as <name>" renders whole in Fredoka — the letters are now in the
+  face in both languages. If no such account is available, QA records the criterion as not
+  exercised, not as a fail.
+- **C-2e The licences line (D-17).** Given Settings › Hakkında › Lisanslar, then the Fredoka
+  entry shows three lines — "© 2016 The Fredoka Project Authors", "SIL Open Font License 1.1",
+  and "Peg Solitaire için SIL Open Font License kapsamında değiştirildi: Ğ ğ İ Ş ş harfleri
+  Fredoka'nın kendi harf ve işaretlerinden eklendi; başka hiçbir şey değiştirilmedi." — whole at
+  100 % and 200 %, and the English build shows "Modified for Peg Solitaire under the SIL Open
+  Font License: Ğ ğ İ Ş ş added from Fredoka's own letters and marks; nothing else changed."; the
+  Public Suffix List entry's parts line reads "… as it stood on 15 February 2023" in English and
+  "… 15 Şubat 2023 tarihindeki hâliyle" in Turkish, the date never split across lines at 200 %.
 - **C-3 Casing.** Given a Turkish device, when every screen is walked, then "İpucu" and
   "KALAN PİYON" show the dotted capital İ, "Yıldız" shows the dotless ı, and no string shows "I"
   for ı or "İ" for I in either language ("SİGN İN"-style artefacts: zero).
@@ -778,10 +799,8 @@ ellipsis, no glyph cut by a bound, no text drawn over another, no button pushed 
   and no screen mixes a third language with English.
 - **C-7 Font scale.** Given 200 %, when every screen of this section is walked, then every
   string is readable per the definition above, and a slot that wrapped rather than clipped is
-  recorded with a screenshot for the §6 decision. Heading-role text in Turkish is Nunito, which
-  is taller than Fredoka (1.364 em against 1.210 em): a title inside a clipping bound — a pill, a
-  chip, a dialog title row, the status strip — shows its whole descender ("ş", "g", "y") and its
-  whole ascender at 100 % and 200 %.
+  recorded with a screenshot for the §6 decision. *(The D-16 taller-ink clause is withdrawn with
+  D-17: the headings are Fredoka in both languages.)*
 
 ### Tutorial (ONB-01)
 
@@ -913,18 +932,15 @@ ellipsis, no glyph cut by a bound, no text drawn over another, no button pushed 
 - **Q-032 — "Solo Test" in the Turkish listing?** Asked as Q-B (recommendation: one sentence
   after a trademark verdict). **Answer: No** (founder, 2026-11-01). Applied: D-15, §4; the
   research-analyst check is dropped and the listing does not mention the name.
-- **Q-038 — The Turkish headings are Nunito, not Fredoka (D-16).** Drafted by the ux-designer on
-  2026-11-01 for the producer to queue in `FOUNDER.md` (the text is in
-  `.planning/reports/turkish-locale/ux-designer-font.md`); **open**, non-blocking: the build
-  proceeds on option 1. Options: 1) D-16 as specified — Nunito headings on a Turkish device,
-  Fredoka kept for the wordmark and the numbers, English untouched (recommended; being built).
-  2) Replace Fredoka in every language with a rounded OFL face that covers Turkish — Baloo 2,
-  Quicksand, Comfortaa, Varela Round or Mitr, after a research-analyst licence and cmap check —
-  one look across languages, but a change to the approved look; 3.1 at the earliest.
-  3) Keep Fredoka headings in Turkish and accept platform-font letters in the five words and in
-  player names (C-2 waived); not recommended. A Modified Version of Fredoka with the five letters
-  drawn in-house (OFL-1.1 permits it) is 3.1 font work under either 1 or 2. An answer of 2 or 3
-  changes D-16, §7.3 and C-2 in a later edit; nothing in this build is wasted by it.
+- **Q-038 — The Turkish headings are Nunito, not Fredoka (D-16).** Asked by the ux-designer
+  (recommendation: 1, Nunito headings in Turkish; 2, one new rounded face for every language;
+  3, keep Fredoka and accept the fallback letters). **Answer: "change the font for all
+  languages"** (founder, 2026-11-01) — D-16 rejected; nothing of it had been built.
+- **Q-039 — Fredoka with Turkish composites, in every language.** Put by the producer on the
+  research-analyst's specimen (Fredoka Medium and SemiBold with Ğ ğ İ Ş ş built from the
+  family's own letters and marks). **Answer: yes — Fredoka + Turkish composites in every
+  language, English unchanged** (founder, 2026-11-01). Applied: D-17, §7.3, §7.6, §8 C-2a–C-2e,
+  the two strings of §5.4; the mechanism is tech-design §11.1 "Q-039".
 
 ### 9.2 Items for other roles, through the producer
 
@@ -935,16 +951,19 @@ ellipsis, no glyph cut by a bound, no text drawn over another, no button pushed 
   interface"; (c) update `docs/store/README.md` lines 25–26, which say the app has no Turkish
   strings; (d) note, not a change: both listings call the third board "Asymmetric-39" while the
   app calls it "Asymmetric 3-3-2-2" in both languages — pre-existing, outside this task;
-  (e) any tr-TR store screenshot shows Nunito headings and the Fredoka wordmark (D-16).
-- **research-analyst**: nothing for 3.0.0 — the "Solo Test" check is dropped with Q-032. If
-  Q-038 answers 2, a licence and cmap verdict on the candidate faces of §7.3; and, whatever the
-  answer, an upstream issue to `google/fonts` that Fredoka declares `latin-ext` and lacks
-  Ğ ğ İ Ş ş (the producer routes it; a fixed upstream file would be D-13's original remedy).
-- **tech-lead**: sign-off on `localeConfig` (generated vs hand-written) and `localeFilters`
-  (§7.4); the mechanism of D-16 (§7.3 "What the build must honour": a locale-qualified resource
-  or a configuration-keyed typography, the three fixed Fredoka surfaces by a named theme style,
-  the English guard) and the two tests of §7.6; and the §7.6 Roborazzi goldens against
-  `docs/tech-design.md` §8.5 (the developer's escalation 2).
+  (e) at the cut, checklist 4.6a: the AAB's two Fredoka files hash to the recipe's outputs
+  (tech-design §11.1 (3)); the `THIRD_PARTY.md` Fredoka row as a Modified Version, with the
+  research-analyst; no store screenshot changes (the headings are Fredoka in both languages).
+- **research-analyst**: the Modified-Version verdict line ("CLEAN as a Modified Version") and
+  the `THIRD_PARTY.md` §2 row and §8 build-tool lines (tech-design §11.1 (3)); the "Solo Test"
+  check stays dropped (Q-032); the `google/fonts` issue (#2411) stays its own.
+- **tech-lead**: signed off `localeConfig` and `localeFilters` (§7.4) and ruled the goldens out
+  for 3.0.0 (`turkish-locale/tech-lead-rulings.md`, tech-design §8.5, §11.2); D-17's contract is
+  tech-design §11.1 "Q-039", and the sign-off after the review loop is a fresh dispatch.
+- **android-game-dev**: the Q-039 contract; from this spec the two strings — the
+  `licenses_fredoka_modified` row of §5.4 in `values` (translatable) and `values-tr`, and the
+  prose date in `licenses_psl_parts` (its base-file comment about U+2011 goes with it) — and the
+  catalogue line with `LicenseCatalogTest.EXPECTED`.
 - **game-designer**: none; no rule or wording of the game changes.
 
 ### 9.3 The parallel branch
@@ -1047,3 +1066,4 @@ Peg Solitaire sıfırdan yeniden yapıldı:
 | 2026-11-01 | First complete version: decisions D-1..D-14, register, glossary, proper names, the full table for develop 37d3052 (§5.1–5.6), truncation watchlist, build and QA rules, acceptance criteria, two proposed founder questions. | ux-designer |
 | 2026-11-01 | Founder answers applied. Q-031 (sen throughout): D-1 and §2.1 rewritten; 22 keys re-voiced — `game_over_perfect_body`, `restart_confirm_body`, `pegs_remaining_retry` (both items), `board_a11y_rejected_put_down_first`, `challenge_load_error`, `resume_classic_supporting`, `resume_challenge_supporting`, `tutorial_step_1_caption`, `tutorial_step_3_caption`, `tutorial_done_caption`, `ad_offer_hint_title`, `ad_offer_undo_title`, `ad_offer_hint_body`, `ad_offer_undo_body`, `settings_privacy_policy_supporting`, `settings_privacy_choices_supporting`, `play_games_prompt_body`, `settings_play_games_leaderboards_supporting`, `settings_play_games_achievements_supporting`, `profile_swap_title`, `profile_swap_body`, `profile_swap_body_unknown_account`; keys, format arguments and §6 flags unchanged (the caption lengths fell to 53–66); §8 quotes updated; §10 added with the sen listing. Q-032 (no "Solo Test"): D-15, §4, §9.2. | ux-designer |
 | 2026-11-01 | Fredoka ruling (developer escalation 1: no official Fredoka build maps Ğ ğ İ Ş ş). D-13 amended; **D-16** added: the heading face follows the language — Nunito headings on a Turkish device (Medium → SemiBold, SemiBold → Bold), Fredoka kept everywhere for the wordmark and the numeral surfaces, English untouched. §7.3 rewritten (the finding, the decision table, the options weighed, the build requirements); §6 face-width note; §7.6 glyph-coverage and typography tests; §8 C-2 rewritten and C-2a–C-2d added, C-7 taller-ink clause; §9.1 Q-038 drafted (non-blocking); §9.2 items for the release-manager, research-analyst and tech-lead. Mirrored in `docs/ux-spec.md` §6.3 and §9, and `docs/ui/DESIGN-SYSTEM.md` §Typography. | ux-designer |
+| 2026-11-01 | Founder answers Q-038 (D-16 rejected: one font for all languages) and Q-039 (Fredoka + Turkish composites, on the research-analyst's specimen). **D-17** added, D-16 marked superseded, D-13 pointed at D-17; §7.3's decision rewritten (the five letters as Fredoka's own parts, the Modified Version under OFL-1.1, the recipe; the four things the ux-designer holds the glyphs to; the options kept as the record; the build pointer to tech-design §11.1 "Q-039"); §6 face-width note withdrawn; §7.6 the derived coverage test and the recipe test; §8 C-2a–C-2d rewritten for Fredoka in both languages, **C-2e** (the licences line and the PSL date) added, C-7's taller-ink clause withdrawn; §5.4 new row `licenses_fredoka_modified` (en + tr; translatable) and `licenses_psl_parts` English to the prose date "15 February 2023" (tech-design §16 #41, confirmed); §5.6 count; §9.1 both answers; §9.2 items. Mirrored in `docs/ux-spec.md` §6.3 and §9, `docs/ui/DESIGN-SYSTEM.md` §Typography and `docs/ux/licences-screen.md` §3.2. | ux-designer |

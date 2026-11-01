@@ -48,8 +48,55 @@ This role has no Bash; nothing was built or run. What was verified by reading:
 - **Upstream:** Fredoka's `google/fonts` METADATA.pb declares `latin-ext` and the file lacks it. A fixed upstream file would be D-13's original remedy; §9.2 routes a report to the research-analyst through the producer.
 - **Not this role's, through the producer:** the Roborazzi goldens against `docs/tech-design.md` §8.5 (the developer's escalation 2; §7.6 annotated, tech-lead decides); any tr-TR store screenshot shows Nunito headings (release-manager, §9.2 e); `settings_play_games_signed_in_as` on an *English* device still falls back glyph by glyph for a Turkish name — pre-existing, out of scope, noted in C-2d.
 
-## Handoff
+## Handoff (first edition — superseded by the addendum below)
 Next: producer — queue Q-038 in `.planning/questions/FOUNDER.md` from the draft above (non-blocking); commit `docs/ux/localisation-tr.md`, `docs/ux-spec.md`, `docs/ui/DESIGN-SYSTEM.md` and this report on `feature/turkish-locale`; route the D-16 mechanism and the §7.6 tests to the tech-lead with the developer's escalation 2 and 4; the `google/fonts` note to the research-analyst.
 Next: tech-lead — rule the D-16 mechanism against §7.3 "What the build must honour" (locale-qualified resource or configuration-keyed typography; the three fixed Fredoka surfaces as a named theme style; the English guard), then the developer builds it test-first (§7.6: the Fredoka closed-set coverage and the two-language typography test).
 Next: android-game-dev — after the ruling: the Turkish typography, the three fixed surfaces, the two tests; `BundledFontGlyphCoverageTest` adds the Fredoka faces against "Peg Solitaire", 0–9, ":", "/", "—"; no string changes.
 Next: qa-engineer — §8 C-2, C-2a–C-2d and the C-7 clause on a build of the branch, in Turkish and in English (C-2c), at 100 % and 200 %; seed the ladder to level 111 for the C-2a/C-2b discriminators; screenshots of Settings, the restart dialog, Results and the status strip in both languages for the founder's Q-038 look.
+
+---
+
+# Addendum (same day) — Q-038 rejected, Q-039 adopted: Fredoka + Turkish composites; D-16 → D-17
+Date: 2026-11-01
+Branch: feature/turkish-locale (committed by the producer)
+Skills loaded: as above (no new skill; the same rule set)
+Ran on: claude-fable-5-1 at effort xhigh
+Fan-out: none
+Loops: 0
+Lessons applied: none
+
+## Summary
+- The founder rejected D-16 (Q-038: "change the font for all languages") and chose, on the research-analyst's specimen, **Fredoka Medium and SemiBold with Ğ ğ İ Ş ş composed from the family's own letters and marks, in every language** (Q-039). The tech-lead's contract is `docs/tech-design.md` §11.1 "Q-039". The spec now carries **D-17**; D-16 is marked superseded and its options are kept as the record.
+- **Copy delivered** (the developer was waiting): `licenses_fredoka_modified`, en and tr, and the PSL date confirmed as the prose "15 February 2023". The line is a sentence, so it is **translatable** with a `values-tr` row — the tech-design's "`translatable="false"` like its siblings" fits the credit lines, not a sentence; lint's MissingTranslation would also demand the row.
+- QA's criteria are rewritten for Fredoka in both languages: C-2a (heading face is Fredoka, the "Seviye 111" discriminator ≈ 25.6dp), C-2b (the five letters as Fredoka glyphs: cedilla as ç's, dot as ö/ü's, breve clear of the g, spacing as the base's; screenshots for this role's read against the specimen), C-2c (English pixel-identical to the pre-branch screenshots), C-2d (a Turkish name in Fredoka on both devices), new **C-2e** (the licences line and the PSL date). C-7's taller-ink clause and §6's face-width note are withdrawn.
+
+## The copy (verbatim; XML escaping `\'`)
+- `licenses_fredoka_modified`, **en** (`values/strings.xml`, translatable): `Modified for Peg Solitaire under the SIL Open Font License: Ğ ğ İ Ş ş added from Fredoka\'s own letters and marks; nothing else changed.`
+- `licenses_fredoka_modified`, **tr** (`values-tr/strings.xml`): `Peg Solitaire için SIL Open Font License kapsamında değiştirildi: Ğ ğ İ Ş ş harfleri Fredoka\'nın kendi harf ve işaretlerinden eklendi; başka hiçbir şey değiştirilmedi.` — descriptive, no person (§2.1: a line that describes takes no register); the licence name stays as its owner writes it and takes no suffix ("kapsamında" is a postposition); "Fredoka'nın" carries the apostrophe §2.4 requires.
+- `licenses_psl_parts`, **en**: `The public-suffix data compiled into OkHttp, as it stood on 15 February 2023` — **confirmed**, no reword: it matches the Turkish ("15 Şubat 2023 tarihindeki hâliyle") and the spec's §2.3 date rule, and a prose date is whole without any hyphen, so the string's base-file comment about U+2011 (`strings.xml:502–504`) goes with the change (developer).
+
+## Outputs (this addendum)
+- `/Users/ermanergoz/Desktop/PegSolitarie-tr/docs/ux/localisation-tr.md` — §1: D-13 pointed at D-17, D-16 marked superseded, **D-17** added; §5.4: new row `licenses_fredoka_modified` (en + tr, translatable), `licenses_psl_parts` English to the prose date with the reason; §5.6 count (180 strings); §6: the `challenge_tile_title` slot back to "Fredoka title", the face-width note withdrawn; **§7.3**: the decision rewritten under D-17 (the five letters as Fredoka's own parts; the Modified Version; the recipe; the four things this role holds the glyphs to; the options kept as the record with their outcomes; the build pointer to tech-design §11.1 and the four spec-side requirements); §7.6: the derived coverage test with no allowance list and the recipe test; §8: C-2a–C-2d rewritten, **C-2e** added, C-7's clause withdrawn; §9.1: Q-038 and Q-039 answered; §9.2: release-manager, research-analyst, tech-lead, android-game-dev items; §11 row.
+- `/Users/ermanergoz/Desktop/PegSolitarie-tr/docs/ux-spec.md` — §6.3: the D-16 paragraph replaced by the D-17 paragraph; §9 font row: Modified Version, recipe, unchanged OFL file, the licences line.
+- `/Users/ermanergoz/Desktop/PegSolitarie-tr/docs/ui/DESIGN-SYSTEM.md` — §Typography: the D-16 note replaced by the D-17 note.
+- `/Users/ermanergoz/Desktop/PegSolitarie-tr/docs/ux/licences-screen.md` — §3.2 table: the Fredoka row's third line; the Public Suffix List row's prose date; a third-edition note under the table; §3.2.1 mapping row; §6 key table: `licenses_fredoka_modified` and the changed `licenses_psl_parts`.
+- This addendum. No code, resource, string, font or `THIRD_PARTY.md` edit (standing rule 4): the two strings are the developer's to write from §5.4; the `THIRD_PARTY.md` row is the research-analyst's and release-manager's.
+
+## Checks
+No Bash; verified by reading:
+- `docs/tech-design.md` §11.1 "Q-039" (1)–(4), "What falls away", "The developer's contract" (lines 1603–1759) and `turkish-locale/tech-lead-rulings.md` addendum — the licences line's key name, its place (a third `LicenseLine.Plain` after the licence name), the substance it must carry, and §16 #41's prose date; the copy above carries that substance in plain words ("letters and marks" for "composite glyphs") — pass.
+- `app/src/main/res/values/strings.xml:536–539, 573–576` — the Fredoka entry's two existing lines are `translatable="false"` names; `licenses_psl_parts` (`:575`) is translatable prose with the U+2011 date and the comment at `:502–504` — so the new line follows the prose lines (translatable), not the names — pass.
+- `docs/ux/licences-screen.md` §3.2 rows 651 and 665, §3.2.1 row 701, §6 key table — the only places that state the Fredoka entry's lines and the PSL date; each now carries the change — pass.
+- The Turkish line against the spec's own rules: §2.1 register (descriptive, no person), §2.2 casing (sentence case; İ Ş Ğ as typed), §2.4 apostrophes and the licence name unsuffixed, §3 glossary ("yazı tipi" not needed; "harf", "işaret" plain words), §4 proper names ("Peg Solitaire", "Fredoka", "SIL Open Font License" as their owners write them) — pass. `UserFacingTextHasNoProtectedNamesTest` scans `values-tr`: "Peg Solitaire" and "Fredoka" are the app's own names, already present in the Turkish copy (`licenses_intro`, the entry title) — no new exposure.
+
+## Open issues / risks
+- **`translatable` on the new line.** This role rules it translatable (a sentence, shown to a Turkish player in Turkish); the tech-design's parenthetical says `translatable="false"`. The developer follows the spec's §5.4 row (the strings are the ux-designer's); the tech-lead's sign-off reads it there. If the tech-lead has a reason this role does not see (a test that pins the Fredoka entry's lines as untranslatable), it says so and the Turkish row moves to a note — the copy stands either way.
+- **The five glyphs are judged on the device, by this role, from QA's C-2b screenshots** against the specimen the founder saw. The composition rules of §7.3 (cedilla as ç's, dot as ö/ü's, breve clear of the base, spacing as the base's) are the read; the research-analyst's placement table is the build. A mark that reads wrong is a recipe-offset change, reviewed like any change to the recipe.
+- **Nothing of D-16 was built** (tech-lead, `git log`), so nothing is removed; the spec keeps D-16's options as the record only.
+- **`docs/ux-spec.md`'s brush name drift** (`ctaGradientBrush()` vs the code's `titleGradientBrush()`) stays noted, untouched.
+
+## Handoff
+Next: producer — commit the four `docs/` files and this report on `feature/turkish-locale`; hand the developer the two §5.4 rows (`licenses_fredoka_modified` en + tr, translatable; `licenses_psl_parts` English prose date) with tech-design §11.1's contract; record Q-038 as answered and Q-039 in `FOUNDER.md`; the `THIRD_PARTY.md` row to the research-analyst and release-manager.
+Next: android-game-dev — the two strings exactly as §5.4 writes them (`\'` escaped), the catalogue's third `Plain` line, `LicenseCatalogTest.EXPECTED`, and the base-file comment at `strings.xml:502–504` removed with the date change; no other string.
+Next: qa-engineer — §8 C-2, C-2a–C-2e on a build with the rebuilt fonts: Turkish at 100 % and 200 %, light and dark; English C-2c against the pre-branch screenshots at the same window, scale and theme; the ladder seeded to level 111; one screenshot per D-17 word at each scale under `.planning/qa/turkish-locale/` for the ux-designer's read of the five letters against the specimen.
+Next: ux-designer (review mode, a fresh dispatch) — read QA's C-2b screenshots against §7.3's four points; PASS/FAIL per letter and weight.
