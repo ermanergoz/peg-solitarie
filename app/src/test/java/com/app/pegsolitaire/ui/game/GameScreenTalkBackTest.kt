@@ -22,6 +22,7 @@ import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -455,17 +456,21 @@ class GameScreenTalkBackTest {
     }
 
     /**
-     * Defect ruling §3 (B-3): on gameplay the board stop follows the strip's last stop in the order —
-     * the title, until home-chip-arrival's timer fix reaches this branch — and precedes row 1's first cell.
+     * Defect ruling §3 (B-3): on gameplay the board stop follows the strip's last stop in the order and
+     * precedes row 1's first cell. Since home-chip-arrival's timer fix (`clearAndSetSemantics` in
+     * `TimerPill`) reached this branch through `develop`, the strip's last stop is the timer, so the
+     * order reads title → timer → board stop → row 1's first cell: 26b's gameplay line as D-TB amends it.
      */
     @Test
-    fun theBoardStopFollowsTheTitleAndPrecedesTheFirstCell() {
+    fun theBoardStopFollowsTheTimerAndPrecedesTheFirstCell() {
         turnOnATouchExplorationService()
         startGame(touchExploration = true)
         val stop = composeRule.onNodeWithContentDescription("Board, ", substring = true).fetchSemanticsNode()
         val title = composeRule.onNodeWithText(string(R.string.app_name)).fetchSemanticsNode()
+        val timer = timerNode()
 
-        assertThat(composeRule.traversalBeforeOf(title)).isEqualTo(stop.id)
+        assertThat(composeRule.traversalBeforeOf(title)).isEqualTo(timer.id)
+        assertThat(composeRule.traversalBeforeOf(timer)).isEqualTo(stop.id)
         assertThat(
             composeRule.traversalBeforeOf(stop),
         ).isEqualTo(cellNode(Position(row = 0, col = 2)).fetchSemanticsNode().id)
@@ -667,6 +672,15 @@ class GameScreenTalkBackTest {
 
     private fun cellNode(cell: Position): SemanticsNodeInteraction =
         composeRule.onNode(SemanticsMatcher.expectValue(BoardCellPositionKey, cell))
+
+    /** The clock's own node in the strip's timer pill: the node whose description starts with its label. */
+    private fun timerNode(): SemanticsNode =
+        composeRule
+            .onNode(
+                hasAnyAncestor(hasTestTag(GAME_TIMER_PILL_TEST_TAG)) and
+                    hasContentDescription(string(R.string.elapsed_time), substring = true),
+                useUnmergedTree = true,
+            ).fetchSemanticsNode()
 
     private fun bannerButton(label: Int): SemanticsNodeInteraction =
         composeRule.onNode(
