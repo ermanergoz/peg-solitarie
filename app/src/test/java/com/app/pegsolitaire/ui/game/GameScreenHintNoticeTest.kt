@@ -1,5 +1,6 @@
 package com.app.pegsolitaire.ui.game
 
+import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -39,6 +40,7 @@ import com.app.pegsolitaire.audio.LocalSoundPlayer
 import com.app.pegsolitaire.audio.SoundCue
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.Position
+import com.app.pegsolitaire.domain.scoring.ChallengeClearRule
 import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.testing.applySystemBarInsets
 import com.app.pegsolitaire.ui.components.BOARD_CANVAS_TEST_TAG
@@ -102,7 +104,9 @@ class GameScreenHintNoticeTest {
     /**
      * Criterion 23a, with the game-designer's AC-16 and AC-17: an Undecided answer shows the
      * notice with exactly its own words, and nothing of the rescue banner — no banner node, no
-     * `nowin_message`, no `stuck_message` — and nothing inside the notice can be clicked.
+     * `nowin_message`, no `stuck_message`, and neither of the Challenge banner's two messages
+     * (ux-spec §13, D-SB-3), resolved at this board's peg count and the clear threshold — and
+     * nothing inside the notice can be clicked.
      */
     @Test
     fun theUndecidedNoticeShowsItsOwnTextAndNeverTheBanner() {
@@ -116,6 +120,12 @@ class GameScreenHintNoticeTest {
         composeRule.onNodeWithTag(NOWIN_BANNER_TEST_TAG).assertDoesNotExist()
         composeRule.onNodeWithText(string(R.string.nowin_message)).assertDoesNotExist()
         composeRule.onNodeWithText(string(R.string.stuck_message)).assertDoesNotExist()
+        val pegs = screenState.value.board.pegCount
+        val threshold = ChallengeClearRule.CLEAR_MAX_PEGS
+        composeRule
+            .onNodeWithText(plural(R.plurals.stuck_message_challenge, pegs, pegs, threshold))
+            .assertDoesNotExist()
+        composeRule.onNodeWithText(plural(R.plurals.nowin_message_challenge, threshold, threshold)).assertDoesNotExist()
         composeRule
             .onAllNodes(
                 insideTheNotice() and SemanticsMatcher.keyIsDefined(SemanticsActions.OnClick),
@@ -633,6 +643,12 @@ class GameScreenHintNoticeTest {
     private fun string(
         @StringRes id: Int,
     ): String = RuntimeEnvironment.getApplication().getString(id)
+
+    private fun plural(
+        @PluralsRes id: Int,
+        quantity: Int,
+        vararg args: Any,
+    ): String = RuntimeEnvironment.getApplication().resources.getQuantityString(id, quantity, *args)
 }
 
 /** Which accessibility manager the screen sees: the platform's own, or one the test provides. */

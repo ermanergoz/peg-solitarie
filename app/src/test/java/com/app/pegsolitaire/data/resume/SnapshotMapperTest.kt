@@ -3,6 +3,7 @@ package com.app.pegsolitaire.data.resume
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.domain.assist.AssistAllowance
 import com.app.pegsolitaire.domain.assist.AssistAllowanceLimits
+import com.app.pegsolitaire.domain.generator.GeneratorConstants
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardConstants
 import com.app.pegsolitaire.domain.model.BoardSpec
@@ -269,6 +270,34 @@ class SnapshotMapperTest {
         assertThat(restored).isNotNull()
         assertThat(restored!!.initialBoard.spec.minimumPegs)
             .isEqualTo(BoardConstants.MINIMUM_PEGS_DEFAULT)
+    }
+
+    @Test
+    fun aSnapshotStampedWithAnotherGeneratorVersionPassesTheStampThroughUntouched() {
+        // The mapper never reads the stamp (GDD §12.3(3), tech-lead F-5): an older contract's
+        // stamp, or one this build has never heard of, comes back exactly as written, with the
+        // stored board. What a stamp means for a restart is the ViewModel's business.
+        listOf(OLDER_GENERATOR_VERSION, UNKNOWN_GENERATOR_VERSION).forEach { version ->
+            assertThat(version).isNotEqualTo(GeneratorConstants.GENERATOR_VERSION)
+            val played = play(MOVES_PLAYED)
+            val stamped =
+                SnapshotMapper.toDto(
+                    mode = ProgressPersistenceKeys.MODE_CHALLENGE,
+                    levelId = STAMPED_LEVEL.toString(),
+                    initialBoard = Boards.english33Initial,
+                    moveHistory = played.history,
+                    elapsedMs = ELAPSED_MS,
+                    challenge = ChallengeStamp(level = STAMPED_LEVEL, generatorVersion = version),
+                )
+
+            val restored = restore(stamped)
+
+            assertThat(restored).isNotNull()
+            assertThat(restored!!.challenge)
+                .isEqualTo(ChallengeStamp(level = STAMPED_LEVEL, generatorVersion = version))
+            assertBoardMatches(actual = restored.currentBoard, expected = played.currentBoard)
+            assertThat(restored.moveHistory).isEqualTo(played.history)
+        }
     }
 
     @Test
@@ -559,6 +588,10 @@ class SnapshotMapperTest {
         const val CLASSIC_LEVEL_ID = "cross-33"
         const val STAMPED_LEVEL = 7
         const val GENERATOR_VERSION = 1
+
+        /** The contract before 3.0.0's, and one no build has shipped: neither is the current one. */
+        const val OLDER_GENERATOR_VERSION = 1
+        const val UNKNOWN_GENERATOR_VERSION = 99
         const val OFF_BOARD_INDEX = 99
 
         /** WARN-02 forgery: a negative row can never name a bit in the peg mask. */

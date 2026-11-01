@@ -86,6 +86,42 @@ private fun GameScreenUndecidedNoticePreview() {
     }
 }
 
+/**
+ * A Challenge level under the proven-dead banner (ux-spec §4.4.3, D-SB-3/D-SB-4): a Hint proved one
+ * peg out of reach, so the banner says so and that the level may still be cleared with three pegs
+ * or fewer — the one rescue banner a tap outside its buttons puts away.
+ */
+@Preview(name = "Gameplay, Challenge proven dead · light", widthDp = PREVIEW_WIDTH_DP, heightDp = PREVIEW_HEIGHT_DP)
+@Preview(
+    name = "Gameplay, Challenge proven dead · dark",
+    widthDp = PREVIEW_WIDTH_DP,
+    heightDp = PREVIEW_HEIGHT_DP,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
+@Composable
+private fun GameScreenChallengeProvenDeadPreview() {
+    AppTheme {
+        BackdropPreviewHost(BackdropDensity.Quiet) {
+            GameScreen(
+                state = GameUiState.initial().copy(elapsedSeconds = PREVIEW_ELAPSED_SECONDS, noWinningMove = true),
+                onCellTap = {},
+                onRestart = {},
+                onConfirmRestart = {},
+                onDismissRestart = {},
+                onAnimationFinished = {},
+                onToggleHints = {},
+                onUndo = {},
+                onHint = {},
+                onAcceptAdOffer = {},
+                onDismissAdOffer = {},
+                onHome = {},
+                onNavigateBack = {},
+                challengeLevel = PREVIEW_CHALLENGE_LEVEL,
+            )
+        }
+    }
+}
+
 /** The design baseline §4.3.1 budgets against, a representative clock and a four-digit level. */
 private const val PREVIEW_WIDTH_DP = 360
 private const val PREVIEW_HEIGHT_DP = 640

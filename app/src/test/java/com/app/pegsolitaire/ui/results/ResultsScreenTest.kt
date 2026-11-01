@@ -1,9 +1,12 @@
 package com.app.pegsolitaire.ui.results
 
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -87,10 +90,13 @@ class ResultsScreenTest {
 
     @Test
     fun solvedChallengeShowsExactlyOneNextLevelAndNoReplayOrRetry() {
+        // Extended for the star bands (criterion 30e): every clear is a Next-level result, the
+        // one-star "Cleared!" tier as much as the three-star one.
+        val shown = mutableStateOf(SOLVED_CHALLENGE_STATE)
         composeRule.setContent {
             AppTheme {
                 ResultsScreen(
-                    state = SOLVED_CHALLENGE_STATE,
+                    state = shown.value,
                     onReplay = {},
                     onCatalog = {},
                     onHome = {},
@@ -100,15 +106,89 @@ class ResultsScreenTest {
                 )
             }
         }
-        composeRule.waitForIdle()
 
-        // Exactly one filled primary "Next level" (the sole accent), plus neutral Home.
-        composeRule.onAllNodesWithText(context.getString(R.string.action_next_level)).assertCountEquals(1)
-        assertTextDisplayed(R.string.action_home)
-        // No Retry, Replay, or Catalog on a solved Challenge result.
-        composeRule.onAllNodesWithText(context.getString(R.string.action_retry)).assertCountEquals(0)
-        composeRule.onAllNodesWithText(context.getString(R.string.action_replay)).assertCountEquals(0)
-        composeRule.onAllNodesWithText(context.getString(R.string.action_catalog)).assertCountEquals(0)
+        listOf(SOLVED_CHALLENGE_STATE, CLEARED_CHALLENGE_STATE).forEach { state ->
+            composeRule.runOnUiThread { shown.value = state }
+            composeRule.waitForIdle()
+
+            // Exactly one filled primary "Next level" (the sole accent), plus neutral Home.
+            composeRule.onAllNodesWithText(context.getString(R.string.action_next_level)).assertCountEquals(1)
+            assertTextDisplayed(R.string.action_home)
+            // No Retry, Replay, or Catalog on a solved Challenge result.
+            composeRule.onAllNodesWithText(context.getString(R.string.action_retry)).assertCountEquals(0)
+            composeRule.onAllNodesWithText(context.getString(R.string.action_replay)).assertCountEquals(0)
+            composeRule.onAllNodesWithText(context.getString(R.string.action_catalog)).assertCountEquals(0)
+        }
+    }
+
+    // ---- The Challenge star bands (ux-spec D-SB-1/D-SB-2, §4.6; GDD SB-U1; criteria 30a, 30b) ----
+
+    @Test
+    fun aOneStarChallengeResultShowsTheClearedHeadlineAndTheNextStarLine() {
+        setResultsContent(state = CLEARED_CHALLENGE_STATE)
+
+        assertTextDisplayed(R.string.results_headline_cleared)
+        composeRule
+            .onNodeWithTag(RESULTS_STAR_ROW_TEST_TAG, useUnmergedTree = true)
+            .assert(SemanticsMatcher.expectValue(EarnedStarCountKey, 1))
+            .assertContentDescriptionEquals(context.getString(R.string.catalog_stars_earned, 1, TOTAL_STARS))
+        composeRule
+            .onNodeWithTag(RESULTS_NEXT_STAR_HINT_TEST_TAG)
+            .performScrollTo()
+            .assertIsDisplayed()
+            .assertTextEquals(nextStarLine(pegs = 2, stars = 2))
+    }
+
+    @Test
+    fun aTwoStarChallengeResultShowsTheNextStarLine() {
+        setResultsContent(state = SOLVED_TWO_STAR_CHALLENGE_STATE)
+
+        assertTextDisplayed(R.string.results_headline_solved)
+        composeRule
+            .onNodeWithTag(RESULTS_NEXT_STAR_HINT_TEST_TAG)
+            .performScrollTo()
+            .assertIsDisplayed()
+            .assertTextEquals(nextStarLine(pegs = 1, stars = 3))
+    }
+
+    @Test
+    fun aPerfectChallengeResultShowsNoNextStarLine() {
+        setResultsContent(state = SOLVED_CHALLENGE_STATE)
+
+        assertTextDisplayed(R.string.results_headline_perfect)
+        composeRule.onNodeWithTag(RESULTS_NEXT_STAR_HINT_TEST_TAG).assertDoesNotExist()
+    }
+
+    @Test
+    fun classicResultsAndTheStuckChallengeBranchShowNoNextStarLine() {
+        // 30b: Classic at any star count (R8) and the defensive STUCK route both go without it.
+        val shown = mutableStateOf(STUCK_CHALLENGE_STATE)
+        composeRule.setContent {
+            AppTheme {
+                ResultsScreen(
+                    state = shown.value,
+                    onReplay = {},
+                    onCatalog = {},
+                    onHome = {},
+                    onNextLevel = {},
+                    onRetry = {},
+                    onNavigateBack = {},
+                )
+            }
+        }
+
+        val classicStates =
+            listOf(
+                SAMPLE_STATE.copy(stars = 1, pegsRemaining = 3, headlineTier = ResultsHeadlineTier.STUCK),
+                SAMPLE_STATE,
+                SAMPLE_STATE.copy(stars = PERFECT_STARS, pegsRemaining = 1, headlineTier = ResultsHeadlineTier.PERFECT),
+            )
+        (listOf(STUCK_CHALLENGE_STATE) + classicStates).forEach { state ->
+            composeRule.runOnUiThread { shown.value = state }
+            composeRule.waitForIdle()
+
+            composeRule.onNodeWithTag(RESULTS_NEXT_STAR_HINT_TEST_TAG).assertDoesNotExist()
+        }
     }
 
     @Test
@@ -231,6 +311,12 @@ class ResultsScreenTest {
         composeRule.onNodeWithText(context.getString(resId)).performScrollTo().assertIsDisplayed()
     }
 
+    /** The next-star line as the resources word it for leaving [pegs] for [stars]. */
+    private fun nextStarLine(
+        pegs: Int,
+        stars: Int,
+    ): String = context.resources.getQuantityString(R.plurals.results_next_star_hint, pegs, pegs, stars)
+
     /** Renders the stateless screen over [state], recording only the callback under test. */
     private fun setResultsContent(
         state: ResultsUiState,
@@ -286,6 +372,25 @@ private val SOLVED_CHALLENGE_STATE =
         replayId = "",
         challengeLevel = SAMPLE_CHALLENGE_LEVEL,
     )
+
+/** A one-star Challenge clear (three pegs) — "Cleared!", Next level and a next-star line (D-SB-1/2). */
+private val CLEARED_CHALLENGE_STATE =
+    ResultsUiState(
+        stars = 1,
+        pegsRemaining = 3,
+        elapsedSeconds = SAMPLE_ELAPSED_SECONDS,
+        score = SAMPLE_SCORE,
+        headlineTier = ResultsHeadlineTier.CLEARED,
+        replayId = "",
+        challengeLevel = SAMPLE_CHALLENGE_LEVEL,
+    )
+
+/** A two-star Challenge clear (two pegs) — "Solved!", Next level and a next-star line. */
+private val SOLVED_TWO_STAR_CHALLENGE_STATE =
+    CLEARED_CHALLENGE_STATE.copy(stars = 2, pegsRemaining = 2, headlineTier = ResultsHeadlineTier.SOLVED)
+
+/** The star row's slots, filled and hollow together. */
+private const val TOTAL_STARS = 3
 
 /** A stuck Challenge level (pegs left) — offers "Retry", not "Next level" (D-10). */
 private val STUCK_CHALLENGE_STATE =

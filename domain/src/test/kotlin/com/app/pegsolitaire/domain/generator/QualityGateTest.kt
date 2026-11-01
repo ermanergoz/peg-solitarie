@@ -1,6 +1,7 @@
 package com.app.pegsolitaire.domain.generator
 
 import com.app.pegsolitaire.domain.model.Board
+import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.Cell
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.google.common.truth.Truth.assertThat
@@ -124,6 +125,19 @@ class QualityGateTest {
             assertThat(second.startingBoard.spec.inPlay).isEqualTo(first.startingBoard.spec.inPlay)
             assertThat(second.solution).isEqualTo(first.solution)
         }
+    }
+
+    // ---- Generator contract 2 (docs/gdd.md §7) ------------------------------------------------
+
+    @Test
+    fun levelOneDealsFivePegsAndAFourJumpLine() {
+        // SB-D6 (Q-040): level 1 plays like the old level 31, so the old levels 1-25, where any
+        // single jump was already a pass, are behind the start; nothing is deleted or renumbered.
+        val level = LevelGenerator.generate(1)
+
+        assertThat(level.startingBoard.pegCount).isEqualTo(5)
+        assertThat(level.solution).hasSize(4)
+        assertThat(level.startingBoard.spec.footprint).isEqualTo(Boards.English33.footprint)
     }
 
     @Test

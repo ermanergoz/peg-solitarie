@@ -54,7 +54,7 @@ import kotlin.time.TestTimeSource
  * device. The cases pin the full truth table:
  *  - a Challenge board played to Won advances exactly once, keyed to the solved level;
  *  - the same board played as a **Classic** level never advances;
- *  - a Challenge board driven into Stuck never advances;
+ *  - a Challenge board driven into Stuck (four or more pegs since 3.0.0, GDD R6) never advances;
  *  - a back→undo→re-solve cycle (CR-02) only ever advances past the SAME solved level,
  *    so the idempotent store write cannot skip a level.
  */
@@ -149,14 +149,14 @@ class GameViewModelChallengeAdvanceTest {
             val progress = mockk<ChallengeProgress>(relaxed = true)
             val viewModel =
                 viewModelFor(
-                    board = twoMoveStuckLine(),
+                    board = oneJumpToAFourPegDeadEnd(),
                     challengeLevel = PLAYED_CHALLENGE_LEVEL,
                     challengeProgress = progress,
                 )
             runCurrent()
 
-            // The only available line strands two non-adjacent pegs → Stuck, never Won.
-            jump(viewModel, from = Position(row = 0, col = 2), to = Position(row = 0, col = 4))
+            // The only jump strands four pegs: past the Challenge clear threshold of three, so
+            // Stuck, never Won (GDD R6). A two- or three-peg dead end is a clear since 3.0.0 (R5).
             jump(viewModel, from = Position(row = 0, col = 0), to = Position(row = 0, col = 2))
             runCurrent()
 
@@ -224,13 +224,20 @@ class GameViewModelChallengeAdvanceTest {
             .withPeg(Position(row = 0, col = 0))
             .withPeg(Position(row = 0, col = 1))
 
-    /** A 1x5 strip filled cols 0..3: two jumps strand two non-adjacent pegs → Stuck. */
-    private fun twoMoveStuckLine(): Board =
-        Board(spec = horizontalLine(length = STUCK_STRIP_LENGTH), pegs = 0L)
-            .withPeg(Position(row = 0, col = 0))
-            .withPeg(Position(row = 0, col = 1))
-            .withPeg(Position(row = 0, col = 2))
-            .withPeg(Position(row = 0, col = 3))
+    /**
+     * [wonInOneJumpBoard]'s strip plus three lone pegs two rows below it, every other column, so no
+     * two touch: the one jump leaves four isolated pegs and no legal move — stuck under the Challenge
+     * rule (four is past its threshold of three) as under Classic's one-peg floor.
+     */
+    private fun oneJumpToAFourPegDeadEnd(): Board {
+        val lonePegs = (0 until LONE_PEG_COUNT).map { Position(row = LONE_PEG_ROW, col = it * 2) }
+        val strip = (0 until WIN_STRIP_LENGTH).map { Position(row = 0, col = it) }
+        return lonePegs.fold(
+            Board(spec = BoardSpec(inPlay = strip + lonePegs, target = null), pegs = 0L)
+                .withPeg(Position(row = 0, col = 0))
+                .withPeg(Position(row = 0, col = 1)),
+        ) { board, position -> board.withPeg(position) }
+    }
 
     private fun horizontalLine(length: Int): BoardSpec =
         BoardSpec(inPlay = (0 until length).map { Position(row = 0, col = it) }, target = null)
@@ -251,8 +258,9 @@ private const val PLAYED_CHALLENGE_LEVEL = 7
 /** A 1x3 strip is the smallest board with exactly one winning jump. */
 private const val WIN_STRIP_LENGTH = 3
 
-/** A 1x5 strip is the smallest board whose only line dead-ends with two pegs left. */
-private const val STUCK_STRIP_LENGTH = 5
+/** The lone pegs beside the strip in the four-peg dead end, and the row they sit on. */
+private const val LONE_PEG_COUNT = 3
+private const val LONE_PEG_ROW = 2
 
 /**
  * A [LevelRepository] that serves the SAME board through both load paths, so a test can

@@ -547,4 +547,18 @@
     <string name="google_notice_text_error">Bu bildirim gösterilemedi.</string>
     <string name="google_notice_text_unknown_title">Bildirim</string>
     <!-- ==================== end licences copy ==================== -->
+    <!-- Challenge star bands (ux-spec D-SB, §8 Turkish copy of record, sen voice). -->
+    <plurals name="stuck_message_challenge">
+        <item quantity="one">%1$d piyonla hamle kalmadı — seviyeyi geçmek için en fazla %2$d piyon bırak. Geri al ya da yeniden başlat.</item>
+        <item quantity="other">%1$d piyonla hamle kalmadı — seviyeyi geçmek için en fazla %2$d piyon bırak. Geri al ya da yeniden başlat.</item>
+    </plurals>
+    <plurals name="nowin_message_challenge">
+        <item quantity="one">Buradan tek piyona inmenin yolu yok — en fazla %1$d piyonla seviyeyi yine de geçebilirsin, istersen geri al ya da yeniden başlat.</item>
+        <item quantity="other">Buradan tek piyona inmenin yolu yok — en fazla %1$d piyonla seviyeyi yine de geçebilirsin, istersen geri al ya da yeniden başlat.</item>
+    </plurals>
+    <string name="results_headline_cleared">Geçildi!</string>
+    <plurals name="results_next_star_hint">
+        <item quantity="one">%2$d yıldız için %1$d piyon bırak.</item>
+        <item quantity="other">%2$d yıldız için %1$d piyon bırak.</item>
+    </plurals>
 </resources>

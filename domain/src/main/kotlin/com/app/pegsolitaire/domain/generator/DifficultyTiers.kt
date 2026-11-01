@@ -15,6 +15,13 @@ import com.app.pegsolitaire.domain.model.Boards
  * structure is final. Because each knob grows by integer division of the level
  * number, consecutive-level deltas are bounded (at most one step), giving the
  * gentle continuous climb D-05 asks for.
+ *
+ * **Generator contract 2 (docs/gdd.md §7.1, GD-SB-09, the founder's Q-040).** The curve is read
+ * [Curve.LEVEL_OFFSET] levels further along: visible level N deals every lever the previous curve
+ * dealt at N + 30, so the opening levels where any single jump was already a pass sit behind the
+ * start. It is a shift, not a removal: the level numbers, the steps, the cap and the seed (the
+ * visible level) are untouched. The freeform intro stays keyed on the visible level, as it was
+ * under contract 1.
  */
 object DifficultyTiers {
     /**
@@ -22,9 +29,20 @@ object DifficultyTiers {
      * level 1 (T-03-01: an untrusted nav-arg level must never crash), so
      * `forLevel(0)` and `forLevel(-5)` both return the level-1 tier.
      */
-    fun forLevel(levelNumber: Int): DifficultyTier {
+    fun forLevel(levelNumber: Int): DifficultyTier = forLevel(levelNumber, levelOffset = Curve.LEVEL_OFFSET)
+
+    /**
+     * The tier for [levelNumber] with the curve read [levelOffset] levels further along. The
+     * public overload passes [Curve.LEVEL_OFFSET]; `levelOffset = 0` is the previous curve, the
+     * oracle the shift's property test compares against. `internal` because only that test
+     * needs a second offset; the shipped contract has one.
+     */
+    internal fun forLevel(
+        levelNumber: Int,
+        levelOffset: Int,
+    ): DifficultyTier {
         val level = levelNumber.coerceAtLeast(Curve.MIN_LEVEL)
-        val fromStart = level - Curve.MIN_LEVEL
+        val fromStart = (level - Curve.MIN_LEVEL) + levelOffset
 
         val solutionLength =
             (Curve.SOLUTION_LENGTH_BASE + fromStart / Curve.SOLUTION_LENGTH_STEP_LEVELS)
@@ -80,6 +98,16 @@ object DifficultyTiers {
     private object Curve {
         /** The lowest valid level; anything below clamps up to it (T-03-01). */
         const val MIN_LEVEL = 1
+
+        /**
+         * How far along the previous curve the ladder starts (docs/gdd.md §7.1-§7.2, GD-SB-09,
+         * GD-SB-21): visible level N deals what that curve dealt at N + 30, so level 1 plays like
+         * the old level 31 — five pegs, a four-jump line on the English cross — and the old levels
+         * 1-25, where any single jump was already a pass, are behind the start. The founder's
+         * number (Q-040: "remove first like 30 levels", "i remove i meant shift"); nothing is
+         * deleted or renumbered. Part of generator contract 2, so a change is a bump.
+         */
+        const val LEVEL_OFFSET = 30
 
         /** Solution length dealt at level 1 — a gentle on-ramp (D-05). */
         const val SOLUTION_LENGTH_BASE = 3
