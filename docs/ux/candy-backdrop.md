@@ -1874,11 +1874,17 @@ table).
 - **B-21** (848–854): the lanes, the disjointness, the per-light composite bounds and "no wave pixel
   above 0.47 H" **stand unchanged**, and now carry the at-rest title as well as the wrapped one: that
   is why D-03q's bound is `TITLE_REACH`.
-- **§8.4** (1846–1849): in each Home cell read "the stage" as "the headroom above the hero row":
-  360×640dp three-button — the headroom holds the lane lights above the hero row and the crests lie
-  behind the lower group; 360×800dp — the headroom ≈ 90dp, the lights in it; 412×915dp — the headroom
-  ≈ 240–330dp with no save, the hero row at its foot at or above 414dp, the crests behind the
-  ribbon and the chips; the Pixel_9 — the row's bottom exactly on the bound (417.8dp) with no save.
+- **§8.4** (1846–1849): in each Home cell read "the stage" as "the headroom above the hero row"
+  *(figures corrected in loop 2, the second check's F-1 — the first wording's "360×800dp — the
+  headroom ≈ 90dp" and "412×915dp — ≈ 240–330dp with no save" were wrong; ux-spec §4.2.7's
+  eight-window table governs)*: 360×640dp three-button — the headroom (192dp with no save) holds the
+  lane lights above the hero row, the row's bottom at 272dp, 0.425 H, clear of the bound (284.8dp),
+  and the crests lie behind the lower group; 360×800dp — the headroom is **280dp** with no save, 184
+  with one and 104 with both (the bound bites by 40dp there, the largest bite of any window), the
+  row's bottom exactly on the bound at 360dp, the lights in the headroom; 412×915dp — the headroom
+  is **≈ 326dp** with no save on either bar (≈ 230 with one save, ≈ 134 with both), the hero row's
+  bottom at or above 414dp, the crests behind the ribbon and the chips; the Pixel_9 — the row's
+  bottom exactly on the bound (417.8dp) with no save, the headroom 299.8dp.
   The "any other window" row's "a shorter window keeps the title at rest in the calm band" stands
   for windows with no headroom.
 - **§8.5, Home at 200%** (1860): "the stage shrinks or goes to 0" reads "the headroom shrinks or goes

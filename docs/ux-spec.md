@@ -653,6 +653,29 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > headroom above the hero row, the thumbnail's content, size and slab, the Challenge chip, D-03n's
 > footer ratio, 15n, 15o, 15g's midpoint, 15k. No string, token, colour, asset or dependency
 > changes; `BackdropMetrics.TITLE_REACH` is read by Home's layout, not changed.
+>
+> **Thirteenth revision, loop 2 — 2026-11-01 — AMENDMENT (the bound bites on three-button windows
+> too; 15g's fourth clause; the 3.11:1 steady state).** Input: the second fresh check,
+> `.planning/reports/home-continue-live-boards/ux-designer-check-2.md` (`7f4f5a2`): **FAIL** on F-1
+> (High) — loop 1 exempted "every three-button phone window" and "every window shorter than ≈ 800dp"
+> from the bound, and by the spec's own method the bound bites on `w360dp-h800dp` by **40dp** (the
+> hero row's bottom at 0.50 H, on the back crest), on `w360dp-h720dp` by 13.6dp and on
+> `w412dp-h915dp` by ≈ 11.5dp, so 15ac part 1 asserted two things that cannot both hold on three of
+> its windows. **Text only; nothing in D-03q's design changes.** Every window-class exemption is
+> struck: **H₀ = min(⅘ S₀, C) on every window, with no exemption**; §4.2.7's corrected table is
+> extended to all eight 15ac windows (the check's computation, the re-walk governing); 15y parts 1
+> and 4, 15s's pointer, 15ac part 1, §13's D-03q row, the §14 header and candy-backdrop §8.1's §8.4
+> line are corrected. Two one-sentence rulings: **F-2** — 15g's fourth clause reads "the space the
+> tiles occupy" as the two tiles with their band gap, and neither the headroom above the first
+> element nor the footer below the last is a "gap on the screen" in its sense; **F-3** — the 3.11:1
+> worst case is accepted as a steady state (the lane light H2 under the title's first word on a
+> fresh install in light), with TG-AC03's sampling rule stated and `BackdropLightPinkRim`'s light
+> alpha named as the one lever if the device reads under 3:1. The Low items: the "42dp" prose is
+> 58.4dp (F-4); the design baseline's no-chip row bottom is ≈ 272dp, 0.425 H (F-5); a ≤ 1dp tile
+> move at QA's 360×640dp with both saves is 15t's case (F-6); the footer's share of S₀ grows with
+> the window's height and reaches a third at H ≈ 1060dp, outside 15g's scope (F-7). **Not
+> reopened:** the bound, the floor, Q-033, the footer as the excess's home, and everything loop 1
+> left standing. No string, token, colour, asset, dependency or backdrop constant changes.
 
 ---
 
@@ -1484,8 +1507,15 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   fifth of S₀ plus whatever the bound would not let the headroom hold — and the tiles move only by
   max(0, R − H₀). So the capped excess sits **below the tiles**, never between elements, and the
   chips' room still comes out of the headroom with the hero row and the ribbon riding up on it.
-  Where the bound does not bite — every three-button phone window measured, and 360×640dp — nothing
-  changes from D-03p.
+  **The rule has no window-class exemption** *(loop 2 — the second check's F-1; the first wording,
+  "Where the bound does not bite — every three-button phone window measured, and 360×640dp —
+  nothing changes from D-03p", was false by this ruling's own method and is struck)*: H₀ is the
+  smaller of ⅘ S₀ and C on every window, and whether it bites is a fact of the window the test
+  computes, not a class the spec names. By projection it bites on five of criterion 15ac's eight
+  windows — `w360dp-h800dp` by 40dp (D-03p alone would put the row's bottom at 0.50 H, on the back
+  crest), `w360dp-h720dp` by 13.6dp, `w412dp-h915dp` by ≈ 11.5dp with a three-button bar and
+  ≈ 30.7dp with a gesture bar, the Pixel_9 by 39.3dp — and not on `w360dp-h640dp`, `w412dp-h780dp`
+  or `w412dp-h850dp` (§4.2.7's eight-window table).
   **(2) The contrast rule below the calm band.** The Home title at rest is no longer in the calm
   band; it sits in the lane lights' band, where B-21 keeps every point to the sky plus at most one
   light, bounded so the title reads ≥ 3.11:1 in light and ≥ 3.99:1 in dark over a light, and
@@ -1517,7 +1547,8 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   it is WCAG AA for this text: the title has been held to ≥ 3:1 whenever wrapped since B-21, and the
   same guarantee now covers it at rest. The excess goes below the tiles because the only other place
   is between elements, which Q-004, 15p and Q-033 all forbid; on the Pixel_9 it is ≈39dp, the tiles
-  rise by that and stay 42dp below the midpoint, and the footer is 29% of S₀. The bound is read in
+  rise by that and stay 58.4dp below the midpoint *(loop 2, F-4: the first wording said 42dp; the
+  table was right)*, and the footer is 29% of S₀. The bound is read in
   window coordinates because `TITLE_REACH` is; how it reaches the band column — the window height
   and the status inset handed down with the available height, or the constant read beside the
   column — is the developer's, under the tech-lead, since it is a new input to Home's measure
@@ -4043,9 +4074,10 @@ C = 369.8 − 54 − 16 = **299.8dp** against ⅘ S₀ = 339.1dp — the bound b
 to the footer. At QA's 360×640dp window (H 640, 52dp status bar) the bound is 0.47 × 640 − 16 =
 **284.8dp**, the row's top may not pass 236.8dp, and C = 236.8 − 52 − 8 = **176.8dp** against ⅘ S₀ =
 188.8dp — it bites by **12.0dp**. On the design baseline's 360×640dp with a 24dp status bar and a
-48dp three-button bar the row's bottom with no chip is ≈234dp, 0.365 H, and the bound does not bite;
-on `w412dp-h915dp` (bound 414.1dp) it bites by ≈12dp with a three-button bar and ≈29dp with a
-gesture bar, from the check's readings of the row at 378–426dp and 397–443dp.
+48dp three-button bar the row's bottom with no chip is ≈ 272dp, 0.425 H *(loop 2, F-5: the first
+wording's "≈234dp, 0.365 H" was not derivable from the spec's inputs; from S₀ ≈ 240dp it is 272dp)*,
+and the bound (284.8dp) does not bite; on `w412dp-h915dp` (bound 414.1dp) it bites by ≈12dp with a
+three-button bar and ≈31dp with a gesture bar.
 
 | Window, chips | Headroom | Hero row's top … bottom | Footer (S₀ − H₀) | Tile 1's top | 15g midpoint |
 |---|---|---|---|---|---|
@@ -4061,6 +4093,53 @@ the tiles sit 39.3dp and 12.0dp higher than the first table put them and still b
 midpoints; the hero row with no chip now ends exactly on the bound. The three-button 360×640dp
 shortfall is unchanged at 6.4dp (the bound does not bite there). On a 412×915dp three-button phone
 the founder's one-chip title sits with its top at ≈270dp, a little under three tenths of the screen.
+
+**The bound on all eight 15ac windows** *(loop 2 — the second check's F-1; its computation, by this
+subsection's method, S₀ projected from the two measured windows — the full set's fixed content
+421.1dp, the compact set's 328dp — with the re-walk governing as everywhere; 24dp status bar and
+48dp three-button bar unless named; window frame)*. Loop 1 wrote that the bound bites only on the
+gesture-bar windows; that was false. It bites on **five** of the eight, three of them three-button,
+and the largest bite of all is `w360dp-h800dp`, where D-03p alone would put the hero row's bottom at
+0.50 H, on the back crest:
+
+| 15ac window | Set | S₀ | ⅘ S₀ | Row, no chip, under D-03p | Bound | Bites by | **H₀** | Footer (S₀ − H₀) | Tile 1's top vs midpoint |
+|---|---|---|---|---|---|---|---|---|---|
+| `w360dp-h640dp` | compact | 240 | 192 | 224 … 272 | 284.8 | — | **192** | 48 (20%) | 328 vs 308 ✓ |
+| `w360dp-h720dp` | compact | 320 | 256 | 288 … 336 | 322.4 | **13.6** | **242.4** | 77.6 (24%) | 378.4 vs 348 ✓ |
+| `w360dp-h800dp` | compact | 400 | 320 | 352 … **400 = 0.50 H** | 360 | **40.0** | **280** | 120 (30%) | 416 vs 388 ✓ |
+| `w412dp-h780dp` | full | ≈ 286.9 | 229.5 | 269.5 … 317.5 | 350.6 | — | **229.5** | 57.4 (20%) | ≈ 419 vs 378 ✓ |
+| `w412dp-h850dp` | full | ≈ 356.9 | 285.5 | 325.5 … 373.5 | 383.5 | — (10dp clear) | **285.5** | 71.4 (20%) | ≈ 475 vs 413 ✓ |
+| `w412dp-h915dp` | full | ≈ 421.9 | 337.5 | 377.5 … 425.5 | 414.05 | **≈ 11.5** | **326.1** | 95.8 (23%) | ≈ 516 vs 445.5 ✓ |
+| `w412dp-h915dp`, 24 + 24 gesture | full | ≈ 445.9 | 356.7 | 396.7 … 444.7 | 414.05 | **≈ 30.7** | **326.1** | 119.8 (27%) | ≈ 516 vs 457.5 ✓ |
+| Pixel_9 `w411dp-h923dp`, 54 + 24 | full | 423.9 | 339.1 | 409.1 … 457.1 | 417.8 | **39.3** | **299.8** | 124.1 (29%) | 535.2 vs 476.8 ✓ |
+
+Read it as the rule says: H₀ is the smaller of ⅘ S₀ and C on every row, the row's bottom with no chip
+sits on the bound wherever it bites and at ⅘ S₀'s height wherever it does not, the footer is S₀ − H₀,
+and every tile top is below its window's midpoint. By the compact set's arithmetic the bound bites
+from ≈ 680dp of height at 24 + 48 and from ≈ 605dp at 52 + 24; "every window shorter than ≈ 800dp"
+was wrong and is struck.
+
+**15g's fourth clause under the bound** *(loop 2 — the second check's F-2; ruled)*. 15g's "no single
+gap on the screen is larger than the space the tiles occupy" guards D-03i's dead bottom — a blank
+below the tiles that dwarfed them. **"The space the tiles occupy" is the two tiles with their band
+gap** (≈ 208dp at default scale), and **neither the headroom above the first element nor the footer
+below the last is a "gap on the screen"** in the clause's sense: a gap is a distance between two
+consecutive visible elements (D-03m, 15y part 3), and the first check passed D-03p on exactly that
+reading with a ≈ 300dp headroom. The footer under the bound — 124.1dp on the Pixel_9, 120dp on
+`w360dp-h800dp` — is recorded against the tiles' span anyway: it is under it on every window
+computed here. §13's `HomeLayoutTest` 15g cases are retargeted to this reading.
+
+**The footer's share as windows grow taller** *(loop 2 — F-7, record only)*. Under the bound the
+footer is S₀ − H₀, and C grows with H more slowly than ⅘ S₀ does, so the footer's share of S₀ rises
+with the window's height: for the full set at 24 + 24 it is (0.53 H − 365) ⁄ (H − 469) and reaches a
+third at H ≈ 1060dp (≈ 1010dp with a 54dp inset). No shipping phone is that tall and 15g is stated
+for the 6.7-inch phone; a tall foldable or a tablet will show a footer past a third of S₀, by
+design, and it is not a 15g failure there.
+
+**A one-pixel case at QA's 360×640dp window** *(loop 2 — F-6)*. With both saves there H₀ is 176.8dp
+against R₂ = 176dp: 0.8dp of headroom. A pixel of rounding in the bound can take it to 0 and move the
+tiles by up to 1dp, which is 15t's shortfall case and not a failure of 15z or 15v: 15ac part 2 and
+15v's pointer say so.
 
 **The title bound (D-03q — loop 1, 2026-11-01).** The fresh check (F-1) is right: at the heights the
 first table gave it, the hero row's box ends at 0.49 H on the Pixel_9 with no save, on the back
@@ -4086,10 +4165,13 @@ TG-AC03 asked of it at rest. Ruled, in three parts.
    - **Footer** = min(S₀ − H₀, max(0, S₀ − R)) — fixed for the window while the headroom can give the
      room: one fifth of S₀ plus the capped excess ⅘ S₀ − H₀, if any.
    - **The tiles move by max(0, R − H₀)**, only downward.
-   - Where C ≥ ⅘ S₀ nothing changes from D-03p: every three-button phone window §14 measures, the
-     design baseline, and every window shorter than ≈ 800dp. Where it bites, the excess sits
-     **below the tiles**: never between the hero row and the ribbon, the ribbon and the chips, or
-     the chips and the tiles (Q-004, 15y part 3, Q-033).
+   - **No window class is exempt** *(loop 2, F-1; the first wording — "Where C ≥ ⅘ S₀ nothing
+     changes from D-03p: every three-button phone window §14 measures, the design baseline, and
+     every window shorter than ≈ 800dp" — is struck as false)*: H₀ = min(⅘ S₀, C) on every window,
+     and the eight-window table below says where it bites. Where it does not (C ≥ ⅘ S₀) nothing
+     changes from D-03p. Where it bites, the excess sits **below the tiles**: never between the hero
+     row and the ribbon, the ribbon and the chips, or the chips and the tiles (Q-004, 15y part 3,
+     Q-033).
    - When a chip arrives, the room comes out of the headroom and the hero row and the ribbon ride
      up on it, as before; the hero row only ever moves **up** from H₀, so it never crosses the
      bound in any state or any frame of the room's motion; the tiles and the footer hold still
@@ -4118,6 +4200,20 @@ TG-AC03 asked of it at rest. Ruled, in three parts.
    and the game strip. Nothing in the backdrop moves: B-20's calm band still holds the status bar
    and the game strip's title, B-21's lanes and bounds stand, BD-08 and BD-11 compute the same
    constraints, and the scene's five lane lights keep their places.
+   **The worst case is a steady state, and it is accepted** *(loop 2 — the second check's F-3)*. In
+   light on a fresh install the lane light H2 (Pink, x 0.22 W, rest centre 0.40 H, rising to ≈ 0.31 H
+   over its 24 s) sits under the title's first word for most of its cycle while the row holds
+   0.40–0.45 H, so ≈ 3.1–3.2:1 is a normal at-rest reading on the QA device in light, not a 200%
+   excursion. It is accepted on these terms: the floor is WCAG AA for this text; B-21's rim bound is
+   what the number is, so it does not drift with the pose; and the read is **TG-AC03's sampling
+   rule** — the topmost pixels of the ascenders and pixels in the lower half of the glyphs, against
+   the pixels beside them, **never an anti-aliased edge** — with 15ac part 3 (b) as the gate. If the
+   device reads under 3:1 over H2 by that rule, it returns to this role with the capture, and the
+   one lever is named now: `BackdropLightPinkRim`'s **light** alpha (55% → ≈ 45% puts the rim's
+   composite near L 0.56 at 0.47 H, ≈ 3.3:1), a constant this role owns in `docs/ux/candy-backdrop.md`
+   §4.1, retuned only then, with BD-08 recomputed and the tech-lead told. It is not retuned on
+   projection: the margin colour-vision §4.2 called thin was measured against the plain background
+   with anti-aliased edges in the sample, which the rule above excludes.
 
 **Why not the other two shapes.** *Amend the scene relative to the hero row* — the lights fading
 around the row's band, the crest lowered: the row's band depends on the chip state and the window
@@ -6780,7 +6876,7 @@ no zero-inset window.
 | `BoardCanvasFirstFrameTest.theFirstFrameOfTheHomeStageDrawsItsPegsOnTheSlab` (15v part 4's JVM half) | No stage | **Retarget** to the Classic thumbnail: the first frame that draws its slab draws its pegs (15aa part 6). |
 | `BackdropPixelTests` cases that read `HOME_STAGE_ART_TEST_TAG` (BD-17 / BD-22's Home read, `docs/ux/candy-backdrop.md`) | No stage art | **Retarget** to the Classic thumbnail or a catalogue preview, as the backdrop spec's 2026-11-01 pointer rules; never delete. |
 | `HomeViewModelTest` / `HomeViewModelCloudTest` cases that expect `classicResumeBoard` to be the catalogue descriptor's `previewBoard` | The field carries the saved position; a snapshot whose moves do not replay is withheld and its row purged (the tech-lead's ruling 1, loop 1) | **Retarget** to 15aa part 1; **add** 15aa part 2's withheld-and-purged case, on `HomeViewModelTest.aClassicSnapshotOnAnUnknownBoardOffersNoContinueAndPurgesTheRow`'s template, and the invariant `(classicResumeLevelId == null) == (classicResumeBoard == null)` over absent, unreadable, unknown-id, forged-history and valid snapshots. The fake's `snapshotOf` builds codec-valid DTOs through `SnapshotMapper.toDto`; a red from the hollow DTO it builds today is the fixture's, not the rule's (the brief's Open issue 4). |
-| `HomeChipArrivalTest`, `HomeStageTest`'s renamed headroom cases and `HomeLayoutTest`'s 15g cases, wherever they read a no-chip headroom of ⅘ S₀ or a footer of S₀ ⁄ 5 *(loop 1, D-03q)* | The no-chip headroom is H₀ = min(⅘ S₀, C) and the footer S₀ − H₀; on the Pixel_9's window and the gesture-bar `w412dp-h915dp` the bound bites | **Retarget** to H₀ (15ac parts 1–2, 15y, 15z). On the six three-button windows the figures are unchanged, so an assertion written for ⅘ S₀ goes red only on the two gesture-bar windows 15ac adds — add them rather than loosening the read. |
+| `HomeChipArrivalTest`, `HomeStageTest`'s renamed headroom cases and `HomeLayoutTest`'s 15g cases, wherever they read a no-chip headroom of ⅘ S₀ or a footer of S₀ ⁄ 5 *(loop 1, D-03q; loop 2 corrected)* | The no-chip headroom is H₀ = min(⅘ S₀, C) and the footer S₀ − H₀ **on every window**; by §4.2.7's eight-window table the bound bites on `w360dp-h720dp`, `w360dp-h800dp`, `w412dp-h915dp` (either bar) and the Pixel_9, and not on `w360dp-h640dp`, `w412dp-h780dp` or `w412dp-h850dp` | **Retarget** to H₀ (15ac parts 1–2, 15y, 15z). An assertion written for ⅘ S₀ goes red on **every window where the bound bites**, three-button ones included — retarget it to H₀ there and add the two gesture-bar windows, rather than loosening the read. 15g's fourth clause is read as §4.2.7 "15g's fourth clause under the bound" rules: the tiles' span is both tiles with their gap, and the headroom and the footer are not gaps. *(Loop 2: the first wording, "on the six three-button windows the figures are unchanged, so an assertion written for ⅘ S₀ goes red only on the two gesture-bar windows", was false.)* |
 | `HomeScreenTest` and fixture states built with `classicResumeBoard = Boards.*Initial` | Still valid states — a save with no moves shows the start board | **Pass unedited.** A fixture may add a mid-game board for 15aa part 3. |
 | `HomeHeroRowTest` (15n, 15o) | The hero row is unchanged; nothing is composed above the title | **Pass unedited.** If 15n's "no node above the title" sees a node, the headroom was built as a child with semantics — fix the production code. |
 
@@ -6790,7 +6886,8 @@ no zero-inset window.
 sitting** (§6.5, "Any later branch"). New test tag: `HOME_RESUME_THUMB_TEST_TAG` (`home_resume_thumb`)
 on the thumbnail's slab. The two §13 idioms still bind. *(Loop 1 — D-03q.)* Also owed: **15ac** parts
 1 and 2 on the JVM — the bound over the six windows and the two gesture-bar windows it names, watched
-failing on the Pixel_9's window with no chip (the row's bottom at 0.49 H today) — and **15ac** part
+failing on the Pixel_9's window with no chip (the row's bottom at 0.49 H today) and on
+`w360dp-h800dp` (0.50 H today, on the back crest; loop 2) — and **15ac** part
 3, the dark no-chip read, the qa-engineer's; 15y part 1 and 15z are read with H₀ in place of ⅘ S₀.
 How the bound reaches the band column (the window height and the status inset handed down with the
 available height, or `BackdropMetrics.TITLE_REACH` read beside the column) is the developer's under
@@ -7124,6 +7221,13 @@ which build all three apply to.
      reading and 15p part 1 together, except on a knife edge under 0.1dp wide on one window (§4.2.5);
      that reading worked only while the footer moved with the chips. The midpoint, the bottom edge and the largest-gap clauses are unchanged, and the loop-3
      PASS stands on both readings for the build it measured.)*
+     *(Ruled 2026-11-01, loop 2 — **D-03q**, §4.2.7 "15g's fourth clause under the bound". The words
+     stand. "The space the tiles occupy" is the two tiles with their band gap, ≈ 208dp; and neither
+     the headroom above the first element nor the footer below the last is a "single gap on the
+     screen" in this clause's sense — a gap is a distance between two consecutive visible elements
+     (D-03m, 15y part 3), which the clause guards against D-03i's dead bottom. Under the bound the
+     footer is S₀ − H₀, 124.1dp on the Pixel_9, under the tiles' span on every window §4.2.7
+     computes, and 15ac part 1 reads the third clause; the midpoint clause holds on every one.)*
 
 15h. *(**RETIRED 2026-09-28 — D-03k, §4.2.3. It is not achievable, and it was certified by an
      assertion that could not fail.** Replaced by **15k**. Read the retirement note below it before
@@ -7359,9 +7463,11 @@ unchanged. Criterion **15z** restates them for the branch that lands D-03p; 15w 
      Part 1 reads "both mode tiles' bounds"; the title's and the gear's bounds move with the
      ribbon's, up by exactly min(R, H₀). Part 3 reads "the headroom's height is max(0, H₀ − R), with
      H₀ = min(⅘ S₀, C) and S₀ over four band gaps, and the hero row's and the ribbon's top edges sit
-     higher than their no-chip tops by exactly min(R, H₀)" — on these six three-button windows at
-     default scale H₀ = ⅘ S₀ and R ≤ H₀, so the two readings coincide. Parts 2 and 4 stand, part 2
-     with the footer as S₀ − H₀.
+     higher than their no-chip tops by exactly min(R, H₀)". *(Loop 2: the clause "on these six
+     three-button windows at default scale H₀ = ⅘ S₀ … so the two readings coincide" was false and
+     is struck — on `w360dp-h720dp`, `w360dp-h800dp` and `w412dp-h915dp` H₀ is C; R ≤ H₀ still holds
+     on all six, so the tiles hold still on every one.)* Parts 2 and 4 stand, part 2 with the footer
+     as S₀ − H₀.
 
 15t. **Where the stage cannot give the room, the tiles move by the shortfall and no more.** Given the
      same emissions at font scale 2.0 on `w360dp-h640dp` and `w412dp-h915dp`, insets supplied, then
@@ -7433,6 +7539,9 @@ unchanged. Criterion **15z** restates them for the branch that lands D-03p; 15w 
      the ribbon's, by the chips' room and only upward, and the tiles' edges stay put; part 4's stage
      half has no subject and its tile half stands; part 5's shortfall is 6.4dp, not 12.8dp (§4.2.7).
      The recording is made once more on the branch that lands D-03p, after its own 15e sitting.
+     *(Loop 2 — D-03q, F-6.)* At QA's 360×640dp window with both saves the headroom under the bound
+     is 0.8dp, so a tile move of **≤ 1dp** there is 15t's shortfall case, read by 15t's rule, and
+     not a failure of part 1 or part 2.
 
 15w. **No word breaks; one shape per ribbon.** Given Home on `w360dp-h640dp`, insets supplied, with
      NATIVE text metrics in the app theme (the real faces), at font scales 1.0, 1.3 and 2.0, with Stars
@@ -7460,9 +7569,12 @@ with the device's system-bar insets supplied, on NATIVE metrics in the app theme
 scroll does not move this node" rather than containment (§13's two idioms).
 *(Loop 1 — 2026-11-01, D-03q and the tech-lead's ruling 1.)* **Six** now: **15ac** joins them, and
 wherever 15y and 15z say ⅘ S₀ as the no-chip headroom they read **H₀ = min(⅘ S₀, C)**, the bound's
-headroom (§4.2.7 "The title bound"), and the footer **S₀ − H₀**; on the six three-button windows
-H₀ = ⅘ S₀ and no figure moves. 15aa part 2 and 15ab part 2 are revised for the tech-lead's ruling, and
-15aa part 5 for the check's F-4, each with its first wording kept beside it.
+headroom (§4.2.7 "The title bound"), and the footer **S₀ − H₀**. 15aa part 2 and 15ab part 2 are
+revised for the tech-lead's ruling, and 15aa part 5 for the check's F-4, each with its first wording
+kept beside it. *(Loop 2.)* The sentence this note first carried — "on the six three-button windows
+H₀ = ⅘ S₀ and no figure moves" — was false and is struck: by §4.2.7's eight-window table the bound
+bites on `w360dp-h720dp`, `w360dp-h800dp` and `w412dp-h915dp` as well as on the two gesture-bar
+windows. **H₀ = min(⅘ S₀, C) on every window, with no exemption.**
 
 15x. **No stage, and nothing in the headroom.** Given Home on any window in any chip state, then: no
      node tagged `home_stage` or `home_stage_art` exists, and `grep -rn 'HomeStage\|HOME_STAGE\|home_stage_art'
@@ -7476,8 +7588,9 @@ H₀ = ⅘ S₀ and no figure moves. 15aa part 2 and 15ab part 2 are revised for
      in every chip state (none, Classic only, Challenge only, both), S₀ as §4.2.7 defines it with
      **four** band gaps and R as §4.2.5 defines it, then:
      1. the hero row's top edge sits at the column's top padding plus the headroom,
-        max(0, H₀ − R) (±0.5dp), H₀ = min(⅘ S₀, C) *(loop 1, D-03q; ⅘ S₀ on every window here)* —
-        and at the padding exactly wherever the column overflows;
+        max(0, H₀ − R) (±0.5dp), H₀ = min(⅘ S₀, C) *(loop 1, D-03q; loop 2: "⅘ S₀ on every window
+        here" was false — on `w360dp-h720dp`, `w360dp-h800dp` and `w412dp-h915dp` H₀ is C, §4.2.7's
+        eight-window table)* — and at the padding exactly wherever the column overflows;
      2. the distance from the second mode tile's bottom edge to the bottom of the viewport equals
         min(S₀ − H₀, max(0, S₀ − R)) plus one band gap and the column's bottom padding (±0.5dp): D-03n's
         footer on the larger S₀, plus the bound's excess where it bites *(loop 1)*;
@@ -7485,7 +7598,9 @@ H₀ = ⅘ S₀ and no figure moves. 15aa part 2 and 15ab part 2 are revised for
         each chip, each tile, read as D-03m defines a visible element — exceeds the band gap, 16dp in
         the full set and 8dp in the compact set, by more than 0.5dp, in any chip state;
      4. on `w412dp-h915dp` the first mode tile's top edge is at or below the midpoint in the no-chip
-        and the both-chips states (15g), and the footer is a fifth of S₀ in both (15g's ruled reading).
+        and the both-chips states (15g), and the footer is S₀ − H₀, at most a third of S₀, in both
+        (15g's ruled reading; loop 2: "a fifth of S₀" was the no-bite figure, and that window bites
+        by ≈ 11.5dp — its footer is ≈ 23% of S₀).
      Today's code fails parts 1 and 3: the hero row sits at the padding and ≈230dp of stage lies
      between it and the ribbon on the founder's one-chip window. (D-03p, D-03m, D-03n, criteria 15g,
      15p)
@@ -7587,15 +7702,21 @@ H₀ = ⅘ S₀ and no figure moves. 15aa part 2 and 15ab part 2 are revised for
         visible bottom edge (the lower of the title's and the gear's, D-03m), in **window**
         coordinates, is at or above 0.47 H − `entrance_slide_distance` (±0.5dp); with no chip on the
         Pixel_9's window it equals the bound (±0.5dp) and the headroom equals C, 299.8dp (±0.5dp);
-        the footer equals S₀ − H₀ plus one band gap and the bottom padding (±0.5dp), H₀ = min(⅘ S₀, C);
-        on the six three-button windows H₀ = ⅘ S₀ (±0.5dp); and on `w412dp-h915dp` (both bars) and
-        the Pixel_9's window the footer is at most a third of S₀ in every chip state (15g's ruled
-        reading). Today's code fails it: with no chip on the Pixel_9's window the row's bottom edge
-        reaches 0.49 H.
+        the footer equals S₀ − H₀ plus one band gap and the bottom padding (±0.5dp), H₀ = min(⅘ S₀, C)
+        **on every window, with no exemption** *(loop 2: the clause "on the six three-button windows
+        H₀ = ⅘ S₀" was false and is struck; by §4.2.7's eight-window table H₀ is C on
+        `w360dp-h720dp`, `w360dp-h800dp`, `w412dp-h915dp` with either bar and the Pixel_9, and ⅘ S₀ on
+        `w360dp-h640dp`, `w412dp-h780dp` and `w412dp-h850dp`)*; and on every one of the eight windows the
+        footer is at most a third of S₀ in every chip state (15g's ruled reading; the largest shares
+        are the Pixel_9's 29% and `w360dp-h800dp`'s 30%). Today's code fails it: with no chip the
+        row's bottom edge reaches 0.49 H on the Pixel_9's window and **0.50 H on `w360dp-h800dp`**,
+        on the back crest.
      2. **The chips' room under the bound.** 15z, read with H₀ in place of ⅘ S₀, on the same windows
         and emissions: the tiles hold still wherever R ≤ H₀ and sit exactly R − H₀ lower otherwise;
         the hero row and the ribbon sit higher than their no-chip tops by exactly min(R, H₀); and in
-        no emission and no frame of the room's motion does the row's bottom edge pass the bound.
+        no emission and no frame of the room's motion does the row's bottom edge pass the bound. At
+        QA's 360×640dp window with both chips H₀ − R₂ is 0.8dp, so a tile move of ≤ 1dp there is
+        15t's case and passes this part *(loop 2, F-6)*.
      3. **On the device — the dark no-chip read (qa-engineer).** On the Pixel_9 in gesture navigation,
         and at 360×640dp (`wm size 1080x1920`, `wm density 480`), in **dark and in light**, after a
         fresh install (no save), then with one Classic save, then with both saves:
