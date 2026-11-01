@@ -20,6 +20,7 @@ import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
 import com.app.pegsolitaire.domain.achievement.ClassicBoard
 import com.app.pegsolitaire.domain.achievement.ProgressAggregate
 import com.app.pegsolitaire.domain.progress.CloudProgress
+import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import com.app.pegsolitaire.platform.games.FakeGamesService
@@ -264,7 +265,8 @@ class HomeViewModelCloudTest {
     /**
      * Builds the ViewModel with every pre-Phase-13 input in its quietest form — onboarding
      * seen, the opt-in prompt already answered, nothing to resume — so the only surface any
-     * assertion here can be reading is the swap dialog.
+     * assertion here can be reading is the swap dialog. The rules engine and the replay's
+     * dispatcher are the ones `HomeViewModelTest` hands it, never reached with nothing to resume.
      */
     private fun viewModelFor(
         repository: OnboardingRepository = SwapTestOnboardingRepository(initiallySeen = true),
@@ -278,6 +280,8 @@ class HomeViewModelCloudTest {
             challengeProgress,
             NoResumeProgressRepository,
             CloudCatalogOnlyLevelRepository,
+            RulesEngine,
+            testDispatcher,
             optIn,
             FakeGamesService(),
             submitter,

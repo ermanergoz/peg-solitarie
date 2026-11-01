@@ -30,13 +30,16 @@ import com.app.pegsolitaire.domain.model.Board
  *   what an unreadable snapshot degrades to, so a corrupt blob simply hides the
  *   affordance instead of surfacing an error (T-05-03). Doubles as the board the
  *   Continue affordance resumes into: the screen carries the id, the host never guesses.
- * @property classicResumeBoard the footprint of that same saved Classic board, for the
- *   Continue chip's thumbnail (§4.2 band 3) — `null` under exactly the conditions
- *   [classicResumeLevelId] is, and never set without it. It is resolved by the ViewModel from
- *   the **static catalogue read it already performs** to validate the stored id (CR-01), so
- *   the thumbnail costs no new read on the start destination (D-03g) and the screen needs no
- *   second id-to-board mapping of its own — `:app`'s level source stays the one place a level
- *   id becomes a board (QUAL-01).
+ * @property classicResumeBoard the **saved position** of that same Classic game — the board as
+ *   the player left it — for the Continue chip's thumbnail and its spoken peg count (D-03p,
+ *   §4.2.7). It is `null` exactly when [classicResumeLevelId] is, and the ViewModel sets the two
+ *   together or not at all, so the Classic chip never offers an id it has no position for. The
+ *   ViewModel rebuilds it from the snapshot it **already loads** to validate the stored id
+ *   (CR-01) — the stored initial board with the stored moves replayed by the resume path's own
+ *   codec — so the thumbnail costs no new read on the start destination (D-03g), shows the
+ *   board a Continue resumes into rather than the catalogue's start board, and the screen needs
+ *   no id-to-board mapping of its own — `:app`'s level source stays the one place a level id
+ *   becomes a board (QUAL-01). A save with no moves yet is its start board.
  * @property challengeResumeLevel the level of the saved in-progress Challenge game
  *   (PERS-03), read from the snapshot's own provenance stamp — or `null` when there is
  *   nothing usable to continue. Independent of [classicResumeLevelId] — a Classic and a
