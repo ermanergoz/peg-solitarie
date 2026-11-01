@@ -66,6 +66,32 @@ class ResultsScreenTalkBackTest {
         assertThat(spoken).containsExactly("Solved! — 2 of 3 stars, 2 pegs left.")
     }
 
+    /**
+     * Criterion 30d (ux-spec D-SB-2, §4.6; TB-8): a one-star Challenge clear is summarised once in
+     * the existing shape — "Cleared! — 1 of 3 stars, 3 pegs left." — and its next-star line is a stop
+     * of its own, straight after the star row: plain text, no live region, no role, and outside the
+     * row's merge, so the row still says only its stars.
+     */
+    @Test
+    fun aOneStarClearIsSummarisedAsClearedAndItsNextStarLineIsTheStopAfterTheStars() {
+        composeRule.mainClock.autoAdvance = false
+        show(CLEARED_ONE_STAR.copy(playCelebration = true))
+        composeRule.mainClock.advanceTimeBy(ANNOUNCEMENT_ARM_GAP_MS)
+        repeat(SETTLE_FRAMES) { composeRule.mainClock.advanceTimeByFrame() }
+
+        assertThat(spokenLines()).containsExactly("Cleared! — 1 of 3 stars, 3 pegs left.")
+        val line = composeRule.onNodeWithTag(RESULTS_NEXT_STAR_HINT_TEST_TAG).fetchSemanticsNode()
+        assertThat(line.config.getOrNull(SemanticsProperties.Text)?.map { it.text })
+            .containsExactly("Leave 2 pegs for 2 stars.")
+        assertThat(line.config.getOrNull(SemanticsProperties.LiveRegion)).isNull()
+        assertThat(line.config.getOrNull(SemanticsProperties.Role)).isNull()
+        val row = composeRule.onNodeWithTag(RESULTS_STAR_ROW_TEST_TAG).fetchSemanticsNode()
+        assertThat(row.config.getOrNull(SemanticsProperties.ContentDescription)).containsExactly("1 of 3 stars")
+        assertThat(row.children).isEmpty()
+        val column = checkNotNull(row.parent) { "the star row sits in the Results column" }.children
+        assertThat(column.indexOfFirst { it.id == line.id }).isEqualTo(column.indexOfFirst { it.id == row.id } + 1)
+    }
+
     @Test
     fun noSummaryIsSpokenOnAShowingTheLatchDoesNotMark() {
         show(SOLVED_TWO_STARS.copy(playCelebration = false))
@@ -212,6 +238,18 @@ class ResultsScreenTalkBackTest {
                 score = 1_000,
                 headlineTier = ResultsHeadlineTier.SOLVED,
                 replayId = ClassicLevelIds.ENGLISH33,
+            )
+
+        /** A one-star Challenge clear: three pegs left on level 4. */
+        val CLEARED_ONE_STAR =
+            ResultsUiState(
+                stars = 1,
+                pegsRemaining = 3,
+                elapsedSeconds = 38,
+                score = 3_100,
+                headlineTier = ResultsHeadlineTier.CLEARED,
+                replayId = "",
+                challengeLevel = 4,
             )
     }
 }

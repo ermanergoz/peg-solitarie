@@ -173,6 +173,26 @@ class ScoreCalculatorTest {
     }
 
     @Test
+    fun evaluateWithExplicitStarsKeepsScoreAndCarriesTheStars() {
+        // The Challenge caller passes the clear rule's stars (three pegs left = one star), where the
+        // default one-peg Classic bands would have said two. Only the star count may change: the
+        // score is (3 × 100 + (5000 − 42 × 10)) × 3 = 14,640, exactly as without the override.
+        val result =
+            ScoreCalculator.evaluate(
+                pegsRemaining = 3,
+                pegsCleared = 3,
+                elapsedSeconds = 42,
+                levelMultiplier = 3,
+                stars = 1,
+            )
+
+        assertThat(ScoreCalculator.stars(pegsRemaining = 3)).isEqualTo(2)
+        assertThat(result).isEqualTo(
+            ScoreResult(stars = 1, score = 14_640, pegsRemaining = 3, pegsCleared = 3, elapsedSeconds = 42),
+        )
+    }
+
+    @Test
     fun theTwoStarBandWidthIsTheOnlyShapeConstantAndTheLegacyBoundDerivesFromIt() {
         // The legacy global bound must be DERIVED, so re-anchoring cannot silently
         // widen or narrow the band on any board.

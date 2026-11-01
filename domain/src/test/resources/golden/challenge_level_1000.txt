@@ -1,5 +1,5 @@
 level=1000
-generatorVersion=1
+generatorVersion=2
       O 
    OO.O 
   .OOOO 

@@ -75,7 +75,11 @@ licence obligations, no 15e sitting), with §8.1, §13, §14.1 TR, §14.3 item 1
 (`.planning/reports/game-immersive/tech-lead-brief.md`), the founder's 3.0.0 note ruled as `docs/ux-spec.md` D-05g: the new
 §3.8 (the window's bar policy and its seam, the shared stable-inset source, edge to edge below API 35, the grey tint read per
 API level), §3.5's insets bullet, §10's start-path list and sittings, §14.1 row IM with the 3.0.0 feedback branches' merge
-order, §14.2's F-33 item, §16 #42 (#39 on its branch) and §17. Every decision below is a tech-lead decision or a transcription of a recorded ruling; each names where
+order, §14.2's F-33 item, §16 #42 (#39 on its branch) and §17. Updated on 2026-11-01 on `feature/challenge-star-bands`
+(`.planning/reports/challenge-star-bands/tech-lead-brief.md`) for the founder's 3.0.0 directive on Challenge star bands and the
+ladder cut, specified by the game-designer in `docs/gdd.md` (its first version; §16 #5 closes): §2.2's frozen-contract rule
+qualified, §7.1 rewritten for generator contract version 2, the new §7.4 (the Challenge clear rule, the old 2.0 application's
+on-disk data, the resume and restart paths), §7.3 item 4, §14.1 row SB, §15, §16 #43–#45 (#39–#41 on its branch) and §17. Every decision below is a tech-lead decision or a transcription of a recorded ruling; each names where
 it was decided. Entries are never deleted: a superseded entry gets a "superseded by" line and the
 supersession is listed in §17.
 
@@ -91,7 +95,8 @@ playable signed-out and offline. The Core Value is "infinite, never-repeating, a
 Challenge levels". The app is already published (versionName 2.0, versionCode 2); the release this
 design serves is **3.0.0** (`VERSION`), versionCode 30000 (`rules/play-store.md`).
 
-**What this file is not.** Not the GDD (`docs/gdd.md` does not exist; game-designer, §16), not the UX
+**What this file is not.** Not the GDD (`docs/gdd.md`, the game-designer's spec of record since 2026-11-01 — *until then
+this read "`docs/gdd.md` does not exist; game-designer, §16"*), not the UX
 spec (`docs/ux-spec.md`, ux-designer), not the QA plan, not the release checklist
 (`docs/release-checklist.md`, release-manager). It records *technical* decisions only.
 
@@ -225,6 +230,11 @@ reducers, seeded randomness only (`kotlin.random.Random(Long)` from `stableSeed`
 the generator loop. The generator's output contract is **frozen** (`GeneratorConstants`, Pitfall 2):
 a generation-algorithm change ships as a parallel generator version, never as an in-place mutation,
 because every Challenge level a player has ever seen is a pure function of the level number.
+*Qualified 2026-11-01 (GD-SB-12, `docs/gdd.md` §8 I7; tech-lead ruling in §7.4):* that rule binds from the
+first store build of this codebase onward. Before it, no player holds a level v1 must keep serving
+(`14-RELEASE-PLAN.md` §1), so the 3.0.0 bump to `GENERATOR_VERSION = 2` re-rolls in place, with the golden
+fixtures regenerated and the whole level space re-fuzzed; the stamp on every stored snapshot is what says
+which contract made it. From 3.0.0's publication the parallel-generator rule applies as written.
 
 ### 2.3 Layering inside `:app`
 
@@ -805,6 +815,50 @@ look.
   `SolutionFixtures`, levels ≤ 1000) pin it byte-for-byte; any refactor of the generator must leave
   them green unchanged.
 
+**Generator contract version 2 (3.0.0; added 2026-11-01).** The founder's directive and the game-designer's
+ruling (`docs/gdd.md` §7, §8, GD-SB-09 to GD-SB-12, GD-SB-15) change the boards every level deals, so the
+bullets above are read with these facts, which the brief `.planning/reports/challenge-star-bands/tech-lead-brief.md`
+instructs the developer to build (its commit C2), each pinned by the tests `docs/gdd.md` §14 names:
+- **The ladder cut.** `DifficultyTiers.forLevel` computes `fromStart = (level − 1) + Curve.LEVEL_OFFSET` with
+  `LEVEL_OFFSET = 50`, so level N deals every lever the previous curve dealt at N + 50 (the step sizes, the
+  cap of 30 and the seed mix are untouched). The seed stays keyed on the visible level, so the chain, the
+  dedup window and the O(n) replay are as above. The oracle for the property test is an `internal`
+  overload `forLevel(levelNumber, levelOffset)`; the public `forLevel(levelNumber)` is unchanged in shape.
+- **Freeform intro and mix (G7).** `Curve.FREEFORM_INTRO_LEVEL = 10`, compared against the visible level as
+  `pickFootprint` already does; at or above it each attempt draws freeform or canonical with equal
+  probability from the level's own PRNG (`GeneratorConstants.FREEFORM_SHARE_DENOMINATOR = 2`, a frozen
+  contract constant since it changes every level; a draw of 0 is freeform, the draw taken before any
+  footprint build so both branches are deterministic). Until 3.0.0 freeform took over entirely from level
+  40, which made the pool widening at 51/101/151/201 unreachable.
+- **Fail-proof opening (G6).** `DifficultyTier.failProof` is true for visible levels `1..Curve.FAIL_PROOF_LEVELS`
+  (4). A fail-proof candidate passes the quality gates only if every position reachable from its start by
+  legal jumps that has no legal move holds at most `ChallengeClearRule.CLEAR_MAX_PEGS` pegs — a DFS over
+  `RulesEngine.legalMoves` with a `HashSet<Long>` of peg masks, a few hundred positions at six pegs. The
+  generator reads that one constant from `scoring/` rather than a copy of it: a copy would drift (the
+  GDD's "does not read the star rule" is read as "does not grade"). The `MAX_ATTEMPTS` fallback must never
+  be what ships a fail-proof level: the test enumerates the shipped output, and the brief's measurement M2
+  bounds the attempts.
+- **One-peg target on every footprint (I5).** The canonical pool is built from `Boards.CLASSIC_SPECS` as
+  footprint copies — `BoardSpec(inPlay = spec.inPlay, target = spec.target, minimumPegs =
+  BoardConstants.MINIMUM_PEGS_DEFAULT)` for every entry, uniformly, never a Diamond-41 special case — so
+  `Boards.Diamond41`'s Classic floor of 2 can no longer ride into Challenge (it sat in the pool from phase
+  3, unreachable only because of the freeform takeover). `target` is kept: `lastPegOnTarget` and the
+  canvas read it today and the four cross copies are content-identical to the catalog specs. Consequence
+  for tests: a generated spec is no longer the catalog instance, so every test that asked `spec in
+  canonicalSpecs` (referential identity; `BoardSpec` has no `equals`) compares `spec.footprint` instead.
+- **Version 2.** `GENERATOR_VERSION = 2`; the five fixtures are regenerated with `UPDATE_GOLDEN=true` in the
+  same commit as the constants, so no commit has a red golden; the developer records each fixture's
+  footprint kind (canonical or freeform) in that commit body, since the sampled coverage the golden test's
+  KDoc claims (level 10 canonical, level 1000 freeform) is no longer certain under the mix.
+- **Assist is untouched.** The books are Classic's and keyed by footprint; a Challenge board on a cross
+  footprint that happens to be a book position gets a move on a proven one-peg line, which is correct;
+  a Challenge board on the Diamond-41 footprint can never be a Diamond book position — every Diamond
+  book entry is reachable from the centre start, whose GF(4) class admits no one-peg position, while
+  every generated board was built backwards from one (`Pagoda`, `BoardConstants`). The solver's goal is
+  the spec's `minimumPegs`, one on every Challenge board by I5, so the Pagoda prune keeps its full
+  one-peg strength on the Diamond footprint. D-07's deadline and every budget constant stay frozen
+  (GD-HT-4).
+
 ### 7.2 Assist
 
 | Decision | Why | Decided in |
@@ -986,7 +1040,9 @@ below is what `.planning/reports/phase-14/tech-lead-r2-gate-brief.md` instructs 
    ten-thousand-fold and prove nothing the certificate does not.
 4. **Per level, the harness asserts:** `levelNumber` equals its index; every move legal on the board it
    is applied to; final `pegCount == 1`; every position inside the footprint;
-   `generatorVersion == GENERATOR_VERSION`. **Over the run:** a second, independently constructed
+   `generatorVersion == GENERATOR_VERSION`; *(3.0.0, I5/G8)* `startingBoard.spec.minimumPegs ==
+   BoardConstants.MINIMUM_PEGS_DEFAULT`, one more `takeIf` line in `certificateFailure`, so a footprint
+   floor leaking into Challenge is a named failing level, not a sampled-test miss. **Over the run:** a second, independently constructed
    ladder is element-wise identical (invariant 3, determinism); the count examined equals
    `min(N, MAX)` and is > 0 (anti-vacuity, the depth sweep's T-08-39 standard).
 5. **Failing levels are written to `domain/build/fuzz-failures.txt`** (one line per level with the
@@ -1029,6 +1085,80 @@ value. **A cache hit is a pass, not a gap** (auditor finding 2): the task keeps 
 build-cache semantics by item 8, so an unchanged tree at the same count comes back `FROM-CACHE` and prints
 no `fuzz:` line; the lines are in the restored JUnit XML's `system-out`. The release run therefore passes
 `--rerun-tasks` (checklist 1.2 and 3.1, `77dcf88`), so R-7's evidence is the release's own execution.
+*(3.0.0, the star-bands brief:)* C2 re-measures the harness at 10,000 with `--rerun-tasks` on a quiet host; the
+rule of item 7 is unchanged (10,000 in ≤ 60 s keeps the default), and the figure replaces the 5.955 s above
+in the SB sign-off, dated. The cut does not lengthen the chain (the seed is the visible level); what can
+move the figure is G6's enumeration on four levels (negligible) and canonical draws at the solution-length
+cap, which dead-end more often than freeform ones and reseed.
+
+### 7.4 The Challenge clear rule, the old application's data, and the resume path (3.0.0; added 2026-11-01)
+
+The founder's directive for 3.0.0 — in Challenge one peg left is three stars, two pegs two, three pegs one,
+every one of them clears and advances, and the opening levels are removed — is the game-designer's
+`docs/gdd.md` (R5–R7, §6.1, §12, GD-SB-01 to GD-SB-18). The mechanism below is the tech-lead's, ruled in
+`.planning/reports/challenge-star-bands/tech-lead-brief.md`, whose Handoff is the developer's contract.
+
+**One `:domain` function (GD-SB-14).** `domain/scoring/ChallengeClearRule.kt`:
+- `const val CLEAR_MAX_PEGS = 3` and `const val PERFECT_STARS = ScoreParams.THREE_STARS`; the band is one
+  star per peg, so the two coincide by design and a test pins the coincidence, as `ScoreCalculatorTest`
+  already pins `THREE_STAR_MAX_PEGS == MINIMUM_PEGS_DEFAULT`.
+- `fun finish(pegsRemaining: Int): ChallengeFinish` — `Cleared(stars)` with `stars = CLEAR_MAX_PEGS + 1 −
+  pegsRemaining` for `pegsRemaining in 1..CLEAR_MAX_PEGS`, else `NotCleared`; a count below one (only a
+  forged `Results` route can produce it) is `NotCleared`, never four stars. `fun isCleared(pegsRemaining)`
+  is `finish(...) is Cleared`. `fun status(board: Board): GameStatus` — `Playing` while
+  `RulesEngine.isGameOver` is false, `Won` when cleared, else `Stuck`. The rule reads no `minimumPegs`, no
+  footprint and no level: the count is absolute (GDD §6.1).
+- `ScoreCalculator.evaluate` gains `stars: Int = stars(pegsRemaining, minimumPegs)` as its last parameter,
+  so Classic callers are byte-identical and the Challenge caller passes the rule's stars.
+- `GameStatus.Won` keeps its name (a rename touches dozens of files for no behaviour); its KDoc says what
+  is true: terminal and past the mode's finish test — Classic `pegCount <= minimumPegs`, Challenge
+  `ChallengeClearRule`.
+
+**Where the mode branch lives — exactly two sites.** (1) `GameViewModel.statusFor(board)`: Challenge
+(`activeChallengeLevel != null`) → `ChallengeClearRule.status(board)`; Classic → today's test. (2)
+`ResultsUiState.isSolved`: Challenge (`challengeLevel != null`) → `ChallengeClearRule.isCleared(pegsRemaining)`;
+Classic → `pegsRemaining <= minimumPegs`. `ResultsViewModel.isSolved` reads the state's property rather than
+keeping its own copy of the expression (today it holds a second copy; the CR-01 lesson is one test, so the
+copy goes). `tierFor` gains `CLEARED` for a solved one-star Challenge result; `STUCK` stays the defensive
+branch for a Challenge route with an uncleared count and the Classic one-star default; `isInterstitialEligible`
+stays `tier != STUCK`, so a one-star clear is eligible (GD-SB-16). The `Results` route keeps `minimumPegs`
+(Classic needs it). T-10-06 stands: a forged `stars` arg is still trusted for display and record.
+
+**The DAO reads the same constant.** `PlaySessionDao.flags` adds `AND stars = :perfectStars` to the hint-free,
+undo-free and speed predicates (GD-SB-05); `ProgressRepository` binds `ChallengeClearRule.PERFECT_STARS`
+beside `AchievementThresholds.SPEED_SOLVE_MAX_ELAPSED_MS`, so the three stars exist in one place. A `SELECT`
+predicate over the existing `stars` column: no schema change, `DB_VERSION` stays 2 (§4.1). Classic rows are
+always three stars (R4), so Classic is unchanged by construction.
+
+**The old 2.0 application's data (GDD §12.2's question).** The listing's users run the founder's earlier app,
+`com.erman.pegsolitarie` versionCode 2 (github.com/ermanergoz/peg-solitarie, read 2026-11-01). It persisted
+with **Realm** (`io.realm`, `RealmConfiguration.Builder().name("pegsolitarie.realm")`, class `Scores(id,
+gameBoard, remainingPegs, elapsedTime)`), in the app's files directory, and nothing else: no SQLite, no
+SharedPreferences, no DataStore. This app opens Room `peg_solitaire.db` (`ProgressPersistenceKeys.DB_NAME`)
+and DataStore `app_prefs`. **No file name collides, so an update from the store meets no foreign schema and
+needs no migration.** The Realm file (and its `.lock`, `.management/`, `.note` siblings; Android's auto backup
+can also restore it onto a new device, both manifests being `allowBackup="true"`) stays orphaned in
+`filesDir`, a few hundred KB this codebase never reads. Two things follow, neither for 3.0.0: deleting it is
+irreversible and buys nothing (§16 #39); importing the old fewest-pegs bests into Classic `level_result`
+would need the Realm SDK for one read — a scope and size question for the founder, queued non-blocking by
+the producer (§16 #39). `minSdk` 24 against the old app's 16 is Play's to handle, not this file's.
+
+**Resume and restart on an old stamp (GDD §12.3(3), CLC-06).** `SnapshotMapper.fromDto` never reads
+`generatorVersion`; `applyRestored` installs the stored initial board and history, so a snapshot stamped 1
+resumes on its board with undo and elapsed time intact — as the GDD says. Its hint reaches the solver, but
+not through the legality guard the GDD names: on every resume `solution` stays `null` and `onRecordedLine`
+is `false` (`applyRestored`), so the recorded line is never consulted at all; the outcome is the same and
+the GDD's sentence is a text correction (brief, findings). **Restart is a code change:** today
+`resetToInitial` rebuilds from the stored `initialBoard`, so a restarted old-stamp level would deal the v1
+board forever. Ruled: `GameViewModel` keeps the restored stamp's `generatorVersion`; a Challenge restart
+whose stamp is not `GeneratorConstants.GENERATOR_VERSION` clears the snapshot and takes
+`loadChallengeBoardIfNeeded()` — the existing off-main-thread generation path, which also installs the
+level's recorded line — instead of the in-place rebuild; a current-stamp or fresh game keeps today's
+regeneration-free restart (D-06). **`SnapshotMapper.resolveMinimumPegsOrNull` case 2 is keyed on `mode`:**
+a Challenge blob with no stored target resolves to `MINIMUM_PEGS_DEFAULT` whatever its footprint, and only
+a Classic blob consults `CLASSIC_SPECS`. Today the Diamond footprint resolves to 2 for either mode; no such
+blob exists (no Challenge level ever used that footprint), so this is I5 made true on the resume path, not a
+data fix.
 
 ## 8. Testing
 
@@ -2275,6 +2405,7 @@ deadline in this file: whether the cut waits for it is the producer's schedule, 
 | DT | **The solver deadline tests' own task**, `bugfix/solver-deadline-task` (§8.6, added 2026-10-24): `SolverDeadlineTest` run by `:domain:solverDeadline` outside kover, always-run, in `check`; `koverVerify` re-measured after the move | android-game-dev → code-auditor → tech-lead | R1 and R-2 merged (it edits the files R1 rewrites). No branch-cut marker: before the cut if green in one loop, else §14.2; the quiet-host rule governs the release Check meanwhile *(2026-11-01: **deferred to 3.0.1** by the producer, owner tech-lead (`.planning/reports/STATUS.md`, "Producer decision 2026-11-01", commit `4135e2d` on `feature/status-2026-11-01b`); listed in §14.3 item 13, not §14.2.)* |
 | PLAT-08 | Cold start on a named physical phone, or the unverified record (§10) | qa-engineer; producer for the device question | — |
 | TR | **Turkish localisation**, `feature/turkish-locale` (added 2026-11-01; founder directive 2026-11-01; `docs/ux/localisation-tr.md`; §11.1, §11.2): `values-tr` (179 strings, 7 plurals), nine base keys `translatable="false"`, `localeConfig` (en, tr), `localeFilters` (en, tr), the locale suites; D-16's heading face by M-1 to M-5 (§11.1); the tr-TR store copy to the release-manager (spec §10) | ux-designer (the spec; D-16) → tech-lead (the mechanism, ruled) → android-game-dev → code-auditor + qa-engineer (a Turkish device, 100 % and 200 %, C-2 to C-2d, TalkBack A-1 to A-7; one 15e sitting on `Pixel_9a_bench` with the final code) → tech-lead; release-manager for `docs/store/tr-TR/` and the AAB's `tr` config | Cut from `develop` at `37d3052`. Built to `f289546` (`turkish-locale/android-game-dev.md`); the ux-designer's D-16 at `91bfa9c`; rulings 1–3 in `turkish-locale/tech-lead-rulings.md`. *Q-039 (2026-11-01) supersedes D-16 and M-1 to M-5:* owes instead the Fredoka composites by §11.1's Q-039 block — `fonts/fredoka-tr/` (recipe, build, verify, upstream copies), the two rebuilt font files, `BundledFontRecipeTest`, the derived `BundledFontGlyphCoverageTest`, the PSL prose date, the licences-screen "modified" line — plus the §9.3 string deltas of the two parallel branches; **no 15e sitting** (§11.1 (4)); `ui/theme` and `ui/home` untouched. Lands before candy-backdrop's sitting (it edits `AndroidManifest.xml` and `res/font/`). **Blocks the branch cut** (3.0.0 ships Turkish by the founder's directive) |
+| **SB** | **Challenge star bands and the ladder cut**, `feature/challenge-star-bands` (added 2026-11-01; cut from `develop` at `37d3052`, after `release/3.0.0` was cut). The founder's directive, specified in `docs/gdd.md` (R5–R7, §7, §8, §12, GD-SB-01 to GD-SB-18; CSB-01…08, CLC-01…06 in `.planning/REQUIREMENTS.md`, a proposed Phase 16). Mechanism: §7.1's version-2 facts and §7.4; the developer's contract is the Handoff of `.planning/reports/challenge-star-bands/tech-lead-brief.md` — commits C1 (`ChallengeClearRule`), C2 (generator v2, one commit with its fixtures and the measurements M1–M3), C3 (`GameViewModel`: mode-aware status, finish on every clear, restart on an old stamp), C4 (Results: one solved test, `CLEARED`), C5 (`PlaySessionDao` flags), C6 (`SnapshotMapper` case 2 by mode), C7 (strings, the two banners, the next-star line, with the ux-designer's wording from `docs/ux-spec.md` on this branch), then the Check. No start-path file: no 15e sitting unless the diff touches one (§10) | game-designer (done) + ux-designer (wording, on this branch) → tech-lead brief (done) → android-game-dev → code-auditor + qa-engineer (SB-Q1…Q11, `docs/gdd.md` §15; SB-Q9 needs a pre-change build installed first) → tech-lead sign-off → merge to `develop` → release-manager (`FUZZ_SEEDS=100000 ./scripts/check.sh --rerun-tasks` on the release branch; changelog and store lines per `docs/gdd.md` §16) | Whether it folds into `release/3.0.0` or re-cuts the release is the producer's and release-manager's call (Q-030 precedent; `docs/gdd.md` §17). It changes generated boards, so the release's exhaustive fuzz (R-7) runs again after the fold. It waits on nothing in this file; C7 waits on the ux-designer's spec commit |
 
 **Merge order into `develop`** (`15-founder-feedback/tech-lead-signoff.md` Decision 4, 2026-10-18).
 It supersedes the R-2 brief's §0 and this table's earlier "R-2 before phase 15" (§17). *Amended 2026-10-21*
@@ -2503,6 +2634,9 @@ already recorded elsewhere are listed by pointer.
 | A branch merged after check-gates C7 carries a new main-compilation warning | medium / low | Its Check fails once it has taken `develop` in; it is fixed on that branch, never by a suppression or a compiler switch (§9.8 rule 3) | that branch's developer |
 | The B direction's gel mode cards reshape Home's tiles against phase 15's geometry (15g, 15k, 15p, 15r) | medium / medium | B's own surfaces get a fit ruling against D-03l clause 4 and the phase-15 suites before the build, and the phase-15 suites run unchanged (§3.5, §16 #16) | tech-lead, ux-designer |
 | **E-1: a path-named wrapper passes both plugin gates** (added 2026-11-01, `play-upload/tech-lead-signoff.md` §5): `/bin/bash ./scripts/play-upload.sh`, `/usr/bin/env fastlane supply …` or `/usr/bin/env git commit` reach no command position in plugin 1.0.0's `hooks/lib-cmdpos.sh`, so the publish gate and the branch guard both pass them; and this repo has no git pre-commit hook behind the branch guard | low / severe (an upload without the approval file; a commit on `develop` or `main`) | `./scripts/play-upload.sh` is the only invocation (T-11); the founder places the service-account key only after `publish-<VERSION>.approved` exists in the upload's checkout, so no key, bundle and missing approval share a host; the plugin's `branch-guard.sh --git-hook` installed as `pre-commit` closes the commit half today. Closed when the plugin release that fixes E-1 is installed here (§16 #36, #37) | producer, through the plugin |
+| **G6 may be hard to satisfy** (added 2026-11-01, row SB): a six-peg board from which *every* legal line ends at three pegs or fewer is a strong property, and the reverse walk does not aim at it; levels 1–4 could burn hundreds of attempts, or all 1,000 and fall back past the gate | unknown until measured / medium (a failable opening, or a tuned generator) | The brief's M2: before the fixtures are regenerated the developer counts the attempts each of levels 1–4 needs and stops at more than 100 (a tenth of `MAX_ATTEMPTS`) or any fallback; a stop goes to the tech-lead, who takes the re-tune candidates (the fail-proof levels drawing English-33 only; a shorter line on them) to the game-designer through the producer, since each moves a GDD value | android-game-dev measures; tech-lead; game-designer |
+| **The accepted freeform share drifts from the drawn share** (added 2026-11-01): G7 draws 50/50 per attempt, but canonical and freeform attempts fail the gates at different rates (canonical walks dead-end more at the cap), so the share of *accepted* levels can leave the GDD's `[0.35, 0.65]` over levels 10..1000, and a canonical footprint could still be rare by level 300 | medium / low (a tuning fact, not a defect) | The GDD's two bounds are the designer's measurables and the tests assert them; the developer reports the measured share and the first level of each canonical footprint (M3) before asserting, and a miss goes to the game-designer through the producer rather than being tuned by the developer | android-game-dev; game-designer |
+| **`generate(n)` replays the chain from level 1 on every level load** (pre-existing, recorded 2026-11-01): O(n) per load, ≈ 0.6 ms per level on the studio's JVM, so level 1,000 costs the order of a second on a mid-range phone before its board shows; the cut does not lengthen the chain, but every level's walk is a little longer | certain at high levels / low (a wait on the gameplay route's loading state, off the start path) | Not 3.0.0's: a 3.1 lever is a process-wide memo of the last accepted ladder prefix in `LevelGenerator` so `generate(n + 1)` resumes from `n`, behaviour-preserving by construction and pinned by the goldens. QA records the level-1 load on the emulator in SB-Q1 as the baseline | tech-lead (3.1 brief) |
 
 ## 16. Open items — each with an owner
 
@@ -2514,7 +2648,7 @@ Every item the seeded file listed as "decided by nobody" is now either decided o
 | 2 | R-2 / R-7 — kover and fuzz | **Designed** (§7.3, §8.4) and briefed; implementation is the next gate branch. **Implemented on `feature/phase-14-check-gates` and signed off PASS 2026-10-24** (`tech-lead-signoff-check-gates.md`): 10,000 levels in 5.955 s, tier 10,000; kover 0.9.11, 99.0 % at bound 90. R-7 is the release-manager's run with `--rerun-tasks` | R-2 closed; R-7 release-manager |
 | 3 | R-1′ — the gate task | **Implemented** on `feature/phase-14-gate-scope`, auditor PASS; qa-engineer and tech-lead sign-off next; auditor F-2 ruled into the R-2 branch (§9.3). **Signed off PASS 2026-10-18** (`tech-lead-signoff-gate-scope.md`) and **merged** to `develop` (`c3d3437`). Its two non-blocking rulings ride check-gates as C3a and C3b; brief §4's C3 count is corrected by addendum A0 | closed |
 | 4 | In-app licences surface | Studio-rule gap, not a legal one: the OFL notice condition is met by the licence files in the APK, everything else is CC0, Apache-2.0 or a permitted SDK licence. **Backlog v1.1.1**, needs a ux-designer (a Settings row) and a developer. **Scheduled 2026-10-17** with `feature/candy-backdrop` (§3.6), no longer v1.1.1 backlog: `docs/ux/licences-screen.md` is specified. *Corrected 2026-10-21:* on its own branch, `feature/licences-screen`, since 2026-10-18 (A9; §3.6, §14.1 LN). It is now also where the notices of §16 #20 ship (§13.1). **Closed 2026-11-01:** built and merged as `bc95b2a` (§3.6, §14.1 LN) | closed; *until 2026-11-01:* ux-designer, android-game-dev via producer; the Apache-2.0 text's `THIRD_PARTY.md` row is the release-manager's, its redistribution-terms line the research-analyst's |
-| 5 | `docs/gdd.md` | Not a technical item | game-designer via producer |
+| 5 | `docs/gdd.md` | Not a technical item. **Closed 2026-11-01:** written by the game-designer on `feature/challenge-star-bands` (`800e9de`) as the spec of record for every gameplay rule | closed *(until 2026-11-01: game-designer via producer)* |
 | 6 | `THIRD_PARTY.md` §5b per-coordinate enumeration, U-1 | Closed on the release branch by `:app:dependencies --configuration releaseRuntimeClasspath` (checklist 3.5) | release-manager |
 | 7 | Post-v1.1 backlog | **Recorded** in §14.2 | producer carries it |
 | 8 | `AGENTS.md` | rules/stacks.md's scaffold contract wants it identical to `CLAUDE.md`; this product predates the contract and has none. Decision: add it as a copy when the Check command line changes (F2), so both are written once. **Done** in check-gates C2 (`139b418`): a byte-identical copy, `cmp` clean | closed |
@@ -2552,6 +2686,9 @@ Every item the seeded file listed as "decided by nobody" is now either decided o
 | 41 | **`licenses_psl_parts` writes its date with U+2011, which Nunito's cmap lacks** (added 2026-11-01; `turkish-locale/research-analyst-fonts.md`, Open issues; §11.1 Q-039 (2)). A pre-existing per-glyph fallback to Roboto in a body string, hidden from `hb-shape` by its U+2011 → U+2010 mapping; the derived coverage test flags it with no allowance | **Open, owned; closes on the branch.** Tech-lead decision: the prose date "15 February 2023" (the form the Turkish spec uses for the same entry); the ux-designer may word it otherwise in `docs/ux/licences-screen.md`; the comment at `strings.xml:502` goes with it | android-game-dev (the string) → ux-designer (the spec line, through the producer) → code-auditor |
 | 40 | **Lint `UnusedAttribute` on `android:localeConfig`** (added 2026-11-01; `turkish-locale/android-game-dev.md` open issue 3; §11.2) — a new warning in a touched file under §9.8's no-growth clause, left unsuppressed by the developer for the reviewer | **Open, owned.** The code-auditor approves one of §11.2's ranked forms, or none, with its line, in the branch's review | code-auditor |
 | 42 | **Immersive play, D-05g** (numbered 39 on its branch; renumbered at the merge, 2026-11-01) (added 2026-11-01; §3.8; §14.1 row IM). The founder's 3.0.0 note; Q-034, Q-035 and Q-036 answered 2026-11-01 — the tint phone runs API ≤ 34, so edge to edge below 35 (§3.8 (e)) is required, not deferrable | **Open, owned.** Mechanism ruled (§3.8); built on `feature/game-immersive`, its 15e sitting owed (§10). Two things the brief pre-rules inside the review loop, never as a new branch: a dialog whose surface re-centres as its window's bars hide takes `decorFitsSystemWindows = false` (§3.8 (c)); a tint cause outside §6.2's four candidates stops and goes to the ux-designer through the producer (30s). **Not technical, for the release-manager through the producer:** `main` already carries `release/3.0.0` (`a3f2221`, tagged `v3.0.0`, merged back as `789349e`; `VERSION` reads 3.0.0 on `develop`), so how the four feedback branches reach the shipped artifact the founder calls 3.0.0 — a second cut of `release/3.0.0` from `develop`, or a version bump — is a versioning question outside this file; the merge order into `develop` (§14.1) does not depend on the answer. **Closes when** the branch merges with its code-auditor PASS, QA's 30g–30t on the named matrix (an API ≤ 34 image included) and the tech-lead's sign-off | android-game-dev → code-auditor + qa-engineer → tech-lead sign-off; release-manager for the version question |
+| 43 | (numbered 39 on its branch) **The old 2.0 application's Realm file** (added 2026-11-01, §7.4): an update from the store leaves `pegsolitarie.realm` and its siblings orphaned in `filesDir`; it holds the player's old per-board fewest-pegs bests and times, which this codebase cannot read without the Realm SDK | **Open, owned. Not a 3.0.0 item.** Nothing collides and nothing breaks. Two decisions are the founder's, queued non-blocking by the producer as one `Q-<NNN>`: whether the old bests are worth importing into Classic `level_result` (one Realm read behind a feature flag, a native-library dependency for one launch; the tech-lead recommends no), and whether the orphaned file is deleted after that (irreversible; the tech-lead recommends leaving it) | producer (the question); tech-lead for the mechanism if the answer is yes |
+| 44 | (numbered 40 on its branch) **Generator v2's measured figures** (added 2026-11-01, §7.1, §7.3): the fuzz time at 10,000 (M1), the attempts levels 1–4 need under G6 (M2), the accepted freeform share and the first level of each canonical footprint (M3) | **Open, owned.** Reported in C2's developer report, read at the SB sign-off, and transcribed here dated, as §7.3's figures were | android-game-dev (measures) → tech-lead (transcribes at sign-off) |
+| 45 | (numbered 41 on its branch) **The 3.1 hint candidates the band creates** (added 2026-11-01; `docs/gdd.md` §9, §17): a tiered hint that searches for a two- or three-peg line once one peg is proven unreachable (a new solver target and book semantics, and a higher Undecided rate), and the memoised ladder prefix of §15 | **Open, owned. 3.1, not cut-blocking.** Both need a tech-lead brief after the game-designer's 3.1 ruling | game-designer (the rule) → tech-lead (brief) |
 
 ## 17. Supersessions
 
@@ -2641,3 +2778,8 @@ Nothing is deleted from this file; a superseded decision stays with a pointer to
 | §3.5's Insets bullet (2026-10-17/18): "Each screen keeps the one inset application it has today: the `Scaffold` content padding, and the tutorial column's `safeDrawingPadding()`" and "`MainActivity` is untouched: no `enableEdgeToEdge()`"; candy R1's "`MainActivity` untouched" and B-09's "insets applied exactly as today" | D-05g (§3.8): every screen pads off one shared source, the bars' stable insets ∪ the display cutout (`ui/window/StableInsets.kt`), through the `Scaffold`'s `contentWindowInsets`, the `TopAppBar`'s `windowInsets` and the tutorial column's `windowInsetsPadding`; `MainActivity` calls `enableEdgeToEdge()` and provides the bar seam; B-09c releases R1's constraint for `feature/game-immersive` (added 2026-11-01) | §3.5, §3.8, §14.1 IM; `docs/ux-spec.md` D-05g; `docs/ux/candy-backdrop.md` B-09c |
 | §16 #18's and D-05f's "below API 35 the bar is the platform's, opaque, as before D-05f" (B-1b), the v35 files' comment "below API 35 the window is not edge to edge", and `WindowThemeTest`'s KDoc to the same effect | Below API 35 the window is edge to edge by `enableEdgeToEdge()` (§3.8 (e)): the status bar transparent over `background` on every supported API level, the navigation bar in criterion 29's second admitted form (androidx's scrim on 26–28, the platform's on 29–34); the v35 pair's items and both window-theme tests are unchanged, the first frame still the theme's, and each of the three comments gains a dated one-sentence correction (added 2026-11-01) | §3.8 (e), §16 #18; `docs/ux-spec.md` criterion 29's 2026-11-01 note, criterion 30r |
 | §14.2's F-33 item as one item, "host-level `safeDrawingPadding()`" | Two halves: the source, settled by D-05g (stable insets, never `safeDrawing`); the place, the host once, still §14.2 under its condition (added 2026-11-01) | §3.5, §3.8 (d), §14.2 |
+| §2.2's "a generation-algorithm change ships as a parallel generator version, never as an in-place mutation", and `GeneratorConstants`' KDoc to the same effect, read as binding before any store build | Binding from the first store build of this codebase; before it the bump re-rolls in place with regenerated fixtures and an exhaustive re-fuzz (GD-SB-12; added 2026-11-01) | §2.2, §7.1; `docs/gdd.md` §8 I7 |
+| §7.1's three bullets as the whole generator contract: version 1, freeform from level 40 taking over, the pool holding `Boards.Diamond41` with its floor of 2, the fixtures "green unchanged" | Generator contract version 2: the ladder cut, the freeform intro at 10 with the 50/50 mix, the fail-proof opening, footprint copies with a one-peg target, fixtures regenerated once under the bump (added 2026-11-01) | §7.1; `docs/gdd.md` §7–§8 |
+| `GameViewModel.statusFor`'s and `ResultsUiState.isSolved`'s one test, `pegCount <= minimumPegs`, for both modes; `ResultsHeadlineTier`'s three values; `PlaySessionDao.flags`' predicates with no star filter; `GameStatus.Won`'s KDoc "a single peg remains" | `ChallengeClearRule` for Challenge at the two mode-branch sites, `CLEARED` as the fourth tier, `AND stars = :perfectStars` on the three skill predicates, the KDoc corrected (added 2026-11-01) | §7.4; `docs/gdd.md` R5–R7, GD-SB-05, GD-SB-14 |
+| `SnapshotMapper.resolveMinimumPegsOrNull` case 2, "absent, footprint in the catalog → the catalog floor", for both modes; `resetToInitial` rebuilding every Challenge restart from the stored `initialBoard` | Case 2 keyed on `mode` (a Challenge blob resolves to one peg); a restart of a Challenge game restored from a stamp of another generator version regenerates the level (added 2026-11-01) | §7.4; `docs/gdd.md` §12.3(3), CLC-06 |
+| §16 #5, "`docs/gdd.md` — not a technical item, game-designer via producer" | Closed: the file exists on `feature/challenge-star-bands` (added 2026-11-01) | §16 #5 |
