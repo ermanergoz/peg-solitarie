@@ -2,9 +2,9 @@
 role: ux-designer
 task: licences-screen (its own branch, `feature/licences-screen`, since 2026-10-18 — direction-B A9; first drafted on 2026-10-17 as candy-backdrop's companion item)
 slug: licences-screen
-status: draft — second edition, loop 2 (checked PASS at loop 2; the loop-2 fold is non-blocking and precedes the qa-engineer's session); address ruling after QA's F-1 (LS-14; §10 rows 38–42); device re-run rulings after QA's re-run, O-2, F-4 and F-2 (LS-15, LS-16, LS-AC19; §10 rows 43–45); LS-15 ruled for a scrolling list after QA's F-4 re-check and the tech-lead's R1 (§10 row 46)
+status: draft — second edition, loop 2 (checked PASS at loop 2; the loop-2 fold is non-blocking and precedes the qa-engineer's session); address ruling after QA's F-1 (LS-14; §10 rows 38–42); device re-run rulings after QA's re-run, O-2, F-4 and F-2 (LS-15, LS-16, LS-AC19; §10 rows 43–45); LS-15 ruled for a scrolling list after QA's F-4 re-check and the tech-lead's R1 (§10 row 46); QA's R4 observations O-R4-1 and O-R4-2 recorded as the platform's (§10 row 47)
 created: 2026-10-17
-revised: 2026-11-01 (LS-15 ruling, after `qa-engineer-recheck.md` and `tech-lead-f4-ruling.md` R1); 2026-10-24 (second edition; loops 1 and 2 the same day; the address ruling the same day, after the qa-engineer's F-1; the device re-run rulings the same day, after the qa-engineer's re-run)
+revised: 2026-11-01 (R4 observations, after `qa-engineer-r4.md`); 2026-11-01 (LS-15 ruling, after `qa-engineer-recheck.md` and `tech-lead-f4-ruling.md` R1); 2026-10-24 (second edition; loops 1 and 2 the same day; the address ruling the same day, after the qa-engineer's F-1; the device re-run rulings the same day, after the qa-engineer's re-run)
 stack: android-compose-game
 design-system: docs/ui/DESIGN-SYSTEM.md
 sources: THIRD_PARTY.md (on this branch via `develop` c5f2c54; its 3.0.0 rows); docs/tech-design.md §3.1, §3.6, §13, §13.1 (LN-1–LN-8), §14.1 row LN, §16 #20, §17; docs/ux-spec.md §4.5, §11, §11.1 (D-TB, D-TBa; on this branch since `develop` 4069b53); .planning/questions/FOUNDER.md Q-023 (on this branch since 4069b53); .planning/reports/candy-backdrop/tech-lead-architecture.md R4, R5, D10, D11; .planning/reports/candy-backdrop/tech-lead-direction-b.md A9, E6, E7, open issue 7; .planning/reports/phase-14/research-analyst-release-docs-licences.md (rows A–J, the Apache table); .planning/reports/phase-14/research-analyst-font-licences.md (verdict 2, open issues 1–3); .planning/reports/licences-screen/research-analyst-mpl.md (the MPL-2.0 verdict, the exact PSL version, two full hashes); .planning/reports/licences-screen/ux-designer-check.md (F-01–F-18, folded in loop 1); docs/audio/CREDITS.md (feature/audio-review, the WAV set); docs/ui/DESIGN-SYSTEM.md (the no-backdrop contrast pairs); .planning/reports/licences-screen/tech-lead-brief.md (the build brief: §0–§8 and Amendment 1, A1.1–A1.9, which answer §9 item 7(f)–(k)); .planning/reports/licences-screen/ux-designer-check-loop2.md (PASS; F-19–F-30, folded in loop 2); ui/settings/SettingsScreen.kt; .planning/reports/licences-screen/qa-engineer.md (F-1; the §8.2 item 1 note on `play-services-ads-identifier`) and its screenshots and TalkBack transcript under `.planning/qa/licences-screen/` (the address ruling); .planning/reports/licences-screen/android-game-dev.md (deviations 5 and 6; "Loop 2 — QA F-1", `2d433b8`); app/src/main/assets/licenses/Jakarta-Inject-NOTICE.md; res/values/strings.xml (the licences block); .planning/reports/licences-screen/qa-engineer-rerun.md (O-1, O-2, F-2, F-4) and its TalkBack transcripts and screenshots under `.planning/qa/licences-screen/rerun/` (the device re-run rulings)
@@ -477,6 +477,27 @@ is spelt the same in both, so the Google screens need no second spelling.
   The four-screen scope is unchanged. The other three screens have one heading each, or hold all
   their headings (Jakarta passed both ways). A later screen with headings inside a scrolling list
   inherits this restated contract, not the text above.
+  *(R4 observations, 2026-11-01, `qa-engineer-r4.md` O-R4-1 and O-R4-2: two more behaviours are
+  **recorded, not graded**. Both come from the same mechanism as R1 (Compose gives TalkBack only
+  the nodes on screen; TalkBack's scroll moves a full page and TalkBack chooses where focus lands
+  after it). Neither makes an entry unreachable.)*
+  6. **Linear swipes backward (previous), on any of the four screens.** Across a TalkBack page
+     scroll, a backward swipe may land several stops further back than the next one. QA heard this
+     from Chromium (Cronet): two backward page scrolls, then OkHttp and Okio, so Protocol Buffers,
+     Annotation and injection APIs, Jakarta Dependency Injection and Gson, Tink and Guava were not
+     read. This is the platform's, like going up by headings. Forward swipes, which pass line 1
+     grades, still reach every stop. What still fails going backward:
+     - a card that is not read whole, title first (pass line 2 or 3);
+     - a skipped or out-of-order stop with **no** TalkBack page scroll between the two stops,
+       because that order is the app's;
+     - any stop that §5.1's table does not list.
+  7. **A heading swipe that finds nothing.** TalkBack sometimes moves nowhere on a heading swipe
+     from the pinned title, speaks nothing and keeps focus, and the next swipe goes on in order.
+     That swipe is not a stop and not a skip. Pass line 4 (a) is graded on the headings spoken
+     and their order, not on the number of swipes.
+  The only lever the app has on either is R1's option B, a shorter accessibility page, which the
+  tech-lead rejected for 3.0.0 as unproven on the device. If players report the backward skip,
+  that device spike is where to start. It is not scheduled.
 - **LS-16: Every text reads in its own direction; a list's lines hang from the mirrored start
   edge, a text screen's body from its own left edge** *(device re-run ruling, 2026-10-24, on the
   qa-engineer's F-2. It confirms the intent of §4's "Direction" and of §5.1's "the texts stay left
@@ -1095,6 +1116,10 @@ dark, at 100 % and 200 %).** PASS when all of these hold; any one failing is FAI
    on the two list screens through the whole list; on the two text screens through the chrome and the
    first screenful of paragraphs, because the body is point 5's *(loop 1, F-15: 2,500 swipes on
    Cronet's notice is not a pass line)*;
+   *(R4 observations, 2026-11-01, O-R4-2: this line grades **forward** swipes only. Backward
+   swipes are recorded, not graded, for order (LS-15 point 6). Across a TalkBack page scroll they
+   may skip stops. With no scroll between two stops, the order must be the exact reverse of the
+   table. Pass line 2 or 3 grades every card stop in them.)*
 2. every tappable entry or row is announced with its lines, "button" and its click label, and a
    double-tap opens the text it names;
    *(device re-run ruling, 2026-10-24, on the re-run's O-1: a card read without its title, or as
@@ -1136,6 +1161,9 @@ dark, at 100 % and 200 %).** PASS when all of these hold; any one failing is FAI
    (d) past the last heading and before the first stay the platform's.
    The list still composes every item, and a lazy list still fails (LS-AC06's Compose half).
    On the text screens, which hold all their headings, the line is unchanged.)*
+   *(R4 observations, 2026-11-01, O-R4-1: a heading swipe that finds nothing, speaks nothing and
+   leaves focus where it was is neither a stop nor a skip. QA swipes again. (a) is graded on the
+   headings spoken and their order, not on the number of swipes. LS-15 point 7.)*
 5. on a text screen, continuous reading proceeds to "End of text" (on Cronet's notice, at least
    twenty paragraphs are read continuously and TalkBack's scroll reaches the end);
 6. the loading description, when it appears, and the error text are each spoken once when they
@@ -1334,6 +1362,8 @@ where the generated assets are the release variant's. Each item is a screenshot 
    | From an entry in the middle of the list, down | **Pass line 4 (a), (b)**, for the headings below that entry |
    | From an entry in the middle of the list, up; up from the last entry; from the title with the list scrolled, down | **Recorded, not graded** for heading order (pass line 4 (c)). Pass line 2 grades every card stop |
    | Every run, every card stop | **Pass line 2 or 3:** read once, whole, title first; "Button" and the hint on a tappable card only |
+   | Linear swipes backward (previous), on any screen *(R4 observations, 2026-11-01, O-R4-2)* | **Recorded, not graded** for order (LS-15 point 6). Not owed as a run. A skip across a TalkBack page scroll is the platform's. A skip or out-of-order stop with no scroll between the two stops fails pass line 1. Pass line 2 or 3 grades every card stop |
+   | A heading swipe that finds nothing, in any run *(O-R4-1)* | **Recorded, not graded.** It is not a stop and not a skip; QA swipes again (LS-15 point 7) |
    - At 100 % on the release-candidate check. At 200 %, the down run is graded the same way when
      it is run; for the 3.0.0 re-check of F-4 it is not owed (the founder's reduced scope), and
      the producer decides whether to run it.
@@ -1611,3 +1641,4 @@ is the index of them.
 | 44 | 2026-10-24, device re-run | **LS-15**: heading navigation reaches every heading in both directions, from any stop and at any scroll position, with nothing else between two headings; required on the Licenses list for 3.0.0, with no lazy-list limit accepted; what TalkBack does past the last heading or before the first is the platform's; a card read without its title or as a bare "Button" fails pass line 2 (O-1); pass line 4 restated | qa-engineer re-run **F-4** and **O-1** (`tb-licenses-headings-*.txt`, `tb-jakarta-headings-*.txt`, `t02-licenses-sliver.png`) | LS-15; §5.1 "Headings are headings"; pass lines 2 and 4; LS-AC06; §8.2 item 2; §9 item 18 |
 | 45 | 2026-10-24, device re-run | **LS-16**: every text reads in its own direction, so its characters stay in written order in any locale; a list's lines hang from the mirrored start edge, a text screen's body from its left edge; the chrome mirrors; "the default content-based text direction" superseded; new **LS-AC19**; the rest of the app routed | qa-engineer re-run **F-2** (`s23`–`s26`) | LS-16; §4; §4B; §5; §5.1 RTL; LS-AC19; §8.2 item 6; §9 items 18 and 19 |
 | 46 | 2026-11-01, LS-15 ruling | **LS-15 restated for a scrolling list** (option F): going down, every heading is reached in order, from the top and from a mid-list entry; a non-heading stop between two headings is accepted only right after a TalkBack page scroll, at most one per scroll, and only as a whole card, title first; going up, and from the title with the list scrolled, recorded and not graded; the non-lazy list kept, and its Compose tests named necessary, not sufficient; "from any stop and at any scroll position … both directions" superseded. Pass line 2's "LS-15's fix is expected to remove it" superseded by the tech-lead's R2 (each card speaks its whole label). The pinned section index (E) and the scrolling title (D) rejected for 3.0.0; no founder question | `qa-engineer-recheck.md` **F-4** (`tb-f4-*.txt`); `tech-lead-f4-ruling.md` **R1** (Compose exposes only on-screen nodes; TalkBack's page scroll) and **R2** | LS-15; §5.1 "Headings are headings"; pass lines 2 and 4; LS-AC06; §8.2 item 2; §9 item 18 |
+| 47 | 2026-11-01, R4 observations | Two platform behaviours are added to LS-15's recorded list, not graded. (1) Linear swipes **backward** may skip stops across a TalkBack page scroll, on any of the four screens. Pass line 1 grades forward swipes only. A skip with no scroll between two stops still fails, and pass line 2 or 3 grades every card stop. (2) A heading swipe that finds nothing is neither a stop nor a skip, and pass line 4 (a) is graded on the headings spoken. R1's option B is recorded as the place to start if players report the backward skip; it is not scheduled. Neither is a 3.0.0 defect | `qa-engineer-r4.md` **O-R4-2** (`linear-back-timeline.txt`) and **O-R4-1**; `tech-lead-f4-ruling.md` R1 | LS-15 points 6 and 7; pass lines 1 and 4; §8.2 item 2 |
