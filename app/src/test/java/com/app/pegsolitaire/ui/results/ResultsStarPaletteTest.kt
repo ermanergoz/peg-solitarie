@@ -111,13 +111,10 @@ class ResultsStarPaletteTest {
         val stars = layout.starBoxes(starRow().boundsInRoot)
         val beneath = frameWithoutTheScreen()
         stars.take(EARNED).forEachIndexed { index, box ->
+            val centre = beneath.starPixel(box, STAR_CENTRE_UNITS, STAR_CENTRE_UNITS)
             assertWithMessage("the frame without the screen: no earned star $index's fill at its centre")
-                .that(
-                    isBetweenStops(
-                        beneath.starPixel(box, STAR_CENTRE_UNITS, STAR_CENTRE_UNITS),
-                        boardMarksFor(BoardMarkPalette.Standard, dark).earnedStarFill,
-                    ),
-                ).isFalse()
+                .that(BoardMarkPalette.entries.any { isBetweenStops(centre, boardMarksFor(it, dark).earnedStarFill) })
+                .isFalse()
         }
 
         assertWithMessage("EarnedStarCountKey under the standard palette").that(countUnderStandard).isEqualTo(EARNED)
