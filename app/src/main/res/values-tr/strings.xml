@@ -1,0 +1,550 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Turkish (tr) copy: the Türkçe column of docs/ux/localisation-tr.md §5, verbatim (register:
+  sen, the founder's answer to Q-031), with each apostrophe escaped for aapt2. Every translatable
+  key of values/strings.xml, in that file's order and under its section comments, so the two
+  files diff side by side; a key the base file marks translatable="false" (a proper name, the
+  em-dash placeholder, the boards fraction) has no entry here by design. TurkishStringsParityTest
+  holds the two files to each other.
+-->
+<resources>
+    <!-- Top-bar restart control (icon-only; this is its content description). -->
+    <string name="restart_board">Tahtayı yeniden başlat</string>
+
+    <!-- Game-over dialog (D-05). -->
+    <string name="play_again">Tekrar oyna</string>
+    <string name="view_board">Tahtayı gör</string>
+    <string name="game_over_perfect_headline">Mükemmel!</string>
+    <string name="game_over_perfect_body">Tahtayı tek piyona kadar temizledin.</string>
+    <string name="game_over_near_headline">Az kaldı!</string>
+    <string name="game_over_stuck_headline">Hamle kalmadı</string>
+
+    <!-- Mid-game restart confirmation (D-06). -->
+    <string name="restart_confirm_title">Bu tahta yeniden başlatılsın mı?</string>
+    <string name="restart_confirm_body">Mevcut ilerlemen kaybolacak.</string>
+    <string name="keep_playing">Oynamaya devam et</string>
+
+    <!-- Pegs-remaining body copy, plural-aware ({n}). -->
+    <plurals name="pegs_remaining">
+        <item quantity="one">%d piyon kaldı.</item>
+        <item quantity="other">%d piyon kaldı.</item>
+    </plurals>
+    <plurals name="pegs_remaining_retry">
+        <item quantity="one">%d piyon kaldı. Tekrar denemek ister misin?</item>
+        <item quantity="other">%d piyon kaldı. Tekrar denemek ister misin?</item>
+    </plurals>
+
+    <!--
+      ============================ Phase-2 copy ============================
+      All Phase-2 user-facing strings, declared here up front so the Classic-flow
+      UI plans (Catalog 02-05, Home/onboarding 02-06, Results 02-07) read them via
+      stringResource(...) with no magic strings. Verbatim from the Phase-2 UI-SPEC
+      Copywriting Contract. Phase-1 strings above are reused, not duplicated
+      (e.g. restart_board for the gameplay restart content description).
+    -->
+
+    <!-- Home (mode select). -->
+    <string name="classic_tile_title">Klasik</string>
+    <string name="classic_tile_supporting">5 tahta</string>
+    <string name="challenge_tile_title">Meydan okuma</string>
+    <!-- The Challenge tile's supporting line: the player's persisted ladder position (CHAL-05). -->
+    <string name="challenge_tile_continue">Devam et — Seviye %1$d</string>
+    <string name="coming_soon">Çok yakında</string>
+    <!--
+      `how_to_play` was deleted in Phase 15 (ux-spec §8 Deleted): its only caller was Home's
+      information icon, which D-02 removes. The tutorial's one permanent entry point is now
+      the Settings › General row below, which carries its own label.
+    -->
+
+    <!-- Classic catalog. -->
+    <string name="catalog_title">Klasik</string>
+    <!-- Hole-count subtitle on each catalog card, plural-aware. -->
+    <plurals name="holes_count">
+        <item quantity="one">%d delik</item>
+        <item quantity="other">%d delik</item>
+    </plurals>
+    <!--
+      Screen-reader description of a catalog card's earned-star pips (PERS-01, D-10):
+      the row announces its count once ("1 of 3 stars") instead of three anonymous icons.
+    -->
+    <string name="catalog_stars_earned">%2$d yıldızın %1$d tanesi</string>
+
+    <!-- Gameplay top bar (timer + back; restart_board reused from Phase 1). -->
+    <string name="navigate_back">Geri dön</string>
+    <string name="elapsed_time">Geçen süre</string>
+    <!--
+      D-05e (ux-spec §4.3.2, §8), with its whole-minute fallback (tech-lead defect ruling §2, B-2):
+      the timer's content description is its label, a comma and the elapsed time in whole minutes,
+      "Elapsed time, 5 minutes", or "Elapsed time, under a minute" below one. So TalkBack says the
+      time and not only what the clock is, and the description changes at most once a minute: with
+      the seconds in it, TalkBack spoke the focused timer again as they ticked. Minutes are floored,
+      never rounded up, and never roll into hours, as the clock never rolls them. The join is a
+      format string, so the order belongs to the copy and not to the code.
+    -->
+    <string name="elapsed_time_spoken">%1$s, %2$s</string>
+    <plurals name="duration_minutes">
+        <item quantity="one">%d dakika</item>
+        <item quantity="other">%d dakika</item>
+    </plurals>
+    <string name="duration_under_a_minute">bir dakikadan az</string>
+    <!-- Challenge gameplay top-bar "Level N" title + its screen-reader description (S2, D-03). -->
+    <string name="challenge_level_indicator">Seviye %1$d</string>
+    <string name="challenge_level_indicator_desc">Meydan okuma seviyesi %1$d</string>
+    <!-- Undo control (icon-only; disabled when there is nothing to undo, ASST-02). -->
+    <string name="undo_action">Geri al</string>
+    <!-- Winning-move Hint action (icon-only; distinct from the show-moves toggle, D-01/D-02). -->
+    <string name="hint_action">İpucu</string>
+    <!-- Announced while the Solver computes a hint; the control is disabled (D-10). -->
+    <string name="hint_thinking">Hamle aranıyor</string>
+    <!--
+      Show-possible-moves switch (icon-only, D-02). Its ONE constant name in both states: the state
+      is announced by the switch role, never by swapping the name (D-04e, ux-spec §4.4.1).
+    -->
+    <string name="show_moves_on">Olası hamleleri göster</string>
+    <!-- Shown while a Challenge board is generated off the main thread (CR-01). -->
+    <string name="loading_level">Seviye yükleniyor</string>
+    <!--
+      The board with TalkBack (D-TB as amended by D-TBa; docs/ux-spec.md §11.1 and §8). Every
+      string here is spoken, never drawn. Rows and columns are spoken from 1 (BoardSpeechFormat).
+      29 strings and two plurals. The three board_a11y_rejected_* lines replace the audio branch's
+      three wrong-tap sentences (D-06c), on both boards (D-TBa items 2 and 3).
+    -->
+    <!-- The board stop: "Board, 32 pegs left". -->
+    <string name="board_a11y_label">Tahta, %1$s</string>
+    <plurals name="board_a11y_pegs_left">
+        <item quantity="one">%d piyon kaldı</item>
+        <item quantity="other">%d piyon kaldı</item>
+    </plurals>
+    <!-- A cell's parts, joined by the separator in this order, only the parts that apply. -->
+    <string name="board_a11y_separator">", "</string>
+    <string name="board_a11y_position">Satır %1$d, sütun %2$d</string>
+    <string name="board_a11y_peg">piyon</string>
+    <string name="board_a11y_empty">boş</string>
+    <string name="board_a11y_selected">seçili</string>
+    <plurals name="board_a11y_jumps">
+        <item quantity="one">%d atlama</item>
+        <item quantity="other">%d atlama</item>
+    </plurals>
+    <string name="board_a11y_no_jumps">atlama yok</string>
+    <string name="board_a11y_jump_target">atlama hedefi</string>
+    <string name="board_a11y_hint_source">ipucu, bu piyonu oynat</string>
+    <string name="board_a11y_hint_target">ipucu, buraya in</string>
+    <!-- The tap's action label, spoken as "double-tap to …". -->
+    <string name="board_a11y_action_select">seçmek</string>
+    <string name="board_a11y_action_put_down">bırakmak</string>
+    <string name="board_a11y_action_jump_here">buraya atlamak</string>
+    <!-- One custom action per legal jump: "Jump up to row 4, column 4". -->
+    <string name="board_a11y_action_jump">Satır %2$d, sütun %3$d konumuna %1$s atla</string>
+    <string name="board_a11y_direction_up">yukarı</string>
+    <string name="board_a11y_direction_down">aşağı</string>
+    <string name="board_a11y_direction_left">sola</string>
+    <string name="board_a11y_direction_right">sağa</string>
+    <!-- The board's one polite channel: each event spoken once. -->
+    <string name="board_a11y_announce_selected">Satır %1$d, sütun %2$d seçildi, %3$s.</string>
+    <string name="board_a11y_announce_put_down">Piyon bırakıldı, satır %1$d, sütun %2$d.</string>
+    <string name="board_a11y_announce_jump">Satır %1$d, sütun %2$d konumundan satır %3$d, sütun %4$d konumuna. Satır %5$d, sütun %6$d kaldırıldı. %7$s.</string>
+    <string name="board_a11y_rejected_no_peg">Burada piyon yok.</string>
+    <string name="board_a11y_rejected_not_target">Atlama hedefi değil.</string>
+    <string name="board_a11y_rejected_put_down_first">Önce seçili piyonu bırak.</string>
+    <string name="board_a11y_announce_undo">Satır %1$d, sütun %2$d konumundan satır %3$d, sütun %4$d konumuna atlama geri alındı. %5$s.</string>
+    <string name="board_a11y_announce_hint">İpucu: satır %1$d, sütun %2$d; satır %4$d, sütun %5$d konumuna %3$s atla.</string>
+    <string name="board_a11y_announce_restart">Tahta yeniden başlatıldı. %1$s.</string>
+    <!-- A tutorial step's board: tutorial_step_progress, then the step's caption. -->
+    <string name="board_a11y_announce_step">%1$s. %2$s</string>
+    <!-- Results' summary on opening: the headline, the stars, the pegs left. -->
+    <string name="results_a11y_summary">%1$s — %2$s, %3$s.</string>
+
+    <!--
+      Inline no-win / stuck rescue banner (ASST-03, D-06/D-08/D-09). One shared banner
+      surfaces either message over the still-interactive board; rescue_restart is the
+      label form of the Restart action (distinct from the restart_board content-desc),
+      and the banner reuses undo_action + action_home for its other two actions.
+    -->
+    <string name="nowin_message">Kazandıran hamle yok — geri al ya da yeniden başlat</string>
+    <string name="stuck_message">Hamle kalmadı — geri al ya da yeniden başlat</string>
+    <!--
+      D-04f / ux-spec §4.4.2 and §8. The Undecided notice: a hint search that stopped with no
+      move and no proof. Two sentences, never the rescue banner's "problem — what to do" shape,
+      and none of the ruling's forbidden words (criterion 23b). Its Turkish, the spec's tr-TR copy
+      of record, is in values-tr (docs/ux/localisation-tr.md D-11).
+    -->
+    <string name="hint_undecided_message">İpucu bu konumu süresi içinde çözemedi. Belki hâlâ kazanılabilir.</string>
+    <string name="rescue_restart">Yeniden başlat</string>
+
+    <!-- Results. -->
+    <string name="results_title">Sonuç</string>
+    <string name="results_headline_perfect">Mükemmel!</string>
+    <string name="results_headline_solved">Çözüldü!</string>
+    <string name="results_headline_stuck">Hamle kalmadı</string>
+    <string name="results_label_score">PUAN</string>
+    <string name="results_label_time">SÜRE</string>
+    <string name="results_label_pegs_left">KALAN PİYON</string>
+    <string name="action_replay">Tekrar oyna</string>
+    <string name="action_catalog">Tahtalar</string>
+    <string name="action_home">Ana menü</string>
+    <!--
+      Results "New best!" cue (PERS-01, D-09): shown only when the play actually improved
+      one of the level's stored bests (stars, time or score).
+    -->
+    <string name="results_new_best">Yeni rekor!</string>
+    <!--
+      Content description of the INT-04 quiescence scrim (AdQuiescenceScrim). Deliberately
+      one neutral word: D-08 forbids drawn text or a spinner, but the dim still swallows
+      every tap, so a screen reader must be told the screen is busy rather than be left
+      announcing controls that no longer respond.
+    -->
+    <string name="results_ad_scrim_description">Hazırlanıyor</string>
+    <!-- Challenge-aware Results actions (S3, D-01/D-10). -->
+    <string name="action_next_level">Sonraki seviye</string>
+    <string name="action_retry">Yeniden dene</string>
+    <string name="challenge_load_error">Bu seviye yüklenemedi. Yeniden dene düğmesine dokun.</string>
+
+    <!--
+      ============================ Phase-5 copy ============================
+      Settings (SET-01/SET-02, D-14..D-17). Both supporting lines describe feedback that
+      fires today: haptics has since Phase 5 (D-15), and sound since Phase 7 — its line
+      said "Saved for the upcoming sound effects" until Phase 15 corrected it (ux-spec §8
+      Fixed), which was honest when it was written and stale for eight phases after.
+      settings_action is the Home gear's content description.
+    -->
+    <string name="settings_title">Ayarlar</string>
+    <string name="settings_action">Ayarlar</string>
+    <string name="settings_sound_label">Ses</string>
+    <string name="settings_sound_supporting">Atlama, düğme ve kutlama seslerini çalar</string>
+    <string name="settings_haptics_label">Titreşim</string>
+    <string name="settings_haptics_supporting">Her atlamada hafifçe titreşir</string>
+
+    <!-- Colorblind palette (docs/ux/colour-vision.md §3.1). -->
+    <string name="settings_colorblind_label">Renk körlüğü paleti</string>
+    <string name="settings_colorblind_supporting">Hamleler, ipuçları ve yıldızlar daha net görünür</string>
+
+    <!--
+      Phase-15: the tutorial's one permanent entry point (ONB-01, D-02a; ux-spec §4.5, §8).
+      "Replay" is deliberate — a first-run player meets the tutorial automatically and never
+      reads this line first, so the row only ever describes going back to it.
+    -->
+    <string name="settings_how_to_play_label">Nasıl oynanır</string>
+    <string name="settings_how_to_play_supporting">Eğitimi yeniden oynat</string>
+
+    <!--
+      Phase-15: the Home progress ribbon (NAV-01/PERS-03/CHAL-05, D-03/D-03c/D-03h;
+      ux-spec §4.2, §8).
+
+      `stat_value_unknown` is an em dash, and it is what a pill shows both before the first
+      read lands AND when the read failed — the two are deliberately indistinguishable, and
+      neither is ever rendered as `0`, because zero is a real answer for a brand-new player
+      and reporting it for a broken read would lie to an experienced one (D-03h).
+      `stat_value_unknown_desc` is what a screen reader says in its place, so the em dash is
+      never spoken as punctuation.
+
+      The Boards pill's denominator is a FORMAT ARGUMENT, never a literal: it is supplied at
+      the call site from the Classic catalogue's own size, so a stored row cannot change a
+      shipped number and a sixth board would move it without a copy edit.
+    -->
+    <string name="stat_value_unknown_desc">henüz yok</string>
+    <!--
+      A pill's whole announcement, label then value: "Stars, 7" — or "Stars, not yet
+      available" when the value is unknown. It is a format rather than a bare comma joined in
+      code because the separator between a label and its value is locale-specific, and because
+      a merged semantics node that carried both a contentDescription and its children's text
+      would be read as the description ALONE by TalkBack, silently dropping the label. This is
+      the string ux-spec §8's table does not list; see the report's Deviations.
+    -->
+    <string name="home_stat_pill_desc">%1$s, %2$s</string>
+    <string name="home_stat_stars_label">Yıldız</string>
+    <string name="home_stat_boards_label">Tahta</string>
+    <string name="home_stat_level_label">Seviye</string>
+
+    <!--
+      Home "Continue" affordances for a saved in-progress game (PERS-03, D-01/D-03). Each
+      mode has its own tile and they can appear together, so the titles name the mode
+      rather than relying on position. The supporting lines say what is actually being
+      resumed — the exact board, not a fresh start.
+    -->
+    <string name="resume_classic_title">Klasik oyuna devam et</string>
+    <string name="resume_classic_supporting">Kaydettiğin tahtadan devam et</string>
+    <string name="resume_challenge_title">Meydan okumaya devam et</string>
+    <string name="resume_challenge_supporting">%1$d. seviyeye kaldığın yerden devam et</string>
+
+    <!--
+      ============================ Phase-15 copy ============================
+      The interactive tutorial (ONB-01, D-01/D-01a-i; ux-spec §8). Verbatim from the
+      Copywriting Contract. The three step captions REPLACE the onboarding_step_* prose
+      the deleted overlay read; `onboarding_got_it` and `onboarding_skip` are reused
+      unchanged, so the tutorial adds no button copy of its own.
+
+      There is deliberately no "boxed in / Undo" line: the tutorial has no Undo control
+      and its boards make being stuck impossible, so promising a rescue from an impossible
+      failure would teach the player to expect failure (§5, §4.4).
+    -->
+    <!-- The pip row's single announcement, e.g. "Step 2 of 3" (one semantics node). -->
+    <string name="tutorial_step_progress">Adım %1$d, toplam %2$d</string>
+    <!-- T1 teaches the jump itself. -->
+    <string name="tutorial_step_1_caption">Bir piyona dokun, sonra iki kare ötedeki boş deliğe dokun.</string>
+    <!-- T2 teaches the other axis, and that diagonals are never offered. -->
+    <string name="tutorial_step_2_caption">Atlamalar yukarı, aşağı, sola ve sağa yapılır — asla çapraz yapılmaz.</string>
+    <!-- T3 teaches the goal. -->
+    <string name="tutorial_step_3_caption">Atlatmaya devam et. Tahtayı tek piyona kadar temizle.</string>
+    <!-- Shown with the completion star and the CTA, once T3 is cleared. -->
+    <string name="tutorial_done_caption">Oyun bundan ibaret. Hadi, bir tahta temizle.</string>
+
+    <!--
+      The two action labels the retired first-run overlay authored, now the interactive
+      tutorial's completion CTA and Skip action. They keep their names and their values
+      (ux-spec §8 "Reused unchanged"): the shared `onboarding_` prefix is not a licence to
+      sweep the group.
+
+      `onboarding_step_1/2/3` were deleted with the retired first-run sheet in Phase 15 (§8
+      Deleted, verified by grep as having no other caller) — the three
+      `tutorial_step_*_caption` lines above are their rewrites, shortened to one line each
+      because the player is now doing the thing the sentence used to describe.
+    -->
+    <string name="onboarding_got_it">Anladım</string>
+    <string name="onboarding_skip">Eğitimi atla</string>
+
+    <!--
+      ============================ Phase-9 copy ============================
+      Consent & rewarded ads. Verbatim from the Phase-9 UI-SPEC Copywriting Contract.
+      Declared here up front so the downstream plans (dialog 09-03, Settings 09-07,
+      GameScreen funnel 09-08) read them via stringResource(...) and no plan but this
+      one touches a resource file.
+    -->
+
+    <!--
+      ADS-01 — rewarded opt-in dialog (D-06/D-07/D-10). The dialog is the ONLY signal the
+      free-allowance system exists, so the body carries count, scope and reward in one
+      breath: the title states the fact, the body proposes the trade.
+
+      The allowance counts are format placeholders ONLY — never type a literal count into
+      these strings. They are supplied at the callsite from AssistAllowanceLimits.FREE_HINTS
+      / FREE_UNDOS, which is why D-02's numbers are named exactly once in the whole codebase
+      and the copy cannot drift from the policy that grants it.
+    -->
+    <string name="ad_offer_watch">Reklam izle</string>
+    <string name="ad_offer_decline">Hayır, teşekkürler</string>
+    <string name="ad_offer_hint_title">Ücretsiz ipucu hakkın bitti</string>
+    <string name="ad_offer_undo_title">Ücretsiz geri alma hakkın bitti</string>
+    <string name="ad_offer_hint_body">Bu seviyedeki %1$d ücretsiz ipucu hakkını kullandın. %1$d ipucu daha için kısa bir reklam izlemek ister misin?</string>
+    <string name="ad_offer_undo_body">Bu seviyedeki %1$d ücretsiz geri alma hakkını kullandın. %1$d geri alma daha için kısa bir reklam izlemek ister misin?</string>
+    <!-- Spinner content description during the bounded wait; no visible label (D-10). -->
+    <string name="ad_offer_loading">Reklam yükleniyor</string>
+
+    <!--
+      ADS-03 — ad-unavailable snackbar (D-11). The assist lands FIRST, then the message
+      states the problem and its already-applied resolution; no action is offered because
+      none is needed. The em dash follows the shipped nowin_message
+      ("No winning move — undo or restart") "problem — resolution" shape.
+    -->
+    <string name="ad_unavailable_hints">Reklam gösterilemedi — ipuçları ücretsiz yenilendi</string>
+    <string name="ad_unavailable_undos">Reklam gösterilemedi — geri almalar ücretsiz yenilendi</string>
+
+    <!--
+      CONS-03 / REL-05 — Settings Privacy section (D-14/D-15). Both section headers are
+      declared: a label over one group and not the other is exactly the inconsistency the
+      UI contract exists to prevent. The policy-row failure copy follows the shipped
+      challenge_load_error shape — a tap that does nothing would be a dead end.
+    -->
+    <string name="settings_section_general">Genel</string>
+    <string name="settings_section_privacy">Gizlilik</string>
+    <string name="settings_privacy_policy_label">Gizlilik politikası</string>
+    <string name="settings_privacy_policy_supporting">Tarayıcında açılır</string>
+    <string name="settings_privacy_policy_error">Gizlilik politikası açılamadı — tarayıcı uygulaması bulunamadı.</string>
+    <string name="settings_privacy_choices_label">Gizlilik tercihlerini yönet</string>
+    <string name="settings_privacy_choices_supporting">Reklam izni tercihlerini değiştir</string>
+
+    <!--
+      ============================ Phase-11 copy ============================
+      Play Games opt-in (PGS-01, D-15/D-16). The title asks rather than announces: this
+      is a genuine choice, not a step to get through. The body names the same three
+      benefits as the Settings row (leaderboards, achievements, cloud save) and then says
+      outright that the game is fully playable without signing in — D-16 requires both,
+      because a prompt that only lists upside reads as a wall. The closing sentence names
+      Settings, which is the ONLY way back in once this is answered (D-17/D-19).
+
+      "Not now" rather than "No thanks": the answer is permanent for the prompt, but the
+      door is not shut, and the copy should not claim otherwise.
+    -->
+    <string name="play_games_prompt_title">Play Games\'te oturum açılsın mı?</string>
+    <string name="play_games_prompt_body">Skor tablolarında yarış, başarımların kilidini aç ve ilerlemeni bulutta yedekli tut. Peg Solitaire her iki durumda da aynı şekilde oynanır — daha sonra Ayarlar\'dan oturum açabilirsin.</string>
+    <string name="play_games_prompt_accept">Oturum aç</string>
+    <string name="play_games_prompt_decline">Şimdi değil</string>
+
+    <!--
+      D-10 / D-18 — the ONE sign-in failure message, shared verbatim by the Home prompt's
+      accept path and the Settings sign-in row. Two strings here would be two wordings the
+      moment either is edited, for what is the same event seen from two places.
+
+      Raised ONLY when the SDK reports a genuine error. A player who simply dismissed the
+      account chooser sees nothing at all — apologising for their own choice is what makes
+      an optional feature feel like a failed mandatory one. Follows the shipped
+      settings_privacy_policy_error shape; no action label, because the opt-in already
+      stands and the next launch retries silently.
+    -->
+    <string name="play_games_signin_error">Play Games\'te oturum açılamadı</string>
+
+    <!--
+      D-08/D-09 — the Settings "Play Games" section, between General and Privacy.
+
+      The row label and its supporting line are fixed verbatim by D-09 and must not be
+      reworded: they are the one place a player who declined (or was never asked) reads
+      what signing in actually buys them, and the three benefits named here are the same
+      three the opt-in prompt above names. A second, prettier wording here would quietly
+      make the two surfaces promise different things.
+
+      The signed-in row is a statement, not an offer, so it is not phrased as an action.
+      settings_play_games_signed_in_as carries the player's own Play Games display name;
+      settings_play_games_signed_in_fallback replaces it whole when that lookup failed or
+      stalled (D-14) — deliberately NOT "Signed in as (unknown)", which reads as a broken
+      sign-in rather than the successful one it is.
+
+      Phase 12 D-14/D-15 — the two stock-UI rows below the signed-in row, and they are
+      shown to a signed-in player ONLY. Signed out, they are absent rather than disabled:
+      a greyed-out "Leaderboards" is an affordance that explains nothing, whereas the
+      sign-in row directly above it already says what to do. While the session is still
+      Unknown the whole section is absent (Phase 11 D-11), these rows included.
+
+      Both labels are fixed verbatim by D-14. "Leaderboards" is plural because the row
+      opens the all-leaderboards picker, not one board — the supporting lines describe
+      looking at what is already there, since neither row submits anything. No id and no
+      player-identifying text belongs in either: the seam takes no argument for these.
+    -->
+    <string name="settings_play_games_signin_label">Play Games\'te oturum aç</string>
+    <string name="settings_play_games_signin_supporting">Skor tabloları, başarımlar ve bulut kaydı</string>
+    <string name="settings_play_games_signed_in_as">%1$s olarak oturum açıldı</string>
+    <string name="settings_play_games_signed_in_fallback">Play Games\'te oturum açıldı</string>
+    <string name="settings_play_games_leaderboards_label">Skor tabloları</string>
+    <string name="settings_play_games_leaderboards_supporting">Puanlarının sıralamasını gör</string>
+    <string name="settings_play_games_achievements_label">Başarımlar</string>
+    <string name="settings_play_games_achievements_supporting">Kazandığın başarımları gör</string>
+
+    <!-- ====================== Phase-13 cloud-save copy ====================== -->
+    <!--
+      CLOUD-03 / D-11 — the ONE line the player reads under this game's entry in the
+      Play Games saved-games list. It is written into the snapshot's metadata at commit
+      time and therefore follows the DEVICE LOCALE AT THAT MOMENT, by design: a player
+      who changes language sees the new language on their next solve rather than a line
+      frozen in whatever locale first wrote the save. That is why the numbers cross the
+      platform seam as three raw ints (CloudSaveDescription) and the wording lives only
+      here, where a translator can reach it.
+
+      Four positional arguments, in order: the Challenge ladder level, total stars,
+      Classic boards cleared, and the size of the Classic roster. The fourth is supplied
+      from ClassicBoard.entries.size and is NOT a literal 5 anywhere — a sixth Classic
+      board must move this denominator on its own.
+
+      Positional %1$d-style arguments throughout, matching settings_play_games_signed_in_as;
+      a bare %d would be untranslatable the moment a language needs another word order.
+      The separator is a middle dot rather than a comma so the three figures read as
+      peers rather than as a sentence.
+    -->
+    <string name="cloud_save_description">Meydan okuma seviyesi %1$d · %2$d yıldız · %3$d/%4$d Klasik tahta</string>
+
+    <!--
+      D-12 to D-15 — the ONE dialog the v1.1 requirements reserved. Every other conflict
+      in this phase resolves silently by monotonic merge (CLOUD-02); this one cannot,
+      because merging two different players' progress is not a merge, it is a leak.
+
+      The body is a wipe list, not a warning. D-14 requires the copy to state exactly what
+      "Use their cloud progress" replaces, so it names all four categories the replace path
+      deletes: level results, play history, the Challenge level, and both in-progress
+      games. Any later edit that shortens this sentence must keep all four — a player who
+      could not have known what they were authorising is the failure this copy exists to
+      prevent.
+
+      Two bodies, one wording. profile_swap_body names the arriving account through a
+      positional %1$s; profile_swap_body_unknown_account is the fallback for a display name
+      the SDK could not look up (Phase 11 D-14), which is a degraded name and never a
+      failed sign-in — so it says "this account" rather than leaving a gap or rendering the
+      word null.
+
+      The two labels are account-neutral on purpose. "Keep this device's progress" is the
+      safe answer and carries the gradient CTA; "Use their cloud progress" is the
+      destructive one and is a plain text button. The arriving account is named in the
+      body, where both variants have room, rather than in a label that would need a sixth
+      string to stay readable when the name is unknown.
+    -->
+    <string name="profile_swap_title">Farklı bir hesaba mı geçiyorsun?</string>
+    <string name="profile_swap_body">%1$s olarak oturum açtın. Bu cihazın ilerlemesini korumak, onu bu hesabın bulut kaydıyla birleştirir — iki tarafta da hiçbir şey kaybolmaz. Bunun yerine bu hesabın bulut ilerlemesini kullanmak, bu cihazdaki her şeyin yerine geçer: seviye sonuçların, oyun geçmişin, Meydan okuma seviyen ve devam eden iki oyunun.</string>
+    <string name="profile_swap_body_unknown_account">Farklı bir Play Games hesabıyla oturum açtın. Bu cihazın ilerlemesini korumak, onu bu hesabın bulut kaydıyla birleştirir — iki tarafta da hiçbir şey kaybolmaz. Bunun yerine bu hesabın bulut ilerlemesini kullanmak, bu cihazdaki her şeyin yerine geçer: seviye sonuçların, oyun geçmişin, Meydan okuma seviyen ve devam eden iki oyunun.</string>
+    <string name="profile_swap_keep">Bu cihazın ilerlemesini koru</string>
+    <string name="profile_swap_use_cloud">Bulut ilerlemesini kullan</string>
+    <!-- ==================== end Phase-13 cloud-save copy ==================== -->
+
+    <!--
+      Licences (feature/licences-screen): every key of docs/ux/licences-screen.md §6 — the
+      Settings › About › Licenses row, the Licenses list, the License text reader, and the Google
+      notices list and reader.
+
+      Proper names, licence names and addresses are translatable="false": they are shown as their
+      owners write them. Entry titles and lines are one key each, in the order of the spec's §3.2
+      table, even where two lines read alike ("Google"), so a re-cut of one entry never moves
+      another. The Google notices' own names and texts are not strings at all: they are data from
+      the generated index, shown as Google supplied them (LS-12).
+
+      licenses_jakarta_credit follows the attribution line of the bundled Jakarta NOTICE.md ("This
+      content is produced and maintained by the Eclipse Jakarta Dependency Injection project.")
+      rather than the spec's draft "Eclipse Foundation", which the NOTICE names only as the
+      trademark holder (spec §3.2, loop 1 F-16).
+
+      licenses_psl_address is the exact revision of the Public Suffix List compiled into okhttp
+      4.11.0 (research-analyst-mpl.md, verdict 2). It is re-derived before the cut if the release
+      listing shows another okhttp (spec §9 item 13).
+    -->
+    <string name="settings_section_about">Hakkında</string>
+    <string name="settings_licenses_label">Lisanslar</string>
+    <string name="settings_licenses_supporting">Yazı tipleri, sesler ve açık kaynaklı yazılım</string>
+
+    <string name="licenses_title">Lisanslar</string>
+    <string name="licenses_intro">Peg Solitaire bu yazı tipleri, sesler ve açık kaynaklı yazılımlarla yapıldı. Yazarlarına teşekkürler.</string>
+    <string name="licenses_section_fonts">Yazı tipleri</string>
+    <string name="licenses_section_sounds">Sesler</string>
+    <string name="licenses_section_software">Açık kaynaklı yazılım</string>
+    <string name="licenses_section_google">Google kitaplıkları</string>
+    <string name="licenses_read_action">Lisansı oku</string>
+    <string name="licenses_loading">Lisans yükleniyor</string>
+    <string name="licenses_text_error">Bu lisans metni gösterilemedi.</string>
+    <plurals name="licenses_sound_effects">
+        <item quantity="one">%d ses efekti</item>
+        <item quantity="other">%d ses efekti</item>
+    </plurals>
+
+    <!-- D-17 (docs/ux/localisation-tr.md §5.4; docs/tech-design.md §11.1, Q-039 (3)): the bundled Fredoka is a
+         Modified Version under OFL-1.1, built by fonts/fredoka-tr/. A sentence, so translatable. -->
+    <string name="licenses_fredoka_modified">Peg Solitaire için SIL Open Font License kapsamında değiştirildi: Ğ ğ İ Ş ş harfleri Fredoka\'nın kendi harf ve işaretlerinden eklendi; başka hiçbir şey değiştirilmedi.</string>
+
+    <string name="licenses_kenney_title">Interface Sounds — Kenney</string>
+    <string name="licenses_lilmati_title">“Pop 01” — LilMati</string>
+    <string name="licenses_cogfire_title">“Positive Blip Effect” — CogFireStudios</string>
+
+    <string name="licenses_androidx_title">AndroidX ve Jetpack Compose</string>
+    <string name="licenses_kotlin_title">Kotlin ve kotlinx</string>
+    <string name="licenses_kotlin_parts">Standart kitaplık, coroutine\'ler, serileştirme</string>
+    <string name="licenses_dagger_title">Dagger ve Hilt</string>
+    <string name="licenses_okhttp_title">OkHttp ve Okio</string>
+    <string name="licenses_okhttp_parts">Google Mobile Ads içindeki ağ iletişimi ve G/Ç</string>
+    <string name="licenses_gson_title">Gson, Tink ve Guava</string>
+    <string name="licenses_annotations_title">Ek açıklama ve bağımlılık ekleme API\'leri</string>
+    <string name="licenses_protobuf_parts">Java Lite çalışma zamanı ve AndroidX DataStore içindeki kopyası</string>
+    <string name="licenses_chromium_parts">Google Mobile Ads içindeki Cronet ağ sınıfları</string>
+    <string name="licenses_psl_credit">Mozilla ve listeye katkıda bulunanlar</string>
+    <string name="licenses_psl_parts">OkHttp\'ye derlenmiş genel sonek verileri, 15 Şubat 2023 tarihindeki hâliyle</string>
+
+    <string name="licenses_google_sdk_title">Google Play hizmetleri ve SDK\'ları</string>
+    <string name="licenses_google_notices_title">Google kitaplıklarındaki açık kaynak bildirimleri</string>
+    <string name="licenses_google_notices_supporting">Google\'ın kitaplıklarındaki açık kaynaklı yazılım için sağladığı bildirimler</string>
+    <string name="licenses_google_notices_action">Bildirimleri aç</string>
+
+    <string name="license_text_part_notice">Bildirim</string>
+    <string name="license_text_end">Metnin sonu</string>
+
+    <string name="google_notices_title">Açık kaynak bildirimleri</string>
+    <string name="google_notices_intro">Google bu bildirimleri kitaplıklarındaki açık kaynaklı yazılım için sağlar. Her biri sağlandığı şekliyle gösterilir.</string>
+    <string name="google_notices_found_in">%1$s içinde bulundu</string>
+    <string name="google_notices_ordinal">Bildirim %1$d / %2$d</string>
+    <string name="google_notices_read_action">Bildirimi oku</string>
+    <string name="google_notices_loading">Bildirimler yükleniyor</string>
+    <string name="google_notices_error">Bu bildirimler gösterilemedi.</string>
+    <string name="google_notice_text_error">Bu bildirim gösterilemedi.</string>
+    <string name="google_notice_text_unknown_title">Bildirim</string>
+    <!-- ==================== end licences copy ==================== -->
+</resources>
