@@ -59,3 +59,19 @@ Skills loaded: ergoz-soft:standards (role release-manager; rules via the CLAUDE.
 
 ### Handoff
 Next: producer — on re-measure PASS, dispatch release-manager to fill the D-15 numbers and proceed to the merge; take §6 to the retro/plugin branch.
+
+## Addendum 2026-11-01 (3) — Q-029 recorded (Console route); founder runbook
+Skills loaded: ergoz-soft:standards (role release-manager; rules via the CLAUDE.md snapshot incl. ip-policy, play-store). Lessons applied: none. Docs only; no Gradle, no upload, no founder question.
+
+- **1.7 `[x]`:** Console route, Q-029 option 2 (develop `15d02fe`). §4 script-route rules: T-1, T-6, T-11 marked not applicable for 3.0.0; T-3 kept (Console upload hash = 4.6).
+- **`.planning/release/3.0.0/FOUNDER-RUNBOOK.md`:** ordered steps F-2 → F-7 → F-8 → one `!` build command (hidden `read -s`, env scoped to one `--no-daemon` Gradle run: verifyReleaseAdIds, verifyReleaseGamesIds, bundleRelease) → studio's 4.4–4.7, 3.5a post-bundle, D-1, D-16 → F-13 → Q-PUBLISH → F-3, Console upload, F-5, F-2 check.
+- **Build checkout:** `PegSolitarie-release` is not at the tag (`768b826`, docs commits after the merge; `git describe --exact-match` fails), though its non-docs tree equals `v3.0.0`. Created detached worktree `/Users/ermanergoz/Desktop/PegSolitarie-v3.0.0` at `v3.0.0` (`a3f2221`); `describe --exact-match` = `v3.0.0`, clean.
+- **Finding:** `local.properties` is **absent** from `PegSolitarie-release` (and from the new worktree); FOUNDER-ITEMS F-7 assumed it present. The runbook has the founder copy it from the main checkout (present there, untouched, values not read).
+
+### Checks
+- `git -C /Users/ermanergoz/Desktop/PegSolitarie-v3.0.0 describe --exact-match HEAD` — pass (`v3.0.0`)
+- `git -C /Users/ermanergoz/Desktop/PegSolitarie-release diff --name-only v3.0.0 HEAD` filtered to non-`.planning/`/`docs/` — pass (empty)
+- `test -f …/PegSolitarie-release/local.properties` — fail (absent; runbook step A3)
+
+### Handoff
+Next: producer — give the founder FOUNDER-RUNBOOK.md §A–B; on "built, exit=0" dispatch release-manager for 4.4–4.7 and 3.5a, qa-engineer for D-1/D-16, all against the AAB in the `PegSolitarie-v3.0.0` worktree.
