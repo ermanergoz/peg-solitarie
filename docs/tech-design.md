@@ -63,7 +63,12 @@ five merges owed before `release/3.0.0` is cut or Gate 2: home-chip-arrival (`30
 §3.5's insets note, the new §3.7, §3.6 as built, §8.1, §9.8's figure, §10's 15e rulings and sittings, §13's
 release-host tools, §14.1's five rows and merge steps 5a–6c done, §14.2, the new §14.3 (the 3.0.1 backlog, one
 list), §15, §16 (#4, #13, #18, #20, #24, #28, #30 and #32 brought up to date; #33–#38 added) and §17.
-Candy-backdrop's rows are not touched: that branch has not merged. Every decision below is a tech-lead decision or a transcription of a recorded ruling; each names where
+Candy-backdrop's rows are not touched: that branch has not merged. Amended 2026-11-01 on `feature/turkish-locale`
+(`.planning/reports/turkish-locale/tech-lead-rulings.md`, the tech-lead's three rulings on the developer's report
+`turkish-locale/android-game-dev.md`): §11's glyph-coverage record corrected and the new §11.1 (Fredoka's Turkish gap and the provenance
+of the wrong claim, the mechanism of the ux-designer's D-16 ruled as M-1 to M-5 with its tests, the 15e reading) and §11.2
+(`localeConfig`, `localeFilters` and the regional-English consequence signed off), §8.5 applied to the Turkish spec's
+goldens, §8.1's suite cell, §14.1 row TR, §14.2's golden clause, §14.3 item 14, §16 #39–#40 and §17. Every decision below is a tech-lead decision or a transcription of a recorded ruling; each names where
 it was decided. Entries are never deleted: a superseded entry gets a "superseded by" line and the
 supersession is listed in §17.
 
@@ -895,7 +900,7 @@ no `fuzz:` line; the lines are in the restored JUnit XML's `system-out`. The rel
 | `:domain:depthSweep` | JVM, own task | `check` | ~11 min (§7.2) |
 | `:domain:fuzz` — `FuzzHarnessTest` | JVM, own task, outside kover | `check` at 10,000 = CI = release (exhaustive, §7.3) | ≈ 6 s (5.955 s at 10,000) |
 | `:domain:koverVerify` | kover 0.9.11 over `:domain:test` only | `check` (§8.4) | seconds |
-| `:app:testDebugUnitTest` — ViewModels (Turbine), repositories against the real in-memory Room DB, Robolectric Compose UI tests (one per screen's main flow), ArchUnit boundary tests, codec and merge tests | JVM, Robolectric 4.16 SDK 34 (the only `android-all` image cached offline — **do not add `@Config(sdk = ...)` for another level**: it needs a network fetch and breaks `check --offline`) | `check` | minutes |
+| `:app:testDebugUnitTest` — ViewModels (Turbine), repositories against the real in-memory Room DB, Robolectric Compose UI tests (one per screen's main flow), ArchUnit boundary tests, codec and merge tests, and (since `feature/turkish-locale`, 2026-11-01) the locale suites — the Turkish parity test, `AppLanguagesTest`, `BundledFontGlyphCoverageTest` and the three `*ScreenTurkishTest` classes under `tr-rTR` (§11.1, §11.2) | JVM, Robolectric 4.16 SDK 34 (the only `android-all` image cached offline — **do not add `@Config(sdk = ...)` for another level**: it needs a network fetch and breaks `check --offline`) | `check` | minutes |
 | `build-logic` tests (54 at R-1; 54 after check-gates C3, whose brief count of 55 was wrong, addendum A0; 55 after C3a) — the release-gate resolvers | JVM | `check`: the root `build.gradle.kts:18-20` makes it depend on the included build's `:check` (PLAT-06, `7b28007`, 2026-08-27), and the 55 were part of the merge-in's Check on `ffa49aa`, served from the build cache ("build-logic 55 (cache)", `phase-14/android-game-dev-check-gates-merge.md:34`; *until r1-close loop 1, code-auditor F-7: "the 55 ran in the merge-in's Check"*); CI also runs them first, alone, to fail fast (`./gradlew -p build-logic test`, §9.7) *(until check-gates' merge-in re-read, 2026-10-24: "CI's first step (`./gradlew -p build-logic test`); not reachable from the root `check`", stale since `7b28007`)* | seconds |
 | Device sessions | qa-engineer, real device else emulator | every executed plan, every phase, every release | — |
 
@@ -1009,6 +1014,21 @@ and in the same test, are compared in memory: with and without the backdrop, fon
 2.0, LTR against mirrored RTL. Nothing is stored and there is no baseline to drift, so neither
 objection above applies. An exact-equality pixel test that meets shader dithering states a
 ±1-per-channel tolerance as a named constant and keeps the assertion.
+
+*Applied 2026-11-01 to the Turkish localisation (`turkish-locale/tech-lead-rulings.md` ruling 2):*
+`docs/ux/localisation-tr.md` §7.6 asked for Roborazzi goldens in `tr` at 360×640dp and font scales 1.0 and 2.0
+for the eight slots of its §6. **This section stands: no stored goldens and no Roborazzi in 3.0.0.** Roborazzi is
+not a dependency of the project and is not added in a release week; the host-parity question above is unresolved;
+and a golden recorded from the branch under review would be an image of its implementation, not of the spec. What
+replaces them for the truncation watch: **the qa-engineer's device reads** (spec §8, C-7 and §6) at 100 % and 200 %
+on a 360×640dp window, light and dark where a criterion names it, one screenshot per §6 slot per scale under
+`.planning/qa/turkish-locale/`, and a QA report that lists each by path with a one-word reading per slot — whole,
+wraps, stacks, clips — so the ux-designer rules each D-12 switch from the report after the artefacts are deleted
+(rules/testing.md, QA artifacts). The in-run comparisons the pointer above allows are available but not owed: the
+§6 slots wrap by construction (no `maxLines`; the one ellipsis slot, "Seviye N", may ellipsise at 200 % by 18e), so
+what a golden would have caught — a stack where a row was designed, a third line, a banner over more board — is a
+design reading, not a pixel equality. The regression guard is the parity test and the three Turkish screen suites.
+When the roadmap suite lands it records `tr` beside `en`.
 
 ### 8.6 The solver deadline tests — placement ruling (2026-10-24)
 
@@ -1435,6 +1455,201 @@ to ship unmodified. AC-F4 now reads: this command returns 0 hits.
 - AC-F7's scan is unaffected, because the licence text is an asset and sits in neither the dex nor
   `resources.arsc`.
 
+### 11.1 Turkish headings — Fredoka's glyph gap, the record corrected, D-16's mechanism (2026-11-01)
+
+**The record, corrected (tech-lead, `turkish-locale/tech-lead-rulings.md` ruling 1).** The font ruling's
+glyph-coverage line — "both faces carry `—`, `…`, `’`, `·`, `×` and Turkish" (`15-founder-feedback/tech-lead-fonts.md`,
+"Glyph coverage", and its Checks line "`— … ’ · × ğ ş İ` present in both faces") — is **wrong for Fredoka**. The
+developer's cmap read (fontTools 4.68.0 and `java.awt.Font.canDisplay`; `turkish-locale/android-game-dev.md`, open
+issue 1) shows the shipped `fredoka_medium.ttf` and `fredoka_semibold.ttf` (v2.001, 327 glyphs, byte-identical to
+Google Fonts' v17 static instances, sha256 as in D1) map Ç ç ı Ö ö Ü ü â but **not Ğ U+011E, ğ U+011F, İ U+0130,
+Ş U+015E, ş U+015F**; nor does any other Fredoka build (the v17 variable file, the `google/fonts` repository file
+whose METADATA.pb declares `latin-ext`, the designer's upstream at `35c584f`). There is no full file to swap in, so
+spec D-13's remedy was void. Nunito (1,098 glyphs) maps all thirteen code points of the spec's §7.3.
+**Provenance of the error — why the September check passed.** It was a shaping check. Re-run on 2026-11-01 on the
+shipped files, `hb-shape --no-glyph-names fredoka_medium.ttf 'ĞğİŞş'` returns two glyph ids per letter and no gid 0:
+HarfBuzz decomposes a precomposed letter the font lacks into base plus combining mark when the font has both, and
+Fredoka has G, I, S, a dot above (gid 302), a breve (308) and a cedilla (312). So nothing was `.notdef` and the
+check read "present". Android does not shape its way across that gap: Minikin itemises a run by cmap coverage per
+code point *before* shaping, and a code point the family's cmap lacks goes to the system fallback font. **From now
+on a cmap read is the only valid coverage check** (fontTools, `otfinfo -u`, `java.awt.Font.canDisplay`); a shaper's
+output never is. What the gap costs without D-16: 42 Turkish keys draw in a Fredoka role; five of them contain one
+of the five letters (`restart_confirm_title`, `settings_haptics_label`, `settings_colorblind_label`,
+`settings_play_games_achievements_label`, `licenses_annotations_title`), and `settings_play_games_signed_in_as`
+draws the player's name in the same role; each such letter draws in Roboto inside a Fredoka word, which spec C-2
+forbids. Every Nunito role is covered.
+
+**D-16 (ux-designer, `docs/ux/localisation-tr.md` §7.3; rule of record `docs/ux-spec.md` §6.3): on a Turkish
+device the translatable heading roles draw in Nunito at the nearest heavier weight — Fredoka Medium → Nunito
+SemiBold, Fredoka SemiBold → Nunito Bold — and three closed-glyph surfaces keep Fredoka in every language: the Home
+wordmark, the gameplay clock and the numeral values. English is untouched.** The look is the ux-designer's and the
+founder's taste question (Q-038, non-blocking); what follows is the mechanism, a tech-lead ruling, binding the
+developer's dispatch.
+
+**M-1 — the face follows the app's resolved resources, through one boolean resource.** `res/values/bools.xml`
+declares `<bool name="display_face_covers_language">true</bool>` and `res/values-tr/bools.xml` declares it
+`false`. It resolves by exactly the configuration the strings resolve by — the system language, a per-app
+language (C-5), and a mid-game switch (C-4), which recreates `MainActivity` (no `configChanges` is declared) — so
+the words and the face can never disagree, every Turkish-language locale (tr-CY included) gets it, and no language
+tag is compared in code (CLAUDE.md's no-magic-strings rule; `LocalConfiguration.current.locales` is **not** read
+for this). A later locale adds one line, no code (spec §7.3 rule 5: a locale is proven by cmap before it is
+specified).
+
+**M-2 — two scales from one table, in `ui/theme/Type.kt`.** `AppFonts` is unchanged. `clayTypography()` is
+parameterised by the heading face — a private value holder of (family, the weight for `headlineSmall` and `title*`,
+the weight for `display*`, `headlineLarge` and `headlineMedium`): `(AppFonts.Fredoka, Medium, SemiBold)` builds
+`AppTypography` as today, byte for byte; `(AppFonts.Nunito, SemiBold, Bold)` builds the second scale,
+`TextFaceHeadingTypography` (named by its property, not the language, because rule 5 reuses it for any locale
+Fredoka does not cover). The six body and label roles are the same in both. Sizes, line heights and tracking come
+from the one `Typography()` defaults call, so they are identical by construction and a test holds them so. A pure
+selector `typographyFor(displayFaceCoversLanguage: Boolean): Typography` returns one or the other; `AppTheme` reads
+`booleanResource(R.bool.display_face_covers_language)` and hands the result to `MaterialTheme(typography = …)`.
+Nothing else in `AppTheme` changes.
+
+**M-3 — the three fixed surfaces draw Fredoka by a style the theme names.** A new
+`@Immutable data class BrandTypography(val wordmark: TextStyle, val clock: TextStyle, val pillValue: TextStyle,
+val statValue: TextStyle)` in `ui/theme`, built **from `AppTypography` only** — the display-face scale, never the
+selected one: `wordmark = AppTypography.displaySmall`, `clock = AppTypography.headlineSmall.withTabularFigures()`,
+`pillValue = AppTypography.titleMedium.withTabularFigures()`, `statValue = AppTypography.titleLarge.withTabularFigures()`
+— and provided by `AppTheme` through `LocalBrandTypography` (a `staticCompositionLocalOf` whose default is that same
+Fredoka set, so a composable rendered outside `AppTheme` still draws the brand face), beside the theme's existing
+`LocalClayColors`, `LocalBackdropColors`, `LocalFinishColors` and `LocalBoardMarks`. The five call sites that
+today copy a role move to it and nowhere else gains one: `HomeHero.kt:99` (`displaySmall` + the gradient brush →
+`wordmark`), `TimerDigits.kt:122` and `GameStatusStrip.kt:263` (`headlineSmall.withTabularFigures()` → `clock`),
+`HomeProgressRibbon.kt:342` (`titleMedium.withTabularFigures()` → `pillValue`), `ResultsScreen.kt:380`
+(`titleLarge.withTabularFigures()` → `statValue`). Every other `MaterialTheme.typography.display*/headline*/title*`
+read (the mode-tile, chip and Continue titles, "Seviye N" in `GameStatusStrip.kt:178/191`, the dialog titles, the
+Results headline `ResultsScreen.kt:215`, the Settings row labels, the catalog and licence titles) stays as it is
+and follows M-2. `TimerDigits` measures the widest digit of the style it is handed, so its cells stay Fredoka's
+0.587 em in both languages and every measured width (18d, 15m, the Results row) holds without re-derivation, as the
+ux-designer's table expects.
+
+**M-4 — why not the other shape, `res/font-tr/`.** The same `R.font` ids resolving to other files on a Turkish
+device (a font XML family per heading weight pointing at Fredoka in `res/font/` and at Nunito in `res/font-tr/`, or
+Nunito bytes under Fredoka's names) *would* resolve: `AndroidFontLoader` loads a `ResourceFont` through
+`ResourcesCompat.getFont(context, resId)` (ui-text 1.11.3, `AndroidFontLoader.android.kt:66`), which honours
+qualifiers. **Rejected, not built and not tested**, on a fact of the sources: `createFontFamilyResolver(context)`
+hands every `AndroidComposeView` the process-global `GlobalTypefaceRequestCache` (`FontFamilyResolver.android.kt:75`),
+an LRU of 16 keyed by `TypefaceRequest(fontFamily, fontWeight, fontStyle, fontSynthesis, resourceLoaderCacheKey)`
+with `AndroidFontLoader.cacheKey = null` (`:62`). Under that shape the key is the same `AppFonts.Fredoka` and the
+same `R.font` id in both languages, so after a language switch (the Activity recreated, the process alive) every
+heading role is served the previous language's typeface until process death: C-4 and C-5 fail, only in the switch
+direction, only in a live process, which no test of a fresh JVM sees. It would also split the type scale into XML
+behind `AppFonts` (two sources of truth), or copy 264 KB of Nunito, and make `AppTypographyTest`'s file table
+locale-dependent. M-2's two scales use distinct `FontFamily` objects per heading face, so no key can collide across
+languages; the one request they share (`AppFonts.Nunito` at SemiBold and Bold) is correct in both. Were anyone to
+insist on M-4's shape, the test that exposes it is one Robolectric JVM, `RuntimeEnvironment.setQualifiers("en-rUS")`
+then `("tr-rTR")`, two `AppTheme` renders of a heading probe, the widths equal.
+
+**M-5 — the tests (spec §7.6; written first, red runs in the developer's report).**
+1. *The two-language typography test* (Robolectric SDK 34, a class of its own beside `AppTypographyTest`): under
+   `@Config(qualifiers = "tr-rTR")`, inside `AppTheme`, every `display*`, `headline*` and `title*` role of
+   `MaterialTheme.typography` is `AppFonts.Nunito` at SemiBold (`headlineSmall`, `title*`) or Bold (`display*`,
+   `headlineLarge`, `headlineMedium`), every `body*`/`label*` role equals `AppTypography`'s, every role's
+   `fontSize`, `lineHeight` and `letterSpacing` equals `AppTypography`'s, and `LocalBrandTypography.current`'s four
+   styles are `AppFonts.Fredoka` at the English roles' weights; under `en-rUS` every role equals `AppTypography`'s
+   (the English guard: spec rule 3). Plus the pure cases, `typographyFor(true)` is `AppTypography` and
+   `typographyFor(false)` the other, and `R.bool.display_face_covers_language` read under both qualifiers. T1
+   (`AppTypographyTest`) is unchanged.
+2. *A rendering case under `tr-rTR`* in `AppTypographyRendersBundledFacesTest`'s shape: the nine heading roles
+   measure to the Nunito SemiBold and Bold oracles already in `TypeScaleFixture` and the four brand styles to
+   Fredoka's, so the resource → selector → scale path is proven to *draw* Nunito, not only to say so. T2 and T3
+   stay as they are, in the base configuration.
+3. *The glyph-coverage test*, `BundledFontGlyphCoverageTest`, extended from the developer's Nunito-only version
+   (`88a4dee`): the two Fredoka faces against the closed set of the brand surfaces — the letters of "Peg Solitaire",
+   the digits 0–9, ":", "/" and "—" — typed from spec §7.6, **and** the values of the `translatable="false"` keys
+   those surfaces draw (`app_name`, `stat_value_unknown`, `home_stat_boards_value` with its format specifiers
+   stripped) read from the base file, each asserted untranslatable, so a letter added to a brand surface or a key
+   made translatable fails here. Its target shape, which the developer builds now if it costs no more than the
+   spec's minimum and otherwise records as the §14.3 follow-up: for every shipped locale (the base plus every
+   `values-<lang>/` with a `strings.xml`, `AppLanguagesTest`'s own derivation) and every one of the fifteen roles of
+   that locale's scale, the role's `ResourceFont.resId` turned into its file through `resources.getResourceEntryName`
+   (never a typed file list, so a face swapped inside `AppFonts` is tested as swapped) covers every character of
+   that locale's strings (the locale's file plus the base file's untranslated keys, Android's escapes and whitespace
+   removed), with the thirteen §7.3 code points as a floor for `tr`; and `res/font/` is the only `font*` resource
+   directory (a `res/font-<qualifier>/` fails, naming M-4). Failures name locale, role, file and code points.
+   Outside it, recorded: text that is not a string resource — a player's display name, the licence bodies in
+   `assets/`, Google's notices — keeps the platform's per-glyph fallback, as the font ruling recorded for any script
+   the faces lack; C-2d covers the Turkish name on a Turkish device, and the same name on an English device is
+   pre-existing and not judged.
+
+**15e.** As built at `f289546` no sitting is owed: no code that runs before or on Home's first frame changed
+(§10's first-frame test) — `localeConfig` is read by the system settings app, `localeFilters` only shrinks the
+resource table (751,580 B → 92,248 B), and `translatable="false"` packages nothing new. M-2 and M-3 add a
+`booleanResource` read, one branch and a CompositionLocal provider to `AppTheme`, and retarget `HomeHero.kt` — code
+on Home's first frame in `ui/theme/` and `ui/home/`, both start-path: **one sitting on `Pixel_9a_bench` is owed**
+with the branch's final code, arm A its merge-base at the sitting (§10). The bench runs in English, so it measures
+the English first frame as every sitting has; the Turkish first frame loads no more faces than the English one
+(Nunito ×3 plus Fredoka SemiBold for the wordmark, against four of five) and is checked by QA's Turkish session, not
+by 15e.
+
+**If Q-038 is answered 2 or 3.** Option 3 (Fredoka headings kept, C-2 waived) is M-2 with `values-tr`'s boolean
+set back to `true` and the coverage test's Fredoka exclusion written per face with §16 #39 left open — no other
+code. Option 2 (one rounded OFL face for every language) is a 3.1 branch, not a 3.0.0 change: files from the
+family's official release, unmodified, hashes recorded; its `OFL.txt` as `assets/licenses/<Family>-OFL.txt`; a
+`THIRD_PARTY.md` row with the research-analyst's verdict (the 2026-10-18 OFL-1.1 verdict covers Fredoka and
+Nunito only); coverage proven by M-5.3 before QA; the T2 and T3 oracles and the font ruling's digit-"1"
+discriminators re-derived; a 15e sitting (`res/font/` is start path); and the phase-15 device readings that
+measured Fredoka (18a, 18d, 18e, 15k, 15m, 15o, 15p) re-walked. A Modified Version of Fredoka with the five letters
+drawn (OFL §1; no Reserved Font Name) is §14.3 item 14, 3.1 font work under either answer.
+
+### 11.2 Locale resources, per-app language and `localeFilters` — signed off (2026-11-01)
+
+**Tech-lead sign-off, `turkish-locale/tech-lead-rulings.md` ruling 3**, on `feature/turkish-locale`
+`a1fb23d..f289546`, against spec §7.4:
+
+- **`res/xml/locales_config.xml`, hand-written (`en`, `tr`), named by `android:localeConfig` on `<application>`:
+  PASS.** Explicit and reviewable, and not a second source of truth: `AppLanguagesTest` derives the expected list
+  from the `values-<lang>/` folders and probes that every offered language resolves its own app *and* library
+  strings and that an unoffered one (German) reads English, so the list, the folders and the filter cannot drift
+  apart without a red. AGP's `generateLocaleConfig = true` (with `resources.properties`' `unqualifiedResLocale`)
+  would derive the same list at manifest merge; it is not taken for 3.0.0 — unverified on this build, it moves the
+  attribute into the merged manifest and would rewrite the test's manifest read, and the attribute on the shipped
+  manifest is identical either way. A third language is three edits (folder, list, filter) and the test names
+  whichever is missing.
+- **`androidResources { localeFilters += listOf("en", "tr") }`: PASS.** The bundle carries the app's two
+  languages and only those of every library, so a device in a third language reads English throughout, Google's
+  *packaged* strings included (spec C-6; `AppLanguagesTest`'s German probe,
+  `androidx.compose.ui.R.string.navigation_menu`, "Navigationsmenü" before the filter). Measured: `resources.arsc`
+  751,580 B → 92,248 B, 85 library locale configurations → one; debug APK −658,976 B (−2.96 %); fonts unchanged.
+  **Consequence ruled, accepted:** the filter's `en` also drops the libraries' regional English (`en-rGB`,
+  `en-rAU`, `en-rCA`, `en-rIN`) and the `en-rXC` pseudo-locale. An en-GB, en-AU, en-CA or en-IN device now reads
+  the libraries' default English, which differs in the spelling of a few Compose and Material strings. Accepted
+  rather than kept (adding `en-rGB` and the rest to the filter): the app's own copy is one English with no regional
+  variant, so keeping the libraries' variants would put two spellings on one screen for those devices, and
+  `en-rXC` is a developer pseudo-locale no device runs. If the app ever gains a regional English of its own, the
+  filter takes that region in the same edit. What the filter does not reach: the UMP consent form (a page Google
+  serves in the device language) and the Play Games sign-in, leaderboard and achievement sheets (the Play Games
+  app's own UI) stay in the device's language on a German device; spec C-6's "including the Play Games and consent
+  dialogs" is read as the app's own dialogs that lead to them (the developer's 4b; spec §7.5 already excludes
+  Google's surfaces).
+- **The release artefact:** at the cut, beside AC-F5's font check (checklist 4.6a), the release-manager confirms
+  by resource config that the AAB carries `tr` and no third language — for example
+  `bundletool dump resources --bundle <aab> --resource string/settings_title --values` prints a `(tr)` value and no
+  other language's, and the full `dump resources` lists no `(de)` configuration.
+- **Lint `UnusedAttribute` on `android:localeConfig`** ("only used in API level 33 and higher (current min is
+  24)"): a new warning in a touched file, so §9.8's no-growth clause makes it a review finding, and any way of
+  removing it is a lint directive the **code-auditor** approves or refuses (the developer left it unsuppressed on
+  purpose, open issue 3). Technical ranking for that decision, the tech-lead's view: (1) `tools:targetApi="33"` on
+  `<application>` (the `tools` namespace is already declared, manifest line 3) with a comment pointing here — the
+  narrower directive, since it silences only attributes needing API ≤ 33 on that element, and it states the fact
+  (the attribute is for 33+; D-9 wants 24–32 to follow the system language); (2) leave the warning, with the
+  auditor's line; (3) `tools:ignore="UnusedAttribute"` — wider (every attribute on the element); (4)
+  `generateLocaleConfig` — not now (above), and whether lint flags the injected attribute is unverified. Whichever
+  is chosen carries the "approved by code-auditor" line (rules/studio.md, Definition of done).
+- **Deviations from spec §7.6, accepted:** the three Turkish screen suites are new classes (`*ScreenTurkishTest`)
+  rather than the English suites re-run — the English suites pin literals in a shared fixture, and one
+  parameterised oracle would be weaker than two; they run under `tr-rTR`, a real device's locale, not a bare `tr`;
+  and `AppLanguagesTest`'s library probe is a compile-time reference to a Compose resource, so a Compose rename
+  fails loudly at compile time and the fix is a new probe. No Roborazzi goldens (§8.5).
+- **Not changed, recorded (spec §9.4):** `GameTimerFormat`'s default-locale `"%02d:%02d"` (identical digits in en
+  and tr); the ungrouped Results score in both languages; D-3's no-case-transform rule holds on the branch (the
+  developer's grep of `app/src/main` and `domain/src/main` for `uppercase(`, `lowercase(`, `capitalize(`,
+  `replaceFirstChar(`, `titlecase(`, `toUpperCase(`, `toLowerCase(`, `smcp`, `c2sc`: no hits).
+- **Merge order:** the branch edits `AndroidManifest.xml`, a start-path file, so it lands before candy-backdrop's
+  15e sitting, or candy's merge-in re-sits (§10's second rule), as LN did. It carries the gitflow conditions of any
+  code branch: Check green, code-auditor PASS, qa-engineer PASS on a Turkish device, tech-lead sign-off.
+
 ## 12. Audio
 
 Playback is owned by one UI-layer class, `audio/SoundPoolPlayer` (`SoundPlayer` interface; cues in
@@ -1747,6 +1962,7 @@ deadline in this file: whether the cut waits for it is the producer's schedule, 
 | R-7 | `FUZZ_SEEDS=100000 ./scripts/check.sh --rerun-tasks` on the release branch (exhaustive, §7.3; `--rerun-tasks` so the fuzz lines are the release's own execution, auditor finding 2), `domain/build/fuzz-failures.txt` absent, coverage figure recorded (99.0 % at the gate's introduction) | release-manager | R-2 (signed off) |
 | DT | **The solver deadline tests' own task**, `bugfix/solver-deadline-task` (§8.6, added 2026-10-24): `SolverDeadlineTest` run by `:domain:solverDeadline` outside kover, always-run, in `check`; `koverVerify` re-measured after the move | android-game-dev → code-auditor → tech-lead | R1 and R-2 merged (it edits the files R1 rewrites). No branch-cut marker: before the cut if green in one loop, else §14.2; the quiet-host rule governs the release Check meanwhile *(2026-11-01: **deferred to 3.0.1** by the producer, owner tech-lead (`.planning/reports/STATUS.md`, "Producer decision 2026-11-01", commit `4135e2d` on `feature/status-2026-11-01b`); listed in §14.3 item 13, not §14.2.)* |
 | PLAT-08 | Cold start on a named physical phone, or the unverified record (§10) | qa-engineer; producer for the device question | — |
+| TR | **Turkish localisation**, `feature/turkish-locale` (added 2026-11-01; founder directive 2026-11-01; `docs/ux/localisation-tr.md`; §11.1, §11.2): `values-tr` (179 strings, 7 plurals), nine base keys `translatable="false"`, `localeConfig` (en, tr), `localeFilters` (en, tr), the locale suites; D-16's heading face by M-1 to M-5 (§11.1); the tr-TR store copy to the release-manager (spec §10) | ux-designer (the spec; D-16) → tech-lead (the mechanism, ruled) → android-game-dev → code-auditor + qa-engineer (a Turkish device, 100 % and 200 %, C-2 to C-2d, TalkBack A-1 to A-7; one 15e sitting on `Pixel_9a_bench` with the final code) → tech-lead; release-manager for `docs/store/tr-TR/` and the AAB's `tr` config | Cut from `develop` at `37d3052`. Built to `f289546` (`turkish-locale/android-game-dev.md`); the ux-designer's D-16 at `91bfa9c`; rulings 1–3 in `turkish-locale/tech-lead-rulings.md`. Owes: M-1 to M-5 and their tests, the §9.3 string deltas of the two parallel branches, the 15e sitting (§11.1). Q-038 is non-blocking. Lands before candy-backdrop's sitting (it edits `AndroidManifest.xml`, `ui/theme/` and `ui/home/`). **Blocks the branch cut** (3.0.0 ships Turkish by the founder's directive) |
 
 **Merge order into `develop`** (`15-founder-feedback/tech-lead-signoff.md` Decision 4, 2026-10-18).
 It supersedes the R-2 brief's §0 and this table's earlier "R-2 before phase 15" (§17). *Amended 2026-10-21*
@@ -1858,7 +2074,7 @@ schema bump (§4.4); the injected clock in `AppForegroundTracker` (§8.3); F-9's
 roots at the flavour / third-build-type trigger; `MagicNumber`'s `**/testDebug/**` alignment at the
 first false positive; ktlint/detekt over `build-logic` (§2.5); hoisting the package-task names onto
 `ReleaseInvocation` as pinned constants (auditor F-3); the Macrobenchmark module and
-`reportFullyDrawn()` (§10); the golden-image suite after R-2 (§8.5); the `:domain:depthSweep` CI job
+`reportFullyDrawn()` (§10); the golden-image suite after R-2 (§8.5; it records `tr` beside `en` once it lands, 2026-11-01); the `:domain:depthSweep` CI job
 split at the 25-minute measured threshold (§9.7); closing Diamond-41's opening-book gap (the honest
 lever on `check`'s 11 minutes); minSdk 26 when the Play statistics permit (§1.3) — *superseded
 2026-10-17 by Q-018: 24 stands until a technical need appears, so this is no longer backlog*; the in-app licences
@@ -1923,6 +2139,7 @@ already recorded elsewhere are listed by pointer.
 | 11 | Talkback's routed set: B-10 landscape clipping (in the Q-PUBLISH-3.0.0 summary; §14.2's landscape item), the banner re-announced on rotation, UMP consent over step 1, the count-up and `StarPopSounds` replay on rotation, O-1 "Perfect!" heard twice; backlog only: the unbounded window-focus wait, the caption without "Step N of 3" after a mid-tutorial recreation, the completion row's focus-then-speak | 3.0.1 or backlog, as routed | as routed in `talkback-board/tech-lead-defect-ruling.md` §10 (ux-designer rules the spoken ones first) | `talkback-board/tech-lead-signoff.md` §3 |
 | 12 | Already recorded: §16 #31 (`GameViewModelResumeTest` can hang), §16 #32 (the Undecided notice re-spoken on a live switch); the PU script items and the shellcheck gate (§14.2, above); E-1, the pre-commit hook and the script's Fable read (§16 #36–#38) | as each says | as each says | — |
 | 13 | DT, the solver deadline tests' own task, `bugfix/solver-deadline-task` (§8.6, row DT): `SolverDeadlineTest` on `:domain:solverDeadline` outside kover, always-run, in `check`; `koverVerify` re-measured after the move. Test placement only, no device session; the quiet-host rule governs every Check until it lands *(added 2026-11-01, loop 1: the producer's deferral, not one of the four code branches)* | 3.0.1 | tech-lead (owner; §8.6 is the brief) → android-game-dev → code-auditor → tech-lead | `.planning/reports/STATUS.md`, "Producer decision 2026-11-01" (commit `4135e2d`, `feature/status-2026-11-01b`); §14.1 row DT; §16 #25 |
+| 14 | Fredoka headings in Turkish, only on the ux-designer's ask or Q-038's answer: a Modified Version of Fredoka with Ğ ğ İ Ş ş drawn (OFL §1, no Reserved Font Name; its own `THIRD_PARTY.md` row as a Modified Version, its own hashes, visual QA of five glyphs at every size), or an upstream fix to `google/fonts` (whose Fredoka METADATA.pb declares `latin-ext` it lacks — the research-analyst's report, spec §9.2) and a re-pin; and, if the target shape of the coverage test (§11.1 M-5.3) was not built on the branch, that derivation over every shipped locale and every role | 3.1 or later, only if asked; the test shape with the next locale at the latest | ux-designer → research-analyst (the licence row) → android-game-dev → code-auditor + qa-engineer (a 15e sitting: `res/font/` is start path) → tech-lead | §11.1; `turkish-locale/tech-lead-rulings.md` |
 
 ## 15. Risks
 
@@ -1995,6 +2212,8 @@ Every item the seeded file listed as "decided by nobody" is now either decided o
 | 36 | **E-1 in the plugin: path-named wrappers pass the publish gate and the branch guard** (added 2026-11-01; `play-upload/tech-lead-signoff.md` §5, the fix's five points; §15) | **Open, owned; a plugin defect, not this product's.** A plugin feature branch (for example `feature/gate-path-wrappers`): the wrapper words take `ERGOZ_CMD_PATH`'s optional path prefix in `hooks/lib-cmdpos.sh`, the target resolver learns the same wrappers, red-first tests for every probed form in both hooks. Until its release is installed here, T-11 and the key-after-approval rule bind the Gate-2 upload | producer → the plugin's developer, code-auditor and tech-lead; producer installs the release and records it in STATUS.md |
 | 37 | **This product has no git pre-commit hook behind the branch guard** (added 2026-11-01; same §5): `.git/hooks` holds only samples and `core.hooksPath` is unset (re-read on 2026-11-01), so `/usr/bin/env git commit` on `develop` or `main` passes both guards here | **Open, owned.** Install the plugin's `branch-guard.sh --git-hook` as `pre-commit`; it closes the commit half of E-1 today, independent of the plugin release. Not code of this product; no role here writes the hook | producer |
 | 38 | **No Fable review of `scripts/play-upload.sh`** (added 2026-11-01; same §1): the one file holding the Play credential's path and a store upload was written and reviewed on Opus under Q-019 | **Open, owned. Not a merge or cut condition.** When Fable is available again, a Fable code-auditor read of the script at `6a0b032` before its first script-route upload; checklist 1.7's Console route is always open meanwhile | producer, under Q-019 |
+| 39 | **Fredoka cannot draw Ğ ğ İ Ş ş** (added 2026-11-01; `turkish-locale/android-game-dev.md` open issue 1; §11.1). Five Turkish strings and a Turkish player's name in a heading role draw those letters in Roboto; spec C-2 fails as built at `f289546`; the font ruling's coverage line was wrong (a shaping check that composed base plus mark, where Android itemises by cmap) | **Open, owned; blocks the Turkish branch's QA PASS, so the cut.** The look is D-16 (ux-designer; Q-038 to the founder, non-blocking); the mechanism is M-1 to M-5 (§11.1); the coverage test ships whichever way Q-038 is answered. Closes at the branch's tech-lead sign-off on C-2 to C-2d PASS | android-game-dev → code-auditor + qa-engineer → tech-lead |
+| 40 | **Lint `UnusedAttribute` on `android:localeConfig`** (added 2026-11-01; `turkish-locale/android-game-dev.md` open issue 3; §11.2) — a new warning in a touched file under §9.8's no-growth clause, left unsuppressed by the developer for the reviewer | **Open, owned.** The code-auditor approves one of §11.2's ranked forms, or none, with its line, in the branch's review | code-auditor |
 
 ## 17. Supersessions
 
@@ -2074,3 +2293,6 @@ Nothing is deleted from this file; a superseded decision stays with a pointer to
 | §8.1's "No other class migrates" to the `junit4.v2` rule, read as holding on `develop` | Ten licences classes are on v2 without a needed behaviour; accepted as built for 3.0.0 and absorbed by the §14.2 migration; the rule stands for every new class (tech-lead decision, added 2026-11-01) | §8.1 |
 | Row PU's last cell, "Nothing; scripts only" | **Done**, merged as `1dd1080`, with the as-built contract and the Gate-2 conditions (added 2026-11-01) | §14.1 PU; `play-upload/tech-lead-signoff.md` §7 (a) |
 | `.planning/phases/15-ux-refresh/15-PLAN.md:24` and `:137`, "the publish hook and `scripts/play-upload.sh` resolve the approval file from it [`VERSION`] at run time" | Row PU as built: the script reads no `VERSION` and no `.planning/approvals/`; only `hooks/publish-gate.sh` does. The phase-15 record itself is not edited (added 2026-11-01) | §14.1 PU; `play-upload/tech-lead-signoff.md` §7 (h) |
+| The font ruling's glyph-coverage line, "both faces carry `—`, `…`, `’`, `·`, `×` and Turkish", and its Checks line "`— … ’ · × ğ ş İ` present in both faces" (`15-founder-feedback/tech-lead-fonts.md`, 2026-09-29); spec D-13's premise that a full Fredoka file covers Latin Extended-A, and its remedy | Fredoka carries ı, Ç, ç and the five marks but no Ğ ğ İ Ş ş in any build. The check that passed was a shaping check (HarfBuzz composed base plus combining mark from Fredoka's own glyphs); Android itemises by cmap, so a cmap read is the only coverage check from now on. The report is not edited; this file is the record (added 2026-11-01) | §11.1; `turkish-locale/tech-lead-rulings.md` ruling 1 |
+| §11's role → family map as the map for every language ("display/headline/title = Fredoka") | D-16: the map for a language Fredoka covers. On a Turkish device the translatable heading roles are Nunito at the next heavier weight, chosen by `R.bool.display_face_covers_language`; the wordmark, the clock and the numeral values keep Fredoka through `LocalBrandTypography` (added 2026-11-01) | §11.1 M-1 to M-3; `docs/ux-spec.md` §6.3 |
+| `docs/ux/localisation-tr.md` §7.6's Roborazzi goldens in `tr` as a deliverable of the branch | §8.5 stands: no stored goldens in 3.0.0; QA's device reads, one screenshot per §6 slot per scale, read in the QA report, are the record for D-12 (added 2026-11-01) | §8.5; `turkish-locale/tech-lead-rulings.md` ruling 2 |
