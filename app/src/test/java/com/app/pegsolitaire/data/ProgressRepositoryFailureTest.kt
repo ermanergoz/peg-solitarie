@@ -2,15 +2,18 @@ package com.app.pegsolitaire.data
 
 import android.database.sqlite.SQLiteException
 import androidx.room.Room
+import com.app.pegsolitaire.data.db.HomeProgressTotals
 import com.app.pegsolitaire.data.db.LevelResultDao
 import com.app.pegsolitaire.data.db.LevelResultEntity
 import com.app.pegsolitaire.data.db.PegSolitaireDatabase
+import com.app.pegsolitaire.data.db.PlaySessionDao
 import com.app.pegsolitaire.data.db.ResumeDao
 import com.app.pegsolitaire.data.db.ResumeSnapshotEntity
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
 import com.app.pegsolitaire.data.resume.SnapshotMapper
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.scoring.ScoreResult
+import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -101,6 +104,18 @@ class ProgressRepositoryFailureTest {
         }
 
     @Test
+    fun theHomeProgressFlowDegradesToUnknownWhenTheDatabaseReadThrows() =
+        runTest {
+            val throwingDao = ThrowingHomeProgressLevelResultDao(database.levelResultDao())
+            val repository = repositoryWith(levelResultDao = throwingDao)
+
+            // D-03h / criterion 13a: the ribbon must read "not yet known", so the pills
+            // paint "—". Never `0` — a player with forty stars told they have none, on
+            // the very first screen they see, is the failure this degradation prevents.
+            assertThat(repository.observeHomeProgress().first()).isEqualTo(HomeProgress.UNKNOWN)
+        }
+
+    @Test
     fun recordResultReportsNoNewBestsInsteadOfCrashingWhenTheReadThrows() =
         runTest {
             val repository = repositoryWith(levelResultDao = ThrowingFindLevelResultDao(database.levelResultDao()))
@@ -110,6 +125,7 @@ class ProgressRepositoryFailureTest {
                     ProgressPersistenceKeys.MODE_CLASSIC,
                     LEVEL_ID,
                     scoreResult(SEEDED_STARS),
+                    SolveTelemetry.NONE,
                     NOW_MS,
                 )
 
@@ -121,7 +137,13 @@ class ProgressRepositoryFailureTest {
     fun aFailedRecordDropsTheWriteAndLeavesTheStoredBestsIntact() =
         runTest {
             val healthy = repositoryWith()
-            healthy.recordResult(ProgressPersistenceKeys.MODE_CLASSIC, LEVEL_ID, scoreResult(SEEDED_STARS), NOW_MS)
+            healthy.recordResult(
+                ProgressPersistenceKeys.MODE_CLASSIC,
+                LEVEL_ID,
+                scoreResult(SEEDED_STARS),
+                SolveTelemetry.NONE,
+                NOW_MS,
+            )
             val failing = repositoryWith(levelResultDao = ThrowingUpsertLevelResultDao(database.levelResultDao()))
 
             val bests =
@@ -129,6 +151,7 @@ class ProgressRepositoryFailureTest {
                     ProgressPersistenceKeys.MODE_CLASSIC,
                     LEVEL_ID,
                     scoreResult(IMPROVED_STARS),
+                    SolveTelemetry.NONE,
                     LATER_MS,
                 )
 
@@ -174,7 +197,8 @@ class ProgressRepositoryFailureTest {
     private fun repositoryWith(
         levelResultDao: LevelResultDao = database.levelResultDao(),
         resumeDao: ResumeDao = database.resumeDao(),
-    ): ProgressRepository = DefaultProgressRepository(database, levelResultDao, resumeDao)
+        playSessionDao: PlaySessionDao = database.playSessionDao(),
+    ): ProgressRepository = DefaultProgressRepository(database, levelResultDao, resumeDao, playSessionDao)
 
     private fun scoreResult(stars: Int): ScoreResult =
         ScoreResult(
@@ -199,6 +223,16 @@ class ProgressRepositoryFailureTest {
         private val delegate: LevelResultDao,
     ) : LevelResultDao by delegate {
         override fun observe(mode: String): Flow<List<LevelResultEntity>> = flow { throw SQLiteException(DISK_FAILURE) }
+    }
+
+    /** A [LevelResultDao] whose Home ribbon aggregate fails; every other read is real. */
+    private class ThrowingHomeProgressLevelResultDao(
+        private val delegate: LevelResultDao,
+    ) : LevelResultDao by delegate {
+        override fun observeHomeProgress(
+            classicMode: String,
+            minStars: Int,
+        ): Flow<HomeProgressTotals> = flow { throw SQLiteException(DISK_FAILURE) }
     }
 
     /** A [ResumeDao] whose reads fail like a corrupt/unreadable database file. */

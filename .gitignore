@@ -34,3 +34,15 @@ keystore.properties
 
 # Play / Firebase config — uncomment when Play Games / AdMob land in Slice 2 (may carry keys)
 # google-services.json
+
+# ergoz-soft studio log and per-machine Claude Code state (never committed)
+.planning/log/
+.claude/settings.local.json
+.claude/worktrees/
+.claude/scheduled_tasks.lock
+# Studio: QA session artifacts and helper scripts, logs, retro threads — never committed
+.planning/log/*
+!.planning/log/README.md
+.planning/retro/*/thread.md
+.planning/qa/
+.planning/audio-inbox/

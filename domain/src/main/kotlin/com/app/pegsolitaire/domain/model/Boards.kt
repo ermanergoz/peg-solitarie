@@ -128,11 +128,22 @@ private object Asymmetric39Layout {
  *
  * The diamond is the canonical center-empty board (40 pegs). Unlike the cross
  * boards it is NOT reducible to one peg: the GF(4) "colour" invariant
- * (sum of omega^(r+c) and omega^(r-c) over occupied cells, both conserved by every
- * jump) admits no single-peg target from the centre start, and search confirms the
- * floor is several pegs. So the diamond is scored on fewest pegs remaining (the
- * game's actual objective) rather than a one-peg solve — no D-19 fixture exists or
- * is possible for it. D-02 ignores the target for stars.
+ * (sum of omega^((r+c) mod 3) and omega^((r-c) mod 3) over occupied cells, both
+ * conserved by every jump) admits no single-peg target from the centre start —
+ * verified exhaustively over all 41 single-peg positions, zero of which pass.
+ *
+ * Its fewest-pegs floor is exactly **F = 2** (DEBT-02, D-05) — a beam search
+ * superseded the earlier random-rollout estimate, which was far too weak to find
+ * the true floor. Reachability is locked by the committed `diamond41.txt` line
+ * replayed move by move through the unchanged `RulesEngine` in `SolutionTest`, and
+ * optimality follows because F - 1 = 1 is precisely what the invariant excludes.
+ * The reachability half is proven by the fixture landing in plan 08-06; if that
+ * replay ever fails, [BoardConstants.DIAMOND41_FEWEST_PEGS_FLOOR] is NOT to be
+ * adjusted — D-05's escalation clause fires instead.
+ *
+ * So the diamond is scored on fewest pegs remaining (the original game's
+ * objective) rather than a one-peg solve, with its star bands re-anchored on F.
+ * D-02 ignores the target for stars.
  */
 private object Diamond41Layout {
     /** The board is a square lattice of this many rows and columns. */
@@ -144,7 +155,11 @@ private object Diamond41Layout {
     /** Per-row half-width: row R spans `(center-hw[R])..(center+hw[R])`. */
     private val halfWidth = intArrayOf(0, 1, 2, 3, 4, 3, 2, 1, 0)
 
-    /** The canonical center empty start hole (GF(4) invariant: not one-peg solvable; scored on fewest pegs left). */
+    /**
+     * The canonical center empty start hole. The GF(4) invariant rules out a
+     * one-peg finish from here, so the board is scored on fewest pegs left, with
+     * a proven floor of F = 2 ([BoardConstants.DIAMOND41_FEWEST_PEGS_FLOOR]).
+     */
     val startVacancy = Position(row = CENTER_INDEX, col = CENTER_INDEX)
 
     /** Every in-play coordinate of the diamond, generated from the layout rules. */
@@ -209,7 +224,14 @@ private object Wiegleb45Layout {
  * Wiegleb-45) each reduce to one peg, locked by a committed recorded-solution
  * fixture replayed through `RulesEngine` (D-19). Diamond-41 is the exception: the
  * GF(4) colour invariant proves its center start has no one-peg solution, so it is
- * scored on fewest pegs remaining (the original game's objective) — no fixture.
+ * scored on fewest pegs remaining (the original game's objective) down to its
+ * proven floor of F = 2 ([BoardConstants.DIAMOND41_FEWEST_PEGS_FLOOR], DEBT-02 /
+ * D-05). It DOES have a fixture — the committed line records a solve to F = 2
+ * rather than to one peg, which is what makes the floor's reachability half a
+ * replayed fact rather than a claim.
+ *
+ * Every spec's per-board target is carried by [BoardSpec.minimumPegs]; the shipped
+ * footprints are published as [CLASSIC_SPECS].
  */
 object Boards {
     /** The English-33 cross footprint, with the center hole as the solve target. */
@@ -251,11 +273,18 @@ object Boards {
             .fold(Board(spec = Asymmetric39, pegs = 0L)) { board, position -> board.withPeg(position) }
             .withoutPeg(Asymmetric39Layout.center)
 
-    /** The Diamond-41 board; the center start hole is the (D-02-ignored) target. */
+    /**
+     * The Diamond-41 board; the center start hole is the (D-02-ignored) target.
+     *
+     * The only shipped spec whose "perfect finish" is not one peg: its proven
+     * fewest-pegs floor is F = 2 (DEBT-02, D-05), so it carries that target
+     * explicitly rather than the [BoardConstants.MINIMUM_PEGS_DEFAULT].
+     */
     val Diamond41: BoardSpec =
         BoardSpec(
             inPlay = Diamond41Layout.inPlayPositions,
             target = Diamond41Layout.startVacancy,
+            minimumPegs = BoardConstants.DIAMOND41_FEWEST_PEGS_FLOOR,
         )
 
     /** The Diamond-41 start: every hole filled except the center (4,4) vacancy → 40 pegs. */
@@ -276,4 +305,21 @@ object Boards {
         Wiegleb45.inPlay
             .fold(Board(spec = Wiegleb45, pegs = 0L)) { board, position -> board.withPeg(position) }
             .withoutPeg(Wiegleb45Layout.center)
+
+    /**
+     * The pure-domain catalog of shipped Classic footprints, in D-18 ascending
+     * hole-count order (33, 37, 39, 41, 45).
+     *
+     * Consumed by the opening-book resource catalog and by the resume path's
+     * legacy-blob target resolution, both of which recognise a structurally-rebuilt
+     * spec by its [BoardSpec.footprint] rather than by referential identity (a spec
+     * decoded from a snapshot is a different instance carrying the same positions).
+     * The footprints are pairwise distinct, so such a lookup is never ambiguous.
+     *
+     * This list carries **footprints only**. `:app`'s `ClassicLevelSource` remains
+     * the authority for display names and level ids — `:domain` never learns about
+     * `ClassicLevelIds`.
+     */
+    val CLASSIC_SPECS: List<BoardSpec> =
+        listOf(English33, European37, Asymmetric39, Diamond41, Wiegleb45)
 }

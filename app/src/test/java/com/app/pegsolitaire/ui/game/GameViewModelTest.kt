@@ -5,13 +5,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import app.cash.turbine.test
+import com.app.pegsolitaire.R
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.SettingsRepository
+import com.app.pegsolitaire.domain.assist.AssistAllowanceLimits
+import com.app.pegsolitaire.domain.generator.ChallengeLevelBounds
+import com.app.pegsolitaire.domain.generator.GeneratorConstants
 import com.app.pegsolitaire.domain.generator.LevelGenerator
 import com.app.pegsolitaire.domain.model.Board
+import com.app.pegsolitaire.domain.model.BoardConstants
 import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.GameStatus
@@ -19,17 +24,23 @@ import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
+import com.app.pegsolitaire.domain.usecase.HintOutcome
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
+import com.app.pegsolitaire.platform.ads.RewardOutcome
 import com.google.common.truth.Truth.assertThat
+import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -42,6 +53,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlin.coroutines.CoroutineContext
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TestTimeSource
 import kotlin.time.TimeSource
@@ -133,9 +145,67 @@ class GameViewModelTest {
                 viewModelFor(Boards.english33Initial, challengeLevel = BELOW_MIN_CHALLENGE_LEVEL)
             runCurrent()
 
-            assertThat(viewModel.challengeLevel).isEqualTo(BELOW_MIN_CHALLENGE_LEVEL)
+            // WARN-03: the EXPOSED level is the clamped one too. `GameRoute` carries this
+            // value into the Results route, so a raw `0` here would key the result under a
+            // level that was never played and drive "Next level" as `0 + 1`.
+            assertThat(viewModel.challengeLevel).isEqualTo(ChallengeLevelBounds.MIN)
             assertThat(viewModel.uiState.value.board.pegCount).isGreaterThan(1)
             assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Playing)
+
+            cancelTickers()
+        }
+
+    // ---- WARN-03: the exposed Challenge level is always the played one ---------
+
+    @Test
+    fun aNegativeChallengeLevelArgIsExposedAsTheLowestValidLevel() =
+        runTest(testDispatcher) {
+            val viewModel =
+                viewModelFor(Boards.english33Initial, challengeLevel = NEGATIVE_CHALLENGE_LEVEL)
+            runCurrent()
+
+            assertThat(viewModel.challengeLevel).isEqualTo(ChallengeLevelBounds.MIN)
+
+            cancelTickers()
+        }
+
+    @Test
+    fun aForgedHugeChallengeLevelArgIsExposedAsTheFrozenCeiling() =
+        runTest(testDispatcher) {
+            // The load itself is already bounded (CR-01); what WARN-03 is about is the
+            // value that ESCAPES the ViewModel. It must name the level actually loaded.
+            val levelRepository = RecordingChallengeLevelRepository(Boards.english33Initial)
+            val viewModel =
+                viewModelFor(
+                    Boards.english33Initial,
+                    challengeLevel = Int.MAX_VALUE,
+                    levelRepository = levelRepository,
+                )
+            runCurrent()
+
+            assertThat(viewModel.challengeLevel).isEqualTo(GeneratorConstants.MAX_CHALLENGE_LEVEL)
+            // …and it is exactly the level the repository was asked for — the exposed level
+            // and the played board can never name different levels.
+            assertThat(levelRepository.lastChallengeLevel).isEqualTo(viewModel.challengeLevel)
+
+            cancelTickers()
+        }
+
+    @Test
+    fun anInRangeChallengeLevelArgIsExposedUnchanged() =
+        runTest(testDispatcher) {
+            // The non-regression half: clamping must be invisible to every real player.
+            val levelRepository = RecordingChallengeLevelRepository(Boards.english33Initial)
+            val viewModel =
+                viewModelFor(
+                    Boards.english33Initial,
+                    challengeLevel = CHALLENGE_LEVEL_WITH_CHOICES,
+                    levelRepository = levelRepository,
+                )
+            runCurrent()
+
+            assertThat(viewModel.challengeLevel).isEqualTo(CHALLENGE_LEVEL_WITH_CHOICES)
+            assertThat(levelRepository.lastChallengeLevel).isEqualTo(CHALLENGE_LEVEL_WITH_CHOICES)
 
             cancelTickers()
         }
@@ -202,7 +272,8 @@ class GameViewModelTest {
     @Test
     fun emitsExactlyOneFinishedEventWithScoreCalculatorConsistentResult() =
         runTest(testDispatcher) {
-            val viewModel = viewModelFor(wonInOneJumpBoard())
+            val board = wonInOneJumpBoard()
+            val viewModel = viewModelFor(board)
             viewModel.finished.test {
                 expectNoEvents()
 
@@ -210,10 +281,19 @@ class GameViewModelTest {
                 viewModel.onCellTap(Position(row = 0, col = 2))
                 runCurrent()
 
-                val result = awaitItem()
+                val result = awaitItem().result
                 assertThat(result.pegsRemaining).isEqualTo(1)
                 assertThat(result.pegsCleared).isEqualTo(1)
-                assertThat(result.stars).isEqualTo(ScoreCalculator.stars(pegsRemaining = 1))
+                // D-03/D-04: the assertion's value is that the VM and the calculator agree
+                // on the SAME per-board target, so it passes the board's own minimumPegs
+                // rather than dropping the argument (which would make it tautological).
+                assertThat(result.stars)
+                    .isEqualTo(
+                        ScoreCalculator.stars(
+                            pegsRemaining = 1,
+                            minimumPegs = board.spec.minimumPegs,
+                        ),
+                    )
                 assertThat(result.score)
                     .isEqualTo(
                         ScoreCalculator.score(
@@ -228,6 +308,69 @@ class GameViewModelTest {
                 expectNoEvents()
                 cancelAndIgnoreRemainingEvents()
             }
+        }
+
+    // ---- Per-board star bands on Diamond-41 (D-03/D-04, DEBT-02) -------------
+
+    @Test
+    fun reachingTheDiamondFloorIsAWinWorthThreeStars() =
+        runTest(testDispatcher) {
+            // Diamond-41's perfect finish is a PROVEN two pegs, not one: `SolutionTest`
+            // replays a committed line to a two-peg dead end and
+            // `DiamondFloorOptimalityTest` shows the GF(4) invariant excludes all 41
+            // single-peg positions. A player who lands there has done the best the board
+            // admits, so it is a Won game scored 3 stars — end to end through the VM,
+            // with the real ScoreCalculator receiving the real Diamond target.
+            val board = diamondOneJumpFromItsFloor()
+            val viewModel = viewModelFor(board, levelId = ClassicLevelIds.DIAMOND41)
+            viewModel.finished.test {
+                expectNoEvents()
+
+                viewModel.onCellTap(Position(row = 4, col = 0))
+                viewModel.onCellTap(Position(row = 4, col = 2))
+                runCurrent()
+
+                assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Won)
+
+                val result = awaitItem().result
+                assertThat(result.pegsRemaining).isEqualTo(BoardConstants.DIAMOND41_FEWEST_PEGS_FLOOR)
+                assertThat(result.stars).isEqualTo(3)
+                // The same finish banded on the OLD global target would have been 2 stars —
+                // this is exactly the untruthfulness DEBT-02 exists to remove.
+                assertThat(ScoreCalculator.stars(pegsRemaining = 2)).isEqualTo(2)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun aDiamondFinishAtFivePegsIsOnlyOneStarAndNeverReachesResults() =
+        runTest(testDispatcher) {
+            // Re-anchoring must not inflate a mediocre finish: five pegs is three above
+            // Diamond's floor, past the two-peg-wide 2-star band, so it bands at the
+            // MIN_STARS floor. It is also NOT a win — D-06 keeps a dead end above the
+            // board's target rescuable in-board, so no finished event fires at all and
+            // the player never sees a Results screen for it.
+            val board = diamondOneJumpFromAFivePegDeadEnd()
+            val viewModel = viewModelFor(board, levelId = ClassicLevelIds.DIAMOND41)
+            viewModel.finished.test {
+                viewModel.onCellTap(Position(row = 4, col = 0))
+                viewModel.onCellTap(Position(row = 4, col = 2))
+                runCurrent()
+
+                val terminal = viewModel.uiState.value
+                assertThat(terminal.board.pegCount).isEqualTo(5)
+                assertThat(terminal.status).isEqualTo(GameStatus.Stuck)
+                expectNoEvents()
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            // Had it been scored, the target the VM threads for THIS board bands it at 1.
+            assertThat(
+                ScoreCalculator.stars(
+                    pegsRemaining = 5,
+                    minimumPegs = board.spec.minimumPegs,
+                ),
+            ).isEqualTo(1)
         }
 
     // ---- Persisted hint toggle ----------------------------------------------
@@ -381,17 +524,28 @@ class GameViewModelTest {
         }
 
     @Test
-    fun undoRequestsTheUndoGrantThroughTheAdGateway() =
+    fun undoRequestsTheUndoGrantThroughTheAdGatewayOnceTheAllowanceIsSpent() =
         runTest(testDispatcher) {
+            // Plan 09-08 put a free per-level allowance in front of the gateway (ADS-02), so
+            // the grant is requested only past exhaustion — and only from an accepted offer
+            // (ADS-01), never on the undo tap itself. Both halves are asserted here.
             val gateway = FakeAdGateway()
             val viewModel = viewModelFor(Boards.english33Initial, adGateway = gateway)
             runCurrent()
+            exhaustFreeUndos(viewModel)
+            assertThat(gateway.lastReason).isNull()
 
             viewModel.onCellTap(pegAboveCenter)
             viewModel.onCellTap(centerHole)
             runCurrent()
 
             viewModel.onUndo()
+            runCurrent()
+            // The tap raised the offer; still no ad has been requested.
+            assertThat(viewModel.uiState.value.pendingAdOffer).isEqualTo(AdReason.UNDO)
+            assertThat(gateway.lastReason).isNull()
+
+            viewModel.onAcceptAdOffer()
             runCurrent()
 
             assertThat(gateway.lastReason).isEqualTo(AdReason.UNDO)
@@ -402,9 +556,10 @@ class GameViewModelTest {
     @Test
     fun undoIsSkippedWhenTheGrantIsDenied() =
         runTest(testDispatcher) {
-            val deniedGateway = FakeAdGateway(grant = false)
+            val deniedGateway = FakeAdGateway(outcome = RewardOutcome.Declined)
             val viewModel = viewModelFor(Boards.english33Initial, adGateway = deniedGateway)
             runCurrent()
+            exhaustFreeUndos(viewModel)
 
             viewModel.onCellTap(pegAboveCenter)
             viewModel.onCellTap(centerHole)
@@ -413,9 +568,68 @@ class GameViewModelTest {
 
             viewModel.onUndo()
             runCurrent()
+            viewModel.onAcceptAdOffer()
+            runCurrent()
 
             // Grant denied → the undo does not proceed; the board is unchanged.
             assertThat(viewModel.uiState.value.board).isEqualTo(afterJump)
+            assertThat(viewModel.uiState.value.canUndo).isTrue()
+
+            cancelTickers()
+        }
+
+    @Test
+    fun undoStillProceedsWhenNoAdCouldBeServed() =
+        runTest(testDispatcher) {
+            // ADS-03 fail-open: no ad could be served, so the rescue is granted anyway —
+            // asserted past the allowance, which is the only place the outcome is reachable.
+            val unavailableGateway = FakeAdGateway(outcome = RewardOutcome.Unavailable)
+            val viewModel = viewModelFor(Boards.english33Initial, adGateway = unavailableGateway)
+            runCurrent()
+            exhaustFreeUndos(viewModel)
+
+            viewModel.onCellTap(pegAboveCenter)
+            viewModel.onCellTap(centerHole)
+            runCurrent()
+            assertThat(viewModel.uiState.value.canUndo).isTrue()
+
+            viewModel.onUndo()
+            runCurrent()
+            viewModel.onAcceptAdOffer()
+            runCurrent()
+
+            // The move was popped: the board is back to the initial position.
+            assertThat(viewModel.uiState.value.board).isEqualTo(Boards.english33Initial)
+            assertThat(viewModel.uiState.value.canUndo).isFalse()
+            // D-11: the player is told why the assist arrived without an ad.
+            assertThat(viewModel.uiState.value.adMessage).isEqualTo(R.string.ad_unavailable_undos)
+
+            cancelTickers()
+        }
+
+    @Test
+    fun undoDeclinedAbortsOnlyAfterTheGrantWasActuallyRequested() =
+        runTest(testDispatcher) {
+            // Pins that Declined aborts *downstream* of the seam: the gateway is still
+            // asked (lastReason records it) and only then is the move history left intact.
+            val declinedGateway = FakeAdGateway(outcome = RewardOutcome.Declined)
+            val viewModel = viewModelFor(Boards.english33Initial, adGateway = declinedGateway)
+            runCurrent()
+            exhaustFreeUndos(viewModel)
+
+            viewModel.onCellTap(pegAboveCenter)
+            viewModel.onCellTap(centerHole)
+            runCurrent()
+            val afterJump = viewModel.uiState.value.board
+
+            viewModel.onUndo()
+            runCurrent()
+            viewModel.onAcceptAdOffer()
+            runCurrent()
+
+            assertThat(declinedGateway.lastReason).isEqualTo(AdReason.UNDO)
+            assertThat(viewModel.uiState.value.board).isEqualTo(afterJump)
+            // The move survives the decline, so a later granted undo can still pop it.
             assertThat(viewModel.uiState.value.canUndo).isTrue()
 
             cancelTickers()
@@ -463,7 +677,7 @@ class GameViewModelTest {
                 runCurrent()
 
                 // Won still routes to Results (emits exactly once) and shows no banner.
-                awaitItem()
+                awaitItem().result
                 val state = viewModel.uiState.value
                 assertThat(state.status).isEqualTo(GameStatus.Won)
                 assertThat(state.stuck).isFalse()
@@ -542,7 +756,7 @@ class GameViewModelTest {
                 jump(viewModel, from = Position(row = 3, col = 1), to = Position(row = 1, col = 1))
                 runCurrent()
 
-                val result = awaitItem()
+                val result = awaitItem().result
                 assertThat(result.pegsRemaining).isEqualTo(1)
                 assertThat(viewModel.uiState.value.status).isEqualTo(GameStatus.Won)
                 expectNoEvents()
@@ -642,13 +856,23 @@ class GameViewModelTest {
         }
 
     @Test
-    fun hintRequestsTheHintGrantThroughTheAdGateway() =
+    fun hintRequestsTheHintGrantThroughTheAdGatewayOnceTheAllowanceIsSpent() =
         runTest(testDispatcher) {
+            // As with undo, plan 09-08 put the free allowance (ADS-02) and then the opt-in
+            // dialog (ADS-01) in front of the gateway: an ad is requested only from an
+            // accepted offer, never from the Hint tap itself.
             val gateway = FakeAdGateway()
             val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = gateway)
             runCurrent()
+            exhaustFreeHints(viewModel)
+            assertThat(gateway.lastReason).isNull()
 
             viewModel.onHintRequested()
+            advanceUntilIdle()
+            assertThat(viewModel.uiState.value.pendingAdOffer).isEqualTo(AdReason.HINT)
+            assertThat(gateway.lastReason).isNull()
+
+            viewModel.onAcceptAdOffer()
             advanceUntilIdle()
 
             assertThat(gateway.lastReason).isEqualTo(AdReason.HINT)
@@ -657,11 +881,14 @@ class GameViewModelTest {
     @Test
     fun hintDeniedByTheGatewayDoesNotProceedAndClearsThinking() =
         runTest(testDispatcher) {
-            val denied = FakeAdGateway(grant = false)
+            val denied = FakeAdGateway(outcome = RewardOutcome.Declined)
             val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = denied)
             runCurrent()
+            exhaustFreeHints(viewModel)
 
             viewModel.onHintRequested()
+            advanceUntilIdle()
+            viewModel.onAcceptAdOffer()
             advanceUntilIdle()
 
             val state = viewModel.uiState.value
@@ -669,6 +896,58 @@ class GameViewModelTest {
             assertThat(state.hintTarget).isNull()
             assertThat(state.noWinningMove).isFalse()
             assertThat(state.solverThinking).isFalse()
+        }
+
+    @Test
+    fun hintStillRunsTheSearchWhenNoAdCouldBeServed() =
+        runTest(testDispatcher) {
+            // ADS-03 fail-open at the hint call site: a hint that could not be paid for is
+            // still given, so an offline player is never dead-ended once a real gateway lands.
+            val unavailableGateway = FakeAdGateway(outcome = RewardOutcome.Unavailable)
+            val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = unavailableGateway)
+            runCurrent()
+            exhaustFreeHints(viewModel)
+
+            viewModel.onHintRequested()
+            advanceUntilIdle()
+            viewModel.onAcceptAdOffer()
+            advanceUntilIdle()
+
+            val hinted = viewModel.uiState.value
+            assertThat(hinted.hintSource).isEqualTo(Position(row = 0, col = 0))
+            assertThat(hinted.hintTarget).isEqualTo(Position(row = 0, col = 2))
+            assertThat(hinted.solverThinking).isFalse()
+            assertThat(hinted.noWinningMove).isFalse()
+            // D-11: the assist landed AND the player was told why no ad played.
+            assertThat(hinted.adMessage).isEqualTo(R.string.ad_unavailable_hints)
+        }
+
+    @Test
+    fun hintDeclinedLeavesTheControlIdleOnABoardThatHasAWinningMove() =
+        runTest(testDispatcher) {
+            // T-06-01: the decline path must clear solverThinking, or the hint control
+            // spins forever. The board is solvable, so the search DID find a move — and a
+            // missing hint therefore proves the decline suppressed the reveal. (Plan 09-06
+            // inverted the order for ADS-06: the search runs before the gateway, and the
+            // found move waits in `pendingHint` for a grant that never comes. Plan 09-08 put
+            // the allowance and the opt-in dialog in between, so the decline now arrives
+            // from the accepted offer rather than from the tap.)
+            val declinedGateway = FakeAdGateway(outcome = RewardOutcome.Declined)
+            val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = declinedGateway)
+            runCurrent()
+            exhaustFreeHints(viewModel)
+
+            viewModel.onHintRequested()
+            advanceUntilIdle()
+            viewModel.onAcceptAdOffer()
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertThat(declinedGateway.lastReason).isEqualTo(AdReason.HINT)
+            assertThat(state.solverThinking).isFalse()
+            assertThat(state.hintSource).isNull()
+            assertThat(state.hintTarget).isNull()
+            assertThat(state.noWinningMove).isFalse()
         }
 
     @Test
@@ -695,26 +974,42 @@ class GameViewModelTest {
     @Test
     fun aSecondHintRequestCancelsThePriorSearchSoOnlyOneProceeds() =
         runTest(testDispatcher) {
-            // The gateway gates every grant until released, so both hint jobs launch and
-            // suspend; only the SECOND (uncancelled) job may proceed past the gate.
-            val gateway = GatedAdGateway()
-            val viewModel = viewModelFor(wonInOneJumpBoard(), adGateway = gateway)
+            // D-10 / T-04-SD: no overlapping Solver work. The park is the background
+            // dispatcher the search hops to, which is where `hintJob` genuinely suspends —
+            // the ad gateway used to serve as the park, but plan 09-08 moved the rewarded
+            // request out of `hintJob` and behind an accepted offer, so gating the gateway
+            // would no longer hold a search at all.
+            val gate = ParkingDispatcher()
+            val searchedBoards = mutableListOf<Board>()
+            val countingHint = mockk<GetHintUseCase>()
+            every { countingHint.invoke(any(), any(), any(), any(), any()) } answers {
+                val searched = firstArg<Board>()
+                searchedBoards += searched
+                RulesEngine.legalMoves(searched).firstOrNull()?.let { HintOutcome.Found(it) } ?: HintOutcome.ProvenDead
+            }
+            val viewModel =
+                viewModelFor(
+                    wonInOneJumpBoard(),
+                    defaultDispatcher = gate,
+                    getHintUseCase = countingHint,
+                )
             runCurrent()
 
             viewModel.onHintRequested()
             runCurrent()
-            assertThat(gateway.started).isEqualTo(1)
+            assertThat(gate.pending).isEqualTo(1)
 
-            // Second request cancels the first in-flight job before releasing the gate.
+            // Second request cancels the first in-flight job before the gate is released.
             viewModel.onHintRequested()
             runCurrent()
-            assertThat(gateway.started).isEqualTo(2)
+            assertThat(gate.pending).isEqualTo(2)
 
-            gateway.release()
+            gate.releaseAll()
             advanceUntilIdle()
 
-            // Exactly one job proceeded past the grant — the prior search was cancelled.
-            assertThat(gateway.proceeded).isEqualTo(1)
+            // Exactly one search ran: the first job was cancelled, so its parked block
+            // unwound instead of invoking the use case.
+            assertThat(searchedBoards).hasSize(1)
             assertThat(viewModel.uiState.value.hintSource).isEqualTo(Position(row = 0, col = 0))
             assertThat(viewModel.uiState.value.solverThinking).isFalse()
 
@@ -822,8 +1117,15 @@ class GameViewModelTest {
                 // A DIFFERENT peg while one is already selected must not switch selection.
                 viewModel.onCellTap(pegLeftOfCenter)
 
-                expectNoEvents()
-                assertThat(viewModel.uiState.value).isEqualTo(selected)
+                // The tap IS observable now — it advances the rejected-tap cue ordinal
+                // (07-03) and records the tapped cell beside it (D-06 §3.7) — but it remains a
+                // gameplay no-op: nothing about the board or the selection moves.
+                val rejected = awaitItem()
+                assertThat(rejected.rejectedTapTick).isEqualTo(selected.rejectedTapTick + 1)
+                assertThat(rejected)
+                    .isEqualTo(
+                        selected.copy(rejectedTapTick = rejected.rejectedTapTick, rejectedTapCell = pegLeftOfCenter),
+                    )
                 cancelAndIgnoreRemainingEvents()
             }
         }
@@ -888,8 +1190,17 @@ class GameViewModelTest {
                 // A 2x2 corner coordinate is outside the English-33 footprint.
                 viewModel.onCellTap(Position(row = 0, col = 0))
 
-                expectNoEvents()
-                assertThat(viewModel.uiState.value).isEqualTo(selected)
+                // Observable as a rejected tap (07-03) on its cell (D-06 §3.7), but still a
+                // gameplay no-op.
+                val rejected = awaitItem()
+                assertThat(rejected.rejectedTapTick).isEqualTo(selected.rejectedTapTick + 1)
+                assertThat(rejected)
+                    .isEqualTo(
+                        selected.copy(
+                            rejectedTapTick = rejected.rejectedTapTick,
+                            rejectedTapCell = Position(row = 0, col = 0),
+                        ),
+                    )
                 cancelAndIgnoreRemainingEvents()
             }
         }
@@ -916,8 +1227,18 @@ class GameViewModelTest {
                 // Forge: an empty hole that is NOT a legal destination.
                 viewModel.onCellTap(Position(row = 0, col = 4))
 
-                expectNoEvents()
-                assertThat(viewModel.uiState.value).isEqualTo(selected)
+                // The forged destination is now audible as a rejected tap (07-03) and is
+                // still never applied: the board and the selection are untouched. Only the
+                // wrong-tap signal moves: its ordinal, and the cell it landed on (D-06 §3.7).
+                val rejected = awaitItem()
+                assertThat(rejected.rejectedTapTick).isEqualTo(selected.rejectedTapTick + 1)
+                assertThat(rejected)
+                    .isEqualTo(
+                        selected.copy(
+                            rejectedTapTick = rejected.rejectedTapTick,
+                            rejectedTapCell = Position(row = 0, col = 4),
+                        ),
+                    )
                 assertThat(viewModel.uiState.value.board.pegCount).isEqualTo(2)
                 cancelAndIgnoreRemainingEvents()
             }
@@ -1070,6 +1391,36 @@ class GameViewModelTest {
 
     private fun englishViewModel(): GameViewModel = viewModelFor(Boards.english33Initial)
 
+    /**
+     * Spends every free undo (ADS-02) so the next one reaches the opt-in offer, leaving the
+     * board exactly where it started.
+     *
+     * Each cycle plays one jump and immediately takes it back, so the fixture needs only one
+     * legal move and the board is identical afterwards — but [AssistAllowanceLimits.FREE_UNDOS]
+     * counters have been spent. Every one of those undos is free, so the gateway is never
+     * consulted here; the specs that call this assert exactly that before continuing.
+     */
+    private fun TestScope.exhaustFreeUndos(viewModel: GameViewModel) {
+        repeat(AssistAllowanceLimits.FREE_UNDOS) {
+            viewModel.onCellTap(pegAboveCenter)
+            viewModel.onCellTap(centerHole)
+            runCurrent()
+            viewModel.onUndo()
+            runCurrent()
+        }
+        check(!viewModel.uiState.value.canUndo) { "the fixture must be back at its initial board" }
+        check(viewModel.uiState.value.pendingAdOffer == null) { "a free undo must raise no offer" }
+    }
+
+    /** Spends every free hint (ADS-02) so the next one reaches the opt-in offer. */
+    private fun TestScope.exhaustFreeHints(viewModel: GameViewModel) {
+        repeat(AssistAllowanceLimits.FREE_HINTS) {
+            viewModel.onHintRequested()
+            advanceUntilIdle()
+        }
+        check(viewModel.uiState.value.pendingAdOffer == null) { "a free hint must raise no offer" }
+    }
+
     private fun viewModelFor(
         board: Board,
         levelId: String = ClassicLevelIds.ENGLISH33,
@@ -1077,6 +1428,9 @@ class GameViewModelTest {
         timeSource: TimeSource = TestTimeSource(),
         settings: SettingsRepository = FakeSettingsRepository(),
         adGateway: AdGateway = FakeAdGateway(),
+        levelRepository: LevelRepository = FakeLevelRepository(boardsById = mapOf(levelId to board)),
+        defaultDispatcher: CoroutineDispatcher = testDispatcher,
+        getHintUseCase: GetHintUseCase = GetHintUseCase(),
     ): GameViewModel {
         val args =
             buildMap<String, Any?> {
@@ -1089,7 +1443,7 @@ class GameViewModelTest {
                 override fun <T : ViewModel> create(modelClass: Class<T>): T =
                     GameViewModel(
                         rulesEngine = RulesEngine,
-                        levelRepository = FakeLevelRepository(boardsById = mapOf(levelId to board)),
+                        levelRepository = levelRepository,
                         scoreCalculator = ScoreCalculator,
                         settingsRepository = settings,
                         // This spec is about gameplay, not the Challenge ladder; a relaxed
@@ -1101,9 +1455,9 @@ class GameViewModelTest {
                         // save-on-leave / clear-on-solve calls.
                         progressRepository = mockk(relaxed = true),
                         timeSource = timeSource,
-                        defaultDispatcher = testDispatcher,
+                        defaultDispatcher = defaultDispatcher,
                         adGateway = adGateway,
-                        getHintUseCase = GetHintUseCase(),
+                        getHintUseCase = getHintUseCase,
                         savedStateHandle = SavedStateHandle(args),
                     ) as T
             }
@@ -1117,6 +1471,32 @@ class GameViewModelTest {
      * tests call this before returning so the scheduler can go idle.
      */
     private fun cancelTickers() = viewModelStore.clear()
+
+    /**
+     * A REAL Diamond-41 board one jump from its proven two-peg floor: two adjacent
+     * pegs on the wide middle row plus one isolated peg at the top vertex. The jump
+     * (4,0)→(4,2) removes (4,1) and strands {(4,2), (0,4)} — two pegs, no legal move,
+     * exactly [BoardConstants.DIAMOND41_FEWEST_PEGS_FLOOR].
+     *
+     * The spec is `Boards.Diamond41` itself, so the target the VM threads is the real
+     * one rather than a hand-set fixture value, and no `ScoreCalculator` is mocked.
+     */
+    private fun diamondOneJumpFromItsFloor(): Board =
+        Board(spec = Boards.Diamond41, pegs = 0L)
+            .withPeg(Position(row = 4, col = 0))
+            .withPeg(Position(row = 4, col = 1))
+            .withPeg(Position(row = 0, col = 4))
+
+    /**
+     * The same Diamond-41 jump with four extra mutually-unreachable pegs at the
+     * diamond's other extremities, so the dead end holds five pegs instead of two —
+     * three above the floor, past the 2-star band.
+     */
+    private fun diamondOneJumpFromAFivePegDeadEnd(): Board =
+        diamondOneJumpFromItsFloor()
+            .withPeg(Position(row = 8, col = 4))
+            .withPeg(Position(row = 2, col = 2))
+            .withPeg(Position(row = 2, col = 6))
 
     /** A 1x3 strip (pegs at cols 0,1; hole at col 2): one jump leaves a lone peg → Won. */
     private fun wonInOneJumpBoard(): Board =
@@ -1195,6 +1575,9 @@ private const val CHALLENGE_LEVEL_WITH_CHOICES = 10
 /** A forged sub-1 Challenge nav arg that must clamp to level 1 (T-03-09). */
 private const val BELOW_MIN_CHALLENGE_LEVEL = 0
 
+/** A forged negative Challenge nav arg — the other side of the lower bound (WARN-03). */
+private const val NEGATIVE_CHALLENGE_LEVEL = -1
+
 /** One timer tick (1s) of virtual time, plus a margin so the `delay(1000)` fires. */
 private const val ONE_TICK_MILLIS = 1_001L
 
@@ -1248,6 +1631,41 @@ private class FakeLevelRepository(
 }
 
 /**
+ * A [LevelRepository] that serves one fixed board for ANY Challenge level and records
+ * the level number it was asked for.
+ *
+ * Two jobs. It keeps the forged-arg specs fast — the real generator replays the
+ * deterministic chain from level 1, so asking it for the clamped `MAX_CHALLENGE_LEVEL`
+ * would do ten thousand reverse walks to prove a one-line getter. And by recording the
+ * requested level it lets the spec assert the WARN-03 invariant directly: the level the
+ * ViewModel EXPOSES is the level whose board it actually loaded.
+ */
+private class RecordingChallengeLevelRepository(
+    private val board: Board,
+) : LevelRepository {
+    var lastChallengeLevel: Int? = null
+        private set
+
+    override fun classicCatalog(): List<ClassicLevelDescriptor> = emptyList()
+
+    override fun loadClassic(levelId: String): Level = levelOf(levelId)
+
+    override fun loadChallenge(levelNumber: Int): Level {
+        lastChallengeLevel = levelNumber
+        return levelOf("challenge-$levelNumber")
+    }
+
+    private fun levelOf(id: String): Level =
+        Level(
+            id = id,
+            displayName = id,
+            spec = board.spec,
+            initialBoard = board,
+            holeCount = board.spec.inPlay.size,
+        )
+}
+
+/**
  * An in-memory [SettingsRepository] backed by a `MutableStateFlow` so a write both
  * records the last-written value ([lastWritten]) and re-emits through [hintsEnabled] —
  * letting the collected flow drive `showHints` exactly as the DataStore-backed impl does.
@@ -1257,6 +1675,10 @@ private class FakeSettingsRepository(
     soundOn: Boolean = true,
     hapticsOn: Boolean = true,
 ) : SettingsRepository {
+    override val colorblindPaletteOn: Flow<Boolean> = flowOf(false)
+
+    override suspend fun setColorblindPaletteOn(on: Boolean) = Unit
+
     private val state = MutableStateFlow(hintsEnabled)
     private val soundState = MutableStateFlow(soundOn)
     private val hapticsState = MutableStateFlow(hapticsOn)
@@ -1286,49 +1708,72 @@ private class FakeSettingsRepository(
 
 /**
  * A fake [AdGateway] that records the last requested [AdReason] and returns a
- * configurable [grant] (default `true`, matching the Slice-1 auto-grant stub), so the
- * VM tests assert both that undo requests the grant and that a denial skips the undo.
+ * configurable [outcome] (default [RewardOutcome.Granted], matching the auto-grant
+ * [com.app.pegsolitaire.platform.ads.NoOpAdGateway] stub), so the VM tests assert that an
+ * assist requests the grant, that [RewardOutcome.Declined] skips it, and that
+ * [RewardOutcome.Unavailable] proceeds with it anyway (ADS-03).
+ *
+ * [offerable] backs [rewardedOfferable] and defaults to `true` like the stub; passing
+ * `false` drives the D-12 path where the opt-in dialog is skipped and the assist is
+ * granted silently free. [preloadedReasons] records every [preloadRewarded] call so a test
+ * can prove D-09's "preload only at the moment a counter reaches 0".
  */
 private class FakeAdGateway(
-    private val grant: Boolean = true,
+    private val outcome: RewardOutcome = RewardOutcome.Granted,
+    offerable: Boolean = true,
 ) : AdGateway {
     var lastReason: AdReason? = null
         private set
 
-    override suspend fun requestRewarded(reason: AdReason): Boolean {
-        lastReason = reason
-        return grant
+    private val preloaded = mutableListOf<AdReason>()
+
+    val preloadedReasons: List<AdReason> get() = preloaded.toList()
+
+    override val rewardedOfferable: StateFlow<Boolean> = MutableStateFlow(offerable).asStateFlow()
+
+    override fun preloadRewarded(reason: AdReason) {
+        preloaded += reason
     }
 
-    override fun showInterstitial() = Unit
+    override suspend fun requestRewarded(reason: AdReason): RewardOutcome {
+        lastReason = reason
+        return outcome
+    }
+
+    override val interstitialReady: StateFlow<Boolean> = MutableStateFlow(false).asStateFlow()
+
+    override fun preloadInterstitial() = Unit
+
+    override suspend fun showInterstitial(): Boolean = false
 }
 
 /**
- * An [AdGateway] whose [requestRewarded] suspends on a shared gate until [release],
- * counting how many grants [started] (entered the gate) and how many [proceeded] past
- * it. A cancelled hint job's suspended `await` throws before [proceeded] increments, so
- * `proceeded == 1` after two rapid requests proves the first search was cancelled (no
- * overlapping Solver work — the logic half of D-10).
+ * A background dispatcher that PARKS what it is handed instead of running it, so a spec can
+ * hold a hint search at the `withContext(defaultDispatcher)` boundary and act while it is
+ * genuinely in flight. Single-threaded by construction: [releaseAll] runs the queued blocks
+ * inline on the caller's (test) thread, and a block whose job was cancelled meanwhile unwinds
+ * instead of running.
+ *
+ * This replaced a gated `AdGateway` as the D-10 park when plan 09-08 moved the rewarded
+ * request out of `hintJob` and behind an accepted offer: the gateway is no longer on the
+ * search's own coroutine, so gating it would hold nothing.
  */
-private class GatedAdGateway : AdGateway {
-    private val gate = CompletableDeferred<Unit>()
+private class ParkingDispatcher : CoroutineDispatcher() {
+    private val parked = ArrayDeque<Runnable>()
 
-    var started = 0
-        private set
+    /** How many blocks are currently held — a search in flight is `1`, not an assumption. */
+    val pending: Int get() = parked.size
 
-    var proceeded = 0
-        private set
-
-    fun release() {
-        gate.complete(Unit)
+    override fun dispatch(
+        context: CoroutineContext,
+        block: Runnable,
+    ) {
+        parked.addLast(block)
     }
 
-    override suspend fun requestRewarded(reason: AdReason): Boolean {
-        started++
-        gate.await()
-        proceeded++
-        return true
+    fun releaseAll() {
+        while (parked.isNotEmpty()) {
+            parked.removeFirst().run()
+        }
     }
-
-    override fun showInterstitial() = Unit
 }

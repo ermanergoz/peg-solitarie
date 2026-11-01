@@ -6,21 +6,35 @@ import app.cash.turbine.test
 import com.app.pegsolitaire.data.ChallengeProgress
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.data.FakePlayGamesOptInRepository
+import com.app.pegsolitaire.data.FakeProgressSubmitter
+import com.app.pegsolitaire.data.HomeProgress
+import com.app.pegsolitaire.data.ImportOutcome
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.LevelResult
 import com.app.pegsolitaire.data.NewBests
 import com.app.pegsolitaire.data.OnboardingRepository
+import com.app.pegsolitaire.data.PlayGamesOptInRepository
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
+import com.app.pegsolitaire.data.ProgressSubmitter
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
+import com.app.pegsolitaire.domain.achievement.ClassicBoard
+import com.app.pegsolitaire.domain.achievement.ProgressAggregate
 import com.app.pegsolitaire.domain.model.Boards
+import com.app.pegsolitaire.domain.progress.CloudProgress
 import com.app.pegsolitaire.domain.scoring.ScoreResult
+import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
+import com.app.pegsolitaire.platform.games.FakeGamesService
+import com.app.pegsolitaire.platform.games.GamesService
 import com.google.common.truth.Truth.assertThat
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
@@ -69,53 +83,102 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun onboardingIsVisibleOnFirstLaunchWhenNotYetSeen() =
+    fun theTutorialIsPendingOnFirstLaunchWhenItHasNotBeenSeen() =
         runTest(testDispatcher) {
             val repository = FakeOnboardingRepository(initiallySeen = false)
             val viewModel = viewModelFor(repository)
             runCurrent()
 
-            assertThat(viewModel.uiState.value.onboardingVisible).isTrue()
+            assertThat(viewModel.uiState.value.tutorialPending).isTrue()
         }
 
     @Test
-    fun onboardingIsHiddenWhenAlreadySeen() =
+    fun theTutorialIsNotPendingOnceItHasBeenSeen() =
         runTest(testDispatcher) {
             val repository = FakeOnboardingRepository(initiallySeen = true)
             val viewModel = viewModelFor(repository)
             runCurrent()
 
-            assertThat(viewModel.uiState.value.onboardingVisible).isFalse()
+            assertThat(viewModel.uiState.value.tutorialPending).isFalse()
         }
 
+    /**
+     * The flag stops standing the moment the **tutorial's own** write lands (D-01g/D-02b).
+     *
+     * This is the retarget of `dismissOnboardingPersistsSeenAndHidesTheOverlay`: the write is
+     * `TutorialViewModel`'s now, not Home's, so the test drives the repository the way that
+     * ViewModel does and asserts Home follows. It matters because `tutorialPending` is a pure
+     * mirror of `!seen` — Home has no writer of its own left to set it false locally, and if
+     * the mirror did not follow the store, Home would re-push the tutorial forever.
+     */
     @Test
-    fun showHowToPlayForcesTheOverlayVisibleEvenAfterItHasBeenSeen() =
-        runTest(testDispatcher) {
-            val repository = FakeOnboardingRepository(initiallySeen = true)
-            val viewModel = viewModelFor(repository)
-            runCurrent()
-            assertThat(viewModel.uiState.value.onboardingVisible).isFalse()
-
-            viewModel.onShowHowToPlay()
-            runCurrent()
-
-            assertThat(viewModel.uiState.value.onboardingVisible).isTrue()
-        }
-
-    @Test
-    fun dismissOnboardingPersistsSeenAndHidesTheOverlay() =
+    fun theTutorialStopsBeingPendingWhenTheSeenFlagIsPersistedByTheTutorial() =
         runTest(testDispatcher) {
             val repository = FakeOnboardingRepository(initiallySeen = false)
             val viewModel = viewModelFor(repository)
             runCurrent()
-            assertThat(viewModel.uiState.value.onboardingVisible).isTrue()
+            assertThat(viewModel.uiState.value.tutorialPending).isTrue()
 
-            viewModel.onDismissOnboarding()
+            repository.markSeen()
             runCurrent()
 
-            assertThat(viewModel.uiState.value.onboardingVisible).isFalse()
+            assertThat(viewModel.uiState.value.tutorialPending).isFalse()
+        }
+
+    /**
+     * Offered once, and never again from Home (D-02/D-02a/D-02b).
+     *
+     * The retarget of `showHowToPlayForcesTheOverlayVisibleEvenAfterItHasBeenSeen`, whose
+     * subject — the permanent Home affordance that forced the overlay open at any time — is
+     * deleted by D-02. What replaces it is the property that deletion buys: the persisted flag
+     * is the **only** writer, so no re-emission and no Home interaction can re-raise the
+     * tutorial once it is seen. Settings › How to play is the one later way in, and it
+     * navigates rather than flipping this flag.
+     */
+    @Test
+    fun theTutorialIsOfferedOnceAndNeverAgainOnceTheFlagIsPersisted() =
+        runTest(testDispatcher) {
+            val repository = FakeOnboardingRepository(initiallySeen = false)
+            val viewModel = viewModelFor(repository)
+            runCurrent()
+            assertThat(viewModel.uiState.value.tutorialPending).isTrue()
+
+            repository.markSeen()
+            runCurrent()
+            assertThat(viewModel.uiState.value.tutorialPending).isFalse()
+
+            // An unrelated store write re-emits the unchanged flag: still not pending.
+            repository.seen.value = true
+            runCurrent()
+            assertThat(viewModel.uiState.value.tutorialPending).isFalse()
             assertThat(repository.markSeenCount).isEqualTo(1)
-            assertThat(repository.seen.value).isTrue()
+        }
+
+    // ---- The Home progress ribbon (§7 R-1/R-2, D-03c) ----------------------
+
+    @Test
+    fun theRibbonValuesAreNullUntilTheFirstProgressEmission() =
+        runTest(testDispatcher) {
+            val progress = FakeResumeProgressRepository()
+            val viewModel =
+                viewModelFor(FakeOnboardingRepository(initiallySeen = true), progress = progress)
+
+            viewModel.uiState.test {
+                // D-03c as an assertion rather than a paragraph: the pills paint "—"
+                // before the database has answered, and Home never waits on the read.
+                val initial = awaitItem()
+                assertThat(initial.totalStars).isNull()
+                assertThat(initial.classicBoardsCleared).isNull()
+
+                runCurrent()
+                progress.emitHomeProgress(HomeProgress(totalStars = RIBBON_STARS, classicBoardsCleared = RIBBON_BOARDS))
+                runCurrent()
+
+                val filled = expectMostRecentItem()
+                assertThat(filled.totalStars).isEqualTo(RIBBON_STARS)
+                assertThat(filled.classicBoardsCleared).isEqualTo(RIBBON_BOARDS)
+                cancelAndIgnoreRemainingEvents()
+            }
         }
 
     // ---- Persisted Challenge level (CHAL-05 / PERS-02) ----------------------
@@ -302,6 +365,226 @@ class HomeViewModelTest {
             assertThat(progress.clears).isEmpty()
         }
 
+    // ---- Play Games opt-in prompt (PGS-01, D-15/D-17/D-18) --------------------
+
+    @Test
+    fun theOptInPromptStaysHiddenWhileTheTutorialIsStillPending() =
+        runTest(testDispatcher) {
+            // D-15: the two first-run surfaces never stack — the tutorial goes first.
+            val optIn = FakePlayGamesOptInRepository()
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = false), optIn = optIn)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.tutorialPending).isTrue()
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isFalse()
+        }
+
+    @Test
+    fun theOptInPromptShowsOnceOnboardingIsSeenAndTheQuestionIsStillUnanswered() =
+        runTest(testDispatcher) {
+            val optIn = FakePlayGamesOptInRepository()
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), optIn = optIn)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isTrue()
+        }
+
+    @Test
+    fun finishingTheTutorialHandsOverToTheOptInPrompt() =
+        runTest(testDispatcher) {
+            // The real first-run sequence: the tutorial first, then the prompt takes its
+            // place. The handover is the PERSISTED flag (D-01f), which is why the tutorial
+            // awaits its write before it pops — a dropped write would withhold this prompt
+            // for an extra launch.
+            val optIn = FakePlayGamesOptInRepository()
+            val onboarding = FakeOnboardingRepository(initiallySeen = false)
+            val viewModel = viewModelFor(onboarding, optIn = optIn)
+            runCurrent()
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isFalse()
+
+            onboarding.markSeen()
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.tutorialPending).isFalse()
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isTrue()
+        }
+
+    @Test
+    fun theOptInPromptNeverShowsAgainOnceAnswered() =
+        runTest(testDispatcher) {
+            // D-17 / T-11-08: "Not now" retires the prompt permanently — no nag on a later
+            // launch, which is what keeps this out of dark-pattern territory.
+            val optIn = FakePlayGamesOptInRepository(initiallyAnswered = true)
+            val viewModel = viewModelFor(FakeOnboardingRepository(initiallySeen = true), optIn = optIn)
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isFalse()
+        }
+
+    /**
+     * The retarget of `theOptInPromptStaysRetiredEvenWhenTheHelpAffordanceReopensOnboarding`.
+     *
+     * That test staged the second writer D-02b deletes — the Home affordance that forced the
+     * overlay open — so its premise is gone. What survives, and is the property that actually
+     * mattered, is that an unrelated re-emission of the two already-answered flags cannot
+     * resurrect the retired prompt (WR-07).
+     */
+    @Test
+    fun theOptInPromptStaysRetiredAcrossFurtherFlagEmissions() =
+        runTest(testDispatcher) {
+            val optIn = FakePlayGamesOptInRepository(initiallyAnswered = true)
+            val onboarding = FakeOnboardingRepository(initiallySeen = true)
+            val viewModel = viewModelFor(onboarding, optIn = optIn)
+            runCurrent()
+
+            // A genuine re-emission in both directions — the fail-open shape a corrupt read
+            // then a recovered one produces. Neither swing may resurrect an answered prompt.
+            onboarding.seen.value = false
+            runCurrent()
+            assertThat(viewModel.uiState.value.tutorialPending).isTrue()
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isFalse()
+
+            onboarding.seen.value = true
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.tutorialPending).isFalse()
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isFalse()
+        }
+
+    @Test
+    fun acceptingHidesThePromptPersistsTheOptInAndSignsIn() =
+        runTest(testDispatcher) {
+            val optIn = FakePlayGamesOptInRepository()
+            val games = FakeGamesService()
+            val viewModel =
+                viewModelFor(FakeOnboardingRepository(initiallySeen = true), optIn = optIn, games = games)
+            runCurrent()
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isTrue()
+
+            viewModel.onAcceptPlayGamesPrompt()
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isFalse()
+            assertThat(optIn.setOptedInCount).isEqualTo(1)
+            assertThat(games.signInCallCount).isEqualTo(1)
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(0)
+        }
+
+    @Test
+    fun acceptingHidesThePromptBeforeTheSignInRoundTripEvenBegins() =
+        runTest(testDispatcher) {
+            // T-11-09: the dialog must never sit on screen waiting for the SDK — no wall,
+            // no pause. Asserted with no runCurrent(), so nothing the launch does has run.
+            val optIn = FakePlayGamesOptInRepository()
+            val games = FakeGamesService()
+            val viewModel =
+                viewModelFor(FakeOnboardingRepository(initiallySeen = true), optIn = optIn, games = games)
+            runCurrent()
+
+            viewModel.onAcceptPlayGamesPrompt()
+
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isFalse()
+            assertThat(games.signInCallCount).isEqualTo(0)
+        }
+
+    @Test
+    fun aGenuineSignInErrorRaisesTheErrorTick() =
+        runTest(testDispatcher) {
+            // D-18: only a throw — an SDK-reported failure — surfaces the Home snackbar.
+            val optIn = FakePlayGamesOptInRepository()
+            val games = FakeGamesService().apply { signInBehavior = FakeGamesService.SignInBehavior.Error() }
+            val viewModel =
+                viewModelFor(FakeOnboardingRepository(initiallySeen = true), optIn = optIn, games = games)
+            runCurrent()
+
+            viewModel.onAcceptPlayGamesPrompt()
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(1)
+            // The opt-in still stands, so the next launch retries silently (D-18).
+            assertThat(optIn.optedInState.value).isTrue()
+        }
+
+    @Test
+    fun theScreenConsumesAShownSignInErrorSoItCannotReplay() =
+        runTest(testDispatcher) {
+            // CR-01: this ViewModel outlives every visit to Home, so a shown error must be
+            // handed back and reset — otherwise every later return to Home replays it.
+            val optIn = FakePlayGamesOptInRepository()
+            val games = FakeGamesService().apply { signInBehavior = FakeGamesService.SignInBehavior.Error() }
+            val viewModel =
+                viewModelFor(FakeOnboardingRepository(initiallySeen = true), optIn = optIn, games = games)
+            runCurrent()
+            viewModel.onAcceptPlayGamesPrompt()
+            runCurrent()
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(1)
+
+            viewModel.onPlayGamesSignInErrorShown()
+
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(0)
+        }
+
+    @Test
+    fun aCancelledSignInRoundTripNeverRaisesTheErrorTick() =
+        runTest(testDispatcher) {
+            // WR-04: cancellation is this scope being cleared, not an SDK error — the
+            // runCatching around signIn() must not convert it into a snackbar.
+            val optIn = FakePlayGamesOptInRepository()
+            val games =
+                FakeGamesService().apply {
+                    signInBehavior = FakeGamesService.SignInBehavior.Error(CancellationException("cleared"))
+                }
+            val viewModel =
+                viewModelFor(FakeOnboardingRepository(initiallySeen = true), optIn = optIn, games = games)
+            runCurrent()
+
+            viewModel.onAcceptPlayGamesPrompt()
+            runCurrent()
+
+            assertThat(games.signInCallCount).isEqualTo(1)
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(0)
+        }
+
+    @Test
+    fun aPlainChooserDismissalStaysSilent() =
+        runTest(testDispatcher) {
+            // D-18 / D-10 parity: signIn() returning false is a player-initiated cancel,
+            // not an error — no snackbar, nothing to apologise for.
+            val optIn = FakePlayGamesOptInRepository()
+            val games = FakeGamesService().apply { signInBehavior = FakeGamesService.SignInBehavior.Decline }
+            val viewModel =
+                viewModelFor(FakeOnboardingRepository(initiallySeen = true), optIn = optIn, games = games)
+            runCurrent()
+
+            viewModel.onAcceptPlayGamesPrompt()
+            runCurrent()
+
+            assertThat(games.signInCallCount).isEqualTo(1)
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(0)
+        }
+
+    @Test
+    fun decliningHidesThePromptPersistsNotNowAndNeverTouchesTheSdk() =
+        runTest(testDispatcher) {
+            // D-16/D-17: declining leaves the game exactly as it was — the only change in
+            // the world is the pair of persisted flags.
+            val optIn = FakePlayGamesOptInRepository()
+            val games = FakeGamesService()
+            val viewModel =
+                viewModelFor(FakeOnboardingRepository(initiallySeen = true), optIn = optIn, games = games)
+            runCurrent()
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isTrue()
+
+            viewModel.onDeclinePlayGamesPrompt()
+            runCurrent()
+
+            assertThat(viewModel.uiState.value.playGamesPromptVisible).isFalse()
+            assertThat(optIn.setNotNowCount).isEqualTo(1)
+            assertThat(optIn.setOptedInCount).isEqualTo(0)
+            assertThat(games.signInCallCount).isEqualTo(0)
+            assertThat(viewModel.uiState.value.playGamesSignInErrorTick).isEqualTo(0)
+        }
+
     // ---- Helpers -------------------------------------------------------------
 
     /**
@@ -309,16 +592,34 @@ class HomeViewModelTest {
      * stand-in whose `currentLevel` is driven by [levels] (defaulting to a fixed
      * [persistedLevel]), a resume store [progress] (empty unless a test fills it), and a
      * catalog that knows exactly the real Classic ids — neither real store is touched.
+     *
+     * [optIn] defaults to an ALREADY-ANSWERED prompt so the pre-Play-Games tests above
+     * (onboarding, ladder level, resume affordances) keep asserting the surface they were
+     * written for — an unanswered default would silently raise the opt-in dialog under
+     * every one of them. The submitter defaults to one with **no** pending account-switch
+     * question, for the same reason: Phase 13's dialog must not appear under assertions
+     * about anything else. Its own coverage is `HomeViewModelCloudTest`.
      */
     private fun viewModelFor(
         repository: OnboardingRepository,
         persistedLevel: Int = FIRST_LEVEL,
         levels: MutableStateFlow<Int> = MutableStateFlow(persistedLevel),
         progress: ProgressRepository = FakeResumeProgressRepository(),
+        optIn: PlayGamesOptInRepository = FakePlayGamesOptInRepository(initiallyAnswered = true),
+        games: GamesService = FakeGamesService(),
+        submitter: ProgressSubmitter = FakeProgressSubmitter(),
     ): HomeViewModel {
         val challengeProgress = mockk<ChallengeProgress>(relaxed = true)
         every { challengeProgress.currentLevel } returns levels
-        return HomeViewModel(repository, challengeProgress, progress, CatalogOnlyLevelRepository)
+        return HomeViewModel(
+            repository,
+            challengeProgress,
+            progress,
+            CatalogOnlyLevelRepository,
+            optIn,
+            games,
+            submitter,
+        )
     }
 }
 
@@ -390,10 +691,29 @@ private class FakeResumeProgressRepository : ProgressRepository {
         mode: String,
         levelId: String,
         result: ScoreResult,
+        telemetry: SolveTelemetry,
         nowMs: Long,
     ): NewBests = error("Home never records a result")
 
+    /** Unused by this screen — Home never reads the achievement aggregate. */
+    override suspend fun aggregate(): ProgressAggregate = ProgressAggregate()
+
+    /** Unused by this screen — no per-board leaderboard read happens here. */
+    override suspend fun classicBests(): Map<ClassicBoard, Int> = emptyMap()
+
     override fun observeResults(mode: String): Flow<List<LevelResult>> = flowOf(emptyList())
+
+    /**
+     * The Home ribbon aggregate, settable so a test can drive the placeholder → value
+     * transition. Starts at [HomeProgress.UNKNOWN]'s absence: nothing emitted yet.
+     */
+    private val homeProgress = MutableSharedFlow<HomeProgress>(replay = 1)
+
+    fun emitHomeProgress(progress: HomeProgress) {
+        homeProgress.tryEmit(progress)
+    }
+
+    override fun observeHomeProgress(): Flow<HomeProgress> = homeProgress
 
     override suspend fun saveSnapshot(
         dto: ResumeSnapshotDto,
@@ -409,6 +729,16 @@ private class FakeResumeProgressRepository : ProgressRepository {
     }
 
     override fun observeResumeModes(): Flow<List<String>> = modes
+
+    /** Unreachable from here — Home never calls cloud save (CLOUD-01/CLOUD-04). */
+    override suspend fun exportProgress(ladder: Int): CloudProgress = error("Home never calls cloud save")
+
+    override suspend fun importProgress(
+        remote: CloudProgress,
+        nowMs: Long,
+    ): ImportOutcome = error("Home never calls cloud save")
+
+    override suspend fun resetAllProgress() = error("Home never calls cloud save")
 
     private fun snapshotOf(
         mode: String,
@@ -427,6 +757,12 @@ private class FakeResumeProgressRepository : ProgressRepository {
             elapsedMs = 0L,
         )
 }
+
+/** The ribbon's star total once the aggregate answers — distinct from every other fixture number. */
+private const val RIBBON_STARS = 41
+
+/** The ribbon's cleared-board count once the aggregate answers. */
+private const val RIBBON_BOARDS = 3
 
 /** A persisted level well past the on-ramp, so "continues at the stored level" is unambiguous. */
 private const val PERSISTED_LEVEL = 7

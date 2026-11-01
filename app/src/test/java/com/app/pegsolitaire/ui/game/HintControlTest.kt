@@ -63,6 +63,31 @@ class HintControlTest {
         // The resting Hint icon is gone while thinking, so the two states never coexist.
         composeRule.onNodeWithContentDescription(hintLabel).assertDoesNotExist()
     }
+
+    /**
+     * Criterion 23's second clause, asserted as behaviour rather than as appearance: a tap while
+     * the Solver is already searching **reaches nothing**, so it cannot start a second,
+     * overlapping search (T-04-3B-DT).
+     *
+     * Added with Phase 15 rather than rewritten. The control moved into the action dock and its
+     * glyph changed from a magnifying glass to a lightbulb (D-04a), but the thinking contract is
+     * the one it already had — this is the half a disabled-state assertion does not prove.
+     */
+    @Test
+    fun aSecondTapWhileThinkingCannotStartASecondSearch() {
+        var clicks = 0
+        composeRule.setContent {
+            AppTheme {
+                HintControl(solverThinking = true, onHint = { clicks++ })
+            }
+        }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription(thinkingLabel).performClick()
+        composeRule.waitForIdle()
+
+        assertThat(clicks).isEqualTo(0)
+    }
 }
 
 /** Robolectric has no android-all jar for Android 16 (SDK 36) yet; emulate SDK 34. */

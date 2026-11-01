@@ -1,9 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- D-10: the app was fully offline through v1.0 and declared no permissions.
+         Inert until an SDK uses it; declared explicitly so the store permission
+         diff is a deliberate commit rather than an implicit manifest-merge result.
+         Note that ads-mobile-sdk merges INTERNET in regardless, so this line changes
+         nothing about the merged output — which is the point. The permission is now
+         something this repository decided to request, visible in its history, rather
+         than something that arrived with a dependency bump. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- UI-ICON-01. android:icon and android:roundIcon deliberately point at the SAME
+         resource. @mipmap/ic_launcher is an adaptive icon on API 26+, which already
+         answers every mask the launcher can ask for, including round ones; a separate
+         round asset would be the same artwork stored twice and would drift. On API 24-25
+         the resource resolves to the mipmap-anydpi layer-list instead, which carries its
+         own rounded silhouette.
+
+         Both attributes request no permission and declare no component, so the merged
+         permission set that ManifestSurfaceTest asserts by equality is unchanged. -->
     <application
         android:name=".App"
         android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.PegSolitaire">
@@ -17,5 +38,83 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- CONS-01. This tag is a UMP requirement, NOT a GMA one, and the distinction is
+             the only reason it is not obviously redundant: the GMA Next-Gen SDK takes the
+             AdMob application ID programmatically through InitializationConfig (see
+             UmpConsentGateway), so nothing about MobileAds.initialize needs a manifest
+             entry. The User Messaging Platform SDK does read it from here, and its absence
+             produces a "missing application ID" crash on the first UMP call — which, since
+             consent runs before anything else, means at cold start.
+
+             The value is the GENERATED string resource, never a literal. app/build.gradle.kts
+             emits admob_app_id per build type via resValue(), so debug carries Google's test
+             app ID and release the real one with no plumbing here. An inline literal ID
+             would also fail the adIdLiteralCheck gate, which scans all of src/main — this
+             comment deliberately does not spell one out, for the same reason.
+
+             This is a <meta-data> and requests no permission: the merged permission set that
+             ManifestSurfaceTest asserts by equality is unchanged by it. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="@string/admob_app_id" />
+
+        <!-- PGS-01. Required by PlayGamesSdk.initialize() and every
+             PlayGames.get*Client(...) lookup in platform/games/PlayGamesService.kt: the
+             SDK reads the Games services project ID from here, and without the tag those
+             calls fail at runtime. Phase 6 built the resource for this tag and left the
+             tag itself unwritten because nothing consumed it yet — this is the phase that
+             consumes it.
+
+             The value is the GENERATED string resource, exactly as the AdMob tag above
+             uses admob_app_id: app/build.gradle.kts emits game_services_project_id per
+             build type via resValue(). It MUST stay a @string reference rather than an
+             inline value — the project ID is numeric, and a bare numeric android:value is
+             parsed as an integer rather than a string, which the SDK rejects.
+
+             Placed immediately above the PlayGamesInitProvider removal below so the two
+             Play-Games manifest entries stay adjacent: that removal comment names this
+             phase as the explicit-init owner, and this tag is what explicit init needs.
+
+             A <meta-data> requests no permission, so the merged permission set that
+             ManifestSurfaceTest asserts by equality is unchanged by it. -->
+        <meta-data
+            android:name="com.google.android.gms.games.APP_ID"
+            android:value="@string/game_services_project_id" />
+
+        <!-- D-07, as corrected by D-17. play-services-games-v2 declares
+             PlayGamesInitProvider (authority ${applicationId}.playgamesinitprovider,
+             initOrder 99), and a ContentProvider at that init order runs before
+             App.onCreate completes, firing automatic Play Games sign-in on a real
+             device before this app has decided anything.
+
+             The reason for removing it is production cold start plus the downstream
+             CONS-02 requirement: initialisation must happen only for a player who
+             chose it. PlayGamesSdk.initialize now runs in App.onCreate, gated on the
+             persisted play_games_opted_in flag (GamesService.initializeIfOptedIn) —
+             i.e. at the same process-start moment this provider would have used, but
+             only for a player who opted in, which is precisely the distinction the
+             provider cannot make. The removal therefore still stands: the provider
+             would initialise unconditionally, for everyone, before the app has
+             decided anything.
+
+             It is NOT about test isolation — Robolectric 4.16 does not instantiate
+             manifest ContentProviders at startup (verified from its bytecode:
+             AndroidTestEnvironment has no provider loop, and ShadowContentResolver
+             instantiates lazily on a ContentResolver call naming the authority), so
+             the JVM suite was never at risk and removing this buys it nothing.
+
+             There is deliberately NO MobileAdsInitProvider counterpart. The GMA
+             Next-Gen SDK declares no ContentProvider at all and requires an explicit
+             MobileAds.initialize() — verified against ads-mobile-sdk 1.4.0's AAR
+             manifest, 2026-08-27. Writing a removal for it would be a harmless no-op
+             that documents a belief which is false.
+
+             android:name is what the merger keys on; the authority is carried here
+             because it documents what is being removed. -->
+        <provider
+            android:name="com.google.android.gms.games.provider.PlayGamesInitProvider"
+            android:authorities="${applicationId}.playgamesinitprovider"
+            tools:node="remove" />
     </application>
 </manifest>

@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.Card
@@ -25,15 +25,22 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.audio.SoundCue
+import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
+import com.app.pegsolitaire.ui.theme.clayEntrance
+import com.app.pegsolitaire.ui.theme.clayShadow
+import com.app.pegsolitaire.ui.theme.claySquish
 
 /**
  * The stateless Classic catalog screen (CLAS-01, D-11/D-18).
@@ -61,6 +68,8 @@ fun ClassicCatalogScreen(
 ) {
     Scaffold(
         modifier = modifier.fillMaxSize(),
+        containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onBackground,
         topBar = { CatalogTopBar(onNavigateBack = onNavigateBack) },
     ) { contentPadding ->
         Box(
@@ -80,8 +89,8 @@ fun ClassicCatalogScreen(
                 horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_md)),
                 verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_md)),
             ) {
-                items(items = state.boards, key = { it.descriptor.id }) { board ->
-                    BoardCard(board = board, onSelect = onSelect)
+                itemsIndexed(items = state.boards, key = { _, board -> board.descriptor.id }) { index, board ->
+                    BoardCard(board = board, entranceOrder = index, onSelect = onSelect)
                 }
             }
         }
@@ -93,8 +102,13 @@ fun ClassicCatalogScreen(
 @Composable
 private fun CatalogTopBar(onNavigateBack: () -> Unit) {
     TopAppBar(
+        colors =
+            TopAppBarDefaults.topAppBarColors(
+                containerColor = Color.Transparent,
+                scrolledContainerColor = Color.Transparent,
+            ),
         navigationIcon = {
-            IconButton(onClick = onNavigateBack) {
+            IconButton(onClick = onNavigateBack, modifier = Modifier.claySquish()) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                     contentDescription = stringResource(R.string.navigate_back),
@@ -112,11 +126,12 @@ private fun CatalogTopBar(onNavigateBack: () -> Unit) {
 }
 
 /**
- * One catalog board card (D-11): a `surfaceContainerHigh` `Card` whose whole surface
- * is the tap target → [onSelect] with the descriptor's `levelId`. It stacks the
- * read-only [BoardPreview] with its earned-star pips (D-10), the board name
- * (`titleMedium`, `onSurface`) and a plural-aware "{n} holes" subtitle (`bodyMedium`,
- * `onSurfaceVariant`).
+ * One catalog clay board card (D-11): a soft-shadowed, squishy `surfaceContainerHigh`
+ * `Card` whose whole surface is the tap target → [onSelect] with the descriptor's
+ * `levelId`. It stacks the read-only [BoardPreview] with its earned-star pips (D-10),
+ * the board name (`titleMedium`, `onSurface`) and a plural-aware "{n} holes" subtitle
+ * (`bodyMedium`, `onSurfaceVariant`). Cards enter with the shared 40ms clay stagger
+ * ([entranceOrder]).
  *
  * Every card is given the same fixed `catalog_card_height` so cards in the same grid
  * row line up even when a name wraps to two lines; the name allows up to 2 lines
@@ -126,15 +141,22 @@ private fun CatalogTopBar(onNavigateBack: () -> Unit) {
 @Composable
 private fun BoardCard(
     board: ClassicBoardUiState,
+    entranceOrder: Int,
     onSelect: (String) -> Unit,
 ) {
     val descriptor: ClassicLevelDescriptor = board.descriptor
+    // SOUND-04 / D-09 / D-11: picking a board is a navigational CTA, so the card clicks — while
+    // CatalogTopBar's back icon above stays silent. The cue is attached per callsite and NEVER to
+    // Modifier.claySquish(), which both controls share (exclusion list in the withClickSound KDoc).
     Card(
-        onClick = { onSelect(descriptor.id) },
+        onClick = withClickSound(SoundCue.ButtonForward) { onSelect(descriptor.id) },
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         modifier =
             Modifier
+                .clayEntrance(entranceOrder)
+                .claySquish()
+                .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.large)
                 .fillMaxWidth()
                 .height(dimensionResource(R.dimen.catalog_card_height)),
     ) {

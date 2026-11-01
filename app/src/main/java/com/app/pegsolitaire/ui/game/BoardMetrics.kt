@@ -69,4 +69,53 @@ object BoardMetrics {
 
     /** The board is a square. */
     const val BOARD_ASPECT_RATIO = 1f
+
+    // ---- Candy-Clay rendering ratios (DESIGN-SYSTEM.md Gameplay) ----
+
+    /** Radial PegGradient center offset toward the top-left = ratio × pegRadius. */
+    const val PEG_GRADIENT_OFFSET_RATIO = 0.35f
+
+    /** Radial PegGradient extent = ratio × pegRadius (rim color reaches the edge). */
+    const val PEG_GRADIENT_RADIUS_RATIO = 1.7f
+
+    /** Gradient stop where the peg body color sits between highlight (0) and rim (1). */
+    const val PEG_GRADIENT_MID_STOP = 0.55f
+
+    /** Specular highlight dot radius = ratio × pegRadius. */
+    const val SPECULAR_RADIUS_RATIO = 0.28f
+
+    /** Specular highlight dot offset toward the top-left = ratio × pegRadius. */
+    const val SPECULAR_OFFSET_RATIO = 0.42f
+
+    /** Inner dimple-fill radius of the two-tone inset hole = ratio × holeRadius. */
+    const val DIMPLE_INNER_RATIO = 0.78f
+
+    /** Downward offset of the dimple fill = ratio × holeRadius (dark top ring reads inset). */
+    const val DIMPLE_OFFSET_RATIO = 0.22f
+
+    /** Peak scale of the selected peg's breathing pulse (1.0 → 1.06). */
+    const val PULSE_MAX_SCALE = 1.06f
+
+    /** The landed jumper briefly squashes to this scale before springing back. */
+    const val LANDING_SQUASH_SCALE = 0.86f
+
+    // ---- The wrong tap (D-06, docs/ux/invalid-tap-feedback.md §3.1–§3.2, §5) ----
+
+    /**
+     * The shake's amplitude A = ratio × cellSize: about 4.2 dp on a 7×7 board on a 360 dp phone,
+     * 3.3 dp at 9×9 and 6.4 dp at the 480 dp tablet cap.
+     */
+    const val WRONG_TAP_SHAKE_RATIO = 0.10f
+
+    /** The held peg's ring at the peak of its nudge, × its radius; it multiplies the breathing pulse. */
+    const val WRONG_TAP_RING_NUDGE_SCALE = 1.18f
+
+    /**
+     * The reduced-motion mark's radius = ratio × cellSize: outside the peg's 0.34 and the hole's
+     * 0.16, so it sits on the slab. Its own constant, although it equals [SELECTED_RING_RATIO].
+     */
+    const val WRONG_TAP_MARK_RING_RATIO = 0.40f
+
+    /** The mark is this many equal dashes at a 50 % duty cycle, so a shape tells it from the solid rings. */
+    const val WRONG_TAP_MARK_DASHES = 12
 }

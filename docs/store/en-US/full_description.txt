@@ -1,0 +1,37 @@
+Peg Solitaire is the traditional board game for one player. Jump a peg over a neighboring peg into the empty hole just beyond it, and the jumped peg leaves the board. Jumps go up, down, left and right, never diagonally. Clear the board down to as few pegs as you can, ideally just one.
+
+Two ways to play
+
+Classic: five well-known boards, English-33, European-37, Asymmetric-39, Diamond-41 and Wiegleb-45. Each board's star targets are set from what that board can actually reach.
+
+Challenge: a ladder of 10,000 generated levels that grows harder as you climb. Every level is built backwards from a solved board, so every level has a solution.
+
+Learn by playing
+
+A short tutorial teaches the rules on a real board, one jump at a time. A wrong tap costs nothing. Skip it whenever you like, and replay it later from Settings.
+
+Help when you want it
+
+Hint shows a real winning move. Undo takes back your last jump. Every level gives you a free allowance of both. Once it is spent, you can choose to watch an ad for one more, or carry on without.
+
+Stars and bests
+
+Finish a level with one to three stars, and beat your own best score and time.
+
+Google Play Games, if you want it
+
+Sign in to unlock 20 achievements, compete on 7 leaderboards and keep your progress in the cloud, so it follows you to a new device. Sign-in is optional: every mode and every board works without it.
+
+Made to be comfortable
+
+- A sound for every move, at your media volume. It never pauses your music, and Settings turns it off.
+- Light and dark themes that follow your system.
+- A colorblind palette option in Settings, for clearer moves, hints and stars.
+- A glossy new look, with soft light that drifts slowly behind the menu and the board.
+- Undo, Hint and the other game controls sit in the lower half of the screen, within reach of your thumb.
+
+About ads
+
+Peg Solitaire shows ads. A rewarded ad plays only when you choose one, and the game clock stops while it is on screen. A full-screen ad can appear between levels, after you tap Continue, and never while you are playing a board.
+
+Privacy policy: https://ermanergoz.com/policies/peg-solitarie-privacy-policy.html

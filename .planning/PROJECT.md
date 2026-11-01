@@ -8,11 +8,29 @@ A polished native Android peg solitaire game with two modes: a **Classic** mode 
 
 **v1.0 "Slice 1 — Playable Core" shipped 2026-08-26.** All 30 v1 requirements validated; milestone audit passed (5/5 E2E flows, integration 9.5/10, zero leftover stubs). ~17.6k lines of Kotlin across a pure-JVM `:domain` module and a Compose `:app`, 293 JVM tests green, phase 5 additionally code-reviewed (all Critical/Warning findings fixed) and security-audited (14/14 threats closed). No external SDKs — `AdGateway` and `GamesService` are no-op stubs awaiting Slice 2.
 
+**Phase 8 complete (2026-08-30)** — DEBT-01/02/03 validated: truthful hints via committed depth-4/3 opening books + bitboard solver (stale-hint race CR-01 and load-window WR-01 fixed and regression-pinned), Diamond-41's 2-peg floor proven both ways (38-move line replayed in CI + exhaustive GF(4) impossibility), phase 3/4 validation contracts reconciled. Confirmed per-item on physical hardware; verification 8/8, code review clean of Critical/Warning.
+
+**Phase 9 complete (2026-09-02)** — Consent & Rewarded Ads live end-to-end: UMP consent flow (privacy policy revised and republished, T-09-31 cleared), free per-level assist allowance persisted through resume, opt-in-first rewarded assists (search first, charge second), elapsed clock frozen across every ad presentation (±1s over 30-40s ads on device), real GMA Next-Gen `AdMobAdGateway` bound, Settings Privacy section (policy row + consent-gated manage-choices row). CONS/ADS/ADSF/REL-05 requirements verified 9/9 (device items on emulator; D-20 records that declines still get non-personalized offers). Known advisory debt: 5 code-review warnings (WR-01..05) on the accept-path re-entrancy and SDK-facing seams, documented in 09-REVIEW.md.
+
+**Phase 10 complete (2026-09-03)** — Interstitials live behind the win flow: pure-Kotlin cadence policy in `:domain` (every 3rd win, ≥90s fullscreen-ad gap, first-session/first-5-levels grace, 4-per-session cap), DataStore persistence surviving process death (INT-02), `ProcessLifecycleOwner` 30-min session boundary, real GMA Next-Gen interstitial slot, cadence gated on the two forward-moving Results actions only — losses/exits/replay never pay (INT-03), 500ms quiescence scrim swallowing taps and back presses (INT-04, pointer-consumption proven load-bearing by mutation). INT-01..04 verified 6/6; D-15 rewarded-adjacency wired. UAT ran emulator-only (no physical device available) — physical re-run tracked in 10-HUMAN-UAT.md as pre-release debt. Advisory review debt in 10-REVIEW.md: CR-01 (pre-existing Diamond-41 `pegsRemaining == 1` bests-record trap) + 3 warnings on ad-slot cancellation cleanup, Next-Gen threading contract, consent re-check on load retry.
+
 ## Core Value
 
 Infinite, never-repeating, always-solvable Challenge levels that feel fair and satisfying — if nothing else works, the procedurally-generated puzzles must be solvable and fun.
 
 **Validated in v1.0:** the reverse-generation Challenge generator ships frozen behind golden-master fixtures — deterministic, gate-checked, always solvable by construction.
+
+## Current Milestone: v1.1 Slice 2 — Play Games, AdMob & Polish
+
+**Goal:** Turn the shipped offline game into a release-ready product by wiring real Play Games and AdMob SDKs behind the existing seams, adding sound, and paying down carried tech debt.
+
+**Target features:**
+- Google Play Games Services v2 behind the existing `GamesService` seam — sign-in, leaderboards, achievements, cloud save
+- AdMob + UMP consent behind the existing `AdGateway` seam — rewarded ads for hint/undo/retry, interstitials between levels
+- Sound playback consuming the already-persisted `soundOn` flag
+- Carried tech debt: solver deadline envelope on hard early positions, Diamond-41 solvability fixture, Nyquist gaps on phases 3/4, security advisories WARN-02/03
+
+**Key context:** The Candy Clay visual redesign (merged to `develop` 2026-08-27, outside GSD planning) already delivers the bulk of the former POLI-01 "visual polish pass" — remaining polish in this milestone is audio/juice, not a visual overhaul. SDK versions are pinned at integration time per the stack doc (play-services-games-v2 ~21.x, play-services-ads 23.6.0, UMP latest).
 
 ## Requirements
 
@@ -27,11 +45,12 @@ Infinite, never-repeating, always-solvable Challenge levels that feel fair and s
 - ✓ Hint (recorded-line-first, Solver fallback, honest "no winning move" state) and multi-step undo — v1.0
 - ✓ Local persistence: per-level bests, highest Challenge level, full in-progress resume by replay — v1.0
 
-### Active (next milestone candidates)
+### Active (v1.1)
 
-- [ ] (Slice 2) Google Play Games v2: sign-in, leaderboards, achievements, cloud save — behind existing `GamesService` seam
-- [ ] (Slice 2) AdMob monetization: rewarded ads for hint/undo/retry, interstitials between levels — behind existing `AdGateway` seam
-- [ ] (Slice 2) Visual polish pass; sound playback consuming the already-persisted `soundOn` flag
+- [ ] Google Play Games v2: sign-in, leaderboards, achievements, cloud save — behind existing `GamesService` seam
+- [ ] AdMob monetization: rewarded ads for hint/undo/retry, interstitials between levels — behind existing `AdGateway` seam
+- [ ] Sound playback consuming the already-persisted `soundOn` flag (visual polish largely delivered by the Candy Clay redesign, merged 2026-08-27)
+- [ ] Tech debt payoff: solver deadline envelope on hard early positions, Diamond-41 solvability fixture, Nyquist gaps on phases 3/4, security advisories WARN-02/03
 
 ### Out of Scope
 
@@ -78,7 +97,7 @@ Infinite, never-repeating, always-solvable Challenge levels that feel fair and s
 | Kotlin 2.3.20 / KSP 2.3.9 / Hilt 2.60 / AGP 9.1.0 pin cascade (2026-06-28) | KSP availability + tooling max-supported AGP; no KAPT anywhere | ✓ Good — full gate green for the entire milestone |
 | Undo/restore as pure replay (fold applyMove over history) | One source of truth (RulesEngine); no serialized board-state trust | ✓ Good — reused for resume; every stored move re-validated on restore |
 | Room for results+resume, DataStore for scalars | Queries/upserts need SQL; two ints + flags don't | ✓ Good — migration-safe v1 schema committed; fail-open/best-effort hardening added post-review |
-| Solver = memoised symmetry-canonical DFS + pagoda pruning, 1.5s deadline | CI-fast honest guarantee; universal early-position completeness not achievable at usable deadline | ⚠️ Revisit — hard early positions on big boards fold to "no winning move"; candidate Slice-2 solver improvement |
+| Hint = committed depth-4 opening book in front of a bitboard solver over precomputed per-footprint tables, with a per-attempt node cap so restarts actually happen — at an **unchanged** 1.5s deadline | Universal early-position completeness **by runtime search alone** is confirmed unachievable at a usable deadline — measured **0 of 76** of Wiegleb-45's depth-≤4 positions resolvable inside 1.5s even at ~15M nodes/s — which is exactly why the answers are precomputed rather than searched. The deadline is product UX and was never the lever (D-07). | ✓ Resolved by v1.1 Phase 8 (DEBT-01/02). Bitboard rewrite alone fixed European-37 (fold → ~82–123 ms) and Asymmetric-39 (fold → <1 ms); the book fixed Wiegleb-45, which no solver could. Post-book the depth sweep records **zero** solver fallbacks on English-33/European-37/Asymmetric-39 across their full depth-4 frontiers. Residual, stated plainly: 444 header-declared gap positions on Diamond-41 and Wiegleb-45 still burn the full deadline and show the rescue banner. |
 
 ## Evolution
 
@@ -98,4 +117,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-26 after v1.0 milestone*
+*Last updated: 2026-09-03 after Phase 10 completion*

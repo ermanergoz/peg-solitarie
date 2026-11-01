@@ -1,0 +1,39 @@
+Peg Solitaire, tek kişilik klasik bir masa oyunudur. Bir piyonu, yanındaki piyonun üzerinden hemen arkasındaki boş deliğe atlatın; üzerinden atlanan piyon tahtadan kalkar. Atlamalar yukarı, aşağı, sağa ve sola yapılır, asla çapraz yapılmaz. Tahtada olabildiğince az piyon bırakın, en iyisi tek bir piyon.
+
+İki oyun modu
+
+Klasik (Classic): bilinen beş tahta, English-33, European-37, Asymmetric-39, Diamond-41 ve Wiegleb-45. Her tahtanın yıldız hedefleri, o tahtada gerçekten ulaşılabilen sonuca göre belirlenir.
+
+Meydan okuma (Challenge): yükseldikçe zorlaşan, 10.000 üretilmiş seviyelik bir merdiven. Her seviye çözülmüş bir tahtadan geriye doğru kurulur, bu yüzden her seviyenin bir çözümü vardır.
+
+Oynayarak öğrenin
+
+Kısa bir eğitim, kuralları gerçek bir tahta üzerinde, her adımda tek bir atlamayla öğretir. Yanlış yere dokunmanın hiçbir bedeli yoktur. Eğitimi istediğiniz an geçebilir, daha sonra Ayarlar'dan (Settings) yeniden oynatabilirsiniz.
+
+İstediğinizde yardım
+
+İpucu (Hint), kazandıran gerçek bir hamle gösterir. Geri al (Undo), son atlamanızı geri alır. Her seviyede ikisi için de ücretsiz haklarınız vardır. Haklarınız bitince, bir hak daha için reklam izlemeyi seçebilir ya da izlemeden devam edebilirsiniz.
+
+Yıldızlar ve rekorlar
+
+Her seviyeyi bir ile üç yıldız arasında bitirin, kendi en iyi puanınızı ve sürenizi geçin.
+
+Google Play Games, isterseniz
+
+Oturum açarak 20 başarımın kilidini açın, 7 skor tablosunda yarışın ve ilerlemenizi bulutta saklayın; böylece ilerlemeniz yeni cihazınıza da taşınır. Oturum açmak isteğe bağlıdır: her mod ve her tahta oturum açmadan da çalışır.
+
+Rahat oynamanız için
+
+- Her hamle için bir ses, medya ses düzeyinizde. Müziğinizi asla durdurmaz; Ayarlar'dan kapatabilirsiniz.
+- Sistem ayarınıza uyan açık ve koyu tema.
+- Ayarlar'da renk körlüğüne uygun bir renk paleti seçeneği; hamleler, ipuçları ve yıldızlar daha net görünür.
+- Parlak yeni bir görünüm; menünün ve tahtanın arkasında yavaşça süzülen yumuşak ışıklar.
+- Geri al, İpucu ve diğer oyun düğmeleri ekranın alt yarısında, başparmağınızın ulaşabileceği yerde.
+
+Reklamlar hakkında
+
+Peg Solitaire reklam gösterir. Ödüllü reklam yalnızca siz seçtiğinizde oynatılır ve ekrandayken oyun saati durur. Tam ekran bir reklam, bir seviyeyi bitirip sonuç ekranından devam ettiğinizde çıkabilir; bir tahtayı oynarken asla çıkmaz.
+
+Oyunun arayüzü İngilizcedir.
+
+Gizlilik politikası: https://ermanergoz.com/policies/peg-solitarie-privacy-policy.html

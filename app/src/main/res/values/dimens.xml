@@ -45,14 +45,145 @@
     <dimen name="catalog_star_pip_size">16dp</dimen>
     <!-- Rendered size of each of the 3 result stars (earned + unearned). -->
     <dimen name="results_star_size">48dp</dimen>
-    <!-- Square edge of each onboarding step's jump illustration. -->
-    <dimen name="onboarding_illustration_size">160dp</dimen>
+    <!-- Diameter of the soft gold glow disc behind an earned Results star. -->
+    <dimen name="results_star_glow_size">56dp</dimen>
+
+    <!--
+      ================= Phase-15 tokens: the interactive tutorial =================
+      ux-spec §6.1. All multiples of 4, one token per owner even where an existing token
+      shares the value (this file's own convention).
+    -->
+    <!--
+      Square edge of the tutorial's interactive board slab. The largest tutorial footprint
+      is 3x3, so this gives ~93dp cells — comfortably above the 48dp touch-target floor,
+      which is why no Classic footprint could serve here (the smallest is 33 holes in a 7x7
+      box, i.e. 40dp cells at this size).
+    -->
+    <dimen name="tutorial_board_size">280dp</dimen>
+    <!--
+      Reserved caption height. Reserved rather than wrapped so a 1-to-2-line caption swap
+      between steps never reflows the board the player is mid-tap on.
+    -->
+    <dimen name="tutorial_caption_min_height">48dp</dimen>
+    <!-- One step progress pip. The row is decorative; it speaks once as a single node. -->
+    <dimen name="tutorial_step_pip_size">12dp</dimen>
+
+    <!--
+      ================ Phase-15 tokens: the Home recomposition ====================
+      ux-spec §4.2, §6.1. One token per owner even where an existing token shares the value.
+    -->
+    <!-- One progress-ribbon pill. Three of them share the row at equal weight. -->
+    <dimen name="home_stat_pill_min_height">64dp</dimen>
+    <!-- One progress-ribbon pill glyph. Decorative: the pill speaks as one node. -->
+    <dimen name="home_stat_pill_glyph_size">20dp</dimen>
+    <!--
+      The Classic Continue chip's board thumbnail — the saved board's own footprint in place
+      of the generic play arrow. Only ever drawn when a Classic resume exists.
+    -->
+    <dimen name="home_resume_thumb_size">40dp</dimen>
+    <!-- A mode tile's trailing art: the Classic footprint / the Challenge bolt. -->
+    <dimen name="home_tile_art_size">56dp</dimen>
+    <!--
+      D-03i / ux-spec §4.2.2. The available height below which Home takes the compact band
+      set. It is the full set's own both-chips requirement (~716dp) rounded onto the 4dp grid,
+      and it is compared against AVAILABLE HEIGHT ONLY — never against the font scale, so a
+      tall phone at 200% keeps the full set and scrolls instead of reshaping.
+
+      Since D-03k this threshold applies only at an available WIDTH of
+      home_compact_threshold_width or more; the narrow class uses the token below it.
+    -->
+    <dimen name="home_compact_threshold_height">720dp</dimen>
+    <!--
+      D-03k / ux-spec §4.2.3. The available WIDTH below which the compact threshold is the
+      narrow one. 360dp is the narrowest supported window and the next common width is the
+      412dp class, so no shipping device sits on this boundary — it is not a judgement about a
+      real phone.
+    -->
+    <dimen name="home_compact_threshold_width">400dp</dimen>
+    <!--
+      D-03k / ux-spec §4.2.3. The compact threshold at an available width below
+      home_compact_threshold_width: the full set's own both-chips height AT 360dp WIDTH, where
+      the bands wrap (~872dp), rounded onto the 4dp grid. Its consequence is deliberate — at
+      360dp width Home is always compact, because the bands wrap at that width whatever the
+      height, so a 360x800dp phone needs the compact set exactly as much as a 360x640dp one.
+    -->
+    <dimen name="home_compact_threshold_height_narrow">880dp</dimen>
+    <!--
+      D-03k / ux-spec §4.2.3. One progress pill in the compact-narrow ribbon: spacing_sm + one
+      titleMedium line + spacing_sm, with the label BESIDE the value and no decorative glyph.
+      A FLOOR, not a height — the label wraps and the band grows before either text truncates
+      (criteria 14, 15m).
+    -->
+    <dimen name="home_stat_pill_compact_min_height">40dp</dimen>
+    <!--
+      D-03l / ux-spec §4.2.4. The smallest stage-art edge Home draws; below it the stage is plain
+      slack. It is what bounds the largest blank Home can show at 48dp + the two band gaps around
+      the stage — under 80dp in the full set, under 64dp in the compact one (criterion 15p).
+    -->
+    <dimen name="home_stage_art_min_size">48dp</dimen>
+    <!-- D-03l. The largest stage-art edge; with more slack than this the art is centred in it. -->
+    <dimen name="home_stage_art_max_size">320dp</dimen>
+
+    <!--
+      ============ Phase-15 tokens: the gameplay status strip and action dock ============
+      ux-spec §4.3, §4.4, §6.1. The deleted `TopAppBar` held all of this; these tokens are what
+      replace it, and the dock's targets are deliberately the LARGEST in the app because they
+      sit under the thumb during play.
+    -->
+    <!-- The status strip: back chip, context title, timer pill. Transparent, no bar. -->
+    <dimen name="game_status_strip_height">56dp</dimen>
+    <!-- The strip's back chip. 48dp is the accessibility floor, and the strip is status-only. -->
+    <dimen name="game_status_back_size">48dp</dimen>
+    <!--
+      The timer pill's MINIMUM height (D-05d / ux-spec §4.3.1, raised from a fixed 32dp): applied as
+      heightIn, so at a large font scale the pill grows to hold its headlineSmall digits instead of
+      clipping them — the timer is the one reading on this screen that must never be cut.
+    -->
+    <dimen name="game_timer_pill_height">40dp</dimen>
+    <!-- D-05d / ux-spec §4.3.1. Horizontal padding inside the timer pill, either side of the digits. -->
+    <dimen name="game_timer_pill_padding">12dp</dimen>
+    <!-- The action dock slab below the board, in the thumb zone. -->
+    <dimen name="game_action_dock_height">72dp</dimen>
+    <!--
+      One dock action target: 56dp, above the 48dp floor on purpose (§11). This is the token
+      that replaces the retired 48dp top-bar tap-target token at all five of its former call
+      sites, which is what let that token be deleted in the same phase.
+    -->
+    <dimen name="game_action_button_size">56dp</dimen>
+    <!-- One dock action glyph, sized up from `top_bar_icon_size` to match the larger target. -->
+    <dimen name="game_action_glyph_size">28dp</dimen>
+    <!--
+      D-04e / ux-spec §4.4.1. The Off ring around Show-moves, and the on mark's border. A sub-4dp
+      stroke — the same documented exception as `peg_selected_ring_width` below — and a token of
+      its own so the dock stops borrowing the board's ring width.
+    -->
+    <dimen name="game_action_ring_width">2dp</dimen>
+    <!--
+      D-04e / ux-spec §4.4.1. The on mark on Show-moves On: an onPrimary circle with a primary
+      border and check, centred on the disc's rim at its top-end 45° point. It is drawn, never
+      composed, and it stays inside the 72dp slab (its outer edge ~4dp below the slab's top).
+    -->
+    <dimen name="game_action_mark_size">24dp</dimen>
+    <!-- The check inside the on mark. -->
+    <dimen name="game_action_mark_glyph_size">16dp</dimen>
 
     <!--
       Phase-4 token: min height of the inline no-win/stuck rescue banner (multiple of 4)
       so its three actions (Undo · Restart · Home) stay tap-reachable (UI-SPEC §4).
     -->
     <dimen name="nowin_banner_min_height">48dp</dimen>
+
+    <!--
+      D-04f / ux-spec §4.4.2 and §6.1. The Hint lightbulb at the start of the Undecided notice.
+      NOT home_stat_pill_glyph_size, which is also 20dp: same value, different owner.
+    -->
+    <dimen name="hint_notice_glyph_size">20dp</dimen>
+    <!--
+      D-04g / ux-spec §4.4.2 and §6.1. The Undecided notice's minimum height, so that a short
+      notice is still a fair tap target. NOT nowin_banner_min_height or board_min_touch_target,
+      which are also 48dp: same value, different owner.
+    -->
+    <dimen name="hint_notice_min_height">48dp</dimen>
 
     <!--
       Phase-5 token: min height of a Settings toggle row (label + supporting line beside
@@ -73,5 +204,108 @@
       peg geometry. Do not round these up.
     -->
     <dimen name="peg_selected_ring_width">3dp</dimen>
-    <dimen name="hole_outline_width">1dp</dimen>
+    <!--
+      D-06a. The stroke of the reduced-motion wrong-tap mark, the dashed ring drawn on the tapped
+      cell when animations are off. The same value as peg_selected_ring_width and the same sub-4dp
+      exception, but a token of its own (one token per owner).
+    -->
+    <dimen name="wrong_tap_mark_width">3dp</dimen>
+    <!--
+      docs/ux/colour-vision.md §3.4 (CV-07). The halo: the band of `surfaceContainerLowest` inside
+      the colour-blind palette's selection ring, its outer edge on the ring's inner edge. The same
+      documented sub-4dp stroke exception as peg_selected_ring_width, and a token of its own (one
+      token per owner).
+    -->
+    <dimen name="peg_selection_halo_width">1.5dp</dimen>
+
+    <!--
+      Candy-Clay M3 Shapes override (DESIGN-SYSTEM.md §Shape): the five corner
+      radii wired into MaterialTheme.shapes by ui/theme/Theme.kt. The 12dp
+      extraSmall is an intentional off-grid value fixed by the design contract.
+    -->
+    <dimen name="shape_corner_extra_small">12dp</dimen>
+    <dimen name="shape_corner_small">16dp</dimen>
+    <dimen name="shape_corner_medium">20dp</dimen>
+    <dimen name="shape_corner_large">28dp</dimen>
+    <dimen name="shape_corner_extra_large">32dp</dimen>
+
+    <!--
+      Candy-Clay elevation tokens (DESIGN-SYSTEM.md §Elevation): soft
+      violet-tinted shadows applied via Modifier.clayShadow. The 6dp card value
+      is an intentional contract-fixed off-grid value.
+    -->
+    <dimen name="elevation_card">6dp</dimen>
+    <dimen name="elevation_pressed">2dp</dimen>
+    <dimen name="elevation_dialog">12dp</dimen>
+
+    <!-- Slide-up distance of the staggered card/tile entrance (Modifier.clayEntrance). -->
+    <dimen name="entrance_slide_distance">16dp</dimen>
+
+    <!-- Home mode-tile glyphs (local ImageVectors) + resume-chip play accent. -->
+    <dimen name="mode_glyph_size">28dp</dimen>
+
+    <!--
+      Phase-9 token: the gold reward glyph at the top of the rewarded-ad opt-in dialog
+      (AdOfferDialog, ADS-01). NOT results_star_size, which is also 48dp: that token
+      means "a Results star" and must stay free to move without dragging the ad dialog
+      with it. Same value today, different owner.
+    -->
+    <dimen name="ad_offer_glyph_size">48dp</dimen>
+
+    <!--
+      Phase-9 token: the in-button loading spinner during the bounded D-10 wait on the
+      opt-in dialog. NOT top_bar_icon_size, which is also 24dp: that token is top-bar
+      scoped and HintControl's thinking spinner owns it — this spinner lives inside a
+      dialog CTA and must be resizable independently.
+    -->
+    <dimen name="ad_offer_progress_size">24dp</dimen>
+
+    <!--
+      Phase-9 token: the trailing "opens externally" glyph on the Settings Privacy policy
+      row (REL-05). NOT top_bar_icon_size, which is also 24dp: this icon sits inside a
+      list card, not a top bar, so it tracks the Settings row scale rather than the bar.
+    -->
+    <dimen name="settings_row_icon_size">24dp</dimen>
+
+    <!-- Backdrop -->
+    <!--
+      backdrop spec §4.2, direction B "Deep gloss". One token per owner, even where values
+      coincide. Light sizes are fixed dp, not window fractions, so a light is the same physical size on
+      every phone; only positions scale with the window. The three sub-4dp tokens below
+      (finish_rim_width, finish_lip_height, gel_rim_width) join the documented rendering-stroke
+      exception of peg_selected_ring_width: a 4dp rim or lip would read as a border the look does not
+      have.
+    -->
+    <dimen name="backdrop_light_xs">28dp</dimen>
+    <dimen name="backdrop_light_sm">36dp</dimen>
+    <dimen name="backdrop_light_md">44dp</dimen>
+    <dimen name="backdrop_light_lg">52dp</dimen>
+    <dimen name="backdrop_light_xl">64dp</dimen>
+    <dimen name="backdrop_light_xxl">76dp</dimen>
+    <!-- How far below its rest centre a light begins its rise, and how far above it ends. -->
+    <dimen name="backdrop_light_rise_below">32dp</dimen>
+    <dimen name="backdrop_light_rise_above">80dp</dimen>
+    <!-- The distance over which a light fades out before its top edge reaches the calm end (B-20). -->
+    <dimen name="backdrop_light_calm_fade">48dp</dimen>
+    <!-- A wave's lip depth, its sheen's top below the crest, and the sheen's height. -->
+    <dimen name="backdrop_wave_lip_depth">4dp</dimen>
+    <dimen name="backdrop_wave_sheen_offset">8dp</dimen>
+    <dimen name="backdrop_wave_sheen_height">24dp</dimen>
+    <!-- The two waves' bobs: the back wave sideways and up, the front wave against it. -->
+    <dimen name="backdrop_wave_back_bob_x">24dp</dimen>
+    <dimen name="backdrop_wave_back_bob_y">4dp</dimen>
+    <dimen name="backdrop_wave_front_bob_x">20dp</dimen>
+    <dimen name="backdrop_wave_front_bob_y">4dp</dimen>
+    <!-- A glossed container's rim and lip (sub-4dp stroke exception). -->
+    <dimen name="finish_rim_width">1dp</dimen>
+    <dimen name="finish_lip_height">2dp</dimen>
+    <!-- Where a gel tile's fill reaches GelMid; no white text above it. Must stay <= the tile's top padding. -->
+    <dimen name="gel_top_band">16dp</dimen>
+    <!-- The gel lip: its top and bottom below the tile's edge, its inset from each side, its corners. -->
+    <dimen name="gel_lip_top">4dp</dimen>
+    <dimen name="gel_lip_bottom">16dp</dimen>
+    <dimen name="gel_lip_inset">12dp</dimen>
+    <dimen name="gel_lip_corner">8dp</dimen>
+    <!-- A gel tile's rim (sub-4dp stroke exception). -->
+    <dimen name="gel_rim_width">1dp</dimen>
 </resources>

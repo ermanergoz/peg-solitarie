@@ -68,15 +68,23 @@ class QualityGateTest {
         }
     }
 
+    /**
+     * The **duplicate-rejection** leg of the phase-3 validation contract row "Quality
+     * gates reject trivial/degenerate/duplicate boards deterministically" (CHAL-04,
+     * `03-VALIDATION.md`). Mapped back to the contract by v1.1 Phase 8 / DEBT-03, and
+     * widened from `DEDUP_WINDOW * 4` to [DEDUP_SPAN_LEVELS] consecutive levels so the
+     * span exceeds the 40-level audit floor.
+     *
+     * Scope is deliberately **window-pairwise, not span-global**: `DEDUP_WINDOW`'s
+     * contract is "unique in the player's sequence", explicitly NOT a global uniqueness
+     * guarantee, so asserting pairwise distinctness across the whole span would encode
+     * an invariant the generator does not promise and would false-red on a legitimate
+     * knob tune.
+     */
     @Test
     fun noTwoBoardsInASlidingWindowShareASymmetryCanonicalKey() {
         val window = GeneratorConstants.DEDUP_WINDOW
-        val firstLevel = 1
-        val lastLevel = window * 4
-        val keys =
-            (firstLevel..lastLevel).map { n ->
-                canonicalKey(LevelGenerator.generate(n).startingBoard)
-            }
+        val keys = canonicalKeysOverSpan()
 
         // Within any window of `DEDUP_WINDOW` consecutive levels no canonical key repeats.
         keys.indices.forEach { i ->
@@ -85,6 +93,22 @@ class QualityGateTest {
                 assertThat(keys[i]).isNotEqualTo(keys[j])
             }
         }
+    }
+
+    /**
+     * The **deterministic** half of the same contract row: a reject-and-reseed must never
+     * depend on iteration order or wall-clock, so regenerating a whole consecutive span
+     * reproduces the identical *ordered* sequence of starting boards — not merely the
+     * same board for an individually re-requested level.
+     *
+     * Added by v1.1 Phase 8 / DEBT-03 (the one leg the audit found genuinely unmapped).
+     */
+    @Test
+    fun theDedupGateIsDeterministicAcrossRegeneration() {
+        val first = startingPegsOverSpan()
+        val second = startingPegsOverSpan()
+
+        assertThat(second).isEqualTo(first)
     }
 
     @Test
@@ -111,6 +135,16 @@ class QualityGateTest {
         }
     }
 
+    private fun canonicalKeysOverSpan(): List<Long> =
+        (FIRST_SPAN_LEVEL..DEDUP_SPAN_LEVELS).map { n ->
+            canonicalKey(LevelGenerator.generate(n).startingBoard)
+        }
+
+    private fun startingPegsOverSpan(): List<Long> =
+        (FIRST_SPAN_LEVEL..DEDUP_SPAN_LEVELS).map { n ->
+            LevelGenerator.generate(n).startingBoard.pegs
+        }
+
     private fun canonicalKey(board: Board): Long =
         BoardCanonical.canonical(board.pegs, BoardCanonical.symmetryPermutations(board.spec))
 
@@ -123,3 +157,13 @@ class QualityGateTest {
         return (maxRow - minRow) + (maxCol - minCol)
     }
 }
+
+/** First level of the consecutive dedup span (the ladder always starts at level 1). */
+private const val FIRST_SPAN_LEVEL = 1
+
+/**
+ * Length of the consecutive level span the dedup gate is exercised over — six
+ * `DEDUP_WINDOW`s (48 levels), comfortably above the 40-level floor the DEBT-03 audit
+ * set, while keeping `:domain:test` inside its seconds-scale per-commit budget.
+ */
+private const val DEDUP_SPAN_LEVELS = GeneratorConstants.DEDUP_WINDOW * 6

@@ -1,5 +1,6 @@
 package com.app.pegsolitaire.domain.scoring
 
+import com.app.pegsolitaire.domain.model.BoardConstants
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
@@ -93,5 +94,91 @@ class ScoreCalculatorTest {
         assertThat(scaled.stars).isEqualTo(3)
         assertThat(scaled.stars).isEqualTo(plain.stars)
         assertThat(scaled.score).isEqualTo(plain.score * 4)
+    }
+
+    // --- Per-board star bands (D-03 / D-04, DEBT-02) -------------------------
+    //
+    // The band SHAPE is global: `F` earns 3 stars, `F+1..F+2` earns 2, worse earns
+    // the floor. Only the anchor `F` — the board's own `BoardSpec.minimumPegs` —
+    // moves. Diamond-41's F = 2 is the value proven by `DiamondFloorOptimalityTest`
+    // (one peg is GF(4)-unreachable from the centre start) and by `SolutionTest`
+    // (the committed `diamond41.txt` line replays to a two-peg dead end). These
+    // tests rest on that pair of proofs; if F ever changes there, it changes here.
+
+    @Test
+    fun theDefaultTargetReproducesTheGlobalBandsAcrossTheWholePegDomain() {
+        // The non-regression sweep the four cross boards depend on: for EVERY peg
+        // count a real board can report, the default-target bands must be exactly
+        // the pre-phase piecewise function (3 for 0-1, 2 for 2-3, 1 above). 45 is
+        // Wiegleb-45's hole count, the largest footprint that ships.
+        for (pegsRemaining in 0..45) {
+            val expected =
+                when {
+                    pegsRemaining <= 1 -> 3
+                    pegsRemaining <= 3 -> 2
+                    else -> 1
+                }
+
+            assertThat(ScoreCalculator.stars(pegsRemaining = pegsRemaining, minimumPegs = 1))
+                .isEqualTo(expected)
+            assertThat(ScoreCalculator.stars(pegsRemaining = pegsRemaining))
+                .isEqualTo(expected)
+        }
+    }
+
+    @Test
+    fun reachingTheDiamondFloorEarnsThreeStars() {
+        // D-04: the proven floor F = 2 IS Diamond-41's perfect finish.
+        assertThat(ScoreCalculator.stars(pegsRemaining = 2, minimumPegs = 2)).isEqualTo(3)
+    }
+
+    @Test
+    fun finishingBelowTheDiamondFloorNeverScoresWorseThanAtIt() {
+        // Unreachable on Diamond-41 by the GF(4) invariant, but the band must still
+        // be monotone: `<= F` is the 3-star test, not `== F`.
+        assertThat(ScoreCalculator.stars(pegsRemaining = 1, minimumPegs = 2)).isEqualTo(3)
+        assertThat(ScoreCalculator.stars(pegsRemaining = 0, minimumPegs = 2)).isEqualTo(3)
+    }
+
+    @Test
+    fun theDiamondTwoStarBandIsTheSameWidthJustReAnchored() {
+        // F+1..F+2 = 3..4 pegs — the same 2-peg-wide band as the global 2..3.
+        assertThat(ScoreCalculator.stars(pegsRemaining = 3, minimumPegs = 2)).isEqualTo(2)
+        assertThat(ScoreCalculator.stars(pegsRemaining = 4, minimumPegs = 2)).isEqualTo(2)
+    }
+
+    @Test
+    fun starsFallToTheFloorAboveTheDiamondTwoStarBand() {
+        assertThat(ScoreCalculator.stars(pegsRemaining = 5, minimumPegs = 2)).isEqualTo(1)
+        assertThat(ScoreCalculator.stars(pegsRemaining = 41, minimumPegs = 2)).isEqualTo(1)
+    }
+
+    @Test
+    fun evaluateThreadsTheBoardTargetIntoStarsButNeverIntoScore() {
+        // D-11 still holds: stars and score are independent axes. Re-anchoring the
+        // star bands must leave a Diamond finish's numeric score untouched.
+        val globalTarget =
+            ScoreCalculator.evaluate(pegsRemaining = 2, pegsCleared = 39, elapsedSeconds = 42)
+        val diamondTarget =
+            ScoreCalculator.evaluate(
+                pegsRemaining = 2,
+                pegsCleared = 39,
+                elapsedSeconds = 42,
+                minimumPegs = 2,
+            )
+
+        assertThat(globalTarget.stars).isEqualTo(2)
+        assertThat(diamondTarget.stars).isEqualTo(3)
+        assertThat(diamondTarget.score).isEqualTo(globalTarget.score)
+    }
+
+    @Test
+    fun theTwoStarBandWidthIsTheOnlyShapeConstantAndTheLegacyBoundDerivesFromIt() {
+        // The legacy global bound must be DERIVED, so re-anchoring cannot silently
+        // widen or narrow the band on any board.
+        assertThat(ScoreParams.TWO_STAR_MAX_PEGS)
+            .isEqualTo(ScoreParams.THREE_STAR_MAX_PEGS + ScoreParams.TWO_STAR_BAND_WIDTH)
+        assertThat(ScoreParams.TWO_STAR_MAX_PEGS).isEqualTo(3)
+        assertThat(ScoreParams.THREE_STAR_MAX_PEGS).isEqualTo(BoardConstants.MINIMUM_PEGS_DEFAULT)
     }
 }

@@ -19,12 +19,16 @@ import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
+import com.app.pegsolitaire.platform.ads.RewardOutcome
 import com.google.common.truth.Truth.assertThat
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -275,6 +279,10 @@ private class FixedBoardLevelRepository(
 
 /** Helpers-on settings; this spec is about the advance, not the hint/haptic gates. */
 private object AlwaysOnSettingsRepository : SettingsRepository {
+    override val colorblindPaletteOn: Flow<Boolean> = flowOf(false)
+
+    override suspend fun setColorblindPaletteOn(on: Boolean) = Unit
+
     override val hintsEnabled: Flow<Boolean> = flowOf(true)
 
     override val soundOn: Flow<Boolean> = flowOf(true)
@@ -288,9 +296,17 @@ private object AlwaysOnSettingsRepository : SettingsRepository {
     override suspend fun setHapticsOn(on: Boolean) = Unit
 }
 
-/** The Slice-1 auto-grant stub's behavior: every rewarded request is granted. */
+/** The auto-grant stub's behavior: every rewarded request answers [RewardOutcome.Granted]. */
 private object GrantingAdGateway : AdGateway {
-    override suspend fun requestRewarded(reason: AdReason): Boolean = true
+    override val rewardedOfferable: StateFlow<Boolean> = MutableStateFlow(true).asStateFlow()
 
-    override fun showInterstitial() = Unit
+    override fun preloadRewarded(reason: AdReason) = Unit
+
+    override suspend fun requestRewarded(reason: AdReason): RewardOutcome = RewardOutcome.Granted
+
+    override val interstitialReady: StateFlow<Boolean> = MutableStateFlow(false).asStateFlow()
+
+    override fun preloadInterstitial() = Unit
+
+    override suspend fun showInterstitial(): Boolean = false
 }

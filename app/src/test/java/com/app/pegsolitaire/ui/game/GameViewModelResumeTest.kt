@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.data.HomeProgress
+import com.app.pegsolitaire.data.ImportOutcome
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.LevelResult
@@ -14,23 +16,33 @@ import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.data.SettingsRepository
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
+import com.app.pegsolitaire.domain.achievement.ClassicBoard
+import com.app.pegsolitaire.domain.achievement.ProgressAggregate
+import com.app.pegsolitaire.domain.generator.GeneratorConstants
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.GameStatus
 import com.app.pegsolitaire.domain.model.Position
+import com.app.pegsolitaire.domain.progress.CloudProgress
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.domain.scoring.ScoreCalculator
 import com.app.pegsolitaire.domain.scoring.ScoreResult
+import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import com.app.pegsolitaire.domain.usecase.GetHintUseCase
+import com.app.pegsolitaire.domain.usecase.HintOutcome
 import com.app.pegsolitaire.platform.ads.AdGateway
 import com.app.pegsolitaire.platform.ads.AdReason
+import com.app.pegsolitaire.platform.ads.RewardOutcome
 import com.google.common.truth.Truth.assertThat
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -234,6 +246,35 @@ class GameViewModelResumeTest {
             cancelTickers()
         }
 
+    @Test
+    fun aForgedSnapshotStampStillWinsTheRouteButIsItselfClamped() =
+        runTest(testDispatcher) {
+            // WARN-03, stored-state side. The stamp beats the route arg (WR-03), so if the
+            // stamp were trusted verbatim the getter would be unclamped again by another
+            // door — this time one that survives a reboot.
+            val time = TestTimeSource()
+            val viewModel =
+                viewModelFor(sixPegStrip(), challengeLevel = PLAYED_CHALLENGE_LEVEL, timeSource = time)
+            runCurrent()
+            jump(viewModel, fromCol = FIRST_JUMP_FROM_COL, toCol = FIRST_JUMP_TO_COL)
+            viewModel.onLeaveScreen()
+            runCurrent()
+            cancelTickers()
+
+            progressRepository.tamperWithChallengeLevel(
+                ProgressPersistenceKeys.MODE_CHALLENGE,
+                forgedLevel = Int.MAX_VALUE,
+            )
+
+            val resumed =
+                viewModelFor(sixPegStrip(), challengeLevel = STALE_ROUTE_LEVEL, resume = true)
+            runCurrent()
+
+            assertThat(resumed.challengeLevel).isEqualTo(GeneratorConstants.MAX_CHALLENGE_LEVEL)
+            assertThat(resumed.challengeLevel).isNotEqualTo(STALE_ROUTE_LEVEL)
+            cancelTickers()
+        }
+
     // ---- In-flight restore window (WR-01) ------------------------------------
 
     @Test
@@ -385,6 +426,48 @@ class GameViewModelResumeTest {
             cancelTickers()
         }
 
+    // ---- The Undecided notice is never part of the snapshot (GD-HT-2) -------
+
+    /**
+     * AC-15 and criterion 23g's resume half: the notice is transient. A game left — and its
+     * process killed — while the notice is up comes back on its board with neither the
+     * notice nor the rescue banner.
+     *
+     * The body runs inside `try`/`finally`: both boards are mid-game, so their tickers are
+     * live, and a failed assertion that skipped [cancelTickers] would leave `runTest`'s
+     * end-of-test drain spinning on virtual time instead of reporting the failure.
+     */
+    @Test
+    fun theUndecidedNoticeIsNotRestoredOnResume() =
+        runTest(testDispatcher) {
+            try {
+                val undecided = mockk<GetHintUseCase>()
+                every { undecided.invoke(any(), any(), any(), any(), any()) } returns HintOutcome.Undecided
+                val left = viewModelFor(sixPegStrip(), getHintUseCase = undecided)
+                jump(left, fromCol = FIRST_JUMP_FROM_COL, toCol = FIRST_JUMP_TO_COL)
+                runCurrent()
+                left.onHintRequested()
+                runCurrent()
+                check(left.uiState.value.hintUndecided) { "the notice must be up when the game is left" }
+                val boardLeft = left.uiState.value.board
+                left.onLeaveScreen()
+                runCurrent()
+                cancelTickers()
+
+                val resumed = viewModelFor(sixPegStrip(), resume = true)
+                runCurrent()
+
+                val state = resumed.uiState.value
+                assertThat(state.isLoading).isFalse()
+                assertThat(state.board.pegs).isEqualTo(boardLeft.pegs)
+                assertThat(state.hintUndecided).isFalse()
+                assertThat(state.noWinningMove).isFalse()
+                assertThat(state.showRescueBanner).isFalse()
+            } finally {
+                cancelTickers()
+            }
+        }
+
     // ---- Helpers -------------------------------------------------------------
 
     /** The board + history state a game was left in, captured before the snapshot write. */
@@ -444,6 +527,7 @@ class GameViewModelResumeTest {
         resume: Boolean = false,
         levelId: String = ClassicLevelIds.ENGLISH33,
         timeSource: TimeSource = TestTimeSource(),
+        getHintUseCase: GetHintUseCase = GetHintUseCase(),
     ): GameViewModel {
         if (!this::levelRepository.isInitialized) {
             levelRepository = CountingLevelRepository(board)
@@ -468,7 +552,7 @@ class GameViewModelResumeTest {
                         timeSource = timeSource,
                         defaultDispatcher = testDispatcher,
                         adGateway = GrantingAds,
-                        getHintUseCase = GetHintUseCase(),
+                        getHintUseCase = getHintUseCase,
                         savedStateHandle = SavedStateHandle(args),
                     ) as T
             }
@@ -557,12 +641,34 @@ private class RecordingProgressRepository : ProgressRepository {
         snapshots[mode] = stored.copy(moves = listOf(FORGED_MOVE_TUPLE.copyOf()))
     }
 
+    /**
+     * Rewrites a stored snapshot's provenance stamp to an out-of-range level — the
+     * WARN-03 forgery on the *stored state* side. A rooted device or a restored backup
+     * can carry any value here, so the stamp is no more trusted than the route arg.
+     */
+    fun tamperWithChallengeLevel(
+        mode: String,
+        forgedLevel: Int,
+    ) {
+        val stored = requireNotNull(snapshots[mode]) { "nothing stored for $mode" }
+        snapshots[mode] = stored.copy(challengeLevel = forgedLevel)
+    }
+
     override suspend fun recordResult(
         mode: String,
         levelId: String,
         result: ScoreResult,
+        telemetry: SolveTelemetry,
         nowMs: Long,
     ): NewBests = error("GameViewModel never records a result — ResultsViewModel owns that (05-05)")
+
+    /** Unused by this screen — GameViewModel never reads the achievement aggregate. */
+    override suspend fun aggregate(): ProgressAggregate = ProgressAggregate()
+
+    /** Unused by this screen — no per-board leaderboard read happens here. */
+    override suspend fun classicBests(): Map<ClassicBoard, Int> = emptyMap()
+
+    override fun observeHomeProgress(): Flow<HomeProgress> = flowOf(HomeProgress.UNKNOWN)
 
     override fun observeResults(mode: String): Flow<List<LevelResult>> = flowOf(emptyList())
 
@@ -584,6 +690,16 @@ private class RecordingProgressRepository : ProgressRepository {
     }
 
     override fun observeResumeModes(): Flow<List<String>> = modes
+
+    /** Unreachable from here — gameplay never calls cloud save (CLOUD-01/CLOUD-04). */
+    override suspend fun exportProgress(ladder: Int): CloudProgress = error("gameplay never calls cloud save")
+
+    override suspend fun importProgress(
+        remote: CloudProgress,
+        nowMs: Long,
+    ): ImportOutcome = error("gameplay never calls cloud save")
+
+    override suspend fun resetAllProgress() = error("gameplay never calls cloud save")
 }
 
 /** A move tuple that is well-formed but describes a jump no board could ever allow. */
@@ -626,6 +742,10 @@ private class CountingLevelRepository(
 
 /** Hints/haptics on; this spec is about the snapshot, not the feedback gates. */
 private object AllOnSettings : SettingsRepository {
+    override val colorblindPaletteOn: Flow<Boolean> = flowOf(false)
+
+    override suspend fun setColorblindPaletteOn(on: Boolean) = Unit
+
     override val hintsEnabled: Flow<Boolean> = flowOf(true)
 
     override val soundOn: Flow<Boolean> = flowOf(true)
@@ -639,9 +759,17 @@ private object AllOnSettings : SettingsRepository {
     override suspend fun setHapticsOn(on: Boolean) = Unit
 }
 
-/** The Slice-1 auto-grant stub's behavior: every rewarded request is granted. */
+/** The auto-grant stub's behavior: every rewarded request answers [RewardOutcome.Granted]. */
 private object GrantingAds : AdGateway {
-    override suspend fun requestRewarded(reason: AdReason): Boolean = true
+    override val rewardedOfferable: StateFlow<Boolean> = MutableStateFlow(true).asStateFlow()
 
-    override fun showInterstitial() = Unit
+    override fun preloadRewarded(reason: AdReason) = Unit
+
+    override suspend fun requestRewarded(reason: AdReason): RewardOutcome = RewardOutcome.Granted
+
+    override val interstitialReady: StateFlow<Boolean> = MutableStateFlow(false).asStateFlow()
+
+    override fun preloadInterstitial() = Unit
+
+    override suspend fun showInterstitial(): Boolean = false
 }

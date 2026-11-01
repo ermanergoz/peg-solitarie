@@ -1,0 +1,114 @@
+# code-auditor report — phase-14 release docs, loop 2 (`feature/phase-14-release-docs` before its merge into `develop`)
+Date: 2026-10-23
+Branch: feature/phase-14-release-docs (report only). Reviewed `git diff develop...feature/phase-14-release-docs` in `PegSolitarie-r5`: head `4eedd40`, merge-base `0582e3f` (= `develop`), `develop` merged in at `49383ff`; 38 files, +6,174/−10, all docs and `.planning/`. Claims checked against `develop` read-only in `PegSolitarie-dev` (`0582e3f`).
+Skills loaded: ergoz-soft:standards (role code-auditor). The product snapshot is 0.5.1 and the plugin is 1.0.0, so I read the plugin 1.0.0 rule files in full: studio, reporting, gitflow, skills-policy, logging, memory, puzzle-design, play-store, kotlin-android, compose, testing, ip-policy; and the product's `.claude/rules/lessons.md`. Skills: code-reviewer, security-reviewer. compose-skill, compose-performance-audit, typescript-pro and swift-expert do not apply: the diff contains no code.
+Ran in parallel with: Gradle builds in other worktrees (per the dispatch; Gradle not run here)
+Ran on: claude-fable-5-1 at effort xhigh
+Fan-out: none
+Loops: 1
+Lessons applied: none (the snapshot holds 0 active lessons)
+
+## Summary
+- Loop 1's F-1 to F-8 and I-1, I-2 are closed in the documents themselves, each re-checked against `develop` and against the two rulings on this branch (`game-designer-hint-timeout.md` with Amendment 1; `research-analyst-release-docs-licences.md`). I-3 and I-4 carry as INFO, as loop 1 left them.
+- Fresh pass: every THIRD_PARTY row carries a licence, nothing is unknown or copyleft-unresolved; listing limits and word rules pass in both languages; no text claims TalkBack or screen-reader support; the hint copy sits in the game-designer's "Today" column; founder answers Q-015 to Q-018 and Q-022 are respected; no secret entered the diff; all 29 store-art hashes, the five font hashes, the two OFL hashes, the Apache-2.0 text hash and the four Google POM licences re-verified.
+- The opening-book claim Amendment 1 rests on (every golden-line state past depth K is a book entry, and `lookup` has no depth check) is verified by reading the five book files and `OpeningBook.kt:184-192`.
+- Four MINOR consistency gaps remain, none a false claim toward the store and none a licence or secret matter: §14.1 has no row for the TalkBack branch that checklist 1.1a makes a cut blocker; 1.4 (pre-cut) is worded to need 3.5 and the AAB (post-cut); 4.6a does not yet list what §13.1 LN-7(4) expects it to; §16 #22 is still "Open" after Amendment 1 closed it. All are one-line text edits that may land on any later docs commit.
+- **VERDICT: PASS.**
+
+## Loop-1 findings, verified closed in the documents
+
+| Loop-1 id | Closed? | Where, and what I checked |
+|---|---|---|
+| F-1 (listing calls "no winning move" a proof) | **Closed** | `docs/store/en-US/full_description.txt:15` "Hint shows a real winning move."; `changelogs/30000.txt:3` "Faster hints on the big boards, answered from a built-in opening book"; `tr-TR/full_description.txt:15` and `tr-TR/changelogs/30000.txt:3` say the same; `CHANGELOG.md:137-140` uses "from the opening positions" and "an opening book that covers the first moves of every Classic board", and no longer says "first four moves", "instead of folding" or "now means proven". Each line matches the "Today" column of `game-designer-hint-timeout.md:291-313`. `grep -n 'tell the truth\|proven' docs/store CHANGELOG.md` finds no such claim. Checklist 2.5a (`docs/release-checklist.md:55`) holds the "After R1" lines verbatim from the ruling and keeps "Hints that tell the truth on every board" out |
+| F-2 (THIRD_PARTY claimed completeness; unknown licences) | **Closed** | `THIRD_PARTY.md:61-66` now says §5b is complete by licence, not yet by coordinate, and points at U-6 and §16 #20; rows A and E–J at `:236-242` and the Apache table at `:246-259` transcribe the research-analyst's table (`research-analyst-release-docs-licences.md:47-82`) verbatim; U-1 closed at `:271`; `hsdp` has row A; the §4 Google-SDK cells (`:199-201`, `:203-212`) carry the corrected wording; the old "nothing shipped carries an unmet attribution obligation" sentence is gone and `:368-374` says the opposite until §16 #20 closes. I re-fetched `hsdp-2.0.1.pom` and `play-services-games-v2-22.0.0.pom` from `dl.google.com` (HTTP 200; `<name>Android Software Development Kit License</name>`) |
+| F-3 (checklist missing font check, clean-up, NOTICE scan; "step 6"; 5.9 downloadable fonts) | **Closed** | 4.6a at `docs/release-checklist.md:90` (`bundletool dump resources`, the two OFL texts); 2.4a at `:53` (pending-branch clean-up); 3.5a at `:74` (NOTICE scan, the 51 unscanned coordinates, the checker-qual mapping grep); `grep -n 'step 6' THIRD_PARTY.md` prints nothing, `:10` and `:265` point at 3.5/3.5a; 5.9 at `:136` names the bundled Fredoka and Nunito |
+| F-4 (stale line citations) | **Closed** | `THIRD_PARTY.md:39` cites `app/build.gradle.kts:478-547`; on `develop` the first `implementation(` is line 478 and the last 547. `:42` cites `:500-505`; the comment runs 500-504 and `compileOnly(libs.errorprone.annotations)` is 505 |
+| F-5 (phase 15 still "pending"; font contradiction; commit count) | **Closed** | `grep -n 'pending:' CHANGELOG.md` → `:45` (the rule), `:62` colour-vision, `:66` licences-screen, `:133` candy-backdrop only; `docs/store/README.md:51-53` records phase 15 merged at `c9228a9`; `CHANGELOG.md:176-178` now says the release branch checks that the bundle keeps the five fonts and their licence texts; `:11` says 810 commits — `git rev-list --count v1.0..develop` = 810, and the 154 `feat` subjects at `:12` count 154 |
+| F-6 (upload script described as existing; scope; "three places") | **Closed** | `docs/release-checklist.md:38` (1.7: blocks Gate 2, "Today it does not exist"), `:100-110` (owed on `feature/play-upload`, the hook is the gate), `:59-60` (release-branch scope now lists `docs/store/`, `docs/` and `CLAUDE.md`'s Build line), `:7` ("meet at every item flagged [F]"); `docs/store/README.md:5-8`; `14-RELEASE-PLAN.md` item 2 corrected in the diff. `ls scripts` on `develop` still fails, and no branch carries `scripts/play-upload.sh` |
+| F-7 (operator checklist lacked the ad steps) | **Closed** | `14-OPERATOR-CHECKLIST.md` Step 7a (diff `+429-469`: items A–E, lifted from `docs/ad-testing-safety.md:179-202` word for word), Step 8 items 4 and 6, and a gate line; `grep -ci 'test ad\|test device'` on it now gives 10; `docs/ad-testing-safety.md:169-177` says it was lifted; checklist 5.0 (`:125`) cites Step 7a |
+| F-8 (four tech-design inaccuracies) | **Closed** | `docs/tech-design.md:558` depth 3 for Wiegleb-45 (`OpeningBook.kt:129`); `:1115` sounds row gives both the `develop` `.ogg` set (12 files on `develop`, 9 Kenney) and the 3.0.0 WAV set; `:883-888` says CI triggers on `develop` and `main` only (`ci.yml:7-11` confirmed); `:160` lists `tutorial/` and `:261-271` corrects `TutorialBoards`' package (`domain/tutorial/TutorialBoards.kt` and `domain/model/Boards.kt` on `develop`; `CLASSIC_SPECS` at `Boards.kt:323-324`) |
+| I-1 (SDK licences from POMs at the release) | **Closed** | checklist 3.5b (`:75`) re-reads all four POMs at the cut; the research-analyst fetched them on 2026-10-21 and I re-fetched two today |
+| I-2 (idea row without URL) | **Closed** | `THIRD_PARTY.md:85` carries `https://github.com/ermanergoz/peg-solitarie` |
+| I-3 (two Opus trailers) | **Carried, INFO** | `e5253f4` and `d9f9a60` still carry `Claude Opus 5 (1M context)`; every later commit carries the Fable trailer. Not worth a rewrite, as loop 1 and the phase-15 sign-off ruled |
+| I-4 (two reports without `Ran on:`) | **Carried, INFO** | `release-manager-ad-safety.md` and `release-manager-release-docs.md` still have no `Ran on:` line (written under the 0.5.1 rule). Every report added since carries one; `release-manager-founder-items.md` and `tech-lead-r2-gate-brief.md` are documents, not reports |
+
+## Findings (fresh pass)
+
+### MINOR
+
+**N-1 — `docs/tech-design.md` §14.1 has no row for `feature/talkback-board`, which checklist 1.1a makes a branch-cut blocker; and 1.1a's git evidence is vacuous today.**
+- `docs/release-checklist.md:32` (1.1a) makes the TalkBack-playable board a cut blocker on the founder's Q-023 answer and says "Read with 1.1, which reads the same branch if `docs/tech-design.md` §14.1 lists it". §14.1 (`docs/tech-design.md:1305-1321`) does not list it, and the merge order (`:1329-1358`) has no step for it. The tech design's own note (`:1299-1303`) says a branch with no row "has no branch-cut deadline in this file", so the two documents disagree on whether the cut waits for it. The checklist is the stricter one and is what the release-manager runs, so no wrong release follows; but the file that §14.1 calls canonical (`:27-30`) should carry the row and a merge-order step.
+- On `develop`, `feature/talkback-board` points at `0582e3f`, `develop`'s own head, with no commits (`git log develop..feature/talkback-board` is empty). So the evidence in 1.1a, `git merge-base --is-ancestor feature/talkback-board develop` exits 0, is true today with nothing built, and will stay true if the branch is never started. The clause that the three sign-offs exist is the only real guard; the evidence should name the merge commit (`git log --merges --grep='talkback-board' develop -1`) or require `git rev-list --count develop..feature/talkback-board` to have been > 0 before the merge.
+- Owners: tech-lead (the §14.1 row and merge-order step), release-manager (the evidence cell).
+
+**N-2 — Item 1.4 is a pre-cut item worded to depend on post-cut evidence, and §13.1 LN-7(4) cites it for an AAB check.**
+- `docs/release-checklist.md:35` (1.4, "Before the branch is cut") says the §5b open item is closed when "U-6 is closed by item 3.5" and §16 #20 is closed. But 3.5 (`:73`) runs `:app:dependencies` on the release branch, after 2.1, and `THIRD_PARTY.md:276` (U-6) and §14.1 R-5 (`docs/tech-design.md:1318`) both say U-6 closes "on the release branch". As worded, 1.4 cannot be ticked before the cut.
+- `docs/tech-design.md:1273-1277` (LN-7 item 4) maps "`unzip -l <aab> | grep 'base/assets/licenses/'`" to "checklist 1.4 and 4.6a"; the AAB exists only after 4.3 (`:86`), so 1.4 is the wrong item there.
+- Fix (text): 1.4 asks, pre-cut, that every shipped row has a known licence (true today) and that `feature/licences-screen` has merged; U-6 and the AAB listing stay with 3.5 and 4.6a; LN-7(4) cites 3.5 and 4.6a.
+- Owners: release-manager (1.4), tech-lead (LN-7 item 4).
+
+**N-3 — 4.6a does not list what §13.1 LN-7(4) expects the same command to show.**
+- `docs/release-checklist.md:90` (4.6a) checks the five fonts and the two OFL texts only. `docs/tech-design.md:1273-1277` expects the same `unzip -l` to list `google/index.tsv`, every stem file it names and LN-5's texts (rows F–J, the Jakarta NOTICE), and `THIRD_PARTY.md:147` cites 4.6a for AC-F5 alone. Add the LN clause to 4.6a, conditional on `feature/licences-screen` having merged (2.4a already handles the branch), or have LN-7(4) name a new item.
+- Owner: release-manager.
+
+**N-4 — §16 #22 is still "Open" after the game-designer's Amendment 1 closed it on this branch.**
+- `docs/tech-design.md:1442` (#22) carries a "suggested correction" to AC-18 and "Deadline: before the qa-engineer runs AC-18"; §14.1 R1 (`:1312`) says "AC-18's first scenario is corrected first, §16 #22". The game-designer made exactly that correction in Amendment 1 (`game-designer-hint-timeout.md:21-73`, AC-18a–d at `:259-273`, AC-2c at `:194-198`) in commit `1afae9f`, after the tech design's last edit (`aaaba67`). The file's own rule (`:27-30`) makes a stale status a defect in the file. One status line and a §17 row close it.
+- I verified Amendment 1's premise rather than take it on trust: in each of the five book files, every depth past K has exactly one entry (Wiegleb-45: popcounts 44, 43, 42, 41 hold 1, 4, 16 and 76 entries = 97 covered; popcounts 40 down to 2 hold one entry each = 39 line states; 97 + 39 = 136 = the header's `entries=136`; the same identity holds on the other four boards: 373 + 26 = 399, 609 + 30 = 639, 461 + 32 = 493, 345 + 33 = 378), and `OpeningBook.lookup` (`OpeningBook.kt:184-192`) is a plain map lookup with no depth check. So a player who follows Hint from the start stays on a book line, and the reconciliation table at `docs/tech-design.md:613-619` is correct.
+- Owner: tech-lead.
+
+### INFO
+
+**N-5 — `docs/tech-design.md:203` and `:1068` cite `docs/tech/audio-silent-mode.md`, which exists only on `feature/audio-review`.** It is absent on `develop`, so the canonical design will cite a missing file until that branch merges. Add "(on `feature/audio-review` until it merges)". Owner: tech-lead.
+
+**N-6 — Two THIRD_PARTY sentences overstate the Licenses branch.** `THIRD_PARTY.md:379-381` "**Update 2026-10-23:** it is built on its own branch, `feature/licences-screen`" reads as built; `:22` and `:130` say "not yet built", and no `feature/licences-screen` ref exists on this machine (nor `feature/colour-vision`, nor `feature/play-upload`; all three are named as owed, which is consistent with §14.1 6a–6c). `:93` "a third licence text" understates LN-5: rows F–J's texts and the Jakarta NOTICE ship too, each credited in §5b, so no row is missing. Wording only. Owner: release-manager.
+
+**N-7 — Checklist 1.1a (`docs/release-checklist.md:32`) cites `.planning/questions/FOUNDER.md` for Q-023, which is on `feature/ux-spec-folds` (`415e5b2`), not on this branch or `develop`.** Name the branch until it merges. Owner: release-manager.
+
+**N-8 — `docs/tech-design.md:703` says `:domain:test` has "36 test files".** `develop` has 37 `.kt` files under `domain/src/test` (30 `*Test.kt`). Owner: tech-lead, at the next sync.
+
+**N-9 — Suppressions:** none in the diff; no code, no dependency added. **APPROVED SUPPRESSION:** none.
+
+## Verified as correct (fresh pass, against `develop` and the rulings)
+- **ip-policy.** Every §2, §4, §5b and §7 row has a licence and a credit cell; every borrowed row has a source URL (the two "traditional/historical" idea rows and the own-work rows have none, as loop 1 accepted). The matrix holds: 174 Apache-2.0, 10 Android SDK Licence (CLEAN by the research-analyst, not an escalation), 5 Chromium BSD-3, 2 BSD-3, 1 MIT; MPL-2.0 is the matrix's file-level row and binds one unmodified data file; OFL-1.1 has a recorded CLEAN verdict. U-1 to U-5 closed; U-6 honestly open for the release-branch listing.
+- **play-store limits.** `python3 -I` `len()` without the final newline: en-US title 13, short 76, full 2,145, notes 456; tr-TR 13, 71, 2,447, 477 — equal to `docs/store/README.md:14-21` and under 30/80/4,000/500. The three word-rule greps print nothing.
+- **Content rating and data safety vs the app.** The manifest declares `INTERNET` only; `AD_ID` arrives by manifest merge (present once in the last release merged manifest); no billing dependency (no IAP); sign-in optional; no `values-tr` (so "Oyunun arayüzü İngilizcedir." is true); privacy URL equals `PrivacyLinks.kt:47`; ads present, rewarded opt-in, interstitial after Continue.
+- **Founder answers.** Q-015 (keep the key: checklist 4.2/4.4, tech-design §9.2), Q-016/Q-022 (drafts in `docs/store/`, Gate 2), Q-017 (own-work rows with 29 matching hashes), Q-018 (`minSdk = 24` on `develop`, §1.3). **Q-023:** `grep -rniE 'talkback|screen.?reader|ekran okuyucu' docs/store CHANGELOG.md THIRD_PARTY.md` finds nothing outside README's prohibition.
+- **Listing and changelog claims on `develop`.** 5 Classic boards; `MAX_CHALLENGE_LEVEL = 10_000` (`GeneratorConstants.kt:42`); 20 achievements and 7 leaderboards (`GamesIds.kt:90-201`); tutorial replay in Settings › General (`strings.xml:161,283`); pitch-laddered jump cue (`JumpSoundEffect.kt`); SOUND-05 stop-in-flight (`SoundPoolPlayer.kt:196`); no audio focus; system dark theme (`Theme.kt:3`); Room schemas v1 and v2; `versionCode = 30_000`, `versionName = "3.0.0"`, `VERSION` 3.0.0; `applicationId com.erman.pegsolitarie`; golden lines 43 (Wiegleb-45) and 38 (Diamond-41) moves; the sweep's 101 and 785 frontiers (`DepthSweepTest.kt:55-56`); 0 of 76 (`GetHintUseCase.kt:54-58`); `GameViewModel.kt:1384-1385` folds `null` to `noWinningMove`; `strings.xml:108`; `GameScreen.kt:241`. The three pending-marked bullets (colour-vision, licences-screen, candy-backdrop) are not on `develop`, as marked.
+- **Pins in §1.2** match the catalog, wrapper and convention plugin (Kotlin 2.3.20, KSP 2.3.9, AGP 9.1.0, Gradle 9.5.1, BOM 2026.06.00, Hilt 2.60, Room 2.8.4, core 1.18.0, DataStore 1.2.1, coroutines 1.11.0, detekt 2.0.0-alpha.5, ktlint 14.2.0, ArchUnit 1.3.0, Robolectric 4.16, PGS 22.0.0 / GMA 1.4.0 / UMP 4.0.0, 36/36/24).
+- **Blocker items vs §14.1 and §13.1.** 1.1 names R-2, F-1, R1 and LN, the four rows marked "Blocks the branch cut", and PU as Gate 2 only — consistent. 1.7 ↔ PU (`:1316`): the hook is the gate, `shellcheck`, no self-check — consistent with plugin `rules/stacks.md:105-107` and `hooks/publish-gate.sh:57,61` (matches `fastlane supply` and `play-upload.sh`). 2.4a ↔ the branch tables in THIRD_PARTY, CHANGELOG and README — consistent. 3.5a ↔ LN-5's checker-qual credit (`:1231-1233`) and `THIRD_PARTY.md:241` — consistent (conditional). 3.5b ↔ research rows A–D — consistent; both `dl.google.com/android/maven2/` and `dl.google.com/dl/android/maven2/` answer 200. 5.0 ↔ Step 7a ↔ `ad-testing-safety.md` §3 — consistent. The gaps are N-1 to N-3.
+- **Commits and files cited.** `c9228a9`, `c3d3437`, `0582e3f`, `5e99af1`, `98913c8`, `d1c6e9b`, `af2b554`, `3a1fce7` exist and say what is claimed; `bugfix/hint-undecided` is cut from `0582e3f` and carries `hint-undecided/tech-lead-brief.md`; `feature/candy-backdrop` carries `research-analyst.md`, `tech-lead-direction-b.md` (A9, E7), `docs/ux/licences-screen.md` (LS-07, LS-AC08) and `docs/ux/colour-vision.md`; `feature/audio-review` carries the twelve WAVs, two recipes, `licence-verdicts.md` and `tech-lead-haptics.md`; `feature/phase-14-check-gates` carries `scripts/check.sh`; `08-BOOK-EVIDENCE.md`, `tech-lead-signoff-r3-signing.md` §G (R-2, R-5, R-6, R-7), `tech-lead-fonts.md` D1/D5/AC-F5, `code-auditor-prerelease-fixes.md`, the launcher plan's quoted line (`260914-x4a-PLAN.md:84`) all exist on `develop`. The `08-VERIFICATION.md` correction note quotes override 1 verbatim.
+
+## Outputs
+- `.planning/reports/phase-14/code-auditor-release-docs-loop2.md` — this report. I edited no other file and committed nothing.
+
+## Checks
+- **Footprint:** `git diff --stat develop...HEAD` — pass. 38 files, +6,174/−10; `.planning/`, `docs/`, `CHANGELOG.md`, `THIRD_PARTY.md` only.
+- **Merge:** `git merge-tree --write-tree develop HEAD` — pass, clean.
+- **Listing limits:** `python3 -I` over `docs/store/**/*.txt` — pass (13/76/2,145/456; 13/71/2,447/477).
+- **Word rules:** the three grep commands from `docs/store/README.md:95,106,107` — pass (each exit 1, no output).
+- **TalkBack claims:** `grep -rniE 'talkback|screen.?reader|ekran okuyucu' docs/store CHANGELOG.md THIRD_PARTY.md | grep -v README.md` — pass, no hits.
+- **Secrets:** `git diff develop...HEAD | grep -E '^\+' | grep -nE 'PRIVATE KEY|\.jks|keystore|password|AIza…|ca-app-pub-[0-9]{10,}|CgkI…|ghp_|xox[bp]-|AKIA|PLAY_UPLOAD_[A-Z_]*=|<email>'` — pass. Hits are the checklist's and reports' own grep text, variable names and the quoted `noreply@anthropic.com` trailer; no value.
+- **Store-art hashes:** `sha256` over the 29 files on the founder's Desktop against `THIRD_PARTY.md` §7 — pass, 29 of 29.
+- **Font and OFL hashes:** `shasum -a 256` on `develop` — pass (Fredoka `8143bd54…`, `021e30b2…`; OFL texts `782c3137…cf31f7e0`, `66db16f4…829734a2`); `font_certs.xml` and `ui-text-google-fonts` absent.
+- **Apache-2.0 text:** `curl -sSL https://www.apache.org/licenses/LICENSE-2.0.txt | shasum -a 256` — pass, `cfc7749b…523d30`, 11,358 B.
+- **Google POMs:** `curl` of `hsdp-2.0.1.pom` and `play-services-games-v2-22.0.0.pom` from both `dl.google.com` paths — pass (200; Android Software Development Kit License).
+- **Line citations:** `grep -n 'implementation\|compileOnly' app/build.gradle.kts` and `sed -n 498,506p` on `develop` — pass (478–547; 500–505).
+- **Counts:** `git rev-list --count v1.0..develop` = 810; `feat` subjects = 154; `MAX_CHALLENGE_LEVEL = 10_000`; 20 achievement and 7 leaderboard getters — pass.
+- **Hint evidence:** `sed`/`grep` over `GetHintUseCase.kt:30-34,54-58`, `GameViewModel.kt:1375-1390`, `strings.xml:108`, `GameScreen.kt:241`, `OpeningBook.kt:119-129,155-159,184-192`, the five book headers, `golden/solutions/{wiegleb45,diamond41}.txt` line counts (43, 38), `DepthSweepTest.kt:50-56`, `Solver.kt:155-165` — pass against the ruling and §7.2.
+- **Book line states (Amendment 1 premise):** `python3 -I` popcount histogram over the five book files — pass (one entry per depth past K on every board; totals equal the headers).
+- **Branches:** `git merge-base --is-ancestor` for talkback-board (0, but the branch has no commits: N-1), hint-undecided, audio-review, candy-backdrop, check-gates (not merged); `git rev-parse --verify` for licences-screen, colour-vision, play-upload — absent (N-6).
+- **Operator checklist:** `grep -ci 'test ad\|test device' 14-OPERATOR-CHECKLIST.md` — 10 (F-7 closed).
+- **CI triggers:** `sed -n 1,22p .github/workflows/ci.yml` on `develop` — `[develop, main]` (F-8 closed).
+- **Upload script:** `ls scripts` on `develop` — absent; `hooks/publish-gate.sh` patterns read (1.7 consistent).
+- **Report validity:** every report added by this diff has `## Checks` and `Lessons applied:`; two pre-1.0.0 reports lack `Ran on:` (I-4, INFO).
+- **Not run, as dispatched:** `./gradlew check`. The branch changes no Check input and other worktrees were building; there is no Check output to quote.
+
+## Open issues / risks
+- N-1 to N-4 are text edits for the tech-lead and the release-manager; none makes a store text, a licence row or a checklist gate wrong in the unsafe direction, so none blocks this merge. They can land on a later docs commit; the release branch itself takes docs commits (`docs/release-checklist.md:60-63`).
+- `feature/talkback-board`, `feature/licences-screen`, `feature/colour-vision` and `feature/play-upload` are named as owed and none has a commit yet; the cut (1.1, 1.1a) and Gate 2 (1.7) wait on them as the checklist says. The producer's schedule carries them.
+- The two reports without `Ran on:` and the two Opus trailers stay as loop 1 left them.
+
+## Handoff
+Next: tech-lead — PASS; sign off and merge `feature/phase-14-release-docs` into `develop` (merge order step 3). Then, through the producer: tech-lead for N-1 (§14.1 row and merge-order step), N-2 (LN-7 item 4), N-4 (§16 #22 status and a §17 row), N-5, N-8; release-manager for N-1 (1.1a evidence), N-2 (1.4 wording), N-3 (4.6a), N-6, N-7.
+
+VERDICT: PASS

@@ -1,0 +1,31 @@
+09-20 01:57:55.286  1497  2514 I GamesConnectBroker: (REDACTED) handling request from %s
+09-20 01:57:55.288  1497  2514 I GamesConnectSrv: (REDACTED) signIn(%s): gamesSignInRequest=%s
+09-20 01:57:55.288  1497  2514 I GamesConnectSrv: (REDACTED) signIn(%s): validatorRequest=%s, signInRequest=%s
+09-20 01:57:55.311  1497  5115 I SignInPerformer-2: Requested scopes is empty. Promoting to `games_lite` & `drive_appfolder`. [CONTEXT service_id=1 ]
+09-20 01:57:55.311  1497  5115 I SignInPerformer-2: (REDACTED) Handling request [%s], isFirstPartyCaller [%s]
+09-20 01:57:55.311  1497  5115 I SignInPerformer-2: (REDACTED) java sdk version: [%s]	unity sdk version: [%s]	native sdk version: [%s]
+09-20 01:57:55.347  1497  1561 I SignInPerformer-2: (REDACTED) Successfully resolved account: [%s]
+09-20 01:57:55.471  1497  1561 I SignInPerformer-2: (REDACTED) Successfully authorized %s
+09-20 01:57:55.491  1497  1561 I SignInPerformer-2: (REDACTED) Successfully found player (id [%s], originalId [%s], displayName [%s]) for account [%s]
+09-20 01:57:55.504  1497  1561 I SignInPerformer-2: (REDACTED) Successfully found game: displayName [%s], applicationId [%s], packageName [%s]
+09-20 01:57:55.525  1497  1561 I SignInPerformer-2: (REDACTED) Started a new game run [%s]
+09-20 01:57:55.532  1497  1561 I SignInPerformer-2: Connection from games connect service, returning false for shouldShowWelcomePopup. [CONTEXT service_id=1 ]
+09-20 01:57:55.532  1497  3274 I GamesConnectResMan: (REDACTED) Recorded engagement for game %s
+09-20 01:57:55.536  1497  1561 I GamesConnectSignInOp: (REDACTED) signIn(%s): Returning SUCCESS (%s) for request %s
+09-20 01:57:56.460  1497  5115 I SignInPerformer-3: Requested scopes is empty. Promoting to `games_lite` & `drive_appfolder`. [CONTEXT service_id=1 ]
+09-20 01:57:56.462  1497  5115 I SignInPerformer-3: (REDACTED) Handling request [%s], isFirstPartyCaller [%s]
+09-20 01:57:56.463  1497  5115 I SignInPerformer-3: (REDACTED) java sdk version: [%s]	unity sdk version: [%s]	native sdk version: [%s]
+09-20 01:57:56.534  1497  1572 I SignInPerformer-3: (REDACTED) Found existing game run [%s]
+09-20 01:57:56.643  1497  1572 I SignInPerformer-3: (REDACTED) Successfully resolved account: [%s]
+09-20 01:57:56.687  1497  1572 I SignInPerformer-3: (REDACTED) Successfully authorized %s
+09-20 01:57:56.699  1497  1572 I SignInPerformer-3: (REDACTED) Successfully found player (id [%s], originalId [%s], displayName [%s]) for account [%s]
+09-20 01:57:56.706  1497  1572 I SignInPerformer-3: (REDACTED) Successfully found game: displayName [%s], applicationId [%s], packageName [%s]
+09-20 01:57:56.713  1497  1572 I SignInPerformer-3: (REDACTED) Connection from [%s], returning true for shouldShowWelcomePopup.
+09-20 01:57:56.716  1497  1572 I GetGamesServiceV2Op: (REDACTED) Successfully brokered GamesService for request %s
+09-20 01:58:02.436  1497  2698 I PlayGamesServices[GamesSyncAdapter]: Starting sync for 2b27bb49
+09-20 01:58:02.451  1497  2698 I PlayGamesServices[GamesSyncAdapter]: Sync duration for 2b27bb49: 10
+09-20 01:58:34.587  1497  5667 I PlayGamesServices[GamesSyncAdapter]: Starting sync for 2b27bb49
+09-20 01:58:34.589  1497  5667 I PlayGamesServices[GamesSyncAdapter]: Sync duration for 2b27bb49: 1
+09-20 01:58:34.627  1497  5670 I SignInPerformer-4: (REDACTED) Handling request [%s], isFirstPartyCaller [%s]
+09-20 01:58:34.628  1497  5670 I SignInPerformer-4: Successfully brokered first-party unauthenticated GamesService [CONTEXT service_id=1 ]
+09-20 01:58:34.629  1497  5670 I GetGamesServiceV2Op: (REDACTED) Successfully brokered GamesService for request %s

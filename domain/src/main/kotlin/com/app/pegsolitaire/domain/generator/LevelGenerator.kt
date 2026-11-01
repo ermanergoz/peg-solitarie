@@ -46,9 +46,10 @@ object LevelGenerator {
      * Generates the deterministic, solvable-by-construction level for [levelNumber].
      *
      * The level number is an untrusted nav arg, so it is clamped into
-     * `[MIN_LEVEL, GeneratorConstants.MAX_CHALLENGE_LEVEL]` (T-03-01/T-03-09):
-     * anything `< 1` clamps up to level 1 and anything above the ceiling clamps down
-     * to it. Because the replay chain is O(level), that upper clamp is what bounds the
+     * `[ChallengeLevelBounds.MIN, ChallengeLevelBounds.MAX]` via
+     * [ChallengeLevelBounds.clamp] (T-03-01/T-03-09, D-15): anything `< 1` clamps up to
+     * level 1 and anything above the ceiling clamps down to it. Because the replay chain
+     * is O(level), that upper clamp is what bounds the
      * worst-case work — a forged huge level can no longer loop for billions of
      * iterations (CR-01). Each level's own reject-and-reseed loop ([generateForLevel])
      * reseeds with a fresh deterministic salt ([stableSeed]) and reverse-walks a
@@ -57,28 +58,43 @@ object LevelGenerator {
      * [GeneratorConstants.DEDUP_WINDOW] levels — or, after
      * [GeneratorConstants.MAX_ATTEMPTS], the best-scoring non-colliding board seen
      * (deterministic bounded fallback, T-03-04). The clamp bounds the chain length, so
-     * generation is not just terminating but bounded in cost.
+     * generation is not just terminating but bounded in cost. The level is the last one
+     * [generateLadder] yields for the same bound.
      */
-    fun generate(levelNumber: Int): GeneratedLevel {
-        val target = levelNumber.coerceIn(MIN_LEVEL, GeneratorConstants.MAX_CHALLENGE_LEVEL)
+    fun generate(levelNumber: Int): GeneratedLevel = generateLadder(levelNumber).last()
 
-        // Exact rolling dedup window: replay the deterministic sequence from level 1,
-        // deduping each level against the ACTUAL accepted canonical keys of the
-        // previous DEDUP_WINDOW levels. Because the anchor (level 1) and every step
-        // are deterministic, generate(n-1) is a prefix of generate(n)'s pass — so the
-        // window is self-consistent across independent calls and "no two boards in a
-        // window share a canonical key" holds by construction (Pitfall 3). No
-        // recursion; membership tests never feed a PRNG index (Pitfall 1).
-        val recentKeys = ArrayDeque<Long>()
-        var produced: GeneratedLevel? = null
-        for (level in MIN_LEVEL..target) {
-            val tier = DifficultyTiers.forLevel(level)
-            produced = generateForLevel(level, tier, forbiddenKeys = recentKeys.toHashSet())
-            recentKeys.addLast(canonicalKeyOf(produced.startingBoard))
-            if (recentKeys.size > GeneratorConstants.DEDUP_WINDOW) recentKeys.removeFirst()
+    /**
+     * Every accepted level of the deterministic chain, `1..clamp(upTo)`, in order; O(upTo) in total.
+     *
+     * This is the chain [generate] has always walked to rebuild the exact dedup window, exposed so
+     * a caller that needs every level up to N — the fuzz harness — walks it once instead of calling
+     * [generate] N times, which would cost O(N²) (docs/tech-design.md §7.3 item 2). The frozen
+     * generator contract is about OUTPUT, and this lifts the same loop with its body unchanged, so
+     * each level it yields is the level [generate] returns for that number; the golden fixtures pin
+     * the bytes. [upTo] is clamped exactly as [generate] clamps its level number, so the sequence is
+     * never empty and never runs past [ChallengeLevelBounds.MAX]. Every iteration of the returned
+     * sequence replays the chain from level 1.
+     */
+    fun generateLadder(upTo: Int): Sequence<GeneratedLevel> =
+        sequence {
+            val target = ChallengeLevelBounds.clamp(upTo)
+
+            // Exact rolling dedup window: replay the deterministic sequence from level 1,
+            // deduping each level against the ACTUAL accepted canonical keys of the
+            // previous DEDUP_WINDOW levels. Because the anchor (level 1) and every step
+            // are deterministic, generate(n-1) is a prefix of generate(n)'s pass — so the
+            // window is self-consistent across independent calls and "no two boards in a
+            // window share a canonical key" holds by construction (Pitfall 3). No
+            // recursion; membership tests never feed a PRNG index (Pitfall 1).
+            val recentKeys = ArrayDeque<Long>()
+            for (level in ChallengeLevelBounds.MIN..target) {
+                val tier = DifficultyTiers.forLevel(level)
+                val produced = generateForLevel(level, tier, forbiddenKeys = recentKeys.toHashSet())
+                recentKeys.addLast(canonicalKeyOf(produced.startingBoard))
+                if (recentKeys.size > GeneratorConstants.DEDUP_WINDOW) recentKeys.removeFirst()
+                yield(produced)
+            }
         }
-        return requireNotNull(produced) { "reverse walk produced no board for level $target" }
-    }
 
     /**
      * The bounded reject-and-reseed loop for a single [level]: reverse-walk a
@@ -282,9 +298,6 @@ object LevelGenerator {
             .withoutPeg(move.to)
             .withPeg(move.over)
             .withPeg(move.from)
-
-    /** The lowest valid level; anything below clamps up to it (T-03-01). */
-    private const val MIN_LEVEL = 1
 
     /** Sentinel "no candidate scored yet" for the bounded fallback (any real score is >= 0). */
     private const val FALLBACK_UNSET_SCORE = -1

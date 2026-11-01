@@ -5,9 +5,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -20,8 +17,8 @@ import androidx.compose.ui.semantics.contentDescription
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.ui.components.BoardCanvas
+import com.app.pegsolitaire.ui.components.StarGlyph
 import com.app.pegsolitaire.ui.game.GameUiState
-import androidx.compose.material.icons.outlined.Star as StarBorder
 
 /**
  * The static, read-only board footprint shown on a Classic catalog card (D-11),
@@ -66,15 +63,15 @@ fun BoardPreview(
     }
 }
 
-/** The recessed square holding the read-only [BoardCanvas] footprint. */
+/** The soft violet-tinted panel holding the read-only [BoardCanvas] footprint. */
 @Composable
 private fun BoardFootprint(
     board: Board,
     modifier: Modifier = Modifier,
 ) {
     Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.primaryContainer,
         modifier = modifier.size(dimensionResource(R.dimen.catalog_preview_size)),
     ) {
         BoardCanvas(
@@ -88,11 +85,11 @@ private fun BoardFootprint(
 }
 
 /**
- * The earned-star pips (D-10): the first [earned] of [TOTAL_STARS] filled
- * [Icons.Filled.Star] tinted `primary`, the rest outline [StarBorder] tinted
- * `outlineVariant` — the same filled/outline language as the Results star row, at pip
- * scale. The individual icons are decorative, so the row speaks the count once via
- * [clearAndSetSemantics] instead of announcing three anonymous stars.
+ * The earned-star pips (D-10): the first [earned] of [TOTAL_STARS] earned [StarGlyph]s, the
+ * rest unearned ones — the same language as the Results star row, at pip scale, in the active
+ * palette (docs/ux/colour-vision.md §3.4). The individual icons are decorative, so the row
+ * speaks the count once via [clearAndSetSemantics] instead of announcing three
+ * anonymous stars.
  */
 @Composable
 private fun EarnedStarPips(earned: Int) {
@@ -103,17 +100,7 @@ private fun EarnedStarPips(earned: Int) {
     ) {
         repeat(TOTAL_STARS) { index ->
             val isEarned = index < earned
-            Icon(
-                imageVector = if (isEarned) Icons.Filled.Star else Icons.Outlined.StarBorder,
-                contentDescription = null,
-                tint =
-                    if (isEarned) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.outlineVariant
-                    },
-                modifier = Modifier.size(dimensionResource(R.dimen.catalog_star_pip_size)),
-            )
+            StarGlyph(earned = isEarned, size = dimensionResource(R.dimen.catalog_star_pip_size))
         }
     }
 }

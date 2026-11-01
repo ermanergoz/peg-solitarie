@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Adaptive-icon BACKGROUND layer (API 26+). Full-bleed 512x512 coverage is deliberate:
+  launchers shift this layer for parallax and overscan, so any transparent edge would be
+  exposed as a gap under the mask.
+
+  Geometry is authored on the design's 512-unit canvas and mapped onto the 108dp adaptive
+  canvas by the viewport, so one design unit is 0.2109dp.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- Violet CTA gradient, top to bottom. -->
+    <path android:pathData="M0,0 H512 V512 H0 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="0"
+                android:startY="0"
+                android:endX="0"
+                android:endY="512">
+                <item android:offset="0" android:color="@color/ic_launcher_violet_light" />
+                <item android:offset="1" android:color="@color/ic_launcher_violet_deep" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Soft white glow behind the board, centred slightly above the canvas centre. -->
+    <path android:pathData="M76,236 a180,180 0 1,0 360,0 a180,180 0 1,0 -360,0">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="256"
+                android:centerY="236"
+                android:gradientRadius="180">
+                <item android:offset="0" android:color="@color/ic_launcher_glow" />
+                <item android:offset="0.7" android:color="@color/ic_launcher_glow_fade" />
+                <item android:offset="1" android:color="@color/ic_launcher_glow_fade" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>

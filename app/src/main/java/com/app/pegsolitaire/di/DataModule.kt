@@ -9,11 +9,16 @@ import com.app.pegsolitaire.data.DefaultClassicLevelSource
 import com.app.pegsolitaire.data.DefaultLevelRepository
 import com.app.pegsolitaire.data.DefaultProgressRepository
 import com.app.pegsolitaire.data.GeneratedChallengeLevelSource
+import com.app.pegsolitaire.data.HapticsSetting
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.data.SettingsRepository
 import com.app.pegsolitaire.data.SettingsRepositoryImpl
 import com.app.pegsolitaire.data.appDataStore
+import com.app.pegsolitaire.data.licenses.AssetGoogleNoticeSource
+import com.app.pegsolitaire.data.licenses.AssetLicenseTextSource
+import com.app.pegsolitaire.data.licenses.GoogleNoticeSource
+import com.app.pegsolitaire.data.licenses.LicenseTextSource
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -54,12 +59,34 @@ abstract class DataModule {
     abstract fun bindSettingsRepository(impl: SettingsRepositoryImpl): SettingsRepository
 
     /**
+     * The read-only Haptics seam the tutorial reads (tech-lead ruling 2026-10-18). Bound from the
+     * [SettingsRepository] interface rather than from its implementation, so anything that
+     * replaces the repository replaces this too: one source of truth for the switch.
+     */
+    @Binds
+    @Singleton
+    abstract fun bindHapticsSetting(settings: SettingsRepository): HapticsSetting
+
+    /**
      * The single source of truth for per-level bests (PERS-01) and resume snapshots
      * (PERS-03). A `@Singleton` because it fronts the process-wide Room connection.
      */
     @Binds
     @Singleton
     abstract fun bindProgressRepository(impl: DefaultProgressRepository): ProgressRepository
+
+    // Licences (feature/licences-screen)
+
+    /**
+     * The licences screens' reader of the bundled texts and the generated Google notices (tech
+     * design §3.6, §13.1 LN-4). Unscoped: it holds nothing, and only a licences ViewModel asks.
+     */
+    @Binds
+    abstract fun bindLicenseTextSource(impl: AssetLicenseTextSource): LicenseTextSource
+
+    /** The generated Google notices index (tech design §13.1 LN-4); unscoped for the same reason. */
+    @Binds
+    abstract fun bindGoogleNoticeSource(impl: AssetGoogleNoticeSource): GoogleNoticeSource
 
     /**
      * Instance `@Provides` cannot live on an abstract `@Module`, so the single shared

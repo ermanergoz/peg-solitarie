@@ -3,6 +3,8 @@ package com.app.pegsolitaire.ui.classic
 import app.cash.turbine.test
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.data.HomeProgress
+import com.app.pegsolitaire.data.ImportOutcome
 import com.app.pegsolitaire.data.Level
 import com.app.pegsolitaire.data.LevelRepository
 import com.app.pegsolitaire.data.LevelResult
@@ -10,9 +12,13 @@ import com.app.pegsolitaire.data.NewBests
 import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.ProgressRepository
 import com.app.pegsolitaire.data.resume.ResumeSnapshotDto
+import com.app.pegsolitaire.domain.achievement.ClassicBoard
+import com.app.pegsolitaire.domain.achievement.ProgressAggregate
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.Boards
+import com.app.pegsolitaire.domain.progress.CloudProgress
 import com.app.pegsolitaire.domain.scoring.ScoreResult
+import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -236,8 +242,17 @@ private class FakeProgressRepository(
         mode: String,
         levelId: String,
         result: ScoreResult,
+        telemetry: SolveTelemetry,
         nowMs: Long,
     ): NewBests = error("The catalog never records a result")
+
+    /** Unused by this screen — the catalog never reads the achievement aggregate. */
+    override suspend fun aggregate(): ProgressAggregate = ProgressAggregate()
+
+    /** Unused by this screen — no per-board leaderboard read happens here. */
+    override suspend fun classicBests(): Map<ClassicBoard, Int> = emptyMap()
+
+    override fun observeHomeProgress(): Flow<HomeProgress> = flowOf(HomeProgress.UNKNOWN)
 
     override fun observeResults(mode: String): Flow<List<LevelResult>> {
         observedModes += mode
@@ -254,4 +269,14 @@ private class FakeProgressRepository(
     override suspend fun clearSnapshot(mode: String) = error("The catalog never clears a snapshot")
 
     override fun observeResumeModes(): Flow<List<String>> = flowOf(emptyList())
+
+    /** Unreachable from here — the catalog never calls cloud save (CLOUD-01/CLOUD-04). */
+    override suspend fun exportProgress(ladder: Int): CloudProgress = error("the catalog never calls cloud save")
+
+    override suspend fun importProgress(
+        remote: CloudProgress,
+        nowMs: Long,
+    ): ImportOutcome = error("the catalog never calls cloud save")
+
+    override suspend fun resetAllProgress() = error("the catalog never calls cloud save")
 }
