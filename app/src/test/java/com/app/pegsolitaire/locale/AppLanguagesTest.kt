@@ -76,6 +76,26 @@ class AppLanguagesTest {
         assertThat(stringIn(unoffered, LIBRARY_PROBE)).isEqualTo(stringIn(BASE_DEVICE_LOCALE, LIBRARY_PROBE))
     }
 
+    /** The folder reader the expected list rests on: a language comes only from a language qualifier. */
+    @Test
+    fun theFolderReaderTakesALanguageOnlyFromALanguageQualifier() {
+        assertThat(languageOfValuesFolder("values-tr")).isEqualTo("tr")
+        assertThat(languageOfValuesFolder("values-tr-rTR")).isEqualTo("tr-TR")
+        assertThat(languageOfValuesFolder("values-b+sr+Latn")).isEqualTo("sr-Latn")
+        assertThat(languageOfValuesFolder("values-mcc286-tr")).isEqualTo("tr")
+        val noLanguage =
+            listOf(
+                "values",
+                "values-night",
+                "values-v35",
+                "values-night-v35",
+                "values-car",
+                "values-sw600dp",
+                "drawable-tr",
+            )
+        noLanguage.forEach { folder -> assertWithMessage(folder).that(languageOfValuesFolder(folder)).isNull() }
+    }
+
     /** The `android:name` of every `<locale>` in the packaged `res/xml/locales_config.xml`. */
     private fun offeredLanguages(): List<String> {
         val parser = app.resources.getXml(R.xml.locales_config)
@@ -100,10 +120,9 @@ class AppLanguagesTest {
     private fun languagesWithStrings(): List<String> =
         listOf(BASE_LANGUAGE) +
             mainResDir
-                .listFiles { dir -> dir.isDirectory && dir.name.startsWith(VALUES_QUALIFIED_PREFIX) }
+                .listFiles { dir -> dir.isDirectory && File(dir, STRINGS_FILE).isFile }
                 .orEmpty()
-                .filter { File(it, STRINGS_FILE).isFile }
-                .map { it.name.removePrefix(VALUES_QUALIFIED_PREFIX) }
+                .mapNotNull { languageOfValuesFolder(it.name) }
 
     private fun mergedManifest(): Element {
         val testConfig =
@@ -139,9 +158,39 @@ private val APP_PROBE = R.string.settings_title
  */
 private val LIBRARY_PROBE = ComposeUiR.string.navigation_menu
 
-/** A language folder's prefix; what follows it is the language, as in `values-tr`. */
-private const val VALUES_QUALIFIED_PREFIX = "values-"
 private const val STRINGS_FILE = "strings.xml"
+
+/**
+ * The language a `values` folder's qualifiers name, written as `locales_config.xml` writes it: `tr`
+ * for `values-tr`, `tr-TR` for `values-tr-rTR`, `sr-Latn` for `values-b+sr+Latn`. Null for a folder
+ * whose qualifiers name no language, such as `values-night` or `values-v35`, and for one that is not
+ * a `values` folder. The mobile-network qualifiers, the only ones Android orders before the
+ * language, are skipped; `car` is the car UI-mode qualifier, not a language.
+ */
+private fun languageOfValuesFolder(folderName: String): String? {
+    val qualifiers = folderName.split(QUALIFIER_SEPARATOR)
+    val fromLanguage = qualifiers.drop(1).dropWhile { NETWORK_QUALIFIER.matches(it) }
+    val first = fromLanguage.firstOrNull()?.takeIf { qualifiers.first() == VALUES_FOLDER }
+    val region = fromLanguage.getOrNull(1)?.takeIf { REGION_QUALIFIER.matches(it) }?.drop(1)
+    return when {
+        first == null -> null
+        BCP47_QUALIFIER.matches(first) -> first.removePrefix(BCP47_PREFIX).replace(BCP47_JOIN, LANGUAGE_TAG_JOIN)
+        LANGUAGE_QUALIFIER.matches(first) && first != CAR_UI_MODE ->
+            listOfNotNull(first, region).joinToString(LANGUAGE_TAG_JOIN)
+        else -> null
+    }
+}
+
+private const val VALUES_FOLDER = "values"
+private const val QUALIFIER_SEPARATOR = "-"
+private const val BCP47_PREFIX = "b+"
+private const val BCP47_JOIN = "+"
+private const val LANGUAGE_TAG_JOIN = "-"
+private const val CAR_UI_MODE = "car"
+private val NETWORK_QUALIFIER = Regex("""(?:mcc|mnc)\d+""")
+private val LANGUAGE_QUALIFIER = Regex("""[a-z]{2,3}""")
+private val REGION_QUALIFIER = Regex("""r[A-Z]{2}""")
+private val BCP47_QUALIFIER = Regex("""b\+[a-z]{2,3}(?:\+[A-Za-z0-9]+)*""")
 
 /** AGP's unit-test config on the test classpath, and its key for the merged manifest Robolectric runs. */
 private const val TEST_CONFIG = "com/android/tools/test_config.properties"
