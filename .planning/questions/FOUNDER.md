@@ -1,5 +1,15 @@
 # Founder questions (newest first)
 
+## Q-030 — Does the Home stage removal + live Classic Continue thumbnail ship in 3.0.0?   (answered)
+Date: 2026-11-01    Asked by: producer
+Context: Founder feedback 2026-11-01: remove Home's stage art (constant mid-game board); the Classic Continue chip
+must show the saved position with the player's moves, not the start position. Challenge chip unchanged (founder:
+"continue challenge is fine, my mistake. Keep it as it is"). release/3.0.0 was already cut and near Gate 2.
+Options: 1) Ship in 3.0.0 (merge into release/3.0.0, re-run release Check + device QA) 2) Next release (3.0.1)
+Recommendation: producer — 2 (keeps the cut release untouched); founder chose otherwise.
+Blocks: release-3.0.0 Gate 2 (Q-PUBLISH-3.0.0) until feature/home-continue-live-boards is merged and re-verified
+Answer: 1 — put it in 3.0.0 (founder, 2026-11-01, in chat).
+
 ## Q-029 — How should the 3.0.0 bundle reach Play: the upload script or the Console?   (answered)
 Date: 2026-11-01    Asked by: release-manager (via the producer)
 Context: Checklist item 1.7 needs the upload route recorded before Gate 2. The studio's upload script is merged
