@@ -21,6 +21,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.RadialGradientShader
@@ -31,6 +32,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
@@ -55,9 +57,17 @@ val BackdropLayersKey = SemanticsPropertyKey<Set<BackdropLayer>>("BackdropLayers
 /** Semantics: the clock's state — lets BD-16 be asserted without counting frames (the tech-lead's E5). */
 val BackdropMotionKey = SemanticsPropertyKey<BackdropMotionState>("BackdropMotion")
 
+/**
+ * Semantics, test-only: the scene's alpha, read through the very reader the scene node's layer draws
+ * with (BD-23 (a), the tech-lead's J-4b A3). A reader rather than a value, so a test samples the fade
+ * frame by frame while the backdrop recomposes not once for it.
+ */
+val BackdropSceneAlphaKey = SemanticsPropertyKey<() -> Float>("BackdropSceneAlpha")
+
 private var SemanticsPropertyReceiver.backdropDensityValue by BackdropDensityKey
 private var SemanticsPropertyReceiver.backdropLayersValue by BackdropLayersKey
 private var SemanticsPropertyReceiver.backdropMotionValue by BackdropMotionKey
+private var SemanticsPropertyReceiver.backdropSceneAlphaValue by BackdropSceneAlphaKey
 
 /**
  * The backdrop behind every screen (backdrop spec §2–§3, direction B): the density's
@@ -70,8 +80,14 @@ private var SemanticsPropertyReceiver.backdropMotionValue by BackdropMotionKey
  * `ClayAnim.NAV_TRANSITION_MS`. A change during a fade promotes the incoming slot to the one beneath
  * at full alpha. With animations off the swap is instant.
  *
- * It announces nothing and takes no focus: its only semantics are a test tag and three test-only
- * properties (BD-15).
+ * **The scene fades in once per host start** (B-11b, the tech-lead's J-4b A3): when the scene-ready
+ * gate is seen to open, the waves and lights rise from alpha 0 to 1 over
+ * `BackdropMotion.BACKDROP_SCENE_FADE_MS`, linear. This composable lives as long as the host, so a
+ * navigation never fades the scene alone again; it arrives through the cross-fade above.
+ *
+ * It announces nothing and takes no focus: its root's only semantics are a test tag and three
+ * test-only properties (BD-15), and the scene node under that cleared root carries one test-only
+ * reader of its alpha.
  */
 @Composable
 fun SceneBackdrop(
@@ -98,6 +114,7 @@ fun SceneBackdrop(
         below = density
         above = null
     }
+    val sceneAlpha = rememberSceneAlpha(ready, animationsEnabled)
     val layers = if (ready && density.moves) SCENE_LAYERS else SKY_ONLY
     val motion = if (density.moves && !clock.isStatic) clock.motion else BackdropMotionState.AtRest
     Box(
@@ -111,12 +128,13 @@ fun SceneBackdrop(
                     backdropMotionValue = motion
                 },
     ) {
-        BackdropSlot(density = below, sceneReady = ready, clock = clock)
+        BackdropSlot(density = below, sceneReady = ready, sceneAlpha = sceneAlpha, clock = clock)
         val incoming = above
         if (incoming != null) {
             BackdropSlot(
                 density = incoming,
                 sceneReady = ready,
+                sceneAlpha = sceneAlpha,
                 clock = clock,
                 modifier = Modifier.graphicsLayer { alpha = fade.value },
             )
@@ -124,11 +142,40 @@ fun SceneBackdrop(
     }
 }
 
+/**
+ * The scene's alpha, as a reader the scene node's layer calls in its draw phase (B-11b, the
+ * tech-lead's J-4b A3), so the fade re-runs only that layer's block and never recomposes.
+ *
+ * Its one fade runs 0 → 1 only on an observed false → true flip of the gate; where the gate is open
+ * at the first composition (previews and component tests outside the host), it starts at 1. With
+ * animations off it reads 1, so the scene's first composed frame is drawn whole, never held one
+ * frame at 0; the fade's effect, keyed on the gate's flag and never on the reduced-motion gate (tech
+ * design §16 #28), reads the reduced-motion gate once at its start and snaps instead of fading, and
+ * a fade under way when animations go off ends on its next frame, at the scale's 0.
+ */
+@Composable
+private fun rememberSceneAlpha(
+    ready: Boolean,
+    animationsEnabled: Boolean,
+): () -> Float {
+    val fadeIn = remember { Animatable(if (ready) SCENE_SHOWN else SCENE_HIDDEN) }
+    LaunchedEffect(ready) {
+        if (!ready || fadeIn.value == SCENE_SHOWN) return@LaunchedEffect
+        if (animationsEnabled) {
+            fadeIn.animateTo(SCENE_SHOWN, tween(BackdropMotion.BACKDROP_SCENE_FADE_MS, easing = LinearEasing))
+        } else {
+            fadeIn.snapTo(SCENE_SHOWN)
+        }
+    }
+    return remember(animationsEnabled) { if (animationsEnabled) ({ fadeIn.value }) else ({ SCENE_SHOWN }) }
+}
+
 /** One density's whole picture: its sky, and its scene once the gate is open. */
 @Composable
 private fun BackdropSlot(
     density: BackdropDensity,
     sceneReady: Boolean,
+    sceneAlpha: () -> Float,
     clock: BackdropClock,
     modifier: Modifier = Modifier,
 ) {
@@ -141,7 +188,9 @@ private fun BackdropSlot(
                     onDrawBehind { drawRect(brush) }
                 },
         )
-        if (sceneReady && density.moves) BackdropScene(density = density, clock = clock, colors = colors)
+        if (sceneReady && density.moves) {
+            BackdropScene(density = density, alpha = sceneAlpha, clock = clock, colors = colors)
+        }
     }
 }
 
@@ -150,10 +199,15 @@ private fun BackdropSlot(
  * size, theme, density and direction in the cache block, and the draw block only translates, sets
  * an alpha and replays, allocating nothing. The time is read here, in draw, so a frame of motion
  * re-records this node alone.
+ *
+ * The node's layer takes the scene's [alpha] with `ModulateAlpha` (the tech-lead's J-4b A4): each
+ * draw's own alpha is multiplied, so the fade allocates no full-window offscreen buffer on the very
+ * frame it exists to keep cheap. At 1 it changes nothing.
  */
 @Composable
 private fun BackdropScene(
     density: BackdropDensity,
+    alpha: () -> Float,
     clock: BackdropClock,
     colors: BackdropColors,
 ) {
@@ -162,8 +216,10 @@ private fun BackdropScene(
         modifier =
             Modifier
                 .fillMaxSize()
-                .graphicsLayer()
-                .drawWithCache {
+                .graphicsLayer {
+                    this.alpha = alpha()
+                    compositingStrategy = CompositingStrategy.ModulateAlpha
+                }.drawWithCache {
                     val rtl = layoutDirection == LayoutDirection.Rtl
                     val model = buildSceneModel(density, size.width, size.height, rtl, dimens)
                     val waves = model.waves.map { WaveDrawing.of(it, colors) }
@@ -193,7 +249,7 @@ private fun BackdropScene(
                             }
                         }
                     }
-                },
+                }.semantics { backdropSceneAlphaValue = alpha },
     )
 }
 
@@ -306,6 +362,10 @@ private fun skyBrush(
         startY = 0f,
         endY = size.height,
     )
+
+/** The scene's alpha before its fade in, and from its end on (B-11b). */
+private const val SCENE_HIDDEN = 0f
+private const val SCENE_SHOWN = 1f
 
 private val SKY_ONLY: Set<BackdropLayer> = setOf(BackdropLayer.Sky)
 private val SCENE_LAYERS: Set<BackdropLayer> = setOf(BackdropLayer.Sky, BackdropLayer.Waves, BackdropLayer.Lights)

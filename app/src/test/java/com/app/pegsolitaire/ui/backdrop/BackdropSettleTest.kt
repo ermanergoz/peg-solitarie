@@ -25,7 +25,9 @@ import com.app.pegsolitaire.testing.AppNavHostWithStandIns
 import com.app.pegsolitaire.testing.BackdropClockProbe
 import com.app.pegsolitaire.testing.CountingFrames
 import com.app.pegsolitaire.testing.StandInTags
+import com.app.pegsolitaire.testing.advanceOneFrame
 import com.app.pegsolitaire.testing.backdropSemantics
+import com.app.pegsolitaire.testing.framesToSceneOpen
 import com.app.pegsolitaire.testing.renderedWindow
 import com.app.pegsolitaire.ui.home.HomeScreen
 import com.app.pegsolitaire.ui.home.HomeUiState
@@ -273,9 +275,8 @@ class BackdropSettleTest {
                 AppNavHostWithStandIns(rememberNavController(), frames, onBoardTap = { boardTaps++ })
             }
         }
-        rule.mainClock.advanceTimeByFrame()
-        rule.mainClock.advanceTimeByFrame()
-        rule.mainClock.advanceTimeByFrame()
+        val frameMs = rule.mainClock.advanceOneFrame()
+        repeat(framesToSceneOpen(frameMs) + FRAMES_PAST_OPEN) { rule.mainClock.advanceTimeByFrame() }
     }
 
     private fun assertMotion(
@@ -298,6 +299,9 @@ class BackdropSettleTest {
 }
 
 private const val SETTLE_ROBOLECTRIC_SDK = 34
+
+/** [BackdropSettleTest]'s start runs two frames past the scene's open (B-11b), as it ran two past frame 2 before. */
+private const val FRAMES_PAST_OPEN = 2
 
 /** The 6.7-inch baseline window: Home's Classic tile is wholly in view. */
 private const val SHEEN_WINDOW_QUALIFIER = "w412dp-h915dp"

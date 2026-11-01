@@ -1,5 +1,7 @@
 package com.app.pegsolitaire.ui.backdrop
 
+import com.app.pegsolitaire.ui.theme.ClayAnim
+
 /**
  * The backdrop's own durations (backdrop spec §4.4), scoped beside [BackdropMetrics] as the
  * project splits constants by owner. The app-wide navigation fade stays in `ClayAnim`.
@@ -47,4 +49,25 @@ object BackdropMotion {
 
     /** The floor every loop and half-cycle above keeps (B-05a rule 1). */
     const val MIN_LOOP_MS = 9_000L
+
+    /**
+     * Home's last `clayEntrance` order (backdrop spec §4.4): hero 0, ribbon 1, the Continue chips
+     * 2–3, the mode tiles 4–5. Named here so `ui/backdrop/` imports nothing from `ui/home/` (the
+     * tech-lead's J-4b A2); `BackdropSceneOpenTest` fails if Home lengthens its cascade (BD-23 (e)).
+     */
+    const val HOME_LAST_ENTRANCE_ORDER = 5
+
+    /**
+     * When the scene opens, counted from the gate's first awaited frame (B-11b): the end of Home's
+     * longest entrance cascade, its last band's stagger plus one entrance. It elapses in
+     * animator-scaled time, as the cascade does, so it is twice as long at scale 2 and ends on its
+     * first frame at scale 0. It is not a loop, so [MIN_LOOP_MS] does not bind it.
+     */
+    const val BACKDROP_SCENE_OPEN_MS = ClayAnim.ENTRANCE_MS + HOME_LAST_ENTRANCE_ORDER * ClayAnim.ENTRANCE_STAGGER_MS
+
+    /**
+     * The scene's one fade in, at the open, linear (B-11b): the sky cross-fade's own length, defined
+     * as that token so the two cannot drift apart (B-13a, the tech-lead's J-4b A2).
+     */
+    const val BACKDROP_SCENE_FADE_MS = ClayAnim.NAV_TRANSITION_MS
 }

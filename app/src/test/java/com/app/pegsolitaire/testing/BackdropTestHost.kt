@@ -16,6 +16,8 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsConfiguration
+import androidx.compose.ui.test.MainTestClock
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
 import androidx.compose.ui.test.hasTestTag
 import androidx.navigation.NavHostController
@@ -25,10 +27,13 @@ import com.app.pegsolitaire.ui.backdrop.BACKDROP_TEST_TAG
 import com.app.pegsolitaire.ui.backdrop.BackdropClock
 import com.app.pegsolitaire.ui.backdrop.BackdropDensity
 import com.app.pegsolitaire.ui.backdrop.BackdropFrames
+import com.app.pegsolitaire.ui.backdrop.BackdropMotion
+import com.app.pegsolitaire.ui.backdrop.BackdropSceneAlphaKey
 import com.app.pegsolitaire.ui.backdrop.FixedBackdropClock
 import com.app.pegsolitaire.ui.backdrop.LocalBackdropClock
 import com.app.pegsolitaire.ui.backdrop.LocalBackdropSceneReady
 import com.app.pegsolitaire.ui.backdrop.SceneBackdrop
+import kotlin.math.ceil
 
 /**
  * The production backdrop host's shape for tests (the tech-lead's file table): the window-filling
@@ -80,6 +85,31 @@ internal fun BackdropClockProbe(onClock: (BackdropClock) -> Unit) {
 /** The backdrop root's semantics: its tag, density, layers and motion. */
 internal fun SemanticsNodeInteractionsProvider.backdropSemantics(): SemanticsConfiguration =
     onNode(hasTestTag(BACKDROP_TEST_TAG), useUnmergedTree = true).fetchSemanticsNode().config
+
+/**
+ * Every scene node's alpha, read through the reader its layer draws with (BD-23 (a), the tech-lead's
+ * J-4b A3): one entry per density slot that shows a scene, none while no scene is composed.
+ */
+internal fun SemanticsNodeInteractionsProvider.sceneAlphas(): List<Float> =
+    onAllNodes(SemanticsMatcher.keyIsDefined(BackdropSceneAlphaKey), useUnmergedTree = true)
+        .fetchSemanticsNodes()
+        .map { it.config[BackdropSceneAlphaKey]() }
+
+/** Steps the test clock one frame and returns that frame's length in ms, the frame time a test counts in. */
+internal fun MainTestClock.advanceOneFrame(): Long {
+    val before = currentTime
+    advanceTimeByFrame()
+    return currentTime - before
+}
+
+/**
+ * Frames of [frameMs] from the gate's first awaited frame (the host's second) to the scene's open at
+ * the animator [scale]: the first frame at or past `BACKDROP_SCENE_OPEN_MS` of scaled time (B-11b).
+ */
+internal fun framesToSceneOpen(
+    frameMs: Long,
+    scale: Float = SystemMotionScale.ON,
+): Int = ceil(BackdropMotion.BACKDROP_SCENE_OPEN_MS * scale / frameMs).toInt()
 
 /** The test tags of [AppNavHostWithStandIns]' destinations. */
 internal object StandInTags {
