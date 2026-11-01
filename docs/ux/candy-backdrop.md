@@ -1808,6 +1808,98 @@ its subject and gains the thumbnail's slab in its place. (3) B-20's calm band is
 hero row where it now sits, lower on a tall phone; the hero row itself is unchanged. (4) The
 thumbnail's slab is **not** a clay-family surface with a finish: it is a plain `surfaceContainerHigh`
 square, `shapes.extraSmall`, like the board slab's interior.
+
+*(Loop 1, 2026-11-01 — `docs/ux-spec.md` **D-03q**, on the fresh check's F-1 and F-2;
+`.planning/reports/home-continue-live-boards/ux-designer-check.md`. One consolidated pointer for every
+passage of this document that still assumes the stage or the calm-band title; each line below is read
+as stated, and nothing else in this document changes. No constant of §3, §4 or `BackdropMetrics`
+moves: `TITLE_REACH` is read by Home's layout, not changed.)*
+
+**The two facts.** (1) The stage is gone (D-03p): Home's slack is headroom **above** the hero row,
+and the hero row, the ribbon, the Continue chips and the gel tiles are one block beneath it. (2) The
+Home title therefore sits **below the calm band at rest**, in the lane lights' band, and D-03q bounds
+the hero row's visible bottom edge at or above **`TITLE_REACH` · H − `entrance_slide_distance`**
+(0.47 H − 16dp, window frame) in every chip state and on every frame of its entrance — so no glyph
+ever meets a wave, lip or sheen, and every point of the title's reach is the sky plus at most one
+lane light, exactly as B-21 already guarantees for the wrapped title. Below the calm band the
+title's requirement is the **large-text floor, ≥ 3:1 at every glyph pixel, at rest and in motion**
+(WCAG 1.4.3; colour-vision TG-02's floor); the 4.5:1 target is recorded where it holds and not
+required where it cannot (over a lane light it never does: 3.11:1 light / 3.99:1 dark are B-21's own
+bounds). The figures, by §4.1's tokens and colour-vision §0's method: over a lane light ≥ 3.11:1 /
+≥ 3.99:1; over the sky alone at the lowest reach (0.453 H on the Pixel_9: L ≈ 0.756 light, ≈ 0.0105
+dark) ≥ 4.38:1 light (the light stop; the deep stop ≥ 6.9:1) / ≥ 6.4:1 dark; the light stop reads
+≥ 4.5:1 over the sky alone only above ≈ 0.40 H. On the Pixel_9 with no save the row's bottom edge sits
+exactly on the bound (417.8dp); with one save 321.8dp; with both 225.8dp (ux-spec §4.2.7's corrected
+table).
+
+**The lines, and how each now reads.**
+- **§0, "The Home stage art's interior is unchanged"** (line 99): there is no stage; the sentence
+  has no subject. The thumbnail's slab (above, (4)) is the one board surface on Home, and it is
+  plain.
+- **§2, the Home row** (937): "five in lanes beside the stage" reads "five in lanes in the headroom
+  above the hero row"; "the scene shows in the hero band, beside the stage art" reads "in the
+  headroom, in the 8–16dp band gaps and the side margins, and in the footer"; the hero objects are
+  "the two gel mode tiles; then the Continue chips and the ribbon"; the uncontained text is still
+  "the title only", now in the lanes band under D-03q's bound and floor.
+- **§3.2, "Above every layer, opaque"** (986): "the stage art" is struck from Home's list.
+- **§3.3, the lights** (1094–1096): "everything below 0.47 H on Home is either behind the lower
+  group or holds no uncontained text" **stands**, because D-03q keeps the title above 0.47 H − 16dp;
+  "two clusters in the wings beside the stage" is the record of the board's layout. The "What a
+  player sees" table (1119–1124) stands: the crests lie behind the lower group, which now starts
+  lower.
+- **§3.5.1, the finish table's "Stage art (Home)" row** (1195): struck. The thumbnail's slab is not
+  a container with a finish ((4) above); its plainness is proven by BD-17's pixel sample (the
+  tech-lead's ruling 4, `.planning/reports/home-continue-live-boards/tech-lead-brief.md`).
+- **§4.3, "beside `BoardMetrics` and `HomeStageMetrics`"** (1387): `HomeStageMetrics` is retired
+  (ux-spec §6.4); read "beside `BoardMetrics`".
+- **§5.1, the rule** (1437–1440): "uncontained text on Home and the game screen sits in the band
+  above the calm end" is true of the game strip and of Home's title only on a window with no
+  headroom. The Home title at rest sits below the calm band, above the bound, under B-21's
+  guarantee. **A row joins the table** (1448–1449): *The Home title at rest, below the calm band,
+  above 0.47 H − 16dp (D-03q)* — light ≥ 3.11:1 over a Pink light's rim, ≥ 4.38:1 over the sky alone
+  at the lowest reach; dark ≥ 3.99:1 over a Pearl light's rim, ≥ 6.4:1 over the sky — needs 3:1
+  (large text); the 4.5:1 design target recorded, met over the sky alone above ≈ 0.40 H in light
+  and everywhere in dark. **The reach row** (1455) reads: at rest, one line, the hero row's bottom
+  edge at or above 0.47 H − 16dp in every chip state, exactly there on the Pixel_9 with no save;
+  guaranteed by B-21 as the wrapped title is, with the bound keeping the row off the waves on every
+  frame of its entrance; wrapped, as before.
+- **§5.2, the clay family** (1490): "the stage art" is struck from the list; the thumbnail's slab is
+  inside the Continue chip and is not a container on the backdrop.
+- **B-20** (834–843): the calm band is unchanged — `SkyTop` to 0.12 H, the lights' fade before 0.14 H,
+  the waves clear of it — and it still clears the status bar and the game strip's title (≤ 0.1375 H).
+  "The Home hero row at rest reaches at most 0.128 H" is **superseded**: at rest it sits below the
+  calm band, at or above the bound. "The Home title at rest … always sit[s] on zone T" reads "the
+  Home title at rest sits on the sky or on one lane light, ≥ 3:1 (D-03q); the status bar and the
+  game strip's title sit on zone T".
+- **B-21** (848–854): the lanes, the disjointness, the per-light composite bounds and "no wave pixel
+  above 0.47 H" **stand unchanged**, and now carry the at-rest title as well as the wrapped one: that
+  is why D-03q's bound is `TITLE_REACH`.
+- **§8.4** (1846–1849): in each Home cell read "the stage" as "the headroom above the hero row":
+  360×640dp three-button — the headroom holds the lane lights above the hero row and the crests lie
+  behind the lower group; 360×800dp — the headroom ≈ 90dp, the lights in it; 412×915dp — the headroom
+  ≈ 240–330dp with no save, the hero row at its foot at or above 414dp, the crests behind the
+  ribbon and the chips; the Pixel_9 — the row's bottom exactly on the bound (417.8dp) with no save.
+  The "any other window" row's "a shorter window keeps the title at rest in the calm band" stands
+  for windows with no headroom.
+- **§8.5, Home at 200%** (1860): "the stage shrinks or goes to 0" reads "the headroom shrinks or goes
+  to 0"; B-21 bounds the wrapped title's reach, and D-03q the row's: where the row alone is taller
+  than the bound allows, the headroom is 0 and the row sits at the top padding, the wrapped case.
+- **BD-03** (1973): "no gloss on the slab, the stage art, the dock slab or the banner" reads "… the
+  slab, the Classic chip's thumbnail slab, the dock slab or the banner".
+- **BD-12** (1982): the Home title's pass line reads: **≥ 3:1 at every sampled glyph pixel, at rest
+  and in motion, at 1.0 and at 2.0, in both themes**, with the lowest ratios over the sky alone and
+  over a lane light recorded per theme and chip state (ux-spec criterion 15ac part 3); "≥ 4.5:1 at
+  rest at 1.0" applies only where the title is in the calm band, a window with no headroom. The
+  no-chip state on the Pixel_9 in dark, which 15v's matrix does not reach, is in 15ac's matrix.
+- **BD-13** (1983): "the stage art" is struck from the sampled edges; the thumbnail sits inside the
+  Continue chip, whose edges are already sampled.
+- **BD-17** (1987): "the interiors of the Home stage art" reads "the interior of the Classic chip's
+  thumbnail slab, inset 2dp, at `shape_corner_extra_small`, plus the opaque-fill sample" — the
+  tech-lead's ruling 4; `BackdropMirrorTest` is unedited.
+- **BD-19** (1989): "15n–15r" reads "15n, 15o and 15x–15ac". The stage's tests are retargeted or
+  deleted as ux-spec §13's D-03p table rules; that is the second carve-out beside B-19a's, and it
+  needs the code-auditor's line that each deletion is the table's.
+- **BD-07, BD-08, BD-10, BD-11, BD-16, BD-20 to BD-28**: unchanged; nothing in the model moves.
 - **`HomeBlobs`** is removed from Home's column and deleted (B-05a).
 
 ### 8.2 The gameplay strip and dock (the Q-902 split, D-04e, D-05d)

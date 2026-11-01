@@ -837,6 +837,47 @@ pointer to this section.
 - §8's rejections. A gel-coloured or glossy title joins them, for the outline's reason: it would read
   as candy-textured lettering.
 
+### 11.5 The title below the calm band (2026-11-01 — `docs/ux-spec.md` D-03p and D-03q)
+
+*(One consolidated pointer, on the fresh check's F-1 and F-2,
+`.planning/reports/home-continue-live-boards/ux-designer-check.md`. The palette, the title's tokens and
+every CV-AC criterion are untouched.)*
+
+**What changed on Home.** D-03p withdraws the stage and puts Home's slack **above** the hero row, so
+at rest the title no longer sits in the backdrop's calm band (B-20) but in the lane lights' band;
+D-03q bounds the hero row's visible bottom edge at or above `TITLE_REACH` · H − `entrance_slide_distance`
+(0.47 H − 16dp) in every chip state and on every frame of its entrance, so the title never meets a
+wave, and every point of its reach is the sky plus at most one lane light — B-21's guarantee for the
+wrapped title, now carrying the at-rest title too.
+
+**The requirement, ruled (D-03q part 2).** Below the calm band the Home title is held to the
+**large-text floor: ≥ 3:1 at every sampled glyph pixel, at rest and in motion, in both themes** —
+`displaySmall` 36sp SemiBold is large text under WCAG 1.4.3, and TG-02 names 3:1 as the floor and
+4.5:1 as the design target. The 4.5:1 target is **recorded, not required**, below the calm band: it
+is met over the sky alone wherever the glyph is above ≈ 0.40 H in light and everywhere in dark, and it
+is not met over a lane light, whose rim composites are bounded for 3:1 (B-21).
+
+- **§11.3's table gains a row** — *At rest, below the calm band, above 0.47 H − 16dp (D-03q)*: light
+  theme ≥ **3.11:1** / ≥ 4.89:1 over a Pink light's rim, ≥ **4.38:1** / ≥ 6.9:1 over the sky alone at
+  the lowest reach (0.453 H on the Pixel_9, L ≈ 0.756); dark theme ≥ 5.89:1 / ≥ **3.99:1** over a Pearl
+  light's rim, ≥ 9.4:1 / ≥ **6.4:1** over the sky alone (L ≈ 0.0105). The "At rest, in the calm band"
+  row stands for a window with no headroom. "The light bound of §4.4 holds" stands: the darkest
+  colour the title can overlap is still a Pink rim at L 0.522.
+- **TG-AC03**: "at rest ≥ 4.5:1 in both themes" reads **"at rest ≥ 3:1 at every sampled glyph pixel
+  in both themes, and ≥ 4.5:1 where the title is in the calm band (a window with no headroom)"**,
+  sampled by the same method; QA records the lowest ratio over the sky alone and over a lane light,
+  per theme and chip state (ux-spec criterion 15ac part 3). The "at 2.0 ≥ 3:1" half is unchanged.
+- **TG-AC04**: unchanged. Its "no pixel of the dark backdrop above 0.47 H has L > 0.0786" still covers
+  the title, because D-03q keeps the row at or above 0.47 H − 16dp; BD-08 and BD-11 compute it as
+  before.
+- **§11.4**: "the title fix (§4.3), its tokens and TG-AC01, TG-AC03 and TG-AC05" are unchanged in
+  substance; TG-AC03's at-rest line is read as above. §8's rejections stand, and D-03q reaffirms
+  them: a plate, outline or halo on the title was weighed again and not taken.
+- **§4.4's record for the sweets landscape** — "Dark: fails, and the backdrop has to move, not the
+  title" — is not reopened: under D-03q the title moves, but never onto a wave, and the backdrop does
+  not move.
+- **§3.3's 2026-11-01 pointer** stands: Home still reads no palette; CV-AC06 holds.
+
 ## 12. Amendments for deviation D-1: the hollow star (2026-10-24)
 
 The build at `32b2600` on `feature/colour-vision` found something this document got wrong (the
