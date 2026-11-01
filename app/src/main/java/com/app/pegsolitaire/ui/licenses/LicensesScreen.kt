@@ -42,9 +42,12 @@ internal const val LICENSES_LIST_TAG = "licenses_list"
  * The section headers reuse Settings' header, headings included.
  *
  * The body is a plain `Column` in `verticalScroll`, not a lazy list (spec LS-15; the tech-lead's
- * re-run ruling, F-4, departure T4): every item is in the semantics tree at every scroll position,
- * so TalkBack's heading navigation reaches each section header from anywhere, as on Settings. The
- * list is twenty-three static items, so composing them all at open costs little.
+ * re-run ruling, F-4, departure T4): every item is composed, so every section header is in the
+ * semantics tree at every scroll position, where a lazy list would leave an off-screen header out.
+ * Being in that tree is necessary for TalkBack's heading navigation, not sufficient: Compose hands
+ * accessibility services only the nodes on screen, so TalkBack reaches an off-screen header only by
+ * scrolling the list (the tech-lead's F-4 ruling). The list is twenty-three static items, so
+ * composing them all at open costs little.
  *
  * A tappable entry plays the forward cue and opens its texts by **id** ([onOpenEntry]) or the
  * notices list ([onOpenGoogleNotices]); an inert entry does nothing. The entrance stagger covers

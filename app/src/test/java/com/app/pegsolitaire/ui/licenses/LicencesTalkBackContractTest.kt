@@ -196,7 +196,10 @@ class LicencesTalkBackContractTest {
     /**
      * Device re-run F-4 and spec LS-15 (LS-AC06's F-4 half; the tech-lead's re-run ruling, A1.3):
      * on a phone's window, with the list at its top, the title and each section header is in the
-     * tree as a heading, so TalkBack's heading navigation can reach it from anywhere on the screen.
+     * semantics tree as a heading. These tests guard against lazy composition, which leaves an
+     * off-screen header out of that tree. Being in it is necessary for TalkBack's heading
+     * navigation, not sufficient: Compose hands accessibility services only the nodes on screen, so
+     * this tree cannot show whether TalkBack reaches an off-screen header (the tech-lead's F-4 ruling).
      */
     @Test
     @Config(qualifiers = TALKBACK_PHONE_WINDOW)
