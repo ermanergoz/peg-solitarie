@@ -1,5 +1,6 @@
 package com.app.pegsolitaire.domain.generator
 
+import com.app.pegsolitaire.domain.model.BoardConstants
 import com.app.pegsolitaire.domain.model.BoardSpec
 import com.app.pegsolitaire.domain.model.Boards
 
@@ -15,6 +16,12 @@ import com.app.pegsolitaire.domain.model.Boards
  * structure is final. Because each knob grows by integer division of the level
  * number, consecutive-level deltas are bounded (at most one step), giving the
  * gentle continuous climb D-05 asks for.
+ *
+ * **Generator contract 2 (docs/gdd.md §7.1, GD-SB-09).** The curve is read [Curve.LEVEL_OFFSET]
+ * levels further along: visible level N deals every lever the previous curve dealt at N + 50, so
+ * the opening levels where any single jump was already a pass are cut, while the steps, the cap
+ * and the seed (the visible level) are untouched. Two things stay keyed on the visible level: the
+ * freeform intro (G7) and the fail-proof flag (G6).
  */
 object DifficultyTiers {
     /**
@@ -22,9 +29,20 @@ object DifficultyTiers {
      * level 1 (T-03-01: an untrusted nav-arg level must never crash), so
      * `forLevel(0)` and `forLevel(-5)` both return the level-1 tier.
      */
-    fun forLevel(levelNumber: Int): DifficultyTier {
+    fun forLevel(levelNumber: Int): DifficultyTier = forLevel(levelNumber, levelOffset = Curve.LEVEL_OFFSET)
+
+    /**
+     * The tier for [levelNumber] with the curve read [levelOffset] levels further along. The
+     * public overload passes [Curve.LEVEL_OFFSET]; `levelOffset = 0` is the previous curve, the
+     * oracle the ladder-cut property test compares against. `internal` because only that test
+     * needs a second offset; the shipped contract has one.
+     */
+    internal fun forLevel(
+        levelNumber: Int,
+        levelOffset: Int,
+    ): DifficultyTier {
         val level = levelNumber.coerceAtLeast(Curve.MIN_LEVEL)
-        val fromStart = level - Curve.MIN_LEVEL
+        val fromStart = (level - Curve.MIN_LEVEL) + levelOffset
 
         val solutionLength =
             (Curve.SOLUTION_LENGTH_BASE + fromStart / Curve.SOLUTION_LENGTH_STEP_LEVELS)
@@ -53,23 +71,33 @@ object DifficultyTiers {
             minSpread = Curve.MIN_SPREAD,
             freeformIntroLevel = Curve.FREEFORM_INTRO_LEVEL,
             scoreMultiplier = scoreMultiplier,
+            failProof = level <= Curve.FAIL_PROOF_LEVELS,
         )
     }
 
     /**
-     * The canonical footprints eligible before freeform is introduced, ordered by
-     * ascending hole count so widening the pool adds progressively bigger boards
-     * (D-05/D-08). Freeform shapes are appended at higher levels in 03-02.
+     * The canonical footprints, ordered by ascending hole count so widening the pool adds
+     * progressively bigger boards (D-05/D-08); freeform shapes are drawn beside them from the
+     * intro level on (G7).
+     *
+     * Each entry is a **footprint copy** of a Classic spec carrying the one-peg target
+     * [BoardConstants.MINIMUM_PEGS_DEFAULT] (docs/gdd.md I5, GD-SB-15; tech-lead brief §1(c)), built
+     * uniformly from [Boards.CLASSIC_SPECS] so the invariant holds for any board the catalog gains.
+     * Every generated level is built backwards from one peg, so one peg is its perfect finish
+     * whatever the footprint: Diamond-41's Classic floor of two (a property of its centre start)
+     * must not ride into Challenge with the footprint. `target` is kept, so the four cross copies
+     * are content-identical to their catalog specs. A pool entry is therefore never the catalog
+     * instance — compare by `BoardSpec.footprint`, never by identity.
      */
     private object CanonicalFootprints {
         val ORDERED_BY_SIZE: List<BoardSpec> =
-            listOf(
-                Boards.English33,
-                Boards.European37,
-                Boards.Asymmetric39,
-                Boards.Diamond41,
-                Boards.Wiegleb45,
-            )
+            Boards.CLASSIC_SPECS.map { spec ->
+                BoardSpec(
+                    inPlay = spec.inPlay,
+                    target = spec.target,
+                    minimumPegs = BoardConstants.MINIMUM_PEGS_DEFAULT,
+                )
+            }
     }
 
     /**
@@ -80,6 +108,22 @@ object DifficultyTiers {
     private object Curve {
         /** The lowest valid level; anything below clamps up to it (T-03-01). */
         const val MIN_LEVEL = 1
+
+        /**
+         * How many levels of the previous curve are cut from the front of the ladder (docs/gdd.md
+         * §7.1-§7.2, GD-SB-09): visible level N deals what that curve dealt at N + 50. Fifty removes
+         * exactly two full solution-length bands — the levels where one or two jumps already passed —
+         * and is where the footprint pool first holds two shapes. A designer decision the founder
+         * can move by this one constant; it is part of generator contract 2, so a change is a bump.
+         */
+        const val LEVEL_OFFSET = 50
+
+        /**
+         * The visible levels `1..FAIL_PROOF_LEVELS` that cannot be finished uncleared (docs/gdd.md
+         * §7.4, G6, GD-SB-10): rules/puzzle-design.md's "first failure impossible before puzzle 5",
+         * made true of Challenge. Read against the visible level, never the offset curve.
+         */
+        const val FAIL_PROOF_LEVELS = 4
 
         /** Solution length dealt at level 1 — a gentle on-ramp (D-05). */
         const val SOLUTION_LENGTH_BASE = 3
@@ -124,11 +168,14 @@ object DifficultyTiers {
         const val MIN_SPREAD = 2
 
         /**
-         * The level at/above which freeform footprints become eligible (D-08). Sits
-         * well above the ~1-10 gentle on-ramp band so early levels stay on familiar
-         * canonical shapes. Freeform generation itself arrives in 03-02.
+         * The visible level at/above which freeform footprints become eligible (D-08; docs/gdd.md
+         * §7.3, GD-SB-11): a new player's first nine levels are the English and European crosses
+         * they met on Home and in the catalogue. From here each attempt draws freeform or canonical
+         * evenly (`GeneratorConstants.FREEFORM_SHARE_DENOMINATOR`), so freeform is an added variety
+         * lever rather than the take-over it was at level 40 under contract 1. Compared against the
+         * visible level, so the ladder cut does not move it.
          */
-        const val FREEFORM_INTRO_LEVEL = 40
+        const val FREEFORM_INTRO_LEVEL = 10
 
         /** The level-scaled score multiplier at level 1 (D-11). */
         const val SCORE_MULTIPLIER_BASE = 1

@@ -1,6 +1,7 @@
 package com.app.pegsolitaire.domain.generator
 
 import com.app.pegsolitaire.domain.TestFlags
+import com.app.pegsolitaire.domain.model.BoardConstants
 import com.app.pegsolitaire.domain.model.Move
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
@@ -21,7 +22,9 @@ import java.io.File
  *   depth sweep's cost ten-thousand-fold and prove nothing the certificate does not.
  * - **Per level:** its number equals its position in the chain; every move stays inside the
  *   footprint and is legal on the board it is applied to; the replay ends at exactly one peg; the
- *   level carries [GeneratorConstants.GENERATOR_VERSION].
+ *   level carries [GeneratorConstants.GENERATOR_VERSION]; its spec carries the one-peg target
+ *   [BoardConstants.MINIMUM_PEGS_DEFAULT] (docs/gdd.md I5/G8), so a Classic floor leaking into
+ *   Challenge with a footprint — Diamond-41's two — is a named failing level, not a sampled miss.
  * - **Over the run:** a second, independently built ladder is element-wise identical (invariant 3,
  *   determinism), and the examined count equals `min(N, MAX)` and is above zero — anti-vacuity,
  *   the depth sweep's T-08-39 standard: "0 levels examined, 0 failures" cannot read as a pass.
@@ -82,6 +85,8 @@ class FuzzHarnessTest {
                 "levelNumber ${level.levelNumber}".takeIf { level.levelNumber != expectedLevel },
                 "generatorVersion ${level.generatorVersion}, expected ${GeneratorConstants.GENERATOR_VERSION}"
                     .takeIf { level.generatorVersion != GeneratorConstants.GENERATOR_VERSION },
+                "minimumPegs ${level.startingBoard.spec.minimumPegs}, expected ${BoardConstants.MINIMUM_PEGS_DEFAULT}"
+                    .takeIf { level.startingBoard.spec.minimumPegs != BoardConstants.MINIMUM_PEGS_DEFAULT },
                 replayFailure(level),
             )
         return if (reasons.isEmpty()) null else "level $expectedLevel: ${reasons.joinToString("; ")}"

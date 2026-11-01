@@ -4,6 +4,7 @@ import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Test
 import kotlin.random.Random
 
@@ -17,14 +18,9 @@ import kotlin.random.Random
  * freeform levels stay reverse-generable-or-reseed (never crash).
  */
 class FreeformValidityTest {
-    private val canonicalSpecs =
-        setOf(
-            Boards.English33,
-            Boards.European37,
-            Boards.Asymmetric39,
-            Boards.Diamond41,
-            Boards.Wiegleb45,
-        )
+    // Pool entries are footprint copies with a one-peg target (I5), never the catalog instances,
+    // so "canonical" means "on a Classic footprint" and is tested by footprint, never by identity.
+    private val canonicalFootprints = Boards.CLASSIC_SPECS.map { it.footprint }.toSet()
 
     private val boundingDim = GeneratorConstants.FREEFORM_BOUNDING_DIM
 
@@ -62,17 +58,37 @@ class FreeformValidityTest {
         }
     }
 
+    /**
+     * G7 (GD-SB-11): below level 10 every footprint is a Classic one; from level 10 each attempt
+     * draws freeform or canonical evenly, so both kinds keep appearing. Replaces the contract-1
+     * test that every level from the intro on was freeform, which the mix makes false.
+     */
     @Test
-    fun footprintsAreCanonicalBelowTheIntroLevelAndFreeformAtIt() {
-        val introLevel = DifficultyTiers.forLevel(1).freeformIntroLevel
+    fun footprintsAreCanonicalBelowLevelTenAndMixedFromIt() {
+        val ladder = LevelGenerator.generateLadder(MIX_SAMPLE_LAST_LEVEL).toList()
+        val (belowIntro, fromIntro) = ladder.partition { it.levelNumber < 10 }
 
-        for (n in 1 until introLevel) {
-            assertThat(LevelGenerator.generate(n).startingBoard.spec in canonicalSpecs).isTrue()
+        assertThat(DifficultyTiers.forLevel(1).freeformIntroLevel).isEqualTo(10)
+        assertThat(belowIntro.map { it.levelNumber }).isEqualTo((1..9).toList())
+        belowIntro.forEach { level ->
+            assertWithMessage("level %s is canonical", level.levelNumber).that(isCanonical(level)).isTrue()
         }
+        assertWithMessage("a canonical footprint from level 10").that(fromIntro.any(::isCanonical)).isTrue()
+        assertWithMessage("a freeform footprint from level 10").that(fromIntro.any { !isCanonical(it) }).isTrue()
+    }
 
-        // At the intro level freeform footprints become eligible and are used.
-        assertThat(LevelGenerator.generate(introLevel).startingBoard.spec in canonicalSpecs)
-            .isFalse()
+    /**
+     * GDD §7.3's measurable, asserted only after the brief's M3 measured it inside the bound: the
+     * draw is per attempt, so the ACCEPTED share also depends on the two kinds' gate pass rates.
+     */
+    @Test
+    fun theFreeformShareOverLevelsTenToOneThousandLiesBetweenThirtyFiveAndSixtyFivePercent() {
+        val fromIntro = LevelGenerator.generateLadder(1000).filter { it.levelNumber >= 10 }.toList()
+        val freeformShare = fromIntro.count { !isCanonical(it) }.toDouble() / fromIntro.size
+
+        assertThat(fromIntro).hasSize(991)
+        assertThat(freeformShare).isAtLeast(0.35)
+        assertThat(freeformShare).isAtMost(0.65)
     }
 
     @Test
@@ -90,6 +106,8 @@ class FreeformValidityTest {
             assertThat(finalBoard.pegCount).isEqualTo(1)
         }
     }
+
+    private fun isCanonical(level: GeneratedLevel): Boolean = level.startingBoard.spec.footprint in canonicalFootprints
 
     private fun floodFillReachesEveryCell(positions: List<Position>): Boolean {
         val cells = positions.toHashSet()
@@ -116,5 +134,8 @@ class FreeformValidityTest {
 
         /** Distinct RNG seeds sampled to exercise the builder. */
         const val FREEFORM_SEED_SAMPLES = 40
+
+        /** The mix test's span: the nine canonical-only levels, then ninety-one mixed ones. */
+        const val MIX_SAMPLE_LAST_LEVEL = 100
     }
 }

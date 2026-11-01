@@ -1,9 +1,11 @@
 package com.app.pegsolitaire.domain.generator
 
 import com.app.pegsolitaire.domain.model.Board
+import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.domain.model.Cell
 import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Test
 
 /**
@@ -126,6 +128,53 @@ class QualityGateTest {
         }
     }
 
+    // ---- Generator contract 2 (docs/gdd.md §7, §8 G6/G7) -----------------------------------
+
+    @Test
+    fun levelOneDealsSixPegsAndAFiveJumpLine() {
+        // SB-D6: the old levels 1-50, where any single jump was already a pass, are gone.
+        val level = LevelGenerator.generate(1)
+
+        assertThat(level.startingBoard.pegCount).isEqualTo(6)
+        assertThat(level.solution).hasSize(5)
+        assertThat(level.startingBoard.spec.footprint)
+            .isIn(listOf(Boards.English33.footprint, Boards.European37.footprint))
+    }
+
+    /**
+     * SB-D7 (G6): on levels 1-4 a player cannot finish uncleared, whatever they tap. Checked by an
+     * enumeration written here, independently of the generator's own gate: every position reachable
+     * from the start by legal jumps is visited once (keyed by its peg mask), and every one with no
+     * legal move must hold at most three pegs.
+     */
+    @Test
+    fun levelsOneToFourCannotEndWithMoreThanThreePegs() {
+        LevelGenerator.generateLadder(4).forEach { level ->
+            val terminalPegCounts = terminalPegCountsReachableFrom(level.startingBoard)
+
+            // Anti-vacuity: a board always reaches at least one terminal position.
+            assertWithMessage("terminal positions of level %s", level.levelNumber)
+                .that(terminalPegCounts)
+                .isNotEmpty()
+            assertWithMessage("peg counts of level %s's terminal positions", level.levelNumber)
+                .that(terminalPegCounts.max())
+                .isAtMost(3)
+        }
+    }
+
+    @Test
+    fun allFiveCanonicalFootprintsAppearByLevelThreeHundred() {
+        // G7 with I5: the pool widening at 51, 101 and 151 is reachable now that freeform no
+        // longer takes over every level; the dealt spec is a footprint copy, so compare footprints.
+        val dealt = LevelGenerator.generateLadder(300).map { it.startingBoard.spec.footprint }.toSet()
+
+        Boards.CLASSIC_SPECS.forEach { spec ->
+            assertWithMessage("a Challenge level 1..300 dealt on the %s-hole footprint", spec.size)
+                .that(spec.footprint in dealt)
+                .isTrue()
+        }
+    }
+
     @Test
     fun generationTerminatesForEverySampledLevel() {
         // A bounded reject-and-reseed loop must never hang: reaching this assertion
@@ -144,6 +193,20 @@ class QualityGateTest {
         (FIRST_SPAN_LEVEL..DEDUP_SPAN_LEVELS).map { n ->
             LevelGenerator.generate(n).startingBoard.pegs
         }
+
+    /** The peg counts of every terminal position reachable from [start] (each position visited once). */
+    private fun terminalPegCountsReachableFrom(start: Board): List<Int> {
+        val seen = hashSetOf(start.pegs)
+        val queue = ArrayDeque(listOf(start))
+        val terminalPegCounts = mutableListOf<Int>()
+        while (queue.isNotEmpty()) {
+            val board = queue.removeFirst()
+            val moves = RulesEngine.legalMoves(board)
+            if (moves.isEmpty()) terminalPegCounts += board.pegCount
+            moves.map { RulesEngine.applyMove(board, it) }.filter { seen.add(it.pegs) }.forEach(queue::addLast)
+        }
+        return terminalPegCounts
+    }
 
     private fun canonicalKey(board: Board): Long =
         BoardCanonical.canonical(board.pegs, BoardCanonical.symmetryPermutations(board.spec))

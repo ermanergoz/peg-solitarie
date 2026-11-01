@@ -18,9 +18,15 @@ import org.junit.Test
  * `UPDATE_GOLDEN=true` (Pitfall 2).
  *
  * The sampled levels span the curve — a level-1 on-ramp board, an adjacent level 2,
- * a low canonical level 10, a mid-curve level 100, and a deep freeform level 1000 —
- * so the lock covers canonical footprints, freeform footprints, and the bounded
- * deterministic fallback alike.
+ * a low level 10, a mid-curve level 100, and a deep level 1000.
+ *
+ * Generator contract 2 (docs/gdd.md I7; regenerated with the bump): under the freeform mix
+ * the kind of footprint a level gets is no longer fixed by its number, so the coverage is
+ * recorded as measured rather than assumed — levels 1, 2, 10 and 100 are dealt on the
+ * English-33 footprint (canonical) and level 1000 on a freeform one. No level in the whole
+ * space 1..10,000 takes the `MAX_ATTEMPTS` fallback under contract 2 (measured when the
+ * fixtures were regenerated), so no fixture can exercise it; the fuzz harness's second-ladder
+ * equality is what pins determinism over the whole space.
  */
 class ChallengeGeneratorGoldenTest {
     @Test
@@ -45,7 +51,7 @@ class ChallengeGeneratorGoldenTest {
     }
 
     private companion object {
-        /** The frozen determinism-lock sample (canonical + freeform + fallback coverage). */
+        /** The frozen determinism-lock sample: four canonical levels and one freeform (contract 2). */
         val SAMPLE_LEVELS = listOf(1, 2, 10, 100, 1000)
     }
 }
