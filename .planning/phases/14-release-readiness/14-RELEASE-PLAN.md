@@ -275,17 +275,14 @@ listing ends up promising something that is not there.
      they are environment-only — unlike the ad and Play Games keys, these *are* cryptographic
      secrets and must never appear in `local.properties`.
 
-2. **`scripts/play-upload.sh`.** The repo has **no `scripts/` directory at all** (`develop`
-   0582e3f, and no branch carries one), so the gated upload script the studio's rules assume does
-   not exist. **It is not created on the release branch:** it is code, and the release branch
-   takes no code (`docs/release-checklist.md` §2, "A release branch is not where a feature gets
-   finished"). *Corrected 2026-10-21; this item earlier said "created on the release branch".*
-   It is owed on `feature/play-upload` off `develop` (`docs/tech-design.md` §14.1 PU), **before
-   Gate 2**: the tech-lead assigns it to the android-game-dev, the code-auditor reviews it, the
-   tech-lead signs it off, and the producer routes and merges it (`docs/release-checklist.md`
-   item 1.7 and the note under its §4). It blocks Gate 2, not the branch cut. Until it merges, the
-   only upload route is the founder's own Console upload (`14-OPERATOR-CHECKLIST.md` Step 8
-   item 1), and the producer records which route this release uses (checklist item 1.7).
+2. **`scripts/play-upload.sh`.** On `develop` since merge `1dd1080` (`feature/play-upload`,
+   `docs/tech-design.md` §14.1 PU), reviewed by the code-auditor and QA and signed off by the
+   tech-lead (`.planning/reports/play-upload/`). *Updated 2026-11-01 (T-9): this item earlier said
+   the repo had no `scripts/` directory and that the script was still owed.* It was never created on
+   the release branch: it is code, and the release branch takes no code (`docs/release-checklist.md`
+   §2). The as-built contract and the script-route rules (T-1, T-3, T-6, T-7, T-11, TL-1) are in the
+   note under §4 of `docs/release-checklist.md`; the producer records which route this release uses
+   (script or the founder's Console upload, `14-OPERATOR-CHECKLIST.md` Step 8 item 1) under item 1.7.
    Its specification: `fastlane supply` against `PLAY_SERVICE_ACCOUNT_JSON`, uploading the signed
    AAB of `:app:bundleRelease` to the `internal` track, failing with a message when the variable or
    the AAB is missing, and echoing no secret. **It checks no approval itself.** The gate is the
@@ -311,8 +308,10 @@ listing ends up promising something that is not there.
    `verifyReleaseAdIds` / `verifyReleaseGamesIds` dependency (`app/build.gradle.kts` wires both
    task names), so nothing else changes. Whether this listing — published before the 2021 bundle
    requirement — would still accept an APK is **unverified and irrelevant**: the AAB is the right
-   artifact either way. `CLAUDE.md`'s Build command line is updated on the release branch to name
-   `:app:bundleRelease` for the release artifact.
+   artifact either way.    `CLAUDE.md`'s Build command line is updated on the release branch to name
+   `:app:bundleRelease` for the release artifact. *(Note 2026-11-01: for 3.0.0 the change landed
+   before the cut, on `develop` with `feature/release-3.0.0-prep`, together with `AGENTS.md`; the
+   release branch only reads it, checklist 2.6.)*
 
 ### 4b. The procedure
 
@@ -352,7 +351,7 @@ unzip -p app/build/outputs/bundle/release/app-release.aab base/manifest/AndroidM
 ```
 
 Then a **one-screen founder summary**: version, changelog, checklist state, store-asset state, and
-the exact upload command — and stop. The upload command is run by the founder's approval, never by
+the exact upload command (T-6: `docs/release-checklist.md` item 4.8 and the note under its §4) — and stop. The upload command is run by the founder's approval, never by
 the studio on its own initiative.
 
 ### 4c. What the studio must not do
