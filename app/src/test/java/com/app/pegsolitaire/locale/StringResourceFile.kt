@@ -84,6 +84,47 @@ internal fun formatArguments(value: String): Map<String, Int> =
         .groupingBy { it }
         .eachCount()
 
+/**
+ * The code points [value] draws on screen: Android's resource escapes resolved (`\'`, `\"`, `\\`,
+ * `\n`, `\t`, `\uXXXX`, `\@`, `\?`), aapt2's unescaped quotes and the format specifiers removed (a
+ * literal `%%` draws one `%`), and whitespace dropped. What a font must hold for that value.
+ */
+internal fun drawnCodePoints(value: String): Set<Int> =
+    FORMAT_SPECIFIER
+        .replace(displayedText(value)) { match ->
+            if (match.groupValues[CONVERSION_GROUP] == LITERAL_PERCENT) LITERAL_PERCENT else ""
+        }.codePoints()
+        .toArray()
+        .filterNot { Character.isWhitespace(it) }
+        .toSet()
+
+/**
+ * [value] as text, the way aapt2 compiles it: Android's escapes resolved and its unescaped quotes
+ * removed. Format specifiers stay as written; a formatter replaces them at run time.
+ */
+internal fun displayedText(value: String): String =
+    buildString {
+        var index = 0
+        while (index < value.length) {
+            val char = value[index]
+            when {
+                char == ESCAPE && index + 1 < value.length && value[index + 1] == UNICODE_ESCAPE -> {
+                    append(value.substring(index + 2, index + UNICODE_ESCAPE_LENGTH).toInt(HEX).toChar())
+                    index += UNICODE_ESCAPE_LENGTH
+                }
+                char == ESCAPE && index + 1 < value.length -> {
+                    append(ESCAPED_CONTROLS[value[index + 1]] ?: value[index + 1])
+                    index += 2
+                }
+                char == AAPT_QUOTE -> index++
+                else -> {
+                    append(char)
+                    index++
+                }
+            }
+        }
+    }
+
 /** The repository root: the nearest ancestor of the working directory holding `settings.gradle.kts`. */
 internal val repositoryRoot: File by lazy {
     generateSequence(File(".").absoluteFile) { it.parentFile }.firstOrNull { File(it, ROOT_MARKER).isFile }
@@ -98,5 +139,13 @@ private val FORMAT_SPECIFIER = Regex("""%(\d+\$)?[-#+ 0,(<]*\d*(?:\.\d+)?([a-zA-
 private const val INDEX_GROUP = 1
 private const val CONVERSION_GROUP = 2
 private const val LITERAL_PERCENT = "%"
+private const val ESCAPE = '\\'
+private const val UNICODE_ESCAPE = 'u'
+private const val AAPT_QUOTE = '"'
+
+/** `\u` and its four hex digits. */
+private const val UNICODE_ESCAPE_LENGTH = 6
+private const val HEX = 16
+private val ESCAPED_CONTROLS = mapOf('n' to '\n', 't' to '\t')
 private const val ROOT_MARKER = "settings.gradle.kts"
 private const val MAIN_RES_DIR = "app/src/main/res"

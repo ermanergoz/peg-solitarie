@@ -465,7 +465,7 @@ tasks.matching { it.name == "mergeDebugAssets" }.configureEach {
     dependsOn("copyRoomSchemas")
 }
 
-// Files two unit tests read straight from the working tree, which Gradle cannot know they depend
+// Files three unit tests read straight from the working tree, which Gradle cannot know they depend
 // on. Declared below as inputs of every unit-test task, so an edit to them re-runs the tests.
 //
 // P5 (docs/tech/audio-silent-mode.md §2.3). `AudioCreditsTest` reads docs/audio/CREDITS.md and
@@ -483,6 +483,14 @@ val audioProvenanceInputs =
 // included, and a comment-only edit there may change no class file the test task watches.
 val tutorialSourceGuardInputs = files(layout.projectDirectory.dir("src/main/java/com/app/pegsolitaire/ui/onboarding"))
 
+// docs/tech-design.md §11.1 (Q-039). BundledFontRecipeTest reads fonts/fredoka-tr/ (the recipe and
+// the upstream copies the shipped Fredoka files are built from), outside every source set. The
+// build's own venv is git-ignored and an input of nothing.
+val fredokaRecipeInputs =
+    rootProject.fileTree("fonts/fredoka-tr") {
+        exclude(".venv/**", "**/__pycache__/**")
+    }
+
 tasks.withType<Test>().configureEach {
     inputs
         .files(audioProvenanceInputs)
@@ -491,6 +499,10 @@ tasks.withType<Test>().configureEach {
     inputs
         .files(tutorialSourceGuardInputs)
         .withPropertyName("tutorialSources")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs
+        .files(fredokaRecipeInputs)
+        .withPropertyName("fredokaRecipe")
         .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 

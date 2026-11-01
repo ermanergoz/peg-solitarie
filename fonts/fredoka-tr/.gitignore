@@ -1,0 +1,3 @@
+# build.sh's own Python environment and caches; never committed.
+.venv/
+__pycache__/

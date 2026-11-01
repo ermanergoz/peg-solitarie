@@ -499,10 +499,6 @@
       rather than the spec's draft "Eclipse Foundation", which the NOTICE names only as the
       trademark holder (spec §3.2, loop 1 F-16).
 
-      licenses_psl_parts writes its date with U+2011 non-breaking hyphens, so the date never
-      wraps across lines at a large font scale (it is a date, not the range lint's
-      TypographyDashes would read in plain hyphens).
-
       licenses_psl_address is the exact revision of the Public Suffix List compiled into okhttp
       4.11.0 (research-analyst-mpl.md, verdict 2). It is re-derived before the cut if the release
       listing shows another okhttp (spec §9 item 13).
@@ -572,7 +568,7 @@
     <string name="licenses_chromium_parts">The Cronet networking classes inside Google Mobile Ads</string>
     <string name="licenses_psl_title" translatable="false">Public Suffix List</string>
     <string name="licenses_psl_credit">Mozilla and the list\'s contributors</string>
-    <string name="licenses_psl_parts">The public-suffix data compiled into OkHttp, as it stood on 2023&#8209;02&#8209;15</string>
+    <string name="licenses_psl_parts">The public-suffix data compiled into OkHttp, as it stood on 15 February 2023</string>
     <string name="licenses_psl_address" translatable="false">github.com/publicsuffix/list/blob/a312abe0e11421aff8fe909a5e02f36b7c5d28de/public_suffix_list.dat</string>
     <string name="licenses_checker_title" translatable="false">Checker Framework qualifiers</string>
     <string name="licenses_checker_credit" translatable="false">The Checker Framework developers</string>

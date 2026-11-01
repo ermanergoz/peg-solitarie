@@ -486,10 +486,6 @@
       rather than the spec's draft "Eclipse Foundation", which the NOTICE names only as the
       trademark holder (spec §3.2, loop 1 F-16).
 
-      licenses_psl_parts writes its date with U+2011 non-breaking hyphens, so the date never
-      wraps across lines at a large font scale (it is a date, not the range lint's
-      TypographyDashes would read in plain hyphens).
-
       licenses_psl_address is the exact revision of the Public Suffix List compiled into okhttp
       4.11.0 (research-analyst-mpl.md, verdict 2). It is re-derived before the cut if the release
       listing shows another okhttp (spec §9 item 13).
