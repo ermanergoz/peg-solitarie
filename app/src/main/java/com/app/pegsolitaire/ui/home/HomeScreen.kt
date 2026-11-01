@@ -51,6 +51,7 @@ import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.Boards
+import com.app.pegsolitaire.domain.rules.RulesEngine
 import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_HEIGHT_DP
 import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_WIDTH_DP
 import com.app.pegsolitaire.ui.backdrop.BackdropDensity
@@ -841,7 +842,9 @@ private fun HomeScreenFirstFramePreview() {
 /**
  * The busiest legitimate Home — filled ribbon, both Continue chips, both tiles, the layout the
  * first-paint rule (D-03f) is about — on the design baseline's window over the backdrop (BD-25).
- * In both themes, so every glossed pill and chip and both gel tiles are seen in each.
+ * In both themes, so every glossed pill and chip and both gel tiles are seen in each. The Classic
+ * chip's thumbnail draws a save partway through a game ([PreviewSave]), as a player's save is: since
+ * D-03p it shows the saved position, never the start.
  */
 @Preview(name = "Home · busiest · light", widthDp = BACKDROP_PREVIEW_WIDTH_DP, heightDp = BACKDROP_PREVIEW_HEIGHT_DP)
 @Preview(
@@ -861,7 +864,7 @@ private fun HomeScreenBusiestPreview() {
                         classicBoardsCleared = PREVIEW_BOARDS_CLEARED,
                         challengeCurrentLevel = PREVIEW_LEVEL,
                         classicResumeLevelId = ClassicLevelIds.EUROPEAN37,
-                        classicResumeBoard = Boards.european37Initial,
+                        classicResumeBoard = PreviewSave.board,
                         challengeResumeLevel = PREVIEW_RESUME_LEVEL,
                     ),
                 onPlayClassic = {},
@@ -884,9 +887,10 @@ private fun HomeScreenBusiestPreview() {
  * narrow device: the same busiest state as the dark preview, on the design baseline's own
  * 360x640dp window. Each progress pill should read "label value" on one line with no glyph, and
  * both Continue chips and both mode tiles should be whole, with the footer's share of the slack
- * below them (§4.2.5, §4.2.7). A preview draws no system bars, so the column has all 640dp and a
- * little headroom shows above the title, where the 568dp a phone with its bars offers leaves next to
- * none with both chips in.
+ * below them (§4.2.5, §4.2.7), and the Classic chip's thumbnail should show [PreviewSave]'s position.
+ * A preview draws no system bars, so the column has all 640dp: with both chips in, 53dp of headroom
+ * shows above the title (measured on NATIVE metrics), where the 568dp a phone with a 24dp status bar
+ * and a 48dp three-button bar offers leaves it 16dp.
  *
  * In **both** themes, per rules/compose.md: the compact band set is the one a 360dp-wide phone
  * always gets (§4.2.3), so it is not a variant that only needs checking in one of them.
@@ -917,7 +921,7 @@ private fun HomeScreenCompactPreview() {
                         classicBoardsCleared = PREVIEW_BOARDS_CLEARED,
                         challengeCurrentLevel = PREVIEW_LEVEL,
                         classicResumeLevelId = ClassicLevelIds.EUROPEAN37,
-                        classicResumeBoard = Boards.european37Initial,
+                        classicResumeBoard = PreviewSave.board,
                         challengeResumeLevel = PREVIEW_RESUME_LEVEL,
                     ),
                 onPlayClassic = {},
@@ -934,6 +938,22 @@ private fun HomeScreenCompactPreview() {
         }
     }
 }
+
+/**
+ * The Classic save the busiest and compact previews draw (D-03p, §4.2.7): European-37
+ * [PREVIEW_JUMPS_PLAYED] jumps in, each the first legal one, so the thumbnail shows a position partway
+ * through a game with a third of its pegs gone. An object, so its jumps are played when a preview first
+ * reads it and never on Home's own path.
+ */
+private object PreviewSave {
+    val board: Board =
+        (1..PREVIEW_JUMPS_PLAYED).fold(Boards.european37Initial) { position, _ ->
+            RulesEngine.applyMove(position, RulesEngine.legalMoves(position).first())
+        }
+}
+
+/** How far into the game [PreviewSave] is: 12 jumps, a third of European-37's 36 pegs gone. */
+private const val PREVIEW_JUMPS_PLAYED = 12
 
 private const val PREVIEW_STARS = 7
 private const val PREVIEW_BOARDS_CLEARED = 3
