@@ -19,7 +19,6 @@ import com.app.pegsolitaire.domain.progress.LevelBest
 import com.app.pegsolitaire.domain.progress.LevelKey
 import com.app.pegsolitaire.domain.progress.ProgressMerge
 import com.app.pegsolitaire.domain.progress.ProgressMode
-import com.app.pegsolitaire.domain.scoring.ChallengeClearRule
 import com.app.pegsolitaire.domain.scoring.ScoreResult
 import com.app.pegsolitaire.domain.telemetry.SolveTelemetry
 import kotlinx.coroutines.flow.Flow
@@ -601,9 +600,6 @@ class DefaultProgressRepository
                             classicMode = ProgressPersistenceKeys.MODE_CLASSIC,
                             english33Id = ClassicLevelIds.ENGLISH33,
                             speedLimitMs = AchievementThresholds.SPEED_SOLVE_MAX_ELAPSED_MS,
-                            // GD-SB-05: the skill awards need a perfect play, since 3.0.0's one-
-                            // and two-star Challenge clears are recorded plays too.
-                            perfectStars = ChallengeClearRule.PERFECT_STARS,
                         )
                     ProgressAggregate(
                         highestChallengeLevel = totals.highestChallengeLevel,

@@ -42,12 +42,13 @@ data class ChallengeBand(
  *
  * The count is **absolute**. It reads no `BoardSpec.minimumPegs`, no footprint, no level number and
  * no mode: every generated level is built backwards from one peg (GDD I1), so one peg is reachable
- * on every board and the band is the same on a six-peg level 1 as on a thirty-one-peg level 300.
+ * on every board and the band is the same on the first level as on a thirty-one-peg level 1,000.
  * Classic does not come here; it keeps its own per-board floor (R4, `ScoreCalculator.stars`).
  *
- * `GameViewModel`, `ResultsUiState` and the skill-achievement query all read this object rather
- * than restating a peg count, so the Challenge cleared test exists exactly once. Three scattered
- * `pegsRemaining == 1` comparisons are how the Diamond-41 record gap survived to phase 10 (CR-01).
+ * `GameViewModel`, `ResultsUiState` and the rescue banner's Challenge copy all read this object
+ * rather than restating a peg count, so the Challenge cleared test exists exactly once. Three
+ * scattered `pegsRemaining == 1` comparisons are how the Diamond-41 record gap survived to phase 10
+ * (CR-01).
  *
  * Pure Kotlin with no Android dependency (QUAL-01). [status] reads [RulesEngine], so this package
  * depends on `rules/`, as `usecase/` already does; `rules/` never depends back.
@@ -57,14 +58,13 @@ object ChallengeClearRule {
      * The most pegs a terminal Challenge board may hold and still clear its level: three
      * (R5, GD-SB-02, the founder's 2026-11-01 directive). Four or more is a stuck board (R6).
      *
-     * The generator reads this one constant too, for the fail-proof opening of levels 1–4 (G6),
-     * rather than restating it: a copy would drift.
+     * The rescue banner's Challenge messages take it as a format argument rather than restating it:
+     * a copy would drift.
      */
     const val CLEAR_MAX_PEGS = 3
 
     /**
-     * The stars a perfect, one-peg finish earns — the top of the band, and the star count the
-     * three skill achievements require (GD-SB-05).
+     * The stars a perfect, one-peg finish earns — the top of the band.
      *
      * Equal by design to [CLEAR_MAX_PEGS]: the band is one star per peg, so a clear at
      * [CLEAR_MAX_PEGS] pegs earns exactly one. `ChallengeClearRuleTest` pins the coincidence,

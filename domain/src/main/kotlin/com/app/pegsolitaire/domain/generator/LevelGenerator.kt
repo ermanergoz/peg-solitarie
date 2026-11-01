@@ -6,7 +6,6 @@ import com.app.pegsolitaire.domain.model.Cell
 import com.app.pegsolitaire.domain.model.Move
 import com.app.pegsolitaire.domain.model.Position
 import com.app.pegsolitaire.domain.rules.RulesEngine
-import com.app.pegsolitaire.domain.scoring.ChallengeClearRule
 import kotlin.random.Random
 
 /**
@@ -29,10 +28,6 @@ import kotlin.random.Random
  * Quality gates, freeform footprints, and the full reject-and-reseed policy arrive
  * in 03-02; this plan ships the determinism *mechanism* and a bounded internal
  * retry that escapes an empty-candidate dead-end deterministically.
- *
- * Generator contract 2 (3.0.0; docs/gdd.md §7-§8, tech-design §7.1) adds the fail-proof gate
- * on the first levels (G6, [isFailProof]) and the even freeform/canonical draw ([pickFootprint],
- * G7); the curve's ladder cut and the one-peg pool live in [DifficultyTiers].
  */
 object LevelGenerator {
     /** The four orthogonal step vectors, in the same fixed order `RulesEngine` uses. */
@@ -144,7 +139,7 @@ object LevelGenerator {
     }
 
     /**
-     * The quality gates (RESEARCH §Quality Gates, Pitfall 3; docs/gdd.md §8), applied to a
+     * The five quality gates (RESEARCH §Quality Gates, Pitfall 3), applied to a
      * finished reverse-walk [candidate]. All thresholds are tier knobs or scoped
      * [GeneratorConstants] — no inline literals (QUAL-03). Any failure means the
      * caller reseeds with the next deterministic salt.
@@ -153,9 +148,6 @@ object LevelGenerator {
      * [DifficultyTier.minOpeningMoves] branching floor (>= 2) had already passed on
      * the opening board, so it could never fire — the branching floor already
      * guarantees the opening move is not the sole legal move.
-     *
-     * The fail-proof gate (G6) runs last: it is the only one that enumerates positions, and only
-     * on a [DifficultyTier.failProof] level, so every cheaper gate short-circuits before it.
      */
     private fun passesQualityGates(
         candidate: GeneratedLevel,
@@ -168,8 +160,7 @@ object LevelGenerator {
             board.pegCount in tier.pegRange &&
             RulesEngine.legalMoves(board).size >= tier.minOpeningMoves &&
             boundingBoxSpread(board) >= tier.minSpread &&
-            canonicalKeyOf(board) !in forbiddenKeys &&
-            (!tier.failProof || isFailProof(board))
+            canonicalKeyOf(board) !in forbiddenKeys
     }
 
     /**
@@ -240,24 +231,20 @@ object LevelGenerator {
     }
 
     /**
-     * Picks the footprint for one reverse-walk attempt (gate G7, docs/gdd.md §7.3): a canonical
-     * [DifficultyTier.footprintPool] spec below [DifficultyTier.freeformIntroLevel] (D-08); at or
-     * above it, an even draw from [rng] — taken BEFORE any footprint is built, so both branches stay
-     * deterministic — chooses a [FreeformFootprints.build] shape on
-     * [GeneratorConstants.FREEFORM_DRAW] and the canonical pool otherwise, or when no freeform shape
-     * is produced (D-09). Under contract 1 freeform was tried first at every attempt and always
-     * produced, so the pool widening past the first footprint was unreachable. A shape that admits no
-     * reverse walk to the tier's length simply fails the quality gates and reseeds. The PRNG index is
-     * drawn against the pool `List` (Pitfall 1); freeform draws are deterministic in [rng].
+     * Picks the footprint for one reverse-walk attempt: a canonical
+     * [DifficultyTier.footprintPool] spec below [DifficultyTier.freeformIntroLevel]
+     * (D-08), and at/above it a [FreeformFootprints.build] shape when one is
+     * produced — otherwise falling back to the canonical pool (D-09). A freeform
+     * shape that admits no reverse walk to the tier's length simply fails the
+     * quality gates and reseeds. The PRNG index is drawn against the pool `List`
+     * (Pitfall 1); freeform draws are deterministic in [rng].
      */
     private fun pickFootprint(
         level: Int,
         tier: DifficultyTier,
         rng: Random,
     ): BoardSpec {
-        if (level >= tier.freeformIntroLevel &&
-            rng.nextInt(GeneratorConstants.FREEFORM_SHARE_DENOMINATOR) == GeneratorConstants.FREEFORM_DRAW
-        ) {
+        if (level >= tier.freeformIntroLevel) {
             val freeform = FreeformFootprints.build(rng, tier)
             if (freeform != null) return freeform
         }
@@ -320,34 +307,4 @@ object LevelGenerator {
         val rowDelta: Int,
         val colDelta: Int,
     )
-}
-
-/**
- * Gate G6 (docs/gdd.md §7.4, GD-SB-10): whether no sequence of legal jumps from [start] can end
- * with more than [ChallengeClearRule.CLEAR_MAX_PEGS] pegs — so the level cannot be finished
- * uncleared, whatever the player taps. Called by `LevelGenerator.passesQualityGates` for a
- * [DifficultyTier.failProof] level. File-private rather than a member: it reads only the board,
- * and the generator object is at detekt's `TooManyFunctions` limit.
- *
- * A depth-first walk over every position reachable from [start], each visited once (keyed by its
- * peg mask, as a `Board` over one spec is), answering `false` at the first terminal position
- * above the clear threshold. The threshold is read from the clear rule itself, never copied: the
- * generator grades no finish, it only refuses a board that some finish would leave stuck. At the
- * six-peg openings this gate guards the walk is tiny — 9 to 35 positions on the shipped levels 1–4
- * of contract 2 — and the set is used for membership only, so the answer is the same whatever
- * order the walk takes (Pitfall 1).
- */
-private fun isFailProof(start: Board): Boolean {
-    val seen = hashSetOf(start.pegs)
-    val pending = ArrayDeque(listOf(start))
-    while (pending.isNotEmpty()) {
-        val board = pending.removeLast()
-        val moves = RulesEngine.legalMoves(board)
-        if (moves.isEmpty() && board.pegCount > ChallengeClearRule.CLEAR_MAX_PEGS) return false
-        moves
-            .map { RulesEngine.applyMove(board, it) }
-            .filter { seen.add(it.pegs) }
-            .forEach(pending::addLast)
-    }
-    return true
 }

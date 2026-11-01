@@ -75,24 +75,18 @@ enum class ClassicBoard {
  *   3-star band (`stars >= AchievementThresholds.PERFECT_STARS`). `ScoreCalculator` bands
  *   the top star against the finishing board's own `BoardSpec.minimumPegs`, so a 3-star
  *   Diamond-41 result IS that board's proven 2-peg floor (D-04) — no special case needed.
- * @property anyHintFreeSolve `EXISTS(SELECT 1 FROM play_session WHERE hintsUsed = 0 AND
- *   stars = :perfectStars)`. **Mode-agnostic** (D-01): a hint-free solve in EITHER mode earns
- *   Hint-free — and a *solve* means a three-star play (docs/gdd.md GD-SB-05, §11.2): since
- *   3.0.0 a one- or two-star Challenge clear is a recorded play too, and a pass is not a solve.
- *   `:perfectStars` is bound from `ChallengeClearRule.PERFECT_STARS`. Classic rows are always
- *   three stars (R4), so Classic is unchanged by construction.
- * @property anyUndoFreeSolve `EXISTS(SELECT 1 FROM play_session WHERE undosUsed = 0 AND
- *   stars = :perfectStars)`, likewise mode-agnostic (D-01) and three stars only (GD-SB-05).
+ * @property anyHintFreeSolve `EXISTS(SELECT 1 FROM play_session WHERE hintsUsed = 0)`.
+ *   **Mode-agnostic** (D-01): a hint-free solve in EITHER mode earns Hint-free.
+ * @property anyUndoFreeSolve `EXISTS(SELECT 1 FROM play_session WHERE undosUsed = 0)`,
+ *   likewise mode-agnostic (D-01).
  * @property anyCenterFinish `EXISTS(... WHERE mode = 'classic' AND levelId = <English-33>
  *   AND lastPegOnTarget = 1)`. This means **English-33 with the last peg on `(3, 3)`**
  *   and nothing else (D-01) — it is NOT a generalised "finished on the start hole": the
  *   rules expose no such concept, because European-37 starts off-centre, Diamond-41
  *   cannot reach one peg, and Challenge boards have no defined centre.
- * @property anySpeedSolve `EXISTS(... WHERE elapsedMs < :speedLimitMs AND stars =
- *   :perfectStars)` with `:speedLimitMs` bound from
- *   [AchievementThresholds.SPEED_SOLVE_MAX_ELAPSED_MS] — any level, either mode, solved with
- *   three stars in under 60 seconds (D-04, GD-SB-05: otherwise three quick jumps to a one-star
- *   clear of Challenge level 1 would unlock it).
+ * @property anySpeedSolve `EXISTS(... WHERE elapsedMs < :speedLimitMs)` with
+ *   `:speedLimitMs` bound from [AchievementThresholds.SPEED_SOLVE_MAX_ELAPSED_MS] — any
+ *   level, either mode, solved in under 60 seconds (D-04).
  */
 data class ProgressAggregate(
     val highestChallengeLevel: Int? = null,

@@ -1,6 +1,5 @@
 package com.app.pegsolitaire.data.resume
 
-import com.app.pegsolitaire.data.ProgressPersistenceKeys
 import com.app.pegsolitaire.data.resume.ResumeSnapshotFormat.MAX_BOARD_POSITIONS
 import com.app.pegsolitaire.domain.assist.AssistAllowance
 import com.app.pegsolitaire.domain.model.Board
@@ -83,10 +82,9 @@ data class RestoredGame(
  *
  * **The board's own target survives the round trip (DEBT-02, Pitfall 3).** Because the
  * rebuild is structural rather than a catalog lookup, `minimumPegs` is carried in the
- * blob explicitly; a Classic blob written before that field existed has its target resolved
- * from [Boards.CLASSIC_SPECS] by footprint equality, and a Challenge one takes the one-peg floor
- * every generated board has (I5). Without both halves, a resumed Diamond-41 game would revert to
- * a one-peg target that its board cannot reach.
+ * blob explicitly; a blob written before that field existed has its target resolved from
+ * [Boards.CLASSIC_SPECS] by footprint equality. Without both halves, a resumed Diamond-41
+ * game would revert to a one-peg target that its board cannot reach.
  */
 @Suppress("TooManyFunctions") // one private validator per stored field; merging any two would hide a rejection rule
 object SnapshotMapper {
@@ -296,21 +294,16 @@ object SnapshotMapper {
      * been validated as [positions] (DEBT-02) — or `null` when the stored value is not a
      * target any board could carry, which refuses the whole snapshot.
      *
-     * Four cases, in order:
+     * Three cases, in order:
      *  1. **Present** — it must satisfy `in 1..positions.size`, the same invariant
      *     [BoardSpec] enforces. Out of range is rejected outright rather than clamped,
      *     exactly as a forged coordinate already is: a bad value here is evidence of
      *     tampering, and clamping would repair an attacker's blob into a playable one.
-     *  2. **Absent, a Challenge blob** — every generated board is built by a reverse walk
-     *     from a single peg, so [BoardConstants.MINIMUM_PEGS_DEFAULT] is its floor whatever
-     *     its footprint (docs/gdd.md I5; tech-lead brief §1(b)). Keyed on the mode, not on
-     *     the footprint, because since generator contract 2 a Challenge level can be dealt on
-     *     a Classic footprint: a lookup would hand a Challenge game on the Diamond-41 footprint
-     *     that board's Classic floor of two, which no Challenge board has.
-     *  3. **Absent, a Classic blob on a catalog footprint** — the blob predates this field, so
-     *     the target is resolved from [Boards.CLASSIC_SPECS] by footprint equality. This is the
-     *     Pitfall 3 case: blind defaulting would demote every stored Diamond-41 game.
-     *  4. **Absent, footprint unknown** — no Classic board, so the one-peg default.
+     *  2. **Absent, footprint in the catalog** — the blob predates this field, so the
+     *     target is resolved from [Boards.CLASSIC_SPECS] by footprint equality. This is
+     *     the Pitfall 3 case: blind defaulting would demote every stored Diamond-41 game.
+     *  3. **Absent, footprint unknown** — a generated Challenge board, built by a reverse
+     *     walk from a single peg, so [BoardConstants.MINIMUM_PEGS_DEFAULT] is correct.
      *
      * The lookup key comes from [BoardSpec.footprint] rather than a second sort written
      * here: that property IS the structural identity key, and duplicating its ordering
@@ -318,15 +311,10 @@ object SnapshotMapper {
      */
     private fun ResumeSnapshotDto.resolveMinimumPegsOrNull(positions: List<Position>): Int? {
         val stored = minimumPegs
-        return when {
-            stored != null -> stored.takeIf { it in 1..positions.size }
-            mode == ProgressPersistenceKeys.MODE_CHALLENGE -> BoardConstants.MINIMUM_PEGS_DEFAULT
-            else -> {
-                val footprint = BoardSpec(inPlay = positions, target = null).footprint
-                Boards.CLASSIC_SPECS.firstOrNull { it.footprint == footprint }?.minimumPegs
-                    ?: BoardConstants.MINIMUM_PEGS_DEFAULT
-            }
-        }
+        if (stored != null) return stored.takeIf { it in 1..positions.size }
+        val footprint = BoardSpec(inPlay = positions, target = null).footprint
+        return Boards.CLASSIC_SPECS.firstOrNull { it.footprint == footprint }?.minimumPegs
+            ?: BoardConstants.MINIMUM_PEGS_DEFAULT
     }
 
     private fun ResumeSnapshotDto.toMoveHistoryOrNull(): List<Move>? {

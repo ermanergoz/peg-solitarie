@@ -25,12 +25,8 @@ import com.app.pegsolitaire.domain.model.BoardSpec
  *   this many legal moves so it is not a single forced line (gate).
  * @property minSpread Spatial-spread floor so pegs are not all clumped (gate).
  * @property freeformIntroLevel The level at/above which freeform footprints become
- *   eligible; below it the pool is canonical-only (D-08). Compared against the visible level.
+ *   eligible; below it the pool is canonical-only (D-08).
  * @property scoreMultiplier The level-scaled numeric-score multiplier (D-11).
- * @property failProof Whether this level must be impossible to finish uncleared (docs/gdd.md G6,
- *   GD-SB-10): a candidate passes only if every position reachable from its start by legal jumps
- *   that has no legal move holds at most `ChallengeClearRule.CLEAR_MAX_PEGS` pegs. True for the
- *   first few visible levels, so a new player's first finishes are always graded, never stuck.
  */
 data class DifficultyTier(
     val solutionLength: Int,
@@ -41,5 +37,4 @@ data class DifficultyTier(
     val minSpread: Int,
     val freeformIntroLevel: Int,
     val scoreMultiplier: Int,
-    val failProof: Boolean,
 )

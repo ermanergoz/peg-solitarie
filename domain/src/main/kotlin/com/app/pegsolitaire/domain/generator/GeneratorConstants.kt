@@ -6,8 +6,8 @@ package com.app.pegsolitaire.domain.generator
  * Split by scope (QUAL-03's no-magic-number rule): every value is a KDoc'd
  * `const val` rather than a literal inlined in [LevelGenerator], mirroring the
  * `ScoreParams` precedent. These values — the [GENERATOR_VERSION], the splitmix64
- * seed-mix constants, [MAX_ATTEMPTS] and the freeform draw — are part of the **frozen
- * generator contract**: changing any of them rewrites every level, so they must never be
+ * seed-mix constants, and [MAX_ATTEMPTS] — are part of the **frozen generator
+ * contract**: changing any of them rewrites every level, so they must never be
  * mutated in place after release (Pitfall 2). Difficulty *knobs* live separately in
  * `DifficultyTiers` and are playtest-tunable before freeze (D-07); the seed math
  * here is not.
@@ -19,27 +19,14 @@ object GeneratorConstants {
      * this codebase onward a bump ships as a parallel generator, never an in-place mutation,
      * because every level a player has seen is a pure function of its number.
      *
-     * **Version 2 (3.0.0; docs/gdd.md I7, GD-SB-12; tech-design §2.2):** the ladder cut, the
-     * fail-proof opening, the freeform mix and the one-peg target on every footprint change the
-     * board every level deals. It re-rolled in place, with the golden fixtures regenerated and
-     * the whole level space re-fuzzed, because no store build of this codebase existed before
-     * it, so no player held a level version 1 had to keep serving. The stamp on a stored resume
-     * snapshot is what says which contract made its board.
+     * **Version 2 (3.0.0; docs/gdd.md I7, GD-SB-12; tech-design §2.2):** the ladder's shift along
+     * the difficulty curve (`DifficultyTiers`' level offset) changes the board every level deals.
+     * It re-rolled in place, with the golden fixtures regenerated and the whole level space
+     * re-fuzzed, because no store build of this codebase existed before it, so no player held a
+     * level version 1 had to keep serving. The stamp on a stored resume snapshot is what says
+     * which contract made its board.
      */
     const val GENERATOR_VERSION = 2
-
-    /**
-     * From the freeform intro level on, each attempt draws a number in
-     * `0 until FREEFORM_SHARE_DENOMINATOR` from the level's own PRNG, before any footprint is
-     * built, and [FREEFORM_DRAW] picks a freeform footprint, anything else a canonical one
-     * (docs/gdd.md §7.3, G7, GD-SB-11): two means freeform and canonical are equally likely per
-     * attempt. A contract constant, not a tier knob: changing it changes every level from the
-     * intro on. The ACCEPTED share also depends on how often each kind passes the gates.
-     */
-    const val FREEFORM_SHARE_DENOMINATOR = 2
-
-    /** The draw that selects a freeform footprint; see [FREEFORM_SHARE_DENOMINATOR]. */
-    const val FREEFORM_DRAW = 0
 
     /**
      * Bounded rejection-loop ceiling. `generate` retries a dead-ended reverse walk

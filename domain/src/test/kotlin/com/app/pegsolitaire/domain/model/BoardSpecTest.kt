@@ -2,7 +2,6 @@ package com.app.pegsolitaire.domain.model
 
 import com.app.pegsolitaire.domain.generator.LevelGenerator
 import com.google.common.truth.Truth.assertThat
-import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Assert.assertThrows
 import org.junit.Test
 import kotlin.random.Random
@@ -161,21 +160,14 @@ class BoardSpecTest {
      * (it is grown by a reverse walk from a single peg), so any other value would be
      * a generator defect rather than a genuine board property — and it would weaken
      * the solver's prune on every Challenge level (T-08-03).
-     *
-     * Since generator contract 2 it is load-bearing for canonical footprints too (I5,
-     * GD-SB-15): the mix deals the Diamond-41 footprint, whose Classic floor is two, so the
-     * check runs on every level of the first 1,000 rather than on a sample of five.
      */
     @Test
     fun everyGeneratedChallengeFootprintKeepsTheDefaultOnePegTarget() {
-        var examined = 0
-        LevelGenerator.generateLadder(CHALLENGE_LEVELS_CHECKED).forEach { level ->
-            examined++
-            assertWithMessage("minimumPegs of Challenge level %s", level.levelNumber)
-                .that(level.startingBoard.spec.minimumPegs)
-                .isEqualTo(BoardConstants.MINIMUM_PEGS_DEFAULT)
+        SAMPLED_CHALLENGE_LEVELS.forEach { level ->
+            val spec = LevelGenerator.generate(level).startingBoard.spec
+
+            assertThat(spec.minimumPegs).isEqualTo(BoardConstants.MINIMUM_PEGS_DEFAULT)
         }
-        assertThat(examined).isEqualTo(CHALLENGE_LEVELS_CHECKED)
     }
 
     private companion object {
@@ -185,7 +177,7 @@ class BoardSpecTest {
         /** Sentinel value proving a footprint-keyed map lookup hit. */
         const val CATALOG_HIT = "english33"
 
-        /** Every Challenge level from 1 to this one is checked (canonical and freeform alike). */
-        const val CHALLENGE_LEVELS_CHECKED = 1000
+        /** Challenge level numbers spanning the ladder (canonical through freeform). */
+        val SAMPLED_CHALLENGE_LEVELS = listOf(1, 2, 10, 100, 1000)
     }
 }

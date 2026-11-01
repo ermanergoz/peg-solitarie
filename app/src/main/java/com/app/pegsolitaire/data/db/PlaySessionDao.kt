@@ -8,13 +8,12 @@ import com.app.pegsolitaire.data.ProgressPersistenceKeys.COLUMN_HINTS_USED
 import com.app.pegsolitaire.data.ProgressPersistenceKeys.COLUMN_LAST_PEG_ON_TARGET
 import com.app.pegsolitaire.data.ProgressPersistenceKeys.COLUMN_LEVEL_ID
 import com.app.pegsolitaire.data.ProgressPersistenceKeys.COLUMN_MODE
-import com.app.pegsolitaire.data.ProgressPersistenceKeys.COLUMN_STARS
 import com.app.pegsolitaire.data.ProgressPersistenceKeys.COLUMN_UNDOS_USED
 import com.app.pegsolitaire.data.ProgressPersistenceKeys.TABLE_PLAY_SESSION
 
 /**
- * Appends solved plays — Classic wins and Challenge clears — to the telemetry history (PGSA-06)
- * and answers the four skill predicates derived from it.
+ * Appends solved plays to the telemetry history (PGSA-06) and answers the four skill
+ * predicates derived from it.
  *
  * The read surface is deliberately narrow: exactly one projection query, [flags], which
  * answers all four of the D-01/D-04 skill one-shots in a single round trip. Mirroring
@@ -48,41 +47,29 @@ interface PlaySessionDao {
      * The speed bound is a strict `<` — "under 60 seconds", so exactly the limit does not
      * qualify (D-04).
      *
-     * **The three skill predicates need a perfect play (docs/gdd.md GD-SB-05, §11.2).** Since
-     * 3.0.0 a Challenge clear at one or two stars is a recorded play (R5), and the awards'
-     * names promise *solving* without help or fast: a one-star clear is a pass, not a solve,
-     * and without `stars = :perfectStars` three quick jumps to a one-star clear of level 1
-     * would satisfy all three. Classic rows are always three stars (R4), so Classic is
-     * unchanged by construction. The center-finish predicate needs no such clause: a last peg
-     * on its target is a one-peg finish, three stars by definition. A new predicate over the
-     * existing `stars` column, so no schema change (tech-design §4.1).
-     *
      * @param classicMode bound `ProgressPersistenceKeys.MODE_CLASSIC`.
      * @param english33Id bound `ClassicLevelIds.ENGLISH33`.
      * @param speedLimitMs bound `AchievementThresholds.SPEED_SOLVE_MAX_ELAPSED_MS`, so the
      *   60 seconds exists in exactly one place in the codebase.
-     * @param perfectStars bound `ChallengeClearRule.PERFECT_STARS`, so the three stars a skill
-     *   award needs exist in one place too.
      */
     @Query(
         """
         SELECT
           EXISTS(SELECT 1 FROM $TABLE_PLAY_SESSION
-                   WHERE $COLUMN_HINTS_USED = 0 AND $COLUMN_STARS = :perfectStars) AS anyHintFreeSolve,
+                   WHERE $COLUMN_HINTS_USED = 0) AS anyHintFreeSolve,
           EXISTS(SELECT 1 FROM $TABLE_PLAY_SESSION
-                   WHERE $COLUMN_UNDOS_USED = 0 AND $COLUMN_STARS = :perfectStars) AS anyUndoFreeSolve,
+                   WHERE $COLUMN_UNDOS_USED = 0) AS anyUndoFreeSolve,
           EXISTS(SELECT 1 FROM $TABLE_PLAY_SESSION
                    WHERE $COLUMN_MODE = :classicMode AND $COLUMN_LEVEL_ID = :english33Id
                      AND $COLUMN_LAST_PEG_ON_TARGET = 1) AS anyCenterFinish,
           EXISTS(SELECT 1 FROM $TABLE_PLAY_SESSION
-                   WHERE $COLUMN_ELAPSED_MS < :speedLimitMs AND $COLUMN_STARS = :perfectStars) AS anySpeedSolve
+                   WHERE $COLUMN_ELAPSED_MS < :speedLimitMs) AS anySpeedSolve
         """,
     )
     suspend fun flags(
         classicMode: String,
         english33Id: String,
         speedLimitMs: Long,
-        perfectStars: Int,
     ): PlaySessionFlags
 
     /**
