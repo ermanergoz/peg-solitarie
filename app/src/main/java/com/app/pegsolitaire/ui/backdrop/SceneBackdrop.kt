@@ -100,7 +100,9 @@ fun SceneBackdrop(
     var below by remember { mutableStateOf(density) }
     var above by remember { mutableStateOf<BackdropDensity?>(null) }
     val fade = remember { Animatable(0f) }
-    LaunchedEffect(density, animationsEnabled) {
+    // Keyed on the density alone (the tech-lead's J-4b R-1, tech design §16 #28): the gate is read
+    // once, as the effect starts, and a fade under way when animations go off ends on its next frame.
+    LaunchedEffect(density) {
         above?.let { below = it }
         above = null
         if (density == below) return@LaunchedEffect
