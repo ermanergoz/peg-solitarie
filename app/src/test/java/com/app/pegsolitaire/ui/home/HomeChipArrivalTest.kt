@@ -213,11 +213,11 @@ class HomeChipArrivalTest {
 
     /**
      * P3 part 1 and the code-auditor's step 1b (`home-chip-arrival/tech-lead-c11-ruling.md` §2;
-     * `code-auditor-loop3.md` I1): Remove animations switched **on** while the Classic chip's room is
-     * opening, then off again. From the second frame after the first switch every frame is the settled
-     * one-chip layout, and after the switch back every frame still is: a room left part-way, which the
-     * gate's off branch would hide until animations come back, shows there. The tiles hold their no-chip
-     * bounds throughout.
+     * `code-auditor-loop3.md` I1): animations switched **off** (Remove animations turned on) while the
+     * Classic chip's room is opening, then back on. From the second frame after the switch off every
+     * frame is the settled one-chip layout, and after the switch back on every frame still is: a room
+     * left part-way, which the off state's fraction would hide until animations come back, shows there.
+     * The tiles hold their no-chip bounds throughout.
      */
     @Test
     @Config(qualifiers = "w412dp-h915dp")
@@ -257,10 +257,10 @@ class HomeChipArrivalTest {
     }
 
     /**
-     * P3 part 2 (`home-chip-arrival/tech-lead-c11-ruling.md` §2): with Remove animations on, the chip
-     * arrives and its room is open in the next frame; switching animations back on then changes nothing
-     * — the frame after the switch is the frame before it — and the chip leaving afterwards closes its
-     * room smoothly over the entrance duration, as 15z part 5 reads it.
+     * P3 part 2 (`home-chip-arrival/tech-lead-c11-ruling.md` §2): with animations off (Remove animations
+     * on), the chip arrives and its room is open in the next frame; switching animations on then changes
+     * nothing — the frame after the switch is the frame before it — and the chip leaving afterwards
+     * closes its room smoothly over the entrance duration, as 15z part 5 reads it.
      */
     @Test
     @Config(qualifiers = "w412dp-h915dp")
