@@ -201,4 +201,33 @@ class ScoreCalculatorTest {
         assertThat(ScoreParams.TWO_STAR_MAX_PEGS).isEqualTo(3)
         assertThat(ScoreParams.THREE_STAR_MAX_PEGS).isEqualTo(BoardConstants.MINIMUM_PEGS_DEFAULT)
     }
+
+    @Test
+    fun challengeScoreMultipliesTheBaseByTheStarsEarned() {
+        // Q-042 (founder, 2026-11-01): the same level and time score ×1, ×2 and ×3 at one, two and
+        // three stars. Base = (20 × 100 + (5000 − 42 × 10)) × 3 = 19,740.
+        val base = ScoreCalculator.score(pegsCleared = 20, elapsedSeconds = 42, levelMultiplier = 3)
+        val table = listOf(1 to base, 2 to base * 2, 3 to base * 3)
+
+        val scores =
+            table.map { (stars, expected) ->
+                val result =
+                    ScoreCalculator.evaluateChallenge(
+                        pegsRemaining = ChallengeClearRule.CLEAR_MAX_PEGS + 1 - stars,
+                        pegsCleared = 20,
+                        elapsedSeconds = 42,
+                        levelMultiplier = 3,
+                        stars = stars,
+                    )
+                assertThat(result.stars).isEqualTo(stars)
+                assertThat(result.score).isEqualTo(expected)
+                result.score
+            }
+
+        assertThat(base).isEqualTo(19_740)
+        assertThat(scores).isInStrictOrder()
+        // Classic keeps the plain formula: a three-star Classic finish is not multiplied.
+        assertThat(ScoreCalculator.evaluate(pegsRemaining = 1, pegsCleared = 20, elapsedSeconds = 42).score)
+            .isEqualTo(ScoreCalculator.score(pegsCleared = 20, elapsedSeconds = 42))
+    }
 }
