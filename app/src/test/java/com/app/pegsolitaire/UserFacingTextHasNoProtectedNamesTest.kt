@@ -25,6 +25,10 @@ class UserFacingTextHasNoProtectedNamesTest {
     fun noUserFacingStringOrAssetNamesAProtectedWord() {
         val files = userFacingFiles()
         assertWithMessage("files scanned").that(files).isNotEmpty()
+        // The Turkish copy is held to the same verdict (docs/ux/localisation-tr.md §7.6).
+        assertWithMessage("the Turkish copy scanned")
+            .that(files.map { it.relativeTo(root).invariantSeparatorsPath })
+            .contains(TURKISH_STRINGS)
         files.forEach { file ->
             assertWithMessage(file.relativeTo(root).path).that(ProtectedNames.hits(file.readText())).isEmpty()
         }
@@ -47,6 +51,7 @@ class UserFacingTextHasNoProtectedNamesTest {
         const val ASSETS_DIR = "app/src/main/assets"
         const val VALUES_PREFIX = "values"
         const val STRINGS_FILE = "strings.xml"
+        const val TURKISH_STRINGS = "$RES_DIR/values-tr/$STRINGS_FILE"
     }
 }
 

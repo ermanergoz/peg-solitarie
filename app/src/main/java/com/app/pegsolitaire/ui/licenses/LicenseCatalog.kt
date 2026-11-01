@@ -154,7 +154,13 @@ private val FREDOKA =
         id = LicenseEntryIds.FREDOKA,
         title = R.string.licenses_fredoka_title,
         licenseName = R.string.licenses_ofl_name,
-        lines = listOf(LicenseLine.Plain(R.string.licenses_fredoka_credit), OFL_TEXT_LINE),
+        // The bundled files are a Modified Version (OFL §1): docs/tech-design.md §11.1, Q-039 (3).
+        lines =
+            listOf(
+                LicenseLine.Plain(R.string.licenses_fredoka_credit),
+                OFL_TEXT_LINE,
+                LicenseLine.Plain(R.string.licenses_fredoka_modified),
+            ),
         opens = singleText(BundledLicenseText.FredokaOfl, R.string.licenses_ofl_name),
     )
 

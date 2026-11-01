@@ -1,0 +1,95 @@
+{
+  "about": "Fredoka v17 Medium and SemiBold with Ğ ğ İ Ş ş added as composite glyphs built from Fredoka's own letters and marks: a Modified Version under OFL-1.1, rebuilt byte-identically by build.py from these inputs and offsets (docs/tech-design.md §11.1, Q-039; README.md).",
+  "inputs": [
+    {
+      "file": "upstream/Fredoka-Medium.ttf",
+      "source": "https://fonts.google.com/download/list?family=Fredoka, entry static/Fredoka-Medium.ttf (v17)",
+      "sha256": "8143bd54f5b1e04f4554b326a5e5fb70414add9b0a44210837fdfba2304ae6fa",
+      "bytes": 49932
+    },
+    {
+      "file": "upstream/Fredoka-SemiBold.ttf",
+      "source": "https://fonts.google.com/download/list?family=Fredoka, entry static/Fredoka-SemiBold.ttf (v17)",
+      "sha256": "021e30b2bb317fa3618bad84289179f93c9607220cbf9a77ff3f83d7688e43a8",
+      "bytes": 49900
+    },
+    {
+      "file": "upstream/OFL.txt",
+      "source": "https://fonts.google.com/download/list?family=Fredoka, entry OFL.txt",
+      "sha256": "782c313774e59f7f0e2face680137ad0b578822ba1582160f30cb333cf31f7e0",
+      "bytes": 4482
+    }
+  ],
+  "glyphs": [
+    {
+      "name": "Gbreve",
+      "codepoint": "U+011E",
+      "base": "G",
+      "mark": "uni0306"
+    },
+    {
+      "name": "gbreve",
+      "codepoint": "U+011F",
+      "base": "g",
+      "mark": "uni0306"
+    },
+    {
+      "name": "Idotaccent",
+      "codepoint": "U+0130",
+      "base": "I",
+      "mark": "uni0307"
+    },
+    {
+      "name": "Scedilla",
+      "codepoint": "U+015E",
+      "base": "S",
+      "mark": "uni0327"
+    },
+    {
+      "name": "scedilla",
+      "codepoint": "U+015F",
+      "base": "s",
+      "mark": "uni0327"
+    }
+  ],
+  "name_suffixes": {
+    "3": ";PegSolitaire-TR1",
+    "5": "; Turkish composites 1 (Peg Solitaire)"
+  },
+  "offsets_from": "The placement table of .planning/reports/turkish-locale/research-analyst-fonts.md, ruled in docs/tech-design.md §11.1 (Q-039); README.md, Placement, gives the rules behind each offset.",
+  "weights": [
+    {
+      "weight": "Medium",
+      "input": "upstream/Fredoka-Medium.ttf",
+      "output": "app/src/main/res/font/fredoka_medium.ttf",
+      "offsets": {
+        "Gbreve": [191, 200],
+        "gbreve": [103, 0],
+        "Idotaccent": [6, 100],
+        "Scedilla": [137, 8],
+        "scedilla": [106, -4]
+      },
+      "output_sha256": "0effcf329f276fa382909af579febaed9505803210515eb6325f35fb1b157d4f",
+      "output_bytes": 50444
+    },
+    {
+      "weight": "SemiBold",
+      "input": "upstream/Fredoka-SemiBold.ttf",
+      "output": "app/src/main/res/font/fredoka_semibold.ttf",
+      "offsets": {
+        "Gbreve": [187, 200],
+        "gbreve": [99, 0],
+        "Idotaccent": [-6, 100],
+        "Scedilla": [125, 10],
+        "scedilla": [96, -4]
+      },
+      "output_sha256": "5c764171a284545903f978dbc7a417b80318f89f9c8e01d7b0bfd0bc4890823c",
+      "output_bytes": 50408
+    }
+  ],
+  "produced_with": {
+    "python": "3.14.7",
+    "fonttools": "4.60.1",
+    "opentype-sanitizer": "9.2.0"
+  }
+}

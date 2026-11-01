@@ -295,6 +295,15 @@ android {
         versionName = "3.0.0"
     }
 
+    // docs/ux/localisation-tr.md §7.4 and C-6: the build keeps library resources only in the
+    // languages the app itself speaks, so a device in a third language reads English throughout
+    // (the libraries' strings included) rather than English screens around, say, a library's
+    // German. The list is res/xml/locales_config.xml's, the per-app language list; a new language
+    // goes into both, and AppLanguagesTest fails until it does.
+    androidResources {
+        localeFilters += listOf("en", "tr")
+    }
+
     // Pitfall 1: `BuildFeatures.buildConfig` defaults to FALSE in AGP 8+/9 (verified in
     // gradle-api-9.1.0-sources BuildFeatures.kt:49). Without this flag every build-config
     // field declared below silently generates nothing and `BuildConfig.REWARDED_AD_UNIT_ID`
@@ -456,7 +465,7 @@ tasks.matching { it.name == "mergeDebugAssets" }.configureEach {
     dependsOn("copyRoomSchemas")
 }
 
-// Files two unit tests read straight from the working tree, which Gradle cannot know they depend
+// Files three unit tests read straight from the working tree, which Gradle cannot know they depend
 // on. Declared below as inputs of every unit-test task, so an edit to them re-runs the tests.
 //
 // P5 (docs/tech/audio-silent-mode.md §2.3). `AudioCreditsTest` reads docs/audio/CREDITS.md and
@@ -474,6 +483,14 @@ val audioProvenanceInputs =
 // included, and a comment-only edit there may change no class file the test task watches.
 val tutorialSourceGuardInputs = files(layout.projectDirectory.dir("src/main/java/com/app/pegsolitaire/ui/onboarding"))
 
+// docs/tech-design.md §11.1 (Q-039). BundledFontRecipeTest reads fonts/fredoka-tr/ (the recipe and
+// the upstream copies the shipped Fredoka files are built from), outside every source set. The
+// build's own venv is git-ignored and an input of nothing.
+val fredokaRecipeInputs =
+    rootProject.fileTree("fonts/fredoka-tr") {
+        exclude(".venv/**", "**/__pycache__/**")
+    }
+
 tasks.withType<Test>().configureEach {
     inputs
         .files(audioProvenanceInputs)
@@ -482,6 +499,10 @@ tasks.withType<Test>().configureEach {
     inputs
         .files(tutorialSourceGuardInputs)
         .withPropertyName("tutorialSources")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs
+        .files(fredokaRecipeInputs)
+        .withPropertyName("fredokaRecipe")
         .withPathSensitivity(PathSensitivity.RELATIVE)
 }
 
