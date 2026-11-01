@@ -1,5 +1,52 @@
 # Founder questions (newest first)
 
+## Q-039 — Which heading font in every language?   (answered)
+Date: 2026-11-01    Asked by: producer (research-analyst specimen, .planning/reports/turkish-locale/research-analyst-fonts.md on feature/turkish-locale)
+Options: 1) Fredoka + composed Turkish letters 2) Sour Gummy 3) Baloo 2 4) Quicksand
+Recommendation: research-analyst — 1 (approved look kept, +0.9 kB, OFL with no reserved name).
+Blocks: turkish-locale
+Answer: 1 — Fredoka + Turkish composites (founder, 2026-11-01, AskUserQuestion).
+
+## Q-038 — Fredoka lacks Ğ ğ İ Ş ş: Nunito headings in Turkish only?   (answered)
+Date: 2026-11-01    Asked by: ux-designer (via the producer)
+Options: 1) Nunito headings on Turkish devices (D-16) 2) Change the font for all languages
+Recommendation: ux-designer — 1.
+Blocks: turkish-locale
+Answer: 2 — change the font for all languages (founder, 2026-11-01); resolved by Q-039.
+
+## Q-037 — Should Classic adopt the Challenge star bands (relative to each board's floor)?   (open)
+Date: 2026-11-01    Asked by: game-designer
+Context: Founder's 2026-11-01 directive changed Challenge only ("on challenge"); Classic is unchanged in 3.0.0 (docs/gdd.md GD-SB-06).
+Options: 1) Keep Classic as is 2) Align Classic in 3.1
+Recommendation: game-designer — 2 in 3.1; unchanged in 3.0.0.
+Blocks: nothing
+Answer:
+
+## Q-036 — Android version of the phone that showed the grey status-bar tint   (answered)
+Date: 2026-11-01    Asked by: producer
+Answer: Android 14 or older (API ≤ 34) (founder, 2026-11-01, AskUserQuestion).
+
+## Q-035 — A Settings switch to keep the status bar during play?   (answered)
+Date: 2026-11-01    Asked by: ux-designer (via the producer)
+Answer: No switch in 3.0.0 (founder, 2026-11-01, AskUserQuestion).
+
+## Q-034 — Results immersive too?   (answered)
+Date: 2026-11-01    Asked by: ux-designer (via the producer)
+Answer: Yes — Gameplay and Results hide both bars (founder, 2026-11-01, AskUserQuestion).
+
+## Q-033 — With the Home stage withdrawn, where does the slack go?   (answered)
+Date: 2026-11-01    Asked by: ux-designer (via the producer)
+Options: 1) Space above the title 2) Title pinned at the top, empty band beneath
+Answer: 1 — space above the title (founder, 2026-11-01, AskUserQuestion); bounded by D-03q.
+
+## Q-032 — Mention "Solo Test" in the tr-TR listing?   (answered)
+Date: 2026-11-01    Asked by: ux-designer (via the producer)
+Answer: No (founder, 2026-11-01, AskUserQuestion).
+
+## Q-031 — Turkish register: siz or sen?   (answered)
+Date: 2026-11-01    Asked by: ux-designer (via the producer)
+Answer: sen throughout; the tr-TR listing re-voiced to match (founder, 2026-11-01, AskUserQuestion).
+
 ## Q-030 — Does the Home stage removal + live Classic Continue thumbnail ship in 3.0.0?   (answered)
 Date: 2026-11-01    Asked by: producer
 Context: Founder feedback 2026-11-01: remove Home's stage art (constant mid-game board); the Classic Continue chip
