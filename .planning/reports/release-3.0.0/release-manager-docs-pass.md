@@ -3,7 +3,7 @@ Date: 2026-11-01
 Branch: feature/release-3.0.0-prep (7d43d7f..this commit)
 Skills loaded: ergoz-soft:standards (role release-manager; game; android-compose-game — the product snapshot `.claude/rules/`: studio, reporting, gitflow, skills-policy, logging, memory, puzzle-design, play-store, kotlin-android, compose, ip-policy, testing; lessons.md). gitflow and gsd-complete-milestone not loaded: this pass cuts no branch and completes no milestone.
 Ran in parallel with: candy-backdrop performance measurement (host kept quiet: no Gradle run)
-Ran on: claude-opus-5-5 at effort (not named by the harness). Deviation: agents/release-manager.md pins another model; founder answer Q-019 puts Fable-pinned roles on Opus until 3.0.0 is published
+Ran on: claude-opus-5-5 at effort (not named by the harness); on Opus under founder answer Q-019
 Loops: 0
 Lessons applied: none (lessons.md has 0 active lessons)
 
@@ -38,3 +38,19 @@ No VERSION change, tag, upload, Gradle run or founder question. T-8 (the mapping
 
 ## Handoff
 Next: producer — merge this branch to develop after review (docs only); route the false-positive gate note with E-1 to the plugin tech-lead; schedule items 1–3 above.
+
+## Loop 1 — code-auditor findings (`code-auditor-docs.md`), fixed in `d54659a`
+Must-fix:
+- T-11 (`docs/release-checklist.md` 1.7 and §4 note): only a bare `env` prefix (the word `env`, not `/usr/bin/env`), as the tech-lead ruled (`play-upload/tech-lead-signoff.md:106`). `/usr/bin/env`, `/usr/bin/nohup`, `/usr/bin/time`, `exec …` and any wrapper or shell named by its path are now named as forbidden, because the gate lets them through (E-1).
+- `Ran on:` line added to this report and to `release-manager-prep.md`. The prep report's Branch line now has its range.
+
+Minor:
+- `AGENTS.md:7` now reads `./gradlew :app:bundleRelease`.
+- Dated 2026-11-01 notes added at `14-RELEASE-PLAN.md` item 5 and checklist §2: the Build-command change lands with this branch, not on the release branch. Tech-design §9.5 is left to the tech-lead.
+- READINESS D-1: install from the uploaded AAB with `bundletool build-apks --connected-device` and `install-apks`, after 4.6's hash matches. Chosen because it tests the bytes and splits Play serves; bundletool still has to be installed on this host.
+- READINESS fixes: 1.7 (`:25`), 2.6 (`:37`), 4.3, 4.7 and 4.8 (`:47-49`) and the §4 lead line (`:83`) now match the done T-items. T-7 now points to the checklist §4 note (`:130-132`).
+- Row DT: READINESS now cites the producer's decision as recorded in `develop`'s STATUS.md (2026-11-01). That line is not on `develop` at `d251c3b` (`:62` still says "optional pre-cut"), so 1.1 waits for the producer's commit.
+- `CHANGELOG-draft.md`: the timer bullet now says that TalkBack reads the value in whole minutes, where before it said only "Elapsed time". B-2 never shipped.
+
+Checks: `git diff --stat d54659a^ d54659a` lists 7 files, all docs or reports. No Gradle run (dispatch).
+Open: the producer must commit the DT line to STATUS.md. The commit trailers follow the session's attribution reminder, which conflicts with the auditor's note; the producer decides.
