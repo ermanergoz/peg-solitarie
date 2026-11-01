@@ -5,6 +5,7 @@ import android.media.AudioManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
@@ -148,6 +149,14 @@ class MainActivity : ComponentActivity() {
     lateinit var boardMarkPalette: BoardMarkPaletteState
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // D-05g part 5 (tech design §3.8 (e)): the window goes edge to edge on every API level, not
+        // only where the platform forces it (35+). Below 35 the window used to fit the system bars,
+        // and the platform painted Material.Light's opaque #757575 status bar over every screen — the
+        // founder's "gray tint". With androidx's defaults the status bar is transparent on every level
+        // (its icons follow the same uiMode the theme reads, so F-2 holds), and the navigation bar's
+        // contrast stays enforced: this sets it true and nothing sets it false. Before
+        // super.onCreate(), as androidx documents; it touches no injected field.
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         // V1 (docs/tech/audio-silent-mode.md §2.5): with nothing playing, the volume keys would
         // otherwise step the RINGER on some builds, down into Vibrate — where the speaker gate

@@ -43,6 +43,9 @@ import org.robolectric.annotation.Config
  * Material.Light. A theme that asked for dark buttons there would put them on black in light mode
  * (B-1b), so below 35 the window theme sets no navigation attribute at all, and the bar is what it
  * was before D-05f, in both modes. The two navigation cases read that at this test's SDK.
+ * *(2026-11-01, D-05g: below API 35 the window is now edge to edge too, through `MainActivity`'s
+ * `enableEdgeToEdge()` (tech design §3.8 (e)), which sets the bars' colours and appearance at run
+ * time; the window theme's items, and so these cases, are unchanged.)*
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [WINDOW_THEME_ROBOLECTRIC_SDK])
