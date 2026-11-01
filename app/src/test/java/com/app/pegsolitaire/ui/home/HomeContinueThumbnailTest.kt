@@ -225,7 +225,8 @@ class HomeContinueThumbnailTest {
     // ---- Assertions --------------------------------------------------------------
 
     /**
-     * 15aa part 3 on the current window at [fontScale]: the slab's edge is `home_resume_thumb_size`;
+     * 15aa part 3 on the current window at [fontScale]: the slab's edge is 56dp, `home_resume_thumb_size`
+     * as §4.2.7 sets it — read against the criterion's figure, not the token, so the token cannot drift;
      * it sits `spacing_md` inside the chip's end edge, centred on the chip's height and never closer
      * than `spacing_sm` to its top or bottom edge, which is the row's inset (§4.2.7: 56 + 2 × 8 = 72dp
      * of art in an 80dp chip at default scale); and the chip is exactly as tall as its text and
@@ -242,16 +243,15 @@ class HomeContinueThumbnailTest {
         renderWithInsets(state, fontScale)
         val withThumbnail = classicChip()
         val thumbnail = boundsOf(thumbnails().single())
-        val edge = dimen(R.dimen.home_resume_thumb_size)
 
         assertWithMessage("the thumbnail's width, in dp")
             .that(widthOf(thumbnail).value)
             .isWithin(TOLERANCE_DP)
-            .of(edge.value)
+            .of(THUMBNAIL_EDGE_DP)
         assertWithMessage("the thumbnail's height, in dp")
             .that(heightOf(thumbnail).value)
             .isWithin(TOLERANCE_DP)
-            .of(edge.value)
+            .of(THUMBNAIL_EDGE_DP)
         val above = thumbnail.top - withThumbnail.chip.top
         val below = withThumbnail.chip.bottom - thumbnail.bottom
         val inset = dimen(R.dimen.spacing_sm).value - TOLERANCE_DP
@@ -417,6 +417,9 @@ private const val NAVIGATION_BAR_DP = 48
 
 /** Criterion 15aa part 3's ±0.5dp. */
 private const val TOLERANCE_DP = 0.5f
+
+/** Criterion 15aa part 3's slab edge: 56dp, which `home_resume_thumb_size` carries (§4.2.7). */
+private const val THUMBNAIL_EDGE_DP = 56f
 
 /**
  * How far a row's pixels may spread in one channel and still be the chip's own surface: a flat fill
