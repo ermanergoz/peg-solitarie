@@ -1,4 +1,4 @@
-# 3.0.0 release readiness — `release/3.0.0` cut, pre-device-pass state
+# 3.0.0 release readiness — `release/3.0.0` cut, device pass recorded (2026-11-01)
 
 Date: 2026-11-01. Author: release-manager. **`release/3.0.0` is cut** from `develop` = `da886ed`
 (`feature/candy-backdrop` merged, the last branch-cut row), in the worktree
@@ -18,7 +18,7 @@ checklist / F-items), **device** (the release device pass, §3), **post-build** 
 | 1.1 | **done** | `git status --porcelain` empty at the cut. Every branch-cut row merged (first-parent merges): R1 `b1a6cf9`, R-2 `dbd0a6c`, audio `6aa7624`, RM `053e9cc`, F-1 `305f741`, colour-vision `1bc442f`, LN `bc95b2a`, TB `d251c3b`, candy `da886ed`. Row DT deferred to 3.0.1, owner tech-lead (producer's decision `4135e2d`, on `develop` via `47cb7e0`). PU blocks Gate 2 only (1.7) |
 | 1.1a | **done** | Merge `d251c3b` exists and brought `ui/components/BoardSpeech.kt` among its `app/src/main` files; reviews and sign-off as read pre-cut (tech-lead sign-off PASS, QA device3 PASS on `ergoz_studio`) |
 | 1.2 | **done** | `FUZZ_SEEDS=100000 ./scripts/check.sh --rerun-tasks --console=plain` → `exit 0`, BUILD SUCCESSFUL in 11 m 38 s, 107 tasks, 107 executed. Fuzz: whole space, 10,000 levels examined (requested 100,000), determinism pass, 0 failures. 1,937 unit tests, 0 failed, 0 skipped. Quiet host: 1-min load 4.31 at start, 4.32 at end (≤ 5.0). Run on `release/3.0.0` = `develop` `da886ed` code (only docs edits on top), so it serves 1.2 and 3.1 alike |
-| 1.3 | **reviewed, not ticked — to the code-auditor** | `git diff v1.0..HEAD -- '*/src/*'` grep: **44 hits**, read one by one. 12 `@Suppress` in `app/src/main`; 31 in tests (`!!` in test assertions, `UNCHECKED_CAST`, `unused` arch fixtures, test `LargeClass`/`LongParameterList`); 1 false positive (`SemanticsProperties.Disabled`). Approval lines found for the main-source ones in `ProgressRepository` (×2), `ProgressSubmitter`, `CloudProgressCodec` (phase-13 sweep, phase-15), `GameScreen` (hint-undecided, audio-review), `BoardCanvas` (colour-vision loop 0). **No approval line found** for `SnapshotMapper` `TooManyFunctions`, `GamesIds` `CyclomaticComplexMethod`, `PlayGamesService` `TooManyFunctions`, `GameViewModel` `TooManyFunctions/LongParameterList/LargeClass`, `ModeGlyphs` `MagicNumber` ×2, nor for the test-side `UNCHECKED_CAST`/`unused` set. The release-manager does not approve suppressions: one code-auditor pass over the list closes it |
+| 1.3 | **done (ticked)** | code-auditor PASS, `.planning/reports/release-3.0.0/code-auditor-suppressions.md`: 31 `@Suppress`/`@file:Suppress` sites (13 main, 18 test), 8 prior approvals cited, 23 approved there, none rejected; 0 `@SuppressLint`/`tools:ignore`/`@Ignore`/baselines. The release-manager's 44-hit list was one short (`Clay.kt:3` `@file:Suppress`): the checklist grep is widened per A5. A1–A4, A6 → §5 (3.0.1) |
 | 1.4 | **done (pre-cut half)** | 0 `PENDING FOUNDER`; §6 U-1..U-5 closed, U-6 closes at 3.5; licences merge `bc95b2a` exists; candy and licences rows updated (2.4a). §16 #20's remainder is 3.5 / 4.6a |
 | 1.5 | **done** | Only open question Q-025, `Blocks: nothing` |
 | 1.6 | **done** | `git rev-list v1.0..release/3.0.0 --count` = **1366**; 214 `feat`, 89 `fix`/`perf` subjects (no-merges) |
@@ -44,8 +44,8 @@ checklist / F-items), **device** (the release device pass, §3), **post-build** 
 | 3.2 | **done** — `test ! -e domain/build/fuzz-failures.txt` after an executed `:domain:fuzz` |
 | 3.3 | **done** — `:domain:koverVerify` executed; `./gradlew :domain:koverXmlReport --offline` exit 0, `report.xml` 12:41:55 (after the run): LINE missed 9 covered 912 = **99.0 %** (912/921) at bound 90, not below the recorded 99.0 % |
 | 3.4 | **done** — 8 of 8 literal-gate tasks executed (`:app` and `:domain` × ad-ID, Games-ID, audio-focus, dp/sp) |
-| 3.5 | **partly done — per-coordinate diff owed (research-analyst)** — `:app:dependencies --configuration releaseRuntimeClasspath` exit 0: **191** resolved coordinates. Every non-AndroidX group appears in `THIRD_PARTY.md`; AndroidX falls under the §5b family row. okhttp **4.11.0** (row J's address holds). No `cronet-embedded` (cronet-api/common/fallback/shared 143.7445.0, Java-only). The diff against the 192 coordinates of the 2026-09-15 report needs that report's list in comparable form: the research-analyst's, which also closes §5b and U-6 |
-| 3.5a | **owed (studio, post-build for its AAB half)** — NOTICE scan of the 191 artifacts not run in this pass |
+| 3.5 | **done (ticked)** — research-analyst PASS (`research-analyst-licences.md`): 191 coordinates, the 192 of 2026-09-15 less `ui-text-google-fonts`, none new or changed; 191 POMs re-fetched, each maps to a row; okhttp 4.11.0; no `cronet-embedded`. U-6 and §5b closed in `THIRD_PARTY.md` `2cef970`, diff reviewed by the release-manager: PASS (`release-manager-gate2-prep.md`, 2026-11-01 addendum) |
+| 3.5a | **pre-bundle half done; post-bundle half post-build** — 191 scanned, 2 NOTICE hits (Jakarta, PSL), both bundled byte-equal in `assets/licenses/`; checker-qual credited on the Licenses screen, so no `mapping.txt` grep. After 4.3: `unzip -l <aab> \| grep -i notice` shows both |
 | 3.5b | **done** — versions printed are 22.0.0 (games-v2), 1.4.0 (ads-mobile-sdk), 4.0.0 (UMP), 2.0.1 (hsdp), unchanged |
 | 3.6 | **done (ticked)** — `git diff v1.0..HEAD` grep: 488 hits; the 36 outside `.planning/` (10 files) are signing-code comments, docs prose, test fixtures (`fixture-store-password`, `/fixture/keys/upload.jks`), the template placeholder, and the checklist row's own pattern — no key, value or `/Users/` path. **Producer's scope ruling (2026-11-01):** 3.6 guards shipped and published material — app/domain/build-logic sources, resources, `docs/store/`, `THIRD_PARTY.md`, `CHANGELOG.md`, scripts; the 405 `/Users/…` paths in `.planning/` reports are internal studio records, the repo has no remote, they carry no secret or credential, and they are accepted |
 | 3.7 | **done** — `git status --porcelain` clean after the commit; `find` for `*.jks`/`*.keystore`/`keystore.properties` empty |
@@ -91,9 +91,41 @@ Founder directive 4: emulator only unless a phone is attached; each phone-only i
 | D-11 | `compose-performance-audit` for the backdrop (rules/compose.md) — **closed by candy's J-4a/J-4b** (`android-game-dev-perf-audit.md`, ruled in `tech-lead-j4b-ruling.md`); not owed again | candy sign-off | — |
 | D-12 | §5 store-copy items 5.0–5.10 (after upload) | checklist §5 | phone (founder's) |
 | **D-13** | **§16 #30, the notice half:** with TalkBack on, raise an off-book Classic hint until the Undecided notice shows ("couldn't work it out"; R1's QA saw 17/17 off-book hints Undecided on API 36) — check 23j item 5's spoken order and 23d (the notice spoken). If it cannot be raised, the one Q-PUBLISH line "the notice's TalkBack traversal: tree-order and speech-output evidence only" applies | tech-design §16 #30; tech-lead docs sign-off Condition 3 | no (emulator `ergoz_studio`) |
-| **D-14** | **§16 #30, the banner's actions-menu Dismiss:** with the "no winning move" / hint banner showing, open TalkBack's actions menu on it and choose Dismiss; the banner goes and focus lands sensibly | tech-design §16 #30; Condition 3 | no |
+| **D-14** | **§16 #30, the banner's TalkBack half:** at AC-19's English-33 dead position, Hint raises the "no winning move" banner and TalkBack speaks "No winning move — undo or restart" once (23k). The banner has no Dismiss, in spec or in code (23k: actions Undo, Restart, Home, unchanged); its traversal and its Undo and Restart were closed on row TB. The actions-menu Dismiss is the Undecided notice's and is checked under D-13 (23j item 5). *(Corrected 2026-11-01, tech-lead device-pass triage: until then this row asked for a banner actions-menu Dismiss, a wording error.)* | tech-design §16 #30; Condition 3 | no |
 | **D-15** | Candy on the release build: backdrop behind Home, gameplay and the Licenses screens; fades in after Home's entrance; static with animations off (frame 3, no fade); no visible stall beyond the recorded one | candy final sign-off §4 | no |
 | **D-16** | Store screenshots recaptured after candy (Q-016: plain captures; `THIRD_PARTY.md` U-5/§7) — ≥ 4 phone screenshots, en-US/tr-TR | THIRD_PARTY.md §6 U-5 | no (emulator capture), store use is the founder's |
 
+### 3a. Device-pass results (2026-11-01)
+Sources: `.planning/reports/release-3.0.0/qa-engineer-device-pass.md` (emulator `ergoz_studio`, no phone attached) and `tech-lead-device-pass-triage.md`.
+
+| # | Result | Note |
+|---|---|---|
+| D-1 | **founder-blocked** | needs the AAB (4.3: F-7/F-8) and its sha256 (4.6) |
+| D-2 | **unverified (no phone)** | device3 emulator evidence stands; Q-PUBLISH line |
+| D-3 | **unverified (no phone)** | L1-2 untested; Q-PUBLISH line |
+| D-4 | **PASS** | on form cues; not judged by eye |
+| D-5 | **PASS** | |
+| D-6 | **PASS** | |
+| D-7 | **blocked** | no published 2.0 build on this host; 3.0.0 half captured (board clipped in landscape = B-10). Not compared; Q-PUBLISH line |
+| D-8 | **PASS** | |
+| D-9 | **unverified (no phone)** | Q-025 hardware branches |
+| D-10 | **unverified (no phone)** | emulator figures only |
+| D-11 | **closed earlier** | J-4a/J-4b |
+| D-12 | **founder-blocked** | after upload |
+| D-13 | **FAIL → 3.0.1, Minor (accessibility)** | focus leaves Hint for "Navigate back" (3 of 4); notice spoken once, order and Dismiss PASS. `bugfix/hint-focus` in 3.0.1; Q-PUBLISH line (triage §2.3). Folded into 3.0.0 only if a release-branch code loop opens anyway |
+| D-14 | **PASS** (on the corrected wording above) | banner spoke once at 13:18:56.7; no re-run (triage §3) |
+| D-15 | **pending the bench probe** | animations-off stall ruled a guest slow regime, not a product result; the §1.4 probe on `Pixel_9a_bench` runs before the merge to main. Probe FAIL → Major, blocking, code loop on `release/3.0.0`. Other clauses PASS |
+| D-16 | **drafts only** | 9 draft captures; final store screenshots are recaptured from the release candidate (after 4.3) |
+
 ## 4. T-items (play-upload) — status
 Unchanged from the pre-cut revision: every T-item done except **T-8** (mapping check in 4.5, owed, post-build) and **T-1**'s act (the founder's).
+
+## 5. 3.0.1 list (carried out of 3.0.0)
+- **`bugfix/hint-focus` (D-13)** — android-game-dev, red first: one Hint `IconButton` call site, stable semantics node; Compose UI test on `SemanticsNode.id`; QA re-run of 23j item 5 bullet 1 (4 of 4). Owner tech-lead (triage §2.4); new tech-design §16 row.
+- **A1 (Medium, tech-lead)** — the gate's plain `detekt` task runs no `RequiresAnalysisApi` rule (`standards.gradle.kts:34-39`, `:94`); `LongParameterList` is never run.
+- **A2 (Low, developer on develop)** — remove the inert `@Suppress("LargeClass")` in `GameViewModelTelemetryTest.kt:94` and `GameViewModelAllowanceTest.kt:89`.
+- **A3 (Low)** — `PlayGamesService.kt:117-118` KDoc says four private helpers; there are six.
+- **A4 (Low, backlog, tech-lead)** — move the assist economy and ad-clock arithmetic out of `GameViewModel` into stateless delegates.
+- **A5 (Medium)** — checklist 1.3 grep widened on `release/3.0.0` (this release); carried so `develop` gets it at the back-merge and the plugin's checklist template is updated (producer).
+- **A6 (Info)** — one shared test helper for the nine `UNCHECKED_CAST` ViewModel factories (T7–T15).
+- **B-10** — the board is clipped in landscape (D-7's 3.0.0 half shows it).

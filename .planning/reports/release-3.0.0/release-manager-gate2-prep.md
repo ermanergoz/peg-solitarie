@@ -24,3 +24,22 @@ action list for Gate 2 written in plain language. Docs only; no Gradle, no uploa
 
 ## Handoff
 Next: producer — put FOUNDER-ITEMS.md to the founder; record Q-025 and the 1.7 route.
+
+## Addendum 2026-11-01 — 1.3, 3.5, 3.5a ticks; THIRD_PARTY verdict; device-pass records
+Skills loaded: ergoz-soft:standards (role release-manager; rules via the CLAUDE.md snapshot incl. ip-policy). Lessons applied: none. Docs only; no Gradle (bench probe running), no upload, no founder question.
+
+- **Ticks:** 1.3 `[x]` on `code-auditor-suppressions.md` (PASS); 3.5 `[x]` on `research-analyst-licences.md` (PASS); 3.5a pre-bundle half recorded PASS, box left open for its post-bundle half after 4.3. A5 applied: 1.3's grep is now `'^\+.*(@(file:)?Suppress|@SuppressLint|tools:ignore|@Ignore|@Disabled|!!)'` over `*/src/*`, `*.gradle.kts`, `config/`, `.editorconfig`.
+- **`THIRD_PARTY.md` diff `2cef970` (owner review): PASS.** 1 file, +20/−17, prose and status cells only: §0 method, §5b intro and open item → closed, Apache-2.0.txt row (file now exists; 11,358 B matches `ls`), row I (checker-qual credited; `LicenseCatalog.kt:322` opens `CheckerQual-MIT.txt`, confirmed), row J (okhttp 4.11.0 confirmed), U-6 closed. No row removed, no licence cell changed or emptied, no new row without a licence. All nine `assets/licenses/` files the rows name are present. One nit, not blocking: the §5b "notice duties" bullet keeps "due before `release/3.0.0` is cut" as history; the Google SDK `third_party_licenses` half is checklist 4.6a(d).
+- **READINESS:** 1.3/3.5/3.5a rows; D-14 row replaced with the triage §3 wording; new §3a device-pass results (D-4/5/6/8/14 PASS, D-13 FAIL→3.0.1 Minor, D-15 pending probe, D-16 drafts, D-2/3/9/10 unverified-no-phone, D-1/D-12 founder-blocked, D-7 blocked); new §5 3.0.1 list (`bugfix/hint-focus`, A1–A6, B-10).
+- **Q-PUBLISH draft:** conditional §16 #30 line withdrawn; D-13 line (triage §2.3), unverified-no-phone lines, D-7 not compared, D-15 probe placeholder.
+
+### Checks
+- `git -C /Users/ermanergoz/Desktop/PegSolitarie-release show 2cef970 -- THIRD_PARTY.md` — pass (reviewed as above)
+- `ls -la app/src/main/assets/licenses/` and `grep -n 'CheckerQual\|Jakarta\|PublicSuffix' …/LicenseCatalog.kt` — pass (files and wiring present)
+
+### Open issues / risks
+- 3.5b's box is still `[ ]` in the checklist though READINESS says done and the research-analyst confirmed the versions; the producer should confirm whether it is ticked on this pass (not in this task's scope).
+- A5 changes the checklist on `release/3.0.0`; the plugin's template copy needs the same fix (producer, plugin branch).
+
+### Handoff
+Next: producer — D-15 bench probe result into READINESS §3a and the Q-PUBLISH placeholder; tech-lead tech-design sync (§16 #30 correction, new hint-focus row); founder F-7/F-8 for 4.3.

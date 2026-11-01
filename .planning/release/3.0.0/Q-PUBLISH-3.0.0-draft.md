@@ -33,14 +33,20 @@ after the bundle exists. Lines below are collected from the sign-offs; each name
 - **Scope:** one emulator, API 36, Skia (OpenGL) via host-GLES translation, debug APKs. The ≤ 2 s phone start bar (D-03j, PLAT-08) was not re-measured on a phone; a phone GPU with a warm shader cache will likely show smaller first-draw costs, which the bench cannot show either way.
 
 **Evidence scope (whole release)**
-- **Emulator-only evidence:** no physical device was available (founder directive 2026-10-31). Phone-only checks are unverified: tutorial step lines on a phone, L1-2, cold start ≤ 2 s on a phone, audio speaker-mute and wired-headset branches (Q-025, if not answered with option 1), CV-AC14 if not run.
+- **Emulator-only evidence:** no physical device was available (founder directive 2026-10-31). Phone-only checks are unverified: tutorial step lines on a phone, L1-2, cold start ≤ 2 s on a phone, audio speaker-mute and wired-headset branches (Q-025, if not answered with option 1). CV-AC14 ran on the emulator (D-4 PASS on form cues).
 - **Reduced QA** (directive 2): device re-runs checked only fixed defects plus one smoke pass; candy rows skipped are filed for 3.0.1.
 - **Staffing:** every Fable-pinned review since 2026-10-24 ran on Opus (Q-019); a superior-model re-audit was recommended (e.g. before the first script-route upload).
 - Audio blocked items (60 fps recording, P4c listen) if still open at the cut.
 
 **Release Check (cut, 2026-11-01):** `FUZZ_SEEDS=100000 ./scripts/check.sh --rerun-tasks` green on `release/3.0.0` (code = `develop` `da886ed`): the whole 10,000-level space fuzzed with 0 failures, 1,937 unit tests, `:domain` line coverage 99.0 %, the four literal gates run.
 
-**Conditional line (§16 #30):** only if the release device pass cannot raise the Undecided notice (D-13): "the notice's TalkBack traversal: tree-order and speech-output evidence only".
+**Release device pass (2026-11-01, emulator `ergoz_studio`; `release-3.0.0/qa-engineer-device-pass.md`, `tech-lead-device-pass-triage.md`).** The conditional §16 #30 line ("tree-order and speech-output evidence only") is withdrawn: the notice was raised. In its place:
+- **TalkBack, hint focus (3.0.1):** after a double-tap on Hint, when the hint needs a search, TalkBack focus can move to the screen's first stop, "Navigate back", instead of staying on Hint (3 of 4 on the emulator). The "couldn't work it out" notice is still spoken once; its order and its Dismiss pass.
+- **Unverified, no phone attached:** tutorial step lines on a phone (D-2; emulator device3 evidence stands), hardware keyboard with TalkBack (D-3, L1-2), audio speaker-mute and wired-headset branches (D-9, Q-025), cold start ≤ 2 s on a mid-range phone (D-10; emulator figures only).
+- **Not compared:** English-33 landscape against published 2.0 (D-7) — no 2.0 build on this host; the 3.0.0 half shows the known landscape clipping (B-10, 3.0.1).
+- **Founder-blocked:** D-1 (palette + TalkBack on the release AAB) waits for 4.3/4.6; D-12 (store copy) after upload.
+- **D-15:** animations-off cold-start stall ruled a guest slowdown, not a product result; a bench probe runs before the merge to main (`<probe result>`).
+- **Store screenshots:** the 9 captures are drafts; the final set is recaptured from the release candidate.
 
 ## Checklist and store state (filled at 4.8)
 - Checklist: `<n ticked / n>`; founder items F-1..F-14 status from the operator checklist.
