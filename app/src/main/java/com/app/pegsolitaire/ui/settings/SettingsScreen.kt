@@ -65,7 +65,7 @@ import kotlinx.coroutines.launch
  * [TopAppBar] (title + back nav) over a centered column, capped at `content_max_width`, of three
  * toggle rows that are exact peers: Sound, Haptics and the colour-blind palette.
  *
- * Both switches are live. Sound's gate is the sound player's own (SOUND-05): it reads the
+ * All three switches are live. Sound's gate is the sound player's own (SOUND-05): it reads the
  * choice straight from the repository, so switching it off also silences cues already
  * playing. Haptics gates the jump's light tick (D-15) and the wrong tap's reject buzz (D-06b).
  *
@@ -206,7 +206,7 @@ fun SettingsScreen(
  * ## The "How to play" row (ONB-01, D-02a, ux-spec §4.5)
  *
  * It opens the group, **above** Sound, because it is the only row here that goes somewhere:
- * the two toggles are settings the player adjusts in place, and a navigational row buried
+ * the three toggles are settings the player adjusts in place, and a navigational row buried
  * under them reads as an afterthought. It is also the tutorial's one permanent entry point
  * now that Home's help icon is deleted (D-02), which is why it is a `SettingsLinkRow` — the
  * exact peer chrome of the toggles — rather than a bespoke card that would read as a
