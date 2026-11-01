@@ -326,7 +326,9 @@ private const val FRAME_SLACK_MS = 100L
 
 /** The pixels of [rect] in this frame, row by row. */
 private fun Bitmap.pixelsIn(rect: IntRect): IntArray =
-    IntArray(rect.width * rect.height).also { getPixels(it, 0, rect.width, rect.left, rect.top, rect.width, rect.height) }
+    IntArray(rect.width * rect.height).also {
+        getPixels(it, 0, rect.width, rect.left, rect.top, rect.width, rect.height)
+    }
 
 /** How many pixels differ from [other]'s at the same place: 0 when the two are pixel-identical. */
 private fun IntArray.differingFrom(other: IntArray): Int = indices.count { this[it] != other[it] }
