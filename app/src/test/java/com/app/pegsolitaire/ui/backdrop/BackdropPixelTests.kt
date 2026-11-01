@@ -37,9 +37,10 @@ import com.app.pegsolitaire.ui.game.GAME_BOARD_SLAB_TEST_TAG
 import com.app.pegsolitaire.ui.game.GAME_STATE_TEST_TAG
 import com.app.pegsolitaire.ui.game.GameScreen
 import com.app.pegsolitaire.ui.game.GameUiState
-import com.app.pegsolitaire.ui.home.HOME_STAGE_ART_TEST_TAG
+import com.app.pegsolitaire.ui.home.HOME_RESUME_THUMB_TEST_TAG
 import com.app.pegsolitaire.ui.home.HomeScreen
 import com.app.pegsolitaire.ui.home.HomeUiState
+import com.app.pegsolitaire.ui.home.fixture.MID_GAME_ENGLISH_BOARD
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.app.pegsolitaire.ui.theme.BoardMarkPalette
 import com.app.pegsolitaire.ui.theme.BoardMarkPaletteKey
@@ -61,8 +62,15 @@ import kotlin.math.hypot
  * board slab's interior, inset 2dp from its edge, is pixel-identical with and without the backdrop
  * behind it, mid-game with a selection, a legal target and a hint, in light and dark, and once per
  * board-mark palette (docs/ux/colour-vision.md §3.7: "BD-17 … runs once per palette"); so are the
- * interiors of Home's stage art, gel tiles and Continue chips; and the slab's interior is its opaque
- * `surfaceContainerHigh`, with nothing over it. Animations are off, so the selection pulse is still.
+ * interiors of Home's gel tiles, its Continue chips and the Classic chip's thumbnail; and the slab's
+ * interior, like the thumbnail's, is its opaque `surfaceContainerHigh`, with nothing over it.
+ * Animations are off, so the selection pulse is still.
+ *
+ * The thumbnail took the Home stage art's place in this list when D-03p withdrew the stage:
+ * it is the only board left on Home, under Home's own backdrop density and inside
+ * the chip whose interior this test already reads. Its slab is a plain `surfaceContainerHigh` square,
+ * `shapes.extraSmall`, not a finished container, so what proves no gloss lies over it is the sample of
+ * its blocked corner against the token, as the game slab's is proved.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [PIXEL_ROBOLECTRIC_SDK])
@@ -106,7 +114,7 @@ class BoardInteriorIdentityTest {
 
     @Test
     @Config(qualifiers = BASELINE_WINDOW)
-    fun homesStageArtGelTilesAndContinueChipsAreIdenticalWithAndWithoutTheBackdrop() {
+    fun homesGelTilesContinueChipsAndClassicThumbnailAreIdenticalWithAndWithoutTheBackdrop() {
         var withBackdrop by mutableStateOf(true)
         var dark by mutableStateOf(false)
         rule.setContent {
@@ -117,12 +125,27 @@ class BoardInteriorIdentityTest {
             val large = cornerPx(R.dimen.shape_corner_large)
             val regions =
                 HOME_HEROES.map { bounds(it) to large } +
-                    (bounds(hasTestTag(HOME_STAGE_ART_TEST_TAG)) to cornerPx(R.dimen.shape_corner_extra_large))
+                    (thumbnail() to cornerPx(R.dimen.shape_corner_extra_small))
             assertInteriorsMatch(rule, regions, "Home heroes, dark = $theme") { withBackdrop = it }
+            val window = rule.renderedWindow()
+            val fill = (if (theme) DarkColors else LightColors).surfaceContainerHigh.toArgb()
+            val thumbnail = thumbnail()
+            val corner =
+                window.getPixel(
+                    (thumbnail.left + thumbnail.width * BLOCKED_CORNER).toInt(),
+                    (thumbnail.top + thumbnail.height * BLOCKED_CORNER).toInt(),
+                )
+            assertWithMessage("the Classic thumbnail's slab is its opaque fill, dark = $theme")
+                .that(corner)
+                .isEqualTo(fill)
         }
     }
 
     private fun slab(): Rect = bounds(hasTestTag(GAME_BOARD_SLAB_TEST_TAG))
+
+    /** The Classic chip's thumbnail slab, from the unmerged tree: the chip merges it into its own node. */
+    private fun thumbnail(): Rect =
+        rule.onNode(hasTestTag(HOME_RESUME_THUMB_TEST_TAG), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
 
     private fun cornerPx(id: Int): Float =
         ApplicationProvider.getApplicationContext<Context>().resources.getDimension(id)
@@ -130,10 +153,13 @@ class BoardInteriorIdentityTest {
     private fun bounds(matcher: SemanticsMatcher): Rect = rule.onNode(matcher).fetchSemanticsNode().boundsInRoot
 
     private companion object {
-        /** A point in the English cross's blocked top-start corner: the slab's fill and nothing else. */
+        /**
+         * A point in the English cross's blocked top-start corner: the slab's fill and nothing else —
+         * on the game slab, and on the thumbnail's 56dp slab, whose board sits `spacing_xs` inside it.
+         */
         const val BLOCKED_CORNER = 0.12f
 
-        /** The 6.7-inch baseline, tall enough for Home to draw its stage. */
+        /** The 6.7-inch baseline, where Home draws every hero container whole. */
         const val BASELINE_WINDOW = "w412dp-h915dp"
         val HOME_HEROES =
             listOf(
@@ -308,11 +334,14 @@ private fun MidGame() {
     )
 }
 
-/** Home with a Continue chip, so every hero container is on screen. */
+/**
+ * Home with the Classic Continue chip holding a saved position partway through an English game, so
+ * every hero container, and the thumbnail's board, is on screen.
+ */
 @Composable
 private fun BusyHome() {
     HomeScreen(
-        state = HomeUiState(classicResumeLevelId = "english33"),
+        state = HomeUiState(classicResumeLevelId = "english33", classicResumeBoard = MID_GAME_ENGLISH_BOARD),
         onPlayClassic = {},
         onPlayChallenge = {},
         onResumeClassic = {},

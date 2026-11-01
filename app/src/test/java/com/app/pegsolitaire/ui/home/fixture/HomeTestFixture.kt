@@ -1,5 +1,6 @@
 package com.app.pegsolitaire.ui.home.fixture
 
+import androidx.annotation.DimenRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.MutableState
@@ -14,11 +15,19 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
+import androidx.compose.ui.unit.dp
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.data.ClassicLevelIds
+import com.app.pegsolitaire.domain.model.Board
 import com.app.pegsolitaire.domain.model.Boards
+import com.app.pegsolitaire.domain.model.Position
+import com.app.pegsolitaire.ui.backdrop.BackdropMetrics
+import com.app.pegsolitaire.ui.home.HOME_HERO_TEST_TAG
 import com.app.pegsolitaire.ui.home.HOME_PROGRESS_RIBBON_TEST_TAG
 import com.app.pegsolitaire.ui.home.HomeScreen
 import com.app.pegsolitaire.ui.home.HomeUiState
@@ -101,6 +110,51 @@ internal fun chipsState(
         classicResumeLevelId = RESUMABLE_LEVEL_ID.takeIf { classic },
         classicResumeBoard = Boards.european37Initial.takeIf { classic },
         challengeResumeLevel = STAMPED_RESUME_LEVEL.takeIf { challenge },
+    )
+
+/**
+ * A Classic save's position partway through a game (D-03p, criterion 15aa): English-33 with 14 pegs
+ * left, where a recorded line of 18 legal jumps from the start arrives (`HomeViewModelTest` replays
+ * that line through the real codec), written out peg by peg.
+ */
+internal val MID_GAME_ENGLISH_BOARD: Board =
+    listOf(
+        Position(row = 0, col = 4),
+        Position(row = 1, col = 2),
+        Position(row = 1, col = 3),
+        Position(row = 2, col = 0),
+        Position(row = 2, col = 1),
+        Position(row = 2, col = 4),
+        Position(row = 2, col = 5),
+        Position(row = 2, col = 6),
+        Position(row = 3, col = 6),
+        Position(row = 4, col = 1),
+        Position(row = 4, col = 2),
+        Position(row = 4, col = 4),
+        Position(row = 5, col = 4),
+        Position(row = 6, col = 2),
+    ).fold(Board(spec = Boards.English33, pegs = 0L)) { board, peg -> board.withPeg(peg) }
+
+/** A Classic save one move from the end: a single peg, in the centre. */
+internal val ONE_PEG_ENGLISH_BOARD: Board =
+    Board(spec = Boards.English33, pegs = 0L).withPeg(Position(row = 3, col = 3))
+
+/** What the Classic chip speaks for those two positions (verbatim from `strings.xml`, `board_a11y_pegs_left`). */
+internal const val MID_GAME_PEGS_LEFT = "14 pegs left"
+internal const val ONE_PEG_LEFT = "1 peg left"
+
+/**
+ * A Classic save on the English board at [board] — or, with `null`, the chip as the play arrow draws
+ * it, a shape `HomeViewModel` no longer produces (the tech-lead's ruling 1) but `ResumeTile` still
+ * renders for the Challenge chip — with the ribbon filled and, if asked, the Challenge save beside it.
+ */
+internal fun classicSaveState(
+    board: Board?,
+    challenge: Boolean = false,
+): HomeUiState =
+    chipsState(classic = false, challenge = challenge).copy(
+        classicResumeLevelId = ClassicLevelIds.ENGLISH33,
+        classicResumeBoard = board,
     )
 
 /** Every chip state, in 15p's order: none, Classic only, Challenge only, both. */
@@ -222,6 +276,87 @@ internal fun ComposeContentTestRule.columnBoundsOf(node: SemanticsNode): DpRect 
         )
     }
 }
+
+// ---- Home's slack: the headroom, the title bound and the footer --------------
+
+/**
+ * Home's no-chip slack and how it splits (ux-spec §4.2.7, D-03p, and its title bound, D-03q), computed
+ * from what the screen measures — the window, the insets and the bands' own heights — and never read
+ * back from where the column put the hero row, so a layout compared against it can fail.
+ *
+ * @property slack S₀: the viewport's height less the hero row, the ribbon, both tiles, the column's
+ *   padding above and below, and the **four** band gaps the column has with no chip, floored at 0.
+ * @property titleBound the line the hero row's visible bottom edge may not pass, in window coordinates
+ *   (top of the window = 0): `TITLE_REACH` · H less `entrance_slide_distance` (D-03q).
+ * @property boundHeadroom C: the headroom at which the hero row's bottom edge meets [titleBound] —
+ *   the bound, less the status inset, the column's top padding and the row's height.
+ */
+internal data class HomeSlack(
+    val slack: Dp,
+    val titleBound: Dp,
+    val boundHeadroom: Dp,
+) {
+    /** H₀, the no-chip headroom: min(⅘ S₀, C), floored at 0 (D-03q). */
+    val noChipHeadroom: Dp get() = minOf(slack * HEADROOM_SHARE_OF_SLACK, maxOf(0.dp, boundHeadroom))
+
+    /** The headroom with the chips' [room]: max(0, H₀ − R). */
+    fun headroomWith(room: Dp): Dp = maxOf(0.dp, noChipHeadroom - room)
+
+    /** The footer with the chips' [room]: min(S₀ − H₀, max(0, S₀ − R)). */
+    fun footerWith(room: Dp): Dp = minOf(slack - noChipHeadroom, maxOf(0.dp, slack - room))
+
+    /** How far the hero row and the ribbon rise from their no-chip tops with the chips' [room]: min(R, H₀). */
+    fun riseWith(room: Dp): Dp = minOf(room, noChipHeadroom)
+
+    /** How far the tiles fall from their no-chip tops with the chips' [room]: max(0, R − H₀), never up. */
+    fun tilesFallWith(room: Dp): Dp = maxOf(0.dp, room - noChipHeadroom)
+}
+
+/**
+ * [HomeSlack] for Home as this rule renders it now, given the system-bar insets the test supplied.
+ * Every band's height is the same in every chip state, so any state will do; the band gap is read
+ * where nothing else can sit, between the two mode tiles, and the column's padding is the same token
+ * (§4.2.2).
+ */
+internal fun ComposeContentTestRule.homeSlack(
+    statusBar: Dp,
+    navigationBar: Dp,
+): HomeSlack {
+    val window = columnBoundsOf(onRoot())
+    val windowHeight = window.bottom - window.top
+    val hero = columnBoundsOf(onNodeWithTag(HOME_HERO_TEST_TAG, useUnmergedTree = true))
+    val ribbon = columnBoundsOf(onNodeWithTag(HOME_PROGRESS_RIBBON_TEST_TAG))
+    val classicTile = columnBoundsOf(onNodeWithText(classicTileTitle))
+    val challengeTile = columnBoundsOf(onNodeWithText(challengeTileTitle))
+    val gap = challengeTile.top - classicTile.bottom
+    val viewport = windowHeight - statusBar - navigationBar
+    val bands = heightOf(hero) + heightOf(ribbon) + heightOf(classicTile) + heightOf(challengeTile)
+    val titleBound = windowHeight * BackdropMetrics.TITLE_REACH - dimen(R.dimen.entrance_slide_distance)
+    return HomeSlack(
+        slack = maxOf(0.dp, viewport - gap * 2 - bands - gap * NO_CHIP_BAND_GAPS),
+        titleBound = titleBound,
+        boundHeadroom = titleBound - statusBar - gap - heightOf(hero),
+    )
+}
+
+private fun heightOf(bounds: DpRect): Dp = bounds.bottom - bounds.top
+
+/** A `dimens.xml` token in dp, read from the resources rather than retyped. */
+internal fun ComposeContentTestRule.dimen(
+    @DimenRes id: Int,
+): Dp {
+    val px = RuntimeEnvironment.getApplication().resources.getDimension(id)
+    return with(density) { px.toDp() }
+}
+
+/**
+ * The band gaps of Home's column with no chip (§4.2.7): hero→ribbon, ribbon→tile 1, tile 1→tile 2,
+ * and the footer's, which it brings at any height. The headroom brings none.
+ */
+private const val NO_CHIP_BAND_GAPS = 4
+
+/** D-03n's split of S₀, kept by D-03p: four fifths to the headroom, one fifth to the footer. */
+private const val HEADROOM_SHARE_OF_SLACK = 0.8f
 
 // ---- Ribbon accessors --------------------------------------------------------
 
