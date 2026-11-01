@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      The window theme on API 35 and up (D-05f, ux-spec §6.2; tech-lead defect ruling §1, B-1).
+      The app targets API 36, so from API 35 the window is edge to edge whatever the theme says, and
+      the platform draws its own contrast scrim behind the three-button navigation bar. Which scrim,
+      light under dark buttons or dark under light ones, is windowLightNavigationBar's answer, but
+      the platform honours it only while the theme names a navigation-bar colour. A theme that
+      names none leaves the bar to the window background instead, and Material.Light's background
+      is near-white in both modes, so the platform forced a light bar on dark mode too (B-1).
+
+      So this style names the bar's colour: transparent, the platform's own value and no colour of
+      the app's. From API 35 the platform keeps the bar transparent whatever is named, so nothing a
+      player sees changes; naming it only turns the forcing off and lets windowLightNavigationBar
+      decide. Do not remove the item as unused or deprecated: without it dark mode gets the light
+      bar back.
+
+      Below API 35 res/values/themes.xml governs: the window is not edge to edge there, and the
+      platform's opaque bar is left as it is (B-1b). This file restates the WHOLE style, the
+      status-bar item included, because styles do not merge across qualifiers.
+      WindowThemeApi35FilesTest pins the three items.
+      (2026-11-01, D-05g: below API 35 the window is now edge to edge too, through MainActivity's
+      enableEdgeToEdge(), tech design 3.8 (e), which sets the bars there at run time; the items in
+      both theme pairs are unchanged.)
+    -->
+    <style name="Theme.PegSolitaire" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+</resources>

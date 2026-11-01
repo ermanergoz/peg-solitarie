@@ -1,25 +1,626 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  All user-facing copy (no-magic-strings rule). Wording is the verbatim
+  Copywriting Contract from the Phase-1 UI-SPEC. The pegs-remaining count is a
+  plural-aware resource so "1 peg" / "n pegs" agree grammatically.
+
+  The game-over and restart-confirm strings are consumed by the dialogs in
+  Plan 05; they are declared here so the copy contract lives in one place.
+-->
 <resources>
-    <string name="select_game">SELECT A GAME</string>
-    <string name="french">French</string>
-    <string name="german">German</string>
-    <string name="asymmetrical">Asymmetric</string>
-    <string name="english">English</string>
-    <string name="diamond">Diamond</string>
-    <string name="app_name">Peg Solitaire</string>
-    <string name="game_over">Game Over!</string>
-    <string name="restart">Restart</string>
-    <string name="quit">Quit</string>
-    <string name="game_menu">Menu</string>
-    <string name="settings">Settings</string>
-    <string name="invalid_move">Invalid move!</string>
-    <string name="pause">Pause</string>
-    <string name="revert">Revert</string>
-    <string name="resume">Resume</string>
-    <string name="game_paused">Game Paused!</string>
-    <string name="initial_french_game_score">.. / 36</string>
-    <string name="initial_german_game_score">.. / 44</string>
-    <string name="initial_asymmetric_score">.. / 38</string>
-    <string name="initial_english_game_score">.. / 32</string>
-    <string name="initial_diamond_game_score">.. / 40</string>
-    <string name="initial_elapsed_time">.. : ..</string>
+    <string name="app_name" translatable="false">Peg Solitaire</string>
+
+    <!-- Top-bar restart control (icon-only; this is its content description). -->
+    <string name="restart_board">Restart Board</string>
+
+    <!-- Game-over dialog (D-05). -->
+    <string name="play_again">Play Again</string>
+    <string name="view_board">View Board</string>
+    <string name="game_over_perfect_headline">Perfect!</string>
+    <string name="game_over_perfect_body">You cleared the board down to a single peg.</string>
+    <string name="game_over_near_headline">So close!</string>
+    <string name="game_over_stuck_headline">No moves left</string>
+
+    <!-- Mid-game restart confirmation (D-06). -->
+    <string name="restart_confirm_title">Restart this board?</string>
+    <string name="restart_confirm_body">Your current progress will be lost.</string>
+    <string name="keep_playing">Keep Playing</string>
+
+    <!-- Pegs-remaining body copy, plural-aware ({n}). -->
+    <plurals name="pegs_remaining">
+        <item quantity="one">%d peg remaining.</item>
+        <item quantity="other">%d pegs remaining.</item>
+    </plurals>
+    <plurals name="pegs_remaining_retry">
+        <item quantity="one">%d peg remaining. Try again?</item>
+        <item quantity="other">%d pegs remaining. Try again?</item>
+    </plurals>
+
+    <!--
+      ============================ Phase-2 copy ============================
+      All Phase-2 user-facing strings, declared here up front so the Classic-flow
+      UI plans (Catalog 02-05, Home/onboarding 02-06, Results 02-07) read them via
+      stringResource(...) with no magic strings. Verbatim from the Phase-2 UI-SPEC
+      Copywriting Contract. Phase-1 strings above are reused, not duplicated
+      (e.g. restart_board for the gameplay restart content description).
+    -->
+
+    <!-- Classic board display names (catalog cards, ascending hole count). -->
+    <string name="board_english33" translatable="false">English-33</string>
+    <string name="board_european37" translatable="false">European-37</string>
+    <string name="board_asymmetric39" translatable="false">Asymmetric 3-3-2-2</string>
+    <string name="board_diamond41" translatable="false">Diamond-41</string>
+    <string name="board_wiegleb45" translatable="false">Wiegleb-45</string>
+
+    <!-- Home (mode select). -->
+    <string name="classic_tile_title">Classic</string>
+    <string name="classic_tile_supporting">5 boards</string>
+    <string name="challenge_tile_title">Challenge</string>
+    <!-- The Challenge tile's supporting line: the player's persisted ladder position (CHAL-05). -->
+    <string name="challenge_tile_continue">Continue — Level %1$d</string>
+    <string name="coming_soon">Coming soon</string>
+    <!--
+      `how_to_play` was deleted in Phase 15 (ux-spec §8 Deleted): its only caller was Home's
+      information icon, which D-02 removes. The tutorial's one permanent entry point is now
+      the Settings › General row below, which carries its own label.
+    -->
+
+
+    <!-- Classic catalog. -->
+    <string name="catalog_title">Classic</string>
+    <!-- Hole-count subtitle on each catalog card, plural-aware. -->
+    <plurals name="holes_count">
+        <item quantity="one">%d hole</item>
+        <item quantity="other">%d holes</item>
+    </plurals>
+    <!--
+      Screen-reader description of a catalog card's earned-star pips (PERS-01, D-10):
+      the row announces its count once ("1 of 3 stars") instead of three anonymous icons.
+    -->
+    <string name="catalog_stars_earned">%1$d of %2$d stars</string>
+
+    <!-- Gameplay top bar (timer + back; restart_board reused from Phase 1). -->
+    <string name="navigate_back">Navigate back</string>
+    <string name="elapsed_time">Elapsed time</string>
+    <!--
+      D-05e (ux-spec §4.3.2, §8), with its whole-minute fallback (tech-lead defect ruling §2, B-2):
+      the timer's content description is its label, a comma and the elapsed time in whole minutes,
+      "Elapsed time, 5 minutes", or "Elapsed time, under a minute" below one. So TalkBack says the
+      time and not only what the clock is, and the description changes at most once a minute: with
+      the seconds in it, TalkBack spoke the focused timer again as they ticked. Minutes are floored,
+      never rounded up, and never roll into hours, as the clock never rolls them. The join is a
+      format string, so the order belongs to the copy and not to the code.
+    -->
+    <string name="elapsed_time_spoken">%1$s, %2$s</string>
+    <plurals name="duration_minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
+    <string name="duration_under_a_minute">under a minute</string>
+    <!-- Challenge gameplay top-bar "Level N" title + its screen-reader description (S2, D-03). -->
+    <string name="challenge_level_indicator">Level %1$d</string>
+    <string name="challenge_level_indicator_desc">Challenge level %1$d</string>
+    <!-- Undo control (icon-only; disabled when there is nothing to undo, ASST-02). -->
+    <string name="undo_action">Undo</string>
+    <!-- Winning-move Hint action (icon-only; distinct from the show-moves toggle, D-01/D-02). -->
+    <string name="hint_action">Hint</string>
+    <!-- Announced while the Solver computes a hint; the control is disabled (D-10). -->
+    <string name="hint_thinking">Finding a move</string>
+    <!--
+      Show-possible-moves switch (icon-only, D-02). Its ONE constant name in both states: the state
+      is announced by the switch role, never by swapping the name (D-04e, ux-spec §4.4.1).
+    -->
+    <string name="show_moves_on">Show possible moves</string>
+    <!-- Shown while a Challenge board is generated off the main thread (CR-01). -->
+    <string name="loading_level">Loading level</string>
+    <!--
+      The board with TalkBack (D-TB as amended by D-TBa; docs/ux-spec.md §11.1 and §8). Every
+      string here is spoken, never drawn. Rows and columns are spoken from 1 (BoardSpeechFormat).
+      29 strings and two plurals. The three board_a11y_rejected_* lines replace the audio branch's
+      three wrong-tap sentences (D-06c), on both boards (D-TBa items 2 and 3).
+    -->
+    <!-- The board stop: "Board, 32 pegs left". -->
+    <string name="board_a11y_label">Board, %1$s</string>
+    <plurals name="board_a11y_pegs_left">
+        <item quantity="one">%d peg left</item>
+        <item quantity="other">%d pegs left</item>
+    </plurals>
+    <!-- A cell's parts, joined by the separator in this order, only the parts that apply. -->
+    <string name="board_a11y_separator">", "</string>
+    <string name="board_a11y_position">Row %1$d, column %2$d</string>
+    <string name="board_a11y_peg">peg</string>
+    <string name="board_a11y_empty">empty</string>
+    <string name="board_a11y_selected">selected</string>
+    <plurals name="board_a11y_jumps">
+        <item quantity="one">%d jump</item>
+        <item quantity="other">%d jumps</item>
+    </plurals>
+    <string name="board_a11y_no_jumps">no jumps</string>
+    <string name="board_a11y_jump_target">jump target</string>
+    <string name="board_a11y_hint_source">hint, move this peg</string>
+    <string name="board_a11y_hint_target">hint, land here</string>
+    <!-- The tap's action label, spoken as "double-tap to …". -->
+    <string name="board_a11y_action_select">select</string>
+    <string name="board_a11y_action_put_down">put down</string>
+    <string name="board_a11y_action_jump_here">jump here</string>
+    <!-- One custom action per legal jump: "Jump up to row 4, column 4". -->
+    <string name="board_a11y_action_jump">Jump %1$s to row %2$d, column %3$d</string>
+    <string name="board_a11y_direction_up">up</string>
+    <string name="board_a11y_direction_down">down</string>
+    <string name="board_a11y_direction_left">left</string>
+    <string name="board_a11y_direction_right">right</string>
+    <!-- The board's one polite channel: each event spoken once. -->
+    <string name="board_a11y_announce_selected">Selected row %1$d, column %2$d, %3$s.</string>
+    <string name="board_a11y_announce_put_down">Peg put down, row %1$d, column %2$d.</string>
+    <string name="board_a11y_announce_jump">Row %1$d, column %2$d to row %3$d, column %4$d. Removed row %5$d, column %6$d. %7$s.</string>
+    <string name="board_a11y_rejected_no_peg">No peg here.</string>
+    <string name="board_a11y_rejected_not_target">Not a jump target.</string>
+    <string name="board_a11y_rejected_put_down_first">Put down the selected peg first.</string>
+    <string name="board_a11y_announce_undo">Undid row %1$d, column %2$d to row %3$d, column %4$d. %5$s.</string>
+    <string name="board_a11y_announce_hint">Hint: row %1$d, column %2$d, jump %3$s to row %4$d, column %5$d.</string>
+    <string name="board_a11y_announce_restart">Board restarted. %1$s.</string>
+    <!-- A tutorial step's board: tutorial_step_progress, then the step's caption. -->
+    <string name="board_a11y_announce_step">%1$s. %2$s</string>
+    <!-- Results' summary on opening: the headline, the stars, the pegs left. -->
+    <string name="results_a11y_summary">%1$s — %2$s, %3$s.</string>
+
+    <!--
+      Inline no-win / stuck rescue banner (ASST-03, D-06/D-08/D-09). One shared banner
+      surfaces either message over the still-interactive board; rescue_restart is the
+      label form of the Restart action (distinct from the restart_board content-desc),
+      and the banner reuses undo_action + action_home for its other two actions.
+    -->
+    <string name="nowin_message">No winning move — undo or restart</string>
+    <string name="stuck_message">No moves left — undo or restart</string>
+    <!--
+        The rescue banner's Challenge messages (ux-spec D-SB-3, §4.4.3, §8). Every number is a format
+        argument from the clear rule (ChallengeClearRule.CLEAR_MAX_PEGS and the board's peg count),
+        never typed. stuck_message_challenge: %1$d the pegs on the stuck board (four or more), %2$d
+        the threshold. nowin_message_challenge: %1$d the threshold. The `one` items exist for lint and
+        grammar; the shipped rule never shows them.
+    -->
+    <plurals name="stuck_message_challenge">
+        <item quantity="one">No moves left with %1$d peg — leave %2$d or fewer to clear the level. Undo or restart.</item>
+        <item quantity="other">No moves left with %1$d pegs — leave %2$d or fewer to clear the level. Undo or restart.</item>
+    </plurals>
+    <plurals name="nowin_message_challenge">
+        <item quantity="one">One peg is out of reach from here — you may still clear the level with %1$d peg or fewer, or undo or restart.</item>
+        <item quantity="other">One peg is out of reach from here — you may still clear the level with %1$d pegs or fewer, or undo or restart.</item>
+    </plurals>
+    <!--
+      D-04f / ux-spec §4.4.2 and §8. The Undecided notice: a hint search that stopped with no
+      move and no proof. Two sentences, never the rescue banner's "problem — what to do" shape,
+      and none of the ruling's forbidden words (criterion 23b). Its Turkish, the spec's tr-TR copy
+      of record, is in values-tr (docs/ux/localisation-tr.md D-11).
+    -->
+    <string name="hint_undecided_message">Hint couldn\'t work this position out in time. It may still be winnable.</string>
+    <string name="rescue_restart">Restart</string>
+
+    <!-- Results. -->
+    <string name="results_title">Results</string>
+    <string name="results_headline_perfect">Perfect!</string>
+    <string name="results_headline_solved">Solved!</string>
+    <!-- Challenge's one-star clear (ux-spec D-SB-1, §8): a pass that is not a solve. -->
+    <string name="results_headline_cleared">Cleared!</string>
+    <string name="results_headline_stuck">Out of moves</string>
+    <!--
+        The Results next-star line (ux-spec D-SB-2, §4.6, §8): the next band up only. Quantity and %1$d
+        are the pegs to leave, %2$d the stars they earn, both from ChallengeClearRule.nextBandUp
+        through ResultsUiState; %2$d is never 1, so "stars" needs no plural of its own.
+    -->
+    <plurals name="results_next_star_hint">
+        <item quantity="one">Leave %1$d peg for %2$d stars.</item>
+        <item quantity="other">Leave %1$d pegs for %2$d stars.</item>
+    </plurals>
+    <string name="results_label_score">SCORE</string>
+    <string name="results_label_time">TIME</string>
+    <string name="results_label_pegs_left">PEGS LEFT</string>
+    <string name="action_replay">Replay</string>
+    <string name="action_catalog">Catalog</string>
+    <string name="action_home">Home</string>
+    <!--
+      Results "New best!" cue (PERS-01, D-09): shown only when the play actually improved
+      one of the level's stored bests (stars, time or score).
+    -->
+    <string name="results_new_best">New best!</string>
+    <!--
+      Content description of the INT-04 quiescence scrim (AdQuiescenceScrim). Deliberately
+      one neutral word: D-08 forbids drawn text or a spinner, but the dim still swallows
+      every tap, so a screen reader must be told the screen is busy rather than be left
+      announcing controls that no longer respond.
+    -->
+    <string name="results_ad_scrim_description">Preparing</string>
+    <!-- Challenge-aware Results actions (S3, D-01/D-10). -->
+    <string name="action_next_level">Next level</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_play_again">Play again</string>
+    <string name="challenge_load_error">Couldn\'t load this level. Tap Retry.</string>
+
+    <!--
+      ============================ Phase-5 copy ============================
+      Settings (SET-01/SET-02, D-14..D-17). Both supporting lines describe feedback that
+      fires today: haptics has since Phase 5 (D-15), and sound since Phase 7 — its line
+      said "Saved for the upcoming sound effects" until Phase 15 corrected it (ux-spec §8
+      Fixed), which was honest when it was written and stale for eight phases after.
+      settings_action is the Home gear's content description.
+    -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_action">Settings</string>
+    <string name="settings_sound_label">Sound</string>
+    <string name="settings_sound_supporting">Play the jump, button and celebration sounds</string>
+    <string name="settings_haptics_label">Haptics</string>
+    <string name="settings_haptics_supporting">Vibrate lightly on each jump</string>
+
+    <!-- Colorblind palette (docs/ux/colour-vision.md §3.1). -->
+    <string name="settings_colorblind_label">Colorblind palette</string>
+    <string name="settings_colorblind_supporting">Clearer moves, hints and stars</string>
+
+    <!--
+      Phase-15: the tutorial's one permanent entry point (ONB-01, D-02a; ux-spec §4.5, §8).
+      "Replay" is deliberate — a first-run player meets the tutorial automatically and never
+      reads this line first, so the row only ever describes going back to it.
+    -->
+    <string name="settings_how_to_play_label">How to play</string>
+    <string name="settings_how_to_play_supporting">Replay the tutorial</string>
+
+    <!--
+      Phase-15: the Home progress ribbon (NAV-01/PERS-03/CHAL-05, D-03/D-03c/D-03h;
+      ux-spec §4.2, §8).
+
+      `stat_value_unknown` is an em dash, and it is what a pill shows both before the first
+      read lands AND when the read failed — the two are deliberately indistinguishable, and
+      neither is ever rendered as `0`, because zero is a real answer for a brand-new player
+      and reporting it for a broken read would lie to an experienced one (D-03h).
+      `stat_value_unknown_desc` is what a screen reader says in its place, so the em dash is
+      never spoken as punctuation.
+
+      The Boards pill's denominator is a FORMAT ARGUMENT, never a literal: it is supplied at
+      the call site from the Classic catalogue's own size, so a stored row cannot change a
+      shipped number and a sixth board would move it without a copy edit.
+    -->
+    <string name="stat_value_unknown" translatable="false">—</string>
+    <string name="stat_value_unknown_desc">not yet available</string>
+    <!--
+      A pill's whole announcement, label then value: "Stars, 7" — or "Stars, not yet
+      available" when the value is unknown. It is a format rather than a bare comma joined in
+      code because the separator between a label and its value is locale-specific, and because
+      a merged semantics node that carried both a contentDescription and its children's text
+      would be read as the description ALONE by TalkBack, silently dropping the label. This is
+      the string ux-spec §8's table does not list; see the report's Deviations.
+    -->
+    <string name="home_stat_pill_desc">%1$s, %2$s</string>
+    <string name="home_stat_stars_label">Stars</string>
+    <string name="home_stat_boards_label">Boards</string>
+    <string name="home_stat_level_label">Level</string>
+    <string name="home_stat_boards_value" translatable="false">%1$d/%2$d</string>
+
+    <!--
+      Home "Continue" affordances for a saved in-progress game (PERS-03, D-01/D-03). Each
+      mode has its own tile and they can appear together, so the titles name the mode
+      rather than relying on position. The supporting lines say what is actually being
+      resumed — the exact board, not a fresh start.
+    -->
+    <string name="resume_classic_title">Continue Classic</string>
+    <string name="resume_classic_supporting">Pick up your saved board</string>
+    <string name="resume_challenge_title">Continue Challenge</string>
+    <string name="resume_challenge_supporting">Pick up Level %1$d where you left off</string>
+
+    <!--
+      ============================ Phase-15 copy ============================
+      The interactive tutorial (ONB-01, D-01/D-01a-i; ux-spec §8). Verbatim from the
+      Copywriting Contract. The three step captions REPLACE the onboarding_step_* prose
+      the deleted overlay read; `onboarding_got_it` and `onboarding_skip` are reused
+      unchanged, so the tutorial adds no button copy of its own.
+
+      There is deliberately no "boxed in / Undo" line: the tutorial has no Undo control
+      and its boards make being stuck impossible, so promising a rescue from an impossible
+      failure would teach the player to expect failure (§5, §4.4).
+    -->
+    <!-- The pip row's single announcement, e.g. "Step 2 of 3" (one semantics node). -->
+    <string name="tutorial_step_progress">Step %1$d of %2$d</string>
+    <!-- T1 teaches the jump itself. -->
+    <string name="tutorial_step_1_caption">Tap a peg, then tap the empty hole two cells away.</string>
+    <!-- T2 teaches the other axis, and that diagonals are never offered. -->
+    <string name="tutorial_step_2_caption">Jumps work up, down, left and right — never diagonally.</string>
+    <!-- T3 teaches the goal. -->
+    <string name="tutorial_step_3_caption">Keep jumping. Clear the board down to one peg.</string>
+    <!-- Shown with the completion star and the CTA, once T3 is cleared. -->
+    <string name="tutorial_done_caption">That\'s the whole game. Go clear a board.</string>
+
+    <!--
+      The two action labels the retired first-run overlay authored, now the interactive
+      tutorial's completion CTA and Skip action. They keep their names and their values
+      (ux-spec §8 "Reused unchanged"): the shared `onboarding_` prefix is not a licence to
+      sweep the group.
+
+      `onboarding_step_1/2/3` were deleted with the retired first-run sheet in Phase 15 (§8
+      Deleted, verified by grep as having no other caller) — the three
+      `tutorial_step_*_caption` lines above are their rewrites, shortened to one line each
+      because the player is now doing the thing the sentence used to describe.
+    -->
+    <string name="onboarding_got_it">Got it</string>
+    <string name="onboarding_skip">Skip tutorial</string>
+
+    <!--
+      ============================ Phase-9 copy ============================
+      Consent & rewarded ads. Verbatim from the Phase-9 UI-SPEC Copywriting Contract.
+      Declared here up front so the downstream plans (dialog 09-03, Settings 09-07,
+      GameScreen funnel 09-08) read them via stringResource(...) and no plan but this
+      one touches a resource file.
+    -->
+
+    <!--
+      ADS-01 — rewarded opt-in dialog (D-06/D-07/D-10). The dialog is the ONLY signal the
+      free-allowance system exists, so the body carries count, scope and reward in one
+      breath: the title states the fact, the body proposes the trade.
+
+      The allowance counts are format placeholders ONLY — never type a literal count into
+      these strings. They are supplied at the callsite from AssistAllowanceLimits.FREE_HINTS
+      / FREE_UNDOS, which is why D-02's numbers are named exactly once in the whole codebase
+      and the copy cannot drift from the policy that grants it.
+    -->
+    <string name="ad_offer_watch">Watch ad</string>
+    <string name="ad_offer_decline">No thanks</string>
+    <string name="ad_offer_hint_title">Out of free hints</string>
+    <string name="ad_offer_undo_title">Out of free undos</string>
+    <string name="ad_offer_hint_body">You\'ve used your %1$d free hints for this level. Watch a short ad for %1$d more?</string>
+    <string name="ad_offer_undo_body">You\'ve used your %1$d free undos for this level. Watch a short ad for %1$d more?</string>
+    <!-- Spinner content description during the bounded wait; no visible label (D-10). -->
+    <string name="ad_offer_loading">Loading ad</string>
+
+    <!--
+      ADS-03 — ad-unavailable snackbar (D-11). The assist lands FIRST, then the message
+      states the problem and its already-applied resolution; no action is offered because
+      none is needed. The em dash follows the shipped nowin_message
+      ("No winning move — undo or restart") "problem — resolution" shape.
+    -->
+    <string name="ad_unavailable_hints">Ad unavailable — hints refilled for free</string>
+    <string name="ad_unavailable_undos">Ad unavailable — undos refilled for free</string>
+
+    <!--
+      CONS-03 / REL-05 — Settings Privacy section (D-14/D-15). Both section headers are
+      declared: a label over one group and not the other is exactly the inconsistency the
+      UI contract exists to prevent. The policy-row failure copy follows the shipped
+      challenge_load_error shape — a tap that does nothing would be a dead end.
+    -->
+    <string name="settings_section_general">General</string>
+    <string name="settings_section_privacy">Privacy</string>
+    <string name="settings_privacy_policy_label">Privacy policy</string>
+    <string name="settings_privacy_policy_supporting">Opens in your browser</string>
+    <string name="settings_privacy_policy_error">Couldn\'t open the privacy policy — no browser app found.</string>
+    <string name="settings_privacy_choices_label">Manage privacy choices</string>
+    <string name="settings_privacy_choices_supporting">Change your ad consent choices</string>
+
+    <!--
+      ============================ Phase-11 copy ============================
+      Play Games opt-in (PGS-01, D-15/D-16). The title asks rather than announces: this
+      is a genuine choice, not a step to get through. The body names the same three
+      benefits as the Settings row (leaderboards, achievements, cloud save) and then says
+      outright that the game is fully playable without signing in — D-16 requires both,
+      because a prompt that only lists upside reads as a wall. The closing sentence names
+      Settings, which is the ONLY way back in once this is answered (D-17/D-19).
+
+      "Not now" rather than "No thanks": the answer is permanent for the prompt, but the
+      door is not shut, and the copy should not claim otherwise.
+    -->
+    <string name="play_games_prompt_title">Sign in to Play Games?</string>
+    <string name="play_games_prompt_body">Compete on leaderboards, unlock achievements, and keep your progress backed up to the cloud. Peg Solitaire plays exactly the same either way — you can sign in later from Settings.</string>
+    <string name="play_games_prompt_accept">Sign in</string>
+    <string name="play_games_prompt_decline">Not now</string>
+
+    <!--
+      D-10 / D-18 — the ONE sign-in failure message, shared verbatim by the Home prompt's
+      accept path and the Settings sign-in row. Two strings here would be two wordings the
+      moment either is edited, for what is the same event seen from two places.
+
+      Raised ONLY when the SDK reports a genuine error. A player who simply dismissed the
+      account chooser sees nothing at all — apologising for their own choice is what makes
+      an optional feature feel like a failed mandatory one. Follows the shipped
+      settings_privacy_policy_error shape; no action label, because the opt-in already
+      stands and the next launch retries silently.
+    -->
+    <string name="play_games_signin_error">Couldn\'t sign in to Play Games</string>
+
+    <!--
+      D-08/D-09 — the Settings "Play Games" section, between General and Privacy.
+
+      The row label and its supporting line are fixed verbatim by D-09 and must not be
+      reworded: they are the one place a player who declined (or was never asked) reads
+      what signing in actually buys them, and the three benefits named here are the same
+      three the opt-in prompt above names. A second, prettier wording here would quietly
+      make the two surfaces promise different things.
+
+      The signed-in row is a statement, not an offer, so it is not phrased as an action.
+      settings_play_games_signed_in_as carries the player's own Play Games display name;
+      settings_play_games_signed_in_fallback replaces it whole when that lookup failed or
+      stalled (D-14) — deliberately NOT "Signed in as (unknown)", which reads as a broken
+      sign-in rather than the successful one it is.
+
+      Phase 12 D-14/D-15 — the two stock-UI rows below the signed-in row, and they are
+      shown to a signed-in player ONLY. Signed out, they are absent rather than disabled:
+      a greyed-out "Leaderboards" is an affordance that explains nothing, whereas the
+      sign-in row directly above it already says what to do. While the session is still
+      Unknown the whole section is absent (Phase 11 D-11), these rows included.
+
+      Both labels are fixed verbatim by D-14. "Leaderboards" is plural because the row
+      opens the all-leaderboards picker, not one board — the supporting lines describe
+      looking at what is already there, since neither row submits anything. No id and no
+      player-identifying text belongs in either: the seam takes no argument for these.
+    -->
+    <string name="settings_section_play_games" translatable="false">Play Games</string>
+    <string name="settings_play_games_signin_label">Sign in to Play Games</string>
+    <string name="settings_play_games_signin_supporting">Leaderboards, achievements and cloud save</string>
+    <string name="settings_play_games_signed_in_as">Signed in as %1$s</string>
+    <string name="settings_play_games_signed_in_fallback">Signed in to Play Games</string>
+    <string name="settings_play_games_leaderboards_label">Leaderboards</string>
+    <string name="settings_play_games_leaderboards_supporting">See how your scores rank</string>
+    <string name="settings_play_games_achievements_label">Achievements</string>
+    <string name="settings_play_games_achievements_supporting">View the achievements you\'ve earned</string>
+
+    <!-- ====================== Phase-13 cloud-save copy ====================== -->
+    <!--
+      CLOUD-03 / D-11 — the ONE line the player reads under this game's entry in the
+      Play Games saved-games list. It is written into the snapshot's metadata at commit
+      time and therefore follows the DEVICE LOCALE AT THAT MOMENT, by design: a player
+      who changes language sees the new language on their next solve rather than a line
+      frozen in whatever locale first wrote the save. That is why the numbers cross the
+      platform seam as three raw ints (CloudSaveDescription) and the wording lives only
+      here, where a translator can reach it.
+
+      Four positional arguments, in order: the Challenge ladder level, total stars,
+      Classic boards cleared, and the size of the Classic roster. The fourth is supplied
+      from ClassicBoard.entries.size and is NOT a literal 5 anywhere — a sixth Classic
+      board must move this denominator on its own.
+
+      Positional %1$d-style arguments throughout, matching settings_play_games_signed_in_as;
+      a bare %d would be untranslatable the moment a language needs another word order.
+      The separator is a middle dot rather than a comma so the three figures read as
+      peers rather than as a sentence.
+    -->
+    <string name="cloud_save_description">Challenge level %1$d · %2$d stars · %3$d/%4$d Classic boards</string>
+
+    <!--
+      D-12 to D-15 — the ONE dialog the v1.1 requirements reserved. Every other conflict
+      in this phase resolves silently by monotonic merge (CLOUD-02); this one cannot,
+      because merging two different players' progress is not a merge, it is a leak.
+
+      The body is a wipe list, not a warning. D-14 requires the copy to state exactly what
+      "Use their cloud progress" replaces, so it names all four categories the replace path
+      deletes: level results, play history, the Challenge level, and both in-progress
+      games. Any later edit that shortens this sentence must keep all four — a player who
+      could not have known what they were authorising is the failure this copy exists to
+      prevent.
+
+      Two bodies, one wording. profile_swap_body names the arriving account through a
+      positional %1$s; profile_swap_body_unknown_account is the fallback for a display name
+      the SDK could not look up (Phase 11 D-14), which is a degraded name and never a
+      failed sign-in — so it says "this account" rather than leaving a gap or rendering the
+      word null.
+
+      The two labels are account-neutral on purpose. "Keep this device's progress" is the
+      safe answer and carries the gradient CTA; "Use their cloud progress" is the
+      destructive one and is a plain text button. The arriving account is named in the
+      body, where both variants have room, rather than in a label that would need a sixth
+      string to stay readable when the name is unknown.
+    -->
+    <string name="profile_swap_title">Moving to a different account?</string>
+    <string name="profile_swap_body">You\'re signed in as %1$s. Keeping this device\'s progress merges it into their cloud save — nothing is lost on either side. Using their cloud progress instead replaces everything on this device: your level results, your play history, your Challenge level and both in-progress games.</string>
+    <string name="profile_swap_body_unknown_account">You\'re signed in with a different Play Games account. Keeping this device\'s progress merges it into this account\'s cloud save — nothing is lost on either side. Using this account\'s cloud progress instead replaces everything on this device: your level results, your play history, your Challenge level and both in-progress games.</string>
+    <string name="profile_swap_keep">Keep this device\'s progress</string>
+    <string name="profile_swap_use_cloud">Use their cloud progress</string>
+    <!-- ==================== end Phase-13 cloud-save copy ==================== -->
+
+    <!--
+      Licences (feature/licences-screen): every key of docs/ux/licences-screen.md §6 — the
+      Settings › About › Licenses row, the Licenses list, the License text reader, and the Google
+      notices list and reader.
+
+      Proper names, licence names and addresses are translatable="false": they are shown as their
+      owners write them. Entry titles and lines are one key each, in the order of the spec's §3.2
+      table, even where two lines read alike ("Google"), so a re-cut of one entry never moves
+      another. The Google notices' own names and texts are not strings at all: they are data from
+      the generated index, shown as Google supplied them (LS-12).
+
+      licenses_jakarta_credit follows the attribution line of the bundled Jakarta NOTICE.md ("This
+      content is produced and maintained by the Eclipse Jakarta Dependency Injection project.")
+      rather than the spec's draft "Eclipse Foundation", which the NOTICE names only as the
+      trademark holder (spec §3.2, loop 1 F-16).
+
+      licenses_psl_address is the exact revision of the Public Suffix List compiled into okhttp
+      4.11.0 (research-analyst-mpl.md, verdict 2). It is re-derived before the cut if the release
+      listing shows another okhttp (spec §9 item 13).
+    -->
+    <string name="settings_section_about">About</string>
+    <string name="settings_licenses_label">Licenses</string>
+    <string name="settings_licenses_supporting">Fonts, sounds and open-source software</string>
+
+    <string name="licenses_title">Licenses</string>
+    <string name="licenses_intro">Peg Solitaire is made with these fonts, sounds and open-source software. Thank you to their authors.</string>
+    <string name="licenses_section_fonts">Fonts</string>
+    <string name="licenses_section_sounds">Sounds</string>
+    <string name="licenses_section_software">Open-source software</string>
+    <string name="licenses_section_google">Google libraries</string>
+    <string name="licenses_read_action">Read the license</string>
+    <string name="licenses_loading">Loading license</string>
+    <string name="licenses_text_error">This license text could not be shown.</string>
+    <plurals name="licenses_sound_effects">
+        <item quantity="one">%d sound effect</item>
+        <item quantity="other">%d sound effects</item>
+    </plurals>
+
+    <string name="licenses_ofl_name" translatable="false">SIL Open Font License 1.1</string>
+    <string name="licenses_cc0_name" translatable="false">CC0 1.0 Universal (public domain)</string>
+    <string name="licenses_apache_name" translatable="false">Apache License 2.0</string>
+    <string name="licenses_bsd3_name" translatable="false">BSD 3-Clause License</string>
+    <string name="licenses_mit_name" translatable="false">MIT License</string>
+    <string name="licenses_mpl_name" translatable="false">Mozilla Public License 2.0</string>
+    <string name="licenses_android_sdk_name" translatable="false">Android Software Development Kit License Agreement</string>
+
+    <string name="licenses_fredoka_title" translatable="false">Fredoka</string>
+    <string name="licenses_fredoka_credit" translatable="false">© 2016 The Fredoka Project Authors</string>
+    <!-- D-17 (docs/ux/localisation-tr.md §5.4; docs/tech-design.md §11.1, Q-039 (3)): the bundled Fredoka is a
+         Modified Version under OFL-1.1, built by fonts/fredoka-tr/. A sentence, so translatable. -->
+    <string name="licenses_fredoka_modified">Modified for Peg Solitaire under the SIL Open Font License: Ğ ğ İ Ş ş added from Fredoka\'s own letters and marks; nothing else changed.</string>
+    <string name="licenses_nunito_title" translatable="false">Nunito</string>
+    <string name="licenses_nunito_credit" translatable="false">© 2014 The Nunito Project Authors</string>
+
+    <string name="licenses_kenney_title">Interface Sounds by Kenney</string>
+    <string name="licenses_kenney_address" translatable="false">kenney.nl/assets/interface-sounds</string>
+    <string name="licenses_lilmati_title">“Pop 01” by LilMati</string>
+    <string name="licenses_lilmati_address" translatable="false">freesound.org/people/LilMati/sounds/506546</string>
+    <string name="licenses_cogfire_title">“Positive Blip Effect” by CogFireStudios</string>
+    <string name="licenses_cogfire_address" translatable="false">freesound.org/people/CogFireStudios/sounds/531512</string>
+
+    <string name="licenses_androidx_title">AndroidX and Jetpack Compose</string>
+    <string name="licenses_androidx_credit" translatable="false">The Android Open Source Project</string>
+    <string name="licenses_androidx_parts" translatable="false">Compose, Material 3, Material icons, Room, DataStore, Navigation, Lifecycle, Activity, Core, Hilt Navigation</string>
+    <string name="licenses_kotlin_title">Kotlin and kotlinx</string>
+    <string name="licenses_kotlin_credit" translatable="false">JetBrains</string>
+    <string name="licenses_kotlin_parts">Standard library, coroutines, serialization</string>
+    <string name="licenses_dagger_title">Dagger and Hilt</string>
+    <string name="licenses_dagger_credit" translatable="false">Google</string>
+    <string name="licenses_okhttp_title">OkHttp and Okio</string>
+    <string name="licenses_okhttp_credit" translatable="false">Square</string>
+    <string name="licenses_okhttp_parts">Networking and I/O inside Google Mobile Ads</string>
+    <string name="licenses_gson_title">Gson, Tink and Guava</string>
+    <string name="licenses_gson_credit" translatable="false">Google</string>
+    <string name="licenses_gson_parts" translatable="false">Gson, Tink, Guava, Error Prone annotations, J2ObjC annotations</string>
+    <string name="licenses_jakarta_title" translatable="false">Jakarta Dependency Injection</string>
+    <string name="licenses_jakarta_credit" translatable="false">The Eclipse Jakarta Dependency Injection project</string>
+    <string name="licenses_annotations_title">Annotation and injection APIs</string>
+    <string name="licenses_annotations_credit" translatable="false">The JSR-330 Expert Group, the FindBugs project, JSpecify, JetBrains</string>
+    <string name="licenses_annotations_parts" translatable="false">javax.inject, JSR-305 annotations, JSpecify, JetBrains Java annotations</string>
+    <string name="licenses_protobuf_title" translatable="false">Protocol Buffers</string>
+    <string name="licenses_protobuf_credit" translatable="false">Google</string>
+    <string name="licenses_protobuf_parts">The Java Lite runtime, and the copy inside AndroidX DataStore</string>
+    <string name="licenses_chromium_title" translatable="false">Chromium (Cronet)</string>
+    <string name="licenses_chromium_credit" translatable="false">The Chromium Authors</string>
+    <string name="licenses_chromium_parts">The Cronet networking classes inside Google Mobile Ads</string>
+    <string name="licenses_psl_title" translatable="false">Public Suffix List</string>
+    <string name="licenses_psl_credit">Mozilla and the list\'s contributors</string>
+    <string name="licenses_psl_parts">The public-suffix data compiled into OkHttp, as it stood on 15 February 2023</string>
+    <string name="licenses_psl_address" translatable="false">github.com/publicsuffix/list/blob/a312abe0e11421aff8fe909a5e02f36b7c5d28de/public_suffix_list.dat</string>
+    <string name="licenses_checker_title" translatable="false">Checker Framework qualifiers</string>
+    <string name="licenses_checker_credit" translatable="false">The Checker Framework developers</string>
+
+    <string name="licenses_google_sdk_title">Google Play services and SDKs</string>
+    <string name="licenses_google_sdk_parts" translatable="false">Play Games Services, Mobile Ads, User Messaging Platform, Play inline-install library, Play services libraries</string>
+    <string name="licenses_android_sdk_address" translatable="false">developer.android.com/studio/terms</string>
+    <string name="licenses_google_notices_title">Open-source notices in Google libraries</string>
+    <string name="licenses_google_notices_supporting">The notices Google supplies for the open-source software inside its libraries</string>
+    <string name="licenses_google_notices_action">Open the notices</string>
+
+    <string name="license_text_part_notice">Notice</string>
+    <string name="license_text_end">End of text</string>
+
+    <string name="google_notices_title">Open-source notices</string>
+    <string name="google_notices_intro">Google supplies these notices for the open-source software inside its libraries. Each one is shown as supplied.</string>
+    <string name="google_notices_found_in">Found in %1$s</string>
+    <string name="google_notices_ordinal">Notice %1$d of %2$d</string>
+    <string name="google_notices_read_action">Read the notice</string>
+    <string name="google_notices_loading">Loading notices</string>
+    <string name="google_notices_error">These notices could not be shown.</string>
+    <string name="google_notice_text_error">This notice could not be shown.</string>
+    <string name="google_notice_text_unknown_title">Notice</string>
+    <!-- ==================== end licences copy ==================== -->
 </resources>

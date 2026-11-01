@@ -1,0 +1,243 @@
+################################################################################
+# Single source of truth for every pinned version in the build.
+# No module may hand-pin a version literal — reference libs.* / plugins.* only.
+################################################################################
+
+[versions]
+# --- Build toolchain (pinned) ---
+# Kotlin relaxed 2.4.0 -> 2.3.20 (2026-06-28, approved): KSP's latest published
+# build (symbol-processing 2.3.9) is compiled against Kotlin 2.3.20, and no KSP
+# build exists for Kotlin 2.4.x. 2.3.20 is the latest 2.3.x patch with an exact
+# matching KSP build (2.3.21 has no KSP). KSP + Hilt + no-KAPT retained.
+kotlin = "2.3.20"                # AGP built-in Kotlin + compose compiler follow this
+# DOCUMENTED EXCEPTION to this file's "single source of truth for every pinned
+# version" contract: `org.jetbrains.kotlin:compose-group-mapping` is NOT declared
+# here and cannot be. AGP 9.1.0's `produceReleaseComposeMapping` task resolves it
+# implicitly whenever `isMinifyEnabled` is on, at a coordinate that tracks the
+# `kotlin` pin above (2.3.20). Nothing in this repo asks for it, so nothing in
+# this repo can pin it — it moves when `kotlin` moves. The practical consequence
+# is D-18: `assembleRelease` is not offline-safe until one warm online run has
+# put that artifact in the Gradle cache. `./gradlew check --offline` is
+# unaffected because `check` never builds the release variant.
+ksp = "2.3.9"                    # symbol-processing built against Kotlin 2.3.20
+agp = "9.1.0"                    # tooling max-supported AGP (down from 9.2.1); resolves on Google Maven
+composeBom = "2026.06.00"        # governs all androidx.compose.* versions
+
+# --- DI (APPLIED: KSP plugin + Hilt Gradle plugin wired into :app via the
+#     android-app convention plugin; hilt-compiler runs under KSP, no KAPT) ---
+# Hilt MUST stay >=2.60: AGP 9.1.0 (like 9.2.x) removed the legacy Android
+# `BaseExtension`, so Hilt 2.57.1's Gradle plugin throws "Android BaseExtension
+# not found" at apply time. 2.60 uses AGP 9's new DSL. Verified: 2.57.1 fails to
+# apply on AGP 9.1.0 (2026-06-28). The project's 2.57.1 pin cannot be honoured here.
+hilt = "2.60"
+# 1.4.0-rc01 transitively forces androidx.hilt hilt-lifecycle-viewmodel-compose
+# 1.4.0-rc01 + lifecycle 2.11.0-rc01, both requiring compileSdk 37 (uninstallable
+# here). 1.3.0 is the pinned line that keeps minCompileSdk 36.
+hiltNavigationCompose = "1.3.0"
+# Dagger 2.60 no longer exports error_prone_annotations transitively, but its
+# generated members-injectors still emit `@CanIgnoreReturnValue`. Needed on the
+# javac classpath (compileOnly) from the moment any class gains an `@Inject` field.
+errorproneAnnotations = "2.47.0"
+
+# --- AndroidX (not governed by the Compose BOM) ---
+androidxActivityCompose = "1.13.0"
+# Highest androidx.core line whose minCompileSdk is 36 (1.19.0 requires
+# compileSdk 37, which is not installable in this environment). Forced onto the
+# transitive graph in app/build.gradle.kts to keep compileSdk pinned at 36.
+androidxCore = "1.18.0"
+# androidx.lifecycle is an ATOMIC GROUP — every lifecycle-* artifact must share
+# one version. 2.11.0's `-compose` variants require compileSdk 37 (uninstallable
+# here); 2.9.4 is the highest line whose `-compose` variants keep minCompileSdk 36
+# and is exactly what the Compose BOM 2026.06.00 already resolves transitively.
+androidxLifecycle = "2.9.4"
+# Latest STABLE Navigation Compose. 2.10.x is alpha and requires compileSdk 37
+# (uninstallable here); 2.9.8 stays on the compileSdk-36-safe line and pairs with
+# the kotlinx-serialization plugin for type-safe `@Serializable` routes (NAV-02).
+navigationCompose = "2.9.8"
+# kotlinx-serialization-json runtime for `@Serializable` nav routes + future blob
+# serialization. Plugin (below) tracks the Kotlin pin; runtime is versioned here.
+kotlinxSerialization = "1.11.0"
+# DataStore Preferences — single boolean `onboardingSeen` flag (ONB-01) + future
+# scalar settings/challenge progress. Flow-based async KV store (no SharedPreferences).
+datastore = "1.2.1"
+# Room — the project's first relational store (Phase 5): per-level results +
+# in-progress resume snapshot. Pinned 2.8.4 stable (NOT Room 3.0 alpha);
+# annotation processor runs under KSP (never KAPT). All five artifacts (runtime,
+# ktx, compiler, testing, gradle-plugin) verified present on Google Maven 2026-07-13.
+room = "2.8.4"
+
+# --- Slice-2 SDK artifacts (D-14: on the graph, referenced by no code) ---
+# All three land in phase 6 *unreferenced*. Without them PLAT-07's
+# provider-removal test passes vacuously, PLAT-04's violating fixture has no real
+# `gms` class to name, and PLAT-05's keep-rule surface is unmeasured. Every
+# coordinate below was resolved by direct download from `dl.google.com` on
+# 2026-08-27 and the AAR contents inspected (`slopcheck` has no Maven backend, so
+# it was not run — see 06-RESEARCH.md § Package Legitimacy Audit).
+#
+# Google Mobile Ads **Next-Gen**. This SUPERSEDES the `play-services-ads 23.6.0`
+# pin still recorded in the project's stack table: that legacy line was deprecated
+# 2026-02-17 and sunsets 2027-06-30, so starting a new integration on it would be
+# knowingly building on a dead SDK.
+# READ THE COORDINATE CHARACTER-FOR-CHARACTER. It is
+# `com.google.android.libraries.ads.mobile.sdk:ads-mobile-sdk`, which is trivially
+# confused with the legacy `com.google.android.gms:play-services-ads` — the two
+# are different artifacts from different groups, and a typo here is the exact
+# shape a supply-chain mistake takes in this ecosystem.
+# Behavioural note that later phases depend on: Next-Gen declares NO auto-init
+# ContentProvider and REQUIRES an explicit background-thread
+# `MobileAds.initialize(...)`, throwing `UninitializedPropertyAccessException` if
+# any other API is called first. That is why the manifest removes only
+# `PlayGamesInitProvider` and has no ads counterpart (D-17).
+adsMobileSdk = "1.4.0"
+# UMP (GDPR/consent). Required before serving an ad in a consent region (CONS-01,
+# phase 9). Ships its own `proguard.txt` (one proto-field keep), so R8 needs
+# nothing hand-written for it.
+userMessagingPlatform = "4.0.0"
+# Play Games Services v2. 22.0.0 — NOT the "~21.x" guessed at milestone level;
+# that guess predates the 2026-07-29 release and was never resolved against the
+# repository.
+# Keep-rule caveat worth carrying forward: this AAR ships NO `proguard.txt` of its
+# own. Its SafeParcelable / `@Keep` / DynamiteApi reflection is covered only
+# transitively, by `play-services-basement`'s consumer rules. Nothing here calls
+# PGS yet, so that coverage is unexercised — phase 11 must re-run a minified
+# release build with live PGS calls before it is trusted (assumption A1).
+playServicesGamesV2 = "22.0.0"
+
+# --- Standards gate tooling (Phase-1 delta — verified live against the
+#     official Gradle Plugin Portal / Maven Central this session) ---
+detekt = "2.0.0-alpha.5"         # plugin id is `dev.detekt` (NOT io.gitlab.arturbosch)
+ktlint = "14.2.0"                # org.jlleitschuh.gradle.ktlint
+archunit = "1.3.0"               # bytecode-based domain-purity gate
+# kover (org.jetbrains.kotlinx.kover; JetBrains, Apache-2.0, build-only): the :domain line-coverage
+# gate (rules/testing.md "core logic >= 90 %, kover on Kotlin"; docs/tech-design.md §8.4). 0.9.11 is
+# the newest stable on Maven Central and the Gradle Plugin Portal, read with the studio's
+# scripts/latest.sh on 2026-10-23; no pre-release. Applied to :domain only, and it neither
+# instruments nor depends on :domain:depthSweep or :domain:fuzz.
+kover = "0.9.11"
+
+# --- Test libraries (wired into catalog now; consumed by Plans 02 & 03) ---
+junit = "4.13.2"
+truth = "1.4.4"
+turbine = "1.2.1"
+mockk = "1.14.2"
+coroutines = "1.11.0"
+# JVM-side Android runtime for the end-to-end Compose UI test (Plan 05 GameFlowTest).
+# Runs Compose UI tests without an emulator; the emulated SDK is pinned via @Config.
+robolectric = "4.16"
+
+[libraries]
+# --- Convention-plugin classpath (consumed by build-logic, so every plugin
+#     version still flows from this catalog) ---
+android-gradlePlugin = { module = "com.android.tools.build:gradle", version.ref = "agp" }
+kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+composeCompiler-gradlePlugin = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
+detekt-gradlePlugin = { module = "dev.detekt:detekt-gradle-plugin", version.ref = "detekt" }
+ktlint-gradlePlugin = { module = "org.jlleitschuh.gradle:ktlint-gradle", version.ref = "ktlint" }
+
+# --- Compose (versions provided by the BOM platform) ---
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+# Curated Material Symbols set (BOM-governed). Phase 1 uses only Icons.Rounded.Refresh
+# for the top-bar restart control (UI-SPEC); the heavy `material-icons-extended` set
+# is intentionally avoided.
+androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core" }
+
+# --- AndroidX ---
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidxActivityCompose" }
+androidx-core = { group = "androidx.core", name = "core", version.ref = "androidxCore" }
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCore" }
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidxLifecycle" }
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "androidxLifecycle" }
+# Plain (non-Compose) ViewModel base. The `-compose` lifecycle variants at 2.11.0
+# require compileSdk 37 (uninstallable here); this artifact does not, so it is the
+# compileSdk-36-safe way to expose `androidx.lifecycle.ViewModel`.
+androidx-lifecycle-viewmodel = { group = "androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "androidxLifecycle" }
+# ProcessLifecycleOwner — whole-app foreground/background, for the D-04/D-16 session
+# boundary. `version.ref` and no new version key: this is a sibling of the artifacts
+# above inside the atomic group pinned at the `androidxLifecycle` declaration (see the
+# compileSdk-37 note there), and a hand-pinned version here would split that group.
+androidx-lifecycle-process = { group = "androidx.lifecycle", name = "lifecycle-process", version.ref = "androidxLifecycle" }
+
+# --- Navigation + serialization + persistence (Phase-2 NAV-02 / ONB-01) ---
+# Type-safe NavHost between Home / Catalog / Gameplay / Results destinations.
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+# kotlinx-serialization runtime backing `@Serializable` route classes.
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+# DataStore Preferences for the first-run `onboardingSeen` flag (ONB-01).
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+
+# --- Room (Phase-5 persistence: results + resume) ---
+# runtime + ktx at implementation; compiler under ksp(...) (no KAPT); testing
+# (MigrationTestHelper) at testImplementation for the Robolectric migration spike.
+androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+androidx-room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
+
+# --- DI (APPLIED: :app uses hilt-android at runtime; hilt-compiler via ksp(...)) ---
+hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+hilt-compiler = { group = "com.google.dagger", name = "hilt-compiler", version.ref = "hilt" }
+hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
+# hiltViewModel() itself. hilt-navigation-compose 1.3.0's own hiltViewModel is a deprecated inline
+# forwarder to this artifact's, so the code imports this one directly (docs/tech-design.md §9.8).
+# Same release train, so it takes the hiltNavigationCompose version ref and the two cannot drift;
+# 1.4.x needs compileSdk 37. It was already on the release runtime classpath through
+# hilt-navigation-compose 1.3.0, so declaring it changes nothing that ships.
+hilt-lifecycle-viewmodel-compose = { group = "androidx.hilt", name = "hilt-lifecycle-viewmodel-compose", version.ref = "hiltNavigationCompose" }
+errorprone-annotations = { group = "com.google.errorprone", name = "error_prone_annotations", version.ref = "errorproneAnnotations" }
+
+# --- Slice-2 SDK artifacts (D-14: on the graph, unreferenced by code) ---
+# Added at `implementation` in :app so the manifest merge and the JVM test
+# classpath both see them; see the [versions] comments above for the per-artifact
+# justification and the typosquat warning on the ads coordinate.
+ads-mobile-sdk = { group = "com.google.android.libraries.ads.mobile.sdk", name = "ads-mobile-sdk", version.ref = "adsMobileSdk" }
+user-messaging-platform = { group = "com.google.android.ump", name = "user-messaging-platform", version.ref = "userMessagingPlatform" }
+play-services-games-v2 = { group = "com.google.android.gms", name = "play-services-games-v2", version.ref = "playServicesGamesV2" }
+# The official Task<T> -> suspend bridge for the Play Games v2 calls (isAuthenticated,
+# signIn, getCurrentPlayer/getCurrentPlayerId), added by Phase 11. Deliberately
+# `version.ref = "coroutines"` and NOT a new version key: this artifact is a sibling of
+# the kotlinx-coroutines-test entry below, published from the same kotlinx.coroutines
+# release, and a hand-pinned literal here could drift off the runtime coroutines line the
+# rest of the app is compiled against.
+kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutines" }
+
+# --- Domain-purity boundary gate ---
+archunit-junit4 = { group = "com.tngtech.archunit", name = "archunit-junit4", version.ref = "archunit" }
+
+# --- Test ---
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+truth = { group = "com.google.truth", name = "truth", version.ref = "truth" }
+turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutines" }
+robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+
+[bundles]
+compose = [
+    "androidx-compose-material3",
+    "androidx-compose-ui",
+    "androidx-compose-ui-tooling-preview",
+]
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+# Applied to :app so `@Serializable` nav routes generate serializers (tracks the
+# Kotlin 2.3.20 pin — without applying this, type-safe routes crash at navigate time).
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+detekt = { id = "dev.detekt", version.ref = "detekt" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+# Room Gradle plugin (id `androidx.room`) — declares the exported-schema location
+# as a proper variant-aware Gradle input/output via `room { schemaDirectory(...) }`,
+# avoiding the KSP `room.schemaLocation` apoption-format pitfall.
+room = { id = "androidx.room", version.ref = "room" }

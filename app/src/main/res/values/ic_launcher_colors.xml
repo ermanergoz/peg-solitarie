@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Launcher-icon palette (UI-ICON-01). Kept in its own file rather than merged into a
+  shared colours file so the whole icon palette stays greppable as one unit.
+
+  These values mirror the Candy-Clay tokens in `ui/theme/Color.kt`
+  (LightCtaGradientColors, LightPegGradientColors, LightDimpleFill, LightDimpleShadow);
+  Color.kt remains the single source of truth for the in-app theme. The duplication
+  exists only because a resource XML cannot read a Kotlin object, and a VectorDrawable's
+  gradient stops must resolve to resources at inflation time.
+-->
+<resources>
+    <!-- Background: violet CTA gradient plus soft white glow. -->
+    <color name="ic_launcher_violet_light">#FFA78BFA</color>
+    <color name="ic_launcher_violet_deep">#FF7C3AED</color>
+    <color name="ic_launcher_glow">#33FFFFFF</color>
+    <color name="ic_launcher_glow_fade">#00FFFFFF</color>
+
+    <!-- Board slab and cell recesses. -->
+    <color name="ic_launcher_slab">#FFEFE8FB</color>
+    <color name="ic_launcher_dimple_fill">#FFE4DBF4</color>
+    <color name="ic_launcher_hole_fill">#FFDCD3EC</color>
+    <color name="ic_launcher_hole_shadow">#FFC9BEE0</color>
+
+    <!-- Peg body gradient and its specular highlight. -->
+    <color name="ic_launcher_peg_highlight">#FFF9A8D4</color>
+    <color name="ic_launcher_peg_body">#FFEC4899</color>
+    <color name="ic_launcher_peg_rim">#FFBE185D</color>
+    <color name="ic_launcher_peg_specular">#D9FFFFFF</color>
+
+    <!-- Themed-icon silhouette. The system re-tints this at inflation time. -->
+    <color name="ic_launcher_mono_ink">#FF000000</color>
+</resources>

@@ -1,0 +1,52 @@
+package com.app.pegsolitaire.ui.theme
+
+import androidx.compose.runtime.Immutable
+
+/**
+ * Every container on Home and the game screen that takes a part of the gloss finish
+ * (backdrop spec §3.5.1, B-19). The dock's discs, every dialog and snackbar, and every
+ * container on a Sparse screen are not here: they keep today's finish.
+ */
+enum class FinishedContainer {
+    BoardSlab,
+    DockSlab,
+    BackChip,
+    TimerPill,
+    GearChip,
+    RibbonPill,
+    ContinueChip,
+    RescueBanner,
+}
+
+/** Which parts of the finish a container takes: its rim, lip, white gloss, and the glow tint on its shadow. */
+@Immutable
+data class FinishRecipe(
+    val rim: Boolean,
+    val lip: Boolean,
+    val gloss: Boolean,
+    val glow: Boolean,
+)
+
+/**
+ * The finish §3.5.1's table gives this container. No gloss lies over the board slab (it holds the
+ * board), the dock slab (21e and 21f measure the discs against its flat fill) or the rescue banner,
+ * whose shadow also stays the clay one. The Home stage art's row left with the stage (D-03p); the
+ * Classic Continue chip's thumbnail slab is not a finished container at all — plain
+ * `surfaceContainerHigh`, no rim, lip, gloss or glow.
+ */
+val FinishedContainer.recipe: FinishRecipe
+    get() =
+        when (this) {
+            FinishedContainer.BoardSlab, FinishedContainer.DockSlab -> HERO_SLAB
+            FinishedContainer.BackChip,
+            FinishedContainer.TimerPill,
+            FinishedContainer.GearChip,
+            FinishedContainer.RibbonPill,
+            FinishedContainer.ContinueChip,
+            -> GLOSSED_CHIP
+            FinishedContainer.RescueBanner -> RIMMED_BANNER
+        }
+
+private val HERO_SLAB = FinishRecipe(rim = true, lip = true, gloss = false, glow = true)
+private val GLOSSED_CHIP = FinishRecipe(rim = true, lip = true, gloss = true, glow = true)
+private val RIMMED_BANNER = FinishRecipe(rim = true, lip = true, gloss = false, glow = false)
