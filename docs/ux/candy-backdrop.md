@@ -4,7 +4,7 @@ task: candy-backdrop
 slug: scene-backdrop
 status: draft
 created: 2026-10-17
-revised: 2026-10-18 (third edition: direction B "Deep gloss", the founder's answer to Q-021); 2026-10-31 (B-19a, BD-19 amended)
+revised: 2026-10-18 (third edition: direction B "Deep gloss", the founder's answer to Q-021); 2026-10-31 (B-19a, BD-19 amended); 2026-11-01 (B-22a, the sheen at a settle; BD-01's grep scope)
 stack: android-compose-game
 design-system: docs/ui/DESIGN-SYSTEM.md
 ip-verdict: .planning/reports/candy-backdrop/research-analyst.md (inspiration-only)
@@ -541,6 +541,33 @@ the second edition, whose sections §16 lists.
   still stretches, and a phone left on the table buys nothing with motion. Motion that settles when
   you stop, and wakes when you touch, keeps the aliveness for a player who is playing.
 
+- **B-22a (2026-11-01): The gel sheen shows only while the clock runs at full rate** (amends B-22
+  and §6.3 step 2; a UX decision on the code-auditor's finding 5 in
+  `.planning/reports/candy-backdrop/code-auditor.md`).
+  - **The conflict.** A settle stops the clock's time "where it is". About 30% of settles on Home
+    begin inside a tile's 2.5 s pass, so the glint froze on the lip and stayed there, against
+    B-05a rule 9 (≤ 2.5 s) and §6.1's still picture (no glint).
+  - **The ruling.** On the host's live clock, a gel tile draws its sheen only while
+    `backdropMotion` is **Running**. While it is **Settling** (the 2 s ease to 0, and the 2 s ease
+    back to 1 on a wake) or **AtRest** (settled), no sheen is drawn: a pass under way when the
+    settle begins ends at once. After a wake the sheen returns when the clock is Running again; if
+    the clock time is then inside a pass, the rest of that pass is drawn. The waves and the lights
+    still decelerate and stop where they are, as §6.3 says.
+  - **Unchanged.** Animator scale 0 and battery saver already draw no sheen (`isStatic`). A clock
+    fixed at a pose for a preview or a pixel test (`FixedBackdropClock`) is not a settled clock: it
+    draws the sheen at its pose, as before. How the tile tells the two apart is the developer's.
+  - **The test** (BD-16 (c)): with the host's live clock on injected frames, Home's Classic tile
+    is brought to a clock time inside its pass while Running (the control: its lip differs from the
+    same tile drawn with no sheen), then left idle until the settle begins inside that pass. From
+    that frame on, through Settling and AtRest, the tile's lip region is pixel-identical, in the
+    same run, to the same tile drawn with `StaticBackdropClock`. With the rule removed, the AtRest
+    frame differs (the red).
+
+  — The sheen is the one faster movement (B-05a rule 9). A glint that crawls through a 2 s ease and
+  then hangs on the lip for as long as the phone lies there reads as a stuck frame, not as gloss.
+  Ending the pass is one condition on a value the tile already reads. Deferring the settle to the
+  gap between passes would couple the clock's state machine to one tile's loop for no visible gain.
+
 - **B-23: Sparse screens get a static wash and keep today's containers.**
   - **The wash:** `SkyTop` to 0.12 H, then a blend to `BackdropSparseLow` at the bottom edge.
   - **Nothing else:** no wave, no light, no motion, zero idle frames.
@@ -797,6 +824,8 @@ and back, eased at both ends.
 - It is drawn only while `σ ≥ GEL_SHEEN_START` (0.75). Its travel across the tile is `FastOutSlowIn`
   over the remaining quarter of the loop.
 - **Rest pose:** not drawn.
+- **On the live clock, only while Running** (B-22a): never while the clock is Settling or settled
+  AtRest.
 
 **Mirroring.** In RTL every x position is measured from the start edge, which is then on the right.
 Every x offset and the sheen's direction mirror with it (B-15).
@@ -1250,7 +1279,7 @@ where the gel only darkens downward:
 
 Scale values other than 0 stretch or shorten every loop through the clock (§3.4). The reduced-motion
 picture is the same picture, still: the waves at their centres, the lights at their rest places, no
-glint.
+glint. A settled picture (§6.3) has no glint either (B-22a).
 
 ### 6.2 What never moves
 
@@ -1286,8 +1315,9 @@ backdrop's motion is atmosphere, slow and periodic, and always behind opaque con
    - `BACKDROP_GAME_IDLE_MS` (20 s) on the game screen.
 
    The clock's rate then eases from 1 to 0 over `BACKDROP_SETTLE_MS` (2 s, `FastOutSlowIn`): every
-   moving element decelerates to a stop where it is. After that, neither the backdrop nor the sheen
-   requests a frame.
+   wave and light decelerates to a stop where it is. The gel sheen does not decelerate: it is not
+   drawn from the frame the settle begins, and returns only once a wake has brought the clock back
+   to Running (B-22a). After that, neither the backdrop nor the sheen requests a frame.
 3. **Wake.** The next pointer-down or key-down eases the rate from 0 to 1 over the same 2 s. The
    observer reads events at the `Initial` pass and **never consumes** them, so no tap, drag or
    long-press on the board, a tile or a control is delayed or changed.
@@ -1570,7 +1600,7 @@ edition's, with only their layer and element names updated.
 
 | # | Criterion | By | Pass line |
 |---|---|---|---|
-| **BD-01** | **Words grep** (amended: D9's JVM test; "jelly" added to the diff grep, B-10a). The three commands under this table, run from the repository root, plus `UserFacingTextHasNoProtectedNamesTest` over `src/main/res/values*/strings.xml` and `src/main/assets/**` on every Check | Auditor, QA, Test | all three print **zero lines**, and the test is green. Play Console names, which no grep reaches, are the release-manager's (§14) |
+| **BD-01** | **Words grep** (amended: D9's JVM test; "jelly" added to the diff grep, B-10a; 2026-11-01: `docs/store/README.md` excluded from commands 1 and 2, see below the table). The three commands under this table, run from the repository root, plus `UserFacingTextHasNoProtectedNamesTest` over `src/main/res/values*/strings.xml` and `src/main/assets/**` on every Check | Auditor, QA, Test | all three print **zero lines**, and the test is green. Play Console names, which no grep reaches, are the release-manager's (§14) |
 | **BD-02** | **The two-question test** (amended: D4). It is run on every capture: Home (412×915dp with no chip, one chip and both chips; 360×640dp; the tablet), gameplay (Classic English-33 mid-game; a Challenge level), tutorial step 1, the catalogue, Results, Settings and Licences, in light and dark. Each is captured at rest, and Home and gameplay also in motion, with one Home capture taken while the sheen passes | Auditor (on QA's captures, listed by path in QA's report), QA | For every capture, each reviewer writes Q1 "no" and Q2 "no", with one line of reason. **Any "yes" is a FAIL**, routed through the producer to the research-analyst. Reviewers answer from the verdict's §1b list and their own knowledge: no King image is fetched, viewed side by side or stored, in the repo or in `.planning/qa/`. The auditor's line is sequenced after QA's capture session |
 | **BD-03** | **Shapes and finish checklist** (rewritten). §10's rows, ticked on the code and on the captures. The scene holds exactly the sky, two waves (each a fill, a lip and a sheen) and the density's lights (9 / 5 / 0), and no other primitive. Every light is a plain radial disc (core, rim, fade), with no dot and no stroked ring. The gloss finish is exactly §3.5.1's table: no gloss on the slab, the stage art, the dock slab or the banner, and the dock's discs untouched. The gel tiles are exactly §3.5.2: one colour family each, no texture, no wobble, the sheen inside the lip only | Auditor | every row ticked. There is no confectionery motif, sprinkle, star, sparkle, bubble with a dot, character, lettering, path or grid anywhere in the scene or the finish. There is no red, orange, yellow, green, blue, brown or gold pixel in them. There is no "jelly" in any new identifier, KDoc, test tag or string |
 | **BD-04** | **No asset, no dependency** (amended: D5). There is no new file under `res/drawable*`, `res/mipmap*`, `res/raw` or `assets/`, except `assets/licenses/Apache-2.0.txt` (sha256 `cfc7749b…3d30`, LS §7) and an `assets/licenses/<name>-MIT.txt` only if the release listing proves an MIT artifact ships. There is no image file (`*.png *.jpg *.jpeg *.webp *.gif *.svg *.avif`) anywhere in the diff, and no new entry in `gradle/libs.versions.toml` or a module build file | Auditor | `git diff --stat develop...HEAD` shows none beyond the carve-out |
@@ -1585,7 +1615,7 @@ edition's, with only their layer and element names updated.
 | **BD-13** | **Hero edges** (amended pass line: B-14a). Sampled just outside and just inside the edges of the board slab, the dock, the back chip, the timer pill, the stage art, the gear chip, the ribbon pills, both gel tiles, the Continue chips and the rescue banner, in light and dark, at rest and in motion | QA | Every reading is ≥ its §5.2 floor: the clay family and every light-theme container ≥ its `develop` value; the dark Continue chips, the dark rescue banner and both gel tiles ≥ 1.20:1. (The second edition's line was "every ratio ≥ its `develop` value".) |
 | **BD-14** | **Transparent containers** (amended: D1). Every `Scaffold`, the four `TopAppBar`s (resting and scrolled colours) and the tutorial's root `Surface` paint no colour. The host's window-filling `Surface` exists, and unlabelled text takes `onBackground` in both themes (F-32) | Test, Auditor | as stated |
 | **BD-15** | **Semantics.** The backdrop node carries its tag, `backdropDensity`, `backdropLayers`, and `backdropMotion` if the tech-lead adopts it (§12). It has no description, no click, no focus and no `pointerInput`. The finish and the gel add no node and no property. Home's, gameplay's and the tutorial's TalkBack traversal orders are exactly `docs/ux-spec.md` §11's | Test, QA | as stated. A TalkBack pass on the device finds no new focus stop on any screen |
-| **BD-16** | **Motion** (rewritten: B-05a, B-22). (a) **At rest:** with the scale at 0, every element is at its rest pose and the sheen is not drawn. Over 5 s idle on Home, gameplay and a Sparse screen, the device's `dumpsys gfxinfo` frame count is no higher than `develop`'s for the same screen in the same state. (b) **In motion:** Home moves exactly the 2 waves, the 9 lights and the 2 sheens; gameplay exactly the 2 waves and the 5 lights; Sparse nothing. Only translation and alpha vary. One frame source drives it. Scrolling Home at a fixed clock time leaves the backdrop's pixels unchanged. (c) **Settle**, per the tech-lead's idle-frame ruling (B-22's defaults until it lands): after the idle delay plus 2 s with no input, the frame count over the next 10 s is no higher than `develop`'s for the same screen in the same state (the timer's ticks only, on gameplay). One tap restarts the motion within 2 s, and that tap reaches its target unchanged. In battery saver the backdrop stays at rest | Test (pose model, test clock, the board's tap test with the observer present), QA (frame counts, battery saver) | as stated |
+| **BD-16** | **Motion** (rewritten: B-05a, B-22). (a) **At rest:** with the scale at 0, every element is at its rest pose and the sheen is not drawn. Over 5 s idle on Home, gameplay and a Sparse screen, the device's `dumpsys gfxinfo` frame count is no higher than `develop`'s for the same screen in the same state. (b) **In motion:** Home moves exactly the 2 waves, the 9 lights and the 2 sheens; gameplay exactly the 2 waves and the 5 lights; Sparse nothing. Only translation and alpha vary. One frame source drives it. Scrolling Home at a fixed clock time leaves the backdrop's pixels unchanged. (c) **Settle**, per the tech-lead's idle-frame ruling (B-22's defaults until it lands): after the idle delay plus 2 s with no input, the frame count over the next 10 s is no higher than `develop`'s for the same screen in the same state (the timer's ticks only, on gameplay). One tap restarts the motion within 2 s, and that tap reaches its target unchanged. In battery saver the backdrop stays at rest. **Sheen at a settle** (added 2026-11-01, B-22a): a settle that begins inside a gel pass ends that pass at once; no sheen is drawn while Settling or AtRest, by B-22a's same-run comparison and its red | Test (pose model, test clock, the board's tap test with the observer present, B-22a's sheen comparison), QA (frame counts, battery saver; on Home, after a settle, no glint on either tile's lip) | as stated |
 | **BD-17** | **The board untouched, pixel for pixel** (D4: an in-run comparison, no file). `GameScreen` rendered with and without the backdrop, in light and dark, mid-game with a selection, legal-target dots and a hint showing: the slab's interior, inset 2dp from its edge, is identical. Likewise the interiors of the Home stage art, the gel tiles (clock fixed, no sheen passing) and the Continue chips | Test | zero differing pixels |
 | **BD-18** | **What sits under the board** is the opaque `surfaceContainerHigh` clay slab at full alpha, with its rim, lip and glow, and nothing else: no grid, no translucency, no blur, no gloss | Test, Auditor | as stated |
 | **BD-19** | **Layouts unchanged** (amended 2026-10-31: B-19a). The phase-15 criteria 15g, 15j, 15k, 15m, 15n–15r, 18a–18e and 21a–21g re-run green on this branch, **with no test edited**, except 15m's pixel oracle, which B-19a amends and the code-auditor approves on its reds. On the device, 18b's inset clause holds. With three-button navigation the system's scrim is visible over the waves, and with gesture navigation the handle is legible | Test, QA | all green; the scrim and the handle present |
@@ -1603,11 +1633,23 @@ BD-01's commands. `docs/store` may not exist yet on this branch; grep then repor
 is not a hit.
 
 ```sh
-grep -rniwE 'candy|candies|crush|saga|candyland|tiffi|toffee|yeti|odus|king|activision|microsoft' \
+grep -rniwE --exclude=README.md \
+  'candy|candies|crush|saga|candyland|tiffi|toffee|yeti|odus|king|activision|microsoft' \
   app/src/main/res/values*/strings.xml app/src/main/assets docs/store
-grep -rniE '(sweet|tasty|delicious|divine)!' app/src/main/res docs/store
+grep -rniE --exclude=README.md '(sweet|tasty|delicious|divine)!' app/src/main/res docs/store
 git diff develop...HEAD -- app/src | grep -niE '^\+.*(candy|sweet|jelly)'
 ```
+
+**The README exclusion (2026-11-01, a UX decision on the code-auditor's finding 7).**
+`docs/store/README.md` is the store folder's working notes: it names this branch and quotes the
+verdict's word rules so that whoever writes the listing can follow them. It ships nowhere, and while
+it quotes the rules, command 1 can never print zero lines. Every other file under `docs/store/` is
+listing copy and stays in scope. `--exclude=README.md` matches by file name, so it would also skip a
+`README.md` under `app/src/main/res` or `app/src/main/assets`. A README is never text the app shows,
+and `UserFacingTextHasNoProtectedNamesTest` still scans every file under `assets/`. The listing text that does ship stays covered by both commands,
+and the Play Console names stay the release-manager's (§14 item 8). Command 3 is unchanged: it prints
+zero lines over this diff because `UserFacingTextHasNoProtectedNamesTest` stores its word list
+reversed, which the code-auditor accepted (finding 6).
 
 ## 12. Tests owed
 
@@ -1637,7 +1679,7 @@ any node in the stage subtree).
 | `BackdropDensityTest`: "Home draws the landscape, the board the quiet scene, every other screen the wash", with R5's restore case | Compose | BD-06, BD-07 |
 | `BackdropSemanticsTest`: "the backdrop is not focusable, clickable or announced"; "the gel tiles announce exactly what the clay tiles did"; "TalkBack order is unchanged on Home, gameplay and the tutorial" | Compose | BD-15 |
 | `BackdropReducedMotionTest`: "with animations off every element is at rest and no clock runs" | Compose | BD-16 (a) |
-| `BackdropSettleTest`: "the backdrop settles after the idle delay"; "a tap wakes it and still reaches the board" | Compose, test clock | BD-16 (c) |
+| `BackdropSettleTest`: "the backdrop settles after the idle delay"; "a tap wakes it and still reaches the board"; "a settle that begins mid-pass ends the gel sheen" (B-22a) | Compose, test clock | BD-16 (c) |
 | `BackdropFirstFrameTest`: "Home's first frame draws only the sky" | Compose, on the real host | BD-23 (a) |
 | `BackdropFontScaleTest`: "the backdrop is identical at 1.0 and 2.0 font scale" | Pixel | BD-20 |
 | `BoardInteriorIdentityTest`: "the slab's interior is identical with and without the backdrop", and the same for the stage art, the gel tiles and the chips | Pixel | BD-17, BD-18 |
