@@ -3,6 +3,7 @@ Date: 2026-11-01
 Branch: feature/ux-3.0.0-folds (committed by the producer)
 Skills loaded: ergoz-soft:standards (role ux-designer; game; android-compose-game: studio, reporting, gitflow, skills-policy, logging, memory, puzzle-design, play-store, kotlin-android, compose, the plugin's dispatch, and `.claude/rules/lessons.md`), ui-ux-pro-max, android-accessibility, compose-skill
 Ran in parallel with: none known
+Ran on: claude-opus-5-5 (Q-019; the agent file pins fable)
 Loops: 0
 Lessons applied: none (the snapshot holds 0 active lessons; `.planning/recall/RECALL.md` was not found)
 
