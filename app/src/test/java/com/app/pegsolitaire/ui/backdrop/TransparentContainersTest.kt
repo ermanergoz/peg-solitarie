@@ -156,6 +156,7 @@ class TransparentContainersTest {
                         state = SettingsUiState(),
                         onToggleSound = {},
                         onToggleHaptics = {},
+                        onToggleColorblindPalette = {},
                         onShowHowToPlay = {},
                         onSignInToPlayGames = {},
                         onShowLeaderboards = {},

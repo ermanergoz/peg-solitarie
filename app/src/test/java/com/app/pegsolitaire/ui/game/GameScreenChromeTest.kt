@@ -1,5 +1,8 @@
 package com.app.pegsolitaire.ui.game
 
+import android.accessibilityservice.AccessibilityServiceInfo
+import android.view.accessibility.AccessibilityManager
+import android.view.accessibility.AccessibilityNodeProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.Role
@@ -9,19 +12,26 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.testing.composeHost
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.google.common.truth.Truth.assertThat
+import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * Where the gameplay chrome **is**, after D-04/D-05 move it (ux-spec §4.3, §4.4).
@@ -59,7 +69,7 @@ class GameScreenChromeTest {
         renderGame()
 
         assertThat(isInside(GAME_STATUS_STRIP_TEST_TAG, description(R.string.navigate_back))).isTrue()
-        assertThat(isInside(GAME_STATUS_STRIP_TEST_TAG, description(R.string.elapsed_time))).isTrue()
+        assertThat(isInside(GAME_STATUS_STRIP_TEST_TAG, TIMER_AT_THE_START)).isTrue()
         DOCK_ACTIONS.forEach { action ->
             assertThat(isInside(GAME_STATUS_STRIP_TEST_TAG, description(action))).isFalse()
         }
@@ -72,11 +82,54 @@ class GameScreenChromeTest {
 
         composeRule.onNodeWithTag(GAME_STATUS_STRIP_TEST_TAG).assertIsDisplayed()
         composeRule.onNodeWithContentDescription(description(R.string.navigate_back)).assertIsDisplayed()
-        composeRule.onNodeWithContentDescription(description(R.string.elapsed_time)).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(TIMER_AT_THE_START).assertIsDisplayed()
 
         // The context title is the Challenge indicator verbatim, carried across unchanged.
         val title = app.getString(R.string.challenge_level_indicator_desc, CHALLENGE_LEVEL)
         assertThat(isInside(GAME_STATUS_STRIP_TEST_TAG, title)).isTrue()
+    }
+
+    /**
+     * Criterion 26b's gameplay order, the half Compose decides (tech-lead defect ruling §3, B-3):
+     * the timer is a stop of its own in Compose's reading order, after the title and before Undo.
+     *
+     * Compose writes its traversal hints only between the nodes it counts as screen-reader
+     * focusable, and a node that does not merge its descendants counts only as a leaf with
+     * something to say. The clock's node kept its five hidden cells as semantics children, so it
+     * was no leaf: Compose left it out, the title's hint went straight to Undo, and TalkBack, which
+     * still focuses the clock by its description, placed that unhinted node first of all.
+     *
+     * Read from the view's accessibility node provider, which is what TalkBack is handed, with a
+     * screen reader enabled, because Compose computes its order only while one is. NATIVE
+     * graphics, because Compose picks the nodes it hands a service by intersecting
+     * `android.graphics.Region`s, which LEGACY stubs: there the provider hands out the root alone.
+     */
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun theTimerIsAStopInComposesReadingOrderBetweenTheTitleAndUndo() {
+        enableAScreenReader()
+        renderGame()
+
+        val provider = checkNotNull(composeRule.composeHost().accessibilityNodeProvider) { "no node provider" }
+        val title =
+            composeRule
+                .onNode(hasText(description(R.string.app_name)), useUnmergedTree = true)
+                .fetchSemanticsNode()
+                .id
+        val clock = clockNode().id
+        val undo = composeRule.onNodeWithContentDescription(description(R.string.undo_action)).fetchSemanticsNode().id
+        val stops = mapOf(title to TITLE_STOP, clock to TIMER_STOP, undo to UNDO_STOP)
+
+        val clockInfo = checkNotNull(provider.createAccessibilityNodeInfo(clock)) { "no node for the clock" }
+        assertWithMessage("whether the clock's node is screen-reader focusable")
+            .that(clockInfo.isScreenReaderFocusable)
+            .isTrue()
+        assertWithMessage("the stop Compose reads after the title")
+            .that(stopAfter(provider, title, stops))
+            .isEqualTo(TIMER_STOP)
+        assertWithMessage("the stop Compose reads after the timer")
+            .that(stopAfter(provider, clock, stops))
+            .isEqualTo(UNDO_STOP)
     }
 
     /** Criterion 19: all four actions still reachable, and all four in the one dock. */
@@ -183,6 +236,44 @@ class GameScreenChromeTest {
         config.getOrNull(SemanticsProperties.Text).orEmpty().map { it.text } +
             children.flatMap { it.textsIn() }
 
+    /** The clock's own node: the node inside the timer pill whose description starts with its label. */
+    private fun clockNode(): SemanticsNode =
+        composeRule
+            .onNode(
+                hasAnyAncestor(hasTestTag(GAME_TIMER_PILL_TEST_TAG)) and
+                    hasContentDescription(description(R.string.elapsed_time), substring = true),
+                useUnmergedTree = true,
+            ).fetchSemanticsNode()
+
+    /**
+     * Turns a screen reader on for the next composition, as TalkBack does: accessibility enabled,
+     * with touch exploration and one enabled service. Compose computes its reading order only
+     * while an enabled service is listed, so a test that reads the order must do this first.
+     */
+    private fun enableAScreenReader() {
+        shadowOf(app.getSystemService(AccessibilityManager::class.java)).apply {
+            setEnabled(true)
+            setTouchExplorationEnabled(true)
+            setEnabledAccessibilityServiceList(listOf(AccessibilityServiceInfo()))
+        }
+    }
+
+    /**
+     * The stop Compose reads after the node [id], named by [stops]: the node its traversal hint
+     * says it is read before, as an accessibility service is handed it. Any other node is named by
+     * its id, and a node with no hint reads [NO_STOP].
+     */
+    private fun stopAfter(
+        provider: AccessibilityNodeProvider,
+        id: Int,
+        stops: Map<Int, String>,
+    ): String {
+        val info = checkNotNull(provider.createAccessibilityNodeInfo(id)) { "no node for $id" }
+        provider.addExtraDataToAccessibilityNodeInfo(id, info, TRAVERSAL_BEFORE_EXTRA, null)
+        val next = info.extras.getInt(TRAVERSAL_BEFORE_EXTRA, NO_NODE_ID)
+        return if (next == NO_NODE_ID) NO_STOP else stops[next] ?: "node $next"
+    }
+
     /**
      * The toggle's ON/OFF state, hoisted **outside** the composition and written only from the
      * test thread.
@@ -238,6 +329,28 @@ private const val CHROME_ROBOLECTRIC_SDK = 34
 
 /** A Challenge level past the on-ramp, so a hardcoded 1 cannot pass by accident. */
 private const val CHALLENGE_LEVEL = 7
+
+/**
+ * The extra under which Compose hands a test the id of the node a node is read before: its
+ * traversal hint, which a sealed node info does not otherwise expose.
+ */
+private const val TRAVERSAL_BEFORE_EXTRA = "android.view.accessibility.extra.EXTRA_DATA_TEST_TRAVERSALBEFORE_VAL"
+
+/** What the extra reads when Compose wrote no hint for the node. */
+private const val NO_NODE_ID = -1
+
+/** The three stops criterion 26b's gameplay line puts in a row, and a node with no hint. */
+private const val TITLE_STOP = "the title"
+private const val TIMER_STOP = "the timer"
+private const val UNDO_STOP = "Undo"
+private const val NO_STOP = "no stop"
+
+/**
+ * The timer's whole description on a game's first second, word for word under D-05e's whole-minute
+ * fallback (tech-lead defect ruling §2, B-2): the `elapsed_time` label, then the time in whole
+ * minutes, which is "under a minute" at the start. The label alone is no longer the description.
+ */
+private const val TIMER_AT_THE_START = "Elapsed time, under a minute"
 
 /**
  * The four dock actions, by the content description each keeps from before the move (§4.4:

@@ -494,6 +494,43 @@ class HomeLayoutTest {
     }
 
     /**
+     * Criterion 15m read from the other side, at or above 400dp (the close report's INFO row 3; the
+     * loop-5 audit's M5c): the **full** pill paints its decorative glyph beside its label and its
+     * value, on all three pills.
+     *
+     * Until this test, the full pill was guarded only by accident: with the compact pill forced onto
+     * every window (M5c) every `HomeLayoutTest` case stayed green, and one `HomeStageTest` gap caught
+     * it by a single dp. This is [assertEachPillPaintsOnlyItsSurfaceAndItsTexts]'s pixel read turned
+     * round: inside each pill's padding and outside its two texts, the pill must paint something
+     * besides its finished surface — the glyph. "Besides" is read against frame 2's reference finish
+     * on the same pixels ([inkBesideTheTextsOfEachPill]), never against the flat fill: B-19's gloss
+     * differs from the flat fill across the top of every pill, so a flat read counts the gloss as ink
+     * and passes with the glyph deleted (the code-auditor's M1). The floor is far under what the
+     * glyphs measure here (the H-1 probe read 196 px and 85 px on the Boards and Level pills), so it
+     * fails on an absent glyph and on nothing else. Here in light, and in dark in
+     * [onAWidePhoneEveryFullPillPaintsItsGlyphInTheDarkThemeToo].
+     */
+    @Test
+    @Config(qualifiers = WIDE_PHONE_QUALIFIER)
+    fun onAWidePhoneEveryFullPillPaintsItsGlyphBesideItsTexts() {
+        renderHomeUnderItsReferenceFinishes(darkTheme = false)
+
+        assertEachPillPaintsItsGlyph(darkTheme = false)
+    }
+
+    /**
+     * The full pill's glyph in the dark theme, read the same way: B-19's gloss is 6% white there
+     * against 70% in light, so the read must see the glyph under both (B-19a, property 1).
+     */
+    @Test
+    @Config(qualifiers = WIDE_PHONE_QUALIFIER)
+    fun onAWidePhoneEveryFullPillPaintsItsGlyphInTheDarkThemeToo() {
+        renderHomeUnderItsReferenceFinishes(darkTheme = true)
+
+        assertEachPillPaintsItsGlyph(darkTheme = true)
+    }
+
+    /**
      * The three sentences, and the absence of a click action, asserted identically on both window
      * classes — one body so the two shapes cannot be checked against two different expectations,
      * which is the whole content of "the yield costs no readout".
@@ -660,8 +697,8 @@ class HomeLayoutTest {
 
     /**
      * Home's busiest state on the current window, in [darkTheme], with frame 2's reference finishes
-     * composed over it ([ReferenceFinishes]): none until [assertEachPillPaintsOnlyItsSurfaceAndItsTexts]
-     * asks for them, so until then the screen is exactly what [renderHome] draws.
+     * composed over it ([ReferenceFinishes]): none until [inkBesideTheTextsOfEachPill] asks for them,
+     * so until then the screen is exactly what [renderHome] draws.
      */
     private fun renderHomeUnderItsReferenceFinishes(darkTheme: Boolean) {
         composeRule.renderHome(
@@ -675,20 +712,77 @@ class HomeLayoutTest {
      * Criterion 15m's "no decorative glyph", read where a glyph cannot hide: in what the pill paints
      * (B-19a; the tech-lead's 15m oracle, O1).
      *
+     * **First, what the pill lays out as text** (the close report's INFO row 1; the loop-5 audit's
+     * M3d), checked once G1 has found the three pills and ahead of the rest of G1–G5. The pixel read
+     * skips every node with text semantics, so a glyph drawn as text — a `Text("★")` before the label
+     * — is skipped with the label and passes it. Each pill must therefore lay out exactly two texts,
+     * its label and then its value, before its pixels count.
+     *
+     * Then each pill is read inside its own padding against its own finished surface, in the theme
+     * Home is drawn in ([darkTheme]): [inkBesideTheTextsOfEachPill], which holds guards G1–G4. Every
+     * pixel read there must be that surface; any other is something else the pill paints.
+     *
+     * **G5** is the comparison. The strays of all three pills are collected before anything is
+     * asserted, so a red names every pill it reaches.
+     */
+    private fun assertEachPillPaintsOnlyItsSurfaceAndItsTexts(darkTheme: Boolean) {
+        val expectedTexts =
+            listOf(
+                listOf(starsLabel, EARNED_STARS.toString()),
+                listOf(boardsLabel, boardsValue),
+                listOf(levelLabel, PERSISTED_LEVEL.toString()),
+            )
+        ribbonPills().forEachIndexed { index, pill ->
+            assertWithMessage("pill $index: the texts it lays out, in order")
+                .that(pill.textsWithin().map(::textOf))
+                .containsExactlyElementsIn(expectedTexts[index])
+                .inOrder()
+        }
+
+        val strays = inkBesideTheTextsOfEachPill(darkTheme)
+        assertWithMessage(
+            "G5: pixels each pill paints besides its finished surface and its texts: " +
+                strays.withIndex().joinToString("; ") { (index, pill) ->
+                    "pill $index ${pill.ink.size} px, ${spanOf(pill.ink)}${rowsBelowTheTop(pill.ink, pill.rect)}"
+                },
+        ).that(strays.withIndex().associate { (index, pill) -> index to pill.ink.size })
+            .isEqualTo((0 until RIBBON_PILLS).associateWith { 0 })
+    }
+
+    /**
+     * Each full pill paints at least [GLYPH_INK_FLOOR_PX] of ink beside its texts, in [darkTheme]: its
+     * glyph. Every pill's ink is read before anything is asserted, so a red names every pill it reaches.
+     */
+    private fun assertEachPillPaintsItsGlyph(darkTheme: Boolean) {
+        val pills = inkBesideTheTextsOfEachPill(darkTheme)
+        assertWithMessage(
+            "pills painting under $GLYPH_INK_FLOOR_PX px besides their finished surface and their texts: " +
+                pills.withIndex().joinToString("; ") { (index, pill) ->
+                    "pill $index ${pill.ink.size} px, ${spanOf(pill.ink)}"
+                },
+        ).that(pills.withIndex().filter { (_, pill) -> pill.ink.size < GLYPH_INK_FLOOR_PX }.map { it.index })
+            .isEmpty()
+    }
+
+    /**
+     * For each pill, left to right, the pixels it paints besides its finished surface and its texts
+     * (B-19a; the tech-lead's 15m oracle, O1), in the theme Home is drawn in ([darkTheme]).
+     *
      * Each pill is read inside its own padding (`spacing_sm`, the box its content is laid out in),
      * skipping its label's and its value's own bounds, each widened by [TEXT_INK_MARGIN_DP] for the
      * text's anti-aliased edge. The texts are found by their text semantics alone, so a glyph that
      * did carry a node would still be read.
      *
-     * Every pixel read must be **the pill's finished surface at that pixel**, in the theme Home is
-     * drawn in ([darkTheme]): its `surfaceContainerHigh` fill with B-19's gloss over it, and the rim
-     * and lip wherever the read meets them (at an 8dp inset it meets neither). That surface is drawn,
-     * not modelled. Frame 1 is Home. Frame 2 is the same composition with [ReferenceFinishes] laid
-     * over each pill on that pill's own pixels: the pill's finish modifiers and nothing inside them.
-     * Same modifiers, same size, same pixels, so Skia's ordered dither and the edge anti-aliasing
-     * fall in the same phase in both frames, and a read pixel is a stray when frame 1 differs from
-     * frame 2 by more than [PAINT_TOLERANCE]. Both frames are the flat render ([renderedWindow]), where
-     * no elevation shadow reaches into a pill. No golden is stored (D4).
+     * A pixel read is ink when it is not **the pill's finished surface at that pixel**: its
+     * `surfaceContainerHigh` fill with B-19's gloss over it, and the rim and lip wherever the read
+     * meets them (at an 8dp inset it meets neither). That surface is drawn, not modelled. Frame 1 is
+     * Home. Frame 2 is the same composition with [ReferenceFinishes] laid over each pill on that
+     * pill's own pixels: the pill's finish modifiers and nothing inside them. Same modifiers, same
+     * size, same pixels, so Skia's ordered dither and the edge anti-aliasing fall in the same phase in
+     * both frames, and a read pixel is ink when frame 1 differs from frame 2 by more than
+     * [PAINT_TOLERANCE]. Both frames are the flat render ([renderedWindow]), where no elevation shadow
+     * reaches into a pill. No golden is stored (D4). Against the flat fill instead, B-19's gloss would
+     * count as ink across the top band of every pill, with or without a glyph (the code-auditor's M1).
      *
      * The guards, in this order, each with its own message:
      * - **G1** the ribbon has [RIBBON_PILLS] pills, and every edge of each lies on a whole pixel, so a
@@ -700,20 +794,12 @@ class HomeLayoutTest {
      *   without this guard such a frame 2 would equal frame 1, and every glyph would pass.
      * - **G4** below the gloss band ([BackdropMetrics.FINISH_GLOSS_FADE] of the pill's height) frame 2
      *   is the theme's `surfaceContainerHigh`, so there the read still checks against the token.
-     * - **G5** the comparison. The strays of all three pills are collected before anything is
-     *   asserted, so a red names every pill it reaches.
      */
-    private fun assertEachPillPaintsOnlyItsSurfaceAndItsTexts(darkTheme: Boolean) {
+    private fun inkBesideTheTextsOfEachPill(darkTheme: Boolean): List<PillInk> {
         val padding = with(composeRule.density) { dimen(R.dimen.spacing_sm).toPx() }
         val inkMargin = with(composeRule.density) { TEXT_INK_MARGIN_DP.dp.toPx() }
-        val pills =
-            composeRule
-                .onNode(hasTestTag(HOME_PROGRESS_RIBBON_TEST_TAG), useUnmergedTree = true)
-                .fetchSemanticsNode()
-                .children
-        assertWithMessage("G1: the ribbon's pills").that(pills).hasSize(RIBBON_PILLS)
         val reads =
-            pills.mapIndexed { index, pill ->
+            ribbonPills().mapIndexed { index, pill ->
                 val texts = pill.textsWithin().map { it.boundsInRoot.inflate(inkMargin) }
                 val box = pill.boundsInRoot.deflate(padding)
                 PillRead(
@@ -733,17 +819,23 @@ class HomeLayoutTest {
             assertTheReferenceIsTheTokenBelowTheGloss(index, pill, finish, darkTheme)
         }
 
-        val strays =
-            reads.map { pill ->
-                pill.read.filterNot { isPaintedIn(home.getPixel(it.x, it.y), finish.getPixel(it.x, it.y)) }
-            }
-        assertWithMessage(
-            "G5: pixels each pill paints besides its finished surface and its texts: " +
-                strays.withIndex().joinToString("; ") { (index, pixels) ->
-                    "pill $index ${pixels.size} px, ${spanOf(pixels)}${rowsBelowTheTop(pixels, reads[index].rect)}"
-                },
-        ).that(strays.withIndex().associate { (index, pixels) -> index to pixels.size })
-            .isEqualTo((0 until RIBBON_PILLS).associateWith { 0 })
+        return reads.map { pill ->
+            PillInk(
+                rect = pill.rect,
+                ink = pill.read.filterNot { isPaintedIn(home.getPixel(it.x, it.y), finish.getPixel(it.x, it.y)) },
+            )
+        }
+    }
+
+    /** The ribbon's three pills, left to right, in the unmerged tree where their texts are children (G1). */
+    private fun ribbonPills(): List<SemanticsNode> {
+        val pills =
+            composeRule
+                .onNode(hasTestTag(HOME_PROGRESS_RIBBON_TEST_TAG), useUnmergedTree = true)
+                .fetchSemanticsNode()
+                .children
+        assertWithMessage("G1: the ribbon's pills").that(pills).hasSize(RIBBON_PILLS)
+        return pills
     }
 
     /** G2: frame 2 composes reference [index] once, and on exactly [pill]'s pixels. */
@@ -842,6 +934,9 @@ class HomeLayoutTest {
         children.flatMap { child ->
             listOfNotNull(child.takeIf { SemanticsProperties.Text in it.config }) + child.textsWithin()
         }
+
+    /** The text a node lays out. */
+    private fun textOf(node: SemanticsNode): String = node.config[SemanticsProperties.Text].joinToString("") { it.text }
 
     /** The pixels lying wholly inside this rect, in px. */
     private fun Rect.wholePixels(): List<IntOffset> =
@@ -987,6 +1082,13 @@ private const val COMPACT_RIBBON_MAX_HEIGHT_DP = 56
 private const val TEXT_INK_MARGIN_DP = 2
 
 /**
+ * The least glyph ink a full pill may paint beside its texts, in px: far under the 196 px and 85 px
+ * the H-1 probe read on the Boards and Level pills at `w412dp-h915dp`, and far over the anti-aliased
+ * fringe a text could leave past its widened bounds, which reads 0 on every compact pill.
+ */
+private const val GLYPH_INK_FLOOR_PX = 20
+
+/**
  * Rounding the band-gap read allows, in dp: far below the 8dp between the full set's `spacing_md`
  * and the compact set's `spacing_sm`.
  */
@@ -1023,6 +1125,12 @@ private data class PillRead(
     val rect: IntRect,
     val box: Rect,
     val read: List<IntOffset>,
+)
+
+/** What one pill paints besides its finished surface and its texts: its [rect] (G1) and that [ink]. */
+private data class PillInk(
+    val rect: IntRect,
+    val ink: List<IntOffset>,
 )
 
 /**

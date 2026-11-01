@@ -129,8 +129,10 @@ class GameFlowTest {
                     minimumPegs = nearWin.spec.minimumPegs,
                 ),
             )
+        // The timer stays on the still-present screen. Its description starts with `elapsed_time`
+        // and goes on to the spoken duration (D-05e, §4.3.2), so the label is matched as its start.
         composeRule
-            .onNodeWithContentDescription(context.getString(R.string.elapsed_time))
+            .onNodeWithContentDescription(context.getString(R.string.elapsed_time), substring = true)
             .assertIsDisplayed()
     }
 
@@ -382,6 +384,10 @@ private class FixedSettingsRepository(
     soundOn: Boolean = true,
     hapticsOn: Boolean = true,
 ) : SettingsRepository {
+    override val colorblindPaletteOn: Flow<Boolean> = flowOf(false)
+
+    override suspend fun setColorblindPaletteOn(on: Boolean) = Unit
+
     override val hintsEnabled: Flow<Boolean> = flowOf(hintsEnabled)
 
     override val soundOn: Flow<Boolean> = flowOf(soundOn)

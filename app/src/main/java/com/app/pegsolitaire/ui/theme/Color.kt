@@ -98,6 +98,18 @@ internal val DarkPegGradientColors =
 internal val LightGoldGradientColors = listOf(Color(0xFFFDE68A), Color(0xFFF59E0B))
 internal val DarkGoldGradientColors = listOf(Color(0xFFFFF3C4), Color(0xFFFBBF24))
 
+/**
+ * Colour-blind palette, light theme (docs/ux/colour-vision.md §3.4, CV-09): amber-700 for the hint
+ * rings and the hint connector. The dark theme's hint stays `tertiary`, so it has no token here.
+ */
+internal val LightColorblindHint = Color(0xFFB45309)
+
+/**
+ * Colour-blind palette, light theme (§3.4, CV-10): the earned star's and the done pip's fill —
+ * `GoldGradient`'s linear geometry in amber, light stop → deep stop. Dark keeps the gold gradient.
+ */
+internal val LightColorblindStarFillColors = listOf(Color(0xFFC05A08), Color(0xFFB45309))
+
 /** Small specular highlight dot on a candy peg sphere. */
 internal val LightPegHighlight = Color(0xCCFFFFFF)
 internal val DarkPegHighlight = Color(0xB3FFFFFF)

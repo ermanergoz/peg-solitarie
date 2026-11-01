@@ -8,6 +8,16 @@ Recommendation: ux-designer picks 2 for 3.0.0. Empty stars stay readable as outl
 Blocks: nothing (option 1 is specified and being built; 2 and 3 are constant changes, docs/ux/colour-vision.md §3.4, §7 and §12.6)
 Answer: 2 — stars only: the standard palette's empty-star outline takes the colour-blind palette's deeper grey; the board is unchanged (2026-10-24, AskUserQuestion). Rides colour-vision's next developer round, before its 15e sitting (BoardMarks.kt is a start-path file).
 
+## Q-026 — Keep the colour-blind palette in 3.0.0?   (answered)
+Date: 2026-10-24    Asked by: producer (founder asked whether it was necessary)
+Context: The palette comes from the studio rule (.claude/rules/compose.md: colour-blind option in games; never colour
+alone), not from a founder request; specified during the candy work, split to feature/colour-vision; not yet built
+(~1–1.5 days + its own 15e sitting).
+Options: 1) Keep it in 3.0.0 2) Defer to 3.1 (recorded studio-rule deviation) 3) Drop it (recorded waiver)
+Recommendation: producer picks 1 — meets the studio's accessibility rule; board marks stop depending on colour alone.
+Blocks: nothing
+Answer: 1 — keep it in 3.0.0 (2026-10-24, AskUserQuestion).
+
 ## Q-025 — Headphones off, and a wired headset, for the audio release QA   (open)
 Date: 2026-10-24    Asked by: tech-lead (via the producer)
 Context: QA's GM6 session proved the headphone branch of the Silent/Vibrate gate (Q-010). The "phone itself

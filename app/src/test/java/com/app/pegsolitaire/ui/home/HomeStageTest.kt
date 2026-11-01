@@ -61,9 +61,10 @@ import org.robolectric.annotation.GraphicsMode
  * ## How it is measured
  *
  * With the device's system-bar insets supplied (§13 forbids a zero-inset reading of a layout
- * property), under NATIVE graphics — LEGACY measures every character one dp wide, so every text
- * band would come out at its unwrapped floor and every slack figure would be wrong by exactly the
- * wrap it ignored. Distances are taken **along the column**, from each node's unclipped position,
+ * property), under NATIVE graphics — Robolectric's default LEGACY mode fakes text metrics and
+ * **over**-wraps: on 15k's own window it measured 44dp of overflow where NATIVE and the device
+ * measure none (`HomeLayoutTest` records it), so every slack figure would be wrong by exactly the
+ * wrap it invented. Distances are taken **along the column**, from each node's unclipped position,
  * so a band below the fold is measured where it is rather than where `getBoundsInRoot()` clips it.
  *
  * ## Between visible elements (D-03m)

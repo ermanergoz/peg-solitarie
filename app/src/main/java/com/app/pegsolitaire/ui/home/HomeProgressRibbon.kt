@@ -19,11 +19,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.unit.Constraints
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.ui.theme.FinishedContainer
@@ -32,6 +34,7 @@ import com.app.pegsolitaire.ui.theme.finishGlow
 import com.app.pegsolitaire.ui.theme.glossFinish
 import com.app.pegsolitaire.ui.theme.goldGradientFill
 import com.app.pegsolitaire.ui.theme.withTabularFigures
+import kotlin.math.max
 
 /** Semantics tag the tests use to locate the progress ribbon — never its copy (§13). */
 const val HOME_PROGRESS_RIBBON_TEST_TAG = "home_progress_ribbon"
@@ -52,16 +55,27 @@ const val HOME_PROGRESS_RIBBON_TEST_TAG = "home_progress_ribbon"
  * The pills are **not tappable** (§5): they are status, and making them navigate would put
  * three more competing targets on the screen the founder already found busy.
  *
- * ## The compact pill — the last yield, and it costs no readout (§4.2.3, D-03k)
+ * ## Three shapes, one per ribbon, and none costs a readout (§4.2.3 D-03k, §4.2.6 D-03o)
  *
- * [compact] is the **fourth** compact step, taken on the narrow class together with the other
- * three and never partially, and decided by `HomeBands` from the width and height available to it
- * — never here. It drops the pill's decorative glyph and puts the label beside the value on one
- * line, which is the whole of it: three pills, three labels, three values, the same equal widths,
- * the same clay surface, the same entrance order, still not tappable, and **one**
- * `clearAndSetSemantics` node per pill speaking the same sentence, byte for byte. The glyph is
- * `contentDescription = null` decoration inside that node, so it carries no information at all —
- * TalkBack cannot tell the two shapes apart, and criterion 15m is the test that says so.
+ * [shape] is decided by `HomeBands` from the band set and the measured labels — never here — and
+ * every pill takes it:
+ *
+ * - [RibbonShape.Full]: glyph, then label over value, wherever the band set is full.
+ * - [RibbonShape.Compact]: the **fourth** compact step, taken on the narrow class together with the
+ *   other three and never partially. It drops the decorative glyph and puts the label beside the
+ *   value on one line.
+ * - [RibbonShape.Stacked]: once any label no longer fits half its pill on the narrow class — at a
+ *   large font scale — the label on its own line and the value centred under it, no glyph: the full
+ *   pill without its glyph.
+ *
+ * In every shape: three pills, three labels, three values, the same equal widths, the same clay
+ * surface, the same entrance order, still not tappable, and **one** `clearAndSetSemantics` node per
+ * pill speaking the same sentence, byte for byte. The glyph is `contentDescription = null` decoration
+ * inside that node, so it carries no information at all — TalkBack cannot tell the shapes apart, and
+ * criteria 15m and 15w are the tests that say so.
+ *
+ * **No label and no value ever breaks** (§4.2.6 rule 1). Each is one line and never wraps: every
+ * label is one word and every value one token, and the shape rule is what guarantees they fit.
  *
  * §4.2.2's first arithmetic called this band unyieldable at "~60dp inside a 64dp minimum". It
  * omitted the 20dp glyph and one `spacing_xs` and read a *minimum* as a cap: the pill composes
@@ -73,11 +87,11 @@ const val HOME_PROGRESS_RIBBON_TEST_TAG = "home_progress_ribbon"
  * Level pill is the ladder position's above-the-fold witness once the Challenge tile's chip is
  * below the fold (§4.2.3).
  *
- * @param compact the compact pill shape — the narrow class only (§4.2.3 part 2).
+ * @param shape the ribbon's shape, every pill's (§4.2.3 part 2, §4.2.6).
  */
 @Composable
 internal fun HomeProgressRibbon(
-    compact: Boolean,
+    shape: RibbonShape,
     totalStars: Int?,
     classicBoardsCleared: Int?,
     challengeCurrentLevel: Int,
@@ -93,7 +107,7 @@ internal fun HomeProgressRibbon(
         StatPill(
             glyph = Icons.Filled.Star,
             gilded = true,
-            compact = compact,
+            shape = shape,
             label = stringResource(R.string.home_stat_stars_label),
             value = totalStars?.toString(),
             modifier = Modifier.weight(CONTENT_WEIGHT),
@@ -101,7 +115,7 @@ internal fun HomeProgressRibbon(
         StatPill(
             glyph = rememberClassicGlyph(),
             gilded = false,
-            compact = compact,
+            shape = shape,
             label = stringResource(R.string.home_stat_boards_label),
             value =
                 classicBoardsCleared?.let { cleared ->
@@ -112,7 +126,7 @@ internal fun HomeProgressRibbon(
         StatPill(
             glyph = rememberChallengeGlyph(),
             gilded = false,
-            compact = compact,
+            shape = shape,
             // The ladder position is always known — it has a persisted fail-open default — so
             // this pill never shows the placeholder. Copy is "Level N", the NEXT level to play,
             // deliberately off-by-one from the highest level banked. Do not reconcile the two.
@@ -147,21 +161,20 @@ internal fun HomeProgressRibbon(
  * It carries **no click action** — the absence is the contract (§5), not an omission. The width
  * comes from the caller's equal `weight`, so a value arriving later cannot reflow the row.
  *
- * ## Two shapes, one sentence
+ * ## Three shapes, one sentence
  *
- * [compact] selects the §4.2.3 compact pill. The description is computed **before** the branch and
- * the label and the value are the same two leaves in both shapes ([PillLabel], [PillValue]), so
- * the spoken sentence and the rendered copy cannot drift between them — the same reason
- * `HomeHero`'s two shapes share `HeroTitle` and `SettingsGear`. The minimum height is the only
- * other thing that differs, and both are floors: neither text is ever truncated or scaled down, so
- * a font scale that does not fit grows the pill, then the band, and the column scrolls
- * (criterion 14).
+ * [shape] selects the pill's layout. The description is computed **before** the branch and the
+ * label and the value are the same two leaves in every shape ([PillLabel], [PillValue]), so the
+ * spoken sentence and the rendered copy cannot drift between them — the same reason `HomeHero`'s
+ * two shapes share `HeroTitle` and `SettingsGear`. The minimum height is the only other thing that
+ * differs, and both are floors: neither text is ever truncated or scaled down, so a font scale that
+ * does not fit grows the pill, then the band, and the column scrolls (criterion 14).
  */
 @Composable
 private fun StatPill(
     glyph: ImageVector,
     gilded: Boolean,
-    compact: Boolean,
+    shape: RibbonShape,
     label: String,
     value: String?,
     modifier: Modifier = Modifier,
@@ -170,10 +183,10 @@ private fun StatPill(
     val description = stringResource(R.string.home_stat_pill_desc, label, spokenValue)
     val minHeight =
         dimensionResource(
-            if (compact) {
-                R.dimen.home_stat_pill_compact_min_height
-            } else {
+            if (shape == RibbonShape.Full) {
                 R.dimen.home_stat_pill_min_height
+            } else {
+                R.dimen.home_stat_pill_compact_min_height
             },
         )
     val pill = MaterialTheme.colorScheme.surfaceContainerHigh
@@ -188,10 +201,10 @@ private fun StatPill(
                 .heightIn(min = minHeight)
                 .clearAndSetSemantics { contentDescription = description },
     ) {
-        if (compact) {
-            CompactPillContent(label = label, value = value)
-        } else {
-            FullPillContent(glyph = glyph, gilded = gilded, label = label, value = value)
+        when (shape) {
+            RibbonShape.Full -> FullPillContent(glyph = glyph, gilded = gilded, label = label, value = value)
+            RibbonShape.Compact -> CompactPillContent(label = label, value = value)
+            RibbonShape.Stacked -> StackedPillContent(label = label, value = value)
         }
     }
 }
@@ -224,58 +237,114 @@ private fun FullPillContent(
 }
 
 /**
- * The pill on the narrow class: label beside value, one line, no glyph (§4.2.3 part 2).
+ * The pill on the narrow class: label beside value, one line, no glyph (§4.2.3 part 2), centred as
+ * a pair in the pill's content.
  *
- * **The label is the weighted child and the value is not**, which is what keeps the promise that
- * neither is truncated. A `Row` measures its unweighted children first, so the value takes its
- * natural width and can never be squeezed; the label then receives what is left and **wraps**
- * inside it, growing the pill and the band rather than clipping — `fill = false` so it asks for no
- * more than it needs, which is what lets the pair stay centred when there is room. That weight is
- * one share of a `Row`'s free *width* beside a fixed sibling, which is what `CONTENT_WEIGHT` is
- * for; §4.2.2 clause 4's ban on weighting is the band column's **vertical** axis and is untouched.
+ * **The label is never squeezed** (§4.2.6 rule 4). Both texts are measured at their own width, and
+ * while the label, a `spacing_xs` gap and the value fit the pill's content they sit side by side.
+ * A value too wide for what the label leaves — on today's numbers, a six-digit total between about
+ * 1.07× and 1.12× font scale on a 360dp phone — moves under its label, in this pill alone: the one
+ * case in which a value decides a pill's shape. The ribbon stacks as a whole long before a label
+ * could fail to fit, because `HomeBands` reads the labels against half the pill ([ribbonShapeFor]).
  */
 @Composable
 private fun CompactPillContent(
     label: String,
     value: String?,
 ) {
-    Row(
+    val gap = dimensionResource(R.dimen.spacing_xs)
+    Layout(
+        content = {
+            PillLabel(label)
+            PillValue(value)
+        },
         modifier =
             Modifier
                 .fillMaxWidth()
                 .padding(dimensionResource(R.dimen.spacing_sm)),
-        horizontalArrangement =
-            Arrangement.spacedBy(
-                dimensionResource(R.dimen.spacing_xs),
-                Alignment.CenterHorizontally,
-            ),
-        verticalAlignment = Alignment.CenterVertically,
+    ) { measurables, constraints ->
+        val gapPx = gap.roundToPx()
+        val (labelPlaceable, valuePlaceable) = measurables.map { it.measure(Constraints()) }
+        val width = constraints.maxWidth
+        val pairWidth = labelPlaceable.width + gapPx + valuePlaceable.width
+        if (pairWidth <= width) {
+            val height = max(max(labelPlaceable.height, valuePlaceable.height), constraints.minHeight)
+            layout(width, height) {
+                val start = Alignment.CenterHorizontally.align(pairWidth, width, layoutDirection)
+                labelPlaceable.placeRelative(start, Alignment.CenterVertically.align(labelPlaceable.height, height))
+                valuePlaceable.placeRelative(
+                    start + labelPlaceable.width + gapPx,
+                    Alignment.CenterVertically.align(valuePlaceable.height, height),
+                )
+            }
+        } else {
+            val stackHeight = labelPlaceable.height + gapPx + valuePlaceable.height
+            val height = max(stackHeight, constraints.minHeight)
+            layout(width, height) {
+                val top = Alignment.CenterVertically.align(stackHeight, height)
+                labelPlaceable.placeRelative(
+                    Alignment.CenterHorizontally.align(labelPlaceable.width, width, layoutDirection),
+                    top,
+                )
+                valuePlaceable.placeRelative(
+                    Alignment.CenterHorizontally.align(valuePlaceable.width, width, layoutDirection),
+                    top + labelPlaceable.height + gapPx,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The narrow-class pill once any label no longer fits half its pill (§4.2.6 rule 2): the label on
+ * its own line and the value centred under it, `spacing_xs` between them, `spacing_sm` padding and
+ * no glyph — the full pill without its glyph. All three pills take it together, so they are one
+ * height, the tallest's.
+ */
+@Composable
+private fun StackedPillContent(
+    label: String,
+    value: String?,
+) {
+    Column(
+        modifier = Modifier.padding(dimensionResource(R.dimen.spacing_sm)),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_xs)),
     ) {
-        PillLabel(label, modifier = Modifier.weight(CONTENT_WEIGHT, fill = false))
+        PillLabel(label)
         PillValue(value)
     }
 }
 
-/** The pill's label — the same leaf in both shapes, so the two cannot render it differently. */
+/**
+ * The pill's label — the same leaf in every shape, so no two can render it differently. One line,
+ * never wrapped: a label is one word, and the ribbon's shape is what guarantees it fits (§4.2.6).
+ */
 @Composable
-private fun PillLabel(
-    label: String,
-    modifier: Modifier = Modifier,
-) {
+private fun PillLabel(label: String) {
     Text(
         text = label,
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier,
+        maxLines = ONE_LINE,
+        softWrap = false,
     )
 }
 
-/** The pill's value, tabular so a changing digit cannot shift it. Placeholder rule unchanged. */
+/**
+ * The pill's value, tabular so a changing digit cannot shift it, and one line, never wrapped, as
+ * the label is. Placeholder rule unchanged.
+ */
 @Composable
 private fun PillValue(value: String?) {
     Text(
         text = value ?: stringResource(R.string.stat_value_unknown),
         style = MaterialTheme.typography.titleMedium.withTabularFigures(),
         color = MaterialTheme.colorScheme.onSurface,
+        maxLines = ONE_LINE,
+        softWrap = false,
     )
 }
+
+/** A pill's label and its value are each one line (§4.2.6 rule 1). */
+private const val ONE_LINE = 1

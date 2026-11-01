@@ -237,6 +237,10 @@ private class StripLevelRepository(
 
 /** Dots, sound and haptics on: the fail-open defaults, and the state the dock starts in. */
 private object SpentAllowanceSettings : SettingsRepository {
+    override val colorblindPaletteOn: Flow<Boolean> = flowOf(false)
+
+    override suspend fun setColorblindPaletteOn(on: Boolean) = Unit
+
     override val hintsEnabled: Flow<Boolean> = flowOf(true)
 
     override val soundOn: Flow<Boolean> = flowOf(true)

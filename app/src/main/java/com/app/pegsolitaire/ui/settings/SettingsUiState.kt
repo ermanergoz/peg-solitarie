@@ -10,10 +10,13 @@ import com.app.pegsolitaire.platform.games.GamesSignInState
  * stateless render of this object (state hoisting — the same UDF convention as
  * `HomeUiState`/`GameUiState`).
  *
- * Both *persisted* flags default `true`: that is the fail-open default the persisted store
- * itself degrades to (D-17), so the pre-first-emission state the screen paints already
- * matches what a fresh install (or a corrupt read) will report — the switches never
- * flicker off.
+ * The two persisted *assist* flags default `true`: that is the fail-open default the
+ * persisted store itself degrades to (D-17), so the pre-first-emission state the screen paints
+ * already matches what a fresh install (or a corrupt read) will report — the switches never
+ * flicker off. The colour-blind palette flag defaults `false` for the same reason read the
+ * other way: its store default, and its failed-read value, is `false` (docs/ux/colour-vision.md
+ * §3.2), so the pre-first-emission value equals the persisted default and that switch never
+ * flickers either.
  *
  * [privacyOptionsRequired] deliberately defaults the **other** way, and the file would
  * contradict itself without saying why. The two defaults are not in tension: both pick the
@@ -30,6 +33,8 @@ import com.app.pegsolitaire.platform.games.GamesSignInState
  *   repository, so switching it off also silences cues already playing.
  * @property hapticsOn whether haptic feedback is enabled (SET-02). It gates the jump's light
  *   tick (D-15) and the wrong tap's reject buzz (D-06b).
+ * @property colorblindPaletteOn whether the colour-blind palette is on (CV-03, CV-04): the board
+ *   marks, the stars and the tutorial's done pip draw in it. Device-local; default `false`.
  * @property privacyOptionsRequired whether UMP reports that a privacy-options form must be
  *   offered to this player (CONS-03, D-14). Drives the visibility of the "Manage privacy
  *   choices" row alone; the "Privacy policy" row above it is unconditional (REL-05).
@@ -59,6 +64,7 @@ import com.app.pegsolitaire.platform.games.GamesSignInState
 data class SettingsUiState(
     val soundOn: Boolean = true,
     val hapticsOn: Boolean = true,
+    val colorblindPaletteOn: Boolean = false,
     val privacyOptionsRequired: Boolean = false,
     val gamesSignInState: GamesSignInState = GamesSignInState.Unknown,
     val playGamesSignInErrorTick: Int = 0,
