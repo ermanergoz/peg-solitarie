@@ -25,6 +25,10 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_HEIGHT_DP
+import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_WIDTH_DP
+import com.app.pegsolitaire.ui.backdrop.BackdropDensity
+import com.app.pegsolitaire.ui.backdrop.BackdropPreviewHost
 import com.app.pegsolitaire.ui.licenses.LicenseTextHeader.Bundled
 import com.app.pegsolitaire.ui.theme.AppTheme
 
@@ -169,35 +173,54 @@ internal fun PartHeading(text: String) {
     )
 }
 
-@Preview(name = "License text · light", showBackground = true)
-@Preview(name = "License text · dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "License text · light", widthDp = BACKDROP_PREVIEW_WIDTH_DP, heightDp = BACKDROP_PREVIEW_HEIGHT_DP)
+@Preview(
+    name = "License text · dark",
+    widthDp = BACKDROP_PREVIEW_WIDTH_DP,
+    heightDp = BACKDROP_PREVIEW_HEIGHT_DP,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
 @Composable
 private fun LicenseTextScreenLoadedPreview() {
     val jakarta = requireNotNull(LicenseCatalog.entry(LicenseEntryIds.JAKARTA_INJECT))
     AppTheme {
-        LicenseTextScreen(
-            state =
-                LicenseTextUiState.Loaded(
-                    Bundled(jakarta),
-                    listOf(
-                        LoadedTextPart(R.string.license_text_part_notice, listOf(PREVIEW_PARAGRAPH)),
-                        LoadedTextPart(R.string.licenses_apache_name, listOf(PREVIEW_PARAGRAPH, PREVIEW_PARAGRAPH)),
+        BackdropPreviewHost(BackdropDensity.Sparse) {
+            LicenseTextScreen(
+                state =
+                    LicenseTextUiState.Loaded(
+                        Bundled(jakarta),
+                        listOf(
+                            LoadedTextPart(R.string.license_text_part_notice, listOf(PREVIEW_PARAGRAPH)),
+                            LoadedTextPart(R.string.licenses_apache_name, listOf(PREVIEW_PARAGRAPH, PREVIEW_PARAGRAPH)),
+                        ),
                     ),
-                ),
-            onBack = {},
-        )
+                onBack = {},
+            )
+        }
     }
 }
 
-@Preview(name = "License text error · light", showBackground = true)
-@Preview(name = "License text error · dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(
+    name = "License text error · light",
+    widthDp = BACKDROP_PREVIEW_WIDTH_DP,
+    heightDp = BACKDROP_PREVIEW_HEIGHT_DP,
+)
+@Preview(
+    name = "License text error · dark",
+    widthDp = BACKDROP_PREVIEW_WIDTH_DP,
+    heightDp = BACKDROP_PREVIEW_HEIGHT_DP,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
 @Composable
 private fun LicenseTextScreenFailedPreview() {
     AppTheme {
-        LicenseTextScreen(
-            state = LicenseTextUiState.Failed(Bundled(requireNotNull(LicenseCatalog.entry(LicenseEntryIds.FREDOKA)))),
-            onBack = {},
-        )
+        BackdropPreviewHost(BackdropDensity.Sparse) {
+            LicenseTextScreen(
+                state =
+                    LicenseTextUiState.Failed(Bundled(requireNotNull(LicenseCatalog.entry(LicenseEntryIds.FREDOKA)))),
+                onBack = {},
+            )
+        }
     }
 }
 

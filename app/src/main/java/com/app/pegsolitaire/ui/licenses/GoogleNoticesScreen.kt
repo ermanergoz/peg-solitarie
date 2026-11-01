@@ -31,6 +31,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.audio.SoundCue
 import com.app.pegsolitaire.audio.withClickSound
+import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_HEIGHT_DP
+import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_WIDTH_DP
+import com.app.pegsolitaire.ui.backdrop.BackdropDensity
+import com.app.pegsolitaire.ui.backdrop.BackdropPreviewHost
 import com.app.pegsolitaire.ui.theme.AppTheme
 
 /** The Google notices list's test tag: the node that carries the scroll actions (brief A1.6). */
@@ -153,29 +157,49 @@ private const val INTRO_KEY = "intro"
 private const val LOADING_KEY = "loading"
 private const val ERROR_KEY = "error"
 
-@Preview(name = "Google notices · light", showBackground = true)
-@Preview(name = "Google notices · dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "Google notices · light", widthDp = BACKDROP_PREVIEW_WIDTH_DP, heightDp = BACKDROP_PREVIEW_HEIGHT_DP)
+@Preview(
+    name = "Google notices · dark",
+    widthDp = BACKDROP_PREVIEW_WIDTH_DP,
+    heightDp = BACKDROP_PREVIEW_HEIGHT_DP,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
 @Composable
 private fun GoogleNoticesScreenPreview() {
     AppTheme {
-        GoogleNoticesScreen(
-            state =
-                GoogleNoticesUiState.Loaded(
-                    listOf(
-                        GoogleNoticeRow("0", "Kotlin", "ads-mobile-sdk, hsdp", NoticeOrdinal(1, 2)),
-                        GoogleNoticeRow("1", "Kotlin", "ads-mobile-sdk, hsdp", NoticeOrdinal(2, 2)),
-                        GoogleNoticeRow("2", "OkHttp", "ads-mobile-sdk", ordinal = null),
+        BackdropPreviewHost(BackdropDensity.Sparse) {
+            GoogleNoticesScreen(
+                state =
+                    GoogleNoticesUiState.Loaded(
+                        listOf(
+                            GoogleNoticeRow("0", "Kotlin", "ads-mobile-sdk, hsdp", NoticeOrdinal(1, 2)),
+                            GoogleNoticeRow("1", "Kotlin", "ads-mobile-sdk, hsdp", NoticeOrdinal(2, 2)),
+                            GoogleNoticeRow("2", "OkHttp", "ads-mobile-sdk", ordinal = null),
+                        ),
                     ),
-                ),
-            onOpenNotice = {},
-            onBack = {},
-        )
+                onOpenNotice = {},
+                onBack = {},
+            )
+        }
     }
 }
 
-@Preview(name = "Google notices error · light", showBackground = true)
-@Preview(name = "Google notices error · dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(
+    name = "Google notices error · light",
+    widthDp = BACKDROP_PREVIEW_WIDTH_DP,
+    heightDp = BACKDROP_PREVIEW_HEIGHT_DP,
+)
+@Preview(
+    name = "Google notices error · dark",
+    widthDp = BACKDROP_PREVIEW_WIDTH_DP,
+    heightDp = BACKDROP_PREVIEW_HEIGHT_DP,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
 @Composable
 private fun GoogleNoticesScreenFailedPreview() {
-    AppTheme { GoogleNoticesScreen(state = GoogleNoticesUiState.Failed, onOpenNotice = {}, onBack = {}) }
+    AppTheme {
+        BackdropPreviewHost(BackdropDensity.Sparse) {
+            GoogleNoticesScreen(state = GoogleNoticesUiState.Failed, onOpenNotice = {}, onBack = {})
+        }
+    }
 }

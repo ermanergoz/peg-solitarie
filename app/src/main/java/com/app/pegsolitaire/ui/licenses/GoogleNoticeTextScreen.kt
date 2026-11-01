@@ -25,6 +25,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.data.licenses.GoogleNotice
+import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_HEIGHT_DP
+import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_WIDTH_DP
+import com.app.pegsolitaire.ui.backdrop.BackdropDensity
+import com.app.pegsolitaire.ui.backdrop.BackdropPreviewHost
 import com.app.pegsolitaire.ui.licenses.LicenseTextHeader.Notice
 import com.app.pegsolitaire.ui.theme.AppTheme
 
@@ -146,28 +150,54 @@ private const val ERROR_KEY = "error"
 private const val END_KEY = "end"
 private const val PARAGRAPH_CONTENT_TYPE = "paragraph"
 
-@Preview(name = "Google notice text · light", showBackground = true)
-@Preview(name = "Google notice text · dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(
+    name = "Google notice text · light",
+    widthDp = BACKDROP_PREVIEW_WIDTH_DP,
+    heightDp = BACKDROP_PREVIEW_HEIGHT_DP,
+)
+@Preview(
+    name = "Google notice text · dark",
+    widthDp = BACKDROP_PREVIEW_WIDTH_DP,
+    heightDp = BACKDROP_PREVIEW_HEIGHT_DP,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
 @Composable
 private fun GoogleNoticeTextScreenPreview() {
     val notice = GoogleNotice("0", "Kotlin", listOf("ads-mobile-sdk", "hsdp"), "0")
     AppTheme {
-        GoogleNoticeTextScreen(
-            state =
-                LicenseTextUiState.Loaded(
-                    Notice(notice, foundIn = "ads-mobile-sdk, hsdp", ordinal = NoticeOrdinal(index = 2, count = 4)),
-                    listOf(LoadedTextPart(heading = null, paragraphs = listOf(PREVIEW_PARAGRAPH, PREVIEW_PARAGRAPH))),
-                ),
-            onBack = {},
-        )
+        BackdropPreviewHost(BackdropDensity.Sparse) {
+            GoogleNoticeTextScreen(
+                state =
+                    LicenseTextUiState.Loaded(
+                        Notice(notice, foundIn = "ads-mobile-sdk, hsdp", ordinal = NoticeOrdinal(index = 2, count = 4)),
+                        listOf(
+                            LoadedTextPart(heading = null, paragraphs = listOf(PREVIEW_PARAGRAPH, PREVIEW_PARAGRAPH)),
+                        ),
+                    ),
+                onBack = {},
+            )
+        }
     }
 }
 
-@Preview(name = "Google notice text error · light", showBackground = true)
-@Preview(name = "Google notice text error · dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(
+    name = "Google notice text error · light",
+    widthDp = BACKDROP_PREVIEW_WIDTH_DP,
+    heightDp = BACKDROP_PREVIEW_HEIGHT_DP,
+)
+@Preview(
+    name = "Google notice text error · dark",
+    widthDp = BACKDROP_PREVIEW_WIDTH_DP,
+    heightDp = BACKDROP_PREVIEW_HEIGHT_DP,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
 @Composable
 private fun GoogleNoticeTextScreenFailedPreview() {
-    AppTheme { GoogleNoticeTextScreen(state = LicenseTextUiState.Failed(header = null), onBack = {}) }
+    AppTheme {
+        BackdropPreviewHost(BackdropDensity.Sparse) {
+            GoogleNoticeTextScreen(state = LicenseTextUiState.Failed(header = null), onBack = {})
+        }
+    }
 }
 
 private const val PREVIEW_PARAGRAPH = "Licensed under the Apache License, Version 2.0, as supplied by the publisher."

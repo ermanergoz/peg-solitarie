@@ -26,6 +26,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.audio.SoundCue
 import com.app.pegsolitaire.audio.withClickSound
+import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_HEIGHT_DP
+import com.app.pegsolitaire.ui.backdrop.BACKDROP_PREVIEW_WIDTH_DP
+import com.app.pegsolitaire.ui.backdrop.BackdropDensity
+import com.app.pegsolitaire.ui.backdrop.BackdropPreviewHost
 import com.app.pegsolitaire.ui.settings.SettingsSectionHeader
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.app.pegsolitaire.ui.theme.clayEntrance
@@ -158,11 +162,18 @@ private fun LicenseEntryItem(
 internal fun Modifier.licencesEntrance(position: Int): Modifier =
     LicensesUi.entranceOrderOf(position)?.let { clayEntrance(it) } ?: this
 
-@Preview(name = "Licenses · light", showBackground = true)
-@Preview(name = "Licenses · dark", showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "Licenses · light", widthDp = BACKDROP_PREVIEW_WIDTH_DP, heightDp = BACKDROP_PREVIEW_HEIGHT_DP)
+@Preview(
+    name = "Licenses · dark",
+    widthDp = BACKDROP_PREVIEW_WIDTH_DP,
+    heightDp = BACKDROP_PREVIEW_HEIGHT_DP,
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+)
 @Composable
 private fun LicensesScreenPreview() {
     AppTheme {
-        LicensesScreen(sections = LicenseCatalog.sections, onOpenEntry = {}, onOpenGoogleNotices = {}, onBack = {})
+        BackdropPreviewHost(BackdropDensity.Sparse) {
+            LicensesScreen(sections = LicenseCatalog.sections, onOpenEntry = {}, onOpenGoogleNotices = {}, onBack = {})
+        }
     }
 }
