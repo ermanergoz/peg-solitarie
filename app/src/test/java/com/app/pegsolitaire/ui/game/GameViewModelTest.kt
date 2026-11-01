@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -1674,6 +1675,10 @@ private class FakeSettingsRepository(
     soundOn: Boolean = true,
     hapticsOn: Boolean = true,
 ) : SettingsRepository {
+    override val colorblindPaletteOn: Flow<Boolean> = flowOf(false)
+
+    override suspend fun setColorblindPaletteOn(on: Boolean) = Unit
+
     private val state = MutableStateFlow(hintsEnabled)
     private val soundState = MutableStateFlow(soundOn)
     private val hapticsState = MutableStateFlow(hapticsOn)

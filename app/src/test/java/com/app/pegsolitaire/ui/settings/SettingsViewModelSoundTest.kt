@@ -144,6 +144,23 @@ class SettingsViewModelSoundTest {
             assertThat(sounds.events).isEmpty()
         }
 
+    /**
+     * CV-AC01: the colour-blind switch is a toggle like Haptics, so it takes no press cue (D-09);
+     * the sound row's confirmation pop is Sound's own case and is not copied.
+     */
+    @Test
+    fun togglingTheColorblindPalettePlaysNothingInEitherDirection() =
+        runTest(testDispatcher) {
+            val viewModel = viewModelFor(SettableSettingsRepository())
+            runCurrent()
+
+            viewModel.onToggleColorblindPalette(true)
+            viewModel.onToggleColorblindPalette(false)
+            runCurrent()
+
+            assertThat(sounds.events).isEmpty()
+        }
+
     @Test
     fun aStoreThatNeverEmitsStillPlaysNothingOnConstruction() =
         runTest(testDispatcher) {
@@ -187,6 +204,8 @@ private class SettableSettingsRepository(
 
     override val hapticsOn: Flow<Boolean> = hapticsState.asStateFlow()
 
+    override val colorblindPaletteOn: Flow<Boolean> = flowOf(false)
+
     var lastSoundWritten: Boolean? = null
         private set
 
@@ -200,10 +219,16 @@ private class SettableSettingsRepository(
     override suspend fun setHapticsOn(on: Boolean) {
         hapticsState.value = on
     }
+
+    override suspend fun setColorblindPaletteOn(on: Boolean) = Unit
 }
 
 /** A repository whose flows never emit — the pre-emission fail-open case (D-17). */
 private object SilentSettingsRepository : SettingsRepository {
+    override val colorblindPaletteOn: Flow<Boolean> = flowOf(false)
+
+    override suspend fun setColorblindPaletteOn(on: Boolean) = Unit
+
     override val hintsEnabled: Flow<Boolean> = emptyFlow()
 
     override val soundOn: Flow<Boolean> = emptyFlow()

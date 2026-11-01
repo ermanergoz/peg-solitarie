@@ -10,7 +10,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
@@ -23,24 +22,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.unit.toSize
-import com.app.pegsolitaire.R
 import com.app.pegsolitaire.domain.model.Cell
 import com.app.pegsolitaire.domain.model.Position
+import com.app.pegsolitaire.ui.game.BoardMarkRecipe
 import com.app.pegsolitaire.ui.game.BoardMetrics
 import com.app.pegsolitaire.ui.game.GameAnim
 import com.app.pegsolitaire.ui.game.GameUiState
 import com.app.pegsolitaire.ui.game.MoveTransition
 import com.app.pegsolitaire.ui.theme.ClayAnim
-import com.app.pegsolitaire.ui.theme.LocalClayColors
 import com.app.pegsolitaire.ui.theme.rememberAnimationsEnabled
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -82,6 +77,12 @@ private const val REMOVAL_START = 1f
  * (§3.8): those are screen-level effects beside `GameScreen`, which the tutorial — sharing this
  * leaf — must not inherit. A read-only board never draws any of it.
  *
+ * **The palette (docs/ux/colour-vision.md §3.3–§3.4).** An interactive board draws its selection,
+ * legal-target marks and hint in the palette `AppTheme` provides through `LocalBoardMarks`, with
+ * that palette's `BoardMarkRecipe` for the ring radii, alphas, dashes and halo. A read-only board
+ * reads no palette at all: it draws pegs and holes, which no palette touches, so Home's boards are
+ * the same pixels with the option on or off (CV-AC06).
+ *
  * @param state the immutable board state to render (single source of truth).
  * @param onCellTap emits the bounds-checked tapped [Position] up to the ViewModel
  *   (never called when [interactive] is `false`).
@@ -93,7 +94,7 @@ private const val REMOVAL_START = 1f
  *   the mark with animations off): on for the gameplay screen, off for the tutorial (D-01j(2))
  *   and for every read-only board.
  */
-@Suppress("LongMethod") // One cohesive render unit: state capture + palette + the animation set.
+@Suppress("LongMethod") // One cohesive render unit: state capture + palette (with its marks) + the animation set.
 @Composable
 fun BoardCanvas(
     state: GameUiState,
@@ -105,38 +106,17 @@ fun BoardCanvas(
 ) {
     val spec = state.board.spec
     var canvasSize by remember { mutableStateOf(Size.Zero) }
-    val geometry = remember(spec, canvasSize) { BoardGeometry.forCanvas(spec, canvasSize) }
+    // What the draw phase reads (BoardLook.kt): the geometry, and the colours and strokes that
+    // DrawScope cannot resolve itself — the palette's marks on the interactive path only.
+    val look = rememberBoardLook(spec, canvasSize, interactive)
+    val geometry = look.geometry
+    val palette = look.palette
+    val recipe = look.recipe
     // The size `geometry` was built from, read here, in composition. The draw below cannot read it
     // from `canvasSize` itself: `onSizeChanged` writes each frame's size during that frame's layout,
     // before the draw, so a draw-time read already holds the new size while `geometry` is still the
     // one composed for the old (ux-spec §4.2.5 part 4).
     val geometrySize = canvasSize
-
-    // Colors + stroke widths are resolved in composition; DrawScope cannot read
-    // MaterialTheme or resources, so they are captured into a palette and passed in.
-    // Stroke dimens are converted dp → px here (DrawScope draws in pixels).
-    val density = LocalDensity.current
-    val clay = LocalClayColors.current
-    val markWidthPx = with(density) { dimensionResource(R.dimen.wrong_tap_mark_width).toPx() }
-    val markStroke =
-        remember(geometry.cellSize, markWidthPx) {
-            wrongTapMarkStroke(
-                radius = BoardMetrics.WRONG_TAP_MARK_RING_RATIO * geometry.cellSize,
-                widthPx = markWidthPx,
-            )
-        }
-    val palette =
-        BoardPalette(
-            pegGradient = clay.pegGradient,
-            pegHighlight = clay.pegHighlight,
-            dimpleFill = clay.dimpleFill,
-            dimpleShadow = clay.dimpleShadow,
-            accent = MaterialTheme.colorScheme.primary,
-            hint = MaterialTheme.colorScheme.tertiary,
-            ringWidthPx = with(density) { dimensionResource(R.dimen.peg_selected_ring_width).toPx() },
-            mark = MaterialTheme.colorScheme.onSurfaceVariant,
-            markStroke = markStroke,
-        )
 
     val animationsEnabled = rememberAnimationsEnabled()
     val wrongTap = rememberWrongTapFeedback(state, interactive, wrongTapCorrection, animationsEnabled)
@@ -244,14 +224,19 @@ fun BoardCanvas(
         // A canvas's first frame, and each frame of a resize, is drawn before the recomposition
         // that rebuilds `geometry` for its size, so it draws with a geometry of the frame's own
         // size: the pegs arrive in the frame their slab does, and stay on it while it resizes
-        // (ux-spec §4.2.5 part 4, §10). In steady state the sizes match and nothing is allocated.
-        val frameGeometry = if (geometrySize == size) geometry else BoardGeometry.forCanvas(spec, size)
+        // (ux-spec §4.2.5 part 4, §10). It keeps the composed geometry's recipe, so the marks keep
+        // the palette's radii (colour-vision §3.4), and the dashed hint rings are stroked for its
+        // radii (§3.2, amended). In steady state the sizes match and nothing is allocated.
+        val unsizedFrame = geometrySize != size
+        val frameGeometry = if (unsizedFrame) BoardGeometry.forCanvas(spec, size, recipe) else geometry
         drawBoard(
             state = state,
             geometry = frameGeometry,
             palette = palette,
+            recipe = recipe,
             interactive = interactive,
             animations = animations,
+            unsizedFrame = unsizedFrame,
         )
     }
 }
@@ -383,22 +368,6 @@ private fun rememberSelectionPulse(active: Boolean): State<Float>? {
 }
 
 /**
- * Resolved theme + clay colors and pixel stroke widths handed to the draw phase, plus the wrong
- * tap's mark: `onSurfaceVariant` (§3.2) and its dashed stroke.
- */
-private class BoardPalette(
-    val pegGradient: List<Color>,
-    val pegHighlight: Color,
-    val dimpleFill: Color,
-    val dimpleShadow: Color,
-    val accent: Color,
-    val hint: Color,
-    val ringWidthPx: Float,
-    val mark: Color,
-    val markStroke: Stroke,
-)
-
-/**
  * Animated values read through lambdas so only the draw phase re-runs while an
  * animation plays (RESEARCH Pitfall 7/8), plus the cell currently landing and the board's
  * answer to the latest wrong tap.
@@ -413,13 +382,19 @@ private class BoardAnimationValues(
     val wrongTap: WrongTapFeedback,
 )
 
-/** Draws the whole board for one frame. */
+/**
+ * Draws the whole board for one frame. [unsizedFrame] is whether the composition has not sized this
+ * frame — the first frame, a resize frame — so [geometry] was built for it in the draw, with
+ * [recipe], the composed geometry's.
+ */
 private fun DrawScope.drawBoard(
     state: GameUiState,
     geometry: BoardGeometry,
     palette: BoardPalette,
+    recipe: BoardMarkRecipe,
     interactive: Boolean,
     animations: BoardAnimationValues,
+    unsizedFrame: Boolean,
 ) {
     if (!geometry.isReady) return
     val board = state.board
@@ -452,7 +427,7 @@ private fun DrawScope.drawBoard(
     val hintSource = state.hintSource
     val hintTarget = state.hintTarget
     if (interactive && hintSource != null && hintTarget != null) {
-        drawHintHighlight(geometry, palette, hintSource, hintTarget)
+        drawHintHighlight(geometry, palette, hintSource, hintTarget, unsizedFrame, recipe.hintRingDashes)
     }
 
     if (transition != null) {
@@ -496,7 +471,7 @@ private fun DrawScope.drawCell(
             drawDimple(shaken, geometry, palette)
             if (interactive && state.showHints && position in state.legalTargets) {
                 drawCircle(
-                    color = palette.accent.copy(alpha = BoardMetrics.DESTINATION_DOT_ALPHA),
+                    color = palette.accent.copy(alpha = palette.destinationDotAlpha),
                     radius = geometry.destinationDotRadius * animations.dotPop(),
                     center = center,
                 )
@@ -573,6 +548,12 @@ private fun DrawScope.drawDimple(
 /**
  * The selected peg: enlarged candy sphere breathing at [pulse], plus the accent ring, whose radius
  * a wrong tap's [nudge] multiplies on top of the pulse (§3.1). The peg itself never nudges.
+ *
+ * In a palette with a halo (colour-vision CV-07) a band of `surfaceContainerLowest` runs directly
+ * inside the ring: the ring is stroked on its centreline, so its inner edge is `ringRadius − w/2`
+ * and the halo's centreline is `ringRadius − w/2 − h/2`. It is drawn after the sphere and before
+ * the ring, covering the sphere's outermost band, and it is derived from the same `ringRadius`, so
+ * it pulses and nudges with the ring and the two never separate.
  */
 private fun DrawScope.drawSelectedPeg(
     center: Offset,
@@ -586,9 +567,18 @@ private fun DrawScope.drawSelectedPeg(
         center = center,
         radius = geometry.pegRadius * BoardMetrics.SELECTED_PEG_SCALE * pulse,
     )
+    val ringRadius = geometry.selectedRingRadius * pulse * nudge
+    palette.selectionHalo?.let { halo ->
+        drawCircle(
+            color = halo,
+            radius = ringRadius - palette.ringWidthPx / 2 - palette.haloWidthPx / 2,
+            center = center,
+            style = palette.haloStroke,
+        )
+    }
     drawCircle(
         color = palette.accent,
-        radius = geometry.selectedRingRadius * pulse * nudge,
+        radius = ringRadius,
         center = center,
         style = Stroke(width = palette.ringWidthPx),
     )
@@ -601,31 +591,51 @@ private fun DrawScope.drawSelectedPeg(
  * nor performs the jump; the caller suppresses it entirely in read-only previews.
  *
  * Draw order matches the UI-SPEC: target ring → source glow ring → arrow, so the source
- * glow sits above the connector where they overlap.
+ * glow sits above the connector where they overlap. The rings' colour, alphas and strokes are the
+ * palette's: `tertiary` at 0.9 and solid in the standard palette; in the colour-blind one opaque,
+ * dashed, and amber in light (colour-vision CV-09).
+ *
+ * A dash pattern is cut for one radius, and the palette's dashed strokes were cut for the composed
+ * geometry's, which is zero-sized on a first frame. So on an [unsizedFrame] the dashed rings are
+ * stroked here for [geometry]'s radii, with [hintRingDashes] dashes, through the builder the palette
+ * used (colour-vision §3.2, amended); a solid stroke has no pattern and is drawn as it is.
  */
 private fun DrawScope.drawHintHighlight(
     geometry: BoardGeometry,
     palette: BoardPalette,
     source: Position,
     target: Position,
+    unsizedFrame: Boolean,
+    hintRingDashes: Int,
 ) {
     val sourceCenter = geometry.center(source)
     val targetCenter = geometry.center(target)
-    val ringColor = palette.hint.copy(alpha = BoardMetrics.HINT_HIGHLIGHT_ALPHA)
-    drawCircle(
-        color = ringColor,
-        radius = geometry.hintTargetRingRadius,
-        center = targetCenter,
-        style = Stroke(width = palette.ringWidthPx),
+    val ringColor = palette.hint.copy(alpha = palette.hintRingAlpha)
+    val restroke = unsizedFrame && palette.hintRingsDashed
+    drawHintRing(
+        ringColor,
+        targetCenter,
+        geometry.hintTargetRingRadius,
+        if (restroke) {
+            hintRingStroke(geometry.hintTargetRingRadius, palette.ringWidthPx, hintRingDashes)
+        } else {
+            palette.hintTargetStroke
+        },
+        palette.hintRingsDashed,
     )
-    drawCircle(
-        color = ringColor,
-        radius = geometry.hintSourceRingRadius,
-        center = sourceCenter,
-        style = Stroke(width = palette.ringWidthPx),
+    drawHintRing(
+        ringColor,
+        sourceCenter,
+        geometry.hintSourceRingRadius,
+        if (restroke) {
+            hintRingStroke(geometry.hintSourceRingRadius, palette.ringWidthPx, hintRingDashes)
+        } else {
+            palette.hintSourceStroke
+        },
+        palette.hintRingsDashed,
     )
     drawLine(
-        color = palette.hint.copy(alpha = BoardMetrics.HINT_ARROW_ALPHA),
+        color = palette.hint.copy(alpha = palette.hintConnectorAlpha),
         start = sourceCenter,
         end = targetCenter,
         strokeWidth = BoardMetrics.HINT_ARROW_WIDTH_RATIO * geometry.cellSize,

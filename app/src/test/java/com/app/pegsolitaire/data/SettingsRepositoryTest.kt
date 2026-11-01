@@ -2,6 +2,7 @@ package com.app.pegsolitaire.data
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.emptyPreferences
 import com.app.pegsolitaire.testing.InMemoryPreferencesDataStore
 import com.google.common.truth.Truth.assertThat
@@ -140,6 +141,65 @@ class SettingsRepositoryTest {
             assertThat(repository.hintsEnabled.first()).isTrue()
             assertThat(repository.soundOn.first()).isTrue()
             assertThat(repository.hapticsOn.first()).isTrue()
+        }
+
+    /** CV-04: the colour-blind palette is off on a fresh install — the founder-approved look. */
+    @Test
+    fun theColorblindPaletteIsOffOnAFreshStore() =
+        runTest {
+            val repository = SettingsRepositoryImpl(InMemoryPreferencesDataStore())
+
+            assertThat(repository.colorblindPaletteOn.first()).isFalse()
+        }
+
+    /**
+     * CV-04: the one flag that does **not** fail open. A corrupt store resets every setting at
+     * once; showing the alternative look to every player whose store failed would misstate the
+     * default, so a failed read means off (docs/ux/colour-vision.md §3.2).
+     */
+    @Test
+    fun aFailedReadLeavesTheColorblindPaletteOff() =
+        runTest {
+            val repository = SettingsRepositoryImpl(throwingDataStore())
+
+            assertThat(repository.colorblindPaletteOn.first()).isFalse()
+        }
+
+    @Test
+    fun setColorblindPaletteOnRoundTrips() =
+        runTest {
+            val repository = SettingsRepositoryImpl(InMemoryPreferencesDataStore())
+
+            repository.setColorblindPaletteOn(true)
+            assertThat(repository.colorblindPaletteOn.first()).isTrue()
+
+            repository.setColorblindPaletteOn(false)
+            assertThat(repository.colorblindPaletteOn.first()).isFalse()
+        }
+
+    /** CV-AC02: the choice lives under `colorblind_palette_on` in the shared store, beside the other flags. */
+    @Test
+    fun theColorblindChoiceIsStoredUnderItsOwnKeyAndTouchesNoOtherFlag() =
+        runTest {
+            val store = InMemoryPreferencesDataStore()
+            val repository = SettingsRepositoryImpl(store)
+
+            repository.setColorblindPaletteOn(true)
+
+            assertThat(store.data.first()[booleanPreferencesKey("colorblind_palette_on")]).isTrue()
+            assertThat(repository.hintsEnabled.first()).isTrue()
+            assertThat(repository.soundOn.first()).isTrue()
+            assertThat(repository.hapticsOn.first()).isTrue()
+        }
+
+    @Test
+    fun aFailedWriteDropsTheColorblindChoiceWithoutThrowing() =
+        runTest {
+            val repository = SettingsRepositoryImpl(throwingWriteDataStore())
+
+            repository.setColorblindPaletteOn(true)
+
+            assertThat(repository.colorblindPaletteOn.first()).isFalse()
         }
 
     private fun throwingDataStore(): DataStore<Preferences> =
