@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -33,6 +34,7 @@ import com.app.pegsolitaire.ui.backdrop.BackdropPreviewHost
 import com.app.pegsolitaire.ui.settings.SettingsSectionHeader
 import com.app.pegsolitaire.ui.theme.AppTheme
 import com.app.pegsolitaire.ui.theme.clayEntrance
+import com.app.pegsolitaire.ui.window.stableSystem
 
 /** The Licenses list's test tag: the node that carries the scroll actions (brief A1.6). */
 internal const val LICENSES_LIST_TAG = "licenses_list"
@@ -76,6 +78,7 @@ fun LicensesScreen(
             containerColor = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.onBackground,
             topBar = { LicensesTopBar(title = stringResource(R.string.licenses_title), onBack = onBack) },
+            contentWindowInsets = WindowInsets.stableSystem,
         ) { contentPadding ->
             Box(
                 modifier =

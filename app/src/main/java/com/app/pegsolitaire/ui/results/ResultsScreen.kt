@@ -5,8 +5,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -55,6 +58,7 @@ import com.app.pegsolitaire.ui.game.GameTimerFormat
 import com.app.pegsolitaire.ui.theme.ClayAnim
 import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.withTabularFigures
+import com.app.pegsolitaire.ui.window.stableSystem
 
 /** Test tag of the star row; carries the [EarnedStarCountKey] semantics for the screen test. */
 const val RESULTS_STAR_ROW_TEST_TAG = "results_star_row"
@@ -135,6 +139,7 @@ fun ResultsScreen(
             containerColor = Color.Transparent,
             contentColor = MaterialTheme.colorScheme.onBackground,
             topBar = { ResultsTopBar(onNavigateBack = onNavigateBack) },
+            contentWindowInsets = WindowInsets.stableSystem,
         ) { contentPadding ->
             Column(
                 modifier =
@@ -190,6 +195,7 @@ fun ResultsScreen(
 @Composable
 private fun ResultsTopBar(onNavigateBack: () -> Unit) {
     TopAppBar(
+        windowInsets = WindowInsets.stableSystem.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
         colors =
             TopAppBarDefaults.topAppBarColors(
                 containerColor = Color.Transparent,

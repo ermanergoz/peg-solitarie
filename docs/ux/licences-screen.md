@@ -646,9 +646,19 @@ unchanged; the rows it replaced are quoted beneath it. Sources: THIRD_PARTY.md �
 Apache-2.0 text and the Jakarta NOTICE), §4, §5b rows A–J and the Apache table; tech design §13.1 LN-5.
 Entry titles, credit lines, licence names and parts lines are the strings §6 names, one key each.)*
 
+*(Third edition note, 2026-11-01 — ux-designer, under the founder's Q-039 and D-17 of
+`docs/ux/localisation-tr.md`.)* Two rows change and nothing else: the **Fredoka** entry gains a
+third line, `licenses_fredoka_modified`, stating that the bundled Fredoka is a Modified Version
+under the OFL (the two files now carry Ğ ğ İ Ş ş composed from the family's own letters and
+marks, nothing else changed; `Fredoka-OFL.txt` ships unchanged, as the OFL asks); and the
+**Public Suffix List** parts line writes its date in prose, "15 February 2023", because the
+non-breaking hyphens it used are not in Nunito's cmap (tech design §16 #41). Both rows are pinned
+by `LicenseCatalogTest.EXPECTED`, which changes with them (LS-AC03). The order of entries, the
+texts each opens, and every other line are unchanged.
+
 | Section | Entry title | Lines (credit · licence · parts or address) | Opens (§7) |
 |---|---|---|---|
-| **Fonts** (`licenses_section_fonts`) | Fredoka | "© 2016 The Fredoka Project Authors" · "SIL Open Font License 1.1" | `Fredoka-OFL.txt` |
+| **Fonts** (`licenses_section_fonts`) | Fredoka | "© 2016 The Fredoka Project Authors" · "SIL Open Font License 1.1" · **"Modified for Peg Solitaire under the SIL Open Font License: Ğ ğ İ Ş ş added from Fredoka's own letters and marks; nothing else changed."** (third line, `licenses_fredoka_modified`, added 2026-11-01 — D-17 of `docs/ux/localisation-tr.md`, founder's Q-039; a `LicenseLine.Plain` after the licence name; **translatable**, Turkish in that spec's §5.4; tech design §11.1 "Q-039" (3)) | `Fredoka-OFL.txt` (unchanged: OFL asks the notice and licence to ship, not a change log; the modification is stated in this line and in the font's own name table) |
 | | Nunito | "© 2014 The Nunito Project Authors" · "SIL Open Font License 1.1" | `Nunito-OFL.txt` |
 | **Sounds** (`licenses_section_sounds`) | Interface Sounds by Kenney | "7 sound effects" · "CC0 1.0 Universal (public domain)" · "kenney.nl/assets/interface-sounds" | — (inert) |
 | | “Pop 01” by LilMati | "2 sound effects" · "CC0 1.0 Universal (public domain)" · "freesound.org/people/LilMati/sounds/506546" | — |
@@ -662,7 +672,7 @@ Entry titles, credit lines, licence names and parts lines are the strings §6 na
 | | Annotation and injection APIs | "The JSR-330 Expert Group, the FindBugs project, JSpecify, JetBrains" · "Apache License 2.0" · "javax.inject, JSR-305 annotations, JSpecify, JetBrains Java annotations" | `Apache-2.0.txt` |
 | | Protocol Buffers | "Google" · "BSD 3-Clause License" · "The Java Lite runtime, and the copy inside AndroidX DataStore" | `Protobuf-BSD-3-Clause.txt` |
 | | Chromium (Cronet) | "The Chromium Authors" · "BSD 3-Clause License" · "The Cronet networking classes inside Google Mobile Ads" | `Chromium-BSD-3-Clause.txt` |
-| | Public Suffix List | "Mozilla and the list's contributors" · "Mozilla Public License 2.0" · "The public-suffix data compiled into OkHttp, as it stood on 2023-02-15" · "github.com/publicsuffix/list/blob/a312abe0e11421aff8fe909a5e02f36b7c5d28de/public_suffix_list.dat" (the source address of the exact version shipped, selectable, LS-05 — address ruling, 2026-10-24: plain text inside the card's one stop, not selectable, LS-14; loop 1, from `research-analyst-mpl.md` §2 — the live list's address is in the NOTICE the entry opens) | `PublicSuffixList-NOTICE.txt`, then `MPL-2.0.txt` (LS-10, LS-11) |
+| | Public Suffix List | "Mozilla and the list's contributors" · "Mozilla Public License 2.0" · "The public-suffix data compiled into OkHttp, as it stood on **15 February 2023**" (prose date since 2026-11-01 — tech design §16 #41, confirmed by the ux-designer: the string wrote "2023‑02‑15" with U+2011 non-breaking hyphens so the date would never wrap, and Nunito's cmap lacks U+2011, so the body face was falling back for them; the prose date is whole without a hyphen and matches the Turkish "15 Şubat 2023") · "github.com/publicsuffix/list/blob/a312abe0e11421aff8fe909a5e02f36b7c5d28de/public_suffix_list.dat" (the source address of the exact version shipped, selectable, LS-05 — address ruling, 2026-10-24: plain text inside the card's one stop, not selectable, LS-14; loop 1, from `research-analyst-mpl.md` §2 — the live list's address is in the NOTICE the entry opens) | `PublicSuffixList-NOTICE.txt`, then `MPL-2.0.txt` (LS-10, LS-11) |
 | | Checker Framework qualifiers | "The Checker Framework developers" · "MIT License" | `CheckerQual-MIT.txt` |
 | **Google libraries** (`licenses_section_google`) | Google Play services and SDKs | "Play Games Services, Mobile Ads, User Messaging Platform, Play inline-install library, Play services libraries" · "Android Software Development Kit License Agreement" · "developer.android.com/studio/terms" | — (inert) |
 | | Open-source notices in Google libraries | "The notices Google supplies for the open-source software inside its libraries" | the **Google notices** screen (§4A), tappable, click label `licenses_google_notices_action` |
@@ -698,7 +708,7 @@ diffs it against THIRD_PARTY.md at checklist items 1.4 and 6.
 | §2 `sfx_select`, `sfx_deselect` (LilMati 506546 and its derivative, CC0) | “Pop 01” by LilMati — count 2 |
 | §2 `sfx_star_pop` (CogFireStudios 531512, CC0) | “Positive Blip Effect” by CogFireStudios — count 1 |
 | §2 `sfx_invalid`, `sfx_hint` (own work, recipes) | not listed (LS-04) |
-| §2 Fredoka v17, Nunito v32 (OFL-1.1) | Fredoka; Nunito |
+| §2 Fredoka v17 **Modified Version** (OFL-1.1 §1, no RFN; Ğ ğ İ Ş ş composed from the family's own parts, recipe `fonts/fredoka-tr/`, Q-039), Nunito v32 (OFL-1.1) | Fredoka (three lines, the third `licenses_fredoka_modified`); Nunito |
 | §2 `assets/licenses/Apache-2.0.txt` (the text) | not an entry: the text behind every "Apache License 2.0" entry |
 | §2 `Jakarta-Inject-NOTICE.md` (named in the Apache-2.0.txt row) | Jakarta Dependency Injection |
 | §2 launcher and cover art, opening books; §7 store art | not listed (own work) |
@@ -1217,6 +1227,8 @@ they are data from the generated index and are shown as supplied (LS-12).)*
 | `license_text_end` | End of text |
 | `licenses_bsd3_name` | BSD 3-Clause License |
 | `licenses_mit_name` | MIT License |
+| `licenses_fredoka_modified` *(added 2026-11-01 — D-17 of `docs/ux/localisation-tr.md`, Q-039; the Fredoka entry's third line; **translatable** — a sentence, not a name — with its Turkish row in that spec's §5.4: "Peg Solitaire için SIL Open Font License kapsamında değiştirildi: Ğ ğ İ Ş ş harfleri Fredoka'nın kendi harf ve işaretlerinden eklendi; başka hiçbir şey değiştirilmedi.")* | Modified for Peg Solitaire under the SIL Open Font License: Ğ ğ İ Ş ş added from Fredoka's own letters and marks; nothing else changed. |
+| `licenses_psl_parts` *(English changed 2026-11-01, tech design §16 #41; the Turkish already read "15 Şubat 2023")* | The public-suffix data compiled into OkHttp, as it stood on 15 February 2023 |
 | `licenses_mpl_name` | Mozilla Public License 2.0 |
 | `licenses_psl_address` | github.com/publicsuffix/list/blob/a312abe0e11421aff8fe909a5e02f36b7c5d28de/public_suffix_list.dat *(loop 1, from `research-analyst-mpl.md`: the exact version compiled into okhttp 4.11.0; the second edition's `publicsuffix.org/list/public_suffix_list.dat` is superseded — it serves a list that changes daily, and the NOTICE the entry opens already names it. **Re-derived before the cut** if the release listing, U-6, shows an okhttp other than 4.11.0: §9 item 13)* |
 | `google_notices_ordinal` | Notice %1$d of %2$d *(loop 1, F-08; only on a repeated name, LS-12)* |

@@ -49,7 +49,7 @@ data class WavePlacement(
 
 /**
  * The backdrop's unitless ratios, anchors and lists (backdrop spec §4.3), beside
- * `BoardMetrics` and `HomeStageMetrics`. Every position the scene draws is one of these or a
+ * `BoardMetrics`. Every position the scene draws is one of these or a
  * `dimens.xml` token; the builder invents none. Durations live in [BackdropMotion].
  */
 object BackdropMetrics {
