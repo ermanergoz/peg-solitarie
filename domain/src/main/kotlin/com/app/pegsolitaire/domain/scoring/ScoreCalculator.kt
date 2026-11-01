@@ -110,4 +110,49 @@ object ScoreCalculator {
             pegsCleared = pegsCleared,
             elapsedSeconds = elapsedSeconds,
         )
+
+    /**
+     * The Challenge score (docs/gdd.md §6.3, GD-SB-22; the founder's Q-042, 2026-11-01): the
+     * [score] base — `(pegsCleared × PEG_VALUE + time bonus) × levelMultiplier` — multiplied by the
+     * [stars] the clear earned, so a three-star clear is worth three times a one-star clear of the
+     * same level in the same time. The multiplier IS the star count (3★ ×3, 2★ ×2, 1★ ×1), so no
+     * further constant exists to name.
+     *
+     * Challenge only: [stars] is the grade `ChallengeClearRule.finish` returned for a cleared
+     * board, one to [ChallengeClearRule.PERFECT_STARS]. Classic keeps [score] unmultiplied (Q-040,
+     * Q-037), so this function, not [score], carries the factor.
+     */
+    fun challengeScore(
+        pegsCleared: Int,
+        elapsedSeconds: Int,
+        levelMultiplier: Int,
+        stars: Int,
+    ): Int =
+        score(pegsCleared = pegsCleared, elapsedSeconds = elapsedSeconds, levelMultiplier = levelMultiplier) * stars
+
+    /**
+     * Assembles a Challenge [ScoreResult]: the clear rule's [stars] and the [challengeScore] they
+     * multiply. The Challenge counterpart of [evaluate]; Classic never calls it.
+     */
+    fun evaluateChallenge(
+        pegsRemaining: Int,
+        pegsCleared: Int,
+        elapsedSeconds: Int,
+        levelMultiplier: Int,
+        stars: Int,
+    ): ScoreResult =
+        ScoreResult(
+            stars = stars,
+            score =
+                challengeScore(
+                    pegsCleared = pegsCleared,
+                    elapsedSeconds = elapsedSeconds,
+                    levelMultiplier = levelMultiplier,
+                    stars = stars,
+                ),
+            pegsRemaining = pegsRemaining,
+            pegsCleared = pegsCleared,
+            elapsedSeconds = elapsedSeconds,
+        )
 }
+
