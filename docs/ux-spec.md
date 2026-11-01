@@ -4,7 +4,7 @@ phase: 15
 slug: ux-refresh
 status: draft
 created: 2026-09-21
-revised: 2026-10-24
+revised: 2026-10-24; 2026-11-01 (pre-release folds: D-05e's fallback and D-05f's v35 mechanism as built; SN-1 in docs/ux/colour-vision.md)
 stack: android-compose-game
 design-system: docs/ui/DESIGN-SYSTEM.md
 ---
@@ -566,6 +566,24 @@ design-system: docs/ui/DESIGN-SYSTEM.md
 > §10's notice bullet gains a pointer. **Not reopened:** D-04f, D-04g and every other criterion. No
 > string, token, colour or id is added. **For the merge:** a parallel branch's revision entry with
 > the same number is kept beside this one, as loop 4 ruled; the titles tell them apart.
+>
+> **Pre-release folds — 2026-11-01 (before `release/3.0.0` is cut).** Docs only, on
+> `feature/ux-3.0.0-folds`; no decision is reopened and nothing is deleted. Input: the tech-lead's
+> `.planning/reports/home-chip-arrival/tech-lead-defect-ruling.md` (B-1, B-1b, B-2, B-3; Open issue 3)
+> and its sign-off's Open issue 1, merged on `develop` as `305f741`. What was built differs from two
+> of this document's wordings, and the built form is the ruled one:
+> - **D-05f's mechanism (§6.2, criterion 29 (1), §13, §6.5's start-path note).** A `values-v35/` and
+>   `values-night-v35/` pair, each naming `android:navigationBarColor` as `@android:color/transparent`
+>   beside `windowLightStatusBar` and `windowLightNavigationBar`, replaces the `values-v27/` pair, which
+>   is deleted. Below API 35 (not "API 24–26") the navigation bar is the platform's, as before D-05f.
+> - **D-05e's fallback is live (§4.3.2, criteria 18f and 18g, §8).** The timer speaks whole minutes:
+>   "Elapsed time, under a minute" below 60 s, else "Elapsed time, N minutes", floored. The node
+>   carries its description only. `duration_under_a_minute` is added; `duration_seconds` and
+>   `duration_minutes_seconds` are not in the build.
+>
+> Each place gains a dated note beside its first wording. The colour-vision correction SN-1 is
+> folded in `docs/ux/colour-vision.md` (CV-AC11). No string, token, colour or id is added by this
+> entry.
 
 ---
 
@@ -1458,6 +1476,10 @@ ad-allowance id is the one genuine collision, and §4.4 qualifies it where it ap
   because the strip is scanned stop by stop — back, title,
   timer — and the label says which stop this is. The value is spelt as a duration because "05:12" is
   read as a time of day or digit by digit, depending on the voice, and neither is a duration.
+  *(Pointer 2026-11-01 — as built, merged `305f741`.)* The device found TalkBack re-speaking the
+  focused timer (B-2), so §4.3.2's pre-ruled whole-minute fallback is what ships: "Elapsed time,
+  5 minutes", or "Elapsed time, under a minute". The label first, the one stop and no live region
+  stand (`home-chip-arrival/tech-lead-defect-ruling.md` §2–§3).
 
 - **D-05f** *(2026-10-21 — **amendment**, app-wide; filed beside D-05d because D-05d is where this
   document first ruled on the system bars. UX ruling on the qa-engineer's 15e-sitting observation
@@ -3639,6 +3661,26 @@ a comma, and the elapsed time as a duration.
   below one minute, so it changes at most once a minute. The label, the one stop and the no-live-region
   rule stand either way. The fallback is decided here so that a device finding needs a code change and
   not a new ruling.
+- *(Note 2026-11-01 — the fallback is live; folded from the tech-lead's defect ruling, B-2,
+  `.planning/reports/home-chip-arrival/tech-lead-defect-ruling.md` §2, merged `305f741`.)* QA's device
+  pass heard the focused timer re-spoken every 2.5–3 s, so the whole-minute form above is what ships,
+  and the table above is kept as the first wording only. The minutes are **floored**, never rounded
+  up, and never rolled into hours:
+
+  | Elapsed seconds | TalkBack says |
+  |---|---|
+  | 0, 1, 45 | "Elapsed time, under a minute" |
+  | 60, 61 | "Elapsed time, 1 minute" |
+  | 312 | "Elapsed time, 5 minutes" |
+  | 720 | "Elapsed time, 12 minutes" |
+  | 3599 | "Elapsed time, 59 minutes" |
+  | 6000 | "Elapsed time, 100 minutes" |
+
+  The clock's accessibility node now carries its description and nothing else that changes within a
+  minute: the per-second text is cleared with the cells (B-3's `clearAndSetSemantics` on the clock in
+  `TimerPill`), which is also what puts the timer in Compose's reading order, back → title → timer →
+  Undo. The cells stay hidden; there is still one stop, no live region and no role. **The cost,
+  accepted:** a screen-reader player hears whole minutes only, while the pill still shows seconds.
 
 **Considered and rejected.**
 
@@ -4454,6 +4496,19 @@ and that follows the theme on every screen:
   `values-night-v27/`, each restating the whole style, because styles do not merge across qualifiers;
   a `WindowThemeTest` case pins it. On API 24–26 the platform's own navigation bar stays as it is in both
   themes; this ruling asks nothing of it.
+  *(Note 2026-11-01 — the mechanism as built, folded from the tech-lead's defect ruling, B-1 and B-1b,
+  `.planning/reports/home-chip-arrival/tech-lead-defect-ruling.md` §1, merged `305f741`; the sentence
+  above is kept as the first wording.)* On API 35 and up the window is edge to edge and the platform
+  forced a light bar from the light window background, overriding `windowLightNavigationBar` (B-1);
+  below API 35 the v27 light file put dark buttons on an opaque black bar (B-1b). So the `values-v27/`
+  pair is **deleted**, and a **`values-v35/` and `values-night-v35/`** pair restates the whole
+  `Theme.PegSolitaire` on the same parent with exactly three items: `windowLightStatusBar` and
+  `windowLightNavigationBar` (true in light, false in night), and `android:navigationBarColor` =
+  `@android:color/transparent`. Naming that platform colour is what makes the platform honour
+  `windowLightNavigationBar`; it changes nothing a player sees, and it is the platform's own value, so
+  "no colour is added" stands. Each file carries a "do not remove" comment. **Below API 35** (not
+  "API 24–26") the bar is the platform's, in both themes, exactly as before D-05f. `MainActivity`,
+  `Theme.kt`, the manifest and Gradle are untouched.
 - **Where it lands.** The window theme is a start-path file, so the change rides a branch that sits its
   own 15e: `bugfix/home-chip-arrival`, which sits one under D-03n, and `feature/candy-backdrop` only if
   that branch does not (`tech-lead-signoff-close.md`, INFO row 9). The device check covers three-button
@@ -4688,6 +4743,9 @@ two theme files D-05f adds, `values-v27/` and `values-night-v27/`, start-path fi
 So "`res/values/themes.xml`" in the list reads as **every `res/values*/themes.xml`**: a merge-in that
 changes any of them does not leave a sitting standing. If the tech-lead's `docs/tech-design.md` §10
 states the list differently, that text governs.
+*(Note 2026-11-01.)* As built, the v27 pair is deleted and the `values-v35/` and `values-night-v35/`
+pair is the start-path pair in its place (§6.2's dated note); the "every `res/values*/themes.xml`"
+reading covers it unchanged.
 
 **Preconditions — every one recorded with its value in the evidence table. If any fails, the
 sitting is VOID, not failed.**
@@ -4946,6 +5004,13 @@ third string only if the fallback is taken:
 | `duration_seconds` (plurals) | one: `%d second` · other: `%d seconds` | The seconds part |
 | `duration_minutes_seconds` | `%1$s, %2$s` | The minutes part, then the seconds part, when both are said |
 | `duration_under_a_minute` | `under a minute` | **Only with D-05e's whole-minute fallback**, if criterion 18g finds TalkBack re-speaking the timer; otherwise it is not added |
+
+*(Note 2026-11-01 — as built, merged `305f741`; the table above is kept as the first wording.)* The
+fallback was taken (§4.3.2's dated note), so the shipped set is **`elapsed_time_spoken`,
+`duration_minutes` (plurals) and `duration_under_a_minute`**, with the values above. **`duration_seconds`
+and `duration_minutes_seconds` are not in `strings.xml`:** nothing reads them under the fallback, and no
+dormant string is kept (`tech-lead-defect-ruling.md` §2 item 3). Read their two rows above as
+withdrawn, and the "Added" line's count as two strings and one plural.
 
 **Added 2026-10-23 — D-TB, the board with TalkBack (§11.1).** Every string is spoken, never drawn.
 
@@ -5986,7 +6051,7 @@ built on `bugfix/home-chip-arrival`)*:
 | `GameFlowTest.kt:129`, `GameScreenChromeTest.kt:62` and `:75`, the helper at `GameStatusStripTest.kt:312-314` | Each finds the timer by the exact `elapsed_time` description, which is now only the start of it (D-05e). This supersedes the "passes unchanged" and "passes unedited" rows for `GameFlowTest.kt:129` above. | **Retarget, never delete or `@Ignore`:** find the clock through `GAME_TIMER_PILL_TEST_TAG` and the node inside it, or by the label as a substring, and assert the whole sentence where the test is about the timer. |
 | `HomeStageTest`, and `HomeLayoutTest`'s 15g and 15p cases, wherever they read a footer of a quarter of the current slack or a stage of three quarters of it | The split is a footer of one fifth of the no-chip slack, fixed for the window, and a stage of the rest less the chips' room (D-03n). | **Retarget** to the D-03n quantities. 15p's bounds (24, 80 and 64dp, and the ≥ 120dp art) and 15g's midpoint stay exactly as they are. 15g's third clause is asserted as ruled in §4.2.5: the footer is at most a third of **S₀**, the no-chip slack (a fifth under D-03n), in both the no-chip and the both-chips state — never against the slack left once the chips are in. |
 | Any test that asserts the compact pill's label wraps beside its value at a large font scale | At a large font scale the ribbon stacks, and no label breaks inside a word (D-03o). | **Retarget** to criterion 15w. 15m's default-scale assertions stand unchanged. |
-| `WindowThemeTest` | Gains the navigation-bar half (D-05f). | **Extend**: `android:windowLightNavigationBar` resolves true under `notnight` and false under `night` at API ≥ 27; the status-bar cases stand unchanged. |
+| `WindowThemeTest` | Gains the navigation-bar half (D-05f). | **Extend**: `android:windowLightNavigationBar` resolves true under `notnight` and false under `night` at API ≥ 27; the status-bar cases stand unchanged. *(Note 2026-11-01 — as built: the two navigation cases are retargeted to `belowApi35TheLightWindowThemeLeavesTheNavigationButtonsToThePlatform` and its dark twin, asserting the attribute has no value below API 35; the new JVM test `WindowThemeApi35FilesTest` pins the v35 pair's style, parent and three items; criterion 29 (1)'s dated note.)* |
 
 **Owed, new, from this amendment** — every one watched failing once on today's code before it is
 trusted: **15s, 15t, 15u** (Home's bounds across the chip emissions, at 1.0 and 2.0, and frame by frame),
@@ -6641,6 +6706,12 @@ D-05e, `bugfix/home-chip-arrival`; criteria 18 and 18a–18e stand unchanged.
      through "Elapsed time, 100 minutes" — starting with the `elapsed_time` string; the node has no
      spoken children (the cells stay hidden, as N-2 asserts); and it carries no live region. Today's
      code fails it: the description is "Elapsed time" alone. (D-05e, SCOR-02, criterion 18)
+     *(Note 2026-11-01 — read under the fallback, which is live; folded from
+     `home-chip-arrival/tech-lead-defect-ruling.md` §2 item 5.)* The nine times read, word for word:
+     0, 1 and 45 s "Elapsed time, under a minute"; 60 and 61 s "Elapsed time, 1 minute"; 312 s
+     "Elapsed time, 5 minutes"; 720 s "Elapsed time, 12 minutes"; 3599 s "Elapsed time, 59 minutes";
+     6000 s "Elapsed time, 100 minutes". The node also holds still within a minute: the same text and
+     description at 0, 1, 30 and 59 s, a different description at 60 s (§4.3.2's dated note).
 
 18g. **TalkBack says it, once.** On a device with TalkBack on and its speech output displayed — the
      "Display speech output" path QA's S11 loop 1 used — during a game: moving focus to the timer speaks
@@ -6648,6 +6719,10 @@ D-05e, `bugfix/home-chip-arrival`; criteria 18 and 18a–18e stand unchanged.
      timer for 10s brings no further speech. If TalkBack does speak again on a tick, D-05e's whole-minute
      fallback is built, and this criterion is read against it: the focused timer then speaks at most once
      a minute, as "Elapsed time, N minutes" or "Elapsed time, under a minute". (D-05e, §11, criterion 18)
+     *(Note 2026-11-01.)* It did, and the fallback is built. As re-read on the device: (a) moving focus
+     speaks the minute sentence for the time shown; (b) ten seconds of rest within one minute bring no
+     further speech; (c) a rest across a minute boundary brings at most one more utterance, the new
+     minute (`tech-lead-defect-ruling.md` §2; passed in `qa-engineer-device2.md`).
 19. Undo, Hint, Show-moves and Restart are all still reachable, all still work, and all four sit in
     the lower half of the screen. (ASST-01, ASST-02, D-04)
 20. The Hint control does not use a magnifying-glass glyph, and the Show-moves control does not use
@@ -6993,6 +7068,18 @@ what the player sees and hears.
     buttons, its relative luminance is at most 0.18 — with light buttons ≥ 3:1 against it; in light mode
     the bar is as it is today, light with dark buttons ≥ 3:1; the gesture handle is ≥ 3:1 against what is
     behind it in both themes; and the status-bar icons are as H-2 left them. (D-05f, §11, criterion 27)
+    *(Note 2026-11-01 — (1) as built, folded from `home-chip-arrival/tech-lead-defect-ruling.md` §1;
+    the wording above is kept as the first edition.)* **(1)** reads: the items live in **`values-v35/`
+    and `values-night-v35/`**, each restating the whole style on the same parent with
+    `windowLightStatusBar`, `windowLightNavigationBar` and `android:navigationBarColor` =
+    `@android:color/transparent`; the v27 pair is deleted. **Below API 35** `WindowThemeTest` asserts
+    that `windowLightNavigationBar` has no value, light and dark (red first against the v27 files), and
+    `WindowThemeApi35FilesTest` pins the v35 pair's source. No JVM test at sdk 34 can show the API 35+
+    behaviour (a Robolectric window test at sdk 35/36 is a 3.0.1 item), so that half is **(2)**'s, on
+    the device. **(2)** gains a below-35 read: on an API 27–34 image, three-button navigation, light and
+    dark, the bar matches the build before D-05f (opaque and dark, light buttons). Both halves passed in
+    `qa-engineer-device2.md` (session D), and (2)'s dark three-button Home read again in
+    `qa-engineer-sitting2.md`.
 
 **The board with TalkBack (D-TB, §11.1 — added 2026-10-23)** — these twelve are the game-designer's
 TB-1 to TB-12 (`.planning/reports/ux-spec-folds/game-designer-talkback-board.md`, §4), kept under their
