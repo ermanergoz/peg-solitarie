@@ -121,16 +121,22 @@ internal fun AppNavHostWithStandIns(
                 }
             }
         },
-        catalogContent = { onSelect, _ -> StandIn(StandInTags.CATALOG) { onSelect(STAND_IN_BOARD) } },
+        catalogContent = { onSelect, _ ->
+            StandIn(StandInTags.CATALOG, Modifier.fillMaxSize()) { onSelect(STAND_IN_BOARD) }
+        },
         gameplayContent = { onFinished, _ ->
             Column(Modifier.fillMaxSize()) {
                 StandIn(StandInTags.BOARD, Modifier.weight(1f), onBoardTap)
                 StandIn(StandInTags.BOARD_FINISH, Modifier.weight(1f)) { onFinished(STAND_IN_RESULTS) }
             }
         },
-        resultsContent = { _, _, onHome, _, _, _ -> StandIn(StandInTags.RESULTS_HOME, onClick = onHome) },
-        settingsContent = { _, onShowHowToPlay -> StandIn(StandInTags.SETTINGS_TUTORIAL, onClick = onShowHowToPlay) },
-        tutorialContent = { onExit -> StandIn(StandInTags.TUTORIAL_EXIT, onClick = onExit) },
+        resultsContent = { _, _, onHome, _, _, _ ->
+            StandIn(StandInTags.RESULTS_HOME, Modifier.fillMaxSize(), onClick = onHome)
+        },
+        settingsContent = { _, onShowHowToPlay ->
+            StandIn(StandInTags.SETTINGS_TUTORIAL, Modifier.fillMaxSize(), onClick = onShowHowToPlay)
+        },
+        tutorialContent = { onExit -> StandIn(StandInTags.TUTORIAL_EXIT, Modifier.fillMaxSize(), onClick = onExit) },
         backdropFrames = frames,
     )
 }
@@ -138,7 +144,7 @@ internal fun AppNavHostWithStandIns(
 @Composable
 private fun StandIn(
     tag: String,
-    modifier: Modifier = Modifier.fillMaxSize(),
+    modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
     Box(modifier.fillMaxWidth().testTag(tag).clickable(onClick = onClick))
