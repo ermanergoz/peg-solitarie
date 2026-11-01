@@ -142,7 +142,7 @@ from a built-in opening book.
   thirty levels further along the generator's difficulty curve; level numbers are unchanged. The
   Results screen names the next star and shows a Cleared headline.
 - **Home title at the top, Home full screen, and Play again** (re-cut, third pass). The title sits
-  at the top of Home with the mode buttons kept low; Home hides the system bars like gameplay does;
+  at the top of Home, with a little space above it, and the mode buttons kept low; Home hides the system bars like gameplay does;
   a solved Challenge level offers Play again to chase more stars.
 - **Challenge scores follow the stars** (re-cut, second pass). Every clear still unlocks the next
   level, but the score is multiplied by the stars earned: three stars scores three times one star.
