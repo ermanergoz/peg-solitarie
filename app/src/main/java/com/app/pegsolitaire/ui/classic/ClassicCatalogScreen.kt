@@ -42,7 +42,9 @@ import com.app.pegsolitaire.audio.SoundCue
 import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.ui.theme.clayEntrance
-import com.app.pegsolitaire.ui.theme.clayShadow
+import com.app.pegsolitaire.ui.theme.tintedCardColor
+import com.app.pegsolitaire.ui.theme.tintedCardShadow
+import com.app.pegsolitaire.ui.theme.tintedCardSupportingColor
 import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.window.stableSystem
 
@@ -157,12 +159,12 @@ private fun BoardCard(
     Card(
         onClick = withClickSound(SoundCue.ButtonForward) { onSelect(descriptor.id) },
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        colors = CardDefaults.cardColors(containerColor = tintedCardColor()),
         modifier =
             Modifier
                 .clayEntrance(entranceOrder)
                 .claySquish()
-                .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.large)
+                .tintedCardShadow(MaterialTheme.shapes.large)
                 .fillMaxWidth()
                 .height(dimensionResource(R.dimen.catalog_card_height)),
     ) {
@@ -190,7 +192,7 @@ private fun BoardCard(
                         descriptor.holeCount,
                     ),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = tintedCardSupportingColor(),
             )
         }
     }
