@@ -9,25 +9,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.navigation.NavDestination
-import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import com.app.pegsolitaire.ui.window.LocalSystemBars
 import com.app.pegsolitaire.ui.window.SystemBarsState
 
 /**
  * The bars a destination asks for (docs/ux-spec.md D-05g part 1; docs/tech-design.md §3.8 (a)), in
- * the shape of [backdropDensity] beside it: Home (D-05h, founder 2026-11-02), the game screen —
- * Classic and Challenge alike, one destination — and Results hide both bars, and everything else
- * shows them. "Everything else" is
- * deliberately the `else` branch, so a destination added later shows its bars.
+ * the shape of [backdropDensity] beside it. The whole app is immersive (founder 2026-11-05: Settings
+ * and the Classic catalogue showed the status bar): every destination hides both bars, a destination
+ * added later included. Every screen already pads off the bars' stable insets
+ * (`WindowInsets.stableSystem`), so no layout moves when a bar is swiped in and out.
  */
-fun NavDestination?.systemBarsState(): SystemBarsState =
-    when {
-        this?.hasRoute<Home>() == true -> SystemBarsState.Hidden
-        this?.hasRoute<Gameplay>() == true -> SystemBarsState.Hidden
-        this?.hasRoute<Results>() == true -> SystemBarsState.Hidden
-        else -> SystemBarsState.Shown
-    }
+fun NavDestination?.systemBarsState(): SystemBarsState = SystemBarsState.Hidden
 
 /**
  * The thin adapter between the back stack and the window's bars (§3.8 (a), (b)). It alone reads the
