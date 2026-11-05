@@ -73,12 +73,17 @@ object BackdropMetrics {
             SkyStop(fraction = 1.00f, role = SkyRole.Deep),
         )
 
-    /** The Sparse wash: the background held to 0.12 H, then a blend to `SparseLow` (B-23). */
+    /**
+     * The Sparse wash: Home's sky, static (B-23 revised 2026-11-05). The near-white wash made
+     * Settings and its siblings read as a different app; Home's stops keep header text at ≥ 5.9:1.
+     */
     val SPARSE_SKY_STOPS: List<SkyStop> =
         listOf(
             SkyStop(fraction = 0.00f, role = SkyRole.Top),
             SkyStop(fraction = 0.12f, role = SkyRole.Top),
-            SkyStop(fraction = 1.00f, role = SkyRole.SparseLow),
+            SkyStop(fraction = 0.34f, role = SkyRole.Mid),
+            SkyStop(fraction = 0.66f, role = SkyRole.Low),
+            SkyStop(fraction = 1.00f, role = SkyRole.Deep),
         )
 
     /** Where Home's calm band ends: above it the sky alone, at every pose (B-20). */

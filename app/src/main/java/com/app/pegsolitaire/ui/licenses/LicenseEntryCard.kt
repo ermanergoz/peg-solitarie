@@ -29,7 +29,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.semantics
 import com.app.pegsolitaire.R
-import com.app.pegsolitaire.ui.theme.clayShadow
+import com.app.pegsolitaire.ui.theme.tintedCardColor
+import com.app.pegsolitaire.ui.theme.tintedCardShadow
+import com.app.pegsolitaire.ui.theme.tintedCardSupportingColor
 import com.app.pegsolitaire.ui.theme.claySquish
 
 /**
@@ -95,10 +97,10 @@ internal fun LicenceCard(
 ) {
     Card(
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        colors = CardDefaults.cardColors(containerColor = tintedCardColor()),
         modifier =
             modifier
-                .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.large)
+                .tintedCardShadow(MaterialTheme.shapes.large)
                 .fillMaxWidth()
                 .heightIn(min = dimensionResource(R.dimen.settings_row_min_height))
                 .then(
@@ -131,7 +133,7 @@ internal fun LicenceCard(
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = tintedCardSupportingColor(),
                     modifier =
                         Modifier
                             .size(dimensionResource(R.dimen.settings_row_icon_size))
@@ -156,7 +158,7 @@ internal fun LicenceCardTexts(texts: List<String>) {
         Text(
             text = text,
             style = if (isTitle) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
-            color = if (isTitle) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+            color = if (isTitle) MaterialTheme.colorScheme.onSurface else tintedCardSupportingColor(),
             modifier = Modifier.semantics { hideFromAccessibility() },
         )
     }
