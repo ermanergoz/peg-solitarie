@@ -21,8 +21,7 @@ class BackdropMetricsTest {
             )
         assertThat(BackdropMetrics.LANDSCAPE_SKY_STOPS.map { it.fraction to it.role }).isEqualTo(deep)
         assertThat(BackdropMetrics.QUIET_SKY_STOPS.map { it.fraction to it.role }).isEqualTo(deep)
-        assertThat(BackdropMetrics.SPARSE_SKY_STOPS.map { it.fraction to it.role })
-            .isEqualTo(listOf(0f to SkyRole.Top, 0.12f to SkyRole.Top, 1f to SkyRole.SparseLow))
+        assertThat(BackdropMetrics.SPARSE_SKY_STOPS.map { it.fraction to it.role }).isEqualTo(deep)
     }
 
     @Test
