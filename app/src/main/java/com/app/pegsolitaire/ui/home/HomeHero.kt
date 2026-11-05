@@ -110,7 +110,7 @@ private fun HeroTitle(modifier: Modifier = Modifier) {
  */
 @Composable
 private fun SettingsGear(onOpenSettings: () -> Unit) {
-    val chip = MaterialTheme.colorScheme.surfaceContainerHigh
+    val chip = MaterialTheme.colorScheme.primaryContainer
     Surface(
         shape = CircleShape,
         color = Color.Transparent,

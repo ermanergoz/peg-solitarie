@@ -22,8 +22,10 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.ui.theme.clayEntrance
-import com.app.pegsolitaire.ui.theme.clayShadow
 import com.app.pegsolitaire.ui.theme.claySquish
+import com.app.pegsolitaire.ui.theme.tintedCardColor
+import com.app.pegsolitaire.ui.theme.tintedCardShadow
+import com.app.pegsolitaire.ui.theme.tintedCardSupportingColor
 
 /**
  * One setting row: a soft-shadowed `surfaceContainerHigh` clay [Card] holding the [label]
@@ -44,11 +46,11 @@ internal fun SettingsToggleRow(
 ) {
     Card(
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        colors = CardDefaults.cardColors(containerColor = tintedCardColor()),
         modifier =
             Modifier
                 .clayEntrance(entranceOrder)
-                .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.large)
+                .tintedCardShadow(MaterialTheme.shapes.large)
                 .fillMaxWidth()
                 .heightIn(min = dimensionResource(R.dimen.settings_row_min_height)),
     ) {
@@ -72,7 +74,7 @@ internal fun SettingsToggleRow(
                 Text(
                     text = supporting,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = tintedCardSupportingColor(),
                 )
             }
             Switch(
@@ -161,11 +163,11 @@ internal fun SettingsLinkRow(
 ) {
     Card(
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        colors = CardDefaults.cardColors(containerColor = tintedCardColor()),
         modifier =
             Modifier
                 .clayEntrance(entranceOrder)
-                .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.large)
+                .tintedCardShadow(MaterialTheme.shapes.large)
                 .fillMaxWidth()
                 .heightIn(min = dimensionResource(R.dimen.settings_row_min_height))
                 .then(
@@ -196,7 +198,7 @@ internal fun SettingsLinkRow(
                 Text(
                     text = supporting,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = tintedCardSupportingColor(),
                 )
             }
             trailingIcon?.invoke()
