@@ -29,9 +29,6 @@ import com.app.pegsolitaire.ui.home.fixture.RESUME_CHALLENGE_LABEL
 import com.app.pegsolitaire.ui.home.fixture.RESUME_CLASSIC_LABEL
 import com.app.pegsolitaire.ui.home.fixture.bothResumesState
 import com.app.pegsolitaire.ui.home.fixture.renderHome
-import com.app.pegsolitaire.ui.licenses.GoogleNoticeTextScreen
-import com.app.pegsolitaire.ui.licenses.GoogleNoticesScreen
-import com.app.pegsolitaire.ui.licenses.GoogleNoticesUiState
 import com.app.pegsolitaire.ui.licenses.LicenseCatalog
 import com.app.pegsolitaire.ui.licenses.LicenseTextScreen
 import com.app.pegsolitaire.ui.licenses.LicenseTextUiState
@@ -195,9 +192,7 @@ class StableInsetsLayoutTest {
 
     @Test
     fun theLicencesListStaysPutWhenTheBarsComeOrGo() {
-        show {
-            LicensesScreen(sections = LicenseCatalog.sections, onOpenEntry = {}, onOpenGoogleNotices = {}, onBack = {})
-        }
+        show { LicensesScreen(sections = LicenseCatalog.sections, onOpenEntry = {}, onBack = {}) }
 
         assertTopBarStaysPut("the licences list", R.string.licenses_title)
     }
@@ -207,20 +202,6 @@ class StableInsetsLayoutTest {
         show { LicenseTextScreen(state = LicenseTextUiState.Failed(header = null), onBack = {}) }
 
         assertTopBarStaysPut("a licence text", R.string.licenses_title)
-    }
-
-    @Test
-    fun theGoogleNoticesStayPutWhenTheBarsComeOrGo() {
-        show { GoogleNoticesScreen(state = GoogleNoticesUiState.Failed, onOpenNotice = {}, onBack = {}) }
-
-        assertTopBarStaysPut("the Google notices", R.string.google_notices_title)
-    }
-
-    @Test
-    fun aGoogleNoticeTextStaysPutWhenTheBarsComeOrGo() {
-        show { GoogleNoticeTextScreen(state = LicenseTextUiState.Failed(header = null), onBack = {}) }
-
-        assertTopBarStaysPut("a Google notice text", R.string.google_notice_text_unknown_title)
     }
 
     private fun show(content: @Composable () -> Unit) {

@@ -42,10 +42,8 @@ internal fun AppNavHostWithBarStandIns(
             resultsContent = { _, _, _, _, _, _ -> StandIn(BarStandInTags.RESULTS) },
             settingsContent = { _, _, _ -> StandIn(BarStandInTags.SETTINGS) },
             tutorialContent = { _ -> StandIn(BarStandInTags.TUTORIAL) },
-            licensesContent = { _, _, _ -> StandIn(BarStandInTags.LICENSES) },
+            licensesContent = { _, _ -> StandIn(BarStandInTags.LICENSES) },
             licenseTextContent = { _ -> StandIn(BarStandInTags.LICENSE_TEXT) },
-            googleNoticesContent = { _, _ -> StandIn(BarStandInTags.GOOGLE_NOTICES) },
-            googleNoticeTextContent = { _ -> StandIn(BarStandInTags.GOOGLE_NOTICE_TEXT) },
         )
     }
 }
@@ -60,8 +58,6 @@ internal object BarStandInTags {
     const val TUTORIAL = "bars_tutorial"
     const val LICENSES = "bars_licenses"
     const val LICENSE_TEXT = "bars_license_text"
-    const val GOOGLE_NOTICES = "bars_google_notices"
-    const val GOOGLE_NOTICE_TEXT = "bars_google_notice_text"
 }
 
 @Composable

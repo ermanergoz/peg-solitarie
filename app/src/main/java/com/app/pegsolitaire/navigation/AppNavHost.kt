@@ -31,10 +31,6 @@ import com.app.pegsolitaire.ui.backdrop.rememberBackdropSceneReady
 import com.app.pegsolitaire.ui.classic.ClassicCatalogRoute
 import com.app.pegsolitaire.ui.game.GameRoute
 import com.app.pegsolitaire.ui.home.HomeRoute
-import com.app.pegsolitaire.ui.licenses.GoogleNoticeTextRoute
-import com.app.pegsolitaire.ui.licenses.GoogleNoticesRoute
-import com.app.pegsolitaire.ui.licenses.LicenseTextRoute
-import com.app.pegsolitaire.ui.licenses.LicensesRoute
 import com.app.pegsolitaire.ui.onboarding.TutorialRoute
 import com.app.pegsolitaire.ui.results.ResultsRoute
 import com.app.pegsolitaire.ui.settings.SettingsRoute
@@ -73,9 +69,9 @@ private typealias ResultsContent =
     ) -> Unit
 
 /**
- * The type-safe navigation host wiring the full ten-route spine (NAV-02).
+ * The type-safe navigation host wiring the full eight-route spine (NAV-02).
  *
- * `NavHost` over the ten `@Serializable` [Routes] with `startDestination = Home`:
+ * `NavHost` over the eight `@Serializable` [Routes] with `startDestination = Home`:
  * Home → ClassicCatalog → Gameplay(levelId) → Results(...), plus Home → Settings
  * (the top-bar gear, D-14). Back arrows pop (Catalog→Home, Gameplay→Catalog,
  * Results→Catalog, Settings→Home); the Results Replay action navigates →
@@ -101,15 +97,7 @@ private typealias ResultsContent =
  * @param resultsContent the Results destination body (defaults to [ResultsRoute]).
  * @param settingsContent the Settings destination body (defaults to [SettingsRoute], D-14).
  * @param tutorialContent the Tutorial destination body (defaults to [TutorialRoute], D-01g).
- *
- * The licences spine (spec LS-09; tech design §3.6, §13.1) — Settings → Licenses → License text, and
- * Licenses → Google notices → Google notice text — lives in [licensesGraph], every edge a plain push
- * popped by back; its four bodies are the last four slots.
- *
- * @param licensesContent the Licenses destination body (defaults to [LicensesRoute]).
- * @param licenseTextContent the License text destination body (defaults to [LicenseTextRoute]).
- * @param googleNoticesContent the Google notices destination body (defaults to [GoogleNoticesRoute]).
- * @param googleNoticeTextContent the Google notice text body (defaults to [GoogleNoticeTextRoute]).
+
  * @param backdropFrames where the backdrop's clock waits for frames: the infinite-animation frame
  *   clock in production; a test that needs the clock to run injects frames from the test clock.
  *
@@ -123,8 +111,7 @@ private typealias ResultsContent =
  * `BACKDROP_Z_INDEX`. The order matters: the `NavHost` sets its graph, and restores a saved back
  * stack, during its own composition, so the backdrop composed after it reads the right density on
  * the first frame. The four transitions are the `NavHost`'s own default fade made explicit on
- * `ClayAnim.NAV_TRANSITION_MS`, the one duration the backdrop's cross-fade also uses (D2). The
- * four licence destinations take the density function's `else`, the Sparse wash (E7).
+ * `ClayAnim.NAV_TRANSITION_MS`, the one duration the backdrop's cross-fade also uses (D2).
  *
  * ## The window's bars (D-05g; tech design §3.8)
  *
@@ -168,21 +155,13 @@ fun AppNavHost(
             onNavigateBack = onNavigateBack,
         )
     },
-    settingsContent: @Composable (onBack: () -> Unit, onShowHowToPlay: () -> Unit, onOpenLicenses: () -> Unit) -> Unit =
-        { onBack, onShowHowToPlay, onOpenLicenses ->
-            SettingsRoute(onBack = onBack, onShowHowToPlay = onShowHowToPlay, onOpenLicenses = onOpenLicenses)
+    settingsContent: @Composable (onBack: () -> Unit, onShowHowToPlay: () -> Unit) -> Unit =
+        { onBack, onShowHowToPlay ->
+            SettingsRoute(onBack = onBack, onShowHowToPlay = onShowHowToPlay)
         },
     tutorialContent: @Composable (onExit: () -> Unit) -> Unit = { onExit ->
         TutorialRoute(onExit = onExit)
     },
-    licensesContent: LicensesContent = { onOpenEntry, onOpenGoogleNotices, onBack ->
-        LicensesRoute(onOpenEntry = onOpenEntry, onOpenGoogleNotices = onOpenGoogleNotices, onBack = onBack)
-    },
-    licenseTextContent: @Composable (onBack: () -> Unit) -> Unit = { onBack -> LicenseTextRoute(onBack = onBack) },
-    googleNoticesContent: @Composable (onOpenNotice: (String) -> Unit, onBack: () -> Unit) -> Unit =
-        { onOpenNotice, onBack -> GoogleNoticesRoute(onOpenNotice = onOpenNotice, onBack = onBack) },
-    googleNoticeTextContent: @Composable (onBack: () -> Unit) -> Unit =
-        { onBack -> GoogleNoticeTextRoute(onBack = onBack) },
     backdropFrames: BackdropFrames = InfiniteBackdropFrames,
 ) {
     val sceneReady = rememberBackdropSceneReady()
@@ -208,10 +187,6 @@ fun AppNavHost(
                     resultsContent = resultsContent,
                     settingsContent = settingsContent,
                     tutorialContent = tutorialContent,
-                    licensesContent = licensesContent,
-                    licenseTextContent = licenseTextContent,
-                    googleNoticesContent = googleNoticesContent,
-                    googleNoticeTextContent = googleNoticeTextContent,
                 )
                 NavBackdrop(
                     navController = navController,
@@ -223,7 +198,7 @@ fun AppNavHost(
     }
 }
 
-/** The ten-route graph itself, with the four explicit fades on [ClayAnim.NAV_TRANSITION_MS]. */
+/** The eight-route graph itself, with the four explicit fades on [ClayAnim.NAV_TRANSITION_MS]. */
 @Composable
 private fun AppNavGraph(
     navController: NavHostController,
@@ -231,12 +206,8 @@ private fun AppNavGraph(
     catalogContent: @Composable (onSelect: (String) -> Unit, onNavigateBack: () -> Unit) -> Unit,
     gameplayContent: @Composable (onFinished: (Results) -> Unit, onNavigateBack: () -> Unit) -> Unit,
     resultsContent: ResultsContent,
-    settingsContent: @Composable (onBack: () -> Unit, onShowHowToPlay: () -> Unit, onOpenLicenses: () -> Unit) -> Unit,
+    settingsContent: @Composable (onBack: () -> Unit, onShowHowToPlay: () -> Unit) -> Unit,
     tutorialContent: @Composable (onExit: () -> Unit) -> Unit,
-    licensesContent: LicensesContent,
-    licenseTextContent: @Composable (onBack: () -> Unit) -> Unit,
-    googleNoticesContent: @Composable (onOpenNotice: (String) -> Unit, onBack: () -> Unit) -> Unit,
-    googleNoticeTextContent: @Composable (onBack: () -> Unit) -> Unit,
 ) {
     NavHost(
         navController = navController,
@@ -264,12 +235,10 @@ private fun AppNavGraph(
         }
         composable<Settings> {
             // settingsContent slot: onBack (pops back to Home, D-14), onShowHowToPlay
-            // (the D-02a replay entry point — the tutorial's only permanent affordance),
-            // onOpenLicenses (Settings › About › Licenses, spec LS-01).
+            // (the D-02a replay entry point — the tutorial's only permanent affordance).
             settingsContent(
                 { navController.popBackStack() },
                 { navController.toTutorial() },
-                { navController.toLicenses() },
             )
         }
         composable<Tutorial> {
@@ -305,13 +274,6 @@ private fun AppNavGraph(
                 { navController.popBackStack() },
             )
         }
-        licensesGraph(
-            navController = navController,
-            licensesContent = licensesContent,
-            licenseTextContent = licenseTextContent,
-            googleNoticesContent = googleNoticesContent,
-            googleNoticeTextContent = googleNoticeTextContent,
-        )
     }
 }
 

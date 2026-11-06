@@ -7,8 +7,6 @@ import androidx.compose.ui.test.performClick
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import com.app.pegsolitaire.navigation.GoogleNoticeText
-import com.app.pegsolitaire.navigation.GoogleNotices
 import com.app.pegsolitaire.navigation.LicenseText
 import com.app.pegsolitaire.navigation.Licenses
 import com.app.pegsolitaire.testing.AppNavHostWithStandIns
@@ -24,7 +22,7 @@ import org.robolectric.annotation.Config
 /**
  * BD-06 and BD-07 on the real `AppNavHost` (the tech-lead's R1, A10): the backdrop's density follows
  * the committed destination — Home the landscape, the board the quiet scene, every other screen the
- * wash, the four licences screens included (E7) — its layers follow the density, and a restored back
+ * wash, the two licences screens included (E7) — its layers follow the density, and a restored back
  * stack whose top is the board is quiet.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -62,10 +60,9 @@ class BackdropDensityTest {
     }
 
     /**
-     * E7 (the tech-lead's merge ruling R-3.3): Settings › Licenses › a licence text, and Licenses ›
-     * Google notices › a notice's text, each the wash. Every licences destination is Sparse, so each
-     * row first reads the committed destination: a stand-in that did not navigate cannot pass on the
-     * screen before it.
+     * E7 (the tech-lead's merge ruling R-3.3): Settings › Licenses › a licence text, each the wash.
+     * Every licences destination is Sparse, so each row first reads the committed destination: a
+     * stand-in that did not navigate cannot pass on the screen before it.
      */
     @Test
     fun everyLicencesScreenDrawsTheWash() {
@@ -80,12 +77,6 @@ class BackdropDensityTest {
         assertTheWashOn<LicenseText>("a licence text")
         tap(StandInTags.LICENSE_TEXT_BACK)
         assertTheWashOn<Licenses>("the licences list, back from a text")
-        tap(StandInTags.LICENSES_GOOGLE_NOTICES)
-        assertTheWashOn<GoogleNotices>("the Google notices")
-        tap(StandInTags.GOOGLE_NOTICE)
-        assertTheWashOn<GoogleNoticeText>("a Google notice text")
-        tap(StandInTags.GOOGLE_NOTICE_TEXT_BACK)
-        assertTheWashOn<GoogleNotices>("the Google notices, back from a text")
     }
 
     @Test
