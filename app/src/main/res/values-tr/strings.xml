@@ -473,14 +473,15 @@
 
     <!--
       Licences (feature/licences-screen): every key of docs/ux/licences-screen.md §6 — the
-      Settings › About › Licenses row, the Licenses list, the License text reader, and the Google
-      notices list and reader.
+      Settings › About › Licenses row, the Licenses list and the License text reader. The Licenses
+      list keeps only the entries that carry a notice duty (Q-042, 2026-11-06): the fonts and the
+      open-source software. The CC0 sounds need no in-app credit, and the Google AAR notices ship
+      in the app's assets (licenses/google/) without a screen.
 
       Proper names, licence names and addresses are translatable="false": they are shown as their
       owners write them. Entry titles and lines are one key each, in the order of the spec's §3.2
       table, even where two lines read alike ("Google"), so a re-cut of one entry never moves
-      another. The Google notices' own names and texts are not strings at all: they are data from
-      the generated index, shown as Google supplied them (LS-12).
+      another.
 
       licenses_jakarta_credit follows the attribution line of the bundled Jakarta NOTICE.md ("This
       content is produced and maintained by the Eclipse Jakarta Dependency Injection project.")
@@ -491,62 +492,13 @@
       4.11.0 (research-analyst-mpl.md, verdict 2). It is re-derived before the cut if the release
       listing shows another okhttp (spec §9 item 13).
     -->
-    <string name="settings_section_about">Hakkında</string>
-    <string name="settings_licenses_label">Lisanslar</string>
-    <string name="settings_licenses_supporting">Yazı tipleri, sesler ve açık kaynaklı yazılım</string>
 
-    <string name="licenses_title">Lisanslar</string>
-    <string name="licenses_intro">Peg Solitaire bu yazı tipleri, sesler ve açık kaynaklı yazılımlarla yapıldı. Yazarlarına teşekkürler.</string>
-    <string name="licenses_section_fonts">Yazı tipleri</string>
-    <string name="licenses_section_sounds">Sesler</string>
-    <string name="licenses_section_software">Açık kaynaklı yazılım</string>
-    <string name="licenses_section_google">Google kitaplıkları</string>
-    <string name="licenses_read_action">Lisansı oku</string>
-    <string name="licenses_loading">Lisans yükleniyor</string>
-    <string name="licenses_text_error">Bu lisans metni gösterilemedi.</string>
-    <plurals name="licenses_sound_effects">
-        <item quantity="one">%d ses efekti</item>
-        <item quantity="other">%d ses efekti</item>
-    </plurals>
 
     <!-- D-17 (docs/ux/localisation-tr.md §5.4; docs/tech-design.md §11.1, Q-039 (3)): the bundled Fredoka is a
          Modified Version under OFL-1.1, built by fonts/fredoka-tr/. A sentence, so translatable. -->
-    <string name="licenses_fredoka_modified">Peg Solitaire için SIL Open Font License kapsamında değiştirildi: Ğ ğ İ Ş ş harfleri Fredoka\'nın kendi harf ve işaretlerinden eklendi; başka hiçbir şey değiştirilmedi.</string>
 
-    <string name="licenses_kenney_title">Interface Sounds — Kenney</string>
-    <string name="licenses_lilmati_title">“Pop 01” — LilMati</string>
-    <string name="licenses_cogfire_title">“Positive Blip Effect” — CogFireStudios</string>
 
-    <string name="licenses_androidx_title">AndroidX ve Jetpack Compose</string>
-    <string name="licenses_kotlin_title">Kotlin ve kotlinx</string>
-    <string name="licenses_kotlin_parts">Standart kitaplık, coroutine\'ler, serileştirme</string>
-    <string name="licenses_dagger_title">Dagger ve Hilt</string>
-    <string name="licenses_okhttp_title">OkHttp ve Okio</string>
-    <string name="licenses_okhttp_parts">Google Mobile Ads içindeki ağ iletişimi ve G/Ç</string>
-    <string name="licenses_gson_title">Gson, Tink ve Guava</string>
-    <string name="licenses_annotations_title">Ek açıklama ve bağımlılık ekleme API\'leri</string>
-    <string name="licenses_protobuf_parts">Java Lite çalışma zamanı ve AndroidX DataStore içindeki kopyası</string>
-    <string name="licenses_chromium_parts">Google Mobile Ads içindeki Cronet ağ sınıfları</string>
-    <string name="licenses_psl_credit">Mozilla ve listeye katkıda bulunanlar</string>
-    <string name="licenses_psl_parts">OkHttp\'ye derlenmiş genel sonek verileri, 15 Şubat 2023 tarihindeki hâliyle</string>
 
-    <string name="licenses_google_sdk_title">Google Play hizmetleri ve SDK\'ları</string>
-    <string name="licenses_google_notices_title">Google kitaplıklarındaki açık kaynak bildirimleri</string>
-    <string name="licenses_google_notices_supporting">Google\'ın kitaplıklarındaki açık kaynaklı yazılım için sağladığı bildirimler</string>
-    <string name="licenses_google_notices_action">Bildirimleri aç</string>
-
-    <string name="license_text_part_notice">Bildirim</string>
-    <string name="license_text_end">Metnin sonu</string>
-
-    <string name="google_notices_title">Açık kaynak bildirimleri</string>
-    <string name="google_notices_intro">Google bu bildirimleri kitaplıklarındaki açık kaynaklı yazılım için sağlar. Her biri sağlandığı şekliyle gösterilir.</string>
-    <string name="google_notices_found_in">%1$s içinde bulundu</string>
-    <string name="google_notices_ordinal">Bildirim %1$d / %2$d</string>
-    <string name="google_notices_read_action">Bildirimi oku</string>
-    <string name="google_notices_loading">Bildirimler yükleniyor</string>
-    <string name="google_notices_error">Bu bildirimler gösterilemedi.</string>
-    <string name="google_notice_text_error">Bu bildirim gösterilemedi.</string>
-    <string name="google_notice_text_unknown_title">Bildirim</string>
     <!-- ==================== end licences copy ==================== -->
     <!-- Challenge star bands (ux-spec D-SB, §8 Turkish copy of record, sen voice). -->
     <plurals name="stuck_message_challenge">

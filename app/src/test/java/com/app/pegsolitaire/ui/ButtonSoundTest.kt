@@ -24,11 +24,10 @@ import com.app.pegsolitaire.ui.game.GameScreen
 import com.app.pegsolitaire.ui.game.GameUiState
 import com.app.pegsolitaire.ui.home.HomeScreen
 import com.app.pegsolitaire.ui.home.HomeUiState
-import com.app.pegsolitaire.ui.licenses.GoogleNoticeRow
-import com.app.pegsolitaire.ui.licenses.GoogleNoticesScreen
-import com.app.pegsolitaire.ui.licenses.GoogleNoticesUiState
+import com.app.pegsolitaire.ui.licenses.INERT_STAND_IN_SECTION
 import com.app.pegsolitaire.ui.licenses.LICENSES_LIST_TAG
 import com.app.pegsolitaire.ui.licenses.LicenseCatalog
+import com.app.pegsolitaire.ui.licenses.LicenseSection
 import com.app.pegsolitaire.ui.licenses.LicensesScreen
 import com.app.pegsolitaire.ui.results.ResultsHeadlineTier
 import com.app.pegsolitaire.ui.results.ResultsScreen
@@ -319,12 +318,12 @@ class ButtonSoundTest {
 
     @Test
     fun anInertLicenceEntryMakesNoSound() {
-        renderLicenses()
+        renderLicenses(sections = listOf(INERT_STAND_IN_SECTION))
         composeRule
             .onNodeWithTag(LICENSES_LIST_TAG)
-            .performScrollToNode(hasText(context.getString(R.string.licenses_kenney_title)))
+            .performScrollToNode(hasText(context.getString(R.string.licenses_psl_title)))
 
-        clickText(R.string.licenses_kenney_title)
+        clickText(R.string.licenses_psl_title)
 
         assertThat(sounds.cues).isEmpty()
     }
@@ -338,25 +337,6 @@ class ButtonSoundTest {
 
         assertThat(leftLicenses).isTrue()
         assertThat(sounds.cues).isEmpty()
-    }
-
-    @Test
-    fun aNoticeRowPlaysOneForwardClickAndOpensItsText() {
-        val opened = mutableListOf<String>()
-        val row = GoogleNoticeRow("000000000000000a", "OkHttp", "ads-mobile-sdk", ordinal = null)
-        render {
-            GoogleNoticesScreen(
-                state = GoogleNoticesUiState.Loaded(listOf(row)),
-                onOpenNotice = { opened += it },
-                onBack = {},
-            )
-        }
-
-        composeRule.onNodeWithText(row.name).performClick()
-        composeRule.waitForIdle()
-
-        assertThat(sounds.cues).containsExactly(SoundCue.ButtonForward)
-        assertThat(opened).containsExactly(row.key)
     }
 
     // ---- Helpers -------------------------------------------------------------
@@ -439,13 +419,13 @@ class ButtonSoundTest {
     }
 
     private fun renderLicenses(
+        sections: List<LicenseSection> = LicenseCatalog.sections,
         onOpenEntry: (String) -> Unit = {},
         onBack: () -> Unit = {},
     ) = render {
         LicensesScreen(
-            sections = LicenseCatalog.sections,
+            sections = sections,
             onOpenEntry = onOpenEntry,
-            onOpenGoogleNotices = {},
             onBack = onBack,
         )
     }

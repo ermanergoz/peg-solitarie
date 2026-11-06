@@ -104,8 +104,6 @@ class SystemBarsPolicyTest {
                 Tutorial,
                 Licenses,
                 LicenseText(entryId = LICENCE_ENTRY),
-                GoogleNotices,
-                GoogleNoticeText(key = NOTICE_KEY),
             )
 
         standard.forEach { destination ->
@@ -283,7 +281,6 @@ private const val MAX_FRAMES_TO_THE_BOARD = 10
 private const val CLASSIC_BOARD = "english33"
 private const val CHALLENGE_LEVEL = 7
 private const val LICENCE_ENTRY = "stand_in_entry"
-private const val NOTICE_KEY = "stand_in_key"
 private const val SAMPLE_STARS = 2
 private const val SAMPLE_PEGS = 3
 private const val SAMPLE_SECONDS = 75

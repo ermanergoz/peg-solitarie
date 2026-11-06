@@ -22,9 +22,6 @@ import com.app.pegsolitaire.ui.game.GameScreen
 import com.app.pegsolitaire.ui.game.GameUiState
 import com.app.pegsolitaire.ui.home.HomeScreen
 import com.app.pegsolitaire.ui.home.HomeUiState
-import com.app.pegsolitaire.ui.licenses.GoogleNoticeTextScreen
-import com.app.pegsolitaire.ui.licenses.GoogleNoticesScreen
-import com.app.pegsolitaire.ui.licenses.GoogleNoticesUiState
 import com.app.pegsolitaire.ui.licenses.LicenseCatalog
 import com.app.pegsolitaire.ui.licenses.LicenseTextScreen
 import com.app.pegsolitaire.ui.licenses.LicenseTextUiState
@@ -52,7 +49,7 @@ import org.robolectric.annotation.GraphicsMode
  * screens' shared top bar and the tutorial's root `Surface` paint no colour, so the backdrop shows
  * through them — read as pixels over a sentinel fill no theme colour can equal — and the host's
  * window-filling `Surface` gives text that names no colour `onBackground` in both themes
- * (rules/compose.md, F-32). The four licences screens are E7's rows, owed here because the licences
+ * (rules/compose.md, F-32). The two licences screens are E7's rows, owed here because the licences
  * branch landed first (the tech-lead's merge ruling R-3.3).
  */
 @RunWith(RobolectricTestRunner::class)
@@ -189,18 +186,11 @@ class TransparentContainersTest {
                     LicensesScreen(
                         sections = LicenseCatalog.sections,
                         onOpenEntry = {},
-                        onOpenGoogleNotices = {},
                         onBack = {},
                     )
                 },
                 "a licence text" to {
                     LicenseTextScreen(state = LicenseTextUiState.Failed(header = null), onBack = {})
-                },
-                "the Google notices" to {
-                    GoogleNoticesScreen(state = GoogleNoticesUiState.Failed, onOpenNotice = {}, onBack = {})
-                },
-                "a Google notice text" to {
-                    GoogleNoticeTextScreen(state = LicenseTextUiState.Failed(header = null), onBack = {})
                 },
             )
 

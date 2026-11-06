@@ -512,14 +512,15 @@
 
     <!--
       Licences (feature/licences-screen): every key of docs/ux/licences-screen.md §6 — the
-      Settings › About › Licenses row, the Licenses list, the License text reader, and the Google
-      notices list and reader.
+      Settings › About › Licenses row, the Licenses list and the License text reader. The Licenses
+      list keeps only the entries that carry a notice duty (Q-042, 2026-11-06): the fonts and the
+      open-source software. The CC0 sounds need no in-app credit, and the Google AAR notices ship
+      in the app's assets (licenses/google/) without a screen.
 
       Proper names, licence names and addresses are translatable="false": they are shown as their
       owners write them. Entry titles and lines are one key each, in the order of the spec's §3.2
       table, even where two lines read alike ("Google"), so a re-cut of one entry never moves
-      another. The Google notices' own names and texts are not strings at all: they are data from
-      the generated index, shown as Google supplied them (LS-12).
+      another.
 
       licenses_jakarta_credit follows the attribution line of the bundled Jakarta NOTICE.md ("This
       content is produced and maintained by the Eclipse Jakarta Dependency Injection project.")
@@ -530,97 +531,13 @@
       4.11.0 (research-analyst-mpl.md, verdict 2). It is re-derived before the cut if the release
       listing shows another okhttp (spec §9 item 13).
     -->
-    <string name="settings_section_about">About</string>
-    <string name="settings_licenses_label">Licenses</string>
-    <string name="settings_licenses_supporting">Fonts, sounds and open-source software</string>
 
-    <string name="licenses_title">Licenses</string>
-    <string name="licenses_intro">Peg Solitaire is made with these fonts, sounds and open-source software. Thank you to their authors.</string>
-    <string name="licenses_section_fonts">Fonts</string>
-    <string name="licenses_section_sounds">Sounds</string>
-    <string name="licenses_section_software">Open-source software</string>
-    <string name="licenses_section_google">Google libraries</string>
-    <string name="licenses_read_action">Read the license</string>
-    <string name="licenses_loading">Loading license</string>
-    <string name="licenses_text_error">This license text could not be shown.</string>
-    <plurals name="licenses_sound_effects">
-        <item quantity="one">%d sound effect</item>
-        <item quantity="other">%d sound effects</item>
-    </plurals>
 
-    <string name="licenses_ofl_name" translatable="false">SIL Open Font License 1.1</string>
-    <string name="licenses_cc0_name" translatable="false">CC0 1.0 Universal (public domain)</string>
-    <string name="licenses_apache_name" translatable="false">Apache License 2.0</string>
-    <string name="licenses_bsd3_name" translatable="false">BSD 3-Clause License</string>
-    <string name="licenses_mit_name" translatable="false">MIT License</string>
-    <string name="licenses_mpl_name" translatable="false">Mozilla Public License 2.0</string>
-    <string name="licenses_android_sdk_name" translatable="false">Android Software Development Kit License Agreement</string>
 
-    <string name="licenses_fredoka_title" translatable="false">Fredoka</string>
-    <string name="licenses_fredoka_credit" translatable="false">© 2016 The Fredoka Project Authors</string>
     <!-- D-17 (docs/ux/localisation-tr.md §5.4; docs/tech-design.md §11.1, Q-039 (3)): the bundled Fredoka is a
          Modified Version under OFL-1.1, built by fonts/fredoka-tr/. A sentence, so translatable. -->
-    <string name="licenses_fredoka_modified">Modified for Peg Solitaire under the SIL Open Font License: Ğ ğ İ Ş ş added from Fredoka\'s own letters and marks; nothing else changed.</string>
-    <string name="licenses_nunito_title" translatable="false">Nunito</string>
-    <string name="licenses_nunito_credit" translatable="false">© 2014 The Nunito Project Authors</string>
 
-    <string name="licenses_kenney_title">Interface Sounds by Kenney</string>
-    <string name="licenses_kenney_address" translatable="false">kenney.nl/assets/interface-sounds</string>
-    <string name="licenses_lilmati_title">“Pop 01” by LilMati</string>
-    <string name="licenses_lilmati_address" translatable="false">freesound.org/people/LilMati/sounds/506546</string>
-    <string name="licenses_cogfire_title">“Positive Blip Effect” by CogFireStudios</string>
-    <string name="licenses_cogfire_address" translatable="false">freesound.org/people/CogFireStudios/sounds/531512</string>
 
-    <string name="licenses_androidx_title">AndroidX and Jetpack Compose</string>
-    <string name="licenses_androidx_credit" translatable="false">The Android Open Source Project</string>
-    <string name="licenses_androidx_parts" translatable="false">Compose, Material 3, Material icons, Room, DataStore, Navigation, Lifecycle, Activity, Core, Hilt Navigation</string>
-    <string name="licenses_kotlin_title">Kotlin and kotlinx</string>
-    <string name="licenses_kotlin_credit" translatable="false">JetBrains</string>
-    <string name="licenses_kotlin_parts">Standard library, coroutines, serialization</string>
-    <string name="licenses_dagger_title">Dagger and Hilt</string>
-    <string name="licenses_dagger_credit" translatable="false">Google</string>
-    <string name="licenses_okhttp_title">OkHttp and Okio</string>
-    <string name="licenses_okhttp_credit" translatable="false">Square</string>
-    <string name="licenses_okhttp_parts">Networking and I/O inside Google Mobile Ads</string>
-    <string name="licenses_gson_title">Gson, Tink and Guava</string>
-    <string name="licenses_gson_credit" translatable="false">Google</string>
-    <string name="licenses_gson_parts" translatable="false">Gson, Tink, Guava, Error Prone annotations, J2ObjC annotations</string>
-    <string name="licenses_jakarta_title" translatable="false">Jakarta Dependency Injection</string>
-    <string name="licenses_jakarta_credit" translatable="false">The Eclipse Jakarta Dependency Injection project</string>
-    <string name="licenses_annotations_title">Annotation and injection APIs</string>
-    <string name="licenses_annotations_credit" translatable="false">The JSR-330 Expert Group, the FindBugs project, JSpecify, JetBrains</string>
-    <string name="licenses_annotations_parts" translatable="false">javax.inject, JSR-305 annotations, JSpecify, JetBrains Java annotations</string>
-    <string name="licenses_protobuf_title" translatable="false">Protocol Buffers</string>
-    <string name="licenses_protobuf_credit" translatable="false">Google</string>
-    <string name="licenses_protobuf_parts">The Java Lite runtime, and the copy inside AndroidX DataStore</string>
-    <string name="licenses_chromium_title" translatable="false">Chromium (Cronet)</string>
-    <string name="licenses_chromium_credit" translatable="false">The Chromium Authors</string>
-    <string name="licenses_chromium_parts">The Cronet networking classes inside Google Mobile Ads</string>
-    <string name="licenses_psl_title" translatable="false">Public Suffix List</string>
-    <string name="licenses_psl_credit">Mozilla and the list\'s contributors</string>
-    <string name="licenses_psl_parts">The public-suffix data compiled into OkHttp, as it stood on 15 February 2023</string>
-    <string name="licenses_psl_address" translatable="false">github.com/publicsuffix/list/blob/a312abe0e11421aff8fe909a5e02f36b7c5d28de/public_suffix_list.dat</string>
-    <string name="licenses_checker_title" translatable="false">Checker Framework qualifiers</string>
-    <string name="licenses_checker_credit" translatable="false">The Checker Framework developers</string>
 
-    <string name="licenses_google_sdk_title">Google Play services and SDKs</string>
-    <string name="licenses_google_sdk_parts" translatable="false">Play Games Services, Mobile Ads, User Messaging Platform, Play inline-install library, Play services libraries</string>
-    <string name="licenses_android_sdk_address" translatable="false">developer.android.com/studio/terms</string>
-    <string name="licenses_google_notices_title">Open-source notices in Google libraries</string>
-    <string name="licenses_google_notices_supporting">The notices Google supplies for the open-source software inside its libraries</string>
-    <string name="licenses_google_notices_action">Open the notices</string>
-
-    <string name="license_text_part_notice">Notice</string>
-    <string name="license_text_end">End of text</string>
-
-    <string name="google_notices_title">Open-source notices</string>
-    <string name="google_notices_intro">Google supplies these notices for the open-source software inside its libraries. Each one is shown as supplied.</string>
-    <string name="google_notices_found_in">Found in %1$s</string>
-    <string name="google_notices_ordinal">Notice %1$d of %2$d</string>
-    <string name="google_notices_read_action">Read the notice</string>
-    <string name="google_notices_loading">Loading notices</string>
-    <string name="google_notices_error">These notices could not be shown.</string>
-    <string name="google_notice_text_error">This notice could not be shown.</string>
-    <string name="google_notice_text_unknown_title">Notice</string>
     <!-- ==================== end licences copy ==================== -->
 </resources>
