@@ -47,6 +47,14 @@
     <dimen name="results_star_size">48dp</dimen>
     <!-- Diameter of the soft gold glow disc behind an earned Results star. -->
     <dimen name="results_star_glow_size">56dp</dimen>
+    <!-- ux-spec D-RC-4 (§4.7, §6.1): the smallest Results confetti piece's edge `s`. -->
+    <dimen name="confetti_piece_size_min">8dp</dimen>
+    <!-- D-RC-4: the largest confetti piece's edge. -->
+    <dimen name="confetti_piece_size_max">12dp</dimen>
+    <!-- D-RC-5: the smallest sway amplitude of a falling piece. -->
+    <dimen name="confetti_sway_min">8dp</dimen>
+    <!-- D-RC-5: the largest sway amplitude. The rays have no dp token (CelebrationFx). -->
+    <dimen name="confetti_sway_max">16dp</dimen>
 
     <!--
       ================= Phase-15 tokens: the interactive tutorial =================

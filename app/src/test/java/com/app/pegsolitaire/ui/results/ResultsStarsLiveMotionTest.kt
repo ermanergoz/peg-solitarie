@@ -75,6 +75,45 @@ class ResultsStarsLiveMotionTest {
             .isEqualTo(0)
     }
 
+    /** RC-4 (ux-spec §13): the rays follow the same gate, live, on the open screen. */
+    @Test
+    fun theRaysRestWhileAnimationsAreOffAndMoveOnceTheyAreBackOn() {
+        composeRule.mainClock.autoAdvance = false
+        resultsShown.value = true
+        composeRule.setContent {
+            AppTheme {
+                if (resultsShown.value) {
+                    ResultsScreen(
+                        state = threeStarResult,
+                        onReplay = {},
+                        onCatalog = {},
+                        onHome = {},
+                        onNextLevel = {},
+                        onRetry = {},
+                        onNavigateBack = {},
+                    )
+                }
+            }
+        }
+        frame()
+        assertWithMessage("rays, animations on").that(raysPose()).isEqualTo(ResultsRaysPose.Live)
+        motion.turnAnimationsOff()
+        frame()
+        assertWithMessage("rays, animations off").that(raysPose()).isEqualTo(ResultsRaysPose.Static)
+        motion.turnAnimationsOn()
+        frame()
+        // The clock's driver marks it live in a SideEffect of the frame that restarts it; the pose
+        // the semantics report follows on the next frame.
+        frame()
+        assertWithMessage("rays, animations back on").that(raysPose()).isEqualTo(ResultsRaysPose.Live)
+    }
+
+    private fun raysPose(): ResultsRaysPose =
+        composeRule
+            .onNodeWithTag(RESULTS_RAYS_TEST_TAG, useUnmergedTree = true)
+            .fetchSemanticsNode()
+            .config[ResultsRaysPoseKey]
+
     /** Shows a fresh Results, counts what its star row draws in that first frame, and leaves it. */
     private fun starPixelsInFirstFrame(): Int {
         resultsShown.value = true
