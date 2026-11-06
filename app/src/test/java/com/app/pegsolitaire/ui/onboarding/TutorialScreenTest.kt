@@ -1,11 +1,21 @@
 package com.app.pegsolitaire.ui.onboarding
 
+import android.view.accessibility.AccessibilityManager
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isFocused
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -14,6 +24,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.domain.model.Position
@@ -28,17 +39,19 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
  * The one Compose UI test per screen's main flow (rules/testing.md), for the tutorial.
  *
- * It finds the screen by [TUTORIAL_SCREEN_TEST_TAG] and the board by
+ * It finds the screen by [TUTORIAL_SCREEN_TEST_TAG], its header and body by
+ * [TUTORIAL_HEADER_TEST_TAG] and [TUTORIAL_BODY_TEST_TAG], and the board by
  * [BOARD_CANVAS_TEST_TAG] — **never by button copy**, which is the defect the phase's two
  * retargeted tests exist to remove. A screen located by the words on its buttons breaks
  * whenever the copy changes and says nothing about the behaviour.
  *
- * Two of its tests supply the window insets Robolectric leaves empty, which is the blind
+ * Three of its tests supply the window insets Robolectric leaves empty, which is the blind
  * spot that let a visible-but-untappable "Skip" reach a device (see [applySystemBarInsets]).
  */
 @RunWith(RobolectricTestRunner::class)
@@ -122,6 +135,142 @@ class TutorialScreenTest {
                 idlePastTheStepBeat()
                 composeRule.waitForIdle()
             }
+        }
+    }
+
+    /**
+     * The founder's ask (2026-11-06, amended the same day): the header — the step pips and Skip —
+     * stays at the top, and the rest of the tutorial sits in the middle of the height below it.
+     *
+     * On a tall phone the bands fit with room to spare. The header keeps its place, the column's
+     * own padding below the status bar, and the body — board, caption and footer — splits the rest
+     * evenly: the gap from the header down to the body equals the gap from the body down to the
+     * navigation bar, on every step and again once the star and the CTA show in the footer.
+     *
+     * The insets are supplied, and they are deliberately unequal, so a body centred in the window
+     * rather than between the header and the navigation bar is told apart. The room to spare is
+     * asserted rather than assumed: on a window the bands filled, both gaps would be fixed spacing
+     * whatever the arrangement, and their equality would prove nothing.
+     */
+    @Test
+    fun theHeaderStaysAtTheTopAndTheBodyIsCentredBelowItOnEveryStep() {
+        val viewModel = startTutorial()
+        composeRule.applySystemBarInsets(top = statusBarInset, bottom = navigationBarInset)
+
+        repeat(TutorialUiState.STEP_COUNT) {
+            assertTheHeaderIsPinnedAndTheBodyCentredBelowIt()
+            while (viewModel.uiState.value.board.board.pegCount > TutorialUiState.STEP_COMPLETE_PEGS) {
+                playTheOnlyMove(viewModel)
+            }
+            idlePastTheStepBeat()
+            composeRule.waitForIdle()
+        }
+
+        // Completed: the footer now shows the star and "Got it", and the body is still centred.
+        assertThat(viewModel.uiState.value.completed).isTrue()
+        assertTheHeaderIsPinnedAndTheBodyCentredBelowIt()
+    }
+
+    /**
+     * Loop 1 (the founder on the emulator, 2026-11-06): the board must not move when the star and
+     * "Got it" appear.
+     *
+     * The body is centred below the header, so a footer that arrived with room of its own would make
+     * the body taller and lift the board by half of what it added. The footer keeps its full height
+     * from the first step instead, and the board's bounds — the canvas fills the slab, so it moves
+     * only when the slab does — are the same at the start of every step and after completion. On the
+     * tall window, where the body has slack to be centred in.
+     */
+    @Test
+    fun theBoardHoldsItsPlaceWhenTheStarAndGotItAppear() {
+        val viewModel = startTutorial()
+        composeRule.applySystemBarInsets(top = statusBarInset, bottom = navigationBarInset)
+        val beforeCompletion = mutableListOf<DpRect>()
+
+        repeat(TutorialUiState.STEP_COUNT) {
+            beforeCompletion += composeRule.onNodeWithTag(BOARD_CANVAS_TEST_TAG).getBoundsInRoot()
+            while (viewModel.uiState.value.board.board.pegCount > TutorialUiState.STEP_COMPLETE_PEGS) {
+                playTheOnlyMove(viewModel)
+            }
+            idlePastTheStepBeat()
+            composeRule.waitForIdle()
+        }
+
+        assertThat(viewModel.uiState.value.completed).isTrue()
+        val afterCompletion = composeRule.onNodeWithTag(BOARD_CANVAS_TEST_TAG).getBoundsInRoot()
+        beforeCompletion.forEach { before ->
+            assertThat(before.left.value).isWithin(SAME_PLACE_TOLERANCE_DP).of(afterCompletion.left.value)
+            assertThat(before.top.value).isWithin(SAME_PLACE_TOLERANCE_DP).of(afterCompletion.top.value)
+            assertThat(before.right.value).isWithin(SAME_PLACE_TOLERANCE_DP).of(afterCompletion.right.value)
+            assertThat(before.bottom.value).isWithin(SAME_PLACE_TOLERANCE_DP).of(afterCompletion.bottom.value)
+        }
+    }
+
+    /**
+     * Loop 1's other half: the footer's reserved room is room, not a control. Before completion no
+     * node of the merged semantics tree carries "Got it", so TalkBack has nothing to land on; and a
+     * tap where it waits presses nothing. After completion both probes reach it, which is what proves
+     * they were aimed at the button.
+     *
+     * The merged tree is the oracle because, like the nodes a service is handed, it leaves out a
+     * subtree under `clearAndSetSemantics`; the unmerged tree keeps such nodes as replaced semantics.
+     */
+    @Test
+    fun theWaitingGotItIsNeitherAnnouncedNorPressableBeforeCompletion() {
+        var completed by mutableStateOf(false)
+        var presses = 0
+        composeRule.setContent {
+            AppTheme {
+                TutorialScreen(
+                    state = if (completed) TutorialUiState.initial().completed() else TutorialUiState.initial(),
+                    onCellTap = {},
+                    onAnimationFinished = {},
+                    onSkip = {},
+                    onDone = { presses++ },
+                )
+            }
+        }
+        val gotIt = label(R.string.onboarding_got_it)
+
+        assertThat(composeRule.onAllNodesWithText(gotIt).fetchSemanticsNodes()).isEmpty()
+        tapWhereGotItSits()
+        assertThat(presses).isEqualTo(0)
+
+        completed = true
+        composeRule.waitForIdle()
+        assertThat(composeRule.onAllNodesWithText(gotIt).fetchSemanticsNodes()).hasSize(1)
+        tapWhereGotItSits()
+        assertThat(presses).isEqualTo(1)
+    }
+
+    /**
+     * Loop 1, the third property: the waiting "Got it" takes no focus. Under touch exploration the CTA
+     * asks to be focusable — completion moves focus to it — so this is the case where a laid-out,
+     * invisible button could still be reached. Focus is moved forward through the whole screen more
+     * times than it has stops, and it never lands on "Got it" before completion.
+     */
+    @Test
+    fun theWaitingGotItTakesNoFocusBeforeCompletion() {
+        shadowOf(RuntimeEnvironment.getApplication().getSystemService(AccessibilityManager::class.java))
+            .setTouchExplorationEnabled(true)
+        lateinit var focusManager: FocusManager
+        composeRule.setContent {
+            focusManager = LocalFocusManager.current
+            AppTheme {
+                TutorialScreen(
+                    state = TutorialUiState.initial(),
+                    onCellTap = {},
+                    onAnimationFinished = {},
+                    onSkip = {},
+                    onDone = {},
+                )
+            }
+        }
+        val focusedGotIt = isFocused() and hasAnyDescendant(hasText(label(R.string.onboarding_got_it)))
+
+        repeat(FOCUS_MOVES) {
+            composeRule.runOnIdle { focusManager.moveFocus(FocusDirection.Next) }
+            assertThat(composeRule.onAllNodes(focusedGotIt, useUnmergedTree = true).fetchSemanticsNodes()).isEmpty()
         }
     }
 
@@ -215,6 +364,37 @@ class TutorialScreenTest {
         return node.getBoundsInRoot().top
     }
 
+    /**
+     * The header sits the column's padding below the status bar, and the gap from the header down to
+     * the body equals the gap from the body down to the navigation bar.
+     */
+    private fun assertTheHeaderIsPinnedAndTheBodyCentredBelowIt() {
+        val window = composeRule.onRoot().getBoundsInRoot()
+        val header = composeRule.onNodeWithTag(TUTORIAL_HEADER_TEST_TAG).getBoundsInRoot()
+        val body = composeRule.onNodeWithTag(TUTORIAL_BODY_TEST_TAG).getBoundsInRoot()
+        val columnPadding = with(composeRule.density) { dimensionPx(R.dimen.spacing_md).toDp() }
+
+        assertThat((header.top - (window.top + statusBarInset)).value)
+            .isWithin(CENTRING_TOLERANCE_DP)
+            .of(columnPadding.value)
+
+        val gapAbove = body.top - header.bottom
+        val gapBelow = (window.bottom - navigationBarInset) - body.bottom
+        // Room to spare, so the arrangement — not the fixed spacing — is what places the body.
+        assertThat(gapAbove + gapBelow).isAtLeast(ROOM_TO_SPARE_DP.dp)
+        assertThat(gapAbove.value).isWithin(CENTRING_TOLERANCE_DP).of(gapBelow.value)
+    }
+
+    private fun dimensionPx(id: Int): Int = RuntimeEnvironment.getApplication().resources.getDimensionPixelSize(id)
+
+    /** "Got it" is the body's last band, so a tap just above the body's bottom edge lands on it. */
+    private fun tapWhereGotItSits() {
+        composeRule.onNodeWithTag(TUTORIAL_BODY_TEST_TAG).performTouchInput {
+            click(Offset(centerX, bottom - GOT_IT_TAP_INSET_DP.dp.toPx()))
+        }
+        composeRule.waitForIdle()
+    }
+
     /** Asserts the screen offers no way to skip past a step without playing it. */
     private fun assertNoAdvanceButton() {
         ADVANCE_WORDS.forEach { word ->
@@ -277,6 +457,33 @@ class TutorialScreenTest {
 
         /** A gesture-navigation bar, the shallower of the two bottom cases. */
         const val NAVIGATION_BAR_INSET_DP = 24
+
+        /**
+         * The least room the tall window must leave around the body for the centring test to mean
+         * anything. An overflowing column leaves only fixed spacing — the `spacing_lg` band gap under
+         * the header and the `spacing_md` padding under the body, 40dp together — so anything well past
+         * that is slack the arrangement places.
+         */
+        const val ROOM_TO_SPARE_DP = 64
+
+        /**
+         * One pixel of rounding — the centring offset and each inset are rounded to whole pixels, and
+         * a pixel is 1dp at the test's default density. The error under test is the whole slack,
+         * hundreds of dp on [TALL_PHONE_QUALIFIER].
+         */
+        const val CENTRING_TOLERANCE_DP = 1f
+
+        /** "The same place", for the board before and after completion: half a pixel at the test's default density. */
+        const val SAME_PLACE_TOLERANCE_DP = 0.5f
+
+        /** Up from the body's bottom edge into "Got it", well inside the button's 40dp height. */
+        const val GOT_IT_TAP_INSET_DP = 12
+
+        /**
+         * Forward focus moves, more than the first step has stops (Skip, the board stop, three cells
+         * and "Got it" if it could take focus), so the walk wraps and visits every one of them.
+         */
+        const val FOCUS_MOVES = 12
     }
 }
 
