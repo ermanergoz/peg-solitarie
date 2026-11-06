@@ -1026,7 +1026,8 @@ class GameViewModel
          * two pegs two, three pegs one (docs/gdd.md R5) — and are passed to the calculator as
          * explicit stars, and the Challenge score is multiplied by them (Q-042: 3★ ×3, 2★ ×2,
          * 1★ ×1, `ScoreCalculator.evaluateChallenge`). Classic passes none and is not multiplied,
-         * so the calculator bands on the FINISHING BOARD's own perfect finish (D-03/D-04), taken from the spec that produced this result — not
+         * so the calculator bands on the FINISHING BOARD's own perfect finish (D-03/D-04), taken
+         * from the spec that produced this result — not
          * from the level id. A level-id lookup would be silently wrong for a resumed game, whose
          * spec is rebuilt structurally from a persisted blob rather than fetched from the
          * catalog. Diamond-41's target is a proven 2.

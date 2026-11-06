@@ -54,8 +54,20 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Home's slack as **headroom above the hero row** (ux-spec §4.2.7, D-03p) and the title bound that
- * stops it (D-03q): criteria 15x, 15y and 15ac part 1, and 15ab part 3. The stage D-03l put beneath
+ * Home's slack (ux-spec §4.2.7, D-03p) and the title bound that limits it (D-03q), as D-03r and D-03s
+ * (founder 2026-11-02) re-seat them: criteria 15x, 15y and 15ac part 1, and 15ab part 3.
+ *
+ * ## D-03r and D-03s
+ *
+ * D-03r pins the hero row at the top of the column and moves D-03p's headroom, unchanged, to
+ * **between** the hero row and the ribbon: the ribbon, the chips and the tiles stay exactly where
+ * D-03p/D-03q put them, and the bound now only fixes where that lower group sits. D-03s takes the
+ * `home_title_top_padding` space above the title out of the headroom, capped by it, so the lower
+ * group still does not move. So the readings below are three: the space above the title,
+ * min(T, max(0, H₀ − R)); the headroom, max(0, H₀ − R), read as how far the ribbon sits below the
+ * place it would have with no slack; and the footer. The rest of this note is D-03p's, with
+ * "headroom" read as that.
+ * The stage D-03l put beneath
  * the hero row is withdrawn on the founder's note; the slack it held now sits above the title as space
  * with nothing in it, so the title, the ribbon, the chips and the tiles are one block in the lower
  * part of the screen with the backdrop's sky above them, and the hero row never goes below the line the
@@ -103,51 +115,52 @@ class HomeHeadroomTest {
 
     @Test
     @Config(qualifiers = "w360dp-h640dp")
-    fun onA360x640dpPhoneTheSlackIsHeadroomAboveTheHeroRowInEveryChipState() =
-        assertTheSlackIsHeadroomAboveTheHeroRow(THREE_BUTTON)
+    fun onA360x640dpPhoneTheSlackSplitsAboveAndBelowTheHeroRowInEveryChipState() =
+        assertTheSlackSplitsAboveAndBelowTheHeroRow(THREE_BUTTON)
 
     @Test
     @Config(qualifiers = "w360dp-h720dp")
-    fun onA360x720dpPhoneTheSlackIsHeadroomAboveTheHeroRowInEveryChipState() =
-        assertTheSlackIsHeadroomAboveTheHeroRow(THREE_BUTTON)
+    fun onA360x720dpPhoneTheSlackSplitsAboveAndBelowTheHeroRowInEveryChipState() =
+        assertTheSlackSplitsAboveAndBelowTheHeroRow(THREE_BUTTON)
 
     @Test
     @Config(qualifiers = "w360dp-h800dp")
-    fun onA360x800dpPhoneTheSlackIsHeadroomAboveTheHeroRowInEveryChipState() =
-        assertTheSlackIsHeadroomAboveTheHeroRow(THREE_BUTTON)
+    fun onA360x800dpPhoneTheSlackSplitsAboveAndBelowTheHeroRowInEveryChipState() =
+        assertTheSlackSplitsAboveAndBelowTheHeroRow(THREE_BUTTON)
 
     /** 780 − 72 = 708dp usable, under the 720dp threshold: this window takes the compact set. */
     @Test
     @Config(qualifiers = "w412dp-h780dp")
-    fun onA412x780dpPhoneTheSlackIsHeadroomAboveTheHeroRowInEveryChipState() =
-        assertTheSlackIsHeadroomAboveTheHeroRow(THREE_BUTTON)
+    fun onA412x780dpPhoneTheSlackSplitsAboveAndBelowTheHeroRowInEveryChipState() =
+        assertTheSlackSplitsAboveAndBelowTheHeroRow(THREE_BUTTON)
 
     @Test
     @Config(qualifiers = "w412dp-h850dp")
-    fun onA412x850dpPhoneTheSlackIsHeadroomAboveTheHeroRowInEveryChipState() =
-        assertTheSlackIsHeadroomAboveTheHeroRow(THREE_BUTTON)
+    fun onA412x850dpPhoneTheSlackSplitsAboveAndBelowTheHeroRowInEveryChipState() =
+        assertTheSlackSplitsAboveAndBelowTheHeroRow(THREE_BUTTON)
 
     /**
      * The 6.7-inch reference phone (15y part 4, 15g): the first mode tile's top edge is at or below the
      * viewport's midpoint with no chip and with both; and no single gap on the screen is larger than the
      * space the tiles occupy — 15g's fourth clause as §4.2.7 "15g's fourth clause under the bound" rules
      * it: that space is both tiles with their band gap, and a gap is a distance between two consecutive
-     * visible elements, so neither the headroom above the first element nor the footer below the last is
-     * one. (15y part 3 holds every such gap to the band gap, which this clause can only follow.) The
-     * footer's third of S₀ is read on every window (point 5 of [assertTheSlackIsHeadroomAboveTheHeroRow]).
+     * visible elements, so neither the headroom nor the footer below the last is one — the headroom
+     * being, since D-03r, the space between the hero row and the ribbon, so the gaps are read from the
+     * ribbon down. (15y part 3 holds every such gap to the band gap, which this clause can only follow.) The
+     * footer's third of S₀ is read on every window (point 5 of [assertTheSlackSplitsAboveAndBelowTheHeroRow]).
      */
     @Test
     @Config(qualifiers = TALL_PHONE)
-    fun onA412x915dpPhoneTheSlackIsHeadroomAboveTheHeroRowAndTheTilesStayLow() {
-        assertTheSlackIsHeadroomAboveTheHeroRow(THREE_BUTTON)
+    fun onA412x915dpPhoneTheSlackSplitsAboveAndBelowTheHeroRowAndTheTilesStayLow() {
+        assertTheSlackSplitsAboveAndBelowTheHeroRow(THREE_BUTTON)
         listOf(chipsOf(classic = false, challenge = false), bothResumesState()).forEach { state ->
             show(state)
             val viewport = viewportOf(THREE_BUTTON)
             assertWithMessage("${chipsNamed(state)}: the first tile's top against the viewport's midpoint, in dp")
                 .that(boundsOf(composeRule.onNodeWithText(classicTileTitle)).top.value)
                 .isAtLeast(((viewport.top + viewport.bottom) / 2).value)
-            assertWithMessage("${chipsNamed(state)}: the widest gap between two elements against the tiles' span")
-                .that(widestGap().value)
+            assertWithMessage("${chipsNamed(state)}: the widest gap below the ribbon's top against the tiles' span")
+                .that(widestGapInTheLowerGroup().value)
                 .isAtMost(tilesSpan().value)
         }
     }
@@ -155,22 +168,24 @@ class HomeHeadroomTest {
     /** 15ac part 1 on the tall phone in gesture navigation, where the bound holds the no-chip headroom at C. */
     @Test
     @Config(qualifiers = TALL_PHONE)
-    fun onA412x915dpPhoneInGestureNavigationTheTitleBoundHoldsTheHeroRowAboveTheWaves() =
-        assertTheSlackIsHeadroomAboveTheHeroRow(GESTURE_TALL)
+    fun onA412x915dpPhoneInGestureNavigationTheTitleBoundFixesWhereTheLowerGroupSits() =
+        assertTheSlackSplitsAboveAndBelowTheHeroRow(GESTURE_TALL)
 
     /**
-     * 15ac part 1 on the Pixel_9, QA's device: with no save the hero row's bottom edge sits exactly on the
-     * bound, 0.47 × 923 − 16 = 417.8dp, and the headroom is C = 417.8 − 54 − 16 − 48 = 299.8dp — §4.2.7's
-     * D-03q table, by hand — against ⅘ S₀ = 339.1dp; the excess lies below the tiles.
+     * 15ac part 1 on the Pixel_9, QA's device: with no save the headroom is C = 417.8 − 54 − 16 − 48 =
+     * 299.8dp — §4.2.7's D-03q table, by hand — against ⅘ S₀ = 339.1dp, the excess below the tiles; so
+     * the line where D-03q put the hero row's bottom edge, which since D-03r is the ribbon's top less the
+     * band gap and the row's own space below its visible content, sits exactly on the bound,
+     * 0.47 × 923 − 16 = 417.8dp.
      */
     @Test
     @Config(qualifiers = PIXEL_9_WINDOW)
-    fun onThePixel9WithNoSaveTheHeroRowEndsExactlyOnTheTitleBound() {
-        assertTheSlackIsHeadroomAboveTheHeroRow(PIXEL_9_BARS)
+    fun onThePixel9WithNoSaveTheLowerGroupSitsExactlyWhereTheTitleBoundPutsIt() {
+        assertTheSlackSplitsAboveAndBelowTheHeroRow(PIXEL_9_BARS)
         show(chipsOf(classic = false, challenge = false))
 
-        assertWithMessage("the hero row's visible bottom edge against the bound, in dp")
-            .that(heroVisibleBottom().value)
+        assertWithMessage("the lower group's line, where D-03q put the hero row's bottom, against the bound, in dp")
+            .that(lowerGroupLine().value)
             .isWithin(TOLERANCE_DP)
             .of(PIXEL_9_TITLE_BOUND_DP)
         assertWithMessage("the headroom, in dp")
@@ -183,43 +198,43 @@ class HomeHeadroomTest {
 
     @Test
     @Config(qualifiers = "w360dp-h640dp")
-    fun atDoubleFontScaleOnA360x640dpPhoneTheHeroRowNeverPassesTheTitleBound() =
-        assertTheHeroRowNeverPassesTheTitleBound(THREE_BUTTON)
+    fun atDoubleFontScaleOnA360x640dpPhoneTheLowerGroupNeverPassesTheTitleBound() =
+        assertTheLowerGroupNeverPassesTheTitleBound(THREE_BUTTON)
 
     @Test
     @Config(qualifiers = "w360dp-h720dp")
-    fun atDoubleFontScaleOnA360x720dpPhoneTheHeroRowNeverPassesTheTitleBound() =
-        assertTheHeroRowNeverPassesTheTitleBound(THREE_BUTTON)
+    fun atDoubleFontScaleOnA360x720dpPhoneTheLowerGroupNeverPassesTheTitleBound() =
+        assertTheLowerGroupNeverPassesTheTitleBound(THREE_BUTTON)
 
     @Test
     @Config(qualifiers = "w360dp-h800dp")
-    fun atDoubleFontScaleOnA360x800dpPhoneTheHeroRowNeverPassesTheTitleBound() =
-        assertTheHeroRowNeverPassesTheTitleBound(THREE_BUTTON)
+    fun atDoubleFontScaleOnA360x800dpPhoneTheLowerGroupNeverPassesTheTitleBound() =
+        assertTheLowerGroupNeverPassesTheTitleBound(THREE_BUTTON)
 
     @Test
     @Config(qualifiers = "w412dp-h780dp")
-    fun atDoubleFontScaleOnA412x780dpPhoneTheHeroRowNeverPassesTheTitleBound() =
-        assertTheHeroRowNeverPassesTheTitleBound(THREE_BUTTON)
+    fun atDoubleFontScaleOnA412x780dpPhoneTheLowerGroupNeverPassesTheTitleBound() =
+        assertTheLowerGroupNeverPassesTheTitleBound(THREE_BUTTON)
 
     @Test
     @Config(qualifiers = "w412dp-h850dp")
-    fun atDoubleFontScaleOnA412x850dpPhoneTheHeroRowNeverPassesTheTitleBound() =
-        assertTheHeroRowNeverPassesTheTitleBound(THREE_BUTTON)
+    fun atDoubleFontScaleOnA412x850dpPhoneTheLowerGroupNeverPassesTheTitleBound() =
+        assertTheLowerGroupNeverPassesTheTitleBound(THREE_BUTTON)
 
     @Test
     @Config(qualifiers = TALL_PHONE)
-    fun atDoubleFontScaleOnA412x915dpPhoneTheHeroRowNeverPassesTheTitleBound() =
-        assertTheHeroRowNeverPassesTheTitleBound(THREE_BUTTON)
+    fun atDoubleFontScaleOnA412x915dpPhoneTheLowerGroupNeverPassesTheTitleBound() =
+        assertTheLowerGroupNeverPassesTheTitleBound(THREE_BUTTON)
 
     @Test
     @Config(qualifiers = TALL_PHONE)
-    fun atDoubleFontScaleOnA412x915dpPhoneInGestureNavigationTheHeroRowNeverPassesTheTitleBound() =
-        assertTheHeroRowNeverPassesTheTitleBound(GESTURE_TALL)
+    fun atDoubleFontScaleOnA412x915dpPhoneInGestureNavigationTheLowerGroupNeverPassesTheTitleBound() =
+        assertTheLowerGroupNeverPassesTheTitleBound(GESTURE_TALL)
 
     @Test
     @Config(qualifiers = PIXEL_9_WINDOW)
-    fun atDoubleFontScaleOnThePixel9TheHeroRowNeverPassesTheTitleBound() =
-        assertTheHeroRowNeverPassesTheTitleBound(PIXEL_9_BARS)
+    fun atDoubleFontScaleOnThePixel9TheLowerGroupNeverPassesTheTitleBound() =
+        assertTheLowerGroupNeverPassesTheTitleBound(PIXEL_9_BARS)
 
     // ---- Criterion 15x: no stage, and nothing in the headroom --------------------
 
@@ -301,16 +316,20 @@ class HomeHeadroomTest {
     /**
      * Criteria 15y parts 1–3 and 15ac part 1 at default font scale on the current window with [bars], in
      * every chip state:
-     * 1. the hero row's top edge is the column's top padding plus the headroom, max(0, H₀ − R), below
-     *    the viewport's top — H₀ = min(⅘ S₀, C) — and the padding exactly wherever the column overflows;
+     * 1. the hero row's top edge is the column's top padding plus D-03s's title space, min(T, H), below
+     *    the viewport's top, and the ribbon's top edge is the padding, the hero row, a band gap and the
+     *    headroom H = max(0, H₀ − R) below it — H₀ = min(⅘ S₀, C) — so the lower group sits where D-03p
+     *    put it, both exactly the padding's wherever the column overflows;
      * 2. the footer, from the second tile's bottom edge to the content's bottom less one band gap and
      *    the bottom padding, is min(S₀ − H₀, max(0, S₀ − R));
-     * 3. no distance between two consecutive visible elements exceeds the band gap;
-     * 4. the hero row's visible bottom edge is at or above the title bound, wherever there is headroom;
+     * 3. no distance between two consecutive visible elements exceeds the band gap, from the ribbon down,
+     *    and the one between the hero row and the ribbon exceeds it by at most the middle, H − min(T, H);
+     * 4. the lower group's line ([lowerGroupLine]) is at or above the title bound, wherever there is
+     *    headroom;
      * 5. the footer is at most a third of S₀ (15g's ruled reading, the footer being S₀ − H₀ under
      *    D-03q) — on every window, the bound biting or not.
      */
-    private fun assertTheSlackIsHeadroomAboveTheHeroRow(bars: Bars) {
+    private fun assertTheSlackSplitsAboveAndBelowTheHeroRow(bars: Bars) {
         val holder = mutableStateOf(EVERY_CHIP_STATE.first())
         renderWithInsets(holder, bars)
         val slack = composeRule.homeSlack(statusBar = bars.status, navigationBar = bars.navigation)
@@ -319,18 +338,18 @@ class HomeHeadroomTest {
             show(state)
             val chips = chipsNamed(state)
             val room = roomOf(state)
-            assertWithMessage("$chips: the headroom against max(0, H₀ − R), H₀ = ${slack.noChipHeadroom}, R = $room")
-                .that(headroom(bars).value)
-                .isWithin(TOLERANCE_DP)
-                .of(slack.headroomWith(room).value)
+            assertTheTitleSpaceAndTheHeadroom(bars, slack, room, chips)
             assertWithMessage("$chips: the footer against min(S₀ − H₀, max(0, S₀ − R)), S₀ = ${slack.slack}, in dp")
                 .that(footer(bars).value)
                 .isWithin(TOLERANCE_DP)
                 .of(slack.footerWith(room).value)
-            assertWithMessage("$chips: the widest gap between two visible elements, in dp")
-                .that(widestGap().value)
+            assertWithMessage("$chips: the widest gap between two visible elements from the ribbon down, in dp")
+                .that(widestGapInTheLowerGroup().value)
                 .isAtMost((bandGap() + TOLERANCE_DP.dp).value)
-            assertTheHeroRowIsAboveTheTitleBound(slack, chips)
+            assertWithMessage("$chips: the gap between the hero row and the ribbon, in dp")
+                .that(heroToRibbonGap().value)
+                .isAtMost((bandGap() + slack.middleWith(room) + TOLERANCE_DP.dp).value)
+            assertTheLowerGroupIsAtTheTitleBound(slack, chips)
             assertWithMessage("$chips: the footer against a third of S₀ = ${slack.slack}, in dp")
                 .that(footer(bars).value)
                 .isAtMost(slack.slack.value / THIRDS + TOLERANCE_DP)
@@ -339,14 +358,15 @@ class HomeHeadroomTest {
 
     /**
      * Criterion 15ac part 1 at font scale 2.0 on the current window with [bars], in every chip state:
-     * the headroom is still max(0, H₀ − R); wherever it is above 0 the hero row's visible bottom edge is
-     * at or above the title bound; the footer is the formula's, min(S₀ − H₀, max(0, S₀ − R)) — S₀ − H₀
-     * wherever the headroom can give the room, and what is left of S₀ once a room larger than H₀ has
-     * taken its share (15z part 3) — and at most a third of S₀. At 2.0 the slack is small, so the room
-     * often outgrows the headroom and the row sits at the top padding, which is where the bound does
-     * not apply: the wrapped title's case, which B-21 already covers.
+     * the title space is still min(T, H) and the headroom H = max(0, H₀ − R); wherever H is above 0 the
+     * lower group's line is at or above the title bound; the footer is the formula's,
+     * min(S₀ − H₀, max(0, S₀ − R)) — S₀ − H₀ wherever the headroom can give the room, and what is left
+     * of S₀ once a room larger than H₀ has taken its share (15z part 3) — and at most a third of S₀. At
+     * 2.0 the slack is small, so the room often outgrows the headroom and the lower group sits right
+     * under the hero row, which is where the bound does not apply: the wrapped title's case, which B-21
+     * already covers.
      */
-    private fun assertTheHeroRowNeverPassesTheTitleBound(bars: Bars) {
+    private fun assertTheLowerGroupNeverPassesTheTitleBound(bars: Bars) {
         val holder = mutableStateOf(EVERY_CHIP_STATE.first())
         renderWithInsets(holder, bars, DOUBLE_FONT_SCALE)
         val slack = composeRule.homeSlack(statusBar = bars.status, navigationBar = bars.navigation)
@@ -355,11 +375,8 @@ class HomeHeadroomTest {
             show(state)
             val chips = chipsNamed(state)
             val room = roomOf(state)
-            assertWithMessage("$chips, at 2.0: the headroom against max(0, H₀ − R), in dp")
-                .that(headroom(bars).value)
-                .isWithin(TOLERANCE_DP)
-                .of(slack.headroomWith(room).value)
-            assertTheHeroRowIsAboveTheTitleBound(slack, "$chips, at 2.0")
+            assertTheTitleSpaceAndTheHeadroom(bars, slack, room, "$chips, at 2.0")
+            assertTheLowerGroupIsAtTheTitleBound(slack, "$chips, at 2.0")
             assertWithMessage("$chips, at 2.0: the footer against min(S₀ − H₀, max(0, S₀ − R)), in dp")
                 .that(footer(bars).value)
                 .isWithin(TOLERANCE_DP)
@@ -370,28 +387,71 @@ class HomeHeadroomTest {
         }
     }
 
-    /** Wherever the hero row sits below its top padding, its visible bottom edge is at or above the bound. */
-    private fun assertTheHeroRowIsAboveTheTitleBound(
+    /**
+     * Point 1: the space above the title is min(T, max(0, H₀ − R)) (D-03s), and the headroom below the
+     * hero row is max(0, H₀ − R) (D-03p, moved by D-03r) — both from the fixture's formula.
+     */
+    private fun assertTheTitleSpaceAndTheHeadroom(
+        bars: Bars,
+        slack: HomeSlack,
+        room: Dp,
+        situation: String,
+    ) {
+        assertWithMessage("$situation: the title space against min(T, max(0, H₀ − R)), T = ${slack.titleSpace}")
+            .that(titleSpace(bars).value)
+            .isWithin(TOLERANCE_DP)
+            .of(slack.titleSpaceWith(room).value)
+        assertWithMessage("$situation: the headroom against max(0, H₀ − R), H₀ = ${slack.noChipHeadroom}, R = $room")
+            .that(headroom(bars).value)
+            .isWithin(TOLERANCE_DP)
+            .of(slack.headroomWith(room).value)
+    }
+
+    /** Wherever there is headroom, the lower group's line is at or above the bound (D-03q, as D-03r keeps it). */
+    private fun assertTheLowerGroupIsAtTheTitleBound(
         slack: HomeSlack,
         situation: String,
     ) {
         if (headroomIsOpen()) {
-            assertWithMessage("$situation: the hero row's visible bottom edge against the title bound, in dp")
-                .that(heroVisibleBottom().value)
+            assertWithMessage("$situation: the lower group's line against the title bound, in dp")
+                .that(lowerGroupLine().value)
                 .isAtMost(slack.titleBound.value + TOLERANCE_DP)
         }
     }
 
     // ---- Readings ----------------------------------------------------------------
 
-    /** The headroom as laid out: the hero row's top edge less the viewport's top and the column's padding. */
-    private fun headroom(bars: Bars): Dp = boundsOf(heroRow()).top - bars.status - bandGap()
+    /** D-03s's space above the title as laid out: the hero row's top less the viewport's top and the padding. */
+    private fun titleSpace(bars: Bars): Dp = boundsOf(heroRow()).top - bars.status - bandGap()
 
-    /** Whether the hero row sits below the column's top padding by more than the tolerance. */
+    /**
+     * The headroom as laid out (D-03r): how far the ribbon's top edge sits below the place it would have
+     * with no slack — the viewport's top, the column's padding, the hero row and one band gap.
+     */
+    private fun headroom(bars: Bars): Dp {
+        val hero = boundsOf(heroRow())
+        return boundsOf(composeRule.ribbon()).top - bars.status - bandGap() - (hero.bottom - hero.top) - bandGap()
+    }
+
+    /** Whether there is headroom: the ribbon sits below its no-slack place by more than the tolerance. */
     private fun headroomIsOpen(): Boolean {
         val viewport = boundsOf(composeRule.onNode(hasScrollAction(), useUnmergedTree = true))
-        return boundsOf(heroRow()).top - viewport.top - bandGap() > TOLERANCE_DP.dp
+        val hero = boundsOf(heroRow())
+        val noSlackRibbonTop = viewport.top + bandGap() + (hero.bottom - hero.top) + bandGap()
+        return boundsOf(composeRule.ribbon()).top - noSlackRibbonTop > TOLERANCE_DP.dp
     }
+
+    /**
+     * The line D-03q bounds, where the hero row's visible bottom edge sat before D-03r moved the row up:
+     * the ribbon's top less one band gap and the row's own space below its visible content.
+     */
+    private fun lowerGroupLine(): Dp {
+        val hero = boundsOf(heroRow())
+        return boundsOf(composeRule.ribbon()).top - bandGap() - (hero.bottom - heroVisibleBottom())
+    }
+
+    /** From the hero row's visible bottom edge to the ribbon's pills' top edge. */
+    private fun heroToRibbonGap(): Dp = spanning(ribbonPills()).top - heroVisibleBottom()
 
     /**
      * The footer as laid out: from the second tile's bottom edge to the content's bottom, less one band
@@ -440,14 +500,13 @@ class HomeHeadroomTest {
     private fun heroVisibleBottom(): Dp = maxOf(boundsOf(heroTitle()).bottom, gearChip().bottom)
 
     /**
-     * The widest distance between two consecutive visible elements, top to bottom: the hero row (its
-     * title and its gear chip), the ribbon (its three pills), each Continue chip, the first mode tile
-     * and the second.
+     * The widest distance between two consecutive visible elements of the lower group, top to bottom:
+     * the ribbon (its three pills), each Continue chip, the first mode tile and the second. The space
+     * between the hero row and the ribbon is the headroom since D-03r, read by [heroToRibbonGap].
      */
-    private fun widestGap(): Dp {
+    private fun widestGapInTheLowerGroup(): Dp {
         val elements =
             buildList {
-                add(spanning(listOf(boundsOf(heroTitle()), gearChip())))
                 add(spanning(ribbonPills()))
                 listOf(RESUME_CLASSIC_LABEL, RESUME_CHALLENGE_LABEL).forEach { chip ->
                     if (composeRule.onAllNodesWithText(chip).fetchSemanticsNodes().isNotEmpty()) {

@@ -42,10 +42,10 @@ import com.app.pegsolitaire.audio.SoundCue
 import com.app.pegsolitaire.audio.withClickSound
 import com.app.pegsolitaire.data.ClassicLevelDescriptor
 import com.app.pegsolitaire.ui.theme.clayEntrance
+import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.tintedCardColor
 import com.app.pegsolitaire.ui.theme.tintedCardShadow
 import com.app.pegsolitaire.ui.theme.tintedCardSupportingColor
-import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.window.stableSystem
 
 /**
