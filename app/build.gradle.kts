@@ -291,8 +291,8 @@ android {
         // The `namespace` (code packages, BuildConfig) deliberately stays
         // com.app.pegsolitaire — only the store identity changes.
         applicationId = "com.erman.pegsolitarie"
-        versionCode = 30_000
-        versionName = "3.0.0"
+        versionCode = 30_101
+        versionName = "3.1.1"
     }
 
     // docs/ux/localisation-tr.md §7.4 and C-6: the build keeps library resources only in the
