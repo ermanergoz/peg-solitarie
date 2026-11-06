@@ -29,10 +29,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.semantics
 import com.app.pegsolitaire.R
+import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.tintedCardColor
 import com.app.pegsolitaire.ui.theme.tintedCardShadow
 import com.app.pegsolitaire.ui.theme.tintedCardSupportingColor
-import com.app.pegsolitaire.ui.theme.claySquish
 
 /**
  * A tappable card's chevron, tagged so a test can find which side of its card it sits on (spec

@@ -69,7 +69,7 @@ class HomeHeroRowTest {
      * On a phone with room for decoration — where the withdrawn peg cluster used to stand over the
      * title — nothing is composed above or beside the title but the gear: the hero row holds
      * exactly two things, the title and the gear chip, and no node outside the row reaches up into
-     * it or above it. Both chip extremes, since the chips decide how much headroom lies above the row.
+     * it or above it. Both chip extremes, since the chips decide how much headroom, and so title space, there is.
      */
     @Test
     @Config(qualifiers = TALL_PHONE_QUALIFIER)
@@ -189,14 +189,16 @@ class HomeHeroRowTest {
      * where the chip starts, and the chip ends at the row's end — so nothing is laid out before,
      * between or after them. Above: the row is the first thing in Home's column — its top is one
      * column inset below the viewport's top edge (the inset read off the ribbon, which fills the
-     * content width, since the column pads all four sides alike) plus the headroom, and nothing more —
-     * so nothing is laid out above it but space.
+     * content width, since the column pads all four sides alike) plus the space above the title, and
+     * nothing more — so nothing is laid out above it but space.
      *
-     * The headroom is D-03p's: the slack above the hero row, max(0, H₀ − R) with H₀ the title bound's
-     * no-chip headroom (§4.2.7, D-03q), computed by the fixture from the window and the bands' own
-     * heights ([homeSlack]) rather than read off the row, so an icon, emblem or board laid out above the
-     * title still adds its height and fails here. Before D-03p this read "one column inset below", the
-     * row being the column's first child; the headroom moved its top and nothing else.
+     * The space above the title is D-03s's (founder 2026-11-02): the `home_title_top_padding` token,
+     * taken out of the headroom max(0, H₀ − R) so the lower group stays put, and so capped by it — H₀
+     * the title bound's no-chip headroom (§4.2.7, D-03q), which since D-03r lies between the hero row
+     * and the ribbon. It is computed by the fixture from the window and the bands' own heights
+     * ([homeSlack]) rather than read off the row, so an icon, emblem or board laid out above the title
+     * still adds its height and fails here. Under D-03p the whole headroom lay above the row; D-03r
+     * pinned the row at the top and D-03s gave it this space back.
      */
     private fun assertNothingElseTakesRoomBesideOrAboveTheTitle() {
         val row = boundsOf(composeRule.onNodeWithTag(HOME_HERO_TEST_TAG, useUnmergedTree = true).fetchSemanticsNode())
@@ -218,11 +220,11 @@ class HomeHeroRowTest {
         val viewport = boundsOf(composeRule.onNode(hasScrollAction(), useUnmergedTree = true).fetchSemanticsNode())
         val columnInset = bounds(composeRule.onNodeWithTag(HOME_PROGRESS_RIBBON_TEST_TAG)).left - viewport.left
         val slack = composeRule.homeSlack(statusBar = STATUS_BAR_DP.dp, navigationBar = NAVIGATION_BAR_DP.dp)
-        val headroom = slack.headroomWith(roomOnScreen())
-        assertWithMessage("how far below the column's top edge the row starts: its inset and the headroom, in dp")
+        val titleSpace = slack.titleSpaceWith(roomOnScreen())
+        assertWithMessage("how far below the column's top edge the row starts: its inset and the title space, in dp")
             .that((row.top - viewport.top).value)
             .isWithin(EDGE_TOLERANCE_DP)
-            .of((columnInset + headroom).value)
+            .of((columnInset + titleSpace).value)
     }
 
     /** R: each Continue chip on screen, its own height plus one band gap (read between the two mode tiles). */

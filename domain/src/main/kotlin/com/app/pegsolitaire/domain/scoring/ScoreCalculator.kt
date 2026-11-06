@@ -155,4 +155,3 @@ object ScoreCalculator {
             elapsedSeconds = elapsedSeconds,
         )
 }
-

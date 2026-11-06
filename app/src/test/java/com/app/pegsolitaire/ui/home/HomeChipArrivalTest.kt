@@ -30,6 +30,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
+import com.app.pegsolitaire.R
 import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.testing.applySystemBarInsets
 import com.app.pegsolitaire.testing.renderedWindow
@@ -44,6 +45,7 @@ import com.app.pegsolitaire.ui.home.fixture.challengeTileTitle
 import com.app.pegsolitaire.ui.home.fixture.chipsState
 import com.app.pegsolitaire.ui.home.fixture.classicTileTitle
 import com.app.pegsolitaire.ui.home.fixture.columnBoundsOf
+import com.app.pegsolitaire.ui.home.fixture.dimen
 import com.app.pegsolitaire.ui.home.fixture.homeSlack
 import com.app.pegsolitaire.ui.home.fixture.renderHome
 import com.app.pegsolitaire.ui.home.fixture.settingsLabel
@@ -74,6 +76,19 @@ import kotlin.math.min
  * meets the title bound, the footer S₀ − H₀, and the hero row never passes the bound in any emission or
  * any frame of the room's motion — it only ever rides up from H₀.
  *
+ * ## D-03r and D-03s (founder 2026-11-02)
+ *
+ * D-03r pins the hero row at the top of the column and moves the headroom, unchanged, to between the
+ * hero row and the ribbon: the chips' room still comes out of it, so it is now the **ribbon** that
+ * rides up toward the hero row while the tiles hold still, and the bound now fixes where the lower
+ * group sits — the line where D-03q put the hero row's bottom edge, the ribbon's top less one band
+ * gap and the row's own space below its visible content. D-03s puts the space T
+ * (`home_title_top_padding`) above the title, taken out of the headroom and capped by it, so the hero
+ * row sits min(T, H) below the column's top padding in every emission and every frame, H being the
+ * headroom then: it holds still wherever H stays at or above T, and rises with H below that. The
+ * rest of this note is D-03p's and D-03q's, with "headroom" read as that and the hero row's riding
+ * read as the ribbon's.
+ *
  * ## How it is read
  *
  * Every emission goes through the fixture's settable overload, so it is one composition across
@@ -85,7 +100,9 @@ import kotlin.math.min
  * computed from the window and the bands' own heights — never from where the column put the hero row
  * — so the ±0.5dp tolerance is rounding and nothing else.
  *
- * - **The headroom** is the hero row's top edge less the viewport's top and the column's padding.
+ * - **The headroom** is the ribbon's top edge less the viewport's top, the column's padding, the hero
+ *   row and one band gap; **the title space** is the hero row's top edge less the viewport's top and
+ *   the padding.
  * - **The footer** runs from the second tile's bottom edge to the bottom of the column's content,
  *   less one band gap and the column's bottom padding. The content's bottom is the viewport's plus
  *   the column's scrollable overflow, so the same reading holds where the column scrolls (15t).
@@ -167,7 +184,8 @@ class HomeChipArrivalTest {
      *
      * In every frame from the emission until the layout settles both tiles are where they were; the
      * hero row's and the ribbon's top edges move monotonically from their old places to their new ones,
-     * together, and never past them; the hero row never passes the title bound; and no frame shows a
+     * and never past them, the hero row at D-03s's min(T, H) below the padding for that frame's headroom
+     * H; the lower group's line never passes the title bound; and no frame shows a
      * chip's room — its gap included — without the chip. The room opens over `ClayAnim.ENTRANCE_MS`: it
      * has started moving by [START_FRAMES] frames after the emission and settles no sooner than the
      * entrance's own duration and no later than [START_FRAMES] frames past it.
@@ -180,7 +198,8 @@ class HomeChipArrivalTest {
 
     /*
      * 15ac part 2 reads 15z on 15ac part 1's eight windows, and "in no emission and no frame of the
-     * room's motion" may the hero row's bottom edge pass the title bound. The emissions are read above
+     * room's motion" may the hero row's bottom edge pass the title bound — since D-03r, the lower group's
+     * line. The emissions are read above
      * on all eight; these walk the frames on the seven windows 15u's own does not, with 15z part 5's
      * whole read, the bound in every frame among it. The headroom gives the whole room on every one of
      * them at default scale (R ≤ H₀, §4.2.7's eight-window table), so the tiles hold still in every frame
@@ -219,7 +238,8 @@ class HomeChipArrivalTest {
     /**
      * Criterion 15z part 5 with OS animations off (`rememberAnimationsEnabled()` false), the setting a
      * reduced-motion player has: the frame after the emission is the settled layout, on arrival and on
-     * leaving, the tiles where they were and the hero row and the ribbon at their new place together.
+     * leaving, the tiles where they were, the ribbon at its new place and the hero row at its D-03s place
+     * for the new headroom.
      */
     @Test
     @Config(qualifiers = "w412dp-h915dp")
@@ -328,12 +348,13 @@ class HomeChipArrivalTest {
      * emission:
      * 1. both mode tiles' bounds equal their no-chip bounds wherever R ≤ H₀, and otherwise sit exactly
      *    R − H₀ lower;
-     * 2. the hero row's and the ribbon's top edges sit higher than their no-chip tops by exactly
-     *    min(R, H₀), the ribbon one band gap below the hero row's bottom;
+     * 2. the ribbon's top edge sits higher than its no-chip top by exactly min(R, H₀), and one band gap
+     *    and the middle, H − min(T, H), below the hero row's bottom, H = max(0, H₀ − R); the hero row's
+     *    top edge sits min(T, H) below the column's top padding (D-03r, D-03s);
      * 3. the footer is min(S₀ − H₀, max(0, S₀ − R));
      * 4. every chip present is complete in the first viewport, and the column's scrollable overflow is
      *    what it is with no chip;
-     * 5. the hero row's visible bottom edge is at or above the title bound.
+     * 5. the lower group's line is at or above the title bound.
      */
     private fun assertTheRoomComesFromTheHeadroom(bars: Bars = THREE_BUTTON) {
         val state = mutableStateOf(chipsState(classic = false, challenge = false))
@@ -344,6 +365,10 @@ class HomeChipArrivalTest {
             .that(noChip.headroom.value)
             .isWithin(TOLERANCE_DP)
             .of(slack.noChipHeadroom.value)
+        assertWithMessage("no chip: the title space against min(T, H₀), T = ${slack.titleSpace}, in dp")
+            .that(noChip.titleSpace.value)
+            .isWithin(TOLERANCE_DP)
+            .of(slack.titleSpaceWith(0.dp).value)
 
         WALK.forEach { (classic, challenge) ->
             show(state, classic, challenge)
@@ -361,9 +386,9 @@ class HomeChipArrivalTest {
 
     /**
      * Criterion 15z part 1 at font scale 2.0 (15t) on the current window: between any two emissions the
-     * mode tiles sit exactly max(0, R − H₀) below their no-chip position — never above it — the hero row
-     * and the ribbon sit higher by exactly min(R, H₀), the footer pays what the headroom cannot, down to
-     * 0, no band is dropped, and where the column overflows it scrolls.
+     * mode tiles sit exactly max(0, R − H₀) below their no-chip position — never above it — the ribbon
+     * sits higher by exactly min(R, H₀) and the hero row at min(T, H), the footer pays what the headroom
+     * cannot, down to 0, no band is dropped, and where the column overflows it scrolls.
      */
     private fun assertTheTilesFallByTheShortfallAndNoMore() {
         val state = mutableStateOf(chipsState(classic = false, challenge = false))
@@ -383,9 +408,9 @@ class HomeChipArrivalTest {
 
     /**
      * One emission against the no-chip one: the tiles, the hero row, the ribbon, the footer and the
-     * bound. With [boundInEveryEmission] the hero row's bottom edge is held to the bound in every
-     * emission (15ac part 2, at default font scale); without it, only where the headroom is above 0 (15ac
-     * part 1's reading at 2.0, where a row taller than the bound allows sits at the top padding: the
+     * bound. With [boundInEveryEmission] the lower group's line is held to the bound in every emission
+     * (15ac part 2, at default font scale); without it, only where the headroom is above 0 (15ac part 1's
+     * reading at 2.0, where a row taller than the bound allows has the ribbon right under it: the
      * wrapped title's case, which B-21 covers).
      */
     private fun assertTheRoomCameFromTheHeadroom(
@@ -400,25 +425,30 @@ class HomeChipArrivalTest {
         val rise = slack.riseWith(room)
         assertMovedDown("$chips: the Classic tile", reading.classicTile, noChip.classicTile, by = fall)
         assertMovedDown("$chips: the Challenge tile", reading.challengeTile, noChip.challengeTile, by = fall)
-        assertWithMessage("$chips: the hero row's top edge, risen by min(R, H₀), R = $room, in dp")
+        val titleSpaceGiven = slack.titleSpaceWith(0.dp) - slack.titleSpaceWith(room)
+        assertWithMessage("$chips: the hero row's top edge, risen by what the title space gave, R = $room, in dp")
             .that(reading.heroTop.value)
             .isWithin(TOLERANCE_DP)
-            .of((noChip.heroTop - rise).value)
+            .of((noChip.heroTop - titleSpaceGiven).value)
+        assertWithMessage("$chips: the title space against min(T, max(0, H₀ − R)), in dp")
+            .that(reading.titleSpace.value)
+            .isWithin(TOLERANCE_DP)
+            .of(slack.titleSpaceWith(room).value)
         assertWithMessage("$chips: the ribbon's top edge, risen by min(R, H₀), R = $room, in dp")
             .that(reading.ribbonTop.value)
             .isWithin(TOLERANCE_DP)
             .of((noChip.ribbonTop - rise).value)
-        assertWithMessage("$chips: the ribbon's top edge, one band gap below the hero row's bottom, in dp")
+        assertWithMessage("$chips: the ribbon's top edge, a band gap and the middle below the hero row's bottom, in dp")
             .that(reading.ribbonTop.value)
             .isWithin(TOLERANCE_DP)
-            .of((reading.heroBottom + reading.gap).value)
+            .of((reading.heroBottom + reading.gap + slack.middleWith(room)).value)
         assertWithMessage("$chips: the footer against min(S₀ − H₀, max(0, S₀ − R)), S₀ = ${slack.slack}, in dp")
             .that(reading.footer.value)
             .isWithin(TOLERANCE_DP)
             .of(slack.footerWith(room).value)
         if (boundInEveryEmission || reading.headroom > TOLERANCE_DP.dp) {
-            assertWithMessage("$chips: the hero row's visible bottom edge against the title bound, in dp")
-                .that(reading.heroVisibleBottom.value)
+            assertWithMessage("$chips: the lower group's line against the title bound, in dp")
+                .that(reading.lowerGroupLine.value)
                 .isAtMost(slack.titleBound.value + TOLERANCE_DP)
         }
     }
@@ -564,12 +594,12 @@ class HomeChipArrivalTest {
             assertWithMessage("$label: the hero row's top edge between its old place and its new one, in dp")
                 .that(frame.heroTop.value)
                 .isIn(rangeOf(from.heroTop.value, settled.heroTop.value))
-            assertWithMessage("$label: the ribbon riding with the hero row — the distance between their tops, in dp")
-                .that((frame.ribbonTop - frame.heroTop).value)
+            assertWithMessage("$label: the title space against min(T, H), H = ${frame.headroom}, in dp")
+                .that(frame.titleSpace.value)
                 .isWithin(TOLERANCE_DP)
-                .of((from.ribbonTop - from.heroTop).value)
-            assertWithMessage("$label: the hero row's visible bottom edge against the title bound, in dp")
-                .that(frame.heroVisibleBottom.value)
+                .of(minOf(slack.titleSpace, frame.headroom).value)
+            assertWithMessage("$label: the lower group's line against the title bound, in dp")
+                .that(frame.lowerGroupLine.value)
                 .isAtMost(slack.titleBound.value + TOLERANCE_DP)
             if (frame.room > TOLERANCE_DP.dp) {
                 assertWithMessage("$label: the chips composed while the room is ${frame.room} open")
@@ -603,7 +633,10 @@ class HomeChipArrivalTest {
         other: Float,
     ): Range<Float> = Range.closed(min(one, other) - TOLERANCE_DP, max(one, other) + TOLERANCE_DP)
 
-    /** 15z part 5 with animations off: the first frame after the emission is already the settled one. */
+    /**
+     * 15z part 5 with animations off: the first frame after the emission is already the settled one,
+     * the hero row at D-03s's min(T, H) for that frame's headroom.
+     */
     private fun assertSettledInTheFirstFrame(
         frames: List<FrameReading>,
         from: FrameReading,
@@ -618,10 +651,10 @@ class HomeChipArrivalTest {
         assertWithMessage("$what: the ribbon moved in the first frame")
             .that(settled.ribbonTop)
             .isNotEqualTo(from.ribbonTop)
-        assertWithMessage("$what: the hero row moved with the ribbon in the first frame, in dp")
-            .that((settled.ribbonTop - settled.heroTop).value)
+        assertWithMessage("$what: the title space in the first frame against min(T, H), H = ${settled.headroom}, in dp")
+            .that(settled.titleSpace.value)
             .isWithin(TOLERANCE_DP)
-            .of((from.ribbonTop - from.heroTop).value)
+            .of(minOf(composeRule.dimen(R.dimen.home_title_top_padding), settled.headroom).value)
     }
 
     // ---- Harness ---------------------------------------------------------------
@@ -684,11 +717,17 @@ class HomeChipArrivalTest {
         val classicTile = bounds(composeRule.onNodeWithText(classicTileTitle))
         val ribbon = bounds(composeRule.onNodeWithTag(HOME_PROGRESS_RIBBON_TEST_TAG))
         val gap = bounds(composeRule.onNodeWithText(challengeTileTitle)).top - classicTile.bottom
+        val hero = bounds(composeRule.onNodeWithTag(HOME_HERO_TEST_TAG, useUnmergedTree = true))
+        // The viewport's top: the scroll container's, which the status inset sets.
+        val viewportTop = bounds(composeRule.onNode(hasScrollAction(), useUnmergedTree = true)).top
+        val heroVisibleBottom = heroVisibleBottom()
         return FrameReading(
             classicTile = classicTile,
             challengeTile = bounds(composeRule.onNodeWithText(challengeTileTitle)),
-            heroTop = bounds(composeRule.onNodeWithTag(HOME_HERO_TEST_TAG, useUnmergedTree = true)).top,
-            heroVisibleBottom = heroVisibleBottom(),
+            heroTop = hero.top,
+            titleSpace = hero.top - viewportTop - gap,
+            headroom = ribbon.top - viewportTop - gap - heightOf(hero) - gap,
+            lowerGroupLine = lowerGroupLine(ribbon.top, gap, hero.bottom, heroVisibleBottom),
             ribbonTop = ribbon.top,
             room = classicTile.top - ribbon.bottom - gap,
             // Counted by their rooms: a chip whose save has gone is drawn but carries no text (loop 1).
@@ -728,15 +767,17 @@ class HomeChipArrivalTest {
         val overflow = scrollableOverflow()
         val contentBottom = viewportBottom + overflow
         val hero = bounds(composeRule.onNodeWithTag(HOME_HERO_TEST_TAG, useUnmergedTree = true))
+        val ribbonTop = bounds(composeRule.onNodeWithTag(HOME_PROGRESS_RIBBON_TEST_TAG)).top
         return HomeReading(
             classicTile = classicTile,
             challengeTile = challengeTile,
             heroTop = hero.top,
             heroBottom = hero.bottom,
-            heroVisibleBottom = heroVisibleBottom(),
-            ribbonTop = bounds(composeRule.onNodeWithTag(HOME_PROGRESS_RIBBON_TEST_TAG)).top,
+            lowerGroupLine = lowerGroupLine(ribbonTop, gap, hero.bottom, heroVisibleBottom()),
+            ribbonTop = ribbonTop,
             // The column's padding is the band spacing (§4.2.2), so the padding and one gap both.
-            headroom = hero.top - bars.status - gap,
+            titleSpace = hero.top - bars.status - gap,
+            headroom = ribbonTop - bars.status - gap - heightOf(hero) - gap,
             footer = contentBottom - challengeTile.bottom - gap - gap,
             gap = gap,
             overflow = overflow,
@@ -769,6 +810,8 @@ class HomeChipArrivalTest {
         listOfNotNull("Classic".takeIf { classic }, "Challenge".takeIf { challenge })
             .joinToString(" and ")
             .ifEmpty { "no" } + " chip"
+
+    private fun titleSpaceToken(): Dp = composeRule.dimen(R.dimen.home_title_top_padding)
 
     /** The hero row's visible bottom edge (D-03m): the lower of its title's and its gear chip's. */
     private fun heroVisibleBottom(): Dp =
@@ -849,40 +892,6 @@ class HomeChipArrivalTest {
         return with(composeRule.density) { range.maxValue().toDp() }
     }
 
-    /**
-     * One frame's geometry for 15z part 5: [room] is the space between the ribbon's band gap and the
-     * first tile — the chips' room, gaps included — and [chips] how many Continue chips are composed.
-     */
-    private data class FrameReading(
-        val classicTile: DpRect,
-        val challengeTile: DpRect,
-        val heroTop: Dp,
-        val heroVisibleBottom: Dp,
-        val ribbonTop: Dp,
-        val room: Dp,
-        val chips: Int,
-    )
-
-    /** One emission's geometry, in dp, the column unscrolled. */
-    private data class HomeReading(
-        val classicTile: DpRect,
-        val challengeTile: DpRect,
-        val heroTop: Dp,
-        val heroBottom: Dp,
-        val heroVisibleBottom: Dp,
-        val ribbonTop: Dp,
-        val headroom: Dp,
-        val footer: Dp,
-        val gap: Dp,
-        val overflow: Dp,
-    )
-
-    /** A window's system bars. */
-    private data class Bars(
-        val status: Dp,
-        val navigation: Dp,
-    )
-
     private companion object {
         /** The design baseline's system bars: a 24dp status bar and a 48dp three-button navigation bar. */
         val THREE_BUTTON = Bars(status = 24.dp, navigation = 48.dp)
@@ -894,6 +903,55 @@ class HomeChipArrivalTest {
         val PIXEL_9_BARS = Bars(status = 54.dp, navigation = 24.dp)
     }
 }
+
+/**
+ * The line D-03q bounds, where the hero row's visible bottom edge sat before D-03r moved the row up:
+ * the ribbon's top less one band gap and the row's own space below its visible content.
+ */
+private fun lowerGroupLine(
+    ribbonTop: Dp,
+    gap: Dp,
+    heroBottom: Dp,
+    heroVisibleBottom: Dp,
+): Dp = ribbonTop - gap - (heroBottom - heroVisibleBottom)
+
+/**
+ * One frame's geometry for 15z part 5: [room] is the space between the ribbon's band gap and the
+ * first tile — the chips' room, gaps included — and [chips] how many Continue chips are composed;
+ * [titleSpace], [headroom] and [lowerGroupLine] are read as [HomeReading]'s are.
+ */
+private data class FrameReading(
+    val classicTile: DpRect,
+    val challengeTile: DpRect,
+    val heroTop: Dp,
+    val titleSpace: Dp,
+    val headroom: Dp,
+    val lowerGroupLine: Dp,
+    val ribbonTop: Dp,
+    val room: Dp,
+    val chips: Int,
+)
+
+/** One emission's geometry, in dp, the column unscrolled. */
+private data class HomeReading(
+    val classicTile: DpRect,
+    val challengeTile: DpRect,
+    val heroTop: Dp,
+    val heroBottom: Dp,
+    val lowerGroupLine: Dp,
+    val ribbonTop: Dp,
+    val titleSpace: Dp,
+    val headroom: Dp,
+    val footer: Dp,
+    val gap: Dp,
+    val overflow: Dp,
+)
+
+/** A window's system bars. */
+private data class Bars(
+    val status: Dp,
+    val navigation: Dp,
+)
 
 /** The flat field Home's opaque `Scaffold` drew before BD-14: the background, filling the window. */
 @Composable
