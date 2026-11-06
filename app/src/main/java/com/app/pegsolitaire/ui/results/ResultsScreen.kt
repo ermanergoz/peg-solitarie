@@ -4,38 +4,34 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
@@ -49,6 +45,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.domain.scoring.ChallengeBand
+import com.app.pegsolitaire.ui.backdrop.backdropInputObserver
 import com.app.pegsolitaire.ui.components.AnnouncementRegion
 import com.app.pegsolitaire.ui.components.BoardAnnouncer
 import com.app.pegsolitaire.ui.components.StarGlyph
@@ -56,7 +53,6 @@ import com.app.pegsolitaire.ui.components.rememberBoardAnnouncer
 import com.app.pegsolitaire.ui.components.rememberBoardSpeechFormat
 import com.app.pegsolitaire.ui.game.GameTimerFormat
 import com.app.pegsolitaire.ui.theme.ClayAnim
-import com.app.pegsolitaire.ui.theme.claySquish
 import com.app.pegsolitaire.ui.theme.withTabularFigures
 import com.app.pegsolitaire.ui.window.stableSystem
 
@@ -103,6 +99,11 @@ private var SemanticsPropertyReceiver.earnedStarCountValue by EarnedStarCountKey
  * Every value is read straight from [state]; mm:ss is formatted from
  * [ResultsUiState.elapsedSeconds] via [GameTimerFormat] — no scoring is recomputed here.
  *
+ * Two decorative layers sit behind all of it (ux-spec D-RC, §4.7), siblings composed before the
+ * [Scaffold] so hit testing reaches the column first: the gold rays from the star row's centre on
+ * every result ([ResultsRaysLayer], on the screen's own clock, which the root observes input for),
+ * and at three stars, once per result, the seeded confetti fall ([ResultsConfettiLayer]).
+ *
  * One overlay sits above all of it: while [ResultsUiState.adScrimVisible] is set, an
  * [AdQuiescenceScrim] dims the whole screen and swallows every pointer and back event, so
  * the instant between an ad-eligible continue tap and the interstitial rendering cannot
@@ -117,6 +118,8 @@ private var SemanticsPropertyReceiver.earnedStarCountValue by EarnedStarCountKey
  * @param onRetry reloads the same deterministic Challenge board when stuck (carries N, D-10).
  * @param onNavigateBack leaves the Results screen (top-bar back nav).
  * @param modifier layout modifier for the screen.
+ * @param showRays draws the rays layer; on in the product. A test seam only: a pixel test compares a
+ *   frame against the same frame with the layer absent (ux-spec §13).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -129,11 +132,18 @@ fun ResultsScreen(
     onRetry: (Int) -> Unit,
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier,
+    showRays: Boolean = true,
 ) {
     // D-TB (TB-8): the summary is spoken once, on the showing the D-16 latch marks (D-TBa item 7).
     val announcer = rememberBoardAnnouncer()
     ResultsSummaryAnnouncement(state = state, announcer = announcer)
-    Box(modifier = modifier.fillMaxSize()) {
+    val raysClock = rememberResultsRaysClock()
+    val raysAnchor = remember { RaysAnchor() }
+    Box(modifier = modifier.fillMaxSize().backdropInputObserver(raysClock)) {
+        if (showRays) {
+            ResultsRaysLayer(clock = raysClock, anchor = raysAnchor)
+        }
+        ResultsConfettiLayer(state = state)
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             containerColor = Color.Transparent,
@@ -141,42 +151,16 @@ fun ResultsScreen(
             topBar = { ResultsTopBar(onNavigateBack = onNavigateBack) },
             contentWindowInsets = WindowInsets.stableSystem,
         ) { contentPadding ->
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .padding(contentPadding)
-                        .verticalScroll(rememberScrollState())
-                        .padding(dimensionResource(R.dimen.spacing_md)),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Column(
-                    modifier =
-                        Modifier
-                            .widthIn(max = dimensionResource(R.dimen.content_max_width))
-                            .fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement =
-                        Arrangement.spacedBy(dimensionResource(R.dimen.spacing_lg)),
-                ) {
-                    Headline(tier = state.headlineTier)
-                    StarRow(earned = state.stars, playCelebration = state.playCelebration)
-                    state.nextStarBand?.let { band -> NextStarLine(band = band) }
-                    if (state.newBests.any) {
-                        NewBestBadge()
-                    }
-                    MetricBlock(state = state)
-                    ResultsActions(
-                        state = state,
-                        onReplay = onReplay,
-                        onCatalog = onCatalog,
-                        onHome = onHome,
-                        onNextLevel = onNextLevel,
-                        onRetry = onRetry,
-                    )
-                }
-            }
+            ResultsColumn(
+                state = state,
+                contentPadding = contentPadding,
+                onStarRowCentre = { raysAnchor.rowCentreInRoot = it },
+                onReplay = onReplay,
+                onCatalog = onCatalog,
+                onHome = onHome,
+                onNextLevel = onNextLevel,
+                onRetry = onRetry,
+            )
         }
 
         // The scrim is a SIBLING of the Scaffold, not a child of its content lambda. Inside
@@ -190,33 +174,57 @@ fun ResultsScreen(
     }
 }
 
-/** The Results top bar: a back nav and the "Results" title. Stateless. */
-@OptIn(ExperimentalMaterial3Api::class)
+/**
+ * The scrolling content column, centred and capped at `content_max_width`: the headline, the star
+ * row (which reports its centre to [onStarRowCentre] for the rays), the next-star line, "New best!",
+ * the metrics and the actions. Stateless.
+ */
 @Composable
-private fun ResultsTopBar(onNavigateBack: () -> Unit) {
-    TopAppBar(
-        windowInsets = WindowInsets.stableSystem.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top),
-        colors =
-            TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.Transparent,
-                scrolledContainerColor = Color.Transparent,
-            ),
-        navigationIcon = {
-            IconButton(onClick = onNavigateBack, modifier = Modifier.claySquish()) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = stringResource(R.string.navigate_back),
-                    modifier = Modifier.size(dimensionResource(R.dimen.top_bar_icon_size)),
-                )
+private fun ResultsColumn(
+    state: ResultsUiState,
+    contentPadding: PaddingValues,
+    onStarRowCentre: (Offset) -> Unit,
+    onReplay: (String) -> Unit,
+    onCatalog: () -> Unit,
+    onHome: () -> Unit,
+    onNextLevel: () -> Unit,
+    onRetry: (Int) -> Unit,
+) {
+    Column(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .padding(contentPadding)
+                .verticalScroll(rememberScrollState())
+                .padding(dimensionResource(R.dimen.spacing_md)),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .widthIn(max = dimensionResource(R.dimen.content_max_width))
+                    .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_lg)),
+        ) {
+            Headline(tier = state.headlineTier)
+            StarRow(earned = state.stars, playCelebration = state.playCelebration, onCentre = onStarRowCentre)
+            state.nextStarBand?.let { band -> NextStarLine(band = band) }
+            if (state.newBests.any) {
+                NewBestBadge()
             }
-        },
-        title = {
-            Text(
-                text = stringResource(R.string.results_title),
-                style = MaterialTheme.typography.titleLarge,
+            MetricBlock(state = state)
+            ResultsActions(
+                state = state,
+                onReplay = onReplay,
+                onCatalog = onCatalog,
+                onHome = onHome,
+                onNextLevel = onNextLevel,
+                onRetry = onRetry,
             )
-        },
-    )
+        }
+    }
 }
 
 /** The tiered headline (D-08), scaling in with an overshoot pop. Text is unchanged. */
@@ -252,27 +260,30 @@ private fun Headline(tier: ResultsHeadlineTier) {
  *
  * @param earned how many of the three stars this result filled.
  * @param playCelebration whether THIS entry into Results should sound the pops (D-16).
+ * @param onCentre receives the row's centre in root coordinates on every layout, for the rays (D-RC-1).
  */
 @Composable
 private fun StarRow(
     earned: Int,
     playCelebration: Boolean,
+    onCentre: (Offset) -> Unit,
 ) {
     StarPopSounds(earned = earned, play = playCelebration)
     // D-TB (TB-8): one stop, "2 of 3 stars"; the stars inside stay decorative.
-    val starsSpoken = stringResource(R.string.catalog_stars_earned, earned, TOTAL_STARS)
+    val starsSpoken = stringResource(R.string.catalog_stars_earned, earned, CelebrationFx.TOTAL_STARS)
     Row(
         horizontalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_xs)),
         verticalAlignment = Alignment.CenterVertically,
         modifier =
             Modifier
                 .testTag(RESULTS_STAR_ROW_TEST_TAG)
+                .reportCentreInRoot(onCentre)
                 .semantics(mergeDescendants = true) {
                     contentDescription = starsSpoken
                     earnedStarCountValue = earned
                 },
     ) {
-        repeat(TOTAL_STARS) { index ->
+        repeat(CelebrationFx.TOTAL_STARS) { index ->
             val isEarned = index < earned
             if (isEarned) {
                 EarnedStar(order = index)
@@ -322,14 +333,15 @@ private fun EarnedStar(order: Int) {
  * stars." at one star, "Leave 1 peg for 3 stars." at two. Both numbers are [band]'s, which
  * [ResultsUiState.nextStarBand] takes from the clear rule; this leaf only words them.
  *
- * `bodyLarge` in `onSurfaceVariant`, centred and wrapping with no line cap. It fades in on the
+ * `bodyLarge` in `onSurface` (D-RC-2: every uncontained text on Results reads ≥ 4.5:1 under the
+ * rays), centred and wrapping with no line cap. It fades in on the
  * "New best!" pill's timing, after the stars have landed (prose fades, it does not pop), and is
  * present from the first frame with animations off. Its own `Text` node — no live region, no role,
  * not merged into the star row — so TalkBack reaches it as the stop after the stars.
  */
 @Composable
 private fun NextStarLine(band: ChallengeBand) {
-    val alpha = rememberFadeIn(delayMillis = TOTAL_STARS * ClayAnim.STAR_STAGGER_MS)
+    val alpha = rememberFadeIn(delayMillis = CelebrationFx.TOTAL_STARS * ClayAnim.STAR_STAGGER_MS)
     Text(
         text =
             pluralStringResource(
@@ -339,7 +351,7 @@ private fun NextStarLine(band: ChallengeBand) {
                 band.stars,
             ),
         style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = MaterialTheme.colorScheme.onSurface,
         textAlign = TextAlign.Center,
         modifier =
             Modifier
@@ -358,7 +370,7 @@ private fun NextStarLine(band: ChallengeBand) {
  */
 @Composable
 private fun NewBestBadge() {
-    val scale = rememberPopIn(delayMillis = TOTAL_STARS * ClayAnim.STAR_STAGGER_MS)
+    val scale = rememberPopIn(delayMillis = CelebrationFx.TOTAL_STARS * ClayAnim.STAR_STAGGER_MS)
     Surface(
         shape = MaterialTheme.shapes.small,
         color = MaterialTheme.colorScheme.tertiaryContainer,
@@ -410,7 +422,7 @@ private fun MetricBlock(state: ResultsUiState) {
 
 /**
  * One labelled metric: the [value] (`titleLarge` + tabular figures, `onSurface`) over
- * its [label] caption (`labelLarge`, `onSurfaceVariant`).
+ * its [label] caption (`labelLarge`, `onSurface`: D-RC-2, the size and weight steps carry the hierarchy).
  */
 @Composable
 private fun Metric(
@@ -429,7 +441,7 @@ private fun Metric(
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = MaterialTheme.colorScheme.onSurface,
         )
     }
 }
@@ -450,7 +462,7 @@ private fun ResultsSummaryAnnouncement(
         rememberBoardSpeechFormat().resultsSummary(
             headlineRes = headlineResFor(state.headlineTier),
             stars = state.stars,
-            totalStars = TOTAL_STARS,
+            totalStars = CelebrationFx.TOTAL_STARS,
             pegsLeft = state.pegsRemaining,
         )
     var spoken by rememberSaveable { mutableStateOf(false) }
@@ -470,9 +482,6 @@ private fun headlineResFor(tier: ResultsHeadlineTier): Int =
         ResultsHeadlineTier.CLEARED -> R.string.results_headline_cleared
         ResultsHeadlineTier.STUCK -> R.string.results_headline_stuck
     }
-
-/** The total number of stars rendered on the row (earned + unearned). */
-private const val TOTAL_STARS = 3
 
 /** No sequencing delay (the first element in a celebration sequence). */
 private const val NO_DELAY = 0

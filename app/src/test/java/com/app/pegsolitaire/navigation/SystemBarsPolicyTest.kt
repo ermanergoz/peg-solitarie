@@ -29,9 +29,9 @@ import org.robolectric.annotation.Config
 
 /**
  * Criterion 30a (docs/ux-spec.md D-05g; docs/tech-design.md §3.8 (a)): one bar policy for the whole
- * graph, applied by the host to its window in the frame a destination is first composed. Gameplay —
- * Classic and Challenge — and Results ask for [Hidden]; every other destination, and any destination
- * added later, asks for [Shown]; a restored back stack whose top is the board asks for [Hidden] first.
+ * graph, applied by the host to its window in the frame a destination is first composed. The whole app
+ * is immersive (founder 2026-11-05): every destination, and any destination added later, asks for
+ * [Hidden]; a restored back stack whose top is the board asks for [Hidden] first.
  *
  * The host is the real `AppNavHost` over stand-in destinations ([AppNavHostWithBarStandIns]); the
  * seam is the recording fake, so what is read is what the host asked of its window, in order.
@@ -47,20 +47,20 @@ class SystemBarsPolicyTest {
     private val hostWindow: Window get() = composeRule.activity.window
 
     @Test
-    fun homeAsksForShownBarsOnTheHostsFirstComposition() {
+    fun homeAsksForHiddenBarsOnTheHostsFirstComposition() {
         host()
 
-        assertWithMessage("the host's first bar request").that(bars.records.firstOrNull()?.state).isEqualTo(Shown)
+        assertWithMessage("the host's first bar request").that(bars.records.firstOrNull()?.state).isEqualTo(Hidden)
         assertWithMessage("every bar request on Home")
             .that(bars.records.map { it.state }.toSet())
-            .containsExactly(Shown)
+            .containsExactly(Hidden)
         assertWithMessage("the window every request named")
             .that(bars.records.map { it.window }.toSet())
             .containsExactly(hostWindow)
     }
 
     @Test
-    fun gameplayAndResultsHideTheBarsAndHomeShowsThemAgain() {
+    fun gameplayResultsAndHomeAllHideTheBars() {
         host()
 
         go(Gameplay(levelId = CLASSIC_BOARD))
@@ -71,7 +71,7 @@ class SystemBarsPolicyTest {
         assertLastRequest(Hidden, "a Challenge level")
         composeRule.runOnUiThread { navController.popBackStack(Home, inclusive = false) }
         composeRule.waitForIdle()
-        assertLastRequest(Shown, "Home, back from the board")
+        assertLastRequest(Hidden, "Home, back from the board")
     }
 
     @Test
@@ -90,11 +90,12 @@ class SystemBarsPolicyTest {
     }
 
     /**
-     * Each destination is entered from the board, whose bars are hidden, so a destination that asked
-     * for nothing would leave them hidden and fail here: every one must ask for [Shown] itself.
+     * The founder's report (2026-11-05): Settings and the Classic catalogue showed the status bar.
+     * Each destination is entered from the board and asks for [Hidden] itself, and no request on the
+     * way asks for [Shown].
      */
     @Test
-    fun everyOtherDestinationShowsTheBars() {
+    fun everyOtherDestinationHidesTheBars() {
         host()
         val standard =
             listOf(
@@ -103,16 +104,16 @@ class SystemBarsPolicyTest {
                 Tutorial,
                 Licenses,
                 LicenseText(entryId = LICENCE_ENTRY),
-                GoogleNotices,
-                GoogleNoticeText(key = NOTICE_KEY),
             )
 
         standard.forEach { destination ->
             go(Gameplay(levelId = CLASSIC_BOARD))
-            assertLastRequest(Hidden, "the board, before $destination")
             go(destination)
-            assertLastRequest(Shown, "$destination")
+            assertLastRequest(Hidden, "$destination")
         }
+        assertWithMessage("every bar request across the destinations")
+            .that(bars.records.map { it.state })
+            .doesNotContain(Shown)
     }
 
     /**
@@ -138,9 +139,9 @@ class SystemBarsPolicyTest {
             .isEqualTo(Hidden)
     }
 
-    /** The policy's `else`: a destination it does not name shows its bars, the board's having been hidden. */
+    /** A destination added later is immersive too: the policy names no exception. */
     @Test
-    fun aDestinationThePolicyDoesNotNameShowsTheBars() {
+    fun aDestinationThePolicyDoesNotNameHidesTheBars() {
         composeRule.setContent {
             CompositionLocalProvider(LocalSystemBars provides bars) {
                 navController = rememberNavController()
@@ -159,7 +160,7 @@ class SystemBarsPolicyTest {
 
         go(UnnamedDestination)
 
-        assertLastRequest(Shown, "a destination the policy does not name")
+        assertLastRequest(Hidden, "a destination the policy does not name")
     }
 
     /**
@@ -211,7 +212,7 @@ class SystemBarsPolicyTest {
         composeRule.mainClock.autoAdvance = false
         composeRule.runOnUiThread { navController.navigate(Gameplay(levelId = CLASSIC_BOARD)) }
         assertWithMessage("whether the board is composed before any frame").that(boardComposed()).isFalse()
-        assertLastRequest(Shown, "Home, before any frame")
+        bars.clear()
 
         var frames = 0
         while (!boardComposed() && frames < MAX_FRAMES_TO_THE_BOARD) {
@@ -265,7 +266,7 @@ class SystemBarsPolicyTest {
 }
 
 /**
- * A destination no rule of the policy names, standing in for one added after D-05g. Internal, not
+ * A destination no test above names, standing in for one added later. Internal, not
  * private: kotlinx.serialization reaches a route's serializer reflectively.
  */
 @Serializable
@@ -280,7 +281,6 @@ private const val MAX_FRAMES_TO_THE_BOARD = 10
 private const val CLASSIC_BOARD = "english33"
 private const val CHALLENGE_LEVEL = 7
 private const val LICENCE_ENTRY = "stand_in_entry"
-private const val NOTICE_KEY = "stand_in_key"
 private const val SAMPLE_STARS = 2
 private const val SAMPLE_PEGS = 3
 private const val SAMPLE_SECONDS = 75

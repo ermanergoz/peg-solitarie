@@ -63,6 +63,17 @@ data class ClayColors(
     val shadowTint: Color,
     /** `TitleGradient` stops (vertical) for the Home title only (colour-vision.md TG-01). */
     val titleGradient: List<Color>,
+    /**
+     * The Results rays' colour at their peak (ux-spec D-RC-2, §6.2): the scheme's `tertiary` — the
+     * stars' own deep stop — at [RAY_PEAK_ALPHA_LIGHT] or [RAY_PEAK_ALPHA_DARK]. The only place the
+     * rays' colour is decided; decorative, so the colour-blind palette leaves it as it is.
+     */
+    val celebrationRay: Color,
+    /**
+     * The Results confetti's six colours in their fixed order (ux-spec D-RC-4, §6.2): `primary`,
+     * `secondary`, `tertiary`, then the light stops of [ctaGradient], [pegGradient] and [goldGradient].
+     */
+    val confettiPalette: List<Color>,
 )
 
 internal val LightClayColors =
@@ -75,6 +86,16 @@ internal val LightClayColors =
         dimpleShadow = LightDimpleShadow,
         shadowTint = LightClayShadowTint,
         titleGradient = LightTitleGradientColors,
+        celebrationRay = LightColors.tertiary.copy(alpha = RAY_PEAK_ALPHA_LIGHT),
+        confettiPalette =
+            listOf(
+                LightColors.primary,
+                LightColors.secondary,
+                LightColors.tertiary,
+                LightCtaGradientColors.first(),
+                LightPegGradientColors.first(),
+                LightGoldGradientColors.first(),
+            ),
     )
 
 internal val DarkClayColors =
@@ -87,6 +108,16 @@ internal val DarkClayColors =
         dimpleShadow = DarkDimpleShadow,
         shadowTint = DarkClayShadowTint,
         titleGradient = DarkTitleGradientColors,
+        celebrationRay = DarkColors.tertiary.copy(alpha = RAY_PEAK_ALPHA_DARK),
+        confettiPalette =
+            listOf(
+                DarkColors.primary,
+                DarkColors.secondary,
+                DarkColors.tertiary,
+                DarkCtaGradientColors.first(),
+                DarkPegGradientColors.first(),
+                DarkGoldGradientColors.first(),
+            ),
     )
 
 /** The active clay palette, provided by `AppTheme` alongside the color scheme. */
@@ -243,6 +274,12 @@ fun rememberAnimationsEnabled(): Boolean {
     val motionScale = rememberCoroutineScope().coroutineContext[MotionDurationScale]
     return (motionScale?.scaleFactor ?: DEFAULT_ANIMATOR_SCALE) != DISABLED_ANIMATOR_SCALE
 }
+
+/** The Results rays' peak alpha over the light sky (ux-spec D-RC-2; §4.7's contrast table). */
+private const val RAY_PEAK_ALPHA_LIGHT = 0.20f
+
+/** The Results rays' peak alpha over the dark sky. */
+private const val RAY_PEAK_ALPHA_DARK = 0.16f
 
 /** The gradient fraction where the CTA light lip ends. */
 private const val CTA_LIGHT_STOP = 0f

@@ -290,11 +290,22 @@ internal fun ComposeContentTestRule.columnBoundsOf(node: SemanticsNode): DpRect 
  *   (top of the window = 0): `TITLE_REACH` · H less `entrance_slide_distance` (D-03q).
  * @property boundHeadroom C: the headroom at which the hero row's bottom edge meets [titleBound] —
  *   the bound, less the status inset, the column's top padding and the row's height.
+ * @property titleSpace D-03s's space above the title (`home_title_top_padding`), before the middle
+ *   caps it.
+ *
+ * Since D-03r (ux-spec §3, founder 2026-11-02) the "headroom" this formula computes no longer lies
+ * above the hero row: the hero row is pinned at the top of the column and the headroom lies
+ * **between** it and the ribbon, so it is how far the ribbon, the chips and the tiles sit below the
+ * place they would have with no slack at all — where D-03p/D-03q put them, unchanged. D-03s
+ * (founder 2026-11-02, 687259b) then takes [titleSpace] above the title out of that headroom, so the
+ * lower group does not move: the hero row sits [titleSpaceWith] below the column's top padding, and
+ * the space left between the hero row and the ribbon is [middleWith].
  */
 internal data class HomeSlack(
     val slack: Dp,
     val titleBound: Dp,
     val boundHeadroom: Dp,
+    val titleSpace: Dp,
 ) {
     /** H₀, the no-chip headroom: min(⅘ S₀, C), floored at 0 (D-03q). */
     val noChipHeadroom: Dp get() = minOf(slack * HEADROOM_SHARE_OF_SLACK, maxOf(0.dp, boundHeadroom))
@@ -305,8 +316,14 @@ internal data class HomeSlack(
     /** The footer with the chips' [room]: min(S₀ − H₀, max(0, S₀ − R)). */
     fun footerWith(room: Dp): Dp = minOf(slack - noChipHeadroom, maxOf(0.dp, slack - room))
 
-    /** How far the hero row and the ribbon rise from their no-chip tops with the chips' [room]: min(R, H₀). */
+    /** How far the ribbon rises from its no-chip top with the chips' [room]: min(R, H₀). */
     fun riseWith(room: Dp): Dp = minOf(room, noChipHeadroom)
+
+    /** D-03s: the space above the title with the chips' [room] — the token, capped by the headroom. */
+    fun titleSpaceWith(room: Dp): Dp = minOf(titleSpace, headroomWith(room))
+
+    /** D-03r/D-03s: the empty space between the hero row and the ribbon, beyond their band gap. */
+    fun middleWith(room: Dp): Dp = headroomWith(room) - titleSpaceWith(room)
 
     /** How far the tiles fall from their no-chip tops with the chips' [room]: max(0, R − H₀), never up. */
     fun tilesFallWith(room: Dp): Dp = maxOf(0.dp, room - noChipHeadroom)
@@ -336,6 +353,7 @@ internal fun ComposeContentTestRule.homeSlack(
         slack = maxOf(0.dp, viewport - gap * 2 - bands - gap * NO_CHIP_BAND_GAPS),
         titleBound = titleBound,
         boundHeadroom = titleBound - statusBar - gap - heightOf(hero),
+        titleSpace = dimen(R.dimen.home_title_top_padding),
     )
 }
 

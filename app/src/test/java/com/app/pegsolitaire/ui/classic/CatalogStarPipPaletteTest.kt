@@ -3,6 +3,8 @@ package com.app.pegsolitaire.ui.classic
 import android.graphics.Bitmap
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.semantics.SemanticsNode
@@ -15,6 +17,7 @@ import com.app.pegsolitaire.data.ClassicLevelIds
 import com.app.pegsolitaire.domain.model.Boards
 import com.app.pegsolitaire.testing.SystemMotionScale
 import com.app.pegsolitaire.testing.renderedWindow
+import com.app.pegsolitaire.ui.components.CHANNEL_TOLERANCE
 import com.app.pegsolitaire.ui.components.STAR_CENTRE_UNITS
 import com.app.pegsolitaire.ui.components.isBetweenStops
 import com.app.pegsolitaire.ui.components.isColour
@@ -33,6 +36,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import kotlin.math.roundToInt
 
 /**
  * What a catalogue card's star pips draw in each palette (docs/ux/colour-vision.md §3.4, §12;
@@ -41,8 +45,13 @@ import org.robolectric.annotation.GraphicsMode
  * The real `ClassicCatalogScreen` with one card on which two of three stars are earned, rendered
  * under the standard palette and then under the colour-blind one **in the same run**. In both
  * palettes and both themes an unearned pip is the hollow star, so its centre shows the card it
- * sits on (`surfaceContainerHigh`), and an earned pip's centre shows the palette's fill. The pip
- * row's spoken count does not move with the palette.
+ * sits on, and an earned pip's centre shows the palette's fill. The pip row's spoken count does not
+ * move with the palette.
+ *
+ * The card is `TintedCard`'s (d8428c5): in dark theme the opaque `surfaceContainerHigh`; in light
+ * theme the theme's violet at [CARD_TINT_ALPHA] laid over whatever is behind the card, so the
+ * card's colour and opacity there are that violet composited over the pixel just outside the card,
+ * at the pip's height (nothing is drawn behind the card in this test, so that pixel is clear).
  *
  * At 16dp the hollow band is about 1dp wide, so only centres are read here; the band's colour is
  * read on the Results row's 48dp stars (`ResultsStarPaletteTest`) and on the glyph itself
@@ -116,9 +125,9 @@ class CatalogStarPipPaletteTest {
         pips: List<Rect>,
     ) {
         val marks = boardMarksFor(shown, dark)
-        val card = (if (dark) DarkColors else LightColors).surfaceContainerHigh
         pips.forEachIndexed { index, box ->
             val centre = frame.starPixel(box, STAR_CENTRE_UNITS, STAR_CENTRE_UNITS)
+            val card = cardColourAt(frame, dark, box.center.y)
             if (index < EARNED) {
                 assertWithMessage("$shown: earned pip $index's centre shows its fill")
                     .that(isBetweenStops(centre, marks.earnedStarFill))
@@ -127,8 +136,27 @@ class CatalogStarPipPaletteTest {
                 assertWithMessage("$shown: the unearned pip's centre shows the card beneath it")
                     .that(isColour(centre, card))
                     .isTrue()
+                assertWithMessage("$shown: the unearned pip's centre has the card's opacity, 0–255")
+                    .that(Color(centre).alpha * BYTE_MAX)
+                    .isWithin(CHANNEL_TOLERANCE.toFloat())
+                    .of(card.alpha * BYTE_MAX)
             }
         }
+    }
+
+    /**
+     * The card's colour at height [y]: in dark theme the opaque `surfaceContainerHigh`; in light theme
+     * the violet tint composited over what lies behind the card, read at the window's left edge,
+     * outside the card and inside the grid's padding.
+     */
+    private fun cardColourAt(
+        frame: Bitmap,
+        dark: Boolean,
+        y: Float,
+    ): Color {
+        if (dark) return DarkColors.surfaceContainerHigh
+        val behind = Color(frame.getPixel(OUTSIDE_THE_CARD_PX, y.roundToInt()))
+        return LightColors.primary.copy(alpha = CARD_TINT_ALPHA).compositeOver(behind)
     }
 
     /** The three pips of [row], left to right: square, [gapPx] apart. */
@@ -168,6 +196,15 @@ private val ONE_CARD_TWO_STARS =
 
 private const val EARNED = 2
 private const val TOTAL_STARS = 3
+
+/** TintedCard's light-theme tint: the theme's violet at 10% (d8428c5). */
+private const val CARD_TINT_ALPHA = 0.10f
+
+/** A colour channel's full scale. */
+private const val BYTE_MAX = 255f
+
+/** A column of the window left of the card: inside the grid's 16dp content padding at xxhdpi. */
+private const val OUTSIDE_THE_CARD_PX = 2
 
 /** Layout positions are whole pixels at xxhdpi; the row's measured width may round by one. */
 private const val ONE_PIXEL = 1f

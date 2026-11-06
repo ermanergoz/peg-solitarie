@@ -106,7 +106,6 @@ internal const val SETTINGS_CONTENT_TAG = "settings_content"
  * @param onShowHowToPlay opens the interactive tutorial (ONB-01, D-02a) — the **one**
  *   permanent entry point to it, since Home's help icon is deleted. A hoisted lambda
  *   supplied by `AppNavHost`; the screen never sees a controller.
- * @param onOpenLicenses opens the Licenses screen from Settings › About (spec LS-01).
  * @param onSignInToPlayGames signs the player in to Play Games and records the opt-in
  *   (PGS-03, D-10/D-19). Reached only from the signed-out row.
  * @param onShowLeaderboards opens the stock all-leaderboards picker (PGSL-06, D-14).
@@ -128,7 +127,6 @@ fun SettingsScreen(
     onToggleHaptics: (Boolean) -> Unit,
     onToggleColorblindPalette: (Boolean) -> Unit,
     onShowHowToPlay: () -> Unit,
-    onOpenLicenses: () -> Unit,
     onSignInToPlayGames: () -> Unit,
     onShowLeaderboards: () -> Unit,
     onShowAchievements: () -> Unit,
@@ -192,7 +190,6 @@ fun SettingsScreen(
                     onShowLeaderboards = onShowLeaderboards,
                     onShowAchievements = onShowAchievements,
                 )
-                AboutSection(onOpenLicenses = onOpenLicenses)
                 PrivacySection(
                     privacyOptionsRequired = state.privacyOptionsRequired,
                     snackbarHostState = snackbarHostState,
@@ -393,29 +390,6 @@ private fun PlayGamesSection(
 }
 
 /**
- * The "About" group (spec LS-01, §2): a header over the one Licenses row, after Play Games — or
- * after General while Play Games is absent (D-11) — and before Privacy, which stays pinned last.
- *
- * The row is the "How to play" row's exact shape: a `SettingsLinkRow` with no trailing glyph,
- * because it opens in-app (the browser-bound policy row is the one with a glyph), and the forward
- * cue attached at this call site through `withClickSound` (D-09), never to the shared squish.
- */
-@Composable
-private fun AboutSection(onOpenLicenses: () -> Unit) {
-    SettingsSectionHeader(
-        title = stringResource(R.string.settings_section_about),
-        entranceOrder = ABOUT_HEADER_ORDER,
-    )
-    SettingsLinkRow(
-        label = stringResource(R.string.settings_licenses_label),
-        supporting = stringResource(R.string.settings_licenses_supporting),
-        entranceOrder = LICENSES_ROW_ORDER,
-        trailingIcon = null,
-        onClick = withClickSound(SoundCue.ButtonForward, onOpenLicenses),
-    )
-}
-
-/**
  * Shows the D-10 sign-in error once per raised [errorTick] and hands the ordinal back
  * through [onErrorShown] — the same consumed one-shot-event idiom `HomeScreen`'s
  * `PlayGamesSignInErrorSnackbarEffect` uses, against the same `play_games_signin_error`
@@ -606,8 +580,6 @@ private const val PLAY_GAMES_HEADER_ORDER = 5
 private const val PLAY_GAMES_ROW_ORDER = 6
 private const val PLAY_GAMES_LEADERBOARDS_ROW_ORDER = 7
 private const val PLAY_GAMES_ACHIEVEMENTS_ROW_ORDER = 8
-private const val ABOUT_HEADER_ORDER = 9
-private const val LICENSES_ROW_ORDER = 10
-private const val PRIVACY_HEADER_ORDER = 11
-private const val PRIVACY_POLICY_ROW_ORDER = 12
-private const val PRIVACY_CHOICES_ROW_ORDER = 13
+private const val PRIVACY_HEADER_ORDER = 9
+private const val PRIVACY_POLICY_ROW_ORDER = 10
+private const val PRIVACY_CHOICES_ROW_ORDER = 11

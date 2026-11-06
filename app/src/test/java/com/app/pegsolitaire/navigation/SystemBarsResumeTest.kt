@@ -12,7 +12,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.app.pegsolitaire.ui.window.RecordingSystemBars
 import com.app.pegsolitaire.ui.window.SystemBarsState.Hidden
-import com.app.pegsolitaire.ui.window.SystemBarsState.Shown
 import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Rule
 import org.junit.Test
@@ -24,7 +23,7 @@ import org.robolectric.annotation.Config
  * Criterion 30b (docs/ux-spec.md D-05g part 2; docs/tech-design.md §3.8 (b)): whenever the activity
  * resumes while the board or Results is current — after an ad's own activity, a Play Games UI, the
  * launcher, the lock screen, the shade — the host asks for hidden bars again, at the resume itself,
- * before any frame. On Home the same cycle asks for no hidden bars.
+ * before any frame. Every destination is immersive, so Home's resume asks for hidden bars too.
  *
  * The activity's lifecycle is a registry the test moves, provided as the composition's lifecycle
  * owner, as `BackdropSettleTest` does; the host's adapter sits outside the `NavHost`'s per-entry
@@ -69,20 +68,10 @@ class SystemBarsResumeTest {
     }
 
     @Test
-    fun aResumeOnHomeAsksForNoHiddenBars() {
+    fun aResumeOnHomeAsksForHiddenBarsAgain() {
         host()
-        bars.clear()
 
-        composeRule.mainClock.autoAdvance = false
-        composeRule.runOnUiThread { owner.move(Lifecycle.State.STARTED) }
-        composeRule.runOnUiThread { owner.move(Lifecycle.State.RESUMED) }
-
-        assertWithMessage("the bar requests a resume on Home made")
-            .that(bars.records.map { it.state })
-            .doesNotContain(Hidden)
-        assertWithMessage("the bar requests a resume on Home made")
-            .that(bars.records.map { it.state })
-            .contains(Shown)
+        assertTheResumeAsksForHiddenBars("Home")
     }
 
     /**

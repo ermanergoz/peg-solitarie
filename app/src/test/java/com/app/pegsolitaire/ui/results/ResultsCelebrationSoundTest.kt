@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import com.app.pegsolitaire.audio.FakeSoundPlayer
 import com.app.pegsolitaire.audio.LocalSoundPlayer
 import com.app.pegsolitaire.audio.SoundCue
@@ -150,6 +151,22 @@ class ResultsCelebrationSoundTest {
         assertThat(popRates()).hasSize(THREE_STARS)
     }
 
+    // ---- The confetti adds no sound (D-RC-6, RC-11) -------------------------
+
+    @Test
+    fun aThreeStarResultWithTheConfettiFallingRecordsOnlyTheThreePops() {
+        celebrate(stars = THREE_STARS)
+
+        advance(CONFETTI_MID_FALL_MS)
+        assertThat(
+            composeRule.onAllNodesWithTag(RESULTS_CONFETTI_TEST_TAG, useUnmergedTree = true).fetchSemanticsNodes(),
+        ).hasSize(1)
+        advance(CONFETTI_PAST_END_MS)
+
+        assertThat(sounds.events.map { it.cue }).containsExactly(SoundCue.StarPop, SoundCue.StarPop, SoundCue.StarPop)
+        assertThat(popRates()).containsExactly(popRate(0), popRate(1), popRate(2)).inOrder()
+    }
+
     // ---- Helpers -------------------------------------------------------------
 
     /** Composes the real Results screen over a frozen clock, with the recording player installed. */
@@ -196,6 +213,10 @@ private const val THREE_STARS = 3
 private const val TWO_STARS = 2
 private const val ONE_STAR = 1
 private const val TOP_LADDER_STEP = 2
+
+/** Inside the confetti's fall, and then past its end (ux-spec §4.7's timeline). */
+private const val CONFETTI_MID_FALL_MS = 2_000L
+private const val CONFETTI_PAST_END_MS = 3_000L
 
 /** A solved board leaves exactly one peg. */
 private const val CELEBRATION_PEGS_REMAINING = 1

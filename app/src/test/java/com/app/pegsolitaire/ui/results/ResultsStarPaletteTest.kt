@@ -51,6 +51,11 @@ import org.robolectric.annotation.GraphicsMode
  *   no outline);
  * - the row's `EarnedStarCountKey` does not move with the palette.
  *
+ * The rays layer (ux-spec D-RC-1) is drawn with the screen and tints what lies behind the hollow star,
+ * so this test composes the screen with `showRays = false` (§13's retarget): 'beneath' stays the sky,
+ * and the oracle stays the palette's colours. The rays' own pixels, and that they are the same in both
+ * palettes, are `ResultsRaysPixelTest`'s.
+ *
  * A row that stopped drawing the active palette, or went back to today's filled unearned glyph,
  * fails here. Animations are off, so the stars have popped in and every frame is still.
  */
@@ -117,6 +122,7 @@ class ResultsStarPaletteTest {
                             onNextLevel = {},
                             onRetry = {},
                             onNavigateBack = {},
+                            showRays = false,
                         )
                     }
                 }

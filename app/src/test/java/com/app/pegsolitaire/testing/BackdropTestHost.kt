@@ -124,10 +124,7 @@ internal object StandInTags {
     const val SETTINGS_LICENSES = "standin_settings_licenses"
     const val TUTORIAL_EXIT = "standin_tutorial_exit"
     const val LICENSES_ENTRY = "standin_licenses_entry"
-    const val LICENSES_GOOGLE_NOTICES = "standin_licenses_google_notices"
     const val LICENSE_TEXT_BACK = "standin_license_text_back"
-    const val GOOGLE_NOTICE = "standin_google_notice"
-    const val GOOGLE_NOTICE_TEXT_BACK = "standin_google_notice_text_back"
 }
 
 /**
@@ -176,20 +173,11 @@ internal fun AppNavHostWithStandIns(
             }
         },
         tutorialContent = { onExit -> StandIn(StandInTags.TUTORIAL_EXIT, Modifier.fillMaxSize(), onClick = onExit) },
-        licensesContent = { onOpenEntry, onOpenGoogleNotices, _ ->
-            Column(Modifier.fillMaxSize()) {
-                StandIn(StandInTags.LICENSES_ENTRY, Modifier.weight(1f)) { onOpenEntry(STAND_IN_LICENCE_ENTRY) }
-                StandIn(StandInTags.LICENSES_GOOGLE_NOTICES, Modifier.weight(1f), onOpenGoogleNotices)
-            }
+        licensesContent = { onOpenEntry, _ ->
+            StandIn(StandInTags.LICENSES_ENTRY, Modifier.fillMaxSize()) { onOpenEntry(STAND_IN_LICENCE_ENTRY) }
         },
         licenseTextContent = { onBack ->
             StandIn(StandInTags.LICENSE_TEXT_BACK, Modifier.fillMaxSize(), onClick = onBack)
-        },
-        googleNoticesContent = { onOpenNotice, _ ->
-            StandIn(StandInTags.GOOGLE_NOTICE, Modifier.fillMaxSize()) { onOpenNotice(STAND_IN_NOTICE_KEY) }
-        },
-        googleNoticeTextContent = { onBack ->
-            StandIn(StandInTags.GOOGLE_NOTICE_TEXT_BACK, Modifier.fillMaxSize(), onClick = onBack)
         },
         backdropFrames = frames,
     )
@@ -210,6 +198,5 @@ internal const val TEST_POSE_MS = 4_000L
 private const val STAND_IN_LEVEL = 3
 private const val STAND_IN_BOARD = "english33"
 private const val STAND_IN_LICENCE_ENTRY = "stand_in_licence_entry"
-private const val STAND_IN_NOTICE_KEY = "stand_in_notice_key"
 private val STAND_IN_RESULTS =
     Results(levelId = STAND_IN_BOARD, stars = 1, pegsRemaining = 3, elapsedSeconds = 60, score = 10)
