@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -33,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
@@ -48,6 +49,8 @@ import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.app.pegsolitaire.R
 import com.app.pegsolitaire.audio.JumpSoundEffect
@@ -79,6 +82,12 @@ import com.app.pegsolitaire.ui.window.stableSystem
 /** Semantics tag the tests use to locate the tutorial screen — never its button copy. */
 const val TUTORIAL_SCREEN_TEST_TAG = "tutorial_screen"
 
+/** Semantics tag on the header row — the step pips and Skip — for the layout tests. */
+const val TUTORIAL_HEADER_TEST_TAG = "tutorial_header"
+
+/** Semantics tag on the body — the board slab, the caption and the footer — for the layout tests. */
+const val TUTORIAL_BODY_TEST_TAG = "tutorial_body"
+
 /**
  * The interactive tutorial (ONB-01, D-01/D-01a-i) — stateless: it renders [state] and emits
  * taps upward, and decides nothing.
@@ -88,6 +97,13 @@ const val TUTORIAL_SCREEN_TEST_TAG = "tutorial_screen"
  * `GameUiState` and the real rules engine, so what the player learns is literally the mechanic
  * they will use — it is not an illustration. The footer is empty until the third step is
  * cleared, which keeps the board optically centred during play.
+ *
+ * The header is pinned to the top; the board, caption and footer are one body, centred in the
+ * height below the header (the founder, 2026-11-06): on a tall phone the gap from the header down
+ * to the body equals the gap from the body down to the navigation bar, on every step
+ * (`HeaderPinnedBodyCentred`). The footer keeps its full height from the first step, invisible
+ * until the third step is cleared, so the body is the same height throughout and the board does not
+ * move when the star and the CTA appear (the founder, loop 1).
  *
  * Scrolling is for the overflow case only: at default font scale all four bands fit on a
  * 360x640dp phone, and the board keeps its square `tutorial_board_size` at every font scale
@@ -169,34 +185,55 @@ fun TutorialScreen(
         //    that minimum is a no-op, which is how the 480dp cap came to do nothing here.
         //    This Box does not propagate its minimum, so the cap binds and `align` centres
         //    what it caps (§12 "capped at content_max_width and centred").
+        //
+        // The column's HEIGHT is the other way round: `fillMaxHeight()` between the insets and
+        // the scroll makes the viewport the whole inset height, and `verticalScroll` passes that
+        // on as the content's minimum height. So on a tall phone the column is at least its
+        // viewport's height and `HeaderPinnedBodyCentred` has the slack to place: the header at
+        // the top, the body centred below it. It touches height only, so the width cap above
+        // still binds; and once the bands overflow, the column is as tall as they are and
+        // scrolls exactly as before.
         Box(modifier = Modifier.fillMaxSize()) {
+            val bandSpacing = dimensionResource(R.dimen.spacing_lg)
+            val columnPadding = dimensionResource(R.dimen.spacing_md)
+            val arrangement =
+                remember(bandSpacing, columnPadding) {
+                    HeaderPinnedBodyCentred(spacing = bandSpacing, bottomPadding = columnPadding)
+                }
             Column(
                 modifier =
                     Modifier
                         .align(Alignment.TopCenter)
                         .windowInsetsPadding(WindowInsets.stableSystem)
+                        .fillMaxHeight()
                         .verticalScroll(rememberScrollState())
                         .widthIn(max = dimensionResource(R.dimen.content_max_width))
-                        .padding(dimensionResource(R.dimen.spacing_md))
+                        .padding(columnPadding)
                         .testTag(TUTORIAL_SCREEN_TEST_TAG),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_lg)),
+                verticalArrangement = arrangement,
             ) {
                 TutorialHeader(state = state, onSkip = onSkip)
-                TutorialBoardSlab(
-                    state = state,
-                    onCellTap = onCellTap,
-                    onAnimationFinished = onAnimationFinished,
-                    boardStopFocus = boardStopFocus,
-                    touchExploration = touchExploration,
-                )
-                TutorialCaption(captionRes = state.captionRes)
-                TutorialFooter(
-                    completed = state.completed,
-                    onDone = onDone,
-                    gotItFocus = gotItFocus,
-                    touchExploration = touchExploration,
-                )
+                Column(
+                    modifier = Modifier.testTag(TUTORIAL_BODY_TEST_TAG),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(bandSpacing),
+                ) {
+                    TutorialBoardSlab(
+                        state = state,
+                        onCellTap = onCellTap,
+                        onAnimationFinished = onAnimationFinished,
+                        boardStopFocus = boardStopFocus,
+                        touchExploration = touchExploration,
+                    )
+                    TutorialCaption(captionRes = state.captionRes)
+                    TutorialFooter(
+                        completed = state.completed,
+                        onDone = onDone,
+                        gotItFocus = gotItFocus,
+                        touchExploration = touchExploration,
+                    )
+                }
             }
             // D-TB: the screen's spoken channel, drawn last, above everything (defect ruling §1).
             AnnouncementRegion(announcer)
@@ -211,7 +248,7 @@ private fun TutorialHeader(
     onSkip: () -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().testTag(TUTORIAL_HEADER_TEST_TAG),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -357,6 +394,13 @@ private fun TutorialCaption(captionRes: Int) {
 /**
  * Empty until the last step is cleared, then the gold star and the completion CTA.
  *
+ * Empty is invisible, not absent (the founder, loop 1): the footer keeps its full height from the
+ * first step, so the centred body is the same height throughout and the board does not move when
+ * the star and the CTA appear. Until then the star's room is an empty box of the star's size — the
+ * star itself is first composed at completion, so its pop starts there — and the CTA is laid out
+ * but transparent, disabled, unable to take focus and cleared from semantics: nothing to see,
+ * press, focus or announce.
+ *
  * **The star pops silently** (D-01h, upheld by D-01i): neither the win nor the star-pop cue
  * plays, because a tutorial is not a victory — `ClayAnim.STAR_POP_MS` is borrowed as a
  * *duration*, not as a cue. Nor is anything banked behind it: no star, no cleared resume
@@ -370,18 +414,23 @@ private fun TutorialFooter(
     gotItFocus: FocusRequester,
     touchExploration: Boolean,
 ) {
-    if (!completed) {
-        Spacer(modifier = Modifier.fillMaxWidth())
-        return
-    }
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .then(if (completed) Modifier else Modifier.alpha(HIDDEN_ALPHA).clearAndSetSemantics {}),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(dimensionResource(R.dimen.spacing_md)),
     ) {
-        CompletionStar()
+        Box(
+            modifier = Modifier.size(dimensionResource(R.dimen.results_star_size)),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (completed) CompletionStar()
+        }
         Button(
             onClick = withClickSound(SoundCue.ButtonForward, onDone),
+            enabled = completed,
             shape = MaterialTheme.shapes.large,
             // The house CTA treatment: a transparent M3 button over the shared CtaGradient,
             // so this button is the same object the player has already pressed on Home.
@@ -390,10 +439,16 @@ private fun TutorialFooter(
                 Modifier
                     .fillMaxWidth()
                     .focusRequester(gotItFocus)
-                    // A clickable cannot take focus in touch mode, a phone's; completion moves focus
-                    // here under touch exploration only (defect ruling §2, B-2; TB-11 untouched).
-                    .focusProperties { if (touchExploration) canFocus = true }
-                    .claySquish()
+                    .focusProperties {
+                        when {
+                            // Waiting, it takes no focus at all, a hardware keyboard's included.
+                            !completed -> canFocus = false
+                            // A clickable cannot take focus in touch mode, a phone's; completion moves
+                            // focus here under touch exploration only (defect ruling §2, B-2; TB-11
+                            // untouched).
+                            touchExploration -> canFocus = true
+                        }
+                    }.claySquish()
                     .clayShadow(dimensionResource(R.dimen.elevation_card), MaterialTheme.shapes.large)
                     .background(brush = ctaGradientBrush(), shape = MaterialTheme.shapes.large),
         ) {
@@ -429,6 +484,47 @@ private fun CompletionStar() {
     )
 }
 
+/**
+ * The tutorial column's arrangement: the header pinned at the top, the body centred in the height
+ * below it (the founder, 2026-11-06).
+ *
+ * The column is at least its viewport's height, so on a phone with room to spare [arrange] is
+ * handed the whole viewport. The header, the first child, stays at the top. The body, the second,
+ * is centred between the header's bottom edge and the viewport's: the column's [bottomPadding]
+ * lies below `totalSize` and is counted in, so the gap above the body equals the gap below it down
+ * to the navigation bar. The body never comes nearer the header than [spacing], the gap
+ * `spacedBy` gave it; and once the two overflow the viewport, the column is exactly their height
+ * plus that gap, so they sit as `spacedBy(spacing)` would put them and the column scrolls.
+ */
+private class HeaderPinnedBodyCentred(
+    override val spacing: Dp,
+    private val bottomPadding: Dp,
+) : Arrangement.Vertical {
+    override fun Density.arrange(
+        totalSize: Int,
+        sizes: IntArray,
+        outPositions: IntArray,
+    ) {
+        val headerHeight = sizes[HEADER_INDEX]
+        val bodyHeight = sizes[BODY_INDEX]
+        val nearest = headerHeight + spacing.roundToPx()
+        val slack = totalSize + bottomPadding.roundToPx() - headerHeight - bodyHeight
+        val centred = headerHeight + slack / SLACK_HALVES
+        outPositions[HEADER_INDEX] = PINNED_TOP
+        outPositions[BODY_INDEX] = centred.coerceIn(nearest, maxOf(nearest, totalSize - bodyHeight))
+    }
+}
+
+/** The tutorial column's children, in order: the header, then the body. */
+private const val HEADER_INDEX = 0
+private const val BODY_INDEX = 1
+
+/** The header sits at the very top of the column's content. */
+private const val PINNED_TOP = 0
+
+/** The slack below the header is split into two equal gaps, above the body and below it. */
+private const val SLACK_HALVES = 2
+
 /** The board slab and the canvas inside it are square. */
 private const val SQUARE = 1f
 
@@ -440,6 +536,9 @@ private const val COACH_PULSE_SCALE = 1.06f
 
 /** The star starts collapsed and springs out. */
 private const val STAR_POP_START = 0f
+
+/** The footer before completion: laid out at its full size, drawn not at all. */
+private const val HIDDEN_ALPHA = 0f
 
 /** A pulse is out-and-back, so each leg takes half the total. */
 private const val PULSE_HALVES = 2
