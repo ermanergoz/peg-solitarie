@@ -135,8 +135,13 @@ internal fun BackdropClockDriver(
  * input, a navigation or a resume). Only the backdrop time is scaled by the animator scale; the
  * idle timer and the eases run on unscaled frame time, so delays set in seconds stay seconds.
  * Settled, it awaits no frame at all until something wakes it.
+ *
+ * [fixedIdleDelayMs], when set, replaces the density's idle delay: the Results rays run a clock of
+ * this type with the game screen's delay on a Sparse screen (ux-spec D-RC-3, §4.7's Clock row).
  */
-internal class LiveBackdropClock : BackdropClock {
+internal class LiveBackdropClock(
+    private val fixedIdleDelayMs: Long? = null,
+) : BackdropClock {
     private val time = mutableLongStateOf(0L)
     private var timeExact = 0.0
     override val timeMs: Long get() = time.longValue
@@ -225,7 +230,7 @@ internal class LiveBackdropClock : BackdropClock {
     }
 
     private fun idleDelayMs(density: BackdropDensity): Long =
-        when (density) {
+        fixedIdleDelayMs ?: when (density) {
             BackdropDensity.Landscape -> BackdropMotion.BACKDROP_HOME_IDLE_MS
             BackdropDensity.Quiet -> BackdropMotion.BACKDROP_GAME_IDLE_MS
             // Nothing moves on Sparse: it settles as soon as the cross-fade into it has ended.
